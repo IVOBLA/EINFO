@@ -1,0 +1,30 @@
+[
+  {
+    "name": "KRFS",
+    "subline": "0701",
+    "realname": "KRFS FF Feldkirchen",
+    "color": "#0066ff",
+    "id": 73188852,
+    "code": 99,
+    "lat": 46.7220546,
+    "lng": 14.0966396,
+    "accuracy": 18,
+    "userId": 950,
+    "alertId": null,
+    "created": "2025-10-15T10:39:36.000Z"
+  },
+  {
+    "name": "SLFA",
+    "subline": "0701",
+    "realname": "SLFA FF Feldkirchen",
+    "color": "#0066ff",
+    "id": 73188820,
+    "code": 99,
+    "lat": 46.7219215,
+    "lng": 14.0966889,
+    "accuracy": 11,
+    "userId": 952,
+    "alertId": null,
+    "created": "2025-10-15T10:39:14.000Z"
+  }
+]

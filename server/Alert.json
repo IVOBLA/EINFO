@@ -1,0 +1,42 @@
+[
+  {
+    "alerted": "FF Waiern",
+    "additionalAddressInfo": "Kindergartenstraße\nWaiern - Feldkirchen in Kärnten",
+    "latitude": 46.7254444478,
+    "longitude": 14.0828845467,
+    "type": "T0,\nWespen/Hornissen",
+    "externalId": "23486121"
+  },
+  {
+    "alerted": "FF St.Ulrich/Feldkirchen",
+    "additionalAddressInfo": "Seitenberg - Feldkirchen in Kärnten",
+    "latitude": 46.748302439846,
+    "longitude": 14.0883432946764,
+    "type": "T0,\nWespen/Hornissen",
+    "externalId": "23485221"
+  },
+  {
+    "alerted": "FF Gnesau",
+    "additionalAddressInfo": "Gnesau 58\nGnesau - Gnesau",
+    "latitude": 46.7773905882,
+    "longitude": 13.9700650501,
+    "type": "T0,\nWespen/Hornissen",
+    "externalId": "23484721"
+  },
+  {
+    "alerted": "FF Himmelberg",
+    "additionalAddressInfo": "Tiebel 34\nTiebel - Himmelberg",
+    "latitude": 46.7682453235,
+    "longitude": 13.9949890595,
+    "type": "T0,\nWassertransport/Wasserversorgung",
+    "externalId": "23483921"
+  },
+  {
+    "alerted": "FF Feldkirchen",
+    "additionalAddressInfo": "Wiesenweg 26\nLindl - Feldkirchen in Kärnten",
+    "latitude": 46.7153797242,
+    "longitude": 14.0986667923,
+    "type": "T1,\nFahrzeug bergen unter 3.5t",
+    "externalId": "23479521"
+  }
+]

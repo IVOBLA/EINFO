@@ -1,0 +1,71 @@
+{
+  "columns": {
+    "neu": {
+      "name": "Neu",
+      "items": [
+        {
+          "id": "dg5cjtwm",
+          "content": "Wespen/Hornissen",
+          "createdAt": "2025-10-09T12:04:18.119Z",
+          "statusSince": "2025-10-09T12:04:18.119Z",
+          "assignedVehicles": [],
+          "everVehicles": [],
+          "everPersonnel": 0,
+          "ort": "Bundesstraße West 55\nTschöran - Steindorf am Ossiacher See",
+          "typ": "T0, Wespen/Hornissen",
+          "externalId": "23811621",
+          "alerted": "FF Bodensdorf",
+          "latitude": 46.6805526075,
+          "longitude": 13.970173289,
+          "location": "",
+          "timestamp": "2025-10-08T15:43:58.000Z",
+          "description": ""
+        },
+        {
+          "id": "q568yvaj",
+          "content": "Straßenreinigung",
+          "createdAt": "2025-10-09T12:04:18.117Z",
+          "statusSince": "2025-10-09T12:04:18.117Z",
+          "assignedVehicles": [],
+          "everVehicles": [],
+          "everPersonnel": 0,
+          "ort": "Feuerwehr Gnesau\nGnesau 57\nGnesau - Gnesau",
+          "typ": "T0, Straßenreinigung",
+          "externalId": "23811221",
+          "alerted": "FF Ebene Reichenau, FF Gnesau",
+          "latitude": 46.775669904,
+          "longitude": 13.962933111,
+          "location": "",
+          "timestamp": "2025-10-08T16:52:33.000Z",
+          "description": ""
+        },
+        {
+          "id": "oo12xc8v",
+          "content": "T VU 3, VU Fahrzeugabsturz",
+          "createdAt": "2025-10-09T12:04:18.114Z",
+          "statusSince": "2025-10-09T12:04:18.114Z",
+          "assignedVehicles": [],
+          "everVehicles": [],
+          "everPersonnel": 0,
+          "ort": "Zirkitzen - Bad Kleinkirchheim",
+          "typ": "T VU 3, VU Fahrzeugabsturz",
+          "externalId": "23817421",
+          "alerted": "FF Bad Kleinkirchheim, FF Patergassen",
+          "latitude": 46.8181901394618,
+          "longitude": 13.814997302053,
+          "location": "",
+          "timestamp": "2025-10-09T09:12:11.000Z",
+          "description": "bei der Stampfer Brücke, PKW in Bach, keine Person mehr im Fahrzeug"
+        }
+      ]
+    },
+    "in-bearbeitung": {
+      "name": "In Bearbeitung",
+      "items": []
+    },
+    "erledigt": {
+      "name": "Erledigt",
+      "items": []
+    }
+  }
+}

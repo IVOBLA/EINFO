@@ -1,0 +1,5 @@
+{
+  "enabled": true,
+  "intervalSec": 15,
+  "filename": "list_filtered.json"
+}

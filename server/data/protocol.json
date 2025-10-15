@@ -1,0 +1,103 @@
+[
+  {
+    "datum": "2025-10-15",
+    "zeit": "11:33",
+    "uebermittlungsart": {
+      "kanalNr": "",
+      "ein": false,
+      "aus": false
+    },
+    "anvon": "Von: BLA1",
+    "infoTyp": "Information",
+    "information": "asdasd",
+    "rueckmeldung1": "",
+    "rueckmeldung2": "",
+    "ergehtAn": [],
+    "ergehtAnText": "",
+    "lagebericht": "",
+    "massnahmen": [
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      }
+    ],
+    "nr": 1,
+    "id": "0d17706a-c2c7-4400-939e-b12318a7a973",
+    "printCount": 0,
+    "history": [
+      {
+        "ts": 1760520829309,
+        "action": "create",
+        "by": "::1",
+        "after": {
+          "datum": "2025-10-15",
+          "zeit": "11:33",
+          "uebermittlungsart": {
+            "kanalNr": "",
+            "ein": false,
+            "aus": false
+          },
+          "anvon": "Von: BLA1",
+          "infoTyp": "Information",
+          "information": "asdasd",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAn": [],
+          "ergehtAnText": "",
+          "lagebericht": "",
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "nr": 1,
+          "id": "0d17706a-c2c7-4400-939e-b12318a7a973",
+          "printCount": 0
+        }
+      }
+    ]
+  }
+]
