@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 
-export default function FFFetchControl() {
+export default function FFFetchControl({ disabled = false }) {
   // Laufzustand + globale Creds
   const [running, setRunning] = useState(false);
   const [hasCreds, setHasCreds] = useState(false);
@@ -115,7 +115,7 @@ export default function FFFetchControl() {
   }, [enabled, intervalSec, importInfo.lastLoadedIso]);
 
   return (
-    <div className="flex items-center h-9 gap-2" style={{ alignItems: "center" }}>
+    <div className={`flex items-center h-9 gap-2 ${disabled ? "opacity-60 pointer-events-none" : ""}`} style={{ alignItems: "center" }}>
       {/* Countdown-Chip (wie alt) */}
       <span
         className={`sync-chip ${enabled ? "active" : ""}`}

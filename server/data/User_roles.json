@@ -1,16 +1,8 @@
 {
-  "v": 1,
   "roles": [
-    "Admin",
-    "Disponent",
-    "Mitarbeiter1",
-    "Mitarbeiter2",
-    "Mitarbeiter3",
-    "Mitarbeiter4",
-    "Mitarbeiter5",
-    "Mitarbeiter6",
-    "Mitarbeiter7",
-    "Mitarbeiter8",
-    "Mitarbeiter9"
+    { "id": "S2",    "label": "S2 (Einsatzleitung)", "capabilities": ["einsatz:write","import:control","vehicles:assign"] },
+    { "id": "LtStb", "label": "Leiter Stab",          "capabilities": ["einsatz:write","import:control","vehicles:assign"] },
+    { "id": "user",  "label": "Benutzer",             "capabilities": ["einsatz:read"] },
+    { "id": "dispo", "label": "Disposition",          "capabilities": ["einsatz:read"] }
   ]
 }

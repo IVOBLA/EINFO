@@ -4,7 +4,19 @@ import { useDroppable } from "@dnd-kit/core";
 /**
  * Droppable Spalte. Erwartet `title` als ReactNode (kann also Summen enthalten).
  */
-export default function DroppableColumn({ colId, title, bg, children }) {
+export default function DroppableColumn({ colId, title, bg, children, editable = true }) {
+
+  if (!editable) {
+    return (
+      <section
+        className={`${bg} rounded-xl shadow p-3 h-full flex flex-col min-h-0`}
+      >
+        <h3 className="text-sm font-semibold mb-2">{title}</h3>
+        {children}
+      </section>
+    );
+  }
+
   const { setNodeRef, isOver } = useDroppable({
     id: `col:${colId}`,
     data: { type: "column", colId },

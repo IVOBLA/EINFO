@@ -1,12 +1,17 @@
 import React from "react";
 import { useDraggable } from "@dnd-kit/core";
 
-export function DraggableVehicle({ vehicle, pillWidthPx = 160, near = false, distKm = null }) {
+export function DraggableVehicle({ vehicle, pillWidthPx = 160, near = false, distKm = null, editable = true }) {
   const id = `veh:${vehicle.id}`;
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+  const drag = editable ? useDraggable({
     id,
     data: { type: "vehicle", vehicleId: vehicle.id },
   });
+  const attributes = drag?.attributes ?? {};
+  const listeners = drag?.listeners ?? {};
+  const setNodeRef = drag?.setNodeRef ?? (()=>{});
+  const transform = drag?.transform ?? null;
+  const isDragging = drag?.isDragging ?? false;
 
   return (
     <div

@@ -37,7 +37,7 @@ export default function User_AdminPanel() {
   const [users, setUsers] = useState([]);
   const [fetcherInfo, setFetcherInfo] = useState({ has: false, updatedAt: null });
 
-  const roleChips = useMemo(() => roles.map((r) => ({ key: r, label: r })), [roles]);
+  const roleChips = useMemo(() => roles.map((r) => ({ key: r.id || r, label: (r.label || r.id || r) })), [roles]);
 
   async function refresh() {
     setLoading(true);
@@ -102,8 +102,9 @@ export default function User_AdminPanel() {
   // Rollen speichern (aus Chips)
   async function onSaveRoles() {
     setErr(""); setMsg("");
-    const next = Array.from(new Set(roles)).filter(Boolean);
-    if (!next.includes("Admin")) next.unshift("Admin"); // Schutz
+    // normalize to array of role objects
+    const next = (Array.isArray(roles) ? roles : []).map(r => (typeof r === "string" ? {id:r, label:r, capabilities:[]} : r)).filter(r => r && r.id);
+    if (!next.some(r => (r.id === "Admin"))) next.unshift({ id:"Admin", label:"Administrator", capabilities:["*"] });
     try {
       const r = await put("/roles", { roles: next });
       setRoles(r.roles || next);
@@ -112,12 +113,17 @@ export default function User_AdminPanel() {
   }
   function onRemoveRole(name) {
     if (name === "Admin") return; // Admin darf nicht entfernt werden
-    setRoles((arr) => arr.filter((x) => x !== name));
+    setRoles((arr) => (arr || []).filter((x) => (x.id||x) !== name));
   }
   function onAddRole(name) {
     const n = String(name || "").trim();
     if (!n || n.toLowerCase() === "admin") return;
-    setRoles((arr) => Array.from(new Set([...arr, n])));
+    setRoles((arr) => {
+      const list = Array.isArray(arr) ? arr.slice() : [];
+      if (list.some(r => (r.id||r) === n)) return list;
+      list.push({ id:n, label:n, capabilities:[] });
+      return list;
+    });
   }
 
   // Benutzer anlegen / löschen
@@ -248,7 +254,7 @@ export default function User_AdminPanel() {
           <input name="p" placeholder="passwort" className="border px-2 py-1 rounded" disabled={locked} />
           <input name="d" placeholder="Anzeigename" className="border px-2 py-1 rounded" disabled={locked} />
           <select name="r" className="border px-2 py-1 rounded" disabled={locked}>
-            {roles.map((r) => (<option key={r}>{r}</option>))}
+            {roles.map((r) => (<option key={(r.id||r)} value={(r.id||r)}>{r.label || r.id || r}</option>))}
           </select>
           <button className="border rounded px-3 py-1" disabled={locked}>Anlegen</button>
         </form>

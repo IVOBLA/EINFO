@@ -15,14 +15,21 @@ export default function AssignedVehicleChip({
   onUnassign,
   onClone,
   near = false, 
-  distKm = null, 
+  distKm = null,
+  readonly = false,
 }) {
   const id = `ass:${cardId}:${vehicle.id}`;
 
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+  const drag = readonly ? null : useDraggable({
     id,
     data: { type: "assigned", vehicleId: vehicle.id, fromCardId: cardId },
   });
+
+  const attributes = drag?.attributes ?? {};
+  const listeners = drag?.listeners ?? {};
+  const setNodeRef = drag?.setNodeRef ?? (()=>{});
+  const transform = drag?.transform ?? null;
+  const isDragging = drag?.isDragging ?? false;
 
   const style = {
     width: pillWidthPx,
@@ -40,7 +47,7 @@ export default function AssignedVehicleChip({
                   ${near ? "border-emerald-500 ring-2 ring-emerald-300" : "border-red-300"}
                   ${isDragging ? "opacity-50" : ""}`}
       title="Ziehen: auf andere Karte verschieben · Doppelklick: klonen"
-      onDoubleClick={() => onClone?.(vehicle.id, cardId)}
+      onDoubleClick={() => { if (!readonly) onClone?.(vehicle.id, cardId); }}
     >
       {/* Proximity-Pulse (dezent) */}
       {near && (
@@ -65,6 +72,7 @@ export default function AssignedVehicleChip({
  </div>
 
       {/* X-Button – stoppt Drag-Events */}
+      {!readonly && (
       <button
         type="button"
         onMouseDown={(e) => e.stopPropagation()}
@@ -81,6 +89,7 @@ export default function AssignedVehicleChip({
           <path d="M1 1 L11 11 M11 1 L1 11" stroke="white" strokeWidth="2" strokeLinecap="round" />
         </svg>
       </button>
+      )}
     </div>
   );
 }

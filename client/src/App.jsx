@@ -27,6 +27,8 @@ import { usePlacesAutocomplete } from "./hooks/usePlacesAutocomplete";
 
 // Start/Stop + Import (Icon & Button)
 import FFFetchControl from "./components/FFFetchControl.jsx";
+import { useAuth } from "./auth/User_AuthProvider"; // falls vorhanden
+import { canEdit as canEditRole } from "./auth/roleUtils";
 
 import {
   fetchBoard,
@@ -78,7 +80,9 @@ async function geocodeAddressClient(address) {
 export default function App() {
   const scale = useCompactScale();
 
-
+  const { user } = (typeof useAuth === "function" ? useAuth() : { user: null });
+  const canEdit = canEditRole(user);
+  const readOnly = !canEdit;
 
   // === State =================================================
   const [board, setBoard] = useState(null);
@@ -133,7 +137,7 @@ useEffect(() => {
 // (6) Countdown für Auto-Import / Sync-Chip – läuft nur, wenn Auto-Import aktiv ist
 
 useEffect(() => {
-  if (!unlocked) return;        // kein Timer, wenn gesperrt
+  if (!unlocked || !canEdit) return;        // kein Timer, wenn gesperrt
   if (!autoEnabled) {           // kein Auto-Import -> Timer stoppen + zurücksetzen
     setSec(0);
     return;
@@ -657,6 +661,7 @@ useEffect(() => {
   };
 
   const onDragEnd = async (e) => {
+    if (readOnly) { setOverColId(null); setActiveDrag(null); return; }
     setOverColId(null);
     const { active, over } = e;
     setActiveDrag(null);
@@ -773,11 +778,11 @@ if (route.startsWith("/protokoll/edit/")) {
       <header className="flex items-center justify-between p-3 border-b bg-white shadow">
         <h1 className="text-xl font-bold">Protokoll – Bearbeiten</h1>
         <button
-          onClick={() => { window.location.hash = "/protokoll"; }}
+          onClick={canEdit ? () => { window.location.hash = "/protokoll"; } : undefined}
           className="px-3 py-1.5 rounded-md bg-gray-600 hover:bg-gray-700 text-white"
         >
           Zur Übersicht
-        </button>
+        </button>)}
       </header>
       <div className="flex-1 overflow-auto p-3">
         <ProtokollPage mode="edit" editNr={editNr} />
@@ -864,7 +869,7 @@ if (route.startsWith("/protokoll")) {
 </button>
 		  <button
             onClick={doManualImport}
-            disabled={importBusy}
+            disabled={readOnly || importBusy}
             className="px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-60"
             title="Import sofort ausführen"
           >
@@ -872,7 +877,7 @@ if (route.startsWith("/protokoll")) {
           </button>
 
           <label className="inline-flex items-center gap-2 text-sm px-2 py-1 rounded-md bg-white border">
-            <input type="checkbox" checked={autoEnabled} onChange={toggleAuto} /> Auto-Import
+            <input type="checkbox" checked={autoEnabled} onChange={toggleAuto} disabled={readOnly} /> Auto-Import
           </label>
 
 <label className="interval-capsule flex items-center text-sm text-gray-700 bg-gray-50 border border-gray-300 rounded-md overflow-hidden">
@@ -882,20 +887,20 @@ if (route.startsWith("/protokoll")) {
     min="5"
     max="3600"
     value={autoInterval}
-    onChange={(e) => changeInterval(e.target.value)}
+    onChange={(e) => changeInterval(e.target.value)} disabled={readOnly}
     className="h-9 w-20 bg-white border-0 rounded-none text-center text-gray-800 
                focus:outline-none focus:ring-0 focus:border-0"
   />
 </label>
 
           {/* Feuerwehr-Fetcher Control */}
-          <FFFetchControl autoEnabled={autoEnabled} remaining={remaining} />
+          <FFFetchControl autoEnabled={autoEnabled} remaining={remaining} disabled={readOnly} />
 
 
 
           <button
             onClick={onReset}
-            disabled={loadingReset}
+            disabled={readOnly || loadingReset}
             className={`px-3 py-1.5 rounded-md text-white ${loadingReset ? "bg-gray-400" : "bg-gray-700 hover:bg-gray-800"}`}
           >
             {loadingReset ? "Reset…" : "Reset"}
@@ -939,7 +944,7 @@ if (route.startsWith("/protokoll")) {
           )}
         </div>
 
-        <button className="px-3 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60" disabled={loadingAddCard} onClick={addCard}>
+        <button className="px-3 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60" disabled={readOnly || loadingAddCard} onClick={addCard}>
           {loadingAddCard ? "Wird angelegt…" : "Einsatz anlegen"}
         </button>
       </section>
@@ -966,7 +971,7 @@ if (route.startsWith("/protokoll")) {
                   Einheiten (frei)
                 </button>
               </h3>
-              <button onClick={() => setShowVehModal(true)} className="px-2 py-1 text-sm rounded bg-emerald-600 text-white">
+              {canEdit && (<button onClick={() => setShowVehModal(true)} className="px-2 py-1 text-sm rounded bg-emerald-600 text-white">
                 + Einheit
               </button>
             </div>
@@ -992,7 +997,7 @@ if (route.startsWith("/protokoll")) {
                     {!collapsed && (
                       <div className="px-2 pb-2 grid grid-cols-1 gap-1.5">
                         {list.map((v) => (
-                          <DraggableVehicle
+                          <DraggableVehicle editable={canEdit}
                             key={v.id}
                             vehicle={v}
                             pillWidthPx={160}
@@ -1015,7 +1020,7 @@ if (route.startsWith("/protokoll")) {
             { id: "erledigt", title: "Erledigt", bg: "bg-green-100",   totals: totalsDone },
           ].map(({ id, title, bg, totals }) => (
             <div key={id} className={overColId === id ? "drag-over" : ""}>
-              <DroppableColumn
+              <DroppableColumn editable={canEdit}
                 colId={id}
                 bg={bg}
                 title={
@@ -1037,7 +1042,7 @@ if (route.startsWith("/protokoll")) {
                     strategy={verticalListSortingStrategy}
                   >
                     {(safeBoard.columns[id].items || []).map((c) => (
-                      <SortableCard
+                      <SortableCard editable={canEdit}
                         key={c.id}
                         card={c}
                         colId={id}
@@ -1053,7 +1058,7 @@ if (route.startsWith("/protokoll")) {
                         onOpenMap={(_) => setMapCtx({
                           address: c.ort, card: c, board: safeBoard, vehiclesById: vehiclesByIdObj,
                         })}
-                        onAdvance={async (card) => {
+                        onAdvance={canEdit ? async (card) => {
                           if (id === "neu") {
                             await transitionCard({ cardId: card.id, from: "neu", to: "in-bearbeitung", toIndex: 0 });
                             setBoard(await fetchBoard());
@@ -1062,17 +1067,17 @@ if (route.startsWith("/protokoll")) {
                             setBoard(await fetchBoard());
                           }
                         }}
-                        onEditPersonnelStart={(card, disp) => { setEditing({ cardId: card.id }); setEditingValue(disp); }}
+                        onEditPersonnelStart={canEdit ? (card, disp) => { setEditing({ cardId: card.id }); setEditingValue(disp); } : undefined}
                         editing={editing}
                         editingValue={editingValue}
                         setEditingValue={setEditingValue}
-                        onEditPersonnelSave={async (cardToSave) => {
+                        onEditPersonnelSave={canEdit ? async (cardToSave) => {
                           try {
                             await setCardPersonnel(cardToSave.id, editingValue === "" ? null : Number(editingValue));
                             setBoard(await fetchBoard());
                           } finally { setEditing(null); setEditingValue(""); }
                         }}
-                        onEditPersonnelCancel={() => { setEditing(null); setEditingValue(""); }}
+                        onEditPersonnelCancel={canEdit ? () => { setEditing(null); setEditingValue(""); } : undefined}
                         onClone={cloneVehicleById}
                         onVehiclesIconClick={onVehiclesIconClick}
                         nearIds={nearBySet}
@@ -1123,7 +1128,7 @@ if (route.startsWith("/protokoll")) {
       </DndContext>
 
       {/* (9) FAB */}
-      <button className="fab" title="Einsatz anlegen" onClick={() => setShowAddModal(true)}>＋</button>
+      {canEdit && (<button className="fab" title="Einsatz anlegen" onClick={() => setShowAddModal(true)}>＋</button>)}
 
       <a href="/Hilfe.pdf" target="_blank" rel="noopener noreferrer"
          className="fixed bottom-4 right-4 px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg">

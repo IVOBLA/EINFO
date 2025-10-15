@@ -14,6 +14,8 @@ export function SortableCard(props) {
     nearIds, nearUntilMs,
     distById,
 	pulse,
+    pulse,
+    editable = true,
   } = props;
 
   // Start: in-bearbeitung = offen, erledigt = zu, neu = egal
@@ -23,9 +25,8 @@ export function SortableCard(props) {
 
   const pulseActive = Date.now() < (nearUntilMs || 0);
 
-  const {
-    attributes, listeners, setNodeRef, transform, transition, isDragging,
-  } = useSortable({ id: `card:${card.id}`, data: { type: "card", cardId: card.id } });
+  const sortable = editable ? useSortable({ id: `card:${card.id}`, data: { type: "card", cardId: card.id } }) : { attributes:{}, listeners:{}, setNodeRef:(el)=>{}, transform:null, transition:null, isDragging:false };
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = sortable;
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -91,7 +92,7 @@ export function SortableCard(props) {
     }
   };
 
-  const startEditPersonnel = () => {
+  const startEditPersonnel = () => { if (!editable) return;
     if (typeof onEditPersonnelStart === "function") {
       onEditPersonnelStart(card, persons);
     }
@@ -170,7 +171,7 @@ export function SortableCard(props) {
               👥 {persons}
             </button>
 
-            {onAdvance && (
+            {editable && onAdvance && (
               <button
                 type="button"
                 onPointerDown={(e) => e.stopPropagation()}
@@ -196,6 +197,9 @@ export function SortableCard(props) {
                 onUnassign={onUnassign}
                 onClone={onClone}
                 near={!!nearIds && pulseActive && nearIds.has(String(v.id))}
+                readonly={!editable}
+                readonly={!editable}
+                readonly={!editable}
                 distKm={distById?.get(String(v.id)) ?? null}
               />
             ))}
@@ -213,6 +217,9 @@ export function SortableCard(props) {
                 onUnassign={onUnassign}
                 onClone={onClone}
                 near={!!nearIds && pulseActive && nearIds.has(String(v.id))}
+                readonly={!editable}
+                readonly={!editable}
+                readonly={!editable}
                 distKm={distById?.get(String(v.id)) ?? null}
               />
             ))}
@@ -231,7 +238,7 @@ export function SortableCard(props) {
         )}
 
         {/* Inline-Edit Personen */}
-        {editing?.cardId === card.id && (
+        {editable && editing?.cardId === card.id && (
           <div className="mt-2 flex items-center gap-2">
             <input
               type="number"
