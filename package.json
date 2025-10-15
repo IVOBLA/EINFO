@@ -1,0 +1,22 @@
+{
+  "name": "kanban",
+  "private": true,
+  "workspaces": [
+    "client",
+    "server"
+  ],
+  "scripts": {
+    "dev": "concurrently -k -n CLIENT,SERVER -c magenta,cyan \"npm:dev --workspace=client\" \"npm:dev --workspace=server\"",
+    "build": "npm run build --workspace=client",
+    "start": "npm run start --workspace=server"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.7"
+  },
+  "overrides": {
+    "ansi-styles": "6.2.1"
+  }
+}
