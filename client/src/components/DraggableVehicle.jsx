@@ -6,7 +6,7 @@ export function DraggableVehicle({ vehicle, pillWidthPx = 160, near = false, dis
   const drag = editable ? useDraggable({
     id,
     data: { type: "vehicle", vehicleId: vehicle.id },
-  });
+  }) : null;
   const attributes = drag?.attributes ?? {};
   const listeners = drag?.listeners ?? {};
   const setNodeRef = drag?.setNodeRef ?? (()=>{});
@@ -36,14 +36,14 @@ export function DraggableVehicle({ vehicle, pillWidthPx = 160, near = false, dis
       <div className="text-[13px] font-semibold leading-5 truncate">
         {vehicle.label || vehicle.id}
       </div>
- <div className="text-[12px] text-gray-600 leading-4 truncate flex justify-between items-center">
-   <span>{vehicle.ort || "—"} · 👥 {vehicle.mannschaft ?? 0}</span>
-   {near && Number.isFinite(Number(distKm)) && (
-     <span className="absolute top-1 right-1 text-[11px] tabular-nums text-gray-800 bg-gray-100 px-1.5 py-0.5 rounded whitespace-nowrap">
-       {Number(distKm)} Km
-     </span>
-   )}
- </div>
+      <div className="text-[12px] text-gray-600 leading-4 truncate flex justify-between items-center">
+        <span>{vehicle.ort || "—"} · 👥 {vehicle.mannschaft ?? 0}</span>
+        {near && Number.isFinite(Number(distKm)) && (
+          <span className="absolute top-1 right-1 text-[11px] tabular-nums text-gray-800 bg-gray-100 px-1.5 py-0.5 rounded whitespace-nowrap">
+            {Number(distKm)} Km
+          </span>
+        )}
+      </div>
     </div>
   );
 }

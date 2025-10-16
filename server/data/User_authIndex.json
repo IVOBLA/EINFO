@@ -24,25 +24,14 @@
       }
     },
     {
-      "id": 3,
+      "id": 5,
       "username": "bla",
       "displayName": "bla",
-      "role": "Mitarbeiter2",
+      "role": "S2",
       "pass": {
         "algo": "scrypt",
-        "salt": "xFyH29kOOvfYqLq++LT6QA==",
-        "hash": "FDwN0H/PKoRaWhopGIFeHveHZcUIGQ4ZI60OaL+oca0="
-      }
-    },
-    {
-      "id": 4,
-      "username": "bla2",
-      "displayName": "bla2",
-      "role": "S1",
-      "pass": {
-        "algo": "scrypt",
-        "salt": "tY4oj8+hesX9YGGO9z3UYQ==",
-        "hash": "x9YNh02qiRJRanpl7sxUo8pO73JTO8xIHO2sKWLDxVk="
+        "salt": "xMQp2VpPP9zlokjw+F53mg==",
+        "hash": "dBT7ay0gpCSkDkV3ss2I8Nio97v4BoqcUUlFjyaGcU4="
       }
     }
   ]

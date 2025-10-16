@@ -1,7 +1,11 @@
 // client/src/pages/ProtokollPage.jsx
 import { useEffect, useRef, useState } from "react";
+import { initRolePolicy, canEditApp, isReadOnlyApp } from "../auth/roleUtils";
 
 const ERGEHT_OPTIONS = ["EL", "LtStb", "S1", "S2", "S3", "S4", "S5", "S6"];
+
+const canEdit  = canEditApp("protokoll");
+const readOnly = !canEdit;
 
 const LS_KEYS = {
   anvon: "prot_sugg_anvon",

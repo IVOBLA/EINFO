@@ -1,8 +1,41 @@
 {
+  "v": 2,
   "roles": [
-    { "id": "S2",    "label": "S2 (Einsatzleitung)", "capabilities": ["einsatz:write","import:control","vehicles:assign"] },
-    { "id": "LtStb", "label": "Leiter Stab",          "capabilities": ["einsatz:write","import:control","vehicles:assign"] },
-    { "id": "user",  "label": "Benutzer",             "capabilities": ["einsatz:read"] },
-    { "id": "dispo", "label": "Disposition",          "capabilities": ["einsatz:read"] }
+    {
+      "id": "Admin",
+      "label": "Administrator",
+      "apps": {
+        "einsatzboard": "edit",
+        "aufgabenboard": "edit",
+        "protokoll": "edit"
+      }
+    },
+    {
+      "id": "S2",
+      "label": "S2",
+      "apps": {
+        "einsatzboard": "edit",
+        "aufgabenboard": "edit",
+        "protokoll": "edit"
+      }
+    },
+    {
+      "id": "LtStb",
+      "label": "Leiter Stab",
+      "apps": {
+        "einsatzboard": "edit",
+        "aufgabenboard": "edit",
+        "protokoll": "edit"
+      }
+    },
+    {
+      "id": "Mitarbeiter",
+      "label": "Mitarbeiter",
+      "apps": {
+        "einsatzboard": "view",
+        "aufgabenboard": "view",
+        "protokoll": "view"
+      }
+    }
   ]
 }

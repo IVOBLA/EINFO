@@ -15,6 +15,7 @@ import AufgDroppableColumn from "../components/AufgDroppableColumn.jsx";
 import AufgAddModal from "../components/AufgAddModal.jsx";
 import AufgInfoModal from "../components/AufgInfoModal.jsx";
 import AufgSortableCard from "../components/AufgSortableCard.jsx";
+import { initRolePolicy, canEditApp, isReadOnlyApp } from "../auth/roleUtils";
 
 const STATUS = { NEW: "Neu", IN_PROGRESS: "In Bearbeitung", DONE: "Erledigt" };
 const COLS = [STATUS.NEW, STATUS.IN_PROGRESS, STATUS.DONE];
@@ -32,6 +33,8 @@ export default function AufgApp() {
   const [filter, setFilter] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const [activeItem, setActiveItem] = useState(null);
+  useEffect(() => { initRolePolicy(); }, []);
+  const canEdit = canEditApp('aufgabenboard');
 
   // DnD
   const [draggingItem, setDraggingItem] = useState(null);

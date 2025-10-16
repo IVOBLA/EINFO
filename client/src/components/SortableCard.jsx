@@ -13,8 +13,8 @@ export function SortableCard(props) {
     onShowInfo,
     nearIds, nearUntilMs,
     distById,
-	pulse,
     pulse,
+    // NEW: role-gating
     editable = true,
   } = props;
 
@@ -25,7 +25,10 @@ export function SortableCard(props) {
 
   const pulseActive = Date.now() < (nearUntilMs || 0);
 
-  const sortable = editable ? useSortable({ id: `card:${card.id}`, data: { type: "card", cardId: card.id } }) : { attributes:{}, listeners:{}, setNodeRef:(el)=>{}, transform:null, transition:null, isDragging:false };
+  // DnD only when editable
+  const sortable = editable
+    ? useSortable({ id: `card:${card.id}`, data: { type: "card", cardId: card.id } })
+    : { attributes:{}, listeners:{}, setNodeRef:(el)=>{}, transform:null, transition:null, isDragging:false };
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = sortable;
 
   const style = {
@@ -92,33 +95,34 @@ export function SortableCard(props) {
     }
   };
 
-  const startEditPersonnel = () => { if (!editable) return;
+  const startEditPersonnel = () => {
+    if (!editable) return;
     if (typeof onEditPersonnelStart === "function") {
       onEditPersonnelStart(card, persons);
     }
   };
 
   return (
-<li
-  ref={setNodeRef}
-  style={style}
- className={`relative rounded-lg bg-white shadow border transition mx-1
+    <li
+      ref={setNodeRef}
+      style={style}
+      className={`relative rounded-lg bg-white shadow border transition mx-1
               ${pulse && colId === "neu" ? "ring-2 ring-red-400/60" : ""}`}
->
- {pulse && colId === "neu" && (
-   <>
-     {/* Innerer, weicher Licht-Impuls */}
-     <span
-       aria-hidden
-       className="pointer-events-none absolute inset-0 rounded-lg bg-red-500/10 animate-pulse-inner"
-     />
- {/* Äußerer Ping als Shadow-Welle (overflow-sicher) */}
- <span
-   aria-hidden
-   className="pointer-events-none absolute inset-0 rounded-lg animate-ping-safe"
- />
-   </>
- )}
+    >
+      {pulse && colId === "neu" && (
+        <>
+          {/* Innerer, weicher Licht-Impuls */}
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 rounded-lg bg-red-500/10 animate-pulse-inner"
+          />
+          {/* Äußerer Ping als Shadow-Welle (overflow-sicher) */}
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 rounded-lg animate-ping-safe"
+          />
+        </>
+      )}
       <div className="p-3 select-none">
         {/* Header */}
         <div className="flex items-start justify-between gap-2" {...attributes} {...listeners}>
@@ -198,8 +202,6 @@ export function SortableCard(props) {
                 onClone={onClone}
                 near={!!nearIds && pulseActive && nearIds.has(String(v.id))}
                 readonly={!editable}
-                readonly={!editable}
-                readonly={!editable}
                 distKm={distById?.get(String(v.id)) ?? null}
               />
             ))}
@@ -217,8 +219,6 @@ export function SortableCard(props) {
                 onUnassign={onUnassign}
                 onClone={onClone}
                 near={!!nearIds && pulseActive && nearIds.has(String(v.id))}
-                readonly={!editable}
-                readonly={!editable}
                 readonly={!editable}
                 distKm={distById?.get(String(v.id)) ?? null}
               />

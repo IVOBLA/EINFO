@@ -27,8 +27,7 @@ import { usePlacesAutocomplete } from "./hooks/usePlacesAutocomplete";
 
 // Start/Stop + Import (Icon & Button)
 import FFFetchControl from "./components/FFFetchControl.jsx";
-import { useAuth } from "./auth/User_AuthProvider"; // falls vorhanden
-import { canEdit as canEditRole } from "./auth/roleUtils";
+import { initRolePolicy, canEditApp, isReadOnlyApp } from "./auth/roleUtils";
 
 import {
   fetchBoard,
@@ -79,11 +78,15 @@ async function geocodeAddressClient(address) {
 
 export default function App() {
   const scale = useCompactScale();
+  useEffect(() => { initRolePolicy(); }, []);
 
-  const { user } = (typeof useAuth === "function" ? useAuth() : { user: null });
-  const canEdit = canEditRole(user);
-  const readOnly = !canEdit;
 
+
+
+  // role gating
+  const user = (typeof window !== "undefined" && window.__USER__) || null;
+  const canEdit  = canEditApp('einsatzboard');
+  const readOnly = isReadOnlyApp('einsatzboard');
   // === State =================================================
   const [board, setBoard] = useState(null);
   const [vehicles, setVehicles] = useState([]);
@@ -137,7 +140,7 @@ useEffect(() => {
 // (6) Countdown für Auto-Import / Sync-Chip – läuft nur, wenn Auto-Import aktiv ist
 
 useEffect(() => {
-  if (!unlocked || !canEdit) return;        // kein Timer, wenn gesperrt
+  if (!unlocked || !canEdit) return;        // kein Timer, wenn gesperrt oder read-only
   if (!autoEnabled) {           // kein Auto-Import -> Timer stoppen + zurücksetzen
     setSec(0);
     return;
@@ -778,11 +781,11 @@ if (route.startsWith("/protokoll/edit/")) {
       <header className="flex items-center justify-between p-3 border-b bg-white shadow">
         <h1 className="text-xl font-bold">Protokoll – Bearbeiten</h1>
         <button
-          onClick={canEdit ? () => { window.location.hash = "/protokoll"; } : undefined}
+          onClick={() => { window.location.hash = "/protokoll"; }}
           className="px-3 py-1.5 rounded-md bg-gray-600 hover:bg-gray-700 text-white"
         >
           Zur Übersicht
-        </button>)}
+        </button>
       </header>
       <div className="flex-1 overflow-auto p-3">
         <ProtokollPage mode="edit" editNr={editNr} />
@@ -971,9 +974,11 @@ if (route.startsWith("/protokoll")) {
                   Einheiten (frei)
                 </button>
               </h3>
-              {canEdit && (<button onClick={() => setShowVehModal(true)} className="px-2 py-1 text-sm rounded bg-emerald-600 text-white">
+              {canEdit && (
+              <button onClick={() => setShowVehModal(true)} className="px-2 py-1 text-sm rounded bg-emerald-600 text-white">
                 + Einheit
               </button>
+            )}
             </div>
 
             <div className="overflow-auto pr-1 flex-1 min-h-0 space-y-3">
@@ -1066,7 +1071,7 @@ if (route.startsWith("/protokoll")) {
                             await transitionCard({ cardId: card.id, from: "in-bearbeitung", to: "erledigt", toIndex: 0 });
                             setBoard(await fetchBoard());
                           }
-                        }}
+                        } : undefined}
                         onEditPersonnelStart={canEdit ? (card, disp) => { setEditing({ cardId: card.id }); setEditingValue(disp); } : undefined}
                         editing={editing}
                         editingValue={editingValue}
@@ -1076,7 +1081,7 @@ if (route.startsWith("/protokoll")) {
                             await setCardPersonnel(cardToSave.id, editingValue === "" ? null : Number(editingValue));
                             setBoard(await fetchBoard());
                           } finally { setEditing(null); setEditingValue(""); }
-                        }}
+                        } : undefined}
                         onEditPersonnelCancel={canEdit ? () => { setEditing(null); setEditingValue(""); } : undefined}
                         onClone={cloneVehicleById}
                         onVehiclesIconClick={onVehiclesIconClick}
