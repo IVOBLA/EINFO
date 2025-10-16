@@ -78,15 +78,13 @@ async function geocodeAddressClient(address) {
 
 export default function App() {
   const scale = useCompactScale();
-  useEffect(() => { initRolePolicy(); }, []);
-
-
-
 
   // role gating
   const user = (typeof window !== "undefined" && window.__USER__) || null;
-  const canEdit  = canEditApp('einsatzboard');
-  const readOnly = isReadOnlyApp('einsatzboard');
+const [policyReady, setPolicyReady] = useState(false);
+useEffect(() => { initRolePolicy().then(() => setPolicyReady(true)); }, []);
+const canEdit  = policyReady && canEditApp("einsatzboard");
+const readOnly = !canEdit;
   // === State =================================================
   const [board, setBoard] = useState(null);
   const [vehicles, setVehicles] = useState([]);

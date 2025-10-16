@@ -222,3 +222,18 @@
     at findCardByExternalId (file:///E:/Kanban39/server/server.js:406:29)
     at importFromFileOnce (file:///E:/Kanban39/server/server.js:905:22)
     at async Timeout._onTimeout (file:///E:/Kanban39/server/server.js:954:15)
+[16.10.2025, 10:42:18] [auto-config/restart-fetcher] Error: MASTER_LOCKED
+    at User_getGlobalFetcher (file:///D:/FF/Kanban40/server/User_store.mjs:236:22)
+    at file:///D:/FF/Kanban40/server/server.js:833:22
+[16.10.2025, 10:42:18] [ff/start] Error: MASTER_LOCKED
+    at User_getGlobalFetcher (file:///D:/FF/Kanban40/server/User_store.mjs:236:22)
+    at file:///D:/FF/Kanban40/server/server.js:897:22
+[16.10.2025, 10:42:37] [auto-config/restart-fetcher] Error: MASTER_LOCKED
+    at User_getGlobalFetcher (file:///D:/FF/Kanban40/server/User_store.mjs:236:22)
+    at file:///D:/FF/Kanban40/server/server.js:833:22
+[16.10.2025, 10:42:37] [ff/start] Error: MASTER_LOCKED
+    at User_getGlobalFetcher (file:///D:/FF/Kanban40/server/User_store.mjs:236:22)
+    at file:///D:/FF/Kanban40/server/server.js:897:22
+[16.10.2025, 10:43:07] [ff/start] Error: MASTER_LOCKED
+    at User_getGlobalFetcher (file:///D:/FF/Kanban40/server/User_store.mjs:236:22)
+    at file:///D:/FF/Kanban40/server/server.js:897:22

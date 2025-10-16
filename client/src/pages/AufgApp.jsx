@@ -1,318 +1,444 @@
 // client/src/pages/AufgApp.jsx
-import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   closestCenter,
-  MouseSensor,
-  TouchSensor,
   useSensor,
   useSensors,
-  DragOverlay,
+  PointerSensor,
 } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
 
-import AufgDroppableColumn from "../components/AufgDroppableColumn.jsx";
-import AufgAddModal from "../components/AufgAddModal.jsx";
-import AufgInfoModal from "../components/AufgInfoModal.jsx";
-import AufgSortableCard from "../components/AufgSortableCard.jsx";
-import { initRolePolicy, canEditApp, isReadOnlyApp } from "../auth/roleUtils";
+// (deine vorhandenen Komponenten bitte beibehalten)
+import AufgSortableCard from "../components/AufgSortableCard";
+import AufgAddModal from "../components/AufgAddModal";
 
-const STATUS = { NEW: "Neu", IN_PROGRESS: "In Bearbeitung", DONE: "Erledigt" };
-const COLS = [STATUS.NEW, STATUS.IN_PROGRESS, STATUS.DONE];
+import { initRolePolicy, canEditApp } from "../auth/roleUtils";
 
-function nextStatus(s) {
-  if (s === STATUS.NEW) return STATUS.IN_PROGRESS;
-  if (s === STATUS.IN_PROGRESS) return STATUS.DONE;
-  return STATUS.DONE; // bleibt in Erledigt
+// -----------------------------------------------------
+// Hilfsfunktionen: User & Rolle robust ermitteln
+// -----------------------------------------------------
+function getCurrentUser() {
+  try {
+    const w = typeof window !== "undefined" ? window : {};
+    const ls = w.localStorage;
+    const ss = w.sessionStorage;
+    const candidates = [
+      () => w.__APP_AUTH__?.user,
+      () => w.__USER__,
+      () => (ls && JSON.parse(ls.getItem("auth.user") || "null")) || null,
+      () => (ls && JSON.parse(ls.getItem("user") || "null")) || null,
+      () => (ss && JSON.parse(ss.getItem("auth.user") || "null")) || null,
+      () => (ss && JSON.parse(ss.getItem("user") || "null")) || null,
+    ];
+    for (const f of candidates) {
+      const u = f?.();
+      if (u) return u;
+    }
+  } catch {}
+  return null;
+}
+function getPrimaryRoleId(user) {
+  if (!user) return null;
+  // akzeptiere String oder Objekt
+  if (typeof user.role === "string") return user.role.trim().toUpperCase();
+  if (user.role && typeof user.role.id === "string")
+    return user.role.id.trim().toUpperCase();
+  // optional: falls Mehrfachrollen existieren
+  if (Array.isArray(user.roles) && user.roles.length) {
+    const first = user.roles[0];
+    if (typeof first === "string") return first.trim().toUpperCase();
+    if (first && typeof first.id === "string")
+      return first.id.trim().toUpperCase();
+  }
+  return null;
 }
 
+// -----------------------------------------------------
+// Datenformate & Konstanten
+// -----------------------------------------------------
+const COLS = ["neu", "in-bearbeitung", "erledigt"];
+
+function emptyLists() {
+  return {
+    "neu": [],
+    "in-bearbeitung": [],
+    "erledigt": [],
+  };
+}
+
+// Lokaler Storage-Key pro Rolle, falls API/Fallback nicht verfügbar
+const lsKeyForRole = (roleId) => `aufg:board:${roleId}`;
+
+// Kandidaten-URLs zum Laden/Speichern pro Rolle
+const urlCandidates = (roleId) => ({
+  load: [
+    // bevorzugte API-Routen
+    `/api/aufgaben/board/${encodeURIComponent(roleId)}`,
+    `/api/aufgaben/board?role=${encodeURIComponent(roleId)}`,
+    // statische Fallback-Datei (wenn gewünscht bereitgestellt)
+    `/Aufg_board_${encodeURIComponent(roleId)}.json`,
+  ],
+  save: [
+    // bevorzugt PUT mit Role-Pfad/Query
+    { url: `/api/aufgaben/board/${encodeURIComponent(roleId)}`, method: "PUT" },
+    { url: `/api/aufgaben/board?role=${encodeURIComponent(roleId)}`, method: "PUT" },
+  ],
+});
+
+// -----------------------------------------------------
+// API-Hilfen (mit Fallbacks)
+// -----------------------------------------------------
+async function fetchJSON(url) {
+  const r = await fetch(url, { cache: "no-store" });
+  if (!r.ok) throw new Error(`${r.status}`);
+  return await r.json();
+}
+async function postJSON(url, body, method = "PUT") {
+  const r = await fetch(url, {
+    method,
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!r.ok) throw new Error(`${r.status}`);
+  return await r.json().catch(() => ({}));
+}
+
+async function loadBoardForRole(roleId) {
+  const { load } = urlCandidates(roleId);
+  for (const url of load) {
+    try {
+      const data = await fetchJSON(url);
+      // akzeptiere { lists } oder direkt ein Objekt mit Spalten
+      const lists = data?.lists && typeof data.lists === "object" ? data.lists : data;
+      if (lists && typeof lists === "object") return normalizeLists(lists);
+    } catch {
+      // nächste Option probieren
+    }
+  }
+  // Fallback: localStorage
+  try {
+    const raw = localStorage.getItem(lsKeyForRole(roleId));
+    if (raw) {
+      const obj = JSON.parse(raw);
+      if (obj && obj.lists) return normalizeLists(obj.lists);
+      return normalizeLists(obj);
+    }
+  } catch {}
+  // leer zurück
+  return emptyLists();
+}
+
+async function saveBoardForRole(roleId, lists) {
+  const body = { v: 1, role: roleId, lists };
+  const { save } = urlCandidates(roleId);
+  for (const { url, method } of save) {
+    try {
+      await postJSON(url, body, method);
+      return true;
+    } catch {
+      // nächste Option probieren
+    }
+  }
+  // Fallback: localStorage
+  try {
+    localStorage.setItem(lsKeyForRole(roleId), JSON.stringify(body));
+    return true;
+  } catch {}
+  return false;
+}
+
+function normalizeLists(listsIn) {
+  const out = emptyLists();
+  for (const col of COLS) {
+    const arr = Array.isArray(listsIn[col]) ? listsIn[col] : [];
+    // defensive Kopie + Pflichtfelder
+    out[col] = arr.map((it) => ({
+      id: it.id ?? crypto.randomUUID?.() ?? String(Math.random()).slice(2),
+      title: String(it.title ?? it.content ?? "Aufgabe"),
+      content: it.content ?? it.title ?? "",
+      col: col,
+      // weitere optionale Felder bleiben erhalten
+      ...it,
+    }));
+  }
+  return out;
+}
+
+// =====================================================
+//  AUFGABEN-BOARD (pro Rolle)
+// =====================================================
 export default function AufgApp() {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [filter, setFilter] = useState("");
+  // 1) Rollen-Policy laden (für edit/view)
+  const [policyReady, setPolicyReady] = useState(false);
+  useEffect(() => {
+    initRolePolicy().then(() => setPolicyReady(true));
+  }, []);
+
+  // 2) User & Rolle bestimmen
+  const user = getCurrentUser();
+  const roleId = useMemo(() => getPrimaryRoleId(user), [user]);
+
+  // 3) Edit-Recht (nur für diese App) – erst nach Policy-Load sinnvoll
+  const canEdit = policyReady && canEditApp("aufgabenboard");
+  const readOnly = !canEdit;
+
+  // 4) Board-State
+  const [lists, setLists] = useState(emptyLists());
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  // UI-State
   const [addOpen, setAddOpen] = useState(false);
   const [activeItem, setActiveItem] = useState(null);
-  useEffect(() => { initRolePolicy(); }, []);
-  const canEdit = canEditApp('aufgabenboard');
 
   // DnD
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
   const [draggingItem, setDraggingItem] = useState(null);
   const [overColId, setOverColId] = useState(null);
   const originColRef = useRef(null);
   const lastOverRef = useRef(null);
 
-  const sensors = useSensors(
-    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 6 } })
-  );
-
-  // ---- Daten laden ----
-  async function load() {
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch("/api/aufgaben", { cache: "no-store" });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-
-      const arr = Array.isArray(data?.items) ? data.items : (data?.incidents || []);
-      const mapped = arr
-        .filter((x) => x && typeof x === "object")
-        .map((x) => ({
-          id: x.id ?? x._id ?? x.key ?? String(Math.random()).slice(2),
-          title: x.title ?? x.name ?? "",
-          type: x.type ?? x.category ?? "",
-          status: ["Neu", "In Bearbeitung", "Erledigt"].includes(x.status) ? x.status : STATUS.NEW,
-          responsible: x.responsible ?? x.verantwortlich ?? "",
-          desc: x.desc ?? x.beschreibung ?? "",
-          createdAt: x.createdAt ?? x.created_at ?? null,
-          updatedAt: x.updatedAt ?? x.updated_at ?? null,
-        }));
-      setItems(mapped);
-    } catch (e) {
-      setError(String(e?.message || e));
-    } finally {
-      setLoading(false);
+  // Map für Lookup
+  const itemsById = useMemo(() => {
+    const m = new Map();
+    for (const col of COLS) {
+      for (const it of lists[col]) m.set(it.id, it);
     }
-  }
-  useEffect(() => { load(); }, []);
-
-  // ---- Persistierung DnD / Statuswechsel ----
-  async function persistReorder({ id, toStatus, beforeId }) {
-    try {
-      const r = await fetch("/api/aufgaben/reorder", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, toStatus, beforeId }),
-      });
-      return r.ok;
-    } catch {
-      return false;
-    }
-  }
-
-  // ---- Filter + Spaltenlisten ----
-  const filtered = useMemo(() => {
-    const q = filter.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter((x) =>
-      [x.title, x.type, x.responsible, x.desc]
-        .filter(Boolean)
-        .some((s) => String(s).toLowerCase().includes(q))
-    );
-  }, [items, filter]);
-
-  const lists = useMemo(
-    () => ({
-      [STATUS.NEW]: filtered.filter((x) => (x.status || STATUS.NEW) === STATUS.NEW),
-      [STATUS.IN_PROGRESS]: filtered.filter((x) => x.status === STATUS.IN_PROGRESS),
-      [STATUS.DONE]: filtered.filter((x) => x.status === STATUS.DONE),
-    }),
-    [filtered]
-  );
-
-  const listIds = useMemo(
-    () => ({
-      [STATUS.NEW]: lists[STATUS.NEW].map((x) => x.id),
-      [STATUS.IN_PROGRESS]: lists[STATUS.IN_PROGRESS].map((x) => x.id),
-      [STATUS.DONE]: lists[STATUS.DONE].map((x) => x.id),
-    }),
-    [lists]
-  );
+    return m;
+  }, [lists]);
 
   const getColByItemId = useCallback(
     (id) => {
-      if (!id) return null;
-      if (listIds[STATUS.NEW].includes(id)) return STATUS.NEW;
-      if (listIds[STATUS.IN_PROGRESS].includes(id)) return STATUS.IN_PROGRESS;
-      if (listIds[STATUS.DONE].includes(id)) return STATUS.DONE;
+      for (const c of COLS) {
+        if (lists[c].some((x) => x.id === id)) return c;
+      }
       return null;
     },
-    [listIds]
+    [lists]
   );
 
-  // ---- Status per Pfeil vorwärts schalten ----
+  // 5) Laden des rollen-spezifischen Boards
+  useEffect(() => {
+    let gone = false;
+    (async () => {
+      if (!roleId) {
+        setLists(emptyLists());
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      const loaded = await loadBoardForRole(roleId).catch(() => emptyLists());
+      if (!gone) {
+        setLists(loaded);
+        setLoading(false);
+      }
+    })();
+    return () => {
+      gone = true;
+    };
+  }, [roleId]);
+
+  // 6) Speichern – nur bei canEdit
+  const persist = useCallback(
+    async (nextLists) => {
+      setLists(nextLists);
+      if (!canEdit || !roleId) return;
+      setSaving(true);
+      try {
+        await saveBoardForRole(roleId, nextLists);
+      } finally {
+        setSaving(false);
+      }
+    },
+    [canEdit, roleId]
+  );
+
+  // 7) „Neu“ hinzufügen
+  const addItem = useCallback(
+    (data) => {
+      const base = {
+        id: crypto.randomUUID?.() ?? String(Date.now()),
+        title: data?.title || "Neue Aufgabe",
+        content: data?.content || "",
+      };
+      const next = {
+        ...lists,
+        neu: [{ ...base, col: "neu" }, ...lists.neu],
+      };
+      persist(next);
+    },
+    [lists, persist]
+  );
+
+  // 8) „Weiter“ (Status vorziehen)
   const advance = useCallback(
     (item) => {
-      const to = nextStatus(item?.status || STATUS.NEW);
-      if (to === item?.status) return;
-      setItems((prev) => prev.map((x) => (x.id === item.id ? { ...x, status: to } : x)));
-      void persistReorder({ id: item.id, toStatus: to, beforeId: null }); // ans Ende der Zielspalte
+      const col = getColByItemId(item.id);
+      if (!col) return;
+      const idx = COLS.indexOf(col);
+      const toCol = COLS[Math.min(idx + 1, COLS.length - 1)];
+      if (toCol === col) return;
+      const fromList = lists[col].filter((x) => x.id !== item.id);
+      const toList = [{ ...item, col: toCol }, ...lists[toCol]];
+      persist({ ...lists, [col]: fromList, [toCol]: toList });
     },
-    []
+    [lists, getColByItemId, persist]
   );
 
-  // ---- DnD ----
-  const onDragStart = useCallback(({ active }) => {
-    const id = active?.id;
-    originColRef.current = getColByItemId(id);
-    setDraggingItem(items.find((x) => x.id === id) || null);
-  }, [items, getColByItemId]);
+  // 9) DnD-Handler — im View-Modus blockieren
+  const onDragStart = useCallback(
+    ({ active }) => {
+      if (!canEdit) return;
+      const id = active?.id;
+      originColRef.current = getColByItemId(id);
+      setDraggingItem(itemsById.get(id) || null);
+    },
+    [canEdit, getColByItemId, itemsById]
+  );
 
-  const onDragOver = useCallback(({ over }) => {
-    if (!over) { setOverColId(null); return; }
-    lastOverRef.current = over.id;
-    const oid = over.id;
-    const toCol = COLS.includes(oid) ? oid : getColByItemId(oid);
-    setOverColId(toCol || null);
-  }, [getColByItemId]);
+  const onDragOver = useCallback(
+    ({ over }) => {
+      if (!canEdit) {
+        setOverColId(null);
+        return;
+      }
+      if (!over) {
+        setOverColId(null);
+        return;
+      }
+      lastOverRef.current = over.id;
+      const oid = over.id;
+      const toCol = COLS.includes(oid) ? oid : getColByItemId(oid);
+      setOverColId(toCol || null);
+    },
+    [canEdit, getColByItemId]
+  );
 
-  const onDragEnd = useCallback(({ active, over }) => {
-    setDraggingItem(null);
-    setOverColId(null);
+  const onDragEnd = useCallback(
+    ({ active, over }) => {
+      if (!canEdit) {
+        setDraggingItem(null);
+        setOverColId(null);
+        return;
+      }
+      setDraggingItem(null);
+      setOverColId(null);
+      const id = active?.id;
+      const fromCol = originColRef.current || getColByItemId(id);
+      const overId = over?.id ?? lastOverRef.current;
+      const toCol = COLS.includes(overId) ? overId : getColByItemId(overId);
+      if (!fromCol || !toCol) return;
 
-    const dropId = over?.id ?? lastOverRef.current;
-    if (!dropId) return;
+      if (fromCol === toCol) {
+        // gleiche Spalte: Reihenfolge ändern
+        const idxOld = lists[fromCol].findIndex((x) => x.id === id);
+        const idxNew =
+          COLS.includes(overId)
+            ? lists[fromCol].length - 1
+            : lists[fromCol].findIndex((x) => x.id === overId);
+        if (idxOld < 0 || idxNew < 0 || idxOld === idxNew) return;
+        const reordered = arrayMove(lists[fromCol], idxOld, idxNew);
+        persist({ ...lists, [fromCol]: reordered });
+      } else {
+        // Spalte wechseln
+        const item = itemsById.get(id);
+        if (!item) return;
+        const fromList = lists[fromCol].filter((x) => x.id !== id);
+        const toList = [{ ...item, col: toCol }, ...lists[toCol]];
+        persist({ ...lists, [fromCol]: fromList, [toCol]: toList });
+      }
+    },
+    [canEdit, lists, getColByItemId, itemsById, persist]
+  );
 
-    const activeId = active.id;
-    const fromCol = originColRef.current || getColByItemId(activeId);
-    let toCol = COLS.includes(dropId) ? dropId : getColByItemId(dropId) || fromCol;
-    if (!fromCol || !toCol) return;
-
-    if (fromCol !== toCol) {
-      const beforeId = COLS.includes(dropId) ? null : dropId;
-      setItems((prev) => prev.map((x) => (x.id === activeId ? { ...x, status: toCol } : x)));
-      void persistReorder({ id: activeId, toStatus: toCol, beforeId });
-      originColRef.current = null; lastOverRef.current = null;
-      return;
-    }
-
-    // Reorder innerhalb der Spalte
-    const curList = lists[toCol];
-    const oldIndex = curList.findIndex((x) => x.id === activeId);
-
-    let newIndex, beforeId = null;
-    if (COLS.includes(dropId)) {
-      newIndex = curList.length - 1;
-    } else {
-      const overIndex = curList.findIndex((x) => x.id === dropId);
-      newIndex = overIndex < 0 ? curList.length - 1 : overIndex;
-      beforeId = curList[newIndex]?.id ?? null;
-    }
-
-    if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
-      const reordered = arrayMove(curList, oldIndex, newIndex);
-      setItems((prev) => {
-        const others = prev.filter((x) => x.status !== toCol);
-        return [...others, ...reordered];
-      });
-      void persistReorder({ id: activeId, toStatus: toCol, beforeId });
-    }
-    originColRef.current = null; lastOverRef.current = null;
-  }, [getColByItemId, lists]);
+  // 10) UI
+  const roleBadge = roleId ? roleId : "—";
 
   return (
-    <div className="p-4">
-      <header className="mb-4 flex flex-wrap items-center gap-3">
-        <h1 className="text-lg font-bold">Aufgaben</h1>
-        <div className="ml-auto flex items-center gap-2">
-          <input
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            placeholder="Suche Titel / Typ / Verantwortlich…"
-            className="px-3 py-2 text-sm rounded-xl border"
-          />
-          <button onClick={() => setAddOpen(true)} className="text-sm px-3 py-2 rounded-xl bg-sky-600 text-white">
+    <div className="h-full flex flex-col">
+      {/* Kopfzeile */}
+      <div className="px-3 py-2 border-b flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <h1 className="text-lg font-semibold">Aufgaben-Board</h1>
+          <span
+            className="inline-flex items-center text-xs px-2 py-0.5 rounded-full bg-gray-100 border"
+            title="Rollen-ID dieses Boards"
+          >
+            Rolle: {roleBadge}
+          </span>
+          {saving && (
+            <span className="text-xs text-gray-500" title="Speichern …">
+              (speichert …)
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => canEdit && setAddOpen(true)}
+            disabled={!canEdit}
+            className="text-sm px-3 py-2 rounded-xl bg-sky-600 text-white disabled:opacity-60"
+          >
             Neu
           </button>
-          <button onClick={load} className="text-sm px-3 py-2 rounded-xl border" disabled={loading}>
-            {loading ? "Lädt…" : "Neu laden"}
-          </button>
         </div>
-      </header>
+      </div>
 
-      {error && <div className="mb-3 text-sm text-red-600">{error}</div>}
-
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={onDragStart}
-        onDragOver={onDragOver}
-        onDragEnd={onDragEnd}
-      >
-        <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
-          <div className={overColId === STATUS.NEW ? "drag-over" : ""}>
-            <AufgDroppableColumn
-              id={STATUS.NEW}
-              title="Neu"
-              bg="bg-red-100"
-              count={lists[STATUS.NEW].length}
-              itemIds={listIds[STATUS.NEW]}
-            >
-              {lists[STATUS.NEW].map((it) => (
-                <AufgSortableCard
-                  key={it.id}
-                  item={it}
-                  onAdvance={advance}
-                  onShowInfo={setActiveItem}
-                />
-              ))}
-            </AufgDroppableColumn>
-          </div>
-
-          <div className={overColId === STATUS.IN_PROGRESS ? "drag-over" : ""}>
-            <AufgDroppableColumn
-              id={STATUS.IN_PROGRESS}
-              title="In Bearbeitung"
-              bg="bg-yellow-100"
-              count={lists[STATUS.IN_PROGRESS].length}
-              itemIds={listIds[STATUS.IN_PROGRESS]}
-            >
-              {lists[STATUS.IN_PROGRESS].map((it) => (
-                <AufgSortableCard
-                  key={it.id}
-                  item={it}
-                  onAdvance={advance}
-                  onShowInfo={setActiveItem}
-                />
-              ))}
-            </AufgDroppableColumn>
-          </div>
-
-          <div className={overColId === STATUS.DONE ? "drag-over" : ""}>
-            <AufgDroppableColumn
-              id={STATUS.DONE}
-              title="Erledigt"
-              bg="bg-green-100"
-              count={lists[STATUS.DONE].length}
-              itemIds={listIds[STATUS.DONE]}
-            >
-              {lists[STATUS.DONE].map((it) => (
-                <AufgSortableCard
-                  key={it.id}
-                  item={it}
-                  onAdvance={advance}
-                  onShowInfo={setActiveItem}
-                />
-              ))}
-            </AufgDroppableColumn>
-          </div>
+      {/* Hinweis, falls Rolle fehlt */}
+      {!roleId && (
+        <div className="p-4 text-sm text-red-700 bg-red-50 border-b">
+          Kein Role-Kontext gefunden. Bitte einloggen bzw. sicherstellen, dass eine Rolle
+          vorhanden ist.
         </div>
+      )}
 
-        <DragOverlay>
-          {draggingItem ? (
-            <div className="rounded-lg bg-white shadow-xl border p-3 w-[280px]">
-              <div className="text-[10px] text-gray-500 leading-4">
-                erstellt: {draggingItem.createdAt ? new Date(draggingItem.createdAt).toLocaleString() : "–"}
-              </div>
-              <div className="font-semibold text-sm mb-1 truncate">{draggingItem.title}</div>
-              <div className="text-xs text-gray-600">{draggingItem.type}</div>
+      {/* Spalten */}
+      <div className="flex-1 min-h-0 overflow-auto">
+        {loading ? (
+          <div className="p-4 text-sm text-gray-600">Lade Board …</div>
+        ) : (
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={onDragStart}
+            onDragOver={onDragOver}
+            onDragEnd={onDragEnd}
+          >
+            <div className="grid grid-cols-3 gap-3 p-3">
+              {COLS.map((col) => (
+                <div
+                  key={col}
+                  id={col}
+                  className={`rounded-lg border bg-gray-50/60 flex flex-col min-h-[200px]`}
+                >
+                  <div className="px-3 py-2 border-b font-medium capitalize">
+                    {col.replace("-", " ")}
+                  </div>
+
+                  <div className="p-2 flex-1 min-h-0 overflow-auto space-y-2">
+                    {lists[col].map((it) => (
+                      <AufgSortableCard
+                        key={it.id}
+                        item={it}
+                        // "weiter" nur im Edit-Modus
+                        onAdvance={canEdit ? advance : undefined}
+                        onShowInfo={setActiveItem}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+          </DndContext>
+        )}
+      </div>
 
       {/* Modals */}
       <AufgAddModal
-        open={addOpen}
+        open={addOpen && canEdit}
         onClose={() => setAddOpen(false)}
-        onAdded={(created) => setItems((prev) => [created, ...prev])}
-      />
-      <AufgInfoModal
-        open={!!activeItem}
-        item={activeItem}
-        onClose={() => setActiveItem(null)}
+        onAdded={(created) => addItem(created)}
       />
     </div>
   );

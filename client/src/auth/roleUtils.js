@@ -19,6 +19,7 @@ function currentUser() {
   return null;
 }
 
+// client/src/auth/roleUtils.js
 async function fetchRolesOnce() {
   if (ROLE_MAP) return ROLE_MAP;
   if (INIT_P)   return INIT_P;
@@ -30,17 +31,24 @@ async function fetchRolesOnce() {
       const j = await r.json();
       return Array.isArray(j) ? j : (j.roles || []);
     }
+
     let roles = [];
     try { roles = await get("/api/user/roles"); }
-    catch { try { roles = await get("/User_roles.json"); } catch { roles = []; } }
+    catch { roles = []; }
+
+    // <<< WICHTIG: fallback, wenn die API KEIN apps-Objekt liefert >>>
+    const hasApps = Array.isArray(roles) && roles.some(r => r && typeof r.apps === "object");
+    if (!hasApps) {
+      try { roles = await get("/User_roles.json"); } catch {}
+    }
 
     const map = new Map();
-    for (const r of roles) {
+    for (const r of roles || []) {
       if (!r || !r.id) continue;
       map.set(String(r.id).toUpperCase(), {
         id: r.id,
         label: r.label || r.id,
-        apps: r.apps || {}   // <— wichtig: pro-App-Rechte
+        apps: r.apps || {},
       });
     }
     ROLE_MAP = map;
