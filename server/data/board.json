@@ -4,24 +4,6 @@
       "name": "Neu",
       "items": [
         {
-          "id": "inze4xkc",
-          "content": "Straßenreinigung",
-          "createdAt": "2025-10-16T08:44:28.114Z",
-          "statusSince": "2025-10-16T08:44:28.114Z",
-          "assignedVehicles": [],
-          "everVehicles": [],
-          "everPersonnel": 0,
-          "ort": "Unterrain\nUnterrain - Feldkirchen in Kärnten",
-          "typ": "T0, Straßenreinigung",
-          "externalId": "23885621",
-          "alerted": "FF Waiern",
-          "latitude": 46.7148242727,
-          "longitude": 14.0878256873,
-          "location": "",
-          "timestamp": "2025-10-16T07:38:39.000Z",
-          "description": ""
-        },
-        {
           "id": "xtuhbhiz",
           "content": "Wespen/Hornissen",
           "createdAt": "2025-10-15T10:33:03.871Z",
@@ -62,6 +44,26 @@
     "in-bearbeitung": {
       "name": "In Bearbeitung",
       "items": [
+        {
+          "id": "inze4xkc",
+          "content": "Straßenreinigung",
+          "createdAt": "2025-10-16T08:44:28.114Z",
+          "statusSince": "2025-10-16T11:00:51.855Z",
+          "assignedVehicles": [],
+          "everVehicles": [
+            "Xnybg15"
+          ],
+          "everPersonnel": 0,
+          "ort": "Unterrain\nUnterrain - Feldkirchen in Kärnten",
+          "typ": "T0, Straßenreinigung",
+          "externalId": "23885621",
+          "alerted": "FF Waiern",
+          "latitude": 46.7148242727,
+          "longitude": 14.0878256873,
+          "location": "",
+          "timestamp": "2025-10-16T07:38:39.000Z",
+          "description": ""
+        },
         {
           "id": "8cusz4wv",
           "content": "ÜBUNG, Übung mit Rauch/Feuer",

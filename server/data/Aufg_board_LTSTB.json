@@ -1,0 +1,16 @@
+{
+  "items": [
+    {
+      "id": "1760614896210-ugwyen",
+      "clientId": "0a5e75a9-fe76-48ed-8436-ac58a689736c",
+      "title": "323",
+      "type": "",
+      "responsible": "2323",
+      "desc": "23232323",
+      "status": "In Bearbeitung",
+      "createdAt": 1760614896210,
+      "updatedAt": 1760617270695,
+      "kind": "task"
+    }
+  ]
+}

@@ -16,7 +16,7 @@
       "apps": {
         "einsatzboard": "edit",
         "aufgabenboard": "edit",
-        "protokoll": "edit"
+        "protokoll": "view"
       }
     },
     {
@@ -35,6 +35,24 @@
         "einsatzboard": "view",
         "aufgabenboard": "view",
         "protokoll": "view"
+      }
+    },
+    {
+      "id": "TEST",
+      "label": "TEST",
+      "apps": {
+        "einsatzboard": "view",
+        "aufgabenboard": "edit",
+        "protokoll": "view"
+      }
+    },
+    {
+      "id": "MS",
+      "label": "MS",
+      "apps": {
+        "einsatzboard": "view",
+        "aufgabenboard": "edit",
+        "protokoll": "edit"
       }
     }
   ]

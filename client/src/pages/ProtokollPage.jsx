@@ -1,11 +1,10 @@
 // client/src/pages/ProtokollPage.jsx
 import { useEffect, useRef, useState } from "react";
-import { initRolePolicy, canEditApp, isReadOnlyApp } from "../auth/roleUtils";
+import { initRolePolicy, canEditApp } from "../auth/roleUtils";
 
 const ERGEHT_OPTIONS = ["EL", "LtStb", "S1", "S2", "S3", "S4", "S5", "S6"];
 
-const canEdit  = canEditApp("protokoll");
-const readOnly = !canEdit;
+
 
 const LS_KEYS = {
   anvon: "prot_sugg_anvon",
@@ -76,7 +75,26 @@ const initialForm = () => ({
 });
 
 export default function ProtokollPage({ mode = "create", editNr = null }) {
-  // ---- Modus/NR -------------------------------------------------------------
+ 
+  // ---- Rechte ---------------------------------------------------------------
+  const [canEdit, setCanEdit] = useState(false);
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        await initRolePolicy();
+        if (!mounted) return;
+        setCanEdit(canEditApp("protokoll"));
+      } catch {
+        if (!mounted) return;
+        setCanEdit(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+
+ // ---- Modus/NR -------------------------------------------------------------
   const [nr, setNr] = useState(() => {
     const n = Number(editNr);
     return Number.isFinite(n) && n > 0 ? n : null;
@@ -185,14 +203,16 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
 
       if (isCtrl && !e.shiftKey && key === "s") {
         e.preventDefault(); e.stopPropagation();
-        if (keylockRef.current) return;
+         if (!canEdit) { showToast?.("error", "Keine Berechtigung (Meldestelle)"); return; }
+		if (keylockRef.current) return;
         keylockRef.current = true;
         later(async () => { blurActive(); await new Promise(r => setTimeout(r,0)); handleSaveClose().finally(()=> keylockRef.current=false); });
         return;
       }
       if (isCtrl && ((e.shiftKey && key === "s") || key === "enter")) {
         e.preventDefault(); e.stopPropagation();
-        if (keylockRef.current) return;
+         if (!canEdit) { showToast?.("error", "Keine Berechtigung (Meldestelle)"); return; }
+		if (keylockRef.current) return;
         keylockRef.current = true;
         later(async () => { blurActive(); await new Promise(r => setTimeout(r,0)); handleSaveNew().finally(()=> keylockRef.current=false); });
         return;
@@ -217,7 +237,8 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
   }
 
   const handlePrint = async () => {
-    if (printing) return;
+    if (!canEdit) { showToast?.("error", "Keine Berechtigung zum Drucken/Speichern"); return; }
+	if (printing) return;
     const recipients = buildRecipients();
     if (!recipients.length) {
       showToast?.("error", "Bitte Empfänger wählen oder 'Sonstiger Empfänger' ausfüllen.");
@@ -372,7 +393,8 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
   };
 
   const handleSaveClose = async () => {
-    if (saving) return;
+    if (!canEdit) { showToast?.("error", "Keine Berechtigung (Meldestelle)"); return; }
+	if (saving) return;
     setSaving(true);
     try { const nrSaved = await saveCore(); if (nrSaved) window.location.hash = "/protokoll"; }
     catch (e) { showToast("error", "Fehler beim Speichern: " + e.message, 4000); }
@@ -380,7 +402,8 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
   };
 
   const handleSaveNew = async () => {
-    if (saving) return;
+    if (!canEdit) { showToast?.("error", "Keine Berechtigung (Meldestelle)"); return; }
+	if (saving) return;
     setSaving(true);
     try {
       const nrSaved = await saveCore();
@@ -402,7 +425,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
     if (isCtrl && !e.shiftKey && key === "s") { e.preventDefault(); e.stopPropagation(); handleSaveClose(); }
     else if (isCtrl && ((e.shiftKey && key === "s") || key === "enter")) { e.preventDefault(); e.stopPropagation(); handleSaveNew(); }
   };
-  const onSubmit = (e) => { e.preventDefault(); handleSaveClose(); };
+  const onSubmit = (e) => { e.preventDefault(); if (!canEdit) { showToast?.("error", "Keine Berechtigung (Meldestelle)"); return; } handleSaveClose(); };
 
   if (loading) return <div className="p-4">Lade…</div>;
 

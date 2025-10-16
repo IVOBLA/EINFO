@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { initRolePolicy, canEditApp } from "../auth/roleUtils";
 
 function short30(s) {
   const t = (s ?? "").toString();
@@ -8,9 +9,13 @@ function short30(s) {
 export default function ProtokollOverview() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [canEdit, setCanEdit] = useState(false);
 
   useEffect(() => {
     (async () => {
+      try { await initRolePolicy(); setCanEdit(canEditApp("protokoll")); } catch { setCanEdit(false); }
+    })(); 
+ (async () => {
       try {
         const r = await fetch("/api/protocol").then(res => res.json());
         setData(Array.isArray(r?.items) ? r.items : []);
@@ -42,9 +47,11 @@ export default function ProtokollOverview() {
           </a>
           <button
             onClick={() => {
+              if (!canEdit) { /* Optik unverändert: stiller Abbruch, optional Tooltip s.u. */ return; }
               window.location.hash = "/protokoll/neu";
             }}
             className="px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white"
+			title={canEdit ? undefined : "Keine Berechtigung (Meldestelle)"}
           >
             + Eintrag anlegen
           </button>

@@ -1,0 +1,16 @@
+{
+  "items": [
+    {
+      "id": "1760617396868-1l76dx",
+      "clientId": "5c6a4a2a-2930-48d0-bc9b-1a31f21528da",
+      "title": "1",
+      "type": "1",
+      "responsible": "1",
+      "desc": "1",
+      "status": "Erledigt",
+      "createdAt": 1760617396868,
+      "updatedAt": 1760617407524,
+      "kind": "task"
+    }
+  ]
+}

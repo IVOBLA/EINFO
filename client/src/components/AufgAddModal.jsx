@@ -1,84 +1,112 @@
 // client/src/components/AufgAddModal.jsx
-import React, { useState, useEffect } from "react";
-
-const RESPONSIBLES = ["EL", "LtStb", "S1", "S2", "S3", "S4", "S5", "MS"];
+import React, { useEffect, useState } from "react";
 
 export default function AufgAddModal({ open, onClose, onAdded }) {
   const [title, setTitle] = useState("");
   const [type, setType] = useState("");
   const [responsible, setResponsible] = useState("");
   const [desc, setDesc] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
+
+  // Vorschläge aus User_roles.json (Labels)
+  const [roleLabels, setRoleLabels] = useState([]);
 
   useEffect(() => {
-    if (open) { setTitle(""); setType(""); setResponsible(""); setDesc(""); setError(""); }
+    if (open) {
+      setTitle("");
+      setType("");
+      setResponsible("");
+      setDesc("");
+    }
   }, [open]);
+
+  // Vorschläge beim Öffnen laden (einmalig pro Session)
+  useEffect(() => {
+    if (!open || roleLabels.length) return;
+    const ac = new AbortController();
+    (async () => {
+      try {
+        const res = await fetch("/api/user/roles", {
+          credentials: "include",
+          signal: ac.signal,
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const rolesArr = Array.isArray(data?.roles) ? data.roles
+          : (Array.isArray(data) ? data : []);
+        const labels = rolesArr
+          .map(r => (typeof r === "string" ? r : (r.label ?? r.id)))
+          .filter(Boolean);
+        setRoleLabels(Array.from(new Set(labels)));
+      } catch (_) {
+        // still & silent – Vorschläge sind optional
+      }
+    })();
+    return () => ac.abort();
+  }, [open, roleLabels.length]);
 
   if (!open) return null;
 
-  async function createItem() {
-    if (!title.trim()) return;
-    setSaving(true); setError("");
-    try {
-      const res = await fetch("/api/aufgaben", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, type, responsible, desc }),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const { item: created } = await res.json();
-      onAdded?.({
-        id: created?.id || `${Date.now()}`,
-        title, type, responsible, desc, status: "Neu", createdAt: Date.now(),
-      });
-      onClose?.();
-    } catch (e) {
-      setError(String(e?.message || e));
-    } finally {
-      setSaving(false);
-    }
-  }
+  const submit = (e) => {
+    e.preventDefault();
+    onAdded?.({ title, type, responsible, desc }); // nur Daten nach oben
+    onClose?.();
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="w-full max-w-md rounded-2xl bg-white p-4 shadow-xl">
-        <div className="text-base font-semibold mb-3">Neue Aufgabe</div>
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+      <form onSubmit={submit} className="bg-white rounded-xl p-4 w-[840px] space-y-3">
+        <h2 className="font-semibold text-lg">Neue Aufgabe</h2>
 
-        <div className="space-y-3">
-          <div>
-            <label className="block text-xs mb-1">Titel</label>
-            <input className="w-full px-3 py-2 rounded-xl border" value={title} onChange={e=>setTitle(e.target.value)} autoFocus />
-          </div>
+        <label className="block">
+          <span className="text-xs text-gray-600">Titel</span>
+          <input
+            value={title}
+            onChange={(e)=>setTitle(e.target.value)}
+            className="w-full border rounded px-2 py-1"
+            required
+          />
+        </label>
 
-          <div>
-            <label className="block text-xs mb-1">Typ</label>
-            <input className="w-full px-3 py-2 rounded-xl border" value={type} onChange={e=>setType(e.target.value)} />
-          </div>
+        <label className="block">
+          <span className="text-xs text-gray-600">Typ</span>
+          <input
+            value={type}
+            onChange={(e)=>setType(e.target.value)}
+            className="w-full border rounded px-2 py-1"
+          />
+        </label>
 
-          <div>
-            <label className="block text-xs mb-1">Verantwortlich</label>
-            <select className="w-full px-3 py-2 rounded-xl border bg-white" value={responsible} onChange={e=>setResponsible(e.target.value)}>
-              <option value="">— auswählen —</option>
-              {RESPONSIBLES.map(v => <option key={v} value={v}>{v}</option>)}
-            </select>
-          </div>
+        <label className="block">
+          <span className="text-xs text-gray-600">Verantwortlich</span>
+          <input
+            value={responsible}
+            onChange={(e)=>setResponsible(e.target.value)}
+            className="w-full border rounded px-2 py-1"
+            placeholder={roleLabels.length ? "z. B. Leiter Stab, S2 …" : undefined}
+            list="responsible-suggestions"
+          />
+          {/* HTML5-Datalist für Vorschläge aus Rollen-Labels */}
+          <datalist id="responsible-suggestions">
+            {roleLabels.map(lbl => (
+              <option key={lbl} value={lbl} />
+            ))}
+          </datalist>
+        </label>
 
-          <div>
-            <label className="block text-xs mb-1">Notizen</label>
-            <textarea className="w-full min-h-[90px] px-3 py-2 rounded-xl border resize-y" value={desc} onChange={e=>setDesc(e.target.value)} />
-          </div>
+        <label className="block">
+          <span className="text-xs text-gray-600">Notiz</span>
+          <textarea
+            value={desc}
+            onChange={(e)=>setDesc(e.target.value)}
+            className="w-full border rounded px-2 py-1 min-h-[120px]"
+          />
+        </label>
 
-          {error && <div className="text-sm text-red-600">{error}</div>}
-
-          <div className="mt-3 flex gap-2 justify-end">
-            <button onClick={onClose} className="px-3 py-2 text-sm rounded-xl border">Abbrechen</button>
-            <button onClick={createItem} disabled={saving || !title.trim()} className="px-3 py-2 text-sm rounded-xl bg-sky-600 text-white disabled:opacity-60">
-              {saving ? "Speichere…" : "Speichern"}
-            </button>
-          </div>
+        <div className="flex gap-2 justify-end">
+          <button type="button" onClick={onClose} className="px-3 py-2 border rounded">Abbrechen</button>
+          <button type="submit" className="px-3 py-2 bg-sky-600 text-white rounded">Speichern</button>
         </div>
-      </div>
+      </form>
     </div>
   );
 }

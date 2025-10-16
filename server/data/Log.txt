@@ -237,3 +237,9 @@
 [16.10.2025, 10:43:07] [ff/start] Error: MASTER_LOCKED
     at User_getGlobalFetcher (file:///D:/FF/Kanban40/server/User_store.mjs:236:22)
     at file:///D:/FF/Kanban40/server/server.js:897:22
+[16.10.2025, 14:02:23] [unhandledRejection] Error: EPERM: operation not permitted, rename 'D:\FF\Kanban40\server\data\auto-import.json.tmp-q1cmrrbv35' -> 'D:\FF\Kanban40\server\data\auto-import.json'
+    at async Object.rename (node:internal/fs/promises:786:10)
+    at async writeFileAtomic (file:///D:/FF/Kanban40/server/server.js:94:3)
+    at async writeJson (file:///D:/FF/Kanban40/server/server.js:96:38)
+    at async writeAutoCfg (file:///D:/FF/Kanban40/server/server.js:715:3)
+    at async Server.<anonymous> (file:///D:/FF/Kanban40/server/server.js:1019:3)

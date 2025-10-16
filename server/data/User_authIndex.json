@@ -16,7 +16,7 @@
       "id": 2,
       "username": "TEST",
       "displayName": "TEST",
-      "role": "Mitarbeiter1",
+      "role": "TEST",
       "pass": {
         "algo": "scrypt",
         "salt": "eCR4nByt39zPFyEgkafcZQ==",
@@ -32,6 +32,17 @@
         "algo": "scrypt",
         "salt": "xMQp2VpPP9zlokjw+F53mg==",
         "hash": "dBT7ay0gpCSkDkV3ss2I8Nio97v4BoqcUUlFjyaGcU4="
+      }
+    },
+    {
+      "id": 7,
+      "username": "MS",
+      "displayName": "Meldestelle",
+      "role": "MS",
+      "pass": {
+        "algo": "scrypt",
+        "salt": "s0S6BTU4D+z+70uitoMisw==",
+        "hash": "kj846iLm4SIl5nPXAUeE67wB3A33Kjsbo88zHgNEjRI="
       }
     }
   ]

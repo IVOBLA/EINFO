@@ -1,7 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useUserAuth } from "../components/User_AuthProvider.jsx";
 
-/* Kleine Fetch-Helpers: wir wollen Statuscodes (423 etc.) unterscheiden */
+/** ---------------------------
+ *  Kleine Fetch-Helpers
+ *  ---------------------------
+ *  Basis: /api/user
+ *  - Liefert JSON oder wirft Fehler mit Status
+ */
 async function api(method, path, body) {
   const r = await fetch(`/api/user${path}`, {
     method,
@@ -14,67 +19,138 @@ async function api(method, path, body) {
   if (!r.ok) {
     const e = new Error(data?.error || r.statusText);
     e.status = r.status;
+    e.data = data;
     throw e;
   }
   return data;
 }
-const get  = (p) => api("GET", p);
-const post = (p, b) => api("POST", p, b);
-const put  = (p, b) => api("PUT", p, b);
-const patch= (p, b) => api("PATCH", p, b);
-const del  = (p)    => api("DELETE", p);
+const get   = (p)    => api("GET", p);
+const post  = (p, b) => api("POST", p, b);
+const put   = (p, b) => api("PUT", p, b);
+const patch = (p, b) => api("PATCH", p, b);
+const del   = (p)    => api("DELETE", p);
 
 export default function User_AdminPanel() {
   const { user } = useUserAuth();
 
-  const [locked, setLocked] = useState(false);
+  // ---- UI/State (beibehalten) ----
+  const [locked, setLocked]   = useState(false);  // 423 Master-Lock
   const [loading, setLoading] = useState(true);
-  const [msg, setMsg] = useState("");
-  const [err, setErr] = useState("");
+  const [msg, setMsg]         = useState("");
+  const [err, setErr]         = useState("");
 
-  // Daten
-  const [roles, setRoles] = useState([]);
-  const [users, setUsers] = useState([]);
-  const [fetcherInfo, setFetcherInfo] = useState({ has: false, updatedAt: null });
+  // Daten-Buckets
+  const [roles, setRoles]             = useState([]); // Strings ODER Objekte {id,label,apps|capabilities}
+  const [users, setUsers]             = useState([]);
+  const [fetcherInfo, setFetcherInfo] = useState({ has:false, updatedAt:null });
 
-  const roleChips = useMemo(() => roles.map((r) => ({ key: r.id || r, label: (r.label || r.id || r) })), [roles]);
+  // ---- capabilities ↔ apps Konvertierung ----
+  const parseCapToken = (t) => {
+    if (!t) return null;
+    const s = String(t).trim();
+    // erlaubte Formate: "app:level" oder "app.level"
+    const m = s.match(/^([a-z0-9_-]+)[:.]([a-z]+)$/i);
+    if (!m) return null;
+    const app = m[1].toLowerCase();
+    const level = m[2].toLowerCase();
+    if (!["none","view","edit"].includes(level)) return null;
+    return { app, level };
+  };
+  const capsToApps = (caps = []) => {
+    const out = {};
+    for (const c of caps) {
+      const p = parseCapToken(c);
+      if (!p) continue;
+      // bei Doppelungen „edit“ bevorzugen
+      const cur = out[p.app];
+      out[p.app] = (cur === "edit" || p.level === "edit") ? "edit" : p.level;
+    }
+    return out;
+  };
+  const appsToCaps = (apps = {}) =>
+    Object.entries(apps)
+      .filter(([,lvl]) => lvl && lvl !== "none")
+      .map(([app,lvl]) => `${app}:${lvl}`);
 
+  // ---- Robust: Rollen-Objekt ableiten (String/Objekt → Objekt mit apps) ----
+  const toRoleObj = (r) => {
+    if (typeof r === "string") return { id: r, label: r, apps: {} };
+    const id   = r?.id ?? r?.label ?? "";
+    const apps = r?.apps && Object.keys(r.apps).length ? { ...r.apps } : capsToApps(r?.capabilities || []);
+    return { id, label: r?.label ?? id, apps };
+  };
+
+  // ---- Rollen-IDs extrahieren (String ODER Objekt) ----
+  const roleIds = useMemo(() => (roles || []).map((r) => {
+    if (typeof r === "string") return r;
+    if (r && typeof r === "object") return r.id ?? r.label ?? "";
+    return "";
+  }).filter(Boolean), [roles]);
+
+  // Chips (wie zuvor), nur auf stabile IDs
+  const roleChips = useMemo(() => roleIds.map((id) => ({ key: id, label: id })), [roleIds]);
+
+  // Vereinheitlichte App-Liste: bekannte Apps + was in JSON vorhanden ist
+  const allApps = useMemo(() => {
+    const known = new Set(["einsatzboard", "aufgabenboard", "protokoll"]);
+    for (const r of (roles || [])) {
+      const apps = (typeof r === "object" && r?.apps) ? Object.keys(r.apps) : (Array.isArray(r?.capabilities) ? Object.keys(capsToApps(r.capabilities)) : []);
+      apps.forEach(a => known.add(a));
+    }
+    return Array.from(known);
+  }, [roles]);
+
+  const APP_LEVELS = ["none", "view", "edit"];
+
+  // Role-App-Level updaten (im State)
+  const updateRoleApp = (roleId, app, level) => {
+    setRoles((prev) => {
+      const list = Array.isArray(prev) ? prev.slice() : [];
+      const idx = list.findIndex(x => (typeof x === "string" ? x : (x?.id ?? x?.label)) === roleId);
+      if (idx < 0) return prev;
+      const obj = toRoleObj(list[idx]);
+      const nextLevel = APP_LEVELS.includes(level) ? level : "none";
+      const apps = { ...(obj.apps || {}) };
+      if (nextLevel === "none") delete apps[app]; else apps[app] = nextLevel;
+      list[idx] = { ...obj, apps };
+      return list;
+    });
+  };
+
+  // ---- Laden wie gehabt ----
   async function refresh() {
     setLoading(true);
     setErr("");
     try {
-      // Rollen & Benutzer laden (können 423 liefern)
-      const r = await get("/roles");          // { roles: [...] }
+      const r = await get("/roles");  // { roles: [...] }
       setRoles(r.roles || []);
-      const u = await get("/users");          // { users: [...] }
+      const u = await get("/users");  // { users: [...] }
       setUsers(u.users || []);
       setLocked(false);
       try {
-        const fi = await get("/fetcher");     // { has, updatedAt }
-        setFetcherInfo(fi);
-      } catch (_) {/* ignorieren */}
+        const fi = await get("/fetcher"); // { has, updatedAt }
+        setFetcherInfo({
+          has: !!(fi?.has || fi?.ok || fi?.present),
+          updatedAt: fi?.updatedAt ?? fi?.ts ?? null
+        });
+      } catch (_) {/* optional */}
     } catch (e) {
-      if (e.status === 423) {
-        setLocked(true);
-      } else {
-        setErr(e.message || "Fehler beim Laden");
-      }
+      if (e.status === 423) setLocked(true);
+      else setErr(e.message || "Fehler beim Laden");
     } finally {
       setLoading(false);
     }
   }
-
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => { void refresh(); }, []);
 
   if (!user) return null;
   if (user.role !== "Admin") {
     return <div className="p-4 text-red-700">403 – Nur für Admins</div>;
   }
 
-  // === Actions ======================================================
+  // ---- Master-Setup/-Unlock (beibehalten) ----
   async function onMasterSetup(e) {
-    e.preventDefault();
-    setErr(""); setMsg("");
+    e.preventDefault(); setErr(""); setMsg("");
     const f = e.target;
     try {
       await post("/master/setup", {
@@ -83,53 +159,62 @@ export default function User_AdminPanel() {
         adminPass: f.adminPass.value,
       });
       setMsg("Master gesetzt & Admin angelegt.");
-      f.reset();
-      await refresh();
+      f.reset(); await refresh();
     } catch (ex) { setErr(ex.message || "Fehler"); }
   }
   async function onMasterUnlock(e) {
-    e.preventDefault();
-    setErr(""); setMsg("");
+    e.preventDefault(); setErr(""); setMsg("");
     const f = e.target;
     try {
       await post("/master/unlock", { password: f.master.value });
       setMsg("Master entsperrt.");
-      f.reset();
-      await refresh();
+      f.reset(); await refresh();
     } catch (ex) { setErr(ex.message || "Master ungültig"); }
   }
 
-  // Rollen speichern (aus Chips)
+  // ---- Rollen speichern (JETZT: Objekte inkl. apps → capabilities) ----
   async function onSaveRoles() {
     setErr(""); setMsg("");
-    // normalize to array of role objects
-    const next = (Array.isArray(roles) ? roles : []).map(r => (typeof r === "string" ? {id:r, label:r, capabilities:[]} : r)).filter(r => r && r.id);
-    if (!next.some(r => (r.id === "Admin"))) next.unshift({ id:"Admin", label:"Administrator", capabilities:["*"] });
+    // konsistente Objektstruktur
+    const normalized = (roles || []).map(toRoleObj);
+    // Admin schützen: mindestens edit auf allen bekannten Apps
+    if (!normalized.some(r => r.id === "Admin")) {
+      const adminApps = Object.fromEntries(allApps.map(a => [a, "edit"]));
+      normalized.unshift({ id: "Admin", label: "Administrator", apps: adminApps });
+    }
     try {
-      const r = await put("/roles", { roles: next });
-      setRoles(r.roles || next);
+      const r = await put("/roles", { roles: normalized });
+      const saved = Array.isArray(r?.roles) ? r.roles : normalized;
+      setRoles(saved.map(toRoleObj));
       setMsg("Rollen gespeichert.");
-    } catch (ex) { setErr(ex.message || "Fehler beim Speichern der Rollen"); }
+    } catch (ex) {
+      setErr(ex.message || "Fehler beim Speichern der Rollen");
+    }
   }
+
+  // ---- Rolle hinzufügen/entfernen (beibehalten, nur Objekt-Form) ----
   function onRemoveRole(name) {
     if (name === "Admin") return; // Admin darf nicht entfernt werden
-    setRoles((arr) => (arr || []).filter((x) => (x.id||x) !== name));
+    setRoles((arr) => (arr || []).filter((x) => {
+      if (typeof x === "string") return x !== name;
+      if (x && typeof x === "object") return (x.id ?? x.label) !== name;
+      return true;
+    }));
   }
   function onAddRole(name) {
     const n = String(name || "").trim();
     if (!n || n.toLowerCase() === "admin") return;
     setRoles((arr) => {
-      const list = Array.isArray(arr) ? arr.slice() : [];
-      if (list.some(r => (r.id||r) === n)) return list;
-      list.push({ id:n, label:n, capabilities:[] });
-      return list;
+      const ids = new Set(roleIds);
+      if (ids.has(n)) return arr;
+      // neu direkt als Objekt mit leerer apps-Map
+      return [...(arr || []), { id: n, label: n, apps: {} }];
     });
   }
 
-  // Benutzer anlegen / löschen
+  // ---- Benutzer anlegen / löschen (beibehalten) ----
   async function onCreateUser(e) {
-    e.preventDefault();
-    setErr(""); setMsg("");
+    e.preventDefault(); setErr(""); setMsg("");
     const f = e.target;
     try {
       await post("/users", {
@@ -153,22 +238,57 @@ export default function User_AdminPanel() {
     } catch (ex) { setErr(ex.message || "Löschen fehlgeschlagen"); }
   }
 
-  // === UI ===========================================================
+  // ---- Benutzer bearbeiten (ergänzt, beibehalten) ----
+  const [editId, setEditId] = useState(null);
+  const [editForm, setEditForm] = useState({ displayName: "", role: "", password: "" });
+
+  function startEdit(u) {
+    setEditId(u.id);
+    setEditForm({
+      displayName: u.displayName ?? u.username ?? "",
+      role: u.role ?? (roleIds[0] || ""),
+      password: "",
+    });
+  }
+  function cancelEdit() {
+    setEditId(null);
+    setEditForm({ displayName: "", role: "", password: "" });
+  }
+  function changeEdit(key, val) {
+    setEditForm((p) => ({ ...p, [key]: val }));
+  }
+  async function saveEdit(id) {
+    if (!id) return;
+    setErr(""); setMsg(""); setLoading(true);
+    try {
+      const payload = { displayName: editForm.displayName, role: editForm.role };
+      const pw = (editForm.password || "").trim();
+      if (pw) payload.password = pw;
+      await patch(`/users/${id}`, payload); // PATCH /api/user/users/:id
+      setMsg("Benutzer aktualisiert.");
+      await refresh();
+      cancelEdit();
+    } catch (ex) {
+      setErr(ex.message || "Aktualisieren fehlgeschlagen");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ---- Render ----
   return (
     <div className="p-4 space-y-6">
       <h1 className="text-2xl font-semibold">User Admin</h1>
 
-      {msg && <div className="text-green-700">{msg}</div>}
-      {err && <div className="text-red-700">{err}</div>}
-
-      {/* Hinweis, wenn Master gesperrt */}
-      {locked && (
-        <div className="p-3 rounded border border-amber-300 bg-amber-50 text-amber-800">
-          Master ist gesperrt. Entsperre ihn, um Rollen & Benutzer zu verwalten.
+      {(msg || err || locked) && (
+        <div className="space-y-1">
+          {locked && <div className="text-amber-700">Gesperrt (Master-Lock aktiv).</div>}
+          {err && <div className="text-rose-700">{err}</div>}
+          {msg && <div className="text-emerald-700">{msg}</div>}
         </div>
       )}
 
-      {/* 1) Master initial setzen (nur beim ersten Mal sinnvoll) */}
+      {/* 1) Master initial setzen */}
       <details className="border rounded p-3">
         <summary className="cursor-pointer font-medium">Master-Key initial setzen</summary>
         <form onSubmit={onMasterSetup} className="mt-3 grid gap-2 max-w-xl">
@@ -190,9 +310,9 @@ export default function User_AdminPanel() {
         </form>
       </details>
 
-      {/* 3) Rollen */}
+      {/* 3) Rollen (Chips, wie bisher) */}
       <details className="border rounded p-3" open>
-        <summary className="cursor-pointer font-medium">Rollen (Admin + bis zu 10 weitere)</summary>
+        <summary className="cursor-pointer font-medium">Rollen (Admin + weitere)</summary>
 
         <div className="mt-3 flex flex-wrap gap-2">
           {roleChips.length === 0 && <span className="text-gray-500 text-sm">– keine Rollen geladen –</span>}
@@ -228,16 +348,26 @@ export default function User_AdminPanel() {
               }
             }}
           />
-          <button type="button" className="border rounded px-3 py-1"
+          <button
+            type="button"
+            className="border rounded px-3 py-1"
             onClick={() => {
               const el = document.getElementById("addRole");
-              if (el && el.value) { onAddRole(el.value); el.value = ""; }
-            }}>
+              if (!el) return;
+              const v = el.value.trim();
+              if (!v) return;
+              onAddRole(v);
+              el.value = "";
+            }}
+          >
             Hinzufügen
           </button>
-          <button type="button" className="border rounded px-3 py-1 ml-4" onClick={onSaveRoles} disabled={locked || loading}>
-            Speichern
-          </button>
+
+          <div className="ml-auto">
+            <button className="border rounded px-3 py-1" onClick={onSaveRoles} disabled={locked || loading}>
+              Rollen speichern
+            </button>
+          </div>
         </div>
 
         <div className="text-xs text-gray-500 mt-2">
@@ -245,20 +375,69 @@ export default function User_AdminPanel() {
         </div>
       </details>
 
+      {/* 3b) Rechte pro Rolle */}
+      <details className="border rounded p-3" open>
+        <summary className="cursor-pointer font-medium">Rechte pro Rolle</summary>
+        <div className="mt-3 overflow-x-auto">
+          <table className="min-w-[720px] w-full text-sm border-separate border-spacing-y-2">
+            <thead>
+              <tr className="text-left text-xs text-gray-500">
+                <th className="px-2">Rolle</th>
+                {allApps.map(app => (<th key={app} className="px-2 capitalize">{app}</th>))}
+              </tr>
+            </thead>
+            <tbody>
+              {roleIds.map((rid) => {
+                const role = (roles || []).find(x => (typeof x === "string" ? x : (x?.id ?? x?.label)) === rid);
+                const obj = toRoleObj(role);
+                return (
+                  <tr key={rid} className="bg-white shadow-sm rounded">
+                    <td className="px-2 py-1 font-medium">{rid}</td>
+                    {allApps.map(app => {
+                      const cur = obj.apps?.[app] ?? "none";
+                      return (
+                        <td key={app} className="px-2 py-1">
+                          <select
+                            value={cur}
+                            onChange={(e)=>updateRoleApp(rid, app, e.target.value)}
+                            className="border rounded px-2 py-1"
+                            disabled={locked || loading || rid === "Admin"}
+                            title={rid === "Admin" ? "Admin ist immer edit" : undefined}
+                          >
+                            {APP_LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                          </select>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div className="mt-3">
+          <button type="button" className="border rounded px-3 py-1" onClick={onSaveRoles} disabled={locked || loading}>
+            Rechte speichern
+          </button>
+        </div>
+      </details>
+
       {/* 4) Benutzer */}
       <details className="border rounded p-3" open>
         <summary className="cursor-pointer font-medium">Benutzer</summary>
 
+        {/* Benutzer anlegen (robustes Rollen-Select) */}
         <form onSubmit={onCreateUser} className="mt-3 grid grid-cols-5 gap-2 items-center max-w-5xl">
           <input name="u" placeholder="username" className="border px-2 py-1 rounded" disabled={locked} />
           <input name="p" placeholder="passwort" className="border px-2 py-1 rounded" disabled={locked} />
           <input name="d" placeholder="Anzeigename" className="border px-2 py-1 rounded" disabled={locked} />
           <select name="r" className="border px-2 py-1 rounded" disabled={locked}>
-            {roles.map((r) => (<option key={(r.id||r)} value={(r.id||r)}>{r.label || r.id || r}</option>))}
+            {roleIds.map((id) => (<option key={id} value={id}>{id}</option>))}
           </select>
           <button className="border rounded px-3 py-1" disabled={locked}>Anlegen</button>
         </form>
 
+        {/* Liste inkl. Edit */}
         <div className="mt-4">
           {users.length === 0 ? (
             <div className="text-sm text-gray-500">– keine Benutzer –</div>
@@ -274,29 +453,86 @@ export default function User_AdminPanel() {
                 </tr>
               </thead>
               <tbody>
-                {users.map((u) => (
-                  <tr key={u.id} className="bg-white border rounded">
-                    <td className="px-2 py-1">{u.id}</td>
-                    <td className="px-2 py-1">{u.username}</td>
-                    <td className="px-2 py-1">{u.role}</td>
-                    <td className="px-2 py-1">{u.displayName}</td>
-                    <td className="px-2 py-1">
-                      <button
-                        className="px-2 py-1 rounded border border-rose-300 text-rose-700 hover:bg-rose-50"
-                        onClick={() => onDeleteUser(u.id, u.username)}
-                        disabled={locked || u.role === "Admin"}
-                        title={u.role === "Admin" ? "Admin kann nicht gelöscht werden" : "Benutzer löschen"}
-                      >Löschen</button>
-                    </td>
-                  </tr>
-                ))}
+                {users.map((u) => {
+                  const isEditing = editId === u.id;
+                  return (
+                    <tr key={u.id} className="bg-white border rounded">
+                      <td className="px-2 py-1">{u.id}</td>
+                      <td className="px-2 py-1">{u.username}</td>
+                      <td className="px-2 py-1">
+                        {isEditing ? (
+                          <select
+                            value={editForm.role}
+                            onChange={(e)=>changeEdit("role", e.target.value)}
+                            className="border rounded px-2 py-1"
+                            disabled={locked || loading}
+                          >
+                            {roleIds.map((id) => (<option key={id} value={id}>{id}</option>))}
+                          </select>
+                        ) : (u.role || "—")}
+                      </td>
+                      <td className="px-2 py-1">
+                        {isEditing ? (
+                          <input
+                            value={editForm.displayName}
+                            onChange={(e)=>changeEdit("displayName", e.target.value)}
+                            className="border rounded px-2 py-1 w-full"
+                            disabled={locked || loading}
+                          />
+                        ) : (u.displayName || "—")}
+                      </td>
+                      <td className="px-2 py-1 space-x-2">
+                        {isEditing ? (
+                          <>
+                            {/* optional neues Passwort inline */}
+                            <input
+                              type="password"
+                              placeholder="neues Passwort (optional)"
+                              value={editForm.password}
+                              onChange={(e)=>changeEdit("password", e.target.value)}
+                              className="border rounded px-2 py-1 w-40 mr-2"
+                              disabled={locked || loading}
+                            />
+                            <button
+                              className="px-2 py-1 rounded border border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                              onClick={()=>saveEdit(u.id)}
+                              disabled={locked || loading}
+                              title="Änderungen speichern"
+                            >Speichern</button>
+                            <button
+                              className="px-2 py-1 rounded border"
+                              onClick={cancelEdit}
+                              disabled={loading}
+                              title="Abbrechen"
+                            >Abbrechen</button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              className="px-2 py-1 rounded border"
+                              onClick={()=>startEdit(u)}
+                              disabled={locked || loading}
+                              title="Benutzer bearbeiten"
+                            >Bearbeiten</button>
+                            <button
+                              className="px-2 py-1 rounded border border-rose-300 text-rose-700 hover:bg-rose-50"
+                              onClick={() => onDeleteUser(u.id, u.username)}
+                              disabled={locked || u.role === "Admin"}
+                              title={u.role === "Admin" ? "Admin kann nicht gelöscht werden" : "Benutzer löschen"}
+                            >Löschen</button>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
         </div>
       </details>
 
-      {/* 5) Globale Fetcher-Creds */}
+      {/* 5) Globale Fetcher-Creds (beibehalten) */}
       <details className="border rounded p-3" open>
         <summary className="cursor-pointer font-medium">Fetcher-Zugangsdaten (global)</summary>
         <div className="mt-3 text-sm">
