@@ -2,113 +2,11 @@
   "columns": {
     "neu": {
       "name": "Neu",
-      "items": [
-        {
-          "id": "xtuhbhiz",
-          "content": "Wespen/Hornissen",
-          "createdAt": "2025-10-15T10:33:03.871Z",
-          "statusSince": "2025-10-15T10:33:03.871Z",
-          "assignedVehicles": [],
-          "everVehicles": [],
-          "everPersonnel": 0,
-          "ort": "Steinbruggerweg 7\nHimmelberg - Himmelberg",
-          "typ": "T0, Wespen/Hornissen",
-          "externalId": "23863121",
-          "alerted": "FF Himmelberg",
-          "latitude": 46.7455303755,
-          "longitude": 14.041966507,
-          "location": "",
-          "timestamp": "2025-10-14T07:52:44.000Z",
-          "description": ""
-        },
-        {
-          "id": "rhk0jhfo",
-          "content": "BMA 1, Brandmeldeanlage ausgelöst",
-          "createdAt": "2025-10-15T10:33:03.848Z",
-          "statusSince": "2025-10-15T10:33:03.848Z",
-          "assignedVehicles": [],
-          "everVehicles": [],
-          "everPersonnel": 0,
-          "ort": "Hotel PANORAMA, Turracherhöhe\nTurracherhöhe 24\nTurracherhöhe - Reichenau",
-          "typ": "BMA 1, Brandmeldeanlage ausgelöst",
-          "externalId": "23863621",
-          "alerted": "FF Ebene Reichenau, FF Predlitz, LG Turracher Höhe",
-          "latitude": 46.916366,
-          "longitude": 13.87299,
-          "location": "",
-          "timestamp": "2025-10-14T08:14:45.000Z",
-          "description": ""
-        }
-      ]
+      "items": []
     },
     "in-bearbeitung": {
       "name": "In Bearbeitung",
-      "items": [
-        {
-          "id": "inze4xkc",
-          "content": "Straßenreinigung",
-          "createdAt": "2025-10-16T08:44:28.114Z",
-          "statusSince": "2025-10-16T11:00:51.855Z",
-          "assignedVehicles": [],
-          "everVehicles": [
-            "Xnybg15"
-          ],
-          "everPersonnel": 0,
-          "ort": "Unterrain\nUnterrain - Feldkirchen in Kärnten",
-          "typ": "T0, Straßenreinigung",
-          "externalId": "23885621",
-          "alerted": "FF Waiern",
-          "latitude": 46.7148242727,
-          "longitude": 14.0878256873,
-          "location": "",
-          "timestamp": "2025-10-16T07:38:39.000Z",
-          "description": ""
-        },
-        {
-          "id": "8cusz4wv",
-          "content": "ÜBUNG, Übung mit Rauch/Feuer",
-          "createdAt": "2025-10-15T10:33:03.873Z",
-          "statusSince": "2025-10-16T08:42:28.759Z",
-          "assignedVehicles": [
-            "Xnybg15"
-          ],
-          "everVehicles": [
-            "Xnybg15"
-          ],
-          "everPersonnel": 0,
-          "ort": "CARITAS Altenheim Feldkirchen\nAmthofgasse 1\nFeldkirchen in Kärnten - Feldkirchen in Kärnten",
-          "typ": "ÜBUNG, Übung mit Rauch/Feuer",
-          "externalId": "23857721",
-          "alerted": "FF Feldkirchen",
-          "latitude": 46.7228373304,
-          "longitude": 14.0908670185,
-          "location": "",
-          "timestamp": "2025-10-13T17:15:36.000Z",
-          "description": ""
-        },
-        {
-          "id": "r6y8ogm4",
-          "content": "Brand",
-          "createdAt": "2025-10-15T10:39:03.732Z",
-          "statusSince": "2025-10-15T10:39:08.963Z",
-          "assignedVehicles": [
-            "X4ro9wm"
-          ],
-          "everVehicles": [
-            "X4ro9wm"
-          ],
-          "everPersonnel": 0,
-          "ort": "Lannerstraße, 1190 Wien, Österreich",
-          "typ": "Brand",
-          "externalId": "",
-          "alerted": "",
-          "latitude": 48.2359201,
-          "longitude": 16.3451143,
-          "location": "",
-          "description": "",
-          "timestamp": null
-        }
-      ]
+      "items": []
     },
     "erledigt": {
       "name": "Erledigt",

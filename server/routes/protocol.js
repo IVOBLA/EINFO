@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import express from "express";
 import { randomUUID } from "crypto";
+import { appendCsvRow } from "../utils/auditLog.mjs";
 
 const router = express.Router();
 
@@ -15,22 +16,32 @@ const SERVER_DIR = path.resolve(__dirname, "..");
 const DATA_DIR   = process.env.KANBAN_DATA_DIR || path.join(SERVER_DIR, "data");
 const CSV_FILE   = path.join(DATA_DIR, "protocol.csv");
 const JSON_FILE  = path.join(DATA_DIR, "protocol.json");
+const PROTOKOLL_LOG_FILE = path.join(DATA_DIR, "Protokoll_log.csv"); 
 
 // ==== CSV: Spalten ====
 // ID ist letzte Spalte; umbenennungen: Eingang/Ausgang/Kanal/AN/VON/TYP
-const CSV_HEADER = [
-  "NR", "GEDRUCKT",
-  "DATUM", "ZEIT",
-  "Eingang", "Ausgang", "Kanal",
-  "AN/VON", "INFORMATION", "RUECKMELDUNG_1", "RUECKMELDUNG_2", "TYP",
-  "ERGEHT_AN", "ERGEHT_AN_FREI",
-  "M1_Text", "M1_Verantwortlich", "M1_Done",
-  "M2_Text", "M2_Verantwortlich", "M2_Done",
-  "M3_Text", "M3_Verantwortlich", "M3_Done",
-  "M4_Text", "M4_Verantwortlich", "M4_Done",
-  "M5_Text", "M5_Verantwortlich", "M5_Done",
-  "ID", // ← letzte Spalte
+const PROT_HEADERS = [
+  "timestamp","user","action","id","title","type","note"
 ];
+
+const CSV_HEADER = [
+  "NR","DRUCK","DATUM","ZEIT","EING","AUSG","KANAL",
+  "AN/VON","INFORMATION","RUECKMELDUNG1","RUECKMELDUNG2","TYP",
+  "ERGEHT_AN","ERGAENZUNG",
+  "M1","V1","X1","M2","V2","X2","M3","V3","X3","M4","V4","X4","M5","V5","X5",
+  "ID"
+];
+
+function buildProtLog({ action, entry = {}, note = "" }) {
+  return {
+    action,
+    id:    entry.nr != null ? String(entry.nr) : (entry.id || ""),
+    title: entry.title || entry.INFORMATION || "",
+    type:  entry.type || entry.TYP || "",
+    note
+  };
+}
+
 
 // ==== Files sicherstellen ====
 function ensureFiles() {

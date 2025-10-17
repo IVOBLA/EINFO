@@ -3,6 +3,7 @@ import express from "express";
 import fsp from "fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { appendCsvRow } from "../utils/auditLog.mjs";
 
 const router = express.Router();
 
@@ -11,6 +12,12 @@ const AUFG_PREFIX = "Aufg";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.resolve(__dirname, "..", "data"); // => <repo>/server/data
 const AUFG_LOG_FILE = path.join(DATA_DIR, `${AUFG_PREFIX}_log.csv`);
+const ROLES_FILE    = path.join(DATA_DIR, "User_roles.json");
+
+
+const AUFG_HEADERS = [
+  "timestamp","role","user","action","id","title","type","responsible","fromStatus","toStatus","beforeId"
+];
 
 function boardPath(roleId) {
   const r = String(roleId || "").toUpperCase().replace(/[^A-Z0-9_-]/g, "");
@@ -21,6 +28,19 @@ function boardPath(roleId) {
 // ========== Helpers ==========
 const STATUSES = ["Neu", "In Bearbeitung", "Erledigt"];
 const ts2 = () => new Date().toISOString().replace("T", " ").slice(0, 19);
+
+function buildAufgabenLog({ role, action, item = {}, fromStatus = "", toStatus = "", beforeId = "" }) {
+  return {
+    role,
+    action,
+    id: item.id || "",
+    title: item.title || "",
+    type: item.type || "",
+    responsible: item.responsible || "",
+    fromStatus, toStatus, beforeId
+  };
+}
+
 
 async function ensureDir() { await fsp.mkdir(DATA_DIR, { recursive: true }); }
 
@@ -65,17 +85,6 @@ function normalizeItem(x) {
   };
 }
 
-// CSV Log
-function csv(v){ if(v==null) return '""'; const s=String(v).replace(/[\r\n]+/g," ").replace(/"/g,'""'); return `"${s}"`; }
-async function ensureLogHeader(){
-  try{ await fsp.access(AUFG_LOG_FILE); }
-  catch{ await fsp.writeFile(AUFG_LOG_FILE,"timestamp;role;action;id;title;type;responsible;fromStatus;toStatus;beforeId\n","utf8"); }
-}
-async function appendLog(rec){
-  await ensureDir(); await ensureLogHeader();
-  const line=[ts2(),rec.role||"",rec.action||"",rec.id||"",rec.title||"",rec.type||"",rec.responsible||"",rec.fromStatus||"",rec.toStatus||"",rec.beforeId||""].map(csv).join(";")+"\n";
-  await fsp.appendFile(AUFG_LOG_FILE,line,"utf8");
-}
 
 // Rollen-Ermittlung (keine eigenen Routen pro Rolle)
 const BAD = new Set(["", "NULL", "UNDEFINED", "NONE", "N/A"]);
@@ -111,6 +120,50 @@ function userRoleFromReq(req) {
     (u.role && typeof u.role.id === "string" && normRole(u.role.id)) || "";
   return fromUser || headerRole(req);   // <= Header-Fallback
 }
+
+
+// ---------- Rechteprüfung (aufgabenboard: edit) ----------
+async function loadRolesVAny() {
+  try {
+    const raw = JSON.parse(await fsp.readFile(ROLES_FILE, "utf8"));
+    return Array.isArray(raw) ? raw : (Array.isArray(raw?.roles) ? raw.roles : []);
+  } catch { return []; }
+}
+function capsToApps(caps = []) {
+  const out = {};
+  for (const c of caps) {
+    const m = String(c).trim().match(/^([a-z0-9_-]+)[:.]([a-z]+)$/i);
+    if (!m) continue;
+    const app = m[1].toLowerCase();
+    const lvl = m[2].toLowerCase();
+    out[app] = (out[app] === "edit" || lvl === "edit") ? "edit" : lvl; // edit dominiert
+  }
+  return out;
+}
+function toRoleObj(r) {
+  if (!r) return null;
+  const id = (r.id || r.label || "").toString().toUpperCase();
+  const apps = r.apps ? r.apps : capsToApps(r.capabilities || []);
+  return { id, apps };
+}
+async function requireAufgabenEdit(req, res) {
+  const roleId = userRoleFromReq(req)?.toUpperCase();
+  if (!roleId) { res.status(401).json({ error: "unauthorized (no role)" }); return false; }
+  try {
+    const roles = (await loadRolesVAny()).map(toRoleObj).filter(Boolean);
+    const r = roles.find(x => x.id === roleId);
+    const lvl = (r?.apps?.aufgabenboard || r?.apps?.["aufgabenboard"]) || "none";
+    if (String(lvl).toLowerCase() !== "edit") {
+      res.status(403).json({ error: "forbidden (no edit permission for aufgabenboard)" });
+      return false;
+    }
+    return true;
+  } catch (e) {
+    res.status(500).json({ error: "roles_read_failed", detail: String(e?.message || e) });
+    return false;
+  }
+}
+
 // ========== API ==========
 router.get("/", async (req,res)=>{
   const role=targetRoleOrSend(req,res); if(!role) return;
@@ -121,6 +174,7 @@ router.get("/", async (req,res)=>{
 // EINZIGER Create-Endpoint (idempotent via clientId)
 router.post("/", express.json(), async (req,res)=>{
   const role=targetRoleOrSend(req,res); if(!role) return;
+  if (!(await requireAufgabenEdit(req,res))) return;
   try{
     const board=await loadAufgBoard(role);
     const clientId=String(req.body?.clientId || req.body?.idempotencyKey || "").trim().slice(0,80)||null;
@@ -142,7 +196,11 @@ router.post("/", express.json(), async (req,res)=>{
 
     board.items=[item, ...(board.items||[])];
     await saveAufgBoard(role,board);
-    await appendLog({role,action:"create",id:item.id,title:item.title,type:item.type,responsible:item.responsible,toStatus:item.status});
+await appendCsvRow(
+   AUFG_LOG_FILE, AUFG_HEADERS,
+   buildAufgabenLog({ role, action:"create", item, toStatus:item.status }),
+   req
+ );
     res.json({ok:true,item});
   }catch(e){ res.status(500).json({error:e.message}); }
 });
@@ -150,6 +208,7 @@ router.post("/", express.json(), async (req,res)=>{
 // Statuswechsel
 router.post("/:id/status", express.json(), async (req,res)=>{
   const role=targetRoleOrSend(req,res); if(!role) return;
+  if (!(await requireAufgabenEdit(req,res))) return;
   const {id}=req.params;
   const raw=req.body?.status ?? req.body?.toStatus ?? req.body?.columnId ?? req.body?.to;
   if(!id || !raw) return res.status(400).json({error:"id oder status fehlt"});
@@ -163,7 +222,11 @@ router.post("/:id/status", express.json(), async (req,res)=>{
     const next={...prev,status,updatedAt:Date.now()};
     board.items[idx]=next;
     await saveAufgBoard(role,board);
-    await appendLog({role,action:"status",id:next.id,title:next.title,type:next.type,responsible:next.responsible,fromStatus:prev.status,toStatus:status});
+ await appendCsvRow(
+   AUFG_LOG_FILE, AUFG_HEADERS,
+   buildAufgabenLog({ role, action:"status", item:next, fromStatus:prev.status, toStatus:status }),
+   req
+ );
     res.json({ok:true});
   }catch(e){ res.status(500).json({error:e.message}); }
 });
@@ -171,6 +234,7 @@ router.post("/:id/status", express.json(), async (req,res)=>{
 // DnD Reorder (Status + Position)
 router.post("/reorder", express.json(), async (req,res)=>{
   const role=targetRoleOrSend(req,res); if(!role) return;
+  if (!(await requireAufgabenEdit(req,res))) return;
   const id=req.body?.id ?? req.body?.itemId ?? req.body?.cardId;
   const raw=req.body?.toStatus ?? req.body?.status ?? req.body?.to ?? req.body?.columnId;
   const beforeId=req.body?.beforeId ?? req.body?.previousId ?? null;
@@ -200,7 +264,11 @@ router.post("/reorder", express.json(), async (req,res)=>{
       ...without.filter(x=>!STATUSES.includes(x?.status ?? "Neu"))];
 
     await saveAufgBoard(role,board);
-    await appendLog({role,action:"reorder",id:moved.id,title:moved.title,type:moved.type,responsible:moved.responsible,fromStatus:prev.status,toStatus:toStatus,beforeId});
+await appendCsvRow(
+   AUFG_LOG_FILE, AUFG_HEADERS,
+   buildAufgabenLog({ role, action:"reorder", item:moved, fromStatus:prev.status, toStatus, beforeId }),
+   req
+ );
     res.json({ok:true});
   }catch(e){ res.status(500).json({error:e.message}); }
 });
@@ -219,6 +287,43 @@ router.post("/log/reset", async (_req,res)=>{
     await ensureLogHeader();
     res.json({ok:true, archived:arch});
   }catch(e){ res.status(500).json({error:e.message}); }
+});
+
+
+// Felder-Edit (Titel/Typ/Verantwortlich/Notiz) mit Log "update"
+router.post("/:id/edit", express.json(), async (req,res)=>{
+  const role = targetRoleOrSend(req,res); if(!role) return;
+  if (!(await requireAufgabenEdit(req,res))) return;
+  const { id } = req.params;
+  if (!id) return res.status(400).json({ error: "id fehlt" });
+  try {
+    const board = await loadAufgBoard(role);
+    const items = Array.isArray(board.items) ? board.items : [];
+    const idx = items.findIndex(x => (x?.id ?? x?._id ?? x?.key) === id);
+    if (idx < 0) return res.status(404).json({ error: "nicht gefunden" });
+
+    const prev = normalizeItem(items[idx]);
+    const patch = req.body || {};
+    const next = {
+      ...prev,
+      title:       patch.title       ?? prev.title,
+      type:        patch.type        ?? prev.type,
+      responsible: patch.responsible ?? prev.responsible,
+      desc:        patch.desc        ?? prev.desc,
+      updatedAt:   Date.now(),
+    };
+    items[idx] = next;
+    board.items = items;
+    await saveAufgBoard(role, board);
+ await appendCsvRow(
+   AUFG_LOG_FILE, AUFG_HEADERS,
+   buildAufgabenLog({ role, action:"update", item:next, fromStatus:prev.status, toStatus:next.status }),
+   req
+ );
+    res.json({ ok:true, item: next });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 export default router;

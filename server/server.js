@@ -10,6 +10,7 @@ import protocolRouter from "./routes/protocol.js";
 import attachPrintRoutes from "./printRoutes.js";
 import aufgabenRoutes from "./routes/aufgabenRoutes.js";
 import userRolesRouter from "./routes/userRoles.js";
+import { appendCsvRow } from "./utils/auditLog.mjs";
 
 // 🔐 Neues User-Management
 import { User_authMiddleware, User_createRouter, User_requireAuth } from "./User_auth.mjs";
@@ -39,6 +40,10 @@ const ARCHIVE_DIR = path.join(DATA_DIR, "archive");
 const ERROR_LOG   = path.join(DATA_DIR, "Log.txt");
 const GROUPS_FILE = path.join(DATA_DIR, "group_locations.json");
 
+const EINSATZ_HEADERS = [
+  "Zeitpunkt","Benutzer","EinsatzID","Einsatz","Aktion","Von","Nach","Einheit","Bemerkung"
+];
+
 // ==== Auto-Import ====
 const AUTO_CFG_FILE         = path.join(DATA_DIR, "auto-import.json");
 const AUTO_DEFAULT_FILENAME = "list_filtered.json";
@@ -52,6 +57,18 @@ let autoNextAt         = null;   // ms – nächster geplanter Auto-Import
 // ----------------- Helpers -----------------
 async function ensureDir(p){ await fs.mkdir(p,{ recursive:true }); }
 attachPrintRoutes(app, "/api/protocol");
+
+function buildEinsatzLog({ action, card = {}, from = "", to = "", einheit = "", note = "" }) {
+  return {
+    EinsatzID: card.id || "",
+    Einsatz:   card.content || "",
+    Aktion:    action || "",
+    Von:       from || "",
+    Nach:      to || "",
+    Einheit:   einheit || "",
+    Bemerkung: note || ""
+  };
+}
 
 // === Aktivität & Auto-Stop (Fetcher) =========================================
 let lastActivityMs = Date.now();
@@ -322,7 +339,11 @@ app.post("/api/vehicles", async (req,res)=>{
   const v  = { id, ort, label, mannschaft: Number(mannschaft)||0 };
   extra.push(v); await writeJson(VEH_EXTRA, extra);
 
-  await appendLog({ action:"Einheit angelegt", einheit:`${label} (${ort})` });
+ await appendCsvRow(
+   LOG_FILE, EINSATZ_HEADERS,
+   buildEinsatzLog({ action:"Einheit angelegt", note:`${label} (${ort})` }),
+   req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
+ );
   res.json({ ok:true, vehicle:v });
 });
 
@@ -378,13 +399,11 @@ app.post("/api/cards", async (req, res) => {
   const arr = board.columns[key].items;
   arr.splice(Math.max(0, Math.min(Number(toIndex) || 0, arr.length)), 0, card);
   await writeJson(BOARD_FILE, board);
-  await appendLog({
-    action: "Einsatz erstellt",
-    einsatz: card.content,
-    einsatzId: card.id,
-    from: board.columns[key].name,
-    note: card.ort || "",
-  });
+ await appendCsvRow(
+   LOG_FILE, EINSATZ_HEADERS,
+   buildEinsatzLog({ action:"Einsatz erstellt", card, from:board.columns[key].name, note:card.ort || "" }),
+   req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
+ );
   markActivity("card:create");
   res.json({ ok: true, card, column: key });
 });
@@ -409,20 +428,22 @@ app.post("/api/cards/:id/move", async (req,res)=>{
     // CSV: aktuell zugeordnete Einheiten als "entfernt" loggen
     for (const vid of (card.assignedVehicles || [])) {
       const veh = vmap.get(vid);
-      await appendLog({
-        einsatz: card.content,
-        action:  "Einheit entfernt",
-        einsatzId: card.id,
-        einheit: `${veh?.label || vid} (${veh?.ort || ""})`,
-        note:    "durch Abschluss (Erledigt)"
-      });
+ await appendCsvRow(
+   LOG_FILE, EINSATZ_HEADERS,
+   buildEinsatzLog({ action:"move", card, from:fromName, to:toName }),
+   req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
+ );
     }
     card.assignedVehicles=[];
   }
   dst.splice(Math.max(0,Math.min(Number(toIndex)||0,dst.length)),0,card);
   await writeJson(BOARD_FILE,board);
 
-  await appendLog({ action:"Statuswechsel", einsatzId:card.id, einsatz:card.content, from:board.columns[from]?.name||from, to:board.columns[to]?.name||to, note:card.ort||"" });
+   await appendCsvRow(
+   LOG_FILE, EINSATZ_HEADERS,
+   buildEinsatzLog({ action:"move", card, from:fromName, to:toName }),
+   req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
+ );
   markActivity("card:move");
   res.json({ ok:true, card, from, to });
 });
@@ -441,7 +462,11 @@ app.post("/api/cards/:id/assign", async (req,res)=>{
   if(!ref.card.assignedVehicles.includes(vehicleId)) ref.card.assignedVehicles.push(vehicleId);
   ref.card.everVehicles=Array.from(new Set([...(ref.card.everVehicles||[]), vehicleId]));
 
-  await appendLog({ action:"Einheit zugewiesen", einsatzId:ref.card.id, einsatz:ref.card.content, einheit:`${veh?.label||vehicleId} (${veh?.ort||""})`, note:ref.card.ort||"" });
+   await appendCsvRow(
+   LOG_FILE, EINSATZ_HEADERS,
+   buildEinsatzLog({ action:"Einheit zugewiesen", card, einheit:label }),
+  req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
+ );
 
   if(ref.col==="neu"){
     const [c]=ref.arr.splice(ref.i,1);
@@ -474,7 +499,11 @@ app.post("/api/cards/:id/unassign", async (req,res)=>{
 
   const vmap=vehiclesByIdMap(await getAllVehicles());
   const veh=vmap.get(vehicleId);
-  await appendLog({ action:"Einheit entfernt",einsatzId:ref.card.id, einsatz:ref.card.content, einheit:`${veh?.label||vehicleId} (${veh?.ort||""})`, note:ref.card.ort||"" });
+ await appendCsvRow(
+   LOG_FILE, EINSATZ_HEADERS,
+   buildEinsatzLog({ action:"Einheit entfernt", card, einheit:label }),
+   req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
+ );;
   markActivity("vehicle:unassign");
   res.json({ ok:true, card:ref.card });
 
@@ -500,12 +529,11 @@ app.patch("/api/cards/:id/personnel", async (req,res)=>{
   if(manualPersonnel===null||manualPersonnel===""||manualPersonnel===undefined){
     delete ref.card.manualPersonnel;
     await writeJson(BOARD_FILE,board);
-    await appendLog({
-      einsatz: ref.card.content,
-      einsatzId: ref.card.id,
-      action:  "Personenzahl zurückgesetzt",
-      note:    `vorher ${prev}`
-    });
+ await appendCsvRow(
+   LOG_FILE, EINSATZ_HEADERS,
+   buildEinsatzLog({ action:"Personenzahl geändert", card, note:String(count) }),
+   req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
+ );
     return res.json({ ok:true, card:ref.card });
   }else{
     const n=Number(manualPersonnel);
@@ -513,12 +541,11 @@ app.patch("/api/cards/:id/personnel", async (req,res)=>{
     ref.card.manualPersonnel=n;
   }
   await writeJson(BOARD_FILE,board);
-  await appendLog({
-    einsatz: ref.card.content,
-    einsatzId: ref.card.id,
-    action:  "Personenzahl geändert",
-    note:    `${prev} → ${ref.card.manualPersonnel}`
-  });
+ await appendCsvRow(
+   LOG_FILE, EINSATZ_HEADERS,
+   buildEinsatzLog({ action:"Personenzahl geändert", card, note:String(count) }),
+   req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
+ );
   markActivity("personnel:update");
   res.json({ ok:true, card:ref.card });
 });
@@ -784,7 +811,11 @@ async function importFromFileOnce(filename=AUTO_DEFAULT_FILENAME){
         };
         board.columns["neu"].items.unshift(card);
         created++;
-        await appendLog({ action:"Einsatz erstellt (Auto-Import)", einsatzId:card.id, einsatz:card.content, from:"", to:"Neu", note:card.ort||"" });
+         await appendCsvRow(
+   LOG_FILE, EINSATZ_HEADERS,
+   buildEinsatzLog({ action:"Einsatz erstellt (Auto-Import)", card, from:"Neu", note:card.ort || "" }),
+   req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
+ );
       }
     }
 
