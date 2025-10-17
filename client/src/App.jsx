@@ -28,6 +28,7 @@ import { usePlacesAutocomplete } from "./hooks/usePlacesAutocomplete";
 // Start/Stop + Import (Icon & Button)
 import FFFetchControl from "./components/FFFetchControl.jsx";
 import { initRolePolicy, canEditApp, isReadOnlyApp } from "./auth/roleUtils";
+import { useUserAuth } from "./components/User_AuthProvider.jsx"
 
 import {
   fetchBoard,
@@ -133,6 +134,16 @@ useEffect(() => {
   document.title = "Einsatzstellen-Übersicht-Feuerwehr";
   initSound();       // einmalig Tonfreischaltung aktivieren
 }, []);
+
+
+  // --- Logout ---
+  const { logout } = useUserAuth?.() || {};
+  const onLogout = async () => {
+    try { await logout?.(); } finally {
+      // Nach dem Logout auf die Login-Seite leiten
+      window.location.href = "/user-login";
+    }
+  };
 
 
 // (6) Countdown für Auto-Import / Sync-Chip – läuft nur, wenn Auto-Import aktiv ist
@@ -854,6 +865,13 @@ if (route.startsWith("/protokoll")) {
           <button onClick={onPdf} className="px-3 py-1.5 rounded-md bg-purple-600 hover:bg-purple-700 text-white">
             PDF
           </button>
+		      <button
+      onClick={onLogout}
+      className="px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-100"
+      title={user?.displayName ? `Logout (${user.displayName})` : "Logout"}
+    >
+      Logout
+    </button>
 <button
   onClick={() => window.open("/api/log.csv", "_blank")}
   className="px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white"

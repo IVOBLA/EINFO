@@ -117,6 +117,19 @@ export default function AufgApp() {
   }
   useEffect(() => { void load(); }, [roleId]);
 
+async function updateItemOnServer(patch) {
+  const res = await fetch(`/api/aufgaben/${encodeURIComponent(patch.id)}/edit${roleQuery(roleId)}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...roleHeaders(roleId) },
+    credentials: "include",
+    body: JSON.stringify(patch),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const j = await res.json();
+  return j.item || patch;
+}
+
+
   // ---- Persist-Helper: Reorder (DnD) & Status (Pfeil)
   async function persistReorder({ id, toStatus, beforeId }) {
     try {
@@ -347,7 +360,16 @@ const res = await fetch(`/api/aufgaben${roleQuery(roleId)}`, {
           } catch (e) { setError(String(e?.message || e)); }
         }}
       />
-      <AufgInfoModal open={!!activeItem} item={activeItem} onClose={() => setActiveItem(null)} />
+      <AufgInfoModal
+  open={!!activeItem}
+  item={activeItem}
+  onClose={() => setActiveItem(null)}
+  canEdit={allowEdit}
+  onSave={async (patch) => {
+    const saved = await updateItemOnServer(patch);
+    setItems(prev => prev.map(it => it.id === saved.id ? { ...it, ...saved } : it));
+  }}
+/>
     </div>
   );
 }
