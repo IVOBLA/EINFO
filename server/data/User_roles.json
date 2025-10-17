@@ -16,7 +16,7 @@
       "apps": {
         "einsatzboard": "edit",
         "aufgabenboard": "edit",
-        "protokoll": "view"
+        "protokoll": "edit"
       }
     },
     {

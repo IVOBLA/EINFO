@@ -3,21 +3,27 @@ import express from "express";
 import fsp from "fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { appendCsvRow } from "../utils/auditLog.mjs";
+import { appendCsvRow } from "../auditLog.mjs";
 
 const router = express.Router();
 
 // ========== Pfade / Dateien ==========
 const AUFG_PREFIX = "Aufg";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = path.resolve(__dirname, "..", "data"); // => <repo>/server/data
-const AUFG_LOG_FILE = path.join(DATA_DIR, `${AUFG_PREFIX}_log.csv`);
+ const DATA_DIR = path.resolve(process.cwd(), "server", "data"); // vereinheitlicht unter server/data
+ const AUFG_LOG_FILE = path.join(DATA_DIR, "Aufg_log.csv");
 const ROLES_FILE    = path.join(DATA_DIR, "User_roles.json");
 
 
 const AUFG_HEADERS = [
   "timestamp","role","user","action","id","title","type","responsible","fromStatus","toStatus","beforeId"
 ];
+
+async function ensureAufgLogHeader(file = AUFG_LOG_FILE) {
+  try { await fsp.access(file); }
+  catch { await fsp.writeFile(file, AUFG_HEADERS.join(";") + "\n", "utf8"); }
+}
+
 
 function boardPath(roleId) {
   const r = String(roleId || "").toUpperCase().replace(/[^A-Z0-9_-]/g, "");
@@ -274,17 +280,17 @@ await appendCsvRow(
 });
 
 // Log
-router.get("/log.csv", async (_req,res)=>{
-  try{ await ensureLogHeader(); res.setHeader("Content-Type","text/csv; charset=utf-8");
-    res.setHeader("Content-Disposition",`attachment; filename="${AUFG_PREFIX}_log.csv"`); res.end(await fsp.readFile(AUFG_LOG_FILE)); }
+ router.get("/log.csv", async (_req,res)=>{
+   try{ await ensureAufgLogHeader(); res.setHeader("Content-Type","text/csv; charset=utf-8");
+     res.setHeader("Content-Disposition",`attachment; filename="${AUFG_PREFIX}_log.csv"`); res.end(await fsp.readFile(AUFG_LOG_FILE)); }
   catch(e){ res.status(500).json({error:e.message}); }
 });
 router.post("/log/reset", async (_req,res)=>{
   try{
-    await ensureLogHeader();
+    await ensureAufgLogHeader();
     const arch=`${AUFG_PREFIX}_log_arch_${Date.now()}.csv`;
     try{ await fsp.rename(AUFG_LOG_FILE, path.join(DATA_DIR,arch)); }catch{}
-    await ensureLogHeader();
+    await ensureAufgLogHeader();
     res.json({ok:true, archived:arch});
   }catch(e){ res.status(500).json({error:e.message}); }
 });

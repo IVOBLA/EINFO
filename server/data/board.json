@@ -2,7 +2,26 @@
   "columns": {
     "neu": {
       "name": "Neu",
-      "items": []
+      "items": [
+        {
+          "id": "ivksb4ls",
+          "content": "Brand",
+          "createdAt": "2025-10-17T09:40:01.134Z",
+          "statusSince": "2025-10-17T09:40:01.134Z",
+          "assignedVehicles": [],
+          "everVehicles": [],
+          "everPersonnel": 0,
+          "ort": "Lannesstraße, 1220 Wien, Österreich",
+          "typ": "Brand",
+          "externalId": "",
+          "alerted": "",
+          "latitude": 48.2086438,
+          "longitude": 16.5105018,
+          "location": "",
+          "description": "",
+          "timestamp": null
+        }
+      ]
     },
     "in-bearbeitung": {
       "name": "In Bearbeitung",

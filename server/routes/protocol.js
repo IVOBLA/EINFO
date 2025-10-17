@@ -4,7 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import express from "express";
 import { randomUUID } from "crypto";
-import { appendCsvRow } from "../utils/auditLog.mjs";
+import { appendCsvRow } from "../auditLog.mjs";
 
 const router = express.Router();
 
@@ -13,7 +13,7 @@ const __dirname  = path.dirname(__filename);
 
 // ► Datenpfad: standardmäßig ../data (also server/data), nicht routes/data
 const SERVER_DIR = path.resolve(__dirname, "..");
-const DATA_DIR   = process.env.KANBAN_DATA_DIR || path.join(SERVER_DIR, "data");
+const DATA_DIR = path.resolve(process.cwd(), "server", "data");
 const CSV_FILE   = path.join(DATA_DIR, "protocol.csv");
 const JSON_FILE  = path.join(DATA_DIR, "protocol.json");
 const PROTOKOLL_LOG_FILE = path.join(DATA_DIR, "Protokoll_log.csv"); 
@@ -239,6 +239,11 @@ router.post("/", express.json(), (req, res) => {
     all.push(payload);
     writeAllJson(all);
     rewriteCsvFromJson(all);
+	 appendCsvRow(
+   PROTOKOLL_LOG_FILE, PROT_HEADERS,
+   buildProtLog({ action: "create", entry: payload, note: "neuer Eintrag" }),
+   req
+ ).catch(()=>{});
     res.json({ ok: true, nr, id: payload.id });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
@@ -277,6 +282,15 @@ router.put("/:nr", express.json(), (req, res) => {
     all[idx] = next;
     writeAllJson(all);
     rewriteCsvFromJson(all);
+	 appendCsvRow(
+   PROTOKOLL_LOG_FILE, PROT_HEADERS,
+   buildProtLog({
+     action: "update",
+     entry: next,
+     note:  (changes.length ? `${changes.length} Feld(er) geändert` : "keine Änderungen")
+   }),
+   req
+ ).catch(()=>{});
     res.json({ ok: true, nr, id: next.id });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });

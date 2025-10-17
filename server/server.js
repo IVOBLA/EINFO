@@ -10,7 +10,7 @@ import protocolRouter from "./routes/protocol.js";
 import attachPrintRoutes from "./printRoutes.js";
 import aufgabenRoutes from "./routes/aufgabenRoutes.js";
 import userRolesRouter from "./routes/userRoles.js";
-import { appendCsvRow } from "./utils/auditLog.mjs";
+import { appendCsvRow } from "./auditLog.mjs";
 
 // 🔐 Neues User-Management
 import { User_authMiddleware, User_createRouter, User_requireAuth } from "./User_auth.mjs";
@@ -176,26 +176,12 @@ async function ensureLogFile(){
   catch{
     await fs.writeFile(
       LOG_FILE,
-      "\uFEFFZeitpunkt;EinsatzID;Einsatz;Aktion;Von;Nach;Einheit;Bemerkung\n",
+      "\uFEFFZeitpunkt;Benutzer;EinsatzID;Einsatz;Aktion;Von;Nach;Einheit;Bemerkung\n",
       "utf8"
     );
   }
 }
-function sanitizeCsvCell(s){ return String(s ?? "").replace(/\r?\n|\r/g," ").replace(/\s+/g," ").trim(); }
-async function appendLog({ einsatz="", einsatzId="", action="", from="", to="", einheit="", note="" }){
-  await ensureLogFile();
-  const row = [
-    tsHuman(),
-    sanitizeCsvCell(einsatzId),
-    sanitizeCsvCell(einsatz),
-    sanitizeCsvCell(action),
-    sanitizeCsvCell(from),
-    sanitizeCsvCell(to),
-    sanitizeCsvCell(einheit),
-    sanitizeCsvCell(note)
-  ].join(";") + "\n";
-  await fs.appendFile(LOG_FILE, row, "utf8");
-}
+
 
 // --- Distanz (Haversine) ---
 function haversineKm(a, b) {
@@ -420,20 +406,23 @@ app.post("/api/cards/:id/move", async (req,res)=>{
   const [card]=src.splice(idx,1);
   const dst=board.columns[to]?.items||[];
   if(from!==to) card.statusSince=new Date().toISOString();
+   const fromName = board.columns[from]?.name || from || "";
+ const toName   = board.columns[to]?.name   || to   || "";
 
   if(to==="erledigt"){
     const vmap=vehiclesByIdMap(await getAllVehicles());
     card.everVehicles=Array.from(new Set([...(card.everVehicles||[]), ...(card.assignedVehicles||[])]));
     card.everPersonnel=Number.isFinite(card?.manualPersonnel)?card.manualPersonnel:computedPersonnel(card,vmap);
     // CSV: aktuell zugeordnete Einheiten als "entfernt" loggen
-    for (const vid of (card.assignedVehicles || [])) {
-      const veh = vmap.get(vid);
- await appendCsvRow(
-   LOG_FILE, EINSATZ_HEADERS,
-   buildEinsatzLog({ action:"move", card, from:fromName, to:toName }),
-   req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
- );
-    }
+   for (const vid of (card.assignedVehicles || [])) {
+     const veh = vmap.get(vid);
+     const einheitsLabel = veh?.label || veh?.id || String(vid);
+     await appendCsvRow(
+       LOG_FILE, EINSATZ_HEADERS,
+       buildEinsatzLog({ action:"Einheit entfernt", card, einheit: einheitsLabel }),
+       req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
+     );
+   }
     card.assignedVehicles=[];
   }
   dst.splice(Math.max(0,Math.min(Number(toIndex)||0,dst.length)),0,card);
@@ -462,17 +451,26 @@ app.post("/api/cards/:id/assign", async (req,res)=>{
   if(!ref.card.assignedVehicles.includes(vehicleId)) ref.card.assignedVehicles.push(vehicleId);
   ref.card.everVehicles=Array.from(new Set([...(ref.card.everVehicles||[]), vehicleId]));
 
-   await appendCsvRow(
+ const einheitsLabel = veh?.label || veh?.id || String(vehicleId);
+ await appendCsvRow(
    LOG_FILE, EINSATZ_HEADERS,
-   buildEinsatzLog({ action:"Einheit zugewiesen", card, einheit:label }),
-  req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
+   buildEinsatzLog({ action:"Einheit zugewiesen", card: ref.card, einheit: einheitsLabel }),
+   req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
  );
 
   if(ref.col==="neu"){
     const [c]=ref.arr.splice(ref.i,1);
     c.statusSince=new Date().toISOString();
     board.columns["in-bearbeitung"].items.unshift(c);
-    await appendLog({ action:"Statuswechsel",einsatzId:c.id, einsatz:c.content, from:board.columns["neu"].name, to:board.columns["in-bearbeitung"].name, note:"durch Zuweisung" });
+ await appendCsvRow(
+   LOG_FILE, EINSATZ_HEADERS,
+   buildEinsatzLog({
+     action:"move", card:c,
+     from:board.columns["neu"].name, to:board.columns["in-bearbeitung"].name,
+     note:"durch Zuweisung"
+   }),
+   req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
+ );
   }
   await writeJson(BOARD_FILE,board);
   markActivity("vehicle:assign");
@@ -498,12 +496,13 @@ app.post("/api/cards/:id/unassign", async (req,res)=>{
   await writeJson(BOARD_FILE,board);
 
   const vmap=vehiclesByIdMap(await getAllVehicles());
-  const veh=vmap.get(vehicleId);
+ const veh = vmap.get(vehicleId);
+ const einheitsLabel = veh?.label || veh?.id || String(vehicleId);
  await appendCsvRow(
    LOG_FILE, EINSATZ_HEADERS,
-   buildEinsatzLog({ action:"Einheit entfernt", card, einheit:label }),
+   buildEinsatzLog({ action:"Einheit entfernt", card: ref.card, einheit: einheitsLabel }),
    req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
- );;
+ );
   markActivity("vehicle:unassign");
   res.json({ ok:true, card:ref.card });
 
@@ -529,11 +528,12 @@ app.patch("/api/cards/:id/personnel", async (req,res)=>{
   if(manualPersonnel===null||manualPersonnel===""||manualPersonnel===undefined){
     delete ref.card.manualPersonnel;
     await writeJson(BOARD_FILE,board);
- await appendCsvRow(
-   LOG_FILE, EINSATZ_HEADERS,
-   buildEinsatzLog({ action:"Personenzahl geändert", card, note:String(count) }),
-   req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
- );
+   const autoNow = computedPersonnel(ref.card, vehiclesByIdMap(await getAllVehicles()));
+   await appendCsvRow(
+     LOG_FILE, EINSATZ_HEADERS,
+     buildEinsatzLog({ action:"Personenzahl geändert", card: ref.card, note: String(autoNow) }),
+     req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
+   );
     return res.json({ ok:true, card:ref.card });
   }else{
     const n=Number(manualPersonnel);
@@ -543,7 +543,7 @@ app.patch("/api/cards/:id/personnel", async (req,res)=>{
   await writeJson(BOARD_FILE,board);
  await appendCsvRow(
    LOG_FILE, EINSATZ_HEADERS,
-   buildEinsatzLog({ action:"Personenzahl geändert", card, note:String(count) }),
+   buildEinsatzLog({ action:"Personenzahl geändert", card: ref.card, note: String(ref.card.manualPersonnel) }),
    req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
  );
   markActivity("personnel:update");
@@ -559,7 +559,7 @@ async function archiveAndResetLog() {
   } finally {
     await fs.writeFile(
       LOG_FILE,
-      "\uFEFFZeitpunkt;EinsatzID;Einsatz;Aktion;Von;Nach;Einheit;Bemerkung\n",
+       "\uFEFFZeitpunkt;Benutzer;EinsatzID;Einsatz;Aktion;Von;Nach;Einheit;Bemerkung\n",
       "utf8"
     );
   }
@@ -811,10 +811,10 @@ async function importFromFileOnce(filename=AUTO_DEFAULT_FILENAME){
         };
         board.columns["neu"].items.unshift(card);
         created++;
-         await appendCsvRow(
+ await appendCsvRow(
    LOG_FILE, EINSATZ_HEADERS,
    buildEinsatzLog({ action:"Einsatz erstellt (Auto-Import)", card, from:"Neu", note:card.ort || "" }),
-   req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
+   null, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
  );
       }
     }
