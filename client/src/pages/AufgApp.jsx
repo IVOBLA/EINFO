@@ -22,6 +22,7 @@ const COLS = [STATUS.NEW, STATUS.IN_PROGRESS, STATUS.DONE];
 
 
 
+
 // ---- Rolle aus vorhandenem Auth (keine UI-Änderung)
 function getCurrentUser() {
   try {
@@ -69,6 +70,9 @@ export default function AufgApp() {
 
   const user = getCurrentUser();
   const roleId = useMemo(() => getPrimaryRoleId(user), [user]);
+  const [freshIds, setFreshIds] = useState(new Set());
+const prevIdsRef = useRef(new Set());
+const myCreatedIdsRef = useRef(new Set());
   
     // Rollen-Policy einmal laden und Edit-Flag setzen
   useEffect(() => {
@@ -112,6 +116,21 @@ export default function AufgApp() {
         updatedAt: x.updatedAt ?? null,
       }));
       setItems(mapped);
+	  
+	  try{
+  const ids = new Set(mapped.map(x => String(x.id)));
+  const prev = prevIdsRef.current;
+  const added = [...ids].filter(id => !prev.has(id));
+  const toPulse = added.filter(id => !myCreatedIdsRef.current.has(id));
+  if (toPulse.length) {
+    setFreshIds(new Set(toPulse));
+    setTimeout(() => setFreshIds(new Set()), 9000);
+  }
+  prevIdsRef.current = ids;
+}catch{}
+	  
+	  
+	  
     } catch (e) { setError(String(e?.message || e)); }
     finally { setLoading(false); }
   }
@@ -161,10 +180,13 @@ const res = await fetch(`/api/aufgaben${roleQuery(roleId)}`, {
   method: "POST",
   headers: { "Content-Type": "application/json", ...roleHeaders(roleId) },
   body: JSON.stringify(body),
+  
 });
 
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
+	const saved = json?.item || body;
+	if (saved?.id) myCreatedIdsRef.current.add(String(saved.id));
     return json?.item || body;
   }
 
@@ -302,7 +324,7 @@ const res = await fetch(`/api/aufgaben${roleQuery(roleId)}`, {
               itemIds={lists[STATUS.NEW].map(x=>x.id)}
             >
               {lists[STATUS.NEW].map((it) => (
-                <AufgSortableCard key={it.id} item={it} onAdvance={advance} onShowInfo={setActiveItem} />
+                <AufgSortableCard key={it.id} item={it} onAdvance={advance} onShowInfo={setActiveItem} isNew={freshIds.has(String(it.id))} />
               ))}
             </AufgDroppableColumn>
           </div>
@@ -316,7 +338,7 @@ const res = await fetch(`/api/aufgaben${roleQuery(roleId)}`, {
               itemIds={lists[STATUS.IN_PROGRESS].map(x=>x.id)}
             >
               {lists[STATUS.IN_PROGRESS].map((it) => (
-                <AufgSortableCard key={it.id} item={it} onAdvance={advance} onShowInfo={setActiveItem} />
+                <AufgSortableCard key={it.id} item={it} onAdvance={advance} onShowInfo={setActiveItem} isNew={freshIds.has(String(it.id))} />
               ))}
             </AufgDroppableColumn>
           </div>
@@ -330,7 +352,7 @@ const res = await fetch(`/api/aufgaben${roleQuery(roleId)}`, {
               itemIds={lists[STATUS.DONE].map(x=>x.id)}
             >
               {lists[STATUS.DONE].map((it) => (
-                <AufgSortableCard key={it.id} item={it} onAdvance={advance} onShowInfo={setActiveItem} />
+               <AufgSortableCard key={it.id} item={it} onAdvance={advance} onShowInfo={setActiveItem} isNew={freshIds.has(String(it.id))} />
               ))}
             </AufgDroppableColumn>
           </div>

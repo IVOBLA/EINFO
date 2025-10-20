@@ -9,7 +9,7 @@ const clip = (s, n = 100) => {
   return str.length > n ? str.slice(0, n).trimEnd() + "…" : str;
 };
 
-export default function AufgSortableCard({ item, onAdvance, onShowInfo }) {
+export default function AufgSortableCard({ item, onAdvance, onShowInfo, isNew }) {
   const {
     attributes,
     listeners,
@@ -29,7 +29,7 @@ export default function AufgSortableCard({ item, onAdvance, onShowInfo }) {
         className={[
           "rounded-lg bg-white shadow-xl border p-3",
           isDragging ? "opacity-90 scale-[1.01]" : "",
-          "transition-transform",
+		  "transition-transform", isNew ? "pulse-incoming" : "",
         ].join(" ")}
       >
         {/* Kopfzeile: links 'erstellt' + Titel; rechts 'aktual.' + Pfeil */}
