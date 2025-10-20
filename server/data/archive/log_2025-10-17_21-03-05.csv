@@ -1,0 +1,16 @@
+Zeitpunkt;Benutzer;EinsatzID;Einsatz;Aktion;Von;Nach;Einheit;Bemerkung
+17.10.2025 20:58:55;bla;ghahbzxs;Brand;Einsatz erstellt;Neu;;;Lannerweg, 8071 Hausmannstätten, Österreich
+17.10.2025 20:59:37;bla;ghahbzxs;Brand;move;Neu;In Bearbeitung;;
+17.10.2025 20:59:45;bla;ghahbzxs;Brand;move;In Bearbeitung;Erledigt;;
+17.10.2025 20:59:54;bla;ghahbzxs;Brand;move;Erledigt;Neu;;
+17.10.2025 21:00:04;bla;ghahbzxs;Brand;Einheit zugewiesen;;;LFB;
+17.10.2025 21:00:04;bla;ghahbzxs;Brand;move;Neu;In Bearbeitung;;durch Zuweisung
+17.10.2025 21:00:19;bla;;;Einheit angelegt;;;;LFB-4 (FF Ebene Reichenau)
+17.10.2025 21:00:19;bla;ghahbzxs;Brand;Einheit zugewiesen;;;LFB-4;
+17.10.2025 21:00:49;bla;ghahbzxs;Brand;Einheit entfernt;;;LFB-4;
+17.10.2025 21:01:10;bla;ghahbzxs;Brand;Einheit entfernt;;;LFB;
+17.10.2025 21:01:10;bla;ghahbzxs;Brand;move;In Bearbeitung;Erledigt;;
+17.10.2025 21:01:24;bla;ghahbzxs;Brand;move;Erledigt;In Bearbeitung;;
+17.10.2025 21:01:29;bla;ghahbzxs;Brand;Einheit zugewiesen;;;LFB;
+17.10.2025 21:01:41;bla;ghahbzxs;Brand;Personenzahl geändert;;;;1
+17.10.2025 21:02:15;;gn7do1q9;Straßenreinigung;Einsatz erstellt (Auto-Import);Neu;;;Unterrain Unterrain - Feldkirchen in Kärnten

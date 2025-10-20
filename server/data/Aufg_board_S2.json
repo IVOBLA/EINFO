@@ -1,15 +1,15 @@
 {
   "items": [
     {
-      "id": "1760684679341-5i4mvz",
-      "clientId": "de9b0cc3-973c-46e2-a2f2-69c7bd3d5c5c",
-      "title": "2",
-      "type": "12",
-      "responsible": "",
-      "desc": "134",
-      "status": "Neu",
-      "createdAt": 1760684679341,
-      "updatedAt": 1760685965758,
+      "id": "1760771401798-0ju2os",
+      "clientId": "232ebc7c-cdea-4eba-b1a1-1a38ddec5507",
+      "title": "TEST",
+      "type": "Lagemeldung",
+      "responsible": "S3",
+      "desc": "sdgsdgdsfgdsgdfg",
+      "status": "Erledigt",
+      "createdAt": 1760771401798,
+      "updatedAt": 1760771458295,
       "kind": "task"
     }
   ]

@@ -10,8 +10,7 @@ const router = express.Router();
 // ========== Pfade / Dateien ==========
 const AUFG_PREFIX = "Aufg";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
- const DATA_DIR = path.resolve(process.cwd(), "server", "data"); // vereinheitlicht unter server/data
- const AUFG_LOG_FILE = path.join(DATA_DIR, "Aufg_log.csv");
+const DATA_DIR = path.resolve(__dirname, "..", "data");   // => <repo>/server/data
 const ROLES_FILE    = path.join(DATA_DIR, "User_roles.json");
 
 
@@ -19,11 +18,19 @@ const AUFG_HEADERS = [
   "timestamp","role","user","action","id","title","type","responsible","fromStatus","toStatus","beforeId"
 ];
 
-async function ensureAufgLogHeader(file = AUFG_LOG_FILE) {
+async function ensureAufgLogHeader(file) { 
   try { await fsp.access(file); }
-  catch { await fsp.writeFile(file, AUFG_HEADERS.join(";") + "\n", "utf8"); }
+  catch {
+    await ensureDir(); // <-- Ordner <repo>/server/data sicher anlegen
+    await fsp.writeFile(file, AUFG_HEADERS.join(";") + "\n", "utf8");
+  }
 }
 
+function logPath(roleId) {
+   const r = String(roleId || "").toUpperCase().replace(/[^A-Z0-9_-]/g, "");
+   if (!r) throw new Error("roleId missing");
+   return path.join(DATA_DIR, `${AUFG_PREFIX}_log_${r}.csv`);
+ }
 
 function boardPath(roleId) {
   const r = String(roleId || "").toUpperCase().replace(/[^A-Z0-9_-]/g, "");
@@ -31,9 +38,11 @@ function boardPath(roleId) {
   return path.join(DATA_DIR, `${AUFG_PREFIX}_board_${r}.json`);
 }
 
+
+
 // ========== Helpers ==========
 const STATUSES = ["Neu", "In Bearbeitung", "Erledigt"];
-const ts2 = () => new Date().toISOString().replace("T", " ").slice(0, 19);
+
 
 function buildAufgabenLog({ role, action, item = {}, fromStatus = "", toStatus = "", beforeId = "" }) {
   return {
@@ -66,8 +75,15 @@ async function saveAufgBoard(roleId, board) {
   const file = boardPath(roleId);
   const tmp = file + ".tmp-" + Date.now();
   await fsp.writeFile(tmp, JSON.stringify(board, null, 2), "utf8");
-  await fsp.rename(tmp, file);
-}
+  try {
+    await fsp.rename(tmp, file);
+ } catch (e) {
+    // Windows/AV-Scanner lockt Zieldatei → Fallback: direkt schreiben
+    await fsp.writeFile(file, await fsp.readFile(tmp, "utf8"), "utf8");
+    try { await fsp.unlink(tmp); } catch {}
+  }
+ }
+
 
 function normalizeItem(x) {
   const responsible = x.responsible ?? x.verantwortlich ?? x.address ?? "";
@@ -201,10 +217,13 @@ router.post("/", express.json(), async (req,res)=>{
     if(dup) return res.json({ok:true,item:dup,dedup:true});
 
     board.items=[item, ...(board.items||[])];
-    await saveAufgBoard(role,board);
-await appendCsvRow(
-   AUFG_LOG_FILE, AUFG_HEADERS,
-   buildAufgabenLog({ role, action:"create", item, toStatus:item.status }),
+	await saveAufgBoard(role, board);
+ const LOG_FILE = logPath(role);
+ await ensureAufgLogHeader(LOG_FILE);
+ await appendCsvRow(
+   LOG_FILE,
+   AUFG_HEADERS,
+   buildAufgabenLog({ role, action:"create", item, toStatus: item.status }),
    req
  );
     res.json({ok:true,item});
@@ -228,11 +247,14 @@ router.post("/:id/status", express.json(), async (req,res)=>{
     const next={...prev,status,updatedAt:Date.now()};
     board.items[idx]=next;
     await saveAufgBoard(role,board);
- await appendCsvRow(
-   AUFG_LOG_FILE, AUFG_HEADERS,
-   buildAufgabenLog({ role, action:"status", item:next, fromStatus:prev.status, toStatus:status }),
-   req
- );
+const LOG_FILE = logPath(role);
+await ensureAufgLogHeader(LOG_FILE);
+await appendCsvRow(
+  LOG_FILE,
+  AUFG_HEADERS,
+  buildAufgabenLog({ role, action: "status", item: next, fromStatus: prev.status, toStatus: status }),
+  req
+);
     res.json({ok:true});
   }catch(e){ res.status(500).json({error:e.message}); }
 });
@@ -270,9 +292,12 @@ router.post("/reorder", express.json(), async (req,res)=>{
       ...without.filter(x=>!STATUSES.includes(x?.status ?? "Neu"))];
 
     await saveAufgBoard(role,board);
-await appendCsvRow(
-   AUFG_LOG_FILE, AUFG_HEADERS,
-   buildAufgabenLog({ role, action:"reorder", item:moved, fromStatus:prev.status, toStatus, beforeId }),
+ const LOG_FILE = logPath(role);
+ await ensureAufgLogHeader(LOG_FILE);
+ await appendCsvRow(
+   LOG_FILE,
+   AUFG_HEADERS,
+   buildAufgabenLog({ role, action: "reorder", item: moved, fromStatus: prev.status, toStatus, beforeId }),
    req
  );
     res.json({ok:true});
@@ -280,20 +305,28 @@ await appendCsvRow(
 });
 
 // Log
- router.get("/log.csv", async (_req,res)=>{
-   try{ await ensureAufgLogHeader(); res.setHeader("Content-Type","text/csv; charset=utf-8");
-     res.setHeader("Content-Disposition",`attachment; filename="${AUFG_PREFIX}_log.csv"`); res.end(await fsp.readFile(AUFG_LOG_FILE)); }
-  catch(e){ res.status(500).json({error:e.message}); }
-});
-router.post("/log/reset", async (_req,res)=>{
-  try{
-    await ensureAufgLogHeader();
-    const arch=`${AUFG_PREFIX}_log_arch_${Date.now()}.csv`;
-    try{ await fsp.rename(AUFG_LOG_FILE, path.join(DATA_DIR,arch)); }catch{}
-    await ensureAufgLogHeader();
-    res.json({ok:true, archived:arch});
-  }catch(e){ res.status(500).json({error:e.message}); }
-});
+ router.get("/log.csv", async (req,res)=>{
+   const role = targetRoleOrSend(req,res); if(!role) return;
+   const LOG_FILE = logPath(role);
+   try {
+     await ensureAufgLogHeader(LOG_FILE);
+     res.setHeader("Content-Type","text/csv; charset=utf-8");
+     res.setHeader("Content-Disposition", `attachment; filename="${AUFG_PREFIX}_log_${role}.csv"`);
+     const buf = await fsp.readFile(LOG_FILE);
+     res.end(buf);
+   } catch(e){ res.status(500).json({error:e.message}); }
+ });
+ router.post("/log/reset", async (req,res)=>{
+   const role = targetRoleOrSend(req,res); if(!role) return;
+   const LOG_FILE = logPath(role);
+   try {
+     await ensureAufgLogHeader(LOG_FILE);
+     const arch = `${AUFG_PREFIX}_log_${role}_arch_${Date.now()}.csv`;
+     try { await fsp.rename(LOG_FILE, path.join(DATA_DIR, arch)); } catch {}
+     await ensureAufgLogHeader(LOG_FILE);
+     res.json({ ok:true, archived:arch });
+   } catch(e){ res.status(500).json({ error:e.message }); }
+ });
 
 
 // Felder-Edit (Titel/Typ/Verantwortlich/Notiz) mit Log "update"
@@ -321,11 +354,14 @@ router.post("/:id/edit", express.json(), async (req,res)=>{
     items[idx] = next;
     board.items = items;
     await saveAufgBoard(role, board);
- await appendCsvRow(
-   AUFG_LOG_FILE, AUFG_HEADERS,
-   buildAufgabenLog({ role, action:"update", item:next, fromStatus:prev.status, toStatus:next.status }),
-   req
- );
+const LOG_FILE = logPath(role);
+await ensureAufgLogHeader(LOG_FILE);
+await appendCsvRow(
+  LOG_FILE,
+  AUFG_HEADERS,
+  buildAufgabenLog({ role, action: "update", item: next, fromStatus: prev.status, toStatus: next.status }),
+  req
+);
     res.json({ ok:true, item: next });
   } catch(e) {
     res.status(500).json({ error: e.message });

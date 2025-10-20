@@ -4,7 +4,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import express from "express";
 import { randomUUID } from "crypto";
-import { appendCsvRow } from "../auditLog.mjs";
+import { resolveUserName } from "../auditLog.mjs";
+
 
 const router = express.Router();
 
@@ -13,34 +14,21 @@ const __dirname  = path.dirname(__filename);
 
 // ► Datenpfad: standardmäßig ../data (also server/data), nicht routes/data
 const SERVER_DIR = path.resolve(__dirname, "..");
-const DATA_DIR = path.resolve(process.cwd(), "server", "data");
+const DATA_DIR   = path.resolve(SERVER_DIR, "data");   // => <repo>/server/data
 const CSV_FILE   = path.join(DATA_DIR, "protocol.csv");
 const JSON_FILE  = path.join(DATA_DIR, "protocol.json");
-const PROTOKOLL_LOG_FILE = path.join(DATA_DIR, "Protokoll_log.csv"); 
+
 
 // ==== CSV: Spalten ====
-// ID ist letzte Spalte; umbenennungen: Eingang/Ausgang/Kanal/AN/VON/TYP
-const PROT_HEADERS = [
-  "timestamp","user","action","id","title","type","note"
-];
 
 const CSV_HEADER = [
-  "NR","DRUCK","DATUM","ZEIT","EING","AUSG","KANAL",
+  "NR","DRUCK","DATUM","ZEIT","BENUTZER","EING","AUSG","KANAL",
   "AN/VON","INFORMATION","RUECKMELDUNG1","RUECKMELDUNG2","TYP",
   "ERGEHT_AN","ERGAENZUNG",
   "M1","V1","X1","M2","V2","X2","M3","V3","X3","M4","V4","X4","M5","V5","X5",
   "ID"
 ];
 
-function buildProtLog({ action, entry = {}, note = "" }) {
-  return {
-    action,
-    id:    entry.nr != null ? String(entry.nr) : (entry.id || ""),
-    title: entry.title || entry.INFORMATION || "",
-    type:  entry.type || entry.TYP || "",
-    note
-  };
-}
 
 
 // ==== Files sicherstellen ====
@@ -98,6 +86,11 @@ function toCsvRow(item) {
   const ms = (item?.massnahmen || []).slice(0, 5);
   const M  = (i) => ms[i] || {};
   const ergehtAn = Array.isArray(item?.ergehtAn) ? item.ergehtAn.join(", ") : "";
+  const benutzer =
+  item.lastBy ||
+  (Array.isArray(item.history) && item.history.length
+    ? (item.history[item.history.length - 1].by || "")
+    : "");
 
   const cols = [
     item.nr,
@@ -105,6 +98,7 @@ function toCsvRow(item) {
 
     item.datum ?? "",
     item.zeit ?? "",
+	benutzer,
     u.ein ? "x" : "",
     u.aus ? "x" : "",
     (u.kanalNr ?? u.kanal ?? u.art ?? ""),
@@ -230,20 +224,19 @@ router.post("/", express.json(), (req, res) => {
       printCount: 0,
       history: []
     };
+  const userBy = resolveUserName(req);
     payload.history.push({
       ts: Date.now(),
       action: "create",
-      by: req.ip || "",
-      after: snapshotForHistory(payload)
+     by: userBy,
+     after: snapshotForHistory(payload)
     });
+   payload.lastBy = userBy;        // <-- für CSV-BENUTZER
     all.push(payload);
+
     writeAllJson(all);
     rewriteCsvFromJson(all);
-	 appendCsvRow(
-   PROTOKOLL_LOG_FILE, PROT_HEADERS,
-   buildProtLog({ action: "create", entry: payload, note: "neuer Eintrag" }),
-   req
- ).catch(()=>{});
+
     res.json({ ok: true, nr, id: payload.id });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
@@ -271,26 +264,20 @@ router.put("/:nr", express.json(), (req, res) => {
     // 🔁 Reset: jedes Update setzt das Druck-Flag zurück
     next.printCount = 0;
 
+    const userBy  = resolveUserName(req);
     const changes = computeDiff(existing, next);
     if (changes.length) {
       next.history = [
         ...next.history,
-        { ts: Date.now(), action: "update", by: req.ip || "", changes, after: snapshotForHistory(next) }
+        { ts: Date.now(), action: "update", by: userBy, changes, after: snapshotForHistory(next) }
       ];
     }
+    next.lastBy = userBy;     // <-- für CSV-BENUTZER
 
     all[idx] = next;
     writeAllJson(all);
     rewriteCsvFromJson(all);
-	 appendCsvRow(
-   PROTOKOLL_LOG_FILE, PROT_HEADERS,
-   buildProtLog({
-     action: "update",
-     entry: next,
-     note:  (changes.length ? `${changes.length} Feld(er) geändert` : "keine Änderungen")
-   }),
-   req
- ).catch(()=>{});
+
     res.json({ ok: true, nr, id: next.id });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });

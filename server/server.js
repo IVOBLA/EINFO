@@ -35,7 +35,7 @@ const VEH_BASE    = path.join(DATA_DIR, "vehicles.json");
 const VEH_EXTRA   = path.join(DATA_DIR, "vehicles-extra.json");
 const GPS_FILE    = path.join(DATA_DIR, "vehicles_gps.json");
 const TYPES_FILE  = path.join(DATA_DIR, "types.json");
-const LOG_FILE    = path.join(DATA_DIR, "log.csv");
+const LOG_FILE    = path.join(DATA_DIR, "Lage_log.csv");
 const ARCHIVE_DIR = path.join(DATA_DIR, "archive");
 const ERROR_LOG   = path.join(DATA_DIR, "Log.txt");
 const GROUPS_FILE = path.join(DATA_DIR, "group_locations.json");
@@ -531,7 +531,11 @@ app.patch("/api/cards/:id/personnel", async (req,res)=>{
    const autoNow = computedPersonnel(ref.card, vehiclesByIdMap(await getAllVehicles()));
    await appendCsvRow(
      LOG_FILE, EINSATZ_HEADERS,
-     buildEinsatzLog({ action:"Personenzahl geändert", card: ref.card, note: String(autoNow) }),
+     buildEinsatzLog({
+       action: "Personenzahl geändert",
+       card: ref.card,
+       note: `${prev}→${autoNow}`
+     }),
      req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
    );
     return res.json({ ok:true, card:ref.card });
@@ -543,7 +547,11 @@ app.patch("/api/cards/:id/personnel", async (req,res)=>{
   await writeJson(BOARD_FILE,board);
  await appendCsvRow(
    LOG_FILE, EINSATZ_HEADERS,
-   buildEinsatzLog({ action:"Personenzahl geändert", card: ref.card, note: String(ref.card.manualPersonnel) }),
+   buildEinsatzLog({
+     action: "Personenzahl geändert",
+     card: ref.card,
+     note: `${prev}→${ref.card.manualPersonnel}`
+   }),
    req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
  );
   markActivity("personnel:update");
