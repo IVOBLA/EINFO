@@ -1,3 +1,4 @@
-NR;GEDRUCKT;DATUM;ZEIT;Eingang;Ausgang;Kanal;AN/VON;INFORMATION;RUECKMELDUNG_1;RUECKMELDUNG_2;TYP;ERGEHT_AN;ERGEHT_AN_FREI;M1_Text;M1_Verantwortlich;M1_Done;M2_Text;M2_Verantwortlich;M2_Done;M3_Text;M3_Verantwortlich;M3_Done;M4_Text;M4_Verantwortlich;M4_Done;M5_Text;M5_Verantwortlich;M5_Done;ID
-1;;2025-10-15;11:33;;;;Von: BLA1;asdasd;;;Information;;;;;;;;;;;;;;;;;;0d17706a-c2c7-4400-939e-b12318a7a973
-2;;2025-10-16;15:01;;;;An:;;;;Information;;;;;;;;;;;;;;;;;;b18865d8-33e5-4dae-b471-1ca8187fe32b
+NR;DRUCK;DATUM;ZEIT;BENUTZER;EING;AUSG;KANAL;AN/VON;INFORMATION;RUECKMELDUNG1;RUECKMELDUNG2;TYP;ERGEHT_AN;ERGAENZUNG;M1;V1;X1;M2;V2;X2;M3;V3;X3;M4;V4;X4;M5;V5;X5;ID
+1;;2025-10-20;12:50;::1;;;;An:;TESTINFO;;;Auftrag;;;;S2;;;;;;;;;;;;;;3739ba19-dc2c-4c22-9637-66c8f62b8f2a
+2;;2025-10-20;12:50;::1;;;;An:;sdfgdsfgdfsg;;;Auftrag;;;;S3;;;S2;;;;;;;;;;;1f1fb42b-6c9e-408c-a25d-838f38f67b71
+3;;2025-10-20;12:54;::1;;;;An:;hhhhhhhhhhhhhhhhh;;;Auftrag;;;;;;;S2;;;;;;;;;;;041e0d3b-b2c9-4f31-b750-a10453971085

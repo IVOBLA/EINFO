@@ -5,7 +5,17 @@ import { fileURLToPath } from "url";
 import express from "express";
 import { randomUUID } from "crypto";
 import { resolveUserName } from "../auditLog.mjs";
+ import { ensureTaskForRole } from "../utils/tasksService.mjs";
 
+
+ const infoText = x => String(x?.information ?? x?.INFORMATION ?? x?.beschreibung ?? x?.text ?? x?.ERGAENZUNG ?? "").trim();
+ const taskType = x => /^(auftrag|lage)$/i.test(String(x?.infoTyp ?? x?.TYP ?? x?.type ?? ""));
+ const rolesOf = x => {
+   const arr = Array.isArray(x?.verantwortliche) ? x.verantwortliche : [];
+   const bucket = String(x?.ergehtAn ?? x?.ERGEHT_AN ?? "").trim();
+   if (bucket) bucket.split(/[,;|]/).map(s=>s.trim()).filter(Boolean).forEach(r=>arr.push(r));
+   return [...new Set(arr.map(s=>String(s).trim()).filter(Boolean))];
+ };
 
 const router = express.Router();
 
@@ -181,15 +191,14 @@ function snapshotForHistory(src) {
 // CSV-Download (Route vor '/:nr')
 router.get("/csv/file", (_req, res) => {
   try {
-    ensureFiles();
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader("Content-Disposition", 'attachment; filename="protocol.csv"');
-    res.sendFile(CSV_FILE);
+    const buf = fs.readFileSync(CSV_FILE);
+    res.send(buf);
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
 });
-
 // Liste
 router.get("/", (_req, res) => {
   try {
@@ -213,7 +222,7 @@ router.get("/:nr", (req, res) => {
 });
 
 // Neu
-router.post("/", express.json(), (req, res) => {
+router.post("/", express.json(), async (req, res) => {
   try {
     const all = readAllJson();
     const nr  = nextNr(all);
@@ -236,15 +245,33 @@ router.post("/", express.json(), (req, res) => {
 
     writeAllJson(all);
     rewriteCsvFromJson(all);
-
-    res.json({ ok: true, nr, id: payload.id });
+ // Ergänzung: Aufgaben je Verantwortlicher (nur Auftrag/Lage)
+try {
+  if (payload.infoTyp === "Auftrag" || payload.infoTyp === "Lage") {
+    const actor = resolveUserName(req);
+    const title = String(payload?.kurztext ?? payload?.KURZTEXT ?? "Auftrag").slice(0, 120);
+    const desc  = String(payload?.information ?? "").trim();
+    for (const m of payload.massnahmen || []) {
+      if (!m?.verantwortlich) continue;
+      await ensureTaskForRole({
+        roleId: m.verantwortlich,
+        protoNr: payload.nr,
+        actor,
+        item: { title, type: payload?.infoTyp ?? "", desc, meta: { source: "protokoll" } }
+      });
+    }
+  }
+} catch (err) {
+  console.warn("[protocol→tasks POST]", err?.message || err);
+}
+	res.json({ ok: true, nr, id: payload.id });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
 });
 
 // Update
-router.put("/:nr", express.json(), (req, res) => {
+router.put("/:nr", express.json(), async (req, res) => {
   try {
     const nr  = Number(req.params.nr);
     const all = readAllJson();
@@ -277,7 +304,27 @@ router.put("/:nr", express.json(), (req, res) => {
     all[idx] = next;
     writeAllJson(all);
     rewriteCsvFromJson(all);
-
+ // Ergänzung: neu hinzugekommene Verantwortliche ==> Aufgaben nachziehen
+ try{
+   if (taskType(next)) {
+     const before = new Set(rolesOf(existing));
+     const after  = new Set(rolesOf(next));
+     const added  = [...after].filter(r => !before.has(r));
+     if (added.length) {
+       const actor = resolveUserName(req);
+       const text  = infoText(next);
+       const title = String(next?.kurztext ?? next?.KURZTEXT ?? "Auftrag").slice(0,120);
+      for (const roleId of added) {
+         await ensureTaskForRole({
+           roleId,
+           protoNr: next.nr,
+           actor,
+           item: { title, type: next?.infoTyp ?? next?.TYP ?? "", desc: text, meta:{ source:"protokoll" } }
+         });
+       }
+     }
+   }
+ } catch (e) { console.warn("[protocol->tasks POST]", e?.message || e); }
     res.json({ ok: true, nr, id: next.id });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });

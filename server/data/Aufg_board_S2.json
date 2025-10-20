@@ -1,15 +1,43 @@
 {
   "items": [
     {
-      "id": "1760771401798-0ju2os",
-      "clientId": "232ebc7c-cdea-4eba-b1a1-1a38ddec5507",
-      "title": "TEST",
-      "type": "Lagemeldung",
-      "responsible": "S3",
-      "desc": "sdgsdgdsfgdsgdfg",
+      "id": "p-1760957670325-gzdr",
+      "clientId": null,
+      "title": "Auftrag",
+      "type": "Auftrag",
+      "responsible": "S2",
+      "desc": "hhhhhhhhhhhhhhhhh",
       "status": "Erledigt",
-      "createdAt": 1760771401798,
-      "updatedAt": 1760771458295,
+      "createdAt": 1760957670325,
+      "updatedAt": 1760957690495,
+      "kind": "task"
+    },
+    {
+      "id": "p-1760957469811-eguw",
+      "title": "Auftrag",
+      "type": "Auftrag",
+      "responsible": "S2",
+      "desc": "sdfgdsfgdfsg",
+      "status": "Neu",
+      "kind": "task",
+      "createdAt": 1760957469811,
+      "updatedAt": 1760957469811,
+      "meta": {
+        "source": "protokoll",
+        "protoNr": 2
+      },
+      "createdBy": "::1"
+    },
+    {
+      "id": "p-1760957438868-mp00",
+      "clientId": null,
+      "title": "Auftrag",
+      "type": "Auftrag",
+      "responsible": "S2",
+      "desc": "TESTINFO",
+      "status": "Erledigt",
+      "createdAt": 1760957438868,
+      "updatedAt": 1760957504500,
       "kind": "task"
     }
   ]

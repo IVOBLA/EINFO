@@ -1,16 +1,8 @@
-timestamp;role;user;action;id;title;type;responsible;fromStatus;toStatus;beforeId
-2025-10-17T20:09:18.870Z;S2;bla;create;1760731758867-f2kq6p;2;2;;;Neu;
-2025-10-17T20:09:49.792Z;S2;bla;create;1760731789790-hgbu4m;3;3;;;Neu;
-2025-10-17T20:10:26.081Z;S2;bla;create;1760731826081-kuut90;1;1;;;Neu;
-2025-10-18T06:37:09.980Z;S2;bla;create;1760769429980-zms8hy;1;2;;;Neu;
-2025-10-18T06:38:09.350Z;S2;bla;create;1760769489348-88r5u8;1;1;;;Neu;
-2025-10-18T06:38:46.592Z;S2;bla;create;1760769526591-pmd44u;1;1;;;Neu;
-2025-10-18T06:39:40.611Z;S2;bla;create;1760769580610-aya9hl;4;4;;;Neu;
-2025-10-18T06:43:16.811Z;S2;bla;create;1760769796811-bzeyy6;1;1;;;Neu;
-2025-10-18T06:43:32.014Z;S2;bla;create;1760769812012-v4310h;1;1;;;Neu;
-2025-10-18T07:10:01.800Z;S2;bla;create;1760771401798-0ju2os;1;1;;;Neu;
-2025-10-18T07:10:16.942Z;S2;bla;reorder;1760771401798-0ju2os;1;1;;Neu;In Bearbeitung;
-2025-10-18T07:10:21.472Z;S2;bla;reorder;1760771401798-0ju2os;1;1;;In Bearbeitung;Erledigt;
-2025-10-18T07:10:25.154Z;S2;bla;reorder;1760771401798-0ju2os;1;1;;Erledigt;In Bearbeitung;
-2025-10-18T07:10:26.259Z;S2;bla;status;1760771401798-0ju2os;1;1;;In Bearbeitung;Erledigt;
-2025-10-18T07:10:58.299Z;S2;bla;update;1760771401798-0ju2os;TEST;Lagemeldung;S3;Erledigt;Erledigt;
+timestamp;actor;action;id;title;type;responsible;fromStatus;toStatus;beforeId;meta;role;user
+"2025-10-20 10:50:38";"::1";"create";"p-1760957438868-mp00";"Auftrag";"Auftrag";"S2";"";"Neu";"";"{""source"":""protokoll"",""protoNr"":1}"
+"2025-10-20 10:51:09";"::1";"create";"p-1760957469811-eguw";"Auftrag";"Auftrag";"S2";"";"Neu";"";"{""source"":""protokoll"",""protoNr"":2}"
+2025-10-20T10:51:40.459Z;S2;bla;status;p-1760957438868-mp00;Auftrag;Auftrag;S2;Neu;In Bearbeitung;
+2025-10-20T10:51:44.507Z;S2;bla;status;p-1760957438868-mp00;Auftrag;Auftrag;S2;In Bearbeitung;Erledigt;
+"2025-10-20 10:54:30";"::1";"create";"p-1760957670325-gzdr";"Auftrag";"Auftrag";"S2";"";"Neu";"";"{""source"":""protokoll"",""protoNr"":3}"
+2025-10-20T10:54:47.346Z;S2;bla;status;p-1760957670325-gzdr;Auftrag;Auftrag;S2;Neu;In Bearbeitung;
+2025-10-20T10:54:50.503Z;S2;bla;status;p-1760957670325-gzdr;Auftrag;Auftrag;S2;In Bearbeitung;Erledigt;

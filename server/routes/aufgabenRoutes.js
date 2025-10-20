@@ -255,7 +255,16 @@ await appendCsvRow(
   buildAufgabenLog({ role, action: "status", item: next, fromStatus: prev.status, toStatus: status }),
   req
 );
-    res.json({ok:true});
+    
+	 // Ergänzung: Rückkanal ins Protokoll
+ try {
+   if (next?.meta?.protoNr && status === "Erledigt") {
+     const { markResponsibleDone } = await import("./protocolMarkDone.mjs");
+     await markResponsibleDone(next.meta.protoNr, next.responsible);
+   }
+ } catch {}
+	
+	res.json({ok:true});
   }catch(e){ res.status(500).json({error:e.message}); }
 });
 

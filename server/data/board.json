@@ -6,31 +6,7 @@
     },
     "in-bearbeitung": {
       "name": "In Bearbeitung",
-      "items": [
-        {
-          "id": "euqkudrq",
-          "content": "Brand",
-          "createdAt": "2025-10-17T20:06:18.870Z",
-          "statusSince": "2025-10-17T20:06:21.381Z",
-          "assignedVehicles": [
-            "X4ro9wm"
-          ],
-          "everVehicles": [
-            "X4ro9wm"
-          ],
-          "everPersonnel": 0,
-          "ort": "Lannerstraße, 1190 Wien, Österreich",
-          "typ": "Brand",
-          "externalId": "",
-          "alerted": "",
-          "latitude": 48.2359201,
-          "longitude": 16.3451143,
-          "location": "",
-          "description": "",
-          "timestamp": null,
-          "manualPersonnel": 10
-        }
-      ]
+      "items": []
     },
     "erledigt": {
       "name": "Erledigt",
