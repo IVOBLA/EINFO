@@ -29,7 +29,9 @@ export default function AufgSortableCard({ item, onAdvance, onShowInfo, isNew })
         className={[
           "rounded-lg bg-white shadow-xl border p-3",
           isDragging ? "opacity-90 scale-[1.01]" : "",
-		  "transition-transform", isNew ? "pulse-incoming" : "",
+          "transition-transform",
+          isNew ? "pulse-incoming" : "",
+          item?.meta?.source === "protokoll" ? "ext-external" : "",
         ].join(" ")}
       >
         {/* Kopfzeile: links 'erstellt' + Titel; rechts 'aktual.' + Pfeil */}

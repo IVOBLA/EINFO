@@ -16,6 +16,7 @@ import AufgAddModal from "../components/AufgAddModal.jsx";
 import AufgInfoModal from "../components/AufgInfoModal.jsx";
 import AufgSortableCard from "../components/AufgSortableCard.jsx";
 import { initRolePolicy, canEditApp } from "../auth/roleUtils.js";
+import { playGong } from "../sound"; // gleicher Sound wie im Einsatz-Kanban
 
 const STATUS = { NEW: "Neu", IN_PROGRESS: "In Bearbeitung", DONE: "Erledigt" };
 const COLS = [STATUS.NEW, STATUS.IN_PROGRESS, STATUS.DONE];
@@ -114,6 +115,7 @@ const myCreatedIdsRef = useRef(new Set());
         desc: x.desc ?? x.beschreibung ?? "",
         createdAt: x.createdAt ?? null,
         updatedAt: x.updatedAt ?? null,
+		meta: x.meta ?? {},
       }));
       setItems(mapped);
 	  
@@ -124,6 +126,7 @@ const myCreatedIdsRef = useRef(new Set());
   const toPulse = added.filter(id => !myCreatedIdsRef.current.has(id));
   if (toPulse.length) {
     setFreshIds(new Set(toPulse));
+	try { await playGong(); } catch {}
     setTimeout(() => setFreshIds(new Set()), 9000);
   }
   prevIdsRef.current = ids;
@@ -135,6 +138,15 @@ const myCreatedIdsRef = useRef(new Set());
     finally { setLoading(false); }
   }
   useEffect(() => { void load(); }, [roleId]);
+  
+   // Auto-Reload alle 30s (nur wenn eine Rolle vorhanden ist)
+ useEffect(() => {
+   if (!roleId) return;
+   const t = setInterval(() => {
+     if (!loading) void load();
+   }, 30_000);
+   return () => clearInterval(t);
+ }, [roleId, loading]);
 
 async function updateItemOnServer(patch) {
   const res = await fetch(`/api/aufgaben/${encodeURIComponent(patch.id)}/edit${roleQuery(roleId)}`, {
