@@ -104,6 +104,7 @@ function normalizeItem(x) {
     createdAt: x.createdAt ?? x.ts ?? x.timestamp ?? Date.now(),
     updatedAt: x.updatedAt ?? Date.now(),
     kind: "task",
+	meta: (x.meta ?? {}),
   };
 }
 
@@ -256,14 +257,21 @@ await appendCsvRow(
   req
 );
     
-	 // Ergänzung: Rückkanal ins Protokoll
- try {
-   if (next?.meta?.protoNr && status === "Erledigt") {
-     const { markResponsibleDone } = await import("./protocolMarkDone.mjs");
-     await markResponsibleDone(next.meta.protoNr, next.responsible);
-   }
- } catch {}
-	
+    // Rückkanal ins Protokoll: robust (auch wenn meta fehlt)
+    try {
+      if (status === "Erledigt") {
+        const protoNr =
+          next?.meta?.protoNr ??
+          prev?.meta?.protoNr ??  // Fallback: bisherige Karte hatte evtl. meta
+          next?.protoNr ??        // historischer Alt-Fall
+          prev?.protoNr ?? null;
+        if (protoNr) {
+          const { markResponsibleDone } = await import("./protocolMarkDone.mjs");
+          await markResponsibleDone(protoNr, next.responsible);
+        }
+      }
+    } catch {}
+
 	res.json({ok:true});
   }catch(e){ res.status(500).json({error:e.message}); }
 });
@@ -309,7 +317,22 @@ router.post("/reorder", express.json(), async (req,res)=>{
    buildAufgabenLog({ role, action: "reorder", item: moved, fromStatus: prev.status, toStatus, beforeId }),
    req
  );
-    res.json({ok:true});
+    // Rückkanal ins Protokoll auch bei DnD in "Erledigt"
+    try {
+      if (toStatus === "Erledigt") {
+        const protoNr =
+         moved?.meta?.protoNr ??
+          prev?.meta?.protoNr ??
+          moved?.protoNr ?? prev?.protoNr ?? null;
+        if (protoNr) {
+          const { markResponsibleDone } = await import("./protocolMarkDone.mjs");
+          await markResponsibleDone(protoNr, moved.responsible);
+        }
+      }
+    } catch {}
+  
+
+  res.json({ok:true});
   }catch(e){ res.status(500).json({error:e.message}); }
 });
 

@@ -1,4 +1,5 @@
 NR;DRUCK;DATUM;ZEIT;BENUTZER;EING;AUSG;KANAL;AN/VON;INFORMATION;RUECKMELDUNG1;RUECKMELDUNG2;TYP;ERGEHT_AN;ERGAENZUNG;M1;V1;X1;M2;V2;X2;M3;V3;X3;M4;V4;X4;M5;V5;X5;ID
-1;;2025-10-20;12:50;::1;;;;An:;TESTINFO;;;Auftrag;;;;S2;;;;;;;;;;;;;;3739ba19-dc2c-4c22-9637-66c8f62b8f2a
-2;;2025-10-20;12:50;::1;;;;An:;sdfgdsfgdfsg;;;Auftrag;;;;S3;;;S2;;;;;;;;;;;1f1fb42b-6c9e-408c-a25d-838f38f67b71
-3;;2025-10-20;12:54;::1;;;;An:;hhhhhhhhhhhhhhhhh;;;Auftrag;;;;;;;S2;;;;;;;;;;;041e0d3b-b2c9-4f31-b750-a10453971085
+1;;2025-10-20;14:49;::1;;;;An:;yxcyxcyxc;;;Auftrag;;;;S2;x;;;;;;;;;;;;;d959d4b0-b2b7-4e20-afb0-be372d222e4b
+2;;2025-10-20;14:50;::1;;;;An:;Update 2;;;Auftrag;;;;S2;x;;;;;;;;;;;;;555e670c-ea9f-435a-b947-3b7241c5f4c0
+3;;2025-10-20;14:50;::1;x;;;An:;Sonder;;;Lagemeldung;;;;;;;;;;;;;;;;;;86f27bc8-12e8-427c-a43c-c1f6c0dd99a7
+4;;2025-10-20;14:52;::1;x;;;Von: KANASA vvvv;dsagtash wgt wert wert rt we;;;Auftrag;;;;S2;;;;;;;;;;;;;;3e9f9640-0b53-4fe5-9973-9ae7364f27bf

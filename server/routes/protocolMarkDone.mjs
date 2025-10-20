@@ -1,7 +1,10 @@
-import fs from "fs";
-import path from "path";
-const DATA_DIR  = path.resolve(process.cwd(), "server", "data");
-const JSON_FILE = path.join(DATA_DIR, "protocol.json");
+ import fs from "fs";
+ import path from "path";
+ import { fileURLToPath } from "url";
+ const __filename = fileURLToPath(import.meta.url);
+ const __dirname  = path.dirname(__filename);
+ const DATA_DIR   = path.resolve(__dirname, "..", "data"); // => <repo>/server/data
+ const JSON_FILE  = path.join(DATA_DIR, "protocol.json");
 
 export async function markResponsibleDone(nr, roleId){
   try{

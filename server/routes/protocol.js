@@ -7,14 +7,20 @@ import { randomUUID } from "crypto";
 import { resolveUserName } from "../auditLog.mjs";
  import { ensureTaskForRole } from "../utils/tasksService.mjs";
 
-
+const isLage = v => /^(lage|lagemeldung)$/i.test(String(v || ""));
  const infoText = x => String(x?.information ?? x?.INFORMATION ?? x?.beschreibung ?? x?.text ?? x?.ERGAENZUNG ?? "").trim();
- const taskType = x => /^(auftrag|lage)$/i.test(String(x?.infoTyp ?? x?.TYP ?? x?.type ?? ""));
+const taskType = x => /^(auftrag|lage|lagemeldung)$/i.test(String(x?.infoTyp ?? x?.TYP ?? x?.type ?? ""));
  const rolesOf = x => {
-   const arr = Array.isArray(x?.verantwortliche) ? x.verantwortliche : [];
+   const set = new Set();
+   // 1) explizit angegebene Rollen
+   if (Array.isArray(x?.verantwortliche)) x.verantwortliche.forEach(r => set.add(String(r).trim()));
+   // 2) "ergehtAn" (Array oder String)
+   if (Array.isArray(x?.ergehtAn)) x.ergehtAn.forEach(r => set.add(String(r).trim()));
    const bucket = String(x?.ergehtAn ?? x?.ERGEHT_AN ?? "").trim();
-   if (bucket) bucket.split(/[,;|]/).map(s=>s.trim()).filter(Boolean).forEach(r=>arr.push(r));
-   return [...new Set(arr.map(s=>String(s).trim()).filter(Boolean))];
+   if (bucket) bucket.split(/[,;|]/).map(s => s.trim()).filter(Boolean).forEach(r => set.add(r));
+   // 3) Maßnahmen-Verantwortliche
+   (x?.massnahmen || []).forEach(m => { if (m?.verantwortlich) set.add(String(m.verantwortlich).trim()); });
+   return [...set].filter(Boolean);
  };
 
 const router = express.Router();
@@ -39,7 +45,16 @@ const CSV_HEADER = [
   "ID"
 ];
 
+ const titleFromAnVon = (o) =>
+   String(
+     o?.anvon ?? o?.an_von ?? o?.anVon ??
+     o?.name_stelle ?? o?.nameStelle ?? o?.name ?? ""
+   ).trim() || "An/Von";
 
+ const isEingang = v => {
+   const x = (v?.ein ?? v)?.toString().trim().toLowerCase();
+   return x === "true" || x === "1" || x === "x" || x === "eingang";
+ };
 
 // ==== Files sicherstellen ====
 function ensureFiles() {
@@ -247,9 +262,11 @@ router.post("/", express.json(), async (req, res) => {
     rewriteCsvFromJson(all);
  // Ergänzung: Aufgaben je Verantwortlicher (nur Auftrag/Lage)
 try {
-  if (payload.infoTyp === "Auftrag" || payload.infoTyp === "Lage") {
+  if (taskType(payload)) {
     const actor = resolveUserName(req);
-    const title = String(payload?.kurztext ?? payload?.KURZTEXT ?? "Auftrag").slice(0, 120);
+     // Titel aus Feld "An/Von" (Name/Stelle) ableiten
+const title = titleFromAnVon(payload);
+ 
     const desc  = String(payload?.information ?? "").trim();
     for (const m of payload.massnahmen || []) {
       if (!m?.verantwortlich) continue;
@@ -260,6 +277,21 @@ try {
         item: { title, type: payload?.infoTyp ?? "", desc, meta: { source: "protokoll" } }
       });
     }
+	   // Sonderregel: Typ=Lage & Eingang & An/Von ≠ "S2"  → Aufgabe für S2
+   if (
+     isLage(payload.infoTyp) &&
+     isEingang(payload?.uebermittlungsart) &&
+     String(payload?.anvon || "").trim().toUpperCase() !== "S2"
+   ) {
+     await ensureTaskForRole({
+       roleId: "S2",
+       protoNr: payload.nr,
+       actor,
+       item: { title, type: payload.infoTyp, desc, meta: { source: "protokoll" } }
+     });
+   }
+
+	
   }
 } catch (err) {
   console.warn("[protocol→tasks POST]", err?.message || err);
@@ -307,24 +339,39 @@ router.put("/:nr", express.json(), async (req, res) => {
  // Ergänzung: neu hinzugekommene Verantwortliche ==> Aufgaben nachziehen
  try{
    if (taskType(next)) {
-     const before = new Set(rolesOf(existing));
-     const after  = new Set(rolesOf(next));
-     const added  = [...after].filter(r => !before.has(r));
-     if (added.length) {
+     const current = new Set(rolesOf(next)); // alles, was jetzt im Protokoll steht
+     if (current.size) {
        const actor = resolveUserName(req);
        const text  = infoText(next);
-       const title = String(next?.kurztext ?? next?.KURZTEXT ?? "Auftrag").slice(0,120);
-      for (const roleId of added) {
+       const title = titleFromAnVon(next);
+       for (const roleId of current) {
+         if (!roleId) continue;
          await ensureTaskForRole({
            roleId,
            protoNr: next.nr,
            actor,
-           item: { title, type: next?.infoTyp ?? next?.TYP ?? "", desc: text, meta:{ source:"protokoll" } }
+           item: { title, type: next?.infoTyp ?? next?.TYP ?? "", desc: text, meta: { source: "protokoll" } }
          });
        }
      }
+
+	      // Sonderregel bei Updates: Typ=Lage & Eingang & An/Von ≠ "S2"
+     if (
+       isLage(next?.infoTyp || next?.TYP) &&
+       isEingang(next?.uebermittlungsart) &&
+       String(next?.anvon || "").trim().toUpperCase() !== "S2"
+     ) {
+       const actor2 = resolveUserName(req);
+       const desc2  = infoText(next);
+       await ensureTaskForRole({
+         roleId: "S2",
+         protoNr: next.nr,
+         actor: actor2,
+         item: { title, type: next?.infoTyp ?? next?.TYP ?? "", desc: desc2, meta:{ source:"protokoll" } }
+       });
+     }
    }
- } catch (e) { console.warn("[protocol->tasks POST]", e?.message || e); }
+ } catch (e) { console.warn("[protocol->tasks PUT]", e?.message || e); }
     res.json({ ok: true, nr, id: next.id });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });

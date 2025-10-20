@@ -1,7 +1,7 @@
 [
   {
     "datum": "2025-10-20",
-    "zeit": "12:50",
+    "zeit": "14:49",
     "uebermittlungsart": {
       "kanalNr": "",
       "ein": false,
@@ -9,7 +9,7 @@
     },
     "anvon": "An:",
     "infoTyp": "Auftrag",
-    "information": "TESTINFO",
+    "information": "yxcyxcyxc",
     "rueckmeldung1": "",
     "rueckmeldung2": "",
     "ergehtAn": [],
@@ -19,7 +19,7 @@
       {
         "massnahme": "",
         "verantwortlich": "S2",
-        "done": false
+        "done": true
       },
       {
         "massnahme": "",
@@ -43,24 +43,24 @@
       }
     ],
     "nr": 1,
-    "id": "3739ba19-dc2c-4c22-9637-66c8f62b8f2a",
+    "id": "d959d4b0-b2b7-4e20-afb0-be372d222e4b",
     "printCount": 0,
     "history": [
       {
-        "ts": 1760957438863,
+        "ts": 1760964603709,
         "action": "create",
         "by": "::1",
         "after": {
           "datum": "2025-10-20",
-          "zeit": "12:50",
+          "zeit": "14:49",
           "uebermittlungsart": {
             "kanalNr": "",
             "ein": false,
             "aus": false
           },
           "anvon": "An:",
-          "infoTyp": "Auftrag",
-          "information": "TESTINFO",
+          "infoTyp": "Information",
+          "information": "yxcyxcyxc",
           "rueckmeldung1": "",
           "rueckmeldung2": "",
           "ergehtAn": [],
@@ -94,8 +94,68 @@
             }
           ],
           "nr": 1,
-          "id": "3739ba19-dc2c-4c22-9637-66c8f62b8f2a",
+          "id": "d959d4b0-b2b7-4e20-afb0-be372d222e4b",
           "printCount": 0
+        }
+      },
+      {
+        "ts": 1760964649884,
+        "action": "update",
+        "by": "::1",
+        "changes": [
+          {
+            "path": "infoTyp",
+            "before": "Information",
+            "after": "Auftrag"
+          }
+        ],
+        "after": {
+          "datum": "2025-10-20",
+          "zeit": "14:49",
+          "uebermittlungsart": {
+            "kanalNr": "",
+            "ein": false,
+            "aus": false
+          },
+          "anvon": "An:",
+          "infoTyp": "Auftrag",
+          "information": "yxcyxcyxc",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAn": [],
+          "ergehtAnText": "",
+          "lagebericht": "",
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "S2",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "nr": 1,
+          "id": "d959d4b0-b2b7-4e20-afb0-be372d222e4b",
+          "printCount": 0,
+          "lastBy": "::1"
         }
       }
     ],
@@ -103,7 +163,7 @@
   },
   {
     "datum": "2025-10-20",
-    "zeit": "12:50",
+    "zeit": "14:50",
     "uebermittlungsart": {
       "kanalNr": "",
       "ein": false,
@@ -111,7 +171,7 @@
     },
     "anvon": "An:",
     "infoTyp": "Auftrag",
-    "information": "sdfgdsfgdfsg",
+    "information": "Update 2",
     "rueckmeldung1": "",
     "rueckmeldung2": "",
     "ergehtAn": [],
@@ -120,12 +180,12 @@
     "massnahmen": [
       {
         "massnahme": "",
-        "verantwortlich": "S3",
-        "done": false
+        "verantwortlich": "S2",
+        "done": true
       },
       {
         "massnahme": "",
-        "verantwortlich": "S2",
+        "verantwortlich": "",
         "done": false
       },
       {
@@ -145,16 +205,16 @@
       }
     ],
     "nr": 2,
-    "id": "1f1fb42b-6c9e-408c-a25d-838f38f67b71",
+    "id": "555e670c-ea9f-435a-b947-3b7241c5f4c0",
     "printCount": 0,
     "history": [
       {
-        "ts": 1760957469798,
+        "ts": 1760964622974,
         "action": "create",
         "by": "::1",
         "after": {
           "datum": "2025-10-20",
-          "zeit": "12:50",
+          "zeit": "14:50",
           "uebermittlungsart": {
             "kanalNr": "",
             "ein": false,
@@ -162,7 +222,7 @@
           },
           "anvon": "An:",
           "infoTyp": "Auftrag",
-          "information": "sdfgdsfgdfsg",
+          "information": "Update 2",
           "rueckmeldung1": "",
           "rueckmeldung2": "",
           "ergehtAn": [],
@@ -171,12 +231,12 @@
           "massnahmen": [
             {
               "massnahme": "",
-              "verantwortlich": "S3",
+              "verantwortlich": "",
               "done": false
             },
             {
               "massnahme": "",
-              "verantwortlich": "S2",
+              "verantwortlich": "",
               "done": false
             },
             {
@@ -196,67 +256,76 @@
             }
           ],
           "nr": 2,
-          "id": "1f1fb42b-6c9e-408c-a25d-838f38f67b71",
+          "id": "555e670c-ea9f-435a-b947-3b7241c5f4c0",
           "printCount": 0
         }
-      }
-    ],
-    "lastBy": "::1"
-  },
-  {
-    "datum": "2025-10-20",
-    "zeit": "12:54",
-    "uebermittlungsart": {
-      "kanalNr": "",
-      "ein": false,
-      "aus": false
-    },
-    "anvon": "An:",
-    "infoTyp": "Auftrag",
-    "information": "hhhhhhhhhhhhhhhhh",
-    "rueckmeldung1": "",
-    "rueckmeldung2": "",
-    "ergehtAn": [],
-    "ergehtAnText": "",
-    "lagebericht": "",
-    "massnahmen": [
-      {
-        "massnahme": "",
-        "verantwortlich": "",
-        "done": false
       },
       {
-        "massnahme": "",
-        "verantwortlich": "S2",
-        "done": false
-      },
-      {
-        "massnahme": "",
-        "verantwortlich": "",
-        "done": false
-      },
-      {
-        "massnahme": "",
-        "verantwortlich": "",
-        "done": false
-      },
-      {
-        "massnahme": "",
-        "verantwortlich": "",
-        "done": false
-      }
-    ],
-    "nr": 3,
-    "id": "041e0d3b-b2c9-4f31-b750-a10453971085",
-    "printCount": 0,
-    "history": [
-      {
-        "ts": 1760957670321,
-        "action": "create",
+        "ts": 1760964643396,
+        "action": "update",
         "by": "::1",
+        "changes": [
+          {
+            "path": "massnahmen",
+            "before": [
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              },
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              },
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              },
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              },
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              }
+            ],
+            "after": [
+              {
+                "massnahme": "",
+                "verantwortlich": "S2",
+                "done": false
+              },
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              },
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              },
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              },
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              }
+            ]
+          }
+        ],
         "after": {
           "datum": "2025-10-20",
-          "zeit": "12:54",
+          "zeit": "14:50",
           "uebermittlungsart": {
             "kanalNr": "",
             "ein": false,
@@ -264,18 +333,13 @@
           },
           "anvon": "An:",
           "infoTyp": "Auftrag",
-          "information": "hhhhhhhhhhhhhhhhh",
+          "information": "Update 2",
           "rueckmeldung1": "",
           "rueckmeldung2": "",
           "ergehtAn": [],
           "ergehtAnText": "",
           "lagebericht": "",
           "massnahmen": [
-            {
-              "massnahme": "",
-              "verantwortlich": "",
-              "done": false
-            },
             {
               "massnahme": "",
               "verantwortlich": "S2",
@@ -295,10 +359,220 @@
               "massnahme": "",
               "verantwortlich": "",
               "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "nr": 2,
+          "id": "555e670c-ea9f-435a-b947-3b7241c5f4c0",
+          "printCount": 0,
+          "lastBy": "::1"
+        }
+      }
+    ],
+    "lastBy": "::1"
+  },
+  {
+    "datum": "2025-10-20",
+    "zeit": "14:50",
+    "uebermittlungsart": {
+      "kanalNr": "",
+      "ein": true,
+      "aus": false
+    },
+    "anvon": "An:",
+    "infoTyp": "Lagemeldung",
+    "information": "Sonder",
+    "rueckmeldung1": "",
+    "rueckmeldung2": "",
+    "ergehtAn": [],
+    "ergehtAnText": "",
+    "lagebericht": "",
+    "massnahmen": [
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      }
+    ],
+    "nr": 3,
+    "id": "86f27bc8-12e8-427c-a43c-c1f6c0dd99a7",
+    "printCount": 0,
+    "history": [
+      {
+        "ts": 1760964667988,
+        "action": "create",
+        "by": "::1",
+        "after": {
+          "datum": "2025-10-20",
+          "zeit": "14:50",
+          "uebermittlungsart": {
+            "kanalNr": "",
+            "ein": true,
+            "aus": false
+          },
+          "anvon": "An:",
+          "infoTyp": "Lagemeldung",
+          "information": "Sonder",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAn": [],
+          "ergehtAnText": "",
+          "lagebericht": "",
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
             }
           ],
           "nr": 3,
-          "id": "041e0d3b-b2c9-4f31-b750-a10453971085",
+          "id": "86f27bc8-12e8-427c-a43c-c1f6c0dd99a7",
+          "printCount": 0
+        }
+      }
+    ],
+    "lastBy": "::1"
+  },
+  {
+    "datum": "2025-10-20",
+    "zeit": "14:52",
+    "uebermittlungsart": {
+      "kanalNr": "",
+      "ein": true,
+      "aus": false
+    },
+    "anvon": "Von: KANASA vvvv",
+    "infoTyp": "Auftrag",
+    "information": "dsagtash wgt wert wert rt we",
+    "rueckmeldung1": "",
+    "rueckmeldung2": "",
+    "ergehtAn": [],
+    "ergehtAnText": "",
+    "lagebericht": "",
+    "massnahmen": [
+      {
+        "massnahme": "",
+        "verantwortlich": "S2",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      }
+    ],
+    "nr": 4,
+    "id": "3e9f9640-0b53-4fe5-9973-9ae7364f27bf",
+    "printCount": 0,
+    "history": [
+      {
+        "ts": 1760964760701,
+        "action": "create",
+        "by": "::1",
+        "after": {
+          "datum": "2025-10-20",
+          "zeit": "14:52",
+          "uebermittlungsart": {
+            "kanalNr": "",
+            "ein": true,
+            "aus": false
+          },
+          "anvon": "Von: KANASA vvvv",
+          "infoTyp": "Auftrag",
+          "information": "dsagtash wgt wert wert rt we",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAn": [],
+          "ergehtAnText": "",
+          "lagebericht": "",
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "S2",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "nr": 4,
+          "id": "3e9f9640-0b53-4fe5-9973-9ae7364f27bf",
           "printCount": 0
         }
       }
