@@ -29,6 +29,7 @@ import { usePlacesAutocomplete } from "./hooks/usePlacesAutocomplete";
 import FFFetchControl from "./components/FFFetchControl.jsx";
 import { initRolePolicy, canEditApp, isReadOnlyApp } from "./auth/roleUtils";
 import { useUserAuth } from "./components/User_AuthProvider.jsx"
+import StatusPage from "./StatusPage.jsx";
 
 import {
   fetchBoard,
@@ -79,6 +80,9 @@ async function geocodeAddressClient(address) {
 
 export default function App() {
   const scale = useCompactScale();
+  if (typeof window !== "undefined" && window.location.pathname === "/status") {
+  return <StatusPage />;
+}
 
   // role gating
   const user = (typeof window !== "undefined" && window.__USER__) || null;
