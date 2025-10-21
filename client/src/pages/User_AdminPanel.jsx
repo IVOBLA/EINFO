@@ -568,7 +568,66 @@ export default function User_AdminPanel() {
           Diese Zugangsdaten gelten für <b>alle Benutzer</b>. Start/Stopp nutzt immer den globalen Satz.
         </div>
       </details>
+      {/* 6) Wartung: Initialsetup & Archive */}
+      <details className="border rounded p-3" open>
+        <summary className="cursor-pointer font-medium">Wartung (Admin)</summary>
+        <div className="mt-3 grid gap-2 max-w-xl">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="border rounded px-3 py-1"
+              disabled={locked || loading}
+              onClick={async () => {
+               setErr(""); setMsg(""); setLoading(true);
+                try {
+                  const r = await post("/admin/initialsetup");
+                  setMsg(r?.ok ? (r.message || "Initialsetup erfolgreich.") : "Initialsetup ausgeführt.");
+                } catch (ex) {
+                  setErr(ex.message || "Initialsetup fehlgeschlagen");
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              title='Kopiert *.csv & *.json aus "data/initial" nach "data" (überschreibt).'
+            >
+              Initialsetup
+            </button>
 
+                      <button
+              type="button"
+              className="border rounded px-3 py-1"
+              disabled={locked || loading}
+              onClick={async () => {
+                setErr(""); setMsg(""); setLoading(true);
+                try {
+                  const r = await post("/admin/archive");
+                  const fn = r?.file || r?.filename || "archive.zip";
+                  setMsg(`Archiv erstellt: ${fn}`);
+
+                  // ⬇️ Automatischer Download
+                  const url = `/api/user/admin/archive/download/${encodeURIComponent(fn)}`;
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = fn;   // Hinweis für Browser
+                  document.body.appendChild(a);
+                  a.click();
+                  a.remove();
+                } catch (ex) {
+                  setErr(ex.message || "Archiv-Erstellung fehlgeschlagen");
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              title='Packt *.csv & *.json aus "data" in eine ZIP unter "data/archive" (mit Zeitstempel) und lädt es herunter.'
+            >
+              Archive
+            </button>
+          </div>
+          <div className="text-xs text-gray-500">
+            Hinweis: Nur <b>Admin</b>. Initialsetup überschreibt bestehende Dateien im Datenverzeichnis.
+          </div>
+        </div>
+      </details>
       {loading && <div className="text-sm text-gray-500">Lade…</div>}
     </div>
   );
