@@ -406,5 +406,219 @@
       }
     ],
     "lastBy": "::1"
+  },
+  {
+    "datum": "2025-10-21",
+    "zeit": "17:12",
+    "uebermittlungsart": {
+      "kanalNr": "",
+      "ein": false,
+      "aus": false
+    },
+    "anvon": "Von: wwwwe",
+    "infoTyp": "Auftrag",
+    "information": "",
+    "rueckmeldung1": "",
+    "rueckmeldung2": "",
+    "ergehtAn": [],
+    "ergehtAnText": "",
+    "lagebericht": "",
+    "massnahmen": [
+      {
+        "massnahme": "Das ist die",
+        "verantwortlich": "TEST",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      }
+    ],
+    "nr": 5,
+    "id": "83c9162c-b4d6-4f7a-985c-72c026e06acf",
+    "printCount": 0,
+    "history": [
+      {
+        "ts": 1761059578524,
+        "action": "create",
+        "by": "::1",
+        "after": {
+          "datum": "2025-10-21",
+          "zeit": "17:12",
+          "uebermittlungsart": {
+            "kanalNr": "",
+            "ein": false,
+            "aus": false
+          },
+          "anvon": "Von: wwwwe",
+          "infoTyp": "Auftrag",
+          "information": "",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAn": [],
+          "ergehtAnText": "",
+          "lagebericht": "",
+          "massnahmen": [
+            {
+              "massnahme": "Das ist die",
+              "verantwortlich": "S2",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "nr": 5,
+          "id": "83c9162c-b4d6-4f7a-985c-72c026e06acf",
+          "printCount": 0
+        }
+      },
+      {
+        "ts": 1761059622765,
+        "action": "update",
+        "by": "::1",
+        "changes": [
+          {
+            "path": "massnahmen",
+            "before": [
+              {
+                "massnahme": "Das ist die",
+                "verantwortlich": "S2",
+                "done": false
+              },
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              },
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              },
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              },
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              }
+            ],
+            "after": [
+              {
+                "massnahme": "Das ist die",
+                "verantwortlich": "TEST",
+                "done": false
+              },
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              },
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              },
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              },
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              }
+            ]
+          }
+        ],
+        "after": {
+          "datum": "2025-10-21",
+          "zeit": "17:12",
+          "uebermittlungsart": {
+            "kanalNr": "",
+            "ein": false,
+            "aus": false
+          },
+          "anvon": "Von: wwwwe",
+          "infoTyp": "Auftrag",
+          "information": "",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAn": [],
+          "ergehtAnText": "",
+          "lagebericht": "",
+          "massnahmen": [
+            {
+              "massnahme": "Das ist die",
+              "verantwortlich": "TEST",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "nr": 5,
+          "id": "83c9162c-b4d6-4f7a-985c-72c026e06acf",
+          "printCount": 0,
+          "lastBy": "::1"
+        }
+      }
+    ],
+    "lastBy": "::1"
   }
 ]

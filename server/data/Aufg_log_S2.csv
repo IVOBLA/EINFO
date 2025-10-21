@@ -4,3 +4,4 @@ timestamp;actor;action;id;title;type;responsible;fromStatus;toStatus;beforeId;me
 2025-10-21T13:43:48.192Z;S2;bla;update;p-1761053948920-fbdp;Von: BLA1;Auftrag;S2;In Bearbeitung;In Bearbeitung;;1;protokoll;sd5lm5qf;1
 2025-10-21T13:46:32.172Z;S2;bla;update;p-1761053948920-fbdp;Von: BLA1;Auftrag;S2;In Bearbeitung;In Bearbeitung;;1;protokoll;8f1uhaj7;1
 2025-10-21T13:50:20.158Z;S2;bla;create;1761054620149-ukld4e;testaufgabe;;TEST;;Neu;;;;c4sgibga;
+"2025-10-21 15:12:58";"::1";"create";"p-1761059578533-n1rh";"Von: wwwwe Das ist die";"Auftrag";"S2";"";"Neu";"";"{""source"":""protokoll"",""protoNr"":5}"

@@ -264,33 +264,47 @@ router.post("/", express.json(), async (req, res) => {
 try {
   if (taskType(payload)) {
     const actor = resolveUserName(req);
-     // Titel aus Feld "An/Von" (Name/Stelle) ableiten
-const title = titleFromAnVon(payload);
- 
-    const desc  = String(payload?.information ?? "").trim();
-	
-	const desc = String(payload?.information ?? "").trim();
-	const baseAnVon = titleFromAnVon(payload);
-	
-    for (const m of payload.massnahmen || []) {
-      if (!m?.verantwortlich) continue;
- const title = \${baseAnVon} ${String(m?.massnahme ?? "").trim()}`.trim(); await ensureTaskForRole({  roleId: m.verantwortlich,  protoNr: payload.nr,  actor,  item: {  title,  type: payload?.infoTyp ?? "",  desc,  meta: { source: "protokoll", protoNr: payload.nr }  } });`
-    }
-	   // Sonderregel: Typ=Lage & Eingang & An/Von ≠ "S2"  → Aufgabe für S2
-   if (
-     isLage(payload.infoTyp) &&
-     isEingang(payload?.uebermittlungsart) &&
-     String(payload?.anvon || "").trim().toUpperCase() !== "S2"
-   ) {
-     await ensureTaskForRole({
-       roleId: "S2",
-       protoNr: payload.nr,
-       actor,
-       item: { title, type: payload.infoTyp, desc,
-   meta: { source: "protokoll", protoNr: payload.nr } }
-     });
-   }
+    // Titel-Basisteil aus "An/Von"
+const baseAnVon = titleFromAnVon(payload);
+const desc = infoText(payload);
 
+for (const m of (payload.massnahmen || [])) {
+  if (!m?.verantwortlich) continue;
+
+  const title = `${baseAnVon} ${String(m?.massnahme ?? "").trim()}`.trim();
+
+  await ensureTaskForRole({
+    roleId: m.verantwortlich,
+    protoNr: payload.nr,
+    actor,
+    item: {
+      title,
+      type: payload?.infoTyp ?? "",
+      desc,
+      meta: { source: "protokoll", protoNr: payload.nr }
+    }
+  });
+}
+if (
+  isLage(payload?.infoTyp) &&
+  isEingang(payload?.uebermittlungsart) &&
+  String(payload?.anvon || "").trim().toUpperCase() !== "S2"
+) {
+  const actor = resolveUserName(req);
+  const titleAuto = `${titleFromAnVon(payload)} ${String(payload?.massnahmen?.[0]?.massnahme ?? "").trim()}`.trim();
+
+  await ensureTaskForRole({
+    roleId: "S2",
+    protoNr: payload.nr,
+    actor,
+    item: {
+      title: titleAuto,
+      type: payload?.infoTyp ?? "",
+      desc: infoText(payload),
+      meta: { source: "protokoll", protoNr: payload.nr }
+    }
+  });
+}
 	
   }
 } catch (err) {
@@ -341,18 +355,28 @@ router.put("/:nr", express.json(), async (req, res) => {
    if (taskType(next)) {
      const current = new Set(rolesOf(next)); // alles, was jetzt im Protokoll steht
      if (current.size) {
-       const actor = resolveUserName(req);
-       const text  = infoText(next);
-       const title = titleFromAnVon(next);
-       for (const roleId of current) {
-         if (!roleId) continue;
-         await ensureTaskForRole({
-           roleId,
-           protoNr: next.nr,
-           actor,
-const titleU = \${baseAnVonU} ${String(next?.massnahmen?.[0]?.massnahme ?? "").trim()}`.trim(); item: {  title: titleU,  type: next?.infoTyp ?? next?.TYP ?? "",  desc: text,  meta: { source: "protokoll", protoNr: next.nr } }`
-         });
-       }
+const baseAnVonU = titleFromAnVon(next);
+const text = infoText(next);
+
+for (const roleId of current) {
+  if (!roleId) continue;
+
+  const titleU = `${baseAnVonU} ${String(next?.massnahmen?.[0]?.massnahme ?? "").trim()}`.trim();
+
+  await ensureTaskForRole({
+    roleId,
+    protoNr: next.nr,
+    actor: userBy,
+    item: {
+      title: titleU,
+      type: next?.infoTyp ?? next?.TYP ?? "",
+      desc: text,
+      meta: { source: "protokoll", protoNr: next.nr }
+    }
+  });
+}
+ 
+
      }
 
 	      // Sonderregel bei Updates: Typ=Lage & Eingang & An/Von ≠ "S2"
@@ -361,14 +385,20 @@ const titleU = \${baseAnVonU} ${String(next?.massnahmen?.[0]?.massnahme ?? "").t
        isEingang(next?.uebermittlungsart) &&
        String(next?.anvon || "").trim().toUpperCase() !== "S2"
      ) {
-       const actor2 = resolveUserName(req);
-       const desc2  = infoText(next);
-       await ensureTaskForRole({
-         roleId: "S2",
-         protoNr: next.nr,
-         actor: actor2,
-const titleAutoU = \${baseAnVonU} ${String(next?.massnahmen?.[0]?.massnahme ?? "").trim()}`.trim(); item: {  title: titleAutoU,  type: next?.infoTyp ?? next?.TYP ?? "",  desc: desc2,  meta: { source: "protokoll", protoNr: next.nr } }`
-       });
+       const titleAutoU = `${titleFromAnVon(next)} ${String(next?.massnahmen?.[0]?.massnahme ?? "").trim()}`.trim();
+
+await ensureTaskForRole({
+  roleId: "S2",
+  protoNr: next.nr,
+  actor: userBy,
+  item: {
+    title: titleAutoU,
+    type: next?.infoTyp ?? next?.TYP ?? "",
+    desc: infoText(next),
+    meta: { source: "protokoll", protoNr: next.nr }
+  }
+});
+
      }
    }
  } catch (e) { console.warn("[protocol->tasks PUT]", e?.message || e); }
