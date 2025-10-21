@@ -31,21 +31,21 @@ const DIST_DIR  = path.join(ROOT, "dist");
 const VEH_OVERRIDES = path.join(DATA_DIR, "vehicles-overrides.json");
 
 const BOARD_FILE  = path.join(DATA_DIR, "board.json");
-const VEH_BASE    = path.join(DATA_DIR, "vehicles.json");
+const VEH_BASE    = path.join(DATA_DIR, "conf","vehicles.json");
 const VEH_EXTRA   = path.join(DATA_DIR, "vehicles-extra.json");
 const GPS_FILE    = path.join(DATA_DIR, "vehicles_gps.json");
-const TYPES_FILE  = path.join(DATA_DIR, "types.json");
+const TYPES_FILE  = path.join(DATA_DIR, "conf","types.json");
 const LOG_FILE    = path.join(DATA_DIR, "Lage_log.csv");
 const ARCHIVE_DIR = path.join(DATA_DIR, "archive");
 const ERROR_LOG   = path.join(DATA_DIR, "Log.txt");
-const GROUPS_FILE = path.join(DATA_DIR, "group_locations.json");
+const GROUPS_FILE = path.join(DATA_DIR, "conf","group_locations.json");
 
 const EINSATZ_HEADERS = [
   "Zeitpunkt","Benutzer","EinsatzID","Einsatz","Aktion","Von","Nach","Einheit","Bemerkung"
 ];
 
 // ==== Auto-Import ====
-const AUTO_CFG_FILE         = path.join(DATA_DIR, "auto-import.json");
+const AUTO_CFG_FILE         = path.join(DATA_DIR, "conf","auto-import.json");
 const AUTO_DEFAULT_FILENAME = "list_filtered.json";
 const AUTO_DEFAULT          = { enabled:false, intervalSec:30, filename:AUTO_DEFAULT_FILENAME };
 
@@ -198,7 +198,15 @@ function haversineKm(a, b) {
 }
 
 // ----------------- Middlewares -----------------
-app.use(compression());
+app.use(compression({
+   filter: (req, res) => {
+     // Admin-ZIP-Routen niemals komprimieren
+     if (req.path && req.path.startsWith("/api/user/admin/archive")) return false;
+     const type = String(res.getHeader?.("Content-Type") || "").toLowerCase();
+     if (type.includes("application/zip") || type.includes("application/octet-stream")) return false;
+     return compression.filter(req, res);
+   }
+ }));
 app.use(cors({ origin:true, credentials:true }));
 app.use(express.json({ limit:"10mb" }));
 app.use("/api/protocol", protocolRouter);
@@ -1064,3 +1072,8 @@ app.listen(PORT, async ()=>{
 
 // Routen aus Aufgaben-Board
 app.use("/api/aufgaben", User_requireAuth, aufgabenRoutes);
+
+ // Admin-Maintenance: DATA_DIR an Routes durchreichen (synchron zu server.js)
+ process.env.DATA_DIR = DATA_DIR;
+import createAdminMaintenanceRoutes from "./routes/userAdminMaintenanceRoutes.js";
+app.use("/api/user/admin", createAdminMaintenanceRoutes({ baseDir: DATA_DIR }));

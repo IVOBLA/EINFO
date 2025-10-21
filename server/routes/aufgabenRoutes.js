@@ -11,7 +11,7 @@ const router = express.Router();
 const AUFG_PREFIX = "Aufg";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.resolve(__dirname, "..", "data");   // => <repo>/server/data
-const ROLES_FILE    = path.join(DATA_DIR, "User_roles.json");
+const ROLES_FILE    = path.join(DATA_DIR, "user","User_roles.json");
 
 
 const AUFG_HEADERS = [

@@ -5,7 +5,7 @@ import path from "path";
 
 export default function userRolesRouter({ dataDir }) {
   const router = Router();
-  const ROLES_FILE = path.join(dataDir, "User_roles.json");
+  const ROLES_FILE = path.join(dataDir,"user", "User_roles.json");
 
   const APP_LEVELS = new Set(["none", "view", "edit"]);
 

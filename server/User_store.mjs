@@ -29,18 +29,18 @@ function _normalizeRolesIn(objArray){
   return out.slice(0, 11);
 }
 
-// Pfade inkl. Auth-Index
+// Pfade inkl. Auth-Index -> jetzt im Unterordner "user"
 export function User_initStore(dataDir){
+  const userDir = path.join(dataDir, "user");
   _paths = {
-    master:  path.join(dataDir, "User_master.json"),
-    users:   path.join(dataDir, "User_users.enc.json"),
-    roles:   path.join(dataDir, "User_roles.json"),
-    fetcher: path.join(dataDir, "User_fetcher.enc.json"),
-    authIdx: path.join(dataDir, "User_authIndex.json"),
+    master:  path.join(userDir, "User_master.json"),
+    users:   path.join(userDir, "User_users.enc.json"),
+    roles:   path.join(userDir, "User_roles.json"),
+    fetcher: path.join(userDir, "User_fetcher.enc.json"),
+    authIdx: path.join(userDir, "User_authIndex.json"),
   };
   return _paths;
 }
-
 // ---------- intern: Vault & Auth-Index ----------
 async function _loadVault(){
   if(!_master) throw new Error("MASTER_LOCKED");
