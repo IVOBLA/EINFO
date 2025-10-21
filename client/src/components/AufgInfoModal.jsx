@@ -35,6 +35,12 @@ export default function AufgInfoModal({ open, item, onClose, onSave, canEdit }) 
     })();
   }, [open, it?.id]);
 
+const viewIncidentLabel = useMemo(() => {
+  const rid = String(it?.relatedIncidentId ?? "");
+  const found = openIncidents.find(i => String(i.id) === rid);
+  return found?.label || null;
+}, [openIncidents, it?.relatedIncidentId]);
+
   const save = async () => {
     await onSave?.({
       id: it.id,
@@ -89,12 +95,11 @@ export default function AufgInfoModal({ open, item, onClose, onSave, canEdit }) 
 </button>
               </div>
             ) : null}
-            {it.relatedIncidentId ? (
-              <div className="text-xs">
-                Bezug:{" "}
-                <a href="/" className="text-blue-700 hover:underline" title="Einsatz im Board öffnen">Einsatz öffnen</a>
-              </div>
-            ) : null}
+{it.relatedIncidentId ? (
+  <div className="text-xs">
+    Bezug: <span className="font-medium">{viewIncidentLabel || `#${it.relatedIncidentId}`}</span>
+  </div>
+) : null}
 
             <div>
               <div className="text-xs text-gray-600">Notizen</div>

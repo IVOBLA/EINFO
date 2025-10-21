@@ -29,7 +29,7 @@ function getCurrentUser() {
   try {
     const w = typeof window !== "undefined" ? window : {};
     const ls = w.localStorage;
-	const [filterEinsatz, setFilterEinsatz] = useState("");
+
     const cands = [
       () => w.__APP_AUTH__?.user,
       () => w.__USER__,
@@ -63,9 +63,11 @@ function nextStatus(s) {
 
 export default function AufgApp() {
   const [items, setItems] = useState([]);
+  const [boardIndex, setBoardIndex] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("");
+  const [filterEinsatz, setFilterEinsatz] = useState("");
   const [addOpen, setAddOpen] = useState(false);
   const [activeItem, setActiveItem] = useState(null);
   const [allowEdit, setAllowEdit] = useState(false);
@@ -144,6 +146,29 @@ relatedIncidentId: x.relatedIncidentId ?? x.meta?.relatedIncidentId ?? null,
   }
   useEffect(() => { void load(); }, [roleId]);
   
+  useEffect(() => {
+  let abort = false;
+  (async () => {
+    try {
+      const res = await fetch("/api/board", { cache: "no-store" });
+      if (!res.ok) return;
+      const board = await res.json();
+      if (abort) return;
+
+      const idx = {};
+      const cols = board?.columns || {};
+      for (const col of Object.values(cols)) {
+        const arr = Array.isArray(col?.items) ? col.items : [];
+        for (const it of arr) {
+          if (it?.id) idx[String(it.id)] = String(it?.content ?? it?.title ?? "");
+        }
+      }
+      setBoardIndex(idx);
+    } catch {}
+  })();
+  return () => { abort = true; };
+}, []);
+  
    // Auto-Reload alle 30s (nur wenn eine Rolle vorhanden ist)
  useEffect(() => {
    if (!roleId) return;
@@ -212,15 +237,37 @@ const res = await fetch(`/api/aufgaben${roleQuery(roleId)}`, {
     return json?.item || body;
   }
 
-  // ---- Filter + Spalten (wie _old)
-  const filtered = useMemo(() => {
-    const q = filter.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter(x =>
-      [x.title, x.type, x.responsible, x.desc].filter(Boolean).some(s => String(s).toLowerCase().includes(q))
-    );
-  }, [items, filter]);
+const deriveIncidentTitle = (task) => {
+  return (
+    task?.incidentTitle ??
+    task?.meta?.incidentTitle ??
+    (task?.relatedIncidentId ? boardIndex[String(task.relatedIncidentId)] : "") ??
+    ""
+  );
+};
 
+  // ---- Filter + Spalten (wie _old)
+const filtered = useMemo(() => {
+  let arr = items;
+
+  // Freitext (Titel/Typ/Verantwortlich/Beschreibung)
+  const q = filter.trim().toLowerCase();
+  if (q) {
+    arr = arr.filter(x =>
+      [x.title, x.type, x.responsible, x.desc]
+        .filter(Boolean)
+        .some(s => String(s).toLowerCase().includes(q))
+    );
+  }
+
+// Einsatzbezug (nach Einsatztitel; Teilstring, case-insensitive) 
+const fE = String(filterEinsatz ?? "").trim().toLowerCase();
+  if (fE) {
+    arr = arr.filter(x => deriveIncidentTitle(x).toLowerCase().includes(fE));
+  }
+
+  return arr;
+}, [items, filter, filterEinsatz, boardIndex]);
   const lists = useMemo(() => ({
     [STATUS.NEW]:         filtered.filter(x => (x.status || STATUS.NEW) === STATUS.NEW),
     [STATUS.IN_PROGRESS]: filtered.filter(x => x.status === STATUS.IN_PROGRESS),
@@ -316,6 +363,16 @@ const res = await fetch(`/api/aufgaben${roleQuery(roleId)}`, {
             placeholder="Suche Titel / Typ / Verantwortlich…"
             className="px-3 py-2 text-sm rounded-xl border"
           />
+		  <div className="flex items-center gap-2">
+  <label className="text-sm text-gray-600">Einsatzbezug</label>
+  <input
+    value={filterEinsatz}
+    onChange={(e) => setFilterEinsatz(e.target.value)}
+    placeholder="z.B. 4711"
+    className="border rounded px-2 py-1 text-sm"
+    inputMode="numeric"
+  />
+</div>
  {allowEdit && (
    <button onClick={() => setAddOpen(true)} className="text-sm px-3 py-2 rounded-xl bg-sky-600 text-white">
      Neu

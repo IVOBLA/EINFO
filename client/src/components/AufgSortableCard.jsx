@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
@@ -19,6 +19,44 @@ export default function AufgSortableCard({
     transition,
     isDragging,
   } = useSortable({ id: item.id });
+  
+// Index: Einsatzkarten (id -> content/title) aus /api/board
+const [boardIndex, setBoardIndex] = useState({});
+
+useEffect(() => {
+  let abort = false;
+  (async () => {
+    try {
+      const res = await fetch("/api/board", { cache: "no-store" });
+      if (!res.ok) return;
+      const board = await res.json();
+      if (abort) return;
+
+      const idx = {};
+      const cols = board?.columns || {};
+      for (const col of Object.values(cols)) {
+        const arr = Array.isArray(col?.items) ? col.items : [];
+        for (const it of arr) {
+          if (it?.id) idx[String(it.id)] = String(it?.content ?? it?.title ?? "");
+        }
+      }
+      setBoardIndex(idx);
+    } catch {}
+  })();
+  return () => { abort = true; };
+}, []);
+
+// Einsatztitel aus Item/Meta/Board ableiten
+const incidentTitle = useMemo(() => {
+  return (
+    item?.incidentTitle ??
+    item?.meta?.incidentTitle ??
+    (item?.relatedIncidentId ? boardIndex[String(item.relatedIncidentId)] : "") ??
+    ""
+  );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [item?.incidentTitle, item?.meta?.incidentTitle, item?.relatedIncidentId, boardIndex]);
+
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -79,35 +117,33 @@ export default function AufgSortableCard({
         <p className="mt-2 text-sm whitespace-pre-wrap text-gray-800">{item.desc}</p>
       ) : null}
 
-      {/* Ursprung / Bezug */}
-      {(item?.originProtocolNr || item?.relatedIncidentId) && (
-        <div className="mt-2 flex items-center gap-3 text-[11px]">
-          {item.originProtocolNr ? (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                // Korrekte Route: Pfad + Hash
-                window.location.assign(`/protokoll#/edit/${item.originProtocolNr}`);
-              }}
-              className="text-blue-700 hover:underline"
-              title={`Protokoll #${item.originProtocolNr} öffnen`}
-            >
-              Prot. #{item.originProtocolNr}
-            </button>
-          ) : null}
+{/* Ursprung / Bezug */}
+{(item?.originProtocolNr || item?.relatedIncidentId) && (
+  <div className="mt-2 flex items-center gap-3 text-[11px]">
+    {item.originProtocolNr ? (
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          window.location.assign(`/protokoll#/protokoll/edit/${item.originProtocolNr}`);
+        }}
+        className="text-blue-700 hover:underline"
+        title={`Protokoll #${item.originProtocolNr} öffnen`}
+      >
+        Prot. #{item.originProtocolNr}
+      </button>
+    ) : null}
 
-          {item.relatedIncidentId ? (
-            <a
-              href="/"
-              className="text-blue-700 hover:underline"
-              title="Einsatz im Board öffnen"
-              onClick={(e) => e.stopPropagation()}
-            >
-              Einsatz öffnen
-            </a>
-          ) : null}
-        </div>
-      )}
+    {item.relatedIncidentId ? (
+      <span
+        className="text-gray-700"
+        title={`Bezug: #${item.relatedIncidentId}`}
+      >
+        {incidentTitle || `#${item.relatedIncidentId}`}
+      </span>
+    ) : null}
+  </div>
+)}
+
     </div>
   );
 }
