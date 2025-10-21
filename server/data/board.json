@@ -2,7 +2,62 @@
   "columns": {
     "neu": {
       "name": "Neu",
-      "items": []
+      "items": [
+        {
+          "id": "c4sgibga",
+          "content": "Brand  LAgerhalle",
+          "createdAt": "2025-10-21T13:47:32.040Z",
+          "statusSince": "2025-10-21T13:47:32.040Z",
+          "assignedVehicles": [],
+          "everVehicles": [],
+          "everPersonnel": 0,
+          "ort": "Lannerweg 9, 9201 Krumpendorf am Wörthersee, Österreich",
+          "typ": "Brand",
+          "externalId": "",
+          "alerted": "",
+          "latitude": 46.6276094,
+          "longitude": 14.2160709,
+          "location": "",
+          "description": "",
+          "timestamp": null
+        },
+        {
+          "id": "8f1uhaj7",
+          "content": "Brand",
+          "createdAt": "2025-10-21T13:46:17.104Z",
+          "statusSince": "2025-10-21T13:46:17.104Z",
+          "assignedVehicles": [],
+          "everVehicles": [],
+          "everPersonnel": 0,
+          "ort": "Lannerweg 9, 9201 Krumpendorf am Wörthersee, Österreich",
+          "typ": "Brand",
+          "externalId": "",
+          "alerted": "",
+          "latitude": 46.6276094,
+          "longitude": 14.2160709,
+          "location": "",
+          "description": "",
+          "timestamp": null
+        },
+        {
+          "id": "sd5lm5qf",
+          "content": "Kanalspülung",
+          "createdAt": "2025-10-21T13:38:59.456Z",
+          "statusSince": "2025-10-21T13:38:59.456Z",
+          "assignedVehicles": [],
+          "everVehicles": [],
+          "everPersonnel": 0,
+          "ort": "Feistritz - Feldkirchen in Kärnten",
+          "typ": "T0, Kanalspülung",
+          "externalId": "23930221",
+          "alerted": "FF St.Ulrich/Feldkirchen",
+          "latitude": 46.7514396432974,
+          "longitude": 14.0995506909825,
+          "location": "",
+          "timestamp": "2025-10-21T10:53:33.000Z",
+          "description": ""
+        }
+      ]
     },
     "in-bearbeitung": {
       "name": "In Bearbeitung",

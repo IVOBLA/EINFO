@@ -1,67 +1,43 @@
 {
   "items": [
     {
-      "id": "p-1760964760706-y8yk",
-      "title": "Von: KANASA vvvv",
-      "type": "Auftrag",
-      "responsible": "S2",
-      "desc": "dsagtash wgt wert wert rt we",
+      "id": "1761054620149-ukld4e",
+      "clientId": "ff4d39e6-22cc-4e29-8e8e-980954a20370",
+      "title": "testaufgabe",
+      "type": "",
+      "responsible": "TEST",
+      "desc": "asdasd",
       "status": "Neu",
+      "createdAt": 1761054620149,
+      "updatedAt": 1761054620149,
       "kind": "task",
-      "createdAt": 1760964760706,
-      "updatedAt": 1760964760706,
+      "originProtocolNr": null,
+      "originType": null,
+      "relatedIncidentId": "c4sgibga",
+      "protoNr": null,
       "meta": {
-        "source": "protokoll",
-        "protoNr": 4
-      },
-      "createdBy": "::1"
-    },
-    {
-      "id": "p-1760964649889-y514",
-      "clientId": null,
-      "title": "An:",
-      "type": "Auftrag",
-      "responsible": "S2",
-      "desc": "yxcyxcyxc",
-      "status": "Erledigt",
-      "createdAt": 1760964649889,
-      "updatedAt": 1760964715359,
-      "kind": "task",
-      "meta": {
-        "source": "protokoll",
-        "protoNr": 1
+        "relatedIncidentId": "c4sgibga"
       }
     },
     {
-      "id": "p-1760964667993-p9kd",
+      "id": "p-1761053948920-fbdp",
       "clientId": null,
-      "title": "An:",
-      "type": "Lagemeldung",
-      "responsible": "S2",
-      "desc": "Sonder",
-      "status": "Erledigt",
-      "createdAt": 1760964667993,
-      "updatedAt": 1760964691493,
-      "kind": "task",
-      "meta": {
-        "source": "protokoll",
-        "protoNr": 3
-      }
-    },
-    {
-      "id": "p-1760964643401-d1h3",
-      "clientId": null,
-      "title": "An:",
+      "title": "Von: BLA1",
       "type": "Auftrag",
       "responsible": "S2",
-      "desc": "Update 2",
-      "status": "Erledigt",
-      "createdAt": 1760964643401,
-      "updatedAt": 1760964703619,
+      "desc": "testinfo",
+      "status": "In Bearbeitung",
+      "createdAt": 1761053948920,
+      "updatedAt": 1761054392163,
       "kind": "task",
+      "originProtocolNr": 1,
+      "originType": "protokoll",
+      "relatedIncidentId": "8f1uhaj7",
+      "protoNr": 1,
       "meta": {
         "source": "protokoll",
-        "protoNr": 2
+        "protoNr": 1,
+        "relatedIncidentId": "8f1uhaj7"
       }
     }
   ]

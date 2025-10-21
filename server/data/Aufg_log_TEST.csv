@@ -1,0 +1,12 @@
+timestamp;actor;action;id;title;type;responsible;fromStatus;toStatus;beforeId;meta;role;user;originProtocolNr;originType;relatedIncidentId;protoNr
+"2025-10-21 13:50:48";"::1";"create";"p-1761054648260-mnb5";"Von: wwwwe";"Auftrag";"TEST";"";"Neu";"";"{""source"":""protokoll"",""protoNr"":2}"
+"2025-10-21 13:53:11";"::1";"create";"p-1761054791719-1wai";"An:";"Auftrag";"TEST";"";"Neu";"";"{""source"":""protokoll"",""protoNr"":3}"
+2025-10-21T13:53:53.767Z;TEST;TEST;status;p-1761054648260-mnb5;Von: wwwwe;Auftrag;TEST;Neu;In Bearbeitung;;2;protokoll;;2
+2025-10-21T13:53:57.087Z;TEST;TEST;status;p-1761054648260-mnb5;Von: wwwwe;Auftrag;TEST;In Bearbeitung;Erledigt;;2;protokoll;;2
+2025-10-21T13:54:04.519Z;TEST;TEST;status;p-1761054791719-1wai;An:;Auftrag;TEST;Neu;In Bearbeitung;;3;protokoll;;3
+2025-10-21T13:54:45.263Z;TEST;TEST;status;p-1761054791719-1wai;An:;Auftrag;TEST;In Bearbeitung;Erledigt;;3;protokoll;;3
+2025-10-21T14:08:22.703Z;TEST;TEST;create;1761055702696-241lx6;qweqweqw;;;;Neu;;;;c4sgibga;
+2025-10-21T14:08:35.497Z;TEST;TEST;update;1761055702696-241lx6;qweqweqw;;;Neu;Neu;;;;8f1uhaj7;
+2025-10-21T14:19:31.736Z;TEST;TEST;reorder;1761055702696-241lx6;qweqweqw;;;Neu;In Bearbeitung;;;;8f1uhaj7;
+2025-10-21T14:19:34.778Z;TEST;TEST;reorder;1761055702696-241lx6;qweqweqw;;;In Bearbeitung;Erledigt;;;;8f1uhaj7;
+2025-10-21T14:24:10.572Z;TEST;TEST;reorder;p-1761054791719-1wai;An:;Auftrag;TEST;Erledigt;Neu;;3;protokoll;;3

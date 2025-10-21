@@ -1,9 +1,6 @@
-timestamp;actor;action;id;title;type;responsible;fromStatus;toStatus;beforeId;meta;role;user
-"2025-10-20 12:50:43";"::1";"create";"p-1760964643401-d1h3";"An:";"Auftrag";"S2";"";"Neu";"";"{""source"":""protokoll"",""protoNr"":2}"
-"2025-10-20 12:50:49";"::1";"create";"p-1760964649889-y514";"An:";"Auftrag";"S2";"";"Neu";"";"{""source"":""protokoll"",""protoNr"":1}"
-"2025-10-20 12:51:07";"::1";"create";"p-1760964667993-p9kd";"An:";"Lagemeldung";"S2";"";"Neu";"";"{""source"":""protokoll"",""protoNr"":3}"
-2025-10-20T12:51:31.517Z;S2;bla;reorder;p-1760964667993-p9kd;An:;Lagemeldung;S2;Neu;Erledigt;
-2025-10-20T12:51:43.625Z;S2;bla;reorder;p-1760964643401-d1h3;An:;Auftrag;S2;Neu;Erledigt;
-2025-10-20T12:51:53.697Z;S2;bla;status;p-1760964649889-y514;An:;Auftrag;S2;Neu;In Bearbeitung;
-2025-10-20T12:51:55.365Z;S2;bla;status;p-1760964649889-y514;An:;Auftrag;S2;In Bearbeitung;Erledigt;
-"2025-10-20 12:52:40";"::1";"create";"p-1760964760706-y8yk";"Von: KANASA vvvv";"Auftrag";"S2";"";"Neu";"";"{""source"":""protokoll"",""protoNr"":4}"
+timestamp;actor;action;id;title;type;responsible;fromStatus;toStatus;beforeId;meta;role;user;originProtocolNr;originType;relatedIncidentId;protoNr
+"2025-10-21 13:39:08";"::1";"create";"p-1761053948920-fbdp";"Von: BLA1";"Auftrag";"S2";"";"Neu";"";"{""source"":""protokoll"",""protoNr"":1}"
+2025-10-21T13:39:49.693Z;S2;bla;status;p-1761053948920-fbdp;Von: BLA1;Auftrag;S2;Neu;In Bearbeitung;;1;protokoll;;1
+2025-10-21T13:43:48.192Z;S2;bla;update;p-1761053948920-fbdp;Von: BLA1;Auftrag;S2;In Bearbeitung;In Bearbeitung;;1;protokoll;sd5lm5qf;1
+2025-10-21T13:46:32.172Z;S2;bla;update;p-1761053948920-fbdp;Von: BLA1;Auftrag;S2;In Bearbeitung;In Bearbeitung;;1;protokoll;8f1uhaj7;1
+2025-10-21T13:50:20.158Z;S2;bla;create;1761054620149-ukld4e;testaufgabe;;TEST;;Neu;;;;c4sgibga;

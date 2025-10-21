@@ -15,8 +15,10 @@ const ROLES_FILE    = path.join(DATA_DIR, "user","User_roles.json");
 
 
 const AUFG_HEADERS = [
-  "timestamp","role","user","action","id","title","type","responsible","fromStatus","toStatus","beforeId"
-];
+  "timestamp","role","user","action","id","title","type","responsible",
+  "fromStatus","toStatus","beforeId",
+  "originProtocolNr","originType","relatedIncidentId","protoNr"
+ ];
 
 async function ensureAufgLogHeader(file) { 
   try { await fsp.access(file); }
@@ -52,7 +54,11 @@ function buildAufgabenLog({ role, action, item = {}, fromStatus = "", toStatus =
     title: item.title || "",
     type: item.type || "",
     responsible: item.responsible || "",
-    fromStatus, toStatus, beforeId
+    fromStatus, toStatus, beforeId,
+	    originProtocolNr: item.originProtocolNr || item.protoNr || item.meta?.protoNr || "",
+    originType:       item.originType       || item.meta?.source || "",
+    relatedIncidentId: item.relatedIncidentId || item.meta?.relatedIncidentId || "",
+    protoNr:          item.protoNr || item.originProtocolNr || item.meta?.protoNr || ""
   };
 }
 
@@ -92,6 +98,15 @@ function normalizeItem(x) {
   const status = STATUSES.includes(x.status)
     ? x.status
     : st.startsWith("in") ? "In Bearbeitung" : st.startsWith("erled") ? "Erledigt" : "Neu";
+  // Herkunft / Bezug einsammeln
+  const originProtocolNr  = x.originProtocolNr ?? x.originNr ?? x.protoNr ?? x.meta?.protoNr ?? null;
+  const originType        = x.originType ?? x.meta?.source ?? null;
+  const relatedIncidentId = x.relatedIncidentId ?? x.meta?.relatedIncidentId ?? null;
+  const metaIn = x.meta ?? {};
+  const meta = { ...metaIn };
+  if (originProtocolNr && !meta.protoNr)        meta.protoNr = originProtocolNr;
+  if (originType && !meta.source)               meta.source = originType;
+  if (relatedIncidentId && !meta.relatedIncidentId) meta.relatedIncidentId = relatedIncidentId;	
 
   return {
     id: x.id ?? x._id ?? x.key ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -104,7 +119,13 @@ function normalizeItem(x) {
     createdAt: x.createdAt ?? x.ts ?? x.timestamp ?? Date.now(),
     updatedAt: x.updatedAt ?? Date.now(),
     kind: "task",
-	meta: (x.meta ?? {}),
+
+    // Herkunft / Bezug top-level + kompatible protoNr
+    originProtocolNr: originProtocolNr ?? null,
+    originType: originType ?? null,
+    relatedIncidentId: relatedIncidentId ?? null,
+    protoNr: originProtocolNr ?? x.protoNr ?? null,
+    meta
   };
 }
 
@@ -381,8 +402,13 @@ router.post("/:id/edit", express.json(), async (req,res)=>{
       type:        patch.type        ?? prev.type,
       responsible: patch.responsible ?? prev.responsible,
       desc:        patch.desc        ?? prev.desc,
+	  relatedIncidentId: patch.relatedIncidentId ?? prev.relatedIncidentId,
       updatedAt:   Date.now(),
     };
+	    // Meta synchron halten (Bezug)
+    next.meta = { ...(prev.meta || {}) };
+    if (next.relatedIncidentId) next.meta.relatedIncidentId = next.relatedIncidentId;
+    else if (next.meta?.relatedIncidentId) delete next.meta.relatedIncidentId;
     items[idx] = next;
     board.items = items;
     await saveAufgBoard(role, board);

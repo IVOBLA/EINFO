@@ -55,6 +55,28 @@
         "salt": "8ByQFoM1iv4F8vlts+qa4w==",
         "hash": "OknZ+ZpuV7lw6m3AH12wxL2pDxpVNFFjFzoZBBjiqUI="
       }
+    },
+    {
+      "id": 9,
+      "username": "S2A",
+      "displayName": "S2A",
+      "role": "S2",
+      "pass": {
+        "algo": "scrypt",
+        "salt": "UCHtXD6sUQgdfbZoxZl1jA==",
+        "hash": "T4SeubSZ630WY38AcgmdOOTCl2yWRn9sAZUxBVpPwiM="
+      }
+    },
+    {
+      "id": 10,
+      "username": "Leiter",
+      "displayName": "Leiter Stab",
+      "role": "LtStb",
+      "pass": {
+        "algo": "scrypt",
+        "salt": "tu8R7b7krOVD1v0ZkB+pqw==",
+        "hash": "A3SYkH6z12FFFZJVsz9YzakweYJhmvpm4uzB9d+Q8tY="
+      }
     }
   ]
 }

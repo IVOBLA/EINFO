@@ -1,4 +1,18 @@
 [WMS-lite] Capabilities: http://localhost:8090/wms?service=WMS&request=GetCapabilities
 [WMS-lite] Tiles Einsatz: http://localhost:8090/tiles/Einsatz/{z}/{x}/{y}.png
 [WMS-lite] Tiles FZG    : http://localhost:8090/tiles/FZG/{z}/{x}/{y}.png
-^C
+^C[WMS-lite] Capabilities: http://localhost:8090/wms?service=WMS&request=GetCapabilities
+[WMS-lite] Tiles Einsatz: http://localhost:8090/tiles/Einsatz/{z}/{x}/{y}.png
+[WMS-lite] Tiles FZG    : http://localhost:8090/tiles/FZG/{z}/{x}/{y}.png
+^C[WMS-lite] Capabilities: http://localhost:8090/wms?service=WMS&request=GetCapabilities
+[WMS-lite] Tiles Einsatz: http://localhost:8090/tiles/Einsatz/{z}/{x}/{y}.png
+[WMS-lite] Tiles FZG    : http://localhost:8090/tiles/FZG/{z}/{x}/{y}.png
+[WMS-lite] Capabilities: http://localhost:8090/wms?service=WMS&request=GetCapabilities
+[WMS-lite] Tiles Einsatz: http://localhost:8090/tiles/Einsatz/{z}/{x}/{y}.png
+[WMS-lite] Tiles FZG    : http://localhost:8090/tiles/FZG/{z}/{x}/{y}.png
+[WMS-lite] Capabilities: http://localhost:8090/wms?service=WMS&request=GetCapabilities
+[WMS-lite] Tiles Einsatz: http://localhost:8090/tiles/Einsatz/{z}/{x}/{y}.png
+[WMS-lite] Tiles FZG    : http://localhost:8090/tiles/FZG/{z}/{x}/{y}.png
+[WMS-lite] Capabilities: http://localhost:8090/wms?service=WMS&request=GetCapabilities
+[WMS-lite] Tiles Einsatz: http://localhost:8090/tiles/Einsatz/{z}/{x}/{y}.png
+[WMS-lite] Tiles FZG    : http://localhost:8090/tiles/FZG/{z}/{x}/{y}.png

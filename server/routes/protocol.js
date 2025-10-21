@@ -268,14 +268,13 @@ try {
 const title = titleFromAnVon(payload);
  
     const desc  = String(payload?.information ?? "").trim();
+	
+	const desc = String(payload?.information ?? "").trim();
+	const baseAnVon = titleFromAnVon(payload);
+	
     for (const m of payload.massnahmen || []) {
       if (!m?.verantwortlich) continue;
-      await ensureTaskForRole({
-        roleId: m.verantwortlich,
-        protoNr: payload.nr,
-        actor,
-        item: { title, type: payload?.infoTyp ?? "", desc, meta: { source: "protokoll" } }
-      });
+ const title = \${baseAnVon} ${String(m?.massnahme ?? "").trim()}`.trim(); await ensureTaskForRole({  roleId: m.verantwortlich,  protoNr: payload.nr,  actor,  item: {  title,  type: payload?.infoTyp ?? "",  desc,  meta: { source: "protokoll", protoNr: payload.nr }  } });`
     }
 	   // Sonderregel: Typ=Lage & Eingang & An/Von ≠ "S2"  → Aufgabe für S2
    if (
@@ -287,7 +286,8 @@ const title = titleFromAnVon(payload);
        roleId: "S2",
        protoNr: payload.nr,
        actor,
-       item: { title, type: payload.infoTyp, desc, meta: { source: "protokoll" } }
+       item: { title, type: payload.infoTyp, desc,
+   meta: { source: "protokoll", protoNr: payload.nr } }
      });
    }
 
@@ -350,7 +350,7 @@ router.put("/:nr", express.json(), async (req, res) => {
            roleId,
            protoNr: next.nr,
            actor,
-           item: { title, type: next?.infoTyp ?? next?.TYP ?? "", desc: text, meta: { source: "protokoll" } }
+const titleU = \${baseAnVonU} ${String(next?.massnahmen?.[0]?.massnahme ?? "").trim()}`.trim(); item: {  title: titleU,  type: next?.infoTyp ?? next?.TYP ?? "",  desc: text,  meta: { source: "protokoll", protoNr: next.nr } }`
          });
        }
      }
@@ -367,7 +367,7 @@ router.put("/:nr", express.json(), async (req, res) => {
          roleId: "S2",
          protoNr: next.nr,
          actor: actor2,
-         item: { title, type: next?.infoTyp ?? next?.TYP ?? "", desc: desc2, meta:{ source:"protokoll" } }
+const titleAutoU = \${baseAnVonU} ${String(next?.massnahmen?.[0]?.massnahme ?? "").trim()}`.trim(); item: {  title: titleAutoU,  type: next?.infoTyp ?? next?.TYP ?? "",  desc: desc2,  meta: { source: "protokoll", protoNr: next.nr } }`
        });
      }
    }
