@@ -1,15 +1,16 @@
-// client/src/components/AufgSortableCard.jsx
 import React from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-const fmt = (d) => (d ? new Date(d).toLocaleString() : "–");
-const clip = (s, n = 100) => {
-  const str = String(s ?? "");
-  return str.length > n ? str.slice(0, n).trimEnd() + "…" : str;
-};
-
-export default function AufgSortableCard({ item, onAdvance, onShowInfo, isNew }) {
+export default function AufgSortableCard({
+  item,
+  onClick,
+  onShowInfo,
+  onAdvance,
+  disableAdvance,
+  isNew,
+}) {
+  // Karte bei dnd-kit registrieren
   const {
     attributes,
     listeners,
@@ -19,81 +20,94 @@ export default function AufgSortableCard({ item, onAdvance, onShowInfo, isNew })
     isDragging,
   } = useSortable({ id: item.id });
 
-  const style = { transform: CSS.Transform.toString(transform), transition };
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.7 : 1,
+    cursor: "grab",
+  };
 
   return (
-    <li ref={setNodeRef} style={style}>
-      <article
-        {...attributes}
-        {...listeners}
-        className={[
-          "rounded-lg bg-white shadow-xl border p-3",
-          isDragging ? "opacity-90 scale-[1.01]" : "",
-          "transition-transform",
-          isNew ? "pulse-incoming" : "",
-          item?.meta?.source === "protokoll" ? "ext-external" : "",
-        ].join(" ")}
-      >
-        {/* Kopfzeile: links 'erstellt' + Titel; rechts 'aktual.' + Pfeil */}
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="text-[10px] text-gray-500 leading-4">
-              erstellt: {fmt(item?.createdAt)}
-            </div>
-            <div className="font-semibold text-sm leading-snug truncate">
-              {item?.title || item?.name || "Ohne Titel"}
-            </div>
-          </div>
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={
+        "rounded-lg border bg-white p-3 shadow-sm hover:shadow cursor-pointer " +
+        (isNew ? "ring-2 ring-rose-400 animate-pulse " : "")
+      }
+      {...attributes}
+      {...listeners}
+      onClick={() => (onClick ? onClick(item) : onShowInfo?.(item))}
+      role="button"
+      tabIndex={0}
+    >
+      {/* Kopfzeile mit Zeitstempeln */}
+      <div className="flex items-center justify-between text-[10px] text-gray-500 leading-4 mb-1">
+        <div>
+          erstellt: {item.createdAt ? new Date(item.createdAt).toLocaleString() : "–"}
+        </div>
+        <div>
+          aktual.: {item.updatedAt ? new Date(item.updatedAt).toLocaleString() : "–"}
+        </div>
+      </div>
 
-          <div className="shrink-0 flex flex-col items-end gap-1">
-            {item?.updatedAt && (
-              <div className="text-[10px] text-gray-500 leading-4">
-                aktual.: {fmt(item.updatedAt)}
-              </div>
-            )}
+      <div className="flex items-start justify-between gap-2">
+        <h3 className="font-semibold leading-tight">{item.title || "Ohne Titel"}</h3>
+        <button
+          className={`text-xs px-2 py-1 rounded ${
+            disableAdvance ? "bg-gray-200 text-gray-500" : "bg-emerald-600 text-white hover:bg-emerald-700"
+          }`}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (!disableAdvance) onAdvance?.(item);
+          }}
+          disabled={disableAdvance}
+          title="Status weiter"
+        >
+          ➜
+        </button>
+      </div>
+
+      {/* Typ + Verantwortlich */}
+      <div className="mt-1 text-xs text-gray-600">
+        {item.type ? <span className="mr-2">Typ: {item.type}</span> : null}
+        {item.responsible ? <span>Verantwortlich: {item.responsible}</span> : null}
+      </div>
+
+      {/* Notiz */}
+      {item.desc ? (
+        <p className="mt-2 text-sm whitespace-pre-wrap text-gray-800">{item.desc}</p>
+      ) : null}
+
+      {/* Ursprung / Bezug */}
+      {(item?.originProtocolNr || item?.relatedIncidentId) && (
+        <div className="mt-2 flex items-center gap-3 text-[11px]">
+          {item.originProtocolNr ? (
             <button
-              type="button"
-              title="weiter"
               onClick={(e) => {
                 e.stopPropagation();
-                onAdvance?.(item);
+                // Korrekte Route: Pfad + Hash
+                window.location.assign(`/protokoll#/edit/${item.originProtocolNr}`);
               }}
-              className="px-2 py-1 rounded text-[12px] border bg-white hover:bg-gray-50"
+              className="text-blue-700 hover:underline"
+              title={`Protokoll #${item.originProtocolNr} öffnen`}
             >
-              ➔
+              Prot. #{item.originProtocolNr}
             </button>
-          </div>
+          ) : null}
+
+          {item.relatedIncidentId ? (
+            <a
+              href="/"
+              className="text-blue-700 hover:underline"
+              title="Einsatz im Board öffnen"
+              onClick={(e) => e.stopPropagation()}
+            >
+              Einsatz öffnen
+            </a>
+          ) : null}
         </div>
-
-        {/* Notiz (max 100 Zeichen), Zeilenumbrüche erhalten, mit Rand */}
-        {item?.desc && (
-          <div className="mt-2 text-xs text-gray-800 whitespace-pre-wrap border rounded-md p-2">
-            {clip(item.desc, 100)}
-          </div>
-        )}
-
-        {/* Verantwortlich */}
-        {item?.responsible && (
-          <div className="mt-2 text-xs text-gray-700">
-            Verantwortlich: {item.responsible}
-          </div>
-        )}
-
-        {/* Footer rechts: „?“ statt „Info“ */}
-        <div className="mt-2 flex justify-end">
-          <button
-            type="button"
-            title="Details"
-            className="text-[12px] text-blue-700 hover:underline"
-            onClick={(e) => {
-              e.stopPropagation();
-              onShowInfo?.(item);
-            }}
-          >
-            ?
-          </button>
-        </div>
-      </article>
-    </li>
+      )}
+    </div>
   );
 }

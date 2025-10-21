@@ -29,6 +29,7 @@ function getCurrentUser() {
   try {
     const w = typeof window !== "undefined" ? window : {};
     const ls = w.localStorage;
+	const [filterEinsatz, setFilterEinsatz] = useState("");
     const cands = [
       () => w.__APP_AUTH__?.user,
       () => w.__USER__,
@@ -116,6 +117,10 @@ const myCreatedIdsRef = useRef(new Set());
         createdAt: x.createdAt ?? null,
         updatedAt: x.updatedAt ?? null,
 		meta: x.meta ?? {},
+originProtocolNr: x.originProtocolNr ?? x.originNr ?? x.meta?.originProtocolNr ?? null,
+originType:       x.originType       ?? x.meta?.source ?? null,
+relatedIncidentId: x.relatedIncidentId ?? x.meta?.relatedIncidentId ?? null,
+  
       }));
       setItems(mapped);
 	  
@@ -187,7 +192,12 @@ const r = await fetch(`/api/aufgaben/${encodeURIComponent(id)}/status${roleQuery
   async function createItemOnServer(payload) {
 const clientId = uuid();
 const body = { title: payload?.title ?? "Aufgabe", type: payload?.type ?? "", responsible: payload?.responsible ?? "",
-               desc: payload?.desc ?? "", status: STATUS.NEW, role: roleId, clientId };
+               desc: payload?.desc ?? "", status: STATUS.NEW, role: roleId, clientId,
+  originProtocolNr: payload?.originProtocolNr ?? null,
+  originType: payload?.originType ?? null,            // z.B. "protokoll"
+  relatedIncidentId: payload?.relatedIncidentId ?? null,
+  meta: payload?.meta ?? undefined			   };
+			   
 const res = await fetch(`/api/aufgaben${roleQuery(roleId)}`, {
   method: "POST",
   headers: { "Content-Type": "application/json", ...roleHeaders(roleId) },
@@ -336,7 +346,7 @@ const res = await fetch(`/api/aufgaben${roleQuery(roleId)}`, {
               itemIds={lists[STATUS.NEW].map(x=>x.id)}
             >
               {lists[STATUS.NEW].map((it) => (
-                <AufgSortableCard key={it.id} item={it} onAdvance={advance} onShowInfo={setActiveItem} isNew={freshIds.has(String(it.id))} />
+                <AufgSortableCard key={it.id} item={it} onAdvance={advance} onClick={() => setActiveItem(it)} isNew={freshIds.has(String(it.id))} />
               ))}
             </AufgDroppableColumn>
           </div>
@@ -350,7 +360,7 @@ const res = await fetch(`/api/aufgaben${roleQuery(roleId)}`, {
               itemIds={lists[STATUS.IN_PROGRESS].map(x=>x.id)}
             >
               {lists[STATUS.IN_PROGRESS].map((it) => (
-                <AufgSortableCard key={it.id} item={it} onAdvance={advance} onShowInfo={setActiveItem} isNew={freshIds.has(String(it.id))} />
+                <AufgSortableCard key={it.id} item={it} onAdvance={advance} onClick={() => setActiveItem(it)} isNew={freshIds.has(String(it.id))} />
               ))}
             </AufgDroppableColumn>
           </div>
@@ -364,7 +374,7 @@ const res = await fetch(`/api/aufgaben${roleQuery(roleId)}`, {
               itemIds={lists[STATUS.DONE].map(x=>x.id)}
             >
               {lists[STATUS.DONE].map((it) => (
-               <AufgSortableCard key={it.id} item={it} onAdvance={advance} onShowInfo={setActiveItem} isNew={freshIds.has(String(it.id))} />
+               <AufgSortableCard key={it.id} item={it} onAdvance={advance} onClick={() => setActiveItem(it)} isNew={freshIds.has(String(it.id))} />
               ))}
             </AufgDroppableColumn>
           </div>
@@ -383,7 +393,7 @@ const res = await fetch(`/api/aufgaben${roleQuery(roleId)}`, {
         </DragOverlay>
       </DndContext>
 
-      {/* Modals */}
+         {/* Modals */}
       <AufgAddModal
         open={addOpen}
         onClose={() => setAddOpen(false)}
@@ -394,16 +404,29 @@ const res = await fetch(`/api/aufgaben${roleQuery(roleId)}`, {
           } catch (e) { setError(String(e?.message || e)); }
         }}
       />
+
       <AufgInfoModal
-  open={!!activeItem}
-  item={activeItem}
-  onClose={() => setActiveItem(null)}
-  canEdit={allowEdit}
-  onSave={async (patch) => {
-    const saved = await updateItemOnServer(patch);
-    setItems(prev => prev.map(it => it.id === saved.id ? { ...it, ...saved } : it));
-  }}
-/>
+        open={!!activeItem}
+        item={activeItem}
+        onClose={() => setActiveItem(null)}
+        canEdit={allowEdit}
+        onSave={async (patch) => {
+          const saved = await updateItemOnServer(patch);
+          setItems(prev => prev.map(it => it.id === saved.id ? { ...it, ...saved } : it));
+        }}
+      />
+
+      {/* Hilfe-Button */}
+      <a
+        href="/Hilfe_Aufgabenboard.pdf"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-4 right-4 px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg"
+        title="Hilfe – Aufgabenboard"
+      >
+        Hilfe
+      </a>
     </div>
-  );
+);
+
 }

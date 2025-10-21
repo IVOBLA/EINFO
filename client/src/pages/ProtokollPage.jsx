@@ -12,6 +12,21 @@ const LS_KEYS = {
   verantwortlich: "prot_sugg_ver",
 };
 
+
+
+
+
+
+
+// 2) Maßnahme → Aufgabe anlegen (mit Herkunft & optional Ziel-Rolle)
+function normRoleId(s) {
+  const v = String(s || "").trim();
+  if (!v) return null;
+  const m = v.match(/\b(S[1-6]|EL|LTSTB)\b/i);
+  if (m) return m[1].toUpperCase();
+  return v.replace(/\s+/g, "").toUpperCase();
+}
+
 function uniqLimit(arr, limit = 12) {
   const seen = new Set();
   const out = [];
@@ -76,6 +91,8 @@ const initialForm = () => ({
 
 export default function ProtokollPage({ mode = "create", editNr = null }) {
  
+  const [creatingTask, setCreatingTask] = useState(false);
+  
   // ---- Rechte ---------------------------------------------------------------
   const [canEdit, setCanEdit] = useState(false);
   useEffect(() => {
@@ -735,20 +752,32 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
                     title={`Maßnahme ${i + 1}`}
                   />
                 </div>
-                <div className="col-span-5 p-2 border-r">
-                  <input
-                    name={`m_verantwortlich_${i}`}
-                    className="w-full border rounded px-2 h-9"
-                    list="dl-ver"
-                    value={m.verantwortlich}
-                    onChange={(e) => {
-                      const arr = [...form.massnahmen];
-                      arr[i] = { ...m, verantwortlich: e.target.value };
-                      set("massnahmen", arr);
-                    }}
-                    title={`Verantwortlich ${i + 1}`}
-                  />
-                </div>
+<div className="col-span-5 p-2 border-r">
+  <div className="flex items-center gap-2">
+    <input
+      name={`m_verantwortlich_${i}`}
+      className="w-full border rounded px-2 h-9"
+      list="dl-ver"
+      value={m.verantwortlich}
+      onChange={(e) => {
+        const arr = [...form.massnahmen];
+        arr[i] = { ...m, verantwortlich: e.target.value };
+        set("massnahmen", arr);
+      }}
+      title={`Verantwortlich ${i + 1}`}
+    />
+    <button
+      type="button"
+      className="px-2 h-9 text-xs rounded border bg-white hover:bg-gray-50"
+      title="Als Aufgabe anlegen (mit Protokoll-Bezug)"
+      onClick={() => createTaskFromMeasure(i)}
+      disabled={creatingTask}
+    >
+      →
+    </button>
+  </div>
+</div>
+
                 <div className="col-span-1 p-2 flex items-center justify-center">
                   <input
                     tabIndex={-1}

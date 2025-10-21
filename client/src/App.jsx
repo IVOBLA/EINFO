@@ -792,7 +792,7 @@ if (route.startsWith("/protokoll/edit/")) {
   return (
     <div className="h-screen w-screen bg-gray-100 flex flex-col">
       <header className="flex items-center justify-between p-3 border-b bg-white shadow">
-        <h1 className="text-xl font-bold">Protokoll – Bearbeiten</h1>
+        <h1 className="text-xl font-bold">Meldung – Bearbeiten</h1>
         <button
           onClick={() => { window.location.hash = "/protokoll"; }}
           className="px-3 py-1.5 rounded-md bg-gray-600 hover:bg-gray-700 text-white"
@@ -812,7 +812,7 @@ if (route.startsWith("/protokoll/neu")) {
   return (
     <div className="h-screen w-screen bg-gray-100 flex flex-col">
       <header className="flex items-center justify-between p-3 border-b bg-white shadow">
-        <h1 className="text-xl font-bold">Protokoll – Eintrag anlegen</h1>
+        <h1 className="text-xl font-bold">Meldung – Eintrag anlegen</h1>
         <button
           onClick={() => { window.location.hash = "/protokoll"; }}
           className="px-3 py-1.5 rounded-md bg-gray-600 hover:bg-gray-700 text-white"
@@ -832,7 +832,7 @@ if (route.startsWith("/protokoll")) {
   return (
     <div className="h-screen w-screen bg-gray-100 flex flex-col">
       <header className="flex items-center justify-between p-3 border-b bg-white shadow">
-        <h1 className="text-xl font-bold">Protokoll</h1>
+        <h1 className="text-xl font-bold">Meldestelle</h1>
         <button
           onClick={() => { window.location.hash = "/"; }}
           className="px-3 py-1.5 rounded-md bg-gray-600 hover:bg-gray-700 text-white"
@@ -869,6 +869,7 @@ if (route.startsWith("/protokoll")) {
           <button onClick={onPdf} className="px-3 py-1.5 rounded-md bg-purple-600 hover:bg-purple-700 text-white">
             PDF
           </button>
+		  
 		      <button
       onClick={onLogout}
       className="px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-100"
@@ -888,7 +889,15 @@ if (route.startsWith("/protokoll")) {
   onClick={() => { window.location.hash = "/protokoll"; }}
   className="px-3 py-1.5 rounded-md bg-gray-500 hover:bg-gray-600 text-white"
 >
-  Protokoll
+  Meldestelle
+</button>
+<button
+  type="button"
+  onClick={() => { window.location.href = "/aufgaben"; }}
+  className="px-3 py-1.5 rounded-md bg-teal-600 hover:bg-teal-700 text-white"
+  title="Zum Aufgaben-Board"
+>
+  Aufgaben
 </button>
 		  <button
             onClick={doManualImport}
