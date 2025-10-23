@@ -171,7 +171,7 @@ const [dueState, setDueState] = useState("none"); // none | soon | overdue
               </button>
             )}
 
-          {incidentLabel && (
+       {incidentLabel && (
             <span
               className="text-gray-700"
               title={
@@ -180,8 +180,8 @@ const [dueState, setDueState] = useState("none"); // none | soon | overdue
                   : `Einsatz: ${incidentLabel}`
               }
             >
-              {incidentStatusLabel ? `[${incidentStatusLabel}] ` : ""}
-              {incidentLabel}
+              Einsatz: {incidentLabel}
+              {incidentStatusLabel ? ` (${incidentStatusLabel})` : ""}
             </span>
           )}
           </div>
