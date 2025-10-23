@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";  // Importiere Styles für den DatePicker
 
@@ -31,8 +32,11 @@ export default function AufgAddModal({ open, onClose, onAdded }) {
 
   if (!open) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+  const portalTarget = typeof document !== "undefined" ? document.body : null;
+  if (!portalTarget) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/40">
       <div className="w-[840px] max-w-[90vw] rounded-2xl bg-white p-4 shadow-2xl">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold">Aufgabe anlegen</h2>
@@ -82,6 +86,7 @@ export default function AufgAddModal({ open, onClose, onAdded }) {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    portalTarget
   );
 }
