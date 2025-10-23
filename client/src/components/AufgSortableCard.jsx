@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
@@ -67,6 +67,8 @@ const [dueState, setDueState] = useState("none"); // none | soon | overdue
         ? "bg-yellow-100 border-amber-300"
         : "bg-white";
 
+  const showPulse = Boolean(isNew && !isDone);
+
   const incidentId = it?.relatedIncidentId ? String(it.relatedIncidentId) : "";
   const incidentInfo = incidentId && incidentLookup?.get ? incidentLookup.get(incidentId) : null;
   const incidentLabel = incidentInfo?.label || it?.incidentTitle || (incidentId ? `#${incidentId}` : "");
@@ -95,7 +97,8 @@ const [dueState, setDueState] = useState("none"); // none | soon | overdue
     <div
       ref={setNodeRef}
       style={style}
-      className={`relative rounded-lg border bg-white p-3 shadow-sm hover:shadow cursor-pointer ${overdueClass} ${showPulse ? "pulse-incoming" : ""}`}
+      className={`relative rounded-lg border p-3 shadow-sm hover:shadow cursor-pointer ${highlightClass} ${showPulse ? "pulse-incoming" : ""}`}
+      {...attributes}
       {...attributes}
       {...listeners}
       onClick={() => (onClick ? onClick(it) : onShowInfo?.(it))}
