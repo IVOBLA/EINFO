@@ -1,4 +1,3 @@
-// client/src/pages/AufgApp.jsx
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import {
   DndContext,
@@ -21,15 +20,17 @@ import { playGong } from "../sound"; // gleicher Sound wie im Einsatz-Kanban
 const STATUS = { NEW: "Neu", IN_PROGRESS: "In Bearbeitung", DONE: "Erledigt" };
 const COLS = [STATUS.NEW, STATUS.IN_PROGRESS, STATUS.DONE];
 
+const norm = (s) =>
+  String(s ?? "")
+    .normalize("NFKD")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
 
-
-
-// ---- Rolle aus vorhandenem Auth (keine UI-Änderung)
 function getCurrentUser() {
   try {
     const w = typeof window !== "undefined" ? window : {};
     const ls = w.localStorage;
-
     const cands = [
       () => w.__APP_AUTH__?.user,
       () => w.__USER__,
@@ -40,6 +41,7 @@ function getCurrentUser() {
   } catch {}
   return null;
 }
+
 function getPrimaryRoleId(user) {
   if (!user) return null;
   if (typeof user.role === "string") return user.role.trim().toUpperCase();
@@ -51,6 +53,7 @@ function getPrimaryRoleId(user) {
   }
   return null;
 }
+
 const uuid = () => (crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
 const roleQuery = (roleId) => (roleId ? `?role=${encodeURIComponent(roleId)}` : "");
 const roleHeaders = (roleId) => (roleId ? { "X-Role-Id": roleId } : {});
@@ -68,17 +71,17 @@ export default function AufgApp() {
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("");
   const [filterEinsatz, setFilterEinsatz] = useState("");
-  const [addOpen, setAddOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);  // Popup initial auf false setzen
   const [activeItem, setActiveItem] = useState(null);
   const [allowEdit, setAllowEdit] = useState(false);
 
   const user = getCurrentUser();
   const roleId = useMemo(() => getPrimaryRoleId(user), [user]);
   const [freshIds, setFreshIds] = useState(new Set());
-const prevIdsRef = useRef(new Set());
-const myCreatedIdsRef = useRef(new Set());
-  
-    // Rollen-Policy einmal laden und Edit-Flag setzen
+  const prevIdsRef = useRef(new Set());
+  const myCreatedIdsRef = useRef(new Set());
+
+  // Rollen-Policy einmal laden und Edit-Flag setzen
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -88,17 +91,16 @@ const myCreatedIdsRef = useRef(new Set());
     })();
     return () => { alive = false; };
   }, [user]);
-  
 
   // DnD
   const [draggingItem, setDraggingItem] = useState(null);
   const [overColId, setOverColId] = useState(null);
   const originColRef = useRef(null);
   const lastOverRef = useRef(null);
- const sensors = useSensors(
-   useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
-   useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 6 } })
- );
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 6 } })
+  );
 
   // ---- Laden (rollen-spezifisch)
   async function load() {
@@ -119,10 +121,6 @@ const myCreatedIdsRef = useRef(new Set());
         createdAt: x.createdAt ?? null,
         updatedAt: x.updatedAt ?? null,
 		meta: x.meta ?? {},
-originProtocolNr: x.originProtocolNr ?? x.originNr ?? x.meta?.originProtocolNr ?? null,
-originType:       x.originType       ?? x.meta?.source ?? null,
-relatedIncidentId: x.relatedIncidentId ?? x.meta?.relatedIncidentId ?? null,
-  
       }));
       setItems(mapped);
 	  
@@ -138,36 +136,10 @@ relatedIncidentId: x.relatedIncidentId ?? x.meta?.relatedIncidentId ?? null,
   }
   prevIdsRef.current = ids;
 }catch{}
-	  
-	  
-	  
     } catch (e) { setError(String(e?.message || e)); }
     finally { setLoading(false); }
   }
   useEffect(() => { void load(); }, [roleId]);
-  
-  useEffect(() => {
-  let abort = false;
-  (async () => {
-    try {
-      const res = await fetch("/api/board", { cache: "no-store" });
-      if (!res.ok) return;
-      const board = await res.json();
-      if (abort) return;
-
-      const idx = {};
-      const cols = board?.columns || {};
-      for (const col of Object.values(cols)) {
-        const arr = Array.isArray(col?.items) ? col.items : [];
-        for (const it of arr) {
-          if (it?.id) idx[String(it.id)] = String(it?.content ?? it?.title ?? "");
-        }
-      }
-      setBoardIndex(idx);
-    } catch {}
-  })();
-  return () => { abort = true; };
-}, []);
   
    // Auto-Reload alle 30s (nur wenn eine Rolle vorhanden ist)
  useEffect(() => {
@@ -189,7 +161,6 @@ async function updateItemOnServer(patch) {
   const j = await res.json();
   return j.item || patch;
 }
-
 
   // ---- Persist-Helper: Reorder (DnD) & Status (Pfeil)
   async function persistReorder({ id, toStatus, beforeId }) {
@@ -217,12 +188,7 @@ const r = await fetch(`/api/aufgaben/${encodeURIComponent(id)}/status${roleQuery
   async function createItemOnServer(payload) {
 const clientId = uuid();
 const body = { title: payload?.title ?? "Aufgabe", type: payload?.type ?? "", responsible: payload?.responsible ?? "",
-               desc: payload?.desc ?? "", status: STATUS.NEW, role: roleId, clientId,
-  originProtocolNr: payload?.originProtocolNr ?? null,
-  originType: payload?.originType ?? null,            // z.B. "protokoll"
-  relatedIncidentId: payload?.relatedIncidentId ?? null,
-  meta: payload?.meta ?? undefined			   };
-			   
+               desc: payload?.desc ?? "", status: STATUS.NEW, role: roleId, clientId };
 const res = await fetch(`/api/aufgaben${roleQuery(roleId)}`, {
   method: "POST",
   headers: { "Content-Type": "application/json", ...roleHeaders(roleId) },
@@ -237,37 +203,15 @@ const res = await fetch(`/api/aufgaben${roleQuery(roleId)}`, {
     return json?.item || body;
   }
 
-const deriveIncidentTitle = (task) => {
-  return (
-    task?.incidentTitle ??
-    task?.meta?.incidentTitle ??
-    (task?.relatedIncidentId ? boardIndex[String(task.relatedIncidentId)] : "") ??
-    ""
-  );
-};
-
   // ---- Filter + Spalten (wie _old)
-const filtered = useMemo(() => {
-  let arr = items;
-
-  // Freitext (Titel/Typ/Verantwortlich/Beschreibung)
-  const q = filter.trim().toLowerCase();
-  if (q) {
-    arr = arr.filter(x =>
-      [x.title, x.type, x.responsible, x.desc]
-        .filter(Boolean)
-        .some(s => String(s).toLowerCase().includes(q))
+  const filtered = useMemo(() => {
+    const q = filter.trim().toLowerCase();
+    if (!q) return items;
+    return items.filter(x =>
+      [x.title, x.type, x.responsible, x.desc].filter(Boolean).some(s => String(s).toLowerCase().includes(q))
     );
-  }
+  }, [items, filter]);
 
-// Einsatzbezug (nach Einsatztitel; Teilstring, case-insensitive) 
-const fE = String(filterEinsatz ?? "").trim().toLowerCase();
-  if (fE) {
-    arr = arr.filter(x => deriveIncidentTitle(x).toLowerCase().includes(fE));
-  }
-
-  return arr;
-}, [items, filter, filterEinsatz, boardIndex]);
   const lists = useMemo(() => ({
     [STATUS.NEW]:         filtered.filter(x => (x.status || STATUS.NEW) === STATUS.NEW),
     [STATUS.IN_PROGRESS]: filtered.filter(x => x.status === STATUS.IN_PROGRESS),
@@ -288,6 +232,15 @@ const fE = String(filterEinsatz ?? "").trim().toLowerCase();
     return null;
   }, [listIds]);
 
+const handleAddOpen = () => {
+  setAddOpen(true);  // Öffnet das "Neu"-Modal
+};
+const handleModalClose = () => {
+  setAddOpen(false);  // Schließt das „Neu“-Modal
+};
+const handleShowInfo = (item) => {
+  setActiveItem(item);  // Setzt das aktive Element (Kachel)
+};
   // ---- Pfeil „Weiter→“ → jetzt dedizierter Status-Endpunkt
   const advance = useCallback((item) => {
      if (!allowEdit) return;     // read-only blocken
@@ -363,20 +316,22 @@ const fE = String(filterEinsatz ?? "").trim().toLowerCase();
             placeholder="Suche Titel / Typ / Verantwortlich…"
             className="px-3 py-2 text-sm rounded-xl border"
           />
-		  <div className="flex items-center gap-2">
-  <label className="text-sm text-gray-600">Einsatzbezug</label>
-  <input
-    value={filterEinsatz}
-    onChange={(e) => setFilterEinsatz(e.target.value)}
-    placeholder="z.B. 4711"
-    className="border rounded px-2 py-1 text-sm"
-    inputMode="numeric"
-  />
-</div>
  {allowEdit && (
-   <button onClick={() => setAddOpen(true)} className="text-sm px-3 py-2 rounded-xl bg-sky-600 text-white">
-     Neu
-   </button>
+<button onClick={handleAddOpen} className="text-sm px-3 py-2 rounded-xl bg-sky-600 text-white">
+  Neu
+</button>
+<AufgAddModal
+  open={addOpen}  // Der Zustand `addOpen` steuert, ob das Modal sichtbar ist
+  onClose={handleModalClose}  // Schließt das Modal
+  onAdded={async (created) => {
+    try {
+      const saved = await createItemOnServer(created);  // Speichert das neue Element
+      setItems((prev) => [saved, ...prev]);  // Fügt das neue Element zur Liste hinzu
+    } catch (e) {
+      setError(String(e?.message || e));  // Fehlerbehandlung
+    }
+  }}
+/>
  )}
           <button onClick={load} className="text-sm px-3 py-2 rounded-xl border" disabled={loading}>
             {loading ? "Lädt…" : "Neu laden"}
@@ -403,7 +358,7 @@ const fE = String(filterEinsatz ?? "").trim().toLowerCase();
               itemIds={lists[STATUS.NEW].map(x=>x.id)}
             >
               {lists[STATUS.NEW].map((it) => (
-                <AufgSortableCard key={it.id} item={it} onAdvance={advance} onClick={() => setActiveItem(it)} isNew={freshIds.has(String(it.id))} />
+                <AufgSortableCard key={it.id} item={it} onAdvance={advance} onShowInfo={setActiveItem} isNew={freshIds.has(String(it.id))} />
               ))}
             </AufgDroppableColumn>
           </div>
@@ -417,7 +372,7 @@ const fE = String(filterEinsatz ?? "").trim().toLowerCase();
               itemIds={lists[STATUS.IN_PROGRESS].map(x=>x.id)}
             >
               {lists[STATUS.IN_PROGRESS].map((it) => (
-                <AufgSortableCard key={it.id} item={it} onAdvance={advance} onClick={() => setActiveItem(it)} isNew={freshIds.has(String(it.id))} />
+                <AufgSortableCard key={it.id} item={it} onAdvance={advance} onShowInfo={setActiveItem} isNew={freshIds.has(String(it.id))} />
               ))}
             </AufgDroppableColumn>
           </div>
@@ -431,7 +386,7 @@ const fE = String(filterEinsatz ?? "").trim().toLowerCase();
               itemIds={lists[STATUS.DONE].map(x=>x.id)}
             >
               {lists[STATUS.DONE].map((it) => (
-               <AufgSortableCard key={it.id} item={it} onAdvance={advance} onClick={() => setActiveItem(it)} isNew={freshIds.has(String(it.id))} />
+               <AufgSortableCard key={it.id} item={it} onAdvance={advance} onShowInfo={setActiveItem} isNew={freshIds.has(String(it.id))} />
               ))}
             </AufgDroppableColumn>
           </div>
@@ -449,41 +404,6 @@ const fE = String(filterEinsatz ?? "").trim().toLowerCase();
           ) : null}
         </DragOverlay>
       </DndContext>
-
-         {/* Modals */}
-      <AufgAddModal
-        open={addOpen}
-        onClose={() => setAddOpen(false)}
-        onAdded={async (created) => {
-          try {
-            const saved = await createItemOnServer(created);
-            setItems((prev) => [saved, ...prev]);
-          } catch (e) { setError(String(e?.message || e)); }
-        }}
-      />
-
-      <AufgInfoModal
-        open={!!activeItem}
-        item={activeItem}
-        onClose={() => setActiveItem(null)}
-        canEdit={allowEdit}
-        onSave={async (patch) => {
-          const saved = await updateItemOnServer(patch);
-          setItems(prev => prev.map(it => it.id === saved.id ? { ...it, ...saved } : it));
-        }}
-      />
-
-      {/* Hilfe-Button */}
-      <a
-        href="/Hilfe_Aufgabenboard.pdf"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-4 right-4 px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg"
-        title="Hilfe – Aufgabenboard"
-      >
-        Hilfe
-      </a>
     </div>
-);
-
+  );
 }

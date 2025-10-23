@@ -1,59 +1,63 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 
 export default function AufgInfoModal({ open, item, onClose, onSave, canEdit }) {
   const it = item || {};
+  if (!it) return null;
+
   const [edit, setEdit] = useState(false);
+  const [form, setForm] = useState({
+    title: it.title || "",
+    type: it.type || "",
+    responsible: it.responsible || "",
+    desc: it.desc || "",
+  });
 
-  const [title, setTitle] = useState(it.title || "");
-  const [type, setType] = useState(it.type || "");
-  const [responsible, setResponsible] = useState(it.responsible || "");
-  const [desc, setDesc] = useState(it.desc || "");
-
-  const [incidentId, setIncidentId] = useState(it.relatedIncidentId || "");
-  const [openIncidents, setOpenIncidents] = useState([]);
+  const [dueAt, setDueAt] = useState(it.dueAt ? new Date(it.dueAt) : null);
 
   useEffect(() => {
-    if (!open) return;
-    setEdit(false);
-    setTitle(it.title || "");
-    setType(it.type || "");
-    setResponsible(it.responsible || "");
-    setDesc(it.desc || "");
-    setIncidentId(it.relatedIncidentId || "");
-
-    (async () => {
-      try {
-        const r = await fetch("/api/board", { credentials: "include", cache: "no-store" }).then(res => res.json());
-        const neu = (r?.columns?.["neu"]?.items || []);
-        const wip = (r?.columns?.["in-bearbeitung"]?.items || []);
-        const list = [...neu, ...wip].map(c => ({
-          id: c.id,
-          label: `${c.content || "Ohne Titel"}${c.ort ? " • " + c.ort : ""}`,
-        }));
-        setOpenIncidents(list);
-      } catch { setOpenIncidents([]); }
-    })();
+    if (open) {
+      setEdit(false);
+      setForm({
+        title: it.title || "",
+        type: it.type || "",
+        responsible: it.responsible || "",
+        desc: it.desc || "",
+      });
+      setDueAt(it.dueAt ? new Date(it.dueAt) : null);     // init dueAt
+    }
   }, [open, it?.id]);
 
-const viewIncidentLabel = useMemo(() => {
-  const rid = String(it?.relatedIncidentId ?? "");
-  const found = openIncidents.find(i => String(i.id) === rid);
-  return found?.label || null;
-}, [openIncidents, it?.relatedIncidentId]);
+  const changed = useMemo(() => {
+    return (
+      (form.title ?? "") !== (it.title ?? "") ||
+      (form.type ?? "") !== (it.type ?? "") ||
+      (form.responsible ?? "") !== (it.responsible ?? "") ||
+      (form.desc ?? "") !== (it.desc ?? "")
+    );
+  }, [form, it]);
 
-  const save = async () => {
-    await onSave?.({
+  const handleSave = async () => {
+    if (!canEdit) return; // safety check
+    if (!changed) {
+      setEdit(false);
+      return;
+    }
+    const patch = {
       id: it.id,
-      title: title?.trim(),
-      type: type?.trim(),
-      responsible: responsible?.trim(),
-      desc: desc?.trim(),
-      relatedIncidentId: incidentId || null,
-    });
+      title: form.title,
+      type: form.type,
+      responsible: form.responsible,
+      desc: form.desc,
+      dueAt: dueAt ? dueAt.toISOString() : null, // save dueAt in ISO format
+    };
+    await onSave?.(patch);
     setEdit(false);
   };
 
-  if (!open) return null;
+  const formatDueAt = (v) => {
+    if (!v) return "—";
+    return new Date(v).toLocaleString("de-AT", { timeZone: "Europe/Vienna", hour12: false });
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
@@ -66,7 +70,7 @@ const viewIncidentLabel = useMemo(() => {
             ) : (
               <>
                 <button onClick={() => setEdit(false)} className="px-3 py-1.5 rounded border bg-white">Abbrechen</button>
-                <button onClick={save} className="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white">Speichern</button>
+                <button onClick={handleSave} className="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white">Speichern</button>
               </>
             )}
             <button onClick={onClose} className="text-gray-500 hover:text-gray-700" title="Schließen">✕</button>
@@ -86,28 +90,34 @@ const viewIncidentLabel = useMemo(() => {
             {it.originProtocolNr ? (
               <div className="text-xs">
                 Ursprung:{" "}
-<button
-  className="text-blue-700 hover:underline"
-  onClick={() => { window.location.assign(`/protokoll#/protokoll/edit/${it.originProtocolNr}`); }}
-  title={`Protokoll #${it.originProtocolNr} öffnen`}
->
-  Prot. #{it.originProtocolNr}
-</button>
+                <button
+                  className="text-blue-700 hover:underline"
+                  onClick={() => { window.location.assign(`/protokoll#/protokoll/edit/${it.originProtocolNr}`); }}
+                  title={`Meldung #${it.originProtocolNr} öffnen`}
+                >
+                  Meldung: {it.originProtocolNr}
+                </button>
               </div>
             ) : null}
-{it.relatedIncidentId ? (
-  <div className="text-xs">
-    Bezug: <span className="font-medium">{viewIncidentLabel || `#${it.relatedIncidentId}`}</span>
-  </div>
-) : null}
+            {it.relatedIncidentId ? (
+              <div className="text-xs">
+                Einsatz: <span className="font-medium">{viewIncidentLabel || `#${it.relatedIncidentId}`}</span>
+              </div>
+            ) : null}
 
             <div>
               <div className="text-xs text-gray-600">Notizen</div>
               <div className="whitespace-pre-wrap">{it.desc || "—"}</div>
             </div>
+
+            {/* Frist/Kontrollzeitpunkt Anzeige */}
+            <div className="mt-2 text-xs text-gray-600">Frist/Kontrollzeitpunkt</div>
+            <div className="font-medium">
+              {formatDueAt(it.dueAt)}
+            </div>
           </div>
         ) : (
-          // Bearbeiten
+          // Bearbeiten-Modus
           <div className="grid grid-cols-1 gap-3">
             <label className="block">
               <span className="text-xs text-gray-600">Titel</span>
@@ -137,6 +147,16 @@ const viewIncidentLabel = useMemo(() => {
               <span className="text-xs text-gray-600">Notizen</span>
               <textarea className="w-full border rounded px-2 py-2 min-h-[160px]" value={desc} onChange={e=>setDesc(e.target.value)} />
             </label>
+
+            {/* Frist/Kontrollzeitpunkt Bearbeiten */}
+            <div className="text-xs text-gray-600">Frist/Kontrollzeitpunkt</div>
+            <div className="font-medium">
+              <input
+                type="datetime-local"
+                value={dueAt ? dueAt.toISOString().slice(0, 16) : ""}
+                onChange={(e) => setDueAt(new Date(e.target.value))}
+              />
+            </div>
           </div>
         )}
       </div>

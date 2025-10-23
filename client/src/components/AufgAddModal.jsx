@@ -1,41 +1,20 @@
 import React, { useEffect, useState } from "react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";  // Importiere Styles für den DatePicker
 
 export default function AufgAddModal({ open, onClose, onAdded }) {
+  const [dueAt, setDueAt] = useState(null);  // Initialisierung von dueAt
   const [title, setTitle] = useState("");
   const [type, setType] = useState("");
   const [responsible, setResponsible] = useState("");
   const [desc, setDesc] = useState("");
-  const [roleLabels, setRoleLabels] = useState([]);
-
-  const [incidentId, setIncidentId] = useState("");
-  const [openIncidents, setOpenIncidents] = useState([]);
 
   useEffect(() => {
     if (!open) return;
-    setTitle(""); setType(""); setResponsible(""); setDesc("");
-    setIncidentId("");
-    (async () => {
-      try {
-        const r = await fetch("/api/board", { credentials: "include", cache: "no-store" }).then(res => res.json());
-        const neu = (r?.columns?.["neu"]?.items || []);
-        const wip = (r?.columns?.["in-bearbeitung"]?.items || []);
-        const list = [...neu, ...wip].map(c => ({
-          id: c.id,
-          label: `${c.content || "Ohne Titel"}${c.ort ? " • " + c.ort : ""}`,
-        }));
-        setOpenIncidents(list);
-      } catch { setOpenIncidents([]); }
-    })();
-	    // Rollen-Vorschläge (einmalig beim Öffnen)
-    (async () => {
-      try {
-        const res = await fetch("/api/user/roles", { credentials: "include" });
-        const data = await res.json();
-        const arr = Array.isArray(data?.roles) ? data.roles : (Array.isArray(data) ? data : []);
-        const labels = arr.map(r => (typeof r === "string" ? r : (r.label ?? r.id))).filter(Boolean);
-        setRoleLabels([...new Set(labels)]);
-      } catch {}
-    })();
+
+    // Berechne die Zeit 10 Minuten in der Zukunft
+    const tenMinutesLater = new Date(new Date().getTime() + 10 * 60000);
+    setDueAt(tenMinutesLater);  // Setze den initialen Wert von dueAt
   }, [open]);
 
   const submit = (e) => {
@@ -45,7 +24,7 @@ export default function AufgAddModal({ open, onClose, onAdded }) {
       type: type?.trim(),
       responsible: responsible?.trim(),
       desc: desc?.trim(),
-      relatedIncidentId: incidentId || null,
+      dueAt: dueAt ? dueAt.toISOString() : null,  // Speichere dueAt im ISO-Format
     });
     onClose?.();
   };
@@ -62,36 +41,39 @@ export default function AufgAddModal({ open, onClose, onAdded }) {
 
         <form onSubmit={submit} className="grid grid-cols-1 gap-3">
           <label className="block">
+            <span className="text-xs text-gray-600">Frist/Kontrollzeitpunkt</span>
+            <DatePicker
+              selected={dueAt}
+              onChange={(date) => setDueAt(date)}  // Ändere das Datum
+              showTimeSelect
+              dateFormat="Pp"  // Das Format für Datum und Uhrzeit
+              timeIntervals={5}  // Optionen für Zeitintervall (alle 5 Minuten)
+              timeFormat="HH:mm"  // 24-Stunden Format
+              timeCaption="Zeit"
+              locale="de"  // Lokalisierung auf Deutsch
+              hour12={false}  // Stellt sicher, dass keine AM/PM-Anzeige erfolgt
+            />
+          </label>
+
+          <label className="block">
             <span className="text-xs text-gray-600">Titel</span>
-            <input className="w-full border rounded px-2 py-1 h-9" value={title} onChange={e=>setTitle(e.target.value)} required />
+            <input className="w-full border rounded px-2 py-1 h-9" value={title} onChange={e => setTitle(e.target.value)} required />
           </label>
 
           <div className="grid grid-cols-2 gap-3">
             <label className="block">
               <span className="text-xs text-gray-600">Typ</span>
-              <input className="w-full border rounded px-2 py-1 h-9" value={type} onChange={e=>setType(e.target.value)} />
+              <input className="w-full border rounded px-2 py-1 h-9" value={type} onChange={e => setType(e.target.value)} />
             </label>
             <label className="block">
               <span className="text-xs text-gray-600">Verantwortlich (Rolle)</span>
-              <input list="responsible-suggestions" className="w-full border rounded px-2 py-1 h-9"
-                     value={responsible} onChange={e=>setResponsible(e.target.value)} placeholder="z. B. S4" />
-              <datalist id="responsible-suggestions">
-               {roleLabels.map(lbl => <option key={lbl} value={lbl} />)}
-              </datalist>
+              <input className="w-full border rounded px-2 py-1 h-9" value={responsible} onChange={e => setResponsible(e.target.value)} />
             </label>
           </div>
 
           <label className="block">
-            <span className="text-xs text-gray-600">Einsatzbezug</span>
-            <select className="w-full border rounded px-2 py-1 h-9" value={incidentId} onChange={e=>setIncidentId(e.target.value)}>
-              <option value="">— keiner —</option>
-              {openIncidents.map(i => <option key={i.id} value={i.id}>{i.label}</option>)}
-            </select>
-          </label>
-
-          <label className="block">
             <span className="text-xs text-gray-600">Notizen</span>
-            <textarea className="w-full border rounded px-2 py-2 min-h-[120px]" value={desc} onChange={e=>setDesc(e.target.value)} />
+            <textarea className="w-full border rounded px-2 py-2 min-h-[120px]" value={desc} onChange={e => setDesc(e.target.value)} />
           </label>
 
           <div className="flex items-center justify-end gap-2 pt-2">

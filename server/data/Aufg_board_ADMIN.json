@@ -1,0 +1,23 @@
+{
+  "items": [
+    {
+      "id": "1761120072472-elw9hg",
+      "clientId": "11d1ce1a-d585-4032-abd0-cfb757c6e6d1",
+      "title": "q",
+      "type": "q",
+      "responsible": "",
+      "desc": "qwqw",
+      "status": "Neu",
+      "createdAt": 1761120072472,
+      "updatedAt": 1761120248097,
+      "kind": "task",
+      "originProtocolNr": null,
+      "originType": null,
+      "relatedIncidentId": "c4sgibga",
+      "protoNr": null,
+      "meta": {
+        "relatedIncidentId": "c4sgibga"
+      }
+    }
+  ]
+}
