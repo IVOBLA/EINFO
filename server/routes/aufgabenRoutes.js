@@ -18,6 +18,21 @@ const AUFG_HEADERS = [
 
 // Helper-Funktionen für Log und Board speichern, siehe vorherige vollständige Implementierung
 
+function buildAufgabenLog({ role, action, item = {}, fromStatus = "", toStatus = "", beforeId = "" }) {
+  const normalized = normalizeItem(item);
+  return {
+    role: String(role ?? ""),
+    action: String(action ?? ""),
+    id: normalized.id ?? "",
+    title: normalized.title ?? "",
+    type: normalized.type ?? "",
+    responsible: normalized.responsible ?? "",
+    fromStatus: String(fromStatus || item.fromStatus || ""),
+    toStatus: String(toStatus || normalized.status || ""),
+    beforeId: beforeId ? String(beforeId) : ""
+  };
+}
+
 // --- normierte Aufgabe ---
 function normalizeItem(x) {
   const responsible = x.responsible ?? x.verantwortlich ?? x.address ?? "";
