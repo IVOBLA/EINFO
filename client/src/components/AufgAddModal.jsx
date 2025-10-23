@@ -6,11 +6,17 @@ import "react-datepicker/dist/react-datepicker.css"; // Importiere Styles für d
 
 registerLocale("de", de);
 
-const DEFAULT_DUE_OFFSET_MINUTES = 30;
 const TIME_STEP_MINUTES = 5;
 
-function createDefaultDueAt() {
-  const base = new Date(Date.now() + DEFAULT_DUE_OFFSET_MINUTES * 60 * 1000);
+function normalizeOffset(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return 30;
+  return Math.max(0, num);
+}
+
+function createDefaultDueAt(offsetMinutes) {
+  const offset = normalizeOffset(offsetMinutes);
+  const base = new Date(Date.now() + offset * 60 * 1000);
   base.setSeconds(0, 0);
   const remainder = base.getMinutes() % TIME_STEP_MINUTES;
   if (remainder !== 0) {
@@ -19,8 +25,9 @@ function createDefaultDueAt() {
   return base;
 }
 
-export default function AufgAddModal({ open, onClose, onAdded, incidentOptions = [] }) {
-  const [dueAt, setDueAt] = useState(() => createDefaultDueAt());  // Initialisierung von dueAt
+export default function AufgAddModal({ open, onClose, onAdded, incidentOptions = [], defaultDueOffsetMinutes = 30 }) {
+  const safeOffset = useMemo(() => normalizeOffset(defaultDueOffsetMinutes), [defaultDueOffsetMinutes]);
+  const [dueAt, setDueAt] = useState(() => createDefaultDueAt(safeOffset));  // Initialisierung von dueAt
   const [title, setTitle] = useState("");
   const [type, setType] = useState("");
   const [responsible, setResponsible] = useState("");
@@ -30,13 +37,13 @@ export default function AufgAddModal({ open, onClose, onAdded, incidentOptions =
   useEffect(() => {
     if (!open) return;
 
-    setDueAt(createDefaultDueAt());
+    setDueAt(createDefaultDueAt(safeOffset));
     setTitle("");
     setType("");
     setResponsible("");
     setDesc("");
     setRelatedIncidentId("");
-  }, [open]);
+  }, [open, safeOffset]);
 
   const selectedIncident = useMemo(() => {
     if (!relatedIncidentId) return null;
@@ -45,7 +52,7 @@ export default function AufgAddModal({ open, onClose, onAdded, incidentOptions =
 
   const submit = (e) => {
     e.preventDefault();
-    const ensuredDueAt = dueAt ?? createDefaultDueAt();
+    const ensuredDueAt = dueAt ?? createDefaultDueAt(safeOffset);
     const incidentId = relatedIncidentId ? String(relatedIncidentId).trim() : "";
     onAdded?.({
       title: title?.trim(),
