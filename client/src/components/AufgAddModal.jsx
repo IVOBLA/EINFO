@@ -18,10 +18,6 @@ function createDefaultDueAt(offsetMinutes) {
   const offset = normalizeOffset(offsetMinutes);
   const base = new Date(Date.now() + offset * 60 * 1000);
   base.setSeconds(0, 0);
-  const remainder = base.getMinutes() % TIME_STEP_MINUTES;
-  if (remainder !== 0) {
-    base.setMinutes(base.getMinutes() + (TIME_STEP_MINUTES - remainder));
-  }
   return base;
 }
 
@@ -88,7 +84,7 @@ export default function AufgAddModal({ open, onClose, onAdded, incidentOptions =
               onChange={(date) => setDueAt(date)} // Ändere das Datum
               showTimeSelect
               dateFormat="dd.MM.yyyy HH:mm"
-              timeIntervals={5} // Optionen für Zeitintervall (alle 5 Minuten)
+               timeIntervals={TIME_STEP_MINUTES} // Optionen für Zeitintervall (alle 5 Minuten)
               timeFormat="HH:mm"
               timeCaption="Zeit"
               locale="de"
