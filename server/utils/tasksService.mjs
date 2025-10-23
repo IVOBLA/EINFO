@@ -1,10 +1,11 @@
 // server/utils/tasksService.mjs
 import fsp from "fs/promises";
 import path from "node:path";
- import { fileURLToPath } from "node:url";
- const __filename = fileURLToPath(import.meta.url);
- const __dirname  = path.dirname(__filename);
- const DATA_DIR   = path.resolve(__dirname, "..", "data"); // => <repo>/server/data
+import { fileURLToPath } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
+const DATA_DIR   = path.resolve(__dirname, "..", "data"); // => <repo>/server/data
 const AUFG_PREFIX = "Aufg";
 
 function boardPath(roleId){
@@ -45,11 +46,22 @@ export async function saveBoard(roleId, board){
   await fsp.writeFile(tmp,json,"utf8");
   try{ await fsp.rename(tmp,file); }catch{ await fsp.writeFile(file,json,"utf8"); try{ await fsp.unlink(tmp);}catch{} }
 }
+
+function normalizeDueAt(v){
+  if (v == null || v === "") return null;
+  const d = v instanceof Date ? v : new Date(v);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString();
+}
+
 export async function ensureTaskForRole({roleId, protoNr, item, actor}){
   // idempotent: existiert bereits Karte mit derselben Protokoll-Nr + Rolle?
   const board = await loadBoard(roleId);
   const exists = (board.items||[]).some(it => String(it?.meta?.protoNr||"") === String(protoNr||"") && String(it.responsible||"") === String(roleId||""));
   if (exists) return null;
+
+  const defaultDueAt = new Date(Date.now() + 10 * 60 * 1000);
+  const dueAt = normalizeDueAt(item?.dueAt) ?? defaultDueAt.toISOString();
 
   const card = {
     id: `p-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
@@ -61,6 +73,7 @@ export async function ensureTaskForRole({roleId, protoNr, item, actor}){
     kind: "task",
     createdAt: Date.now(),
     updatedAt: Date.now(),
+    dueAt,
     meta: { ...(item.meta||{}), protoNr },
     createdBy: actor || null
   };
