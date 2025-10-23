@@ -1,8 +1,8 @@
 // server/utils/tasksService.mjs
-import "dotenv/config";
 import fsp from "fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { getDefaultDueOffsetMinutes } from "./defaultDueOffset.mjs";
 
 
 
@@ -10,12 +10,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 const DATA_DIR   = path.resolve(__dirname, "..", "data"); // => <repo>/server/data
 const AUFG_PREFIX = "Aufg";
-const DEFAULT_DUE_OFFSET_MINUTES = (() => {
-  const raw = process.env.AUFG_DEFAULT_DUE_MINUTES ?? process.env.TASK_DEFAULT_DUE_OFFSET_MINUTES ?? "30";
-  const num = Number(raw);
-  if (!Number.isFinite(num)) return 30;
-  return Math.max(0, num);
-})();
+const DEFAULT_DUE_OFFSET_MINUTES = getDefaultDueOffsetMinutes();
 
 function boardPath(roleId){
   const r = String(roleId||"").toUpperCase().replace(/[^A-Z0-9_-]/g,"");
