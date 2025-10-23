@@ -2,16 +2,16 @@ import React, { useEffect, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-export default function AufgSortableCard({␊
-  item,␊
-  onClick,␊
-  onShowInfo,␊
-  onAdvance,␊
-  disableAdvance,␊
-  isNew,␊
-}) {␊
+export default function AufgSortableCard({ 
+  item, 
+  onClick, 
+  onShowInfo, 
+  onAdvance, 
+  disableAdvance, 
+  isNew, 
+}) { 
   const it = item || {}; // Falls item nicht vorhanden ist, wird es als leeres Objekt gesetzt.
-  if (!it) return null;␊
+  if (!it) return null; 
 
   const {
     attributes,
@@ -29,7 +29,7 @@ const handleShowInfo = (item) => {
 };
 
   const [overdueClass, setOverdueClass] = useState(""); // Zustand für das Verfärben
-␊
+ 
   // Berechnung für Überfälligkeit
   const isOverdue = it.dueAt && new Date(it.dueAt) < new Date();
 
@@ -68,9 +68,9 @@ const handleShowInfo = (item) => {
     <div
       ref={setNodeRef}
       style={style}
-      className={`rounded-lg border bg-white p-3 shadow-sm hover:shadow cursor-pointer ${overdueClass}`}␊
-      {...attributes}␊
-      {...listeners}␊
+      className={`rounded-lg border bg-white p-3 shadow-sm hover:shadow cursor-pointer ${overdueClass}`}
+      {...attributes}
+      {...listeners}
       onClick={() => (onClick ? onClick(it) : onShowInfo?.(it))}
       role="button"
       tabIndex={0}

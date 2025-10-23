@@ -118,9 +118,13 @@ export default function AufgApp() {
         status: [STATUS.NEW, STATUS.IN_PROGRESS, STATUS.DONE].includes(x.status) ? x.status : STATUS.NEW,
         responsible: x.responsible ?? x.verantwortlich ?? "",
         desc: x.desc ?? x.beschreibung ?? "",
+        dueAt: x.dueAt ?? x.due_at ?? x.deadline ?? x.frist ?? null,
         createdAt: x.createdAt ?? null,
         updatedAt: x.updatedAt ?? null,
-		meta: x.meta ?? {},
+        meta: x.meta ?? {},
+        originProtocolNr: x.originProtocolNr ?? null,
+        relatedIncidentId: x.relatedIncidentId ?? null,
+        incidentTitle: x.incidentTitle ?? null,
       }));
       setItems(mapped);
 	  
@@ -150,17 +154,30 @@ export default function AufgApp() {
    return () => clearInterval(t);
  }, [roleId, loading]);
 
-async function updateItemOnServer(patch) {
-  const res = await fetch(`/api/aufgaben/${encodeURIComponent(patch.id)}/edit${roleQuery(roleId)}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...roleHeaders(roleId) },
-    credentials: "include",
-    body: JSON.stringify(patch),
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const j = await res.json();
-  return j.item || patch;
-}
+  const updateItemOnServer = useCallback(async (patch) => {
+    const res = await fetch(`/api/aufgaben/${encodeURIComponent(patch.id)}/edit${roleQuery(roleId)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...roleHeaders(roleId) },
+      credentials: "include",
+      body: JSON.stringify(patch),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const j = await res.json();
+    return j.item || patch;
+  }, [roleId]);
+
+  const saveItemDetails = useCallback(async (patch) => {
+    try {
+      const updated = await updateItemOnServer(patch);
+      setItems((prev) =>
+        prev.map((x) => (x.id === updated.id ? { ...x, ...updated } : x))
+      );
+      setActiveItem((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev));
+    } catch (e) {
+      setError(String(e?.message || e));
+      throw e;
+    }
+  }, [updateItemOnServer]);
 
   // ---- Persist-Helper: Reorder (DnD) & Status (Pfeil)
   async function persistReorder({ id, toStatus, beforeId }) {
@@ -186,20 +203,27 @@ const r = await fetch(`/api/aufgaben/${encodeURIComponent(id)}/status${roleQuery
 
   // ---- EINZIGER Create-POST (Modal postet nicht selbst)
   async function createItemOnServer(payload) {
-const clientId = uuid();
-const body = { title: payload?.title ?? "Aufgabe", type: payload?.type ?? "", responsible: payload?.responsible ?? "",
-               desc: payload?.desc ?? "", status: STATUS.NEW, role: roleId, clientId };
-const res = await fetch(`/api/aufgaben${roleQuery(roleId)}`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json", ...roleHeaders(roleId) },
-  body: JSON.stringify(body),
-  
-});
+    const clientId = uuid();
+    const body = {
+      title: payload?.title ?? "Aufgabe",
+      type: payload?.type ?? "",
+      responsible: payload?.responsible ?? "",
+      desc: payload?.desc ?? "",
+      dueAt: payload?.dueAt ?? null,
+      status: STATUS.NEW,
+      role: roleId,
+      clientId,
+    };
+    const res = await fetch(`/api/aufgaben${roleQuery(roleId)}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...roleHeaders(roleId) },
+      body: JSON.stringify(body),
+    });
 
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
-	const saved = json?.item || body;
-	if (saved?.id) myCreatedIdsRef.current.add(String(saved.id));
+    const saved = json?.item || body;
+    if (saved?.id) myCreatedIdsRef.current.add(String(saved.id));
     return json?.item || body;
   }
 
@@ -218,6 +242,14 @@ const res = await fetch(`/api/aufgaben${roleQuery(roleId)}`, {
     [STATUS.DONE]:        filtered.filter(x => x.status === STATUS.DONE),
   }), [filtered]);
 
+  useEffect(() => {
+    if (!activeItem) return;
+    const updated = items.find((x) => x.id === activeItem.id);
+    if (updated && updated !== activeItem) {
+      setActiveItem(updated);
+    }
+  }, [items, activeItem]);
+
   const listIds = useMemo(() => ({
     [STATUS.NEW]:         lists[STATUS.NEW].map(x => x.id),
     [STATUS.IN_PROGRESS]: lists[STATUS.IN_PROGRESS].map(x => x.id),
@@ -232,15 +264,17 @@ const res = await fetch(`/api/aufgaben${roleQuery(roleId)}`, {
     return null;
   }, [listIds]);
 
-const handleAddOpen = () => {
-  setAddOpen(true);  // Öffnet das "Neu"-Modal
-};
-const handleModalClose = () => {
-  setAddOpen(false);  // Schließt das „Neu“-Modal
-};
-const handleShowInfo = (item) => {
-  setActiveItem(item);  // Setzt das aktive Element (Kachel)
-};
+  const handleAddOpen = () => {
+    setAddOpen(true); // Öffnet das "Neu"-Modal
+  };
+  const handleModalClose = () => {
+    setAddOpen(false); // Schließt das „Neu“-Modal
+  };
+  const handleShowInfo = useCallback((item) => {
+    if (!item) return;
+    const found = items.find((x) => x.id === item.id);
+    setActiveItem(found || item);
+  }, [items]);
   // ---- Pfeil „Weiter→“ → jetzt dedizierter Status-Endpunkt
   const advance = useCallback((item) => {
      if (!allowEdit) return;     // read-only blocken
@@ -363,7 +397,13 @@ const handleShowInfo = (item) => {
               itemIds={lists[STATUS.NEW].map(x=>x.id)}
             >
               {lists[STATUS.NEW].map((it) => (
-                <AufgSortableCard key={it.id} item={it} onAdvance={advance} onShowInfo={setActiveItem} isNew={freshIds.has(String(it.id))} />
+                <AufgSortableCard
+                  key={it.id}
+                  item={it}
+                  onAdvance={advance}
+                  onShowInfo={handleShowInfo}
+                  isNew={freshIds.has(String(it.id))}
+                />
               ))}
             </AufgDroppableColumn>
           </div>
@@ -377,7 +417,13 @@ const handleShowInfo = (item) => {
               itemIds={lists[STATUS.IN_PROGRESS].map(x=>x.id)}
             >
               {lists[STATUS.IN_PROGRESS].map((it) => (
-                <AufgSortableCard key={it.id} item={it} onAdvance={advance} onShowInfo={setActiveItem} isNew={freshIds.has(String(it.id))} />
+                <AufgSortableCard
+                  key={it.id}
+                  item={it}
+                  onAdvance={advance}
+                  onShowInfo={handleShowInfo}
+                  isNew={freshIds.has(String(it.id))}
+                />
               ))}
             </AufgDroppableColumn>
           </div>
@@ -391,7 +437,13 @@ const handleShowInfo = (item) => {
               itemIds={lists[STATUS.DONE].map(x=>x.id)}
             >
               {lists[STATUS.DONE].map((it) => (
-               <AufgSortableCard key={it.id} item={it} onAdvance={advance} onShowInfo={setActiveItem} isNew={freshIds.has(String(it.id))} />
+                <AufgSortableCard
+                  key={it.id}
+                  item={it}
+                  onAdvance={advance}
+                  onShowInfo={handleShowInfo}
+                  isNew={freshIds.has(String(it.id))}
+                />
               ))}
             </AufgDroppableColumn>
           </div>
@@ -409,6 +461,15 @@ const handleShowInfo = (item) => {
           ) : null}
         </DragOverlay>
       </DndContext>
+      {activeItem ? (
+        <AufgInfoModal
+          open={!!activeItem}
+          item={activeItem}
+          onClose={() => setActiveItem(null)}
+          onSave={saveItemDetails}
+          canEdit={allowEdit}
+        />
+      ) : null}
     </div>
   );
 }
