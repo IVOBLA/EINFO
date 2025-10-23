@@ -112,6 +112,11 @@ function normalizeItem(x) {
 }
 
 // ========== API-Endpunkte ==========
+router.get("/config", (req, res) => {
+  const role = targetRoleOrSend(req, res); if (!role) return;
+  res.json({ defaultDueOffsetMinutes: getDefaultDueOffsetMinutes() });
+});
+
 const STATUSES = ["Neu", "In Bearbeitung", "Erledigt"];
 
 function logPath(roleId) {
