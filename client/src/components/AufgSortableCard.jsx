@@ -22,11 +22,10 @@ export default function AufgSortableCard({
     isDragging,
   } = useSortable({ id: it.id });
 
-  const [overdueClass, setOverdueClass] = useState("");  // Zustand für das Verfärben
 
-const handleShowInfo = (item) => {
-  setActiveItem(item);  // Setzt das aktive Element (Kachel)
-};
+
+
+
 
   const [overdueClass, setOverdueClass] = useState(""); // Zustand für das Verfärben
  
