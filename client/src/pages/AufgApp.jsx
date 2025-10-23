@@ -550,7 +550,7 @@ const r = await fetch(`/api/aufgaben/${encodeURIComponent(id)}/status${roleQuery
               ))}
             </AufgDroppableColumn>
           </div>
-
+</div>
         <DragOverlay>
           {draggingItem ? (
             <div className="rounded-lg bg-white shadow-xl border p-3 w-[280px]">
