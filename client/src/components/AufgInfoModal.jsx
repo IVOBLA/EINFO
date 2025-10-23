@@ -204,7 +204,7 @@ desc: form.desc?.trim() || "",
                 <div>{it.responsible || "—"}</div>
               </div>
             </div>
-           {it.originProtocolNr ? (
+            {it.originProtocolNr ? (
               <div className="text-xs">
                 Ursprung:{" "}
                 <button
@@ -241,6 +241,7 @@ desc: form.desc?.trim() || "",
               <div className="font-medium">{formatDueAt(it.dueAt)}</div>
             </div>
           </div>
+		  ) : (
           <div className="grid grid-cols-1 gap-3">
             <label className="block">
               <span className="text-xs text-gray-600">Titel</span>
