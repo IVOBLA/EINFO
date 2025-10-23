@@ -93,6 +93,16 @@ const [dueState, setDueState] = useState("none"); // none | soon | overdue
     cursor: "grab",
   };
 
+    const formatTimestamp = (value) => {
+    if (!value) return "–";
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return "–";
+    return d.toLocaleString("de-AT", {
+      timeZone: "Europe/Vienna",
+      hour12: false,
+    });
+  };
+
   return (
     <div
       ref={setNodeRef}
@@ -121,12 +131,8 @@ const [dueState, setDueState] = useState("none"); // none | soon | overdue
       <div className="relative z-10">
         {/* Kopfzeile mit Zeitstempeln */}
         <div className="flex items-center justify-between text-[10px] text-gray-500 leading-4 mb-1">
-          <div>
-            erstellt: {it.createdAt ? new Date(it.createdAt).toLocaleString() : "–"}
-          </div>
-          <div>
-            aktual.: {it.updatedAt ? new Date(it.updatedAt).toLocaleString() : "–"}
-          </div>
+          <div>erstellt: {formatTimestamp(it.createdAt)}</div>
+          <div>aktual.: {formatTimestamp(it.updatedAt)}</div>
         </div>
 
         <div className="flex items-start justify-between gap-2">
@@ -147,7 +153,6 @@ const [dueState, setDueState] = useState("none"); // none | soon | overdue
         {/* Typ + Verantwortlich */}
         <div className="mt-1 text-xs text-gray-600">
           {it.type ? <span className="mr-2">Typ: {it.type}</span> : null}
-          {it.responsible ? <span>Verantwortlich: {it.responsible}</span> : null}
         </div>
 
         {/* Notiz */}
