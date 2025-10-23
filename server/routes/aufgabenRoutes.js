@@ -41,6 +41,15 @@ function buildAufgabenLog({ role = "", action = "", item = {}, fromStatus = "", 
 
 // Helper-Funktionen für Log und Board speichern, siehe vorherige vollständige Implementierung
 
+function normalizeDueAt(v) {
+  if (v == null || v === "") return null;
+  const d = v instanceof Date ? v : new Date(v);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toISOString();
+}
+
+
+
 // --- normierte Aufgabe ---
 function normalizeItem(x) {
   const responsible = x.responsible ?? x.verantwortlich ?? x.address ?? "";
@@ -49,6 +58,8 @@ function normalizeItem(x) {
   const status = STATUSES.includes(x.status)
     ? x.status
     : st.startsWith("in") ? "In Bearbeitung" : st.startsWith("erled") ? "Erledigt" : "Neu";
+	const dueAt = normalizeDueAt(x.dueAt ?? x.due_at ?? x.deadline ?? x.frist ?? null);
+
 
   return {
     id: x.id ?? x._id ?? x.key ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -58,10 +69,14 @@ function normalizeItem(x) {
     responsible,
     desc,
     status,
+	dueAt,
     createdAt: x.createdAt ?? x.ts ?? x.timestamp ?? Date.now(),
     updatedAt: x.updatedAt ?? Date.now(),
     kind: "task",
     meta: (x.meta ?? {}),
+	originProtocolNr: x.originProtocolNr ?? null,
+    relatedIncidentId: x.relatedIncidentId ?? x.meta?.relatedIncidentId ?? null,
+    incidentTitle: x.incidentTitle ?? null,
   };
 }
 
@@ -244,7 +259,42 @@ router.post("/", express.json(), async (req,res)=>{
     await ensureAufgLogHeader(LOG_FILE);
     await appendCsvRow(LOG_FILE, AUFG_HEADERS, buildAufgabenLog({ role, action: "create", item, toStatus: item.status }), req);
     res.json({ ok: true, item });
-  } catch (e) { 
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post("/:id/edit", express.json(), async (req, res) => {
+  const role = targetRoleOrSend(req, res); if (!role) return;
+  if (!(await requireAufgabenEdit(req, res))) return;
+  const { id } = req.params;
+  if (!id) return res.status(400).json({ error: "id fehlt" });
+  try {
+    const board = await loadAufgBoard(role);
+    const items = Array.isArray(board.items) ? board.items : [];
+    const idx = items.findIndex((x) => (x?.id ?? x?._id ?? x?.key) === id);
+    if (idx < 0) return res.status(404).json({ error: "nicht gefunden" });
+
+    const prev = normalizeItem(items[idx]);
+    const body = req.body || {};
+    const next = {
+      ...prev,
+      title: typeof body.title === "string" ? body.title.trim() : prev.title,
+      type: typeof body.type === "string" ? body.type.trim() : prev.type,
+      responsible: typeof body.responsible === "string" ? body.responsible.trim() : prev.responsible,
+      desc: typeof body.desc === "string" ? body.desc : prev.desc,
+      dueAt: Object.prototype.hasOwnProperty.call(body, "dueAt") ? normalizeDueAt(body.dueAt) : prev.dueAt,
+      updatedAt: Date.now(),
+    };
+    board.items[idx] = next;
+    await saveAufgBoard(role, board);
+
+    const LOG_FILE = logPath(role);
+    await ensureAufgLogHeader(LOG_FILE);
+    await appendCsvRow(LOG_FILE, AUFG_HEADERS, buildAufgabenLog({ role, action: "edit", item: next }), req);
+
+    res.json({ ok: true, item: next });
+  } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
