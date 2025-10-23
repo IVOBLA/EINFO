@@ -4,6 +4,24 @@
       "name": "Neu",
       "items": [
         {
+          "id": "ceyj5xte",
+          "content": "T VU 2, VU Sicherungsarbeiten",
+          "createdAt": "2025-10-23T14:47:50.602Z",
+          "statusSince": "2025-10-23T14:47:50.602Z",
+          "assignedVehicles": [],
+          "everVehicles": [],
+          "everPersonnel": 0,
+          "ort": "Tauern\nTauern",
+          "typ": "T VU 2, VU Sicherungsarbeiten",
+          "externalId": "23952921",
+          "alerted": "FF Ossiach",
+          "latitude": 46.6720027128412,
+          "longitude": 13.9973360552265,
+          "location": "",
+          "timestamp": "2025-10-23T12:51:53.000Z",
+          "description": "VU mit Sachschaden und Betriebsmittelaustritt"
+        },
+        {
           "id": "eviwspp0",
           "content": "Wassertransport/Wasserversorgung",
           "createdAt": "2025-10-23T12:10:25.395Z",

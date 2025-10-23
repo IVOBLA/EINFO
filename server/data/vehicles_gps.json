@@ -4,41 +4,41 @@
     "subline": "0701",
     "realname": "KRFS FF Feldkirchen",
     "color": "#0066ff",
-    "id": 73894403,
+    "id": 73904490,
     "code": 99,
-    "lat": 46.7219209,
-    "lng": 14.0966451,
+    "lat": 46.7219334,
+    "lng": 14.0966422,
     "accuracy": 22,
     "userId": 950,
     "alertId": null,
-    "created": "2025-10-23T12:40:28.000Z"
+    "created": "2025-10-23T14:58:27.000Z"
   },
   {
     "name": "SLFA",
     "subline": "0701",
     "realname": "SLFA FF Feldkirchen",
     "color": "#0066ff",
-    "id": 73894390,
+    "id": 73904461,
     "code": 99,
-    "lat": 46.7219333,
-    "lng": 14.0967666,
+    "lat": 46.7219277,
+    "lng": 14.0967254,
     "accuracy": 11,
     "userId": 952,
     "alertId": null,
-    "created": "2025-10-23T12:40:19.000Z"
+    "created": "2025-10-23T14:58:04.000Z"
   },
   {
     "name": "DLK 32",
     "subline": "0701",
     "realname": "DLK 32 FF Feldkirchen",
     "color": "#0066ff",
-    "id": 73894389,
+    "id": 73904452,
     "code": 99,
-    "lat": 46.7217933,
-    "lng": 14.097165,
-    "accuracy": 3,
+    "lat": 46.721985,
+    "lng": 14.09666,
+    "accuracy": 4,
     "userId": 1051,
     "alertId": null,
-    "created": "2025-10-23T12:40:17.000Z"
+    "created": "2025-10-23T14:57:55.000Z"
   }
 ]

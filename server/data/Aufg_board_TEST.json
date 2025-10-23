@@ -1,98 +1,81 @@
 {
   "items": [
     {
-      "id": "1761061609552-fxlxkq",
-      "clientId": "6541cd93-9ea4-4483-8c92-8be9f8b96555",
-      "title": "sadsdfsd",
-      "type": "",
-      "responsible": "S3",
-      "desc": "",
+      "id": "1761229804538-162xjl",
+      "clientId": "7112d911-d0aa-4bc6-b4e4-644d75185917",
+      "title": "q",
+      "type": "q",
+      "responsible": "q",
+      "desc": "q",
       "status": "Neu",
-      "createdAt": 1761061609552,
-      "updatedAt": 1761062759835,
+      "dueAt": null,
+      "createdAt": 1761229804538,
+      "updatedAt": 1761229804538,
       "kind": "task",
+      "meta": {},
       "originProtocolNr": null,
-      "originType": null,
-      "relatedIncidentId": "c4sgibga",
-      "protoNr": null,
-      "meta": {
-        "relatedIncidentId": "c4sgibga"
-      }
+      "relatedIncidentId": "tg28lvkh",
+      "incidentTitle": "B2, Brand Kamin/Rauchfang — Haidenbach 28\nHaidenbach - Gnesau"
     },
     {
-      "id": "p-1761059622771-igex",
-      "title": "Von: wwwwe Das ist die",
+      "id": "p-1761231684893-y0dd",
+      "clientId": null,
+      "title": "An: 111",
       "type": "Auftrag",
       "responsible": "TEST",
-      "desc": "",
-      "status": "Neu",
+      "desc": "111",
+      "status": "In Bearbeitung",
+      "dueAt": "2025-10-23T15:31:24.893Z",
+      "createdAt": 1761231684893,
+      "updatedAt": 1761231754739,
       "kind": "task",
-      "createdAt": 1761059622771,
-      "updatedAt": 1761059622771,
       "meta": {
         "source": "protokoll",
         "protoNr": 5
       },
-      "createdBy": "::1"
+      "originProtocolNr": 5,
+      "relatedIncidentId": "ceyj5xte",
+      "incidentTitle": "T VU 2, VU Sicherungsarbeiten — Tauern\nTauern"
     },
     {
-      "id": "p-1761054791719-1wai",
+      "id": "p-1761230043075-31gg",
       "clientId": null,
       "title": "An:",
       "type": "Auftrag",
       "responsible": "TEST",
-      "desc": "asdasdasd",
-      "status": "Neu",
-      "createdAt": 1761054791719,
-      "updatedAt": 1761056650565,
+      "desc": "asdasd",
+      "status": "In Bearbeitung",
+      "dueAt": "2025-10-23T14:44:03.075Z",
+      "createdAt": 1761230043075,
+      "updatedAt": 1761230550032,
       "kind": "task",
-      "originProtocolNr": 3,
-      "originType": "protokoll",
+      "meta": {
+        "source": "protokoll",
+        "protoNr": 4
+      },
+      "originProtocolNr": null,
       "relatedIncidentId": null,
-      "protoNr": 3,
+      "incidentTitle": null
+    },
+    {
+      "id": "p-1761228918059-ttmf",
+      "clientId": null,
+      "title": "An: Adasdasd",
+      "type": "Auftrag",
+      "responsible": "TEST",
+      "desc": "asDASD",
+      "status": "Erledigt",
+      "dueAt": "2025-10-23T14:23:00.000Z",
+      "createdAt": 1761228918059,
+      "updatedAt": 1761229944773,
+      "kind": "task",
       "meta": {
         "source": "protokoll",
         "protoNr": 3
-      }
-    },
-    {
-      "id": "p-1761054648260-mnb5",
-      "clientId": null,
-      "title": "Von: wwwwe",
-      "type": "Auftrag",
-      "responsible": "TEST",
-      "desc": "wetwerterwt",
-      "status": "Erledigt",
-      "createdAt": 1761054648260,
-      "updatedAt": 1761054837079,
-      "kind": "task",
-      "originProtocolNr": 2,
-      "originType": "protokoll",
-      "relatedIncidentId": null,
-      "protoNr": 2,
-      "meta": {
-        "source": "protokoll",
-        "protoNr": 2
-      }
-    },
-    {
-      "id": "1761055702696-241lx6",
-      "clientId": "4442b92b-a378-4e1e-a366-0f9e24b1df00",
-      "title": "qweqweqw",
-      "type": "",
-      "responsible": "",
-      "desc": "",
-      "status": "Erledigt",
-      "createdAt": 1761055702696,
-      "updatedAt": 1761056374771,
-      "kind": "task",
+      },
       "originProtocolNr": null,
-      "originType": null,
-      "relatedIncidentId": "8f1uhaj7",
-      "protoNr": null,
-      "meta": {
-        "relatedIncidentId": "8f1uhaj7"
-      }
+      "relatedIncidentId": "eviwspp0",
+      "incidentTitle": "Wassertransport/Wasserversorgung — Platzerweg\nSirnitz - Albeck"
     }
   ]
 }

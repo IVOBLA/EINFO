@@ -60,7 +60,7 @@ export async function ensureTaskForRole({roleId, protoNr, item, actor}){
   const exists = (board.items||[]).some(it => String(it?.meta?.protoNr||"") === String(protoNr||"") && String(it.responsible||"") === String(roleId||""));
   if (exists) return null;
 
-  const defaultDueAt = new Date(Date.now() + 10 * 60 * 1000);
+  const defaultDueAt = new Date(Date.now() + 30 * 60 * 1000);
   const dueAt = normalizeDueAt(item?.dueAt) ?? defaultDueAt.toISOString();
 
   const card = {
@@ -74,6 +74,7 @@ export async function ensureTaskForRole({roleId, protoNr, item, actor}){
     createdAt: Date.now(),
     updatedAt: Date.now(),
     dueAt,
+    originProtocolNr: protoNr ?? null,
     meta: { ...(item.meta||{}), protoNr },
     createdBy: actor || null
   };

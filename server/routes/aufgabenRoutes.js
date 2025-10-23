@@ -3,6 +3,7 @@ import fsp from "fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { appendCsvRow } from "../auditLog.mjs";
+import { markResponsibleDone } from "./protocolMarkDone.mjs";
 
 const router = express.Router();
 
@@ -54,7 +55,22 @@ function normalizeIncidentId(v) {
   return s ? s : null;
 }
 
-
+async function syncProtocolDoneIfNeeded(item) {
+  if (!item || String(item?.status ?? "") !== "Erledigt") return;
+  const protoNr =
+    item.originProtocolNr ??
+    item.meta?.protoNr ??
+    item.meta?.protoNR ??
+    item.meta?.proto_nr ??
+    null;
+  const responsible = item?.responsible;
+  if (!protoNr || !responsible) return;
+  try {
+    await markResponsibleDone(protoNr, responsible);
+  } catch (err) {
+    console.warn("[aufgaben→protocol]", err?.message || err);
+  }
+}
 
 
 
@@ -347,6 +363,8 @@ router.post("/:id/status", express.json(), async (req,res)=>{
     await ensureAufgLogHeader(LOG_FILE);
     await appendCsvRow(LOG_FILE, AUFG_HEADERS, buildAufgabenLog({ role, action: "status", item: next, fromStatus: prev.status, toStatus: status }), req);
 
+ await syncProtocolDoneIfNeeded(next);
+
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -389,6 +407,8 @@ router.post("/reorder", express.json(), async (req,res)=>{
     const LOG_FILE = logPath(role);
     await ensureAufgLogHeader(LOG_FILE);
     await appendCsvRow(LOG_FILE, AUFG_HEADERS, buildAufgabenLog({ role, action: "reorder", item: moved, fromStatus: prev.status, toStatus, beforeId }), req);
+
+await syncProtocolDoneIfNeeded(moved);
 
     res.json({ ok : true });
 } catch (e) {
