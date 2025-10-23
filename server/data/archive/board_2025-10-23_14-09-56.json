@@ -1,0 +1,16 @@
+{
+  "columns": {
+    "neu": {
+      "name": "Neu",
+      "items": []
+    },
+    "in-bearbeitung": {
+      "name": "In Bearbeitung",
+      "items": []
+    },
+    "erledigt": {
+      "name": "Erledigt",
+      "items": []
+    }
+  }
+}

@@ -48,6 +48,15 @@ function normalizeDueAt(v) {
   return d.toISOString();
 }
 
+function normalizeIncidentId(v) {
+  if (v == null) return null;
+  const s = String(v).trim();
+  return s ? s : null;
+}
+
+
+
+
 
 
 // --- normierte Aufgabe ---
@@ -59,6 +68,7 @@ function normalizeItem(x) {
     ? x.status
     : st.startsWith("in") ? "In Bearbeitung" : st.startsWith("erled") ? "Erledigt" : "Neu";
 	const dueAt = normalizeDueAt(x.dueAt ?? x.due_at ?? x.deadline ?? x.frist ?? null);
+
 
 
   return {
@@ -74,9 +84,14 @@ function normalizeItem(x) {
     updatedAt: x.updatedAt ?? Date.now(),
     kind: "task",
     meta: (x.meta ?? {}),
-	originProtocolNr: x.originProtocolNr ?? null,
-    relatedIncidentId: x.relatedIncidentId ?? x.meta?.relatedIncidentId ?? null,
-    incidentTitle: x.incidentTitle ?? null,
+    originProtocolNr: x.originProtocolNr ?? null,
+    relatedIncidentId: normalizeIncidentId(x.relatedIncidentId ?? x.meta?.relatedIncidentId ?? null),
+    incidentTitle: (() => {
+      const v = x.incidentTitle ?? x.meta?.incidentTitle ?? null;
+      if (v == null) return null;
+      const s = String(v).trim();
+      return s || null;
+    })(),
   };
 }
 
@@ -284,6 +299,17 @@ router.post("/:id/edit", express.json(), async (req, res) => {
       responsible: typeof body.responsible === "string" ? body.responsible.trim() : prev.responsible,
       desc: typeof body.desc === "string" ? body.desc : prev.desc,
       dueAt: Object.prototype.hasOwnProperty.call(body, "dueAt") ? normalizeDueAt(body.dueAt) : prev.dueAt,
+	   relatedIncidentId: Object.prototype.hasOwnProperty.call(body, "relatedIncidentId")
+        ? normalizeIncidentId(body.relatedIncidentId)
+        : prev.relatedIncidentId,
+      incidentTitle: Object.prototype.hasOwnProperty.call(body, "incidentTitle")
+        ? (() => {
+            const v = body.incidentTitle;
+            if (v == null) return null;
+            const s = String(v).trim();
+            return s || null;
+          })()
+        : prev.incidentTitle,
       updatedAt: Date.now(),
     };
     board.items[idx] = next;

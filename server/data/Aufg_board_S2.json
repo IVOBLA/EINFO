@@ -1,131 +1,20 @@
 {
   "items": [
     {
-      "id": "1761217118346-yu6h0u",
-      "clientId": "90e69790-4d78-4ccb-97bc-1a8e0ebe8805",
-      "title": "y",
-      "type": "y",
-      "responsible": "y",
-      "desc": "y",
-      "status": "Neu",
-      "createdAt": 1761217118346,
-      "updatedAt": 1761217118346,
-      "kind": "task",
-      "meta": {}
-    },
-    {
-      "id": "1761216228507-rqly69",
-      "clientId": "bec4b16d-f360-4b8f-b857-e5095554365a",
-      "title": "m",
-      "type": "m",
-      "responsible": "m",
-      "desc": "m",
-      "status": "Neu",
-      "createdAt": 1761216228507,
-      "updatedAt": 1761216228507,
-      "kind": "task",
-      "meta": {}
-    },
-    {
-      "id": "1761134771251-ln0vmr",
-      "clientId": "5cae6afe-91ec-4a1f-bd86-b4e0af7cca36",
-      "title": "1",
-      "type": "2",
-      "responsible": "",
-      "desc": "3",
-      "status": "In Bearbeitung",
-      "createdAt": 1761134771251,
-      "updatedAt": 1761207837800,
-      "kind": "task",
-      "meta": {}
-    },
-    {
-      "id": "1761133601474-ohqo8u",
-      "clientId": "f7ed15c6-2efb-4a5b-985a-3a9f5aef9a15",
-      "title": "asdasd",
-      "type": "asd",
-      "responsible": "",
-      "desc": "aasdasd",
-      "status": "Neu",
-      "createdAt": 1761133601474,
-      "updatedAt": 1761133601474,
-      "kind": "task",
-      "originProtocolNr": null,
-      "originType": null,
-      "relatedIncidentId": null,
-      "protoNr": null,
-      "meta": {}
-    },
-    {
-      "id": "1761124218069-d0whx3",
-      "clientId": "50af4597-f732-4c42-9487-9ef94c83e306",
-      "title": "dues",
-      "type": "asd",
-      "responsible": "",
-      "desc": "asdasd",
-      "status": "Neu",
-      "createdAt": 1761124218069,
-      "updatedAt": 1761124218069,
-      "kind": "task",
-      "originProtocolNr": null,
-      "originType": null,
-      "relatedIncidentId": "c4sgibga",
-      "protoNr": null,
-      "meta": {
-        "relatedIncidentId": "c4sgibga"
-      }
-    },
-    {
-      "id": "p-1761059578533-n1rh",
-      "title": "Von: wwwwe Das ist die",
+      "id": "p-1761221484226-0mlw",
+      "title": "An: xxx",
       "type": "Auftrag",
       "responsible": "S2",
-      "desc": "",
+      "desc": "xxxx",
       "status": "Neu",
       "kind": "task",
-      "createdAt": 1761059578533,
-      "updatedAt": 1761059578533,
+      "createdAt": 1761221484226,
+      "updatedAt": 1761221484226,
       "meta": {
         "source": "protokoll",
-        "protoNr": 5
+        "protoNr": 1
       },
       "createdBy": "::1"
-    },
-    {
-      "id": "1761054620149-ukld4e",
-      "clientId": "ff4d39e6-22cc-4e29-8e8e-980954a20370",
-      "title": "testaufgabe",
-      "type": "",
-      "responsible": "TEST",
-      "desc": "asdasd",
-      "status": "Neu",
-      "createdAt": 1761054620149,
-      "updatedAt": 1761054620149,
-      "kind": "task",
-      "originProtocolNr": null,
-      "originType": null,
-      "relatedIncidentId": "c4sgibga",
-      "protoNr": null,
-      "meta": {
-        "relatedIncidentId": "c4sgibga"
-      }
-    },
-    {
-      "id": "p-1761053948920-fbdp",
-      "clientId": null,
-      "title": "Von: BLA1",
-      "type": "Auftrag",
-      "responsible": "S2",
-      "desc": "testinfo",
-      "status": "Erledigt",
-      "createdAt": 1761053948920,
-      "updatedAt": 1761207835432,
-      "kind": "task",
-      "meta": {
-        "source": "protokoll",
-        "protoNr": 1,
-        "relatedIncidentId": "8f1uhaj7"
-      }
     }
   ]
 }

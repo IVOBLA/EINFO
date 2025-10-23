@@ -1,11 +1,2 @@
-timestamp;actor;action;id;title;type;responsible;fromStatus;toStatus;beforeId;meta;role;user;originProtocolNr;originType;relatedIncidentId;protoNr
-"2025-10-21 13:39:08";"::1";"create";"p-1761053948920-fbdp";"Von: BLA1";"Auftrag";"S2";"";"Neu";"";"{""source"":""protokoll"",""protoNr"":1}"
-2025-10-21T13:39:49.693Z;S2;bla;status;p-1761053948920-fbdp;Von: BLA1;Auftrag;S2;Neu;In Bearbeitung;;1;protokoll;;1
-2025-10-21T13:43:48.192Z;S2;bla;update;p-1761053948920-fbdp;Von: BLA1;Auftrag;S2;In Bearbeitung;In Bearbeitung;;1;protokoll;sd5lm5qf;1
-2025-10-21T13:46:32.172Z;S2;bla;update;p-1761053948920-fbdp;Von: BLA1;Auftrag;S2;In Bearbeitung;In Bearbeitung;;1;protokoll;8f1uhaj7;1
-2025-10-21T13:50:20.158Z;S2;bla;create;1761054620149-ukld4e;testaufgabe;;TEST;;Neu;;;;c4sgibga;
-"2025-10-21 15:12:58";"::1";"create";"p-1761059578533-n1rh";"Von: wwwwe Das ist die";"Auftrag";"S2";"";"Neu";"";"{""source"":""protokoll"",""protoNr"":5}"
-2025-10-22T09:10:18.075Z;S2;bla;create;1761124218069-d0whx3;dues;asd;;;Neu;;;;c4sgibga;
-2025-10-22T11:46:41.484Z;S2;bla;create;1761133601474-ohqo8u;asdasd;asd;;;Neu;;;;;
-2025-10-22T12:06:11.260Z;S2;bla;create;1761134771251-ln0vmr;1;2;;;Neu;;;;;
-2025-10-23T10:58:38.369Z;S2;bla;create;1761217118346-yu6h0u;y;y;y;;Neu;
+timestamp;actor;action;id;title;type;responsible;fromStatus;toStatus;beforeId;meta
+"2025-10-23 12:11:24";"::1";"create";"p-1761221484226-0mlw";"An: xxx";"Auftrag";"S2";"";"Neu";"";"{""source"":""protokoll"",""protoNr"":1}"
