@@ -107,8 +107,8 @@ function nextStatus(s) {
   return STATUS.DONE;
 }
 
-export default function AufgApp() {␊
-  const [items, setItems] = useState([]);␊
+export default function AufgApp() {
+  const [items, setItems] = useState([]);
   const [incidentIndex, setIncidentIndex] = useState(() => createEmptyIncidentIndex());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -445,23 +445,6 @@ const r = await fetch(`/api/aufgaben/${encodeURIComponent(id)}/status${roleQuery
             placeholder="Suche Titel / Typ / Verantwortlich…"
             className="px-3 py-2 text-sm rounded-xl border"
           />
-          <select
-            value={filterEinsatz}
-            onChange={(e) => setFilterEinsatz(e.target.value)}
-            className="px-3 py-2 text-sm rounded-xl border"
-          >
-            <option value="">Alle Einsätze</option>
-            {incidentFilterOptions.map((opt) => {
-              const value = String(opt.id);
-              const status = opt.statusName || "";
-              const label = status ? `${status}: ${opt.label}` : opt.label;
-              return (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              );
-            })}
-          </select>
           {allowEdit && (
             <>
               <button
@@ -470,9 +453,10 @@ const r = await fetch(`/api/aufgaben/${encodeURIComponent(id)}/status${roleQuery
               >
                 Neu
               </button>
+              {/* Modal zur Erstellung neuer Einträge */}
               <AufgAddModal
-                open={addOpen} // Der Zustand `addOpen` steuert, ob das Modal sichtbar ist
-                onClose={handleModalClose} // Schließt das Modal
+                open={addOpen}
+                onClose={handleModalClose}
                 onAdded={async (created) => {
                   try {
                     const saved = await createItemOnServer(created); // Speichert das neue Element
@@ -483,7 +467,7 @@ const r = await fetch(`/api/aufgaben/${encodeURIComponent(id)}/status${roleQuery
                 }}
               />
             </>
-           )}
+          )}
           <button
             onClick={() => { void load(); void loadIncidents(); }}
             className="text-sm px-3 py-2 rounded-xl border"
@@ -566,7 +550,7 @@ const r = await fetch(`/api/aufgaben/${encodeURIComponent(id)}/status${roleQuery
               ))}
             </AufgDroppableColumn>
           </div>
-
+</div>
         <DragOverlay>
           {draggingItem ? (
             <div className="rounded-lg bg-white shadow-xl border p-3 w-[280px]">

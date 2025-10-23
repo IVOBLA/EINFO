@@ -94,8 +94,8 @@ export default function AufgInfoModal({
       title: form.title?.trim() || "",
       type: form.type?.trim() || "",
       responsible: form.responsible?.trim() || "",
-      desc: form.desc?.trim() || "",
-           dueAt: form.dueAt ? form.dueAt.toISOString() : null,
+desc: form.desc?.trim() || "",
+      dueAt: form.dueAt ? form.dueAt.toISOString() : null,
     };
     const incidentId = form.relatedIncidentId ? String(form.relatedIncidentId) : "";
     if (incidentId) {
@@ -204,7 +204,7 @@ export default function AufgInfoModal({
                 <div>{it.responsible || "—"}</div>
               </div>
             </div>
-            {it.originProtocolNr ? (
+           {it.originProtocolNr ? (
               <div className="text-xs">
                 Ursprung:{" "}
                 <button
@@ -218,7 +218,7 @@ export default function AufgInfoModal({
                 </button>
               </div>
             ) : null}
-{it.relatedIncidentId ? (
+            {it.relatedIncidentId ? (
               <div className="text-xs">
                 Einsatz:{" "}
                 <span className="font-medium">
@@ -233,7 +233,6 @@ export default function AufgInfoModal({
               </div>
             ) : null}
             <div>
-            <div>
               <div className="text-xs text-gray-600">Notizen</div>
               <div className="whitespace-pre-wrap break-words">{it.desc || "—"}</div>
             </div>
@@ -242,7 +241,6 @@ export default function AufgInfoModal({
               <div className="font-medium">{formatDueAt(it.dueAt)}</div>
             </div>
           </div>
-        ) : (
           <div className="grid grid-cols-1 gap-3">
             <label className="block">
               <span className="text-xs text-gray-600">Titel</span>
