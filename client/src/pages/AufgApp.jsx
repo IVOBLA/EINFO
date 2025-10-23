@@ -316,23 +316,28 @@ const handleShowInfo = (item) => {
             placeholder="Suche Titel / Typ / Verantwortlich…"
             className="px-3 py-2 text-sm rounded-xl border"
           />
- {allowEdit && (
-<button onClick={handleAddOpen} className="text-sm px-3 py-2 rounded-xl bg-sky-600 text-white">
-  Neu
-</button>
-<AufgAddModal
-  open={addOpen}  // Der Zustand `addOpen` steuert, ob das Modal sichtbar ist
-  onClose={handleModalClose}  // Schließt das Modal
-  onAdded={async (created) => {
-    try {
-      const saved = await createItemOnServer(created);  // Speichert das neue Element
-      setItems((prev) => [saved, ...prev]);  // Fügt das neue Element zur Liste hinzu
-    } catch (e) {
-      setError(String(e?.message || e));  // Fehlerbehandlung
-    }
-  }}
-/>
- )}
+{allowEdit && (
+            <>
+              <button
+                onClick={handleAddOpen}
+                className="text-sm px-3 py-2 rounded-xl bg-sky-600 text-white"
+              >
+                Neu
+              </button>
+              <AufgAddModal
+                open={addOpen} // Der Zustand `addOpen` steuert, ob das Modal sichtbar ist
+                onClose={handleModalClose} // Schließt das Modal
+                onAdded={async (created) => {
+                  try {
+                    const saved = await createItemOnServer(created); // Speichert das neue Element
+                    setItems((prev) => [saved, ...prev]); // Fügt das neue Element zur Liste hinzu
+                  } catch (e) {
+                    setError(String(e?.message || e)); // Fehlerbehandlung
+                  }
+                }}
+              />
+            </>
+          )}
           <button onClick={load} className="text-sm px-3 py-2 rounded-xl border" disabled={loading}>
             {loading ? "Lädt…" : "Neu laden"}
           </button>
