@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";  // Importiere Styles für den DatePicker
+import DatePicker, { registerLocale } from "react-datepicker";
+import de from "date-fns/locale/de";
+import "react-datepicker/dist/react-datepicker.css"; // Importiere Styles für den DatePicker
+
+registerLocale("de", de);
 
 export default function AufgAddModal({ open, onClose, onAdded }) {
   const [dueAt, setDueAt] = useState(null);  // Initialisierung von dueAt
@@ -48,14 +51,14 @@ export default function AufgAddModal({ open, onClose, onAdded }) {
             <span className="text-xs text-gray-600">Frist/Kontrollzeitpunkt</span>
             <DatePicker
               selected={dueAt}
-              onChange={(date) => setDueAt(date)}  // Ändere das Datum
+              onChange={(date) => setDueAt(date)} // Ändere das Datum
               showTimeSelect
-              dateFormat="Pp"  // Das Format für Datum und Uhrzeit
-              timeIntervals={5}  // Optionen für Zeitintervall (alle 5 Minuten)
-              timeFormat="HH:mm"  // 24-Stunden Format
+              dateFormat="dd.MM.yyyy HH:mm"
+              timeIntervals={5} // Optionen für Zeitintervall (alle 5 Minuten)
+              timeFormat="HH:mm"
               timeCaption="Zeit"
-              locale="de"  // Lokalisierung auf Deutsch
-              hour12={false}  // Stellt sicher, dass keine AM/PM-Anzeige erfolgt
+              locale="de"
+              popperPlacement="bottom-start"
             />
           </label>
 
