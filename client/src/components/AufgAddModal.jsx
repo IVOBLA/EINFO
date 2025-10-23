@@ -6,8 +6,21 @@ import "react-datepicker/dist/react-datepicker.css"; // Importiere Styles für d
 
 registerLocale("de", de);
 
+const DEFAULT_DUE_OFFSET_MINUTES = 30;
+const TIME_STEP_MINUTES = 5;
+
+function createDefaultDueAt() {
+  const base = new Date(Date.now() + DEFAULT_DUE_OFFSET_MINUTES * 60 * 1000);
+  base.setSeconds(0, 0);
+  const remainder = base.getMinutes() % TIME_STEP_MINUTES;
+  if (remainder !== 0) {
+    base.setMinutes(base.getMinutes() + (TIME_STEP_MINUTES - remainder));
+  }
+  return base;
+}
+
 export default function AufgAddModal({ open, onClose, onAdded, incidentOptions = [] }) {
-  const [dueAt, setDueAt] = useState(null);  // Initialisierung von dueAt
+  const [dueAt, setDueAt] = useState(() => createDefaultDueAt());  // Initialisierung von dueAt
   const [title, setTitle] = useState("");
   const [type, setType] = useState("");
   const [responsible, setResponsible] = useState("");
@@ -17,7 +30,7 @@ export default function AufgAddModal({ open, onClose, onAdded, incidentOptions =
   useEffect(() => {
     if (!open) return;
 
-    setDueAt(null);
+    setDueAt(createDefaultDueAt());
     setTitle("");
     setType("");
     setResponsible("");
@@ -32,13 +45,14 @@ export default function AufgAddModal({ open, onClose, onAdded, incidentOptions =
 
   const submit = (e) => {
     e.preventDefault();
+    const ensuredDueAt = dueAt ?? createDefaultDueAt();
     const incidentId = relatedIncidentId ? String(relatedIncidentId).trim() : "";
     onAdded?.({
       title: title?.trim(),
       type: type?.trim(),
       responsible: responsible?.trim(),
       desc: desc?.trim(),
-      dueAt: dueAt ? dueAt.toISOString() : null,  // Speichere dueAt im ISO-Format
+      dueAt: ensuredDueAt ? ensuredDueAt.toISOString() : null,  // Speichere dueAt im ISO-Format
       relatedIncidentId: incidentId || null,
       incidentTitle: selectedIncident?.label || null,
     });
@@ -104,8 +118,11 @@ export default function AufgAddModal({ open, onClose, onAdded, incidentOptions =
                 <option value="">Kein Einsatz</option>
                 {incidentOptions.map((opt) => {
                   const value = String(opt?.id ?? "");
-                  const status = opt?.statusName || opt?.statusLabel || "";
-                  const label = status ? `${status}: ${opt?.label ?? value}` : opt?.label ?? value;
+                  const rawStatus = opt?.statusName || opt?.statusLabel || "";
+                  const normalizedStatus = rawStatus.replace(/:$/, "").trim();
+                  const showStatus = normalizedStatus && normalizedStatus.toLowerCase() !== "neu";
+                  const baseLabel = opt?.label ?? value;
+                  const label = showStatus ? `${normalizedStatus}: ${baseLabel}` : baseLabel;
                   return (
                     <option key={value} value={value}>
                       {label}
