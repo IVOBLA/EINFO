@@ -21,6 +21,13 @@ import { fetchBoard } from "../api.js";
 const STATUS = { NEW: "Neu", IN_PROGRESS: "In Bearbeitung", DONE: "Erledigt" };
 const COLS = [STATUS.NEW, STATUS.IN_PROGRESS, STATUS.DONE];
 const INCIDENT_STATUS_KEYS = ["neu", "in-bearbeitung", "erledigt"];
+const FALLBACK_DUE_OFFSET_MINUTES = 30;
+
+const normalizeDefaultDueOffset = (value) => {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return FALLBACK_DUE_OFFSET_MINUTES;
+  return Math.max(0, num);
+};
 
 const createEmptyIncidentIndex = () => ({ options: [], map: new Map() });
 
@@ -117,6 +124,10 @@ export default function AufgApp() {
   const [addOpen, setAddOpen] = useState(false);  // Popup initial auf false setzen
   const [activeItem, setActiveItem] = useState(null);
   const [allowEdit, setAllowEdit] = useState(false);
+  const [aufgabenConfig, setAufgabenConfig] = useState(() => ({
+    defaultDueOffsetMinutes: FALLBACK_DUE_OFFSET_MINUTES,
+  }));
+
 
   const user = getCurrentUser();
   const roleId = useMemo(() => getPrimaryRoleId(user), [user]);
@@ -137,7 +148,7 @@ export default function AufgApp() {
   }, []);
 
   // Rollen-Policy einmal laden und Edit-Flag setzen
-  useEffect(() => {
+    useEffect(() => {
     let alive = true;
     (async () => {
       await initRolePolicy();
@@ -146,6 +157,35 @@ export default function AufgApp() {
     })();
     return () => { alive = false; };
   }, [user]);
+
+  useEffect(() => {
+    if (!roleId) return undefined;
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch(`/api/aufgaben/config${roleQuery(roleId)}`, {
+          cache: "no-store",
+          headers: roleHeaders(roleId),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (!active) return;
+        setAufgabenConfig({
+          defaultDueOffsetMinutes: normalizeDefaultDueOffset(data?.defaultDueOffsetMinutes),
+        });
+      } catch {
+        if (!active) return;
+        setAufgabenConfig((prev) => ({
+          defaultDueOffsetMinutes: normalizeDefaultDueOffset(prev?.defaultDueOffsetMinutes),
+        }));
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [roleId]);
+
+
 
   useEffect(() => {
     const controller = new AbortController();
@@ -465,10 +505,11 @@ const r = await fetch(`/api/aufgaben/${encodeURIComponent(id)}/status${roleQuery
                 Neu
               </button>
               {/* Modal zur Erstellung neuer Einträge */}
-              <AufgAddModal
+                         <AufgAddModal
                 open={addOpen} // Der Zustand `addOpen` steuert, ob das Modal sichtbar ist
                 onClose={handleModalClose} // Schließt das Modal
                 incidentOptions={incidentIndex.options}
+                defaultDueOffsetMinutes={aufgabenConfig.defaultDueOffsetMinutes}
                 onAdded={async (created) => {
                   try {
                     const saved = await createItemOnServer(created); // Speichert das neue Element
