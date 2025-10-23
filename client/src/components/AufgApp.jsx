@@ -16,9 +16,52 @@ import AufgInfoModal from "../components/AufgInfoModal.jsx";
 import AufgSortableCard from "../components/AufgSortableCard.jsx";
 import { initRolePolicy, canEditApp } from "../auth/roleUtils.js";
 import { playGong } from "../sound"; // gleicher Sound wie im Einsatz-Kanban
+import { fetchBoard } from "../api.js";
 
 const STATUS = { NEW: "Neu", IN_PROGRESS: "In Bearbeitung", DONE: "Erledigt" };
 const COLS = [STATUS.NEW, STATUS.IN_PROGRESS, STATUS.DONE];
+const INCIDENT_STATUS_KEYS = ["neu", "in-bearbeitung", "erledigt"];
+
+const createEmptyIncidentIndex = () => ({ options: [], map: new Map() });
+
+function buildIncidentIndex(board) {
+  const options = [];
+  const map = new Map();
+  if (board?.columns && typeof board.columns === "object") {
+    const handled = new Set();
+    const orderedKeys = [
+      ...INCIDENT_STATUS_KEYS,
+      ...Object.keys(board.columns).filter((key) => !INCIDENT_STATUS_KEYS.includes(key)),
+    ];
+    for (const key of orderedKeys) {
+      if (!board.columns[key] || handled.has(key)) continue;
+      handled.add(key);
+      const col = board.columns[key];
+      const statusName = col?.name || key;
+      const items = Array.isArray(col?.items) ? col.items : [];
+      for (const card of items) {
+        const id = String(card?.id ?? "").trim();
+        if (!id) continue;
+        const labelParts = [];
+        if (card?.content) labelParts.push(String(card.content));
+        if (card?.ort) labelParts.push(String(card.ort));
+        const label = labelParts.length ? labelParts.join(" — ") : `#${id}`;
+        const info = {
+          id,
+          label,
+          statusKey: key,
+          statusName,
+          content: card?.content ?? "",
+          ort: card?.ort ?? "",
+        };
+        map.set(id, info);
+        options.push(info);
+      }
+    }
+  }
+  return { options, map };
+}
+
 
 const norm = (s) =>
   String(s ?? "")
@@ -64,9 +107,9 @@ function nextStatus(s) {
   return STATUS.DONE;
 }
 
-export default function AufgApp() {
-  const [items, setItems] = useState([]);
-  const [boardIndex, setBoardIndex] = useState({});
+export default function AufgApp() {␊
+  const [items, setItems] = useState([]);␊
+  const [incidentIndex, setIncidentIndex] = useState(() => createEmptyIncidentIndex());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("");
@@ -81,6 +124,18 @@ export default function AufgApp() {
   const prevIdsRef = useRef(new Set());
   const myCreatedIdsRef = useRef(new Set());
 
+  const loadIncidents = useCallback(async (signal = null) => {
+    if (signal?.aborted) return;
+    try {
+      const data = await fetchBoard();
+      if (signal?.aborted) return;
+      setIncidentIndex(buildIncidentIndex(data));
+    } catch (_e) {
+      if (signal?.aborted) return;
+      // Bei Fehler Index beibehalten – Board ist optional für Aufgabenverwaltung
+    }
+  }, []);
+
   // Rollen-Policy einmal laden und Edit-Flag setzen
   useEffect(() => {
     let alive = true;
@@ -91,6 +146,16 @@ export default function AufgApp() {
     })();
     return () => { alive = false; };
   }, [user]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadIncidents(controller.signal);
+    const timer = setInterval(() => { void loadIncidents(controller.signal); }, 30_000);
+    return () => {
+      controller.abort();
+      clearInterval(timer);
+    };
+  }, [loadIncidents]);
 
   // DnD
   const [draggingItem, setDraggingItem] = useState(null);
@@ -123,7 +188,9 @@ export default function AufgApp() {
         updatedAt: x.updatedAt ?? null,
         meta: x.meta ?? {},
         originProtocolNr: x.originProtocolNr ?? null,
-        relatedIncidentId: x.relatedIncidentId ?? null,
+                relatedIncidentId: x.relatedIncidentId != null && x.relatedIncidentId !== ""
+          ? String(x.relatedIncidentId)
+          : null,
         incidentTitle: x.incidentTitle ?? null,
       }));
       setItems(mapped);
@@ -228,19 +295,47 @@ const r = await fetch(`/api/aufgaben/${encodeURIComponent(id)}/status${roleQuery
   }
 
   // ---- Filter + Spalten (wie _old)
-  const filtered = useMemo(() => {
-    const q = filter.trim().toLowerCase();
-    if (!q) return items;
-    return items.filter(x =>
-      [x.title, x.type, x.responsible, x.desc].filter(Boolean).some(s => String(s).toLowerCase().includes(q))
-    );
-  }, [items, filter]);
+ const filtered = useMemo(() => {
+    const q = norm(filter);
+    const incidentFilter = filterEinsatz ? String(filterEinsatz) : "";
+    return items.filter((x) => {
+      if (incidentFilter && String(x?.relatedIncidentId ?? "") !== incidentFilter) return false;
+      if (!q) return true;
+      const haystack = [x.title, x.type, x.responsible, x.desc, x.incidentTitle]
+        .filter(Boolean)
+        .map((s) => norm(s));
+      return haystack.some((s) => s.includes(q));
+    });
+  }, [items, filter, filterEinsatz]);
 
   const lists = useMemo(() => ({
     [STATUS.NEW]:         filtered.filter(x => (x.status || STATUS.NEW) === STATUS.NEW),
     [STATUS.IN_PROGRESS]: filtered.filter(x => x.status === STATUS.IN_PROGRESS),
     [STATUS.DONE]:        filtered.filter(x => x.status === STATUS.DONE),
   }), [filtered]);
+
+  const incidentFilterOptions = useMemo(() => {
+    const base = (incidentIndex.options || []).map((opt) => ({
+      id: String(opt.id),
+      label: opt.label || `#${opt.id}`,
+      statusName: opt.statusName || opt.statusLabel || "",
+    }));
+    const seen = new Set(base.map((opt) => opt.id));
+    const extras = [];
+    for (const it of items) {
+      const id = it?.relatedIncidentId ? String(it.relatedIncidentId) : "";
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      extras.push({
+        id,
+        label: it.incidentTitle || `#${id}`,
+        statusName: "",
+      });
+    }
+    return [...base, ...extras].sort((a, b) =>
+      a.label.localeCompare(b.label, "de", { sensitivity: "base" })
+    );
+  }, [incidentIndex.options, items]);
 
   useEffect(() => {
     if (!activeItem) return;
@@ -343,14 +438,31 @@ const r = await fetch(`/api/aufgaben/${encodeURIComponent(id)}/status${roleQuery
       <header className="mb-4 flex flex-wrap items-center gap-3">
         <h1 className="text-lg font-bold">Aufgaben</h1>
         <span className="text-xs px-2 py-1 rounded-full border bg-gray-50">Rolle: {roleId || "—"}</span>
-        <div className="ml-auto flex items-center gap-2">
+         <div className="ml-auto flex items-center gap-2">
           <input
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             placeholder="Suche Titel / Typ / Verantwortlich…"
             className="px-3 py-2 text-sm rounded-xl border"
           />
-{allowEdit && (
+          <select
+            value={filterEinsatz}
+            onChange={(e) => setFilterEinsatz(e.target.value)}
+            className="px-3 py-2 text-sm rounded-xl border"
+          >
+            <option value="">Alle Einsätze</option>
+            {incidentFilterOptions.map((opt) => {
+              const value = String(opt.id);
+              const status = opt.statusName || "";
+              const label = status ? `${status}: ${opt.label}` : opt.label;
+              return (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              );
+            })}
+          </select>
+          {allowEdit && (
             <>
               <button
                 onClick={handleAddOpen}
@@ -371,8 +483,12 @@ const r = await fetch(`/api/aufgaben/${encodeURIComponent(id)}/status${roleQuery
                 }}
               />
             </>
-          )}
-          <button onClick={load} className="text-sm px-3 py-2 rounded-xl border" disabled={loading}>
+           )}
+          <button
+            onClick={() => { void load(); void loadIncidents(); }}
+            className="text-sm px-3 py-2 rounded-xl border"
+            disabled={loading}
+          >
             {loading ? "Lädt…" : "Neu laden"}
           </button>
         </div>
@@ -403,6 +519,7 @@ const r = await fetch(`/api/aufgaben/${encodeURIComponent(id)}/status${roleQuery
                   onAdvance={advance}
                   onShowInfo={handleShowInfo}
                   isNew={freshIds.has(String(it.id))}
+                  incidentLookup={incidentIndex.map}
                 />
               ))}
             </AufgDroppableColumn>
@@ -423,6 +540,7 @@ const r = await fetch(`/api/aufgaben/${encodeURIComponent(id)}/status${roleQuery
                   onAdvance={advance}
                   onShowInfo={handleShowInfo}
                   isNew={freshIds.has(String(it.id))}
+                  incidentLookup={incidentIndex.map}
                 />
               ))}
             </AufgDroppableColumn>
@@ -443,11 +561,11 @@ const r = await fetch(`/api/aufgaben/${encodeURIComponent(id)}/status${roleQuery
                   onAdvance={advance}
                   onShowInfo={handleShowInfo}
                   isNew={freshIds.has(String(it.id))}
+                  incidentLookup={incidentIndex.map}
                 />
               ))}
             </AufgDroppableColumn>
           </div>
-        </div>
 
         <DragOverlay>
           {draggingItem ? (
@@ -468,6 +586,8 @@ const r = await fetch(`/api/aufgaben/${encodeURIComponent(id)}/status${roleQuery
           onClose={() => setActiveItem(null)}
           onSave={saveItemDetails}
           canEdit={allowEdit}
+          incidentOptions={incidentIndex.options}
+          incidentLookup={incidentIndex.map}
         />
       ) : null}
     </div>

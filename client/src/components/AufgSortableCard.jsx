@@ -1,14 +1,15 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-export default function AufgSortableCard({ 
-  item, 
-  onClick, 
-  onShowInfo, 
-  onAdvance, 
-  disableAdvance, 
-  isNew, 
+export default function AufgSortableCard({
+  item,
+  onClick,
+  onShowInfo,
+  onAdvance,
+  disableAdvance,
+  isNew,
+  incidentLookup,
 }) { 
   const it = item || {}; // Falls item nicht vorhanden ist, wird es als leeres Objekt gesetzt.
   if (!it) return null; 
@@ -27,23 +28,50 @@ export default function AufgSortableCard({
 
 
 
-  const [overdueClass, setOverdueClass] = useState(""); // Zustand für das Verfärben
- 
-  // Berechnung für Überfälligkeit
-  const isOverdue = it.dueAt && new Date(it.dueAt) < new Date();
+const [dueState, setDueState] = useState("none"); // none | soon | overdue
 
-  // Überprüfung alle 5 Sekunden, ob die Kachel weiterhin überfällig ist
+  const isDone = String(it.status || "") === "Erledigt";
+
+  const recomputeDueState = useCallback(() => {
+    if (!it?.dueAt || isDone) {
+      setDueState("none");
+      return;
+    }
+    const dueDate = new Date(it.dueAt);
+    if (Number.isNaN(dueDate.getTime())) {
+      setDueState("none");
+      return;
+    }
+    const diffMs = dueDate.getTime() - Date.now();
+    if (diffMs <= 0) {
+      setDueState("overdue");
+    } else if (diffMs <= 10 * 60 * 1000) {
+      setDueState("soon");
+    } else {
+      setDueState("none");
+    }
+  }, [it?.dueAt, isDone]);
+
   useEffect(() => {
-    const interval = setInterval(() => {
-      setOverdueClass(isOverdue ? "bg-red-500" : "");
-    }, 5000); // Alle 5 Sekunden aktualisieren
+    recomputeDueState();
+    const interval = setInterval(recomputeDueState, 5000);
+    return () => clearInterval(interval);
+  }, [recomputeDueState]);
 
-    return () => clearInterval(interval); // Bereinige den Intervall bei Komponentenschließung
-  }, [it.dueAt, isOverdue]); // Reagiere auf Änderungen von dueAt
+  const isOverdue = dueState === "overdue";
+  const highlightClass = isDone
+    ? "bg-white"
+    : isOverdue
+      ? "bg-red-100 border-red-300"
+      : dueState === "soon"
+        ? "bg-yellow-100 border-amber-300"
+        : "bg-white";
 
-  useEffect(() => {
-    setOverdueClass(isOverdue ? "bg-red-500" : "");
-  }, [isOverdue]);
+  const incidentId = it?.relatedIncidentId ? String(it.relatedIncidentId) : "";
+  const incidentInfo = incidentId && incidentLookup?.get ? incidentLookup.get(incidentId) : null;
+  const incidentLabel = incidentInfo?.label || it?.incidentTitle || (incidentId ? `#${incidentId}` : "");
+  const incidentStatusLabel = incidentInfo?.statusName || incidentInfo?.statusLabel || "";
+
 
   // Formatierung des dueAt-Werts im 24-Stunden-Format und mit der richtigen Zeitzone
   const formatDueAt = (dueAt) => {
@@ -67,85 +95,106 @@ export default function AufgSortableCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`rounded-lg border bg-white p-3 shadow-sm hover:shadow cursor-pointer ${overdueClass}`}
+      className={`relative rounded-lg border bg-white p-3 shadow-sm hover:shadow cursor-pointer ${overdueClass} ${showPulse ? "pulse-incoming" : ""}`}
       {...attributes}
       {...listeners}
       onClick={() => (onClick ? onClick(it) : onShowInfo?.(it))}
       role="button"
       tabIndex={0}
+      aria-live={showPulse ? "polite" : undefined}
     >
-      {/* Kopfzeile mit Zeitstempeln */}
-      <div className="flex items-center justify-between text-[10px] text-gray-500 leading-4 mb-1">
-        <div>
-          erstellt: {it.createdAt ? new Date(it.createdAt).toLocaleString() : "–"}
+      {showPulse && (
+        <>
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 rounded-lg bg-red-500/10 animate-pulse-inner"
+          />
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 rounded-lg animate-ping-safe"
+          />
+        </>
+      )}
+      <div className="relative z-10">
+        {/* Kopfzeile mit Zeitstempeln */}
+        <div className="flex items-center justify-between text-[10px] text-gray-500 leading-4 mb-1">
+          <div>
+            erstellt: {it.createdAt ? new Date(it.createdAt).toLocaleString() : "–"}
+          </div>
+          <div>
+            aktual.: {it.updatedAt ? new Date(it.updatedAt).toLocaleString() : "–"}
+          </div>
         </div>
-        <div>
-          aktual.: {it.updatedAt ? new Date(it.updatedAt).toLocaleString() : "–"}
+
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="font-semibold leading-tight">{it.title || "Ohne Titel"}</h3>
+          <button
+            className={`text-xs px-2 py-1 rounded ${disableAdvance ? "bg-gray-200 text-gray-500" : "bg-emerald-600 text-white hover:bg-emerald-700"}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!disableAdvance) onAdvance?.(it);
+            }}
+            disabled={disableAdvance}
+            title="Status weiter"
+          >
+            ➜
+          </button>
         </div>
-      </div>
 
-      <div className="flex items-start justify-between gap-2">
-        <h3 className="font-semibold leading-tight">{it.title || "Ohne Titel"}</h3>
-        <button
-          className={`text-xs px-2 py-1 rounded ${disableAdvance ? "bg-gray-200 text-gray-500" : "bg-emerald-600 text-white hover:bg-emerald-700"}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (!disableAdvance) onAdvance?.(it);
-          }}
-          disabled={disableAdvance}
-          title="Status weiter"
-        >
-          ➜
-        </button>
-      </div>
+        {/* Typ + Verantwortlich */}
+        <div className="mt-1 text-xs text-gray-600">
+          {it.type ? <span className="mr-2">Typ: {it.type}</span> : null}
+          {it.responsible ? <span>Verantwortlich: {it.responsible}</span> : null}
+        </div>
 
-      {/* Typ + Verantwortlich */}
-      <div className="mt-1 text-xs text-gray-600">
-        {it.type ? <span className="mr-2">Typ: {it.type}</span> : null}
-        {it.responsible ? <span>Verantwortlich: {it.responsible}</span> : null}
-      </div>
+        {/* Notiz */}
+        {it.desc ? (
+          <p className="mt-2 text-sm whitespace-pre-wrap text-gray-800">{it.desc}</p>
+        ) : null}
 
-      {/* Notiz */}
-      {it.desc ? (
-        <p className="mt-2 text-sm whitespace-pre-wrap text-gray-800">{it.desc}</p>
-      ) : null}
+        {/* Ursprung / Bezug */}
+        {it.originProtocolNr || it.relatedIncidentId ? (
+          <div className="mt-2 flex items-center gap-3 text-[11px]">
+            {it.originProtocolNr && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.location.assign(`/protokoll#/protokoll/edit/${it.originProtocolNr}`);
+                }}
+                className="text-blue-700 hover:underline"
+                title={`Meldung #${it.originProtocolNr} öffnen`}
+              >
+                Meldung: {it.originProtocolNr}
+              </button>
+            )}
 
-      {/* Ursprung / Bezug */}
-      {it.originProtocolNr || it.relatedIncidentId ? (
-        <div className="mt-2 flex items-center gap-3 text-[11px]">
-          {it.originProtocolNr && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                window.location.assign(`/protokoll#/protokoll/edit/${it.originProtocolNr}`);
-              }}
-              className="text-blue-700 hover:underline"
-              title={`Meldung #${it.originProtocolNr} öffnen`}
-            >
-              Meldung: {it.originProtocolNr}
-            </button>
-          )}
-
-          {it.relatedIncidentId && (
+          {incidentLabel && (
             <span
               className="text-gray-700"
-              title={`Einsatz: #${it.relatedIncidentId}`}
+              title={
+                incidentStatusLabel
+                  ? `Einsatz: ${incidentLabel}\nStatus: ${incidentStatusLabel}`
+                  : `Einsatz: ${incidentLabel}`
+              }
             >
-              {it.incidentTitle || `#${it.relatedIncidentId}`}
+              {incidentStatusLabel ? `[${incidentStatusLabel}] ` : ""}
+              {incidentLabel}
             </span>
           )}
-        </div>
-      ) : null}
+          </div>
+        ) : null}
 
-      {/* Überfällig anzeigen */}
-      {isOverdue && (
+        {/* Überfällig anzeigen */}
+      {!isDone && isOverdue && (
         <span className="text-red-600 text-sm">Überfällig!</span>
       )}
 
-      {/* Frist anzeigen */}
-      <div className="text-sm text-gray-500 mt-2">
-        {formatDueAt(it.dueAt)}
+        {/* Frist anzeigen */}
+        <div className="text-sm text-gray-500 mt-2">
+          {formatDueAt(it.dueAt)}
+        </div>
       </div>
     </div>
   );
 }
+

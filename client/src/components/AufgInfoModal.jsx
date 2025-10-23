@@ -15,7 +15,15 @@ const formatDueAt = (value) => {
   });
 };
 
-export default function AufgInfoModal({ open, item, onClose, onSave, canEdit }) {
+export default function AufgInfoModal({
+  open,
+  item,
+  onClose,
+  onSave,
+  canEdit,
+  incidentOptions = [],
+  incidentLookup,
+}) {
   const it = item || null;
   const [edit, setEdit] = useState(false);
   const [form, setForm] = useState({
@@ -24,7 +32,19 @@ export default function AufgInfoModal({ open, item, onClose, onSave, canEdit }) 
     responsible: "",
     desc: "",
     dueAt: null,
+    relatedIncidentId: "",
   });
+
+  const incidentMap = useMemo(() => {
+    if (incidentLookup && typeof incidentLookup.get === "function") return incidentLookup;
+    const map = new Map();
+    if (incidentLookup && typeof incidentLookup === "object") {
+      Object.entries(incidentLookup).forEach(([key, value]) => {
+        map.set(String(key), value);
+      });
+    }
+    return map;
+  }, [incidentLookup]);
 
   useEffect(() => {
     if (!open) return;
@@ -35,9 +55,9 @@ export default function AufgInfoModal({ open, item, onClose, onSave, canEdit }) 
       responsible: it?.responsible || "",
       desc: it?.desc || "",
       dueAt: it?.dueAt ? new Date(it.dueAt) : null,
+      relatedIncidentId: it?.relatedIncidentId ? String(it.relatedIncidentId) : "",
     });
   }, [open, it?.id]);
-
   useEffect(() => {
     if (!open) return undefined;
     const onKeyDown = (ev) => {
@@ -49,11 +69,15 @@ export default function AufgInfoModal({ open, item, onClose, onSave, canEdit }) 
 
   const changed = useMemo(() => {
     if (!it) return false;
+    const currentIncidentId = form.relatedIncidentId ? String(form.relatedIncidentId) : "";
+    const originalIncidentId = it?.relatedIncidentId ? String(it.relatedIncidentId) : "";
+
     return (
       (form.title ?? "") !== (it.title ?? "") ||
       (form.type ?? "") !== (it.type ?? "") ||
       (form.responsible ?? "") !== (it.responsible ?? "") ||
       (form.desc ?? "") !== (it.desc ?? "") ||
+      currentIncidentId !== originalIncidentId ||
       ((form.dueAt ? form.dueAt.toISOString() : null) ?? null) !==
         ((it.dueAt ? new Date(it.dueAt).toISOString() : null) ?? null)
     );
@@ -71,11 +95,48 @@ export default function AufgInfoModal({ open, item, onClose, onSave, canEdit }) 
       type: form.type?.trim() || "",
       responsible: form.responsible?.trim() || "",
       desc: form.desc?.trim() || "",
-      dueAt: form.dueAt ? form.dueAt.toISOString() : null,
+           dueAt: form.dueAt ? form.dueAt.toISOString() : null,
     };
+    const incidentId = form.relatedIncidentId ? String(form.relatedIncidentId) : "";
+    if (incidentId) {
+      const info = incidentMap.get(incidentId);
+      payload.relatedIncidentId = incidentId;
+      payload.incidentTitle = info?.label || info?.content || it.incidentTitle || `#${incidentId}`;
+    } else {
+      payload.relatedIncidentId = null;
+      payload.incidentTitle = null;
+    }
     await onSave?.(payload);
     setEdit(false);
   };
+
+  const currentIncident = useMemo(() => {
+    if (!it?.relatedIncidentId) return null;
+    const id = String(it.relatedIncidentId);
+    const info = incidentMap.get(id);
+    if (info) return { ...info, id, fromBoard: true };
+    return {
+      id,
+      label: it.incidentTitle || `#${id}`,
+      statusName: "",
+      fromBoard: false,
+    };
+  }, [incidentMap, it?.relatedIncidentId, it?.incidentTitle]);
+
+  const selectOptions = useMemo(() => {
+    const base = Array.isArray(incidentOptions) ? incidentOptions : [];
+    if (!currentIncident || currentIncident.fromBoard) return base;
+    if (base.some((opt) => String(opt.id) === String(currentIncident.id))) return base;
+    return [
+      ...base,
+      {
+        id: currentIncident.id,
+        label: `${currentIncident.label} (nicht mehr am Einsatzboard)`,
+        statusName: currentIncident.statusName,
+        fromBoard: false,
+      },
+    ];
+  }, [incidentOptions, currentIncident]);
 
   if (!open || !it) return null;
 
@@ -157,11 +218,21 @@ export default function AufgInfoModal({ open, item, onClose, onSave, canEdit }) 
                 </button>
               </div>
             ) : null}
-            {it.relatedIncidentId ? (
+{it.relatedIncidentId ? (
               <div className="text-xs">
-                Einsatz: <span className="font-medium">{it.incidentTitle || `#${it.relatedIncidentId}`}</span>
+                Einsatz:{" "}
+                <span className="font-medium">
+                  {currentIncident?.label || it.incidentTitle || `#${it.relatedIncidentId}`}
+                </span>
+                {currentIncident?.statusName ? (
+                  <span className="text-gray-500 ml-1">({currentIncident.statusName})</span>
+                ) : null}
+                {currentIncident && !incidentMap.has(String(currentIncident.id)) ? (
+                  <span className="ml-1 text-[11px] text-amber-600">(nicht mehr am Einsatzboard)</span>
+                ) : null}
               </div>
             ) : null}
+            <div>
             <div>
               <div className="text-xs text-gray-600">Notizen</div>
               <div className="whitespace-pre-wrap break-words">{it.desc || "—"}</div>
@@ -199,6 +270,28 @@ export default function AufgInfoModal({ open, item, onClose, onSave, canEdit }) 
                     setForm((prev) => ({ ...prev, responsible: e.target.value }))
                   }
                 />
+              </label>
+              <label className="block">
+                <span className="text-xs text-gray-600">Einsatzverknüpfung</span>
+                <select
+                  className="w-full border rounded px-2 py-1 h-9"
+                  value={form.relatedIncidentId}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, relatedIncidentId: e.target.value }))
+                  }
+                >
+                  <option value="">Kein Einsatz</option>
+                  {selectOptions.map((opt) => {
+                    const value = String(opt.id);
+                    const status = opt.statusName || opt.statusLabel || "";
+                    const label = status ? `${status}: ${opt.label}` : opt.label;
+                    return (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    );
+                  })}
+                </select>
               </label>
             </div>
             <label className="block">
