@@ -1,5 +1,4 @@
-import "dotenv/config";
-
+import "./loadEnv.mjs";
 const FALLBACK_MINUTES = 30;
 
 function parseOffset(value) {
