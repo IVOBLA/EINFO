@@ -2,16 +2,16 @@ import React, { useEffect, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-export default function AufgSortableCard({
-  item,
-  onClick,
-  onShowInfo,
-  onAdvance,
-  disableAdvance,
-  isNew,
-}) {
-  const it = item || {};  // Falls item nicht vorhanden ist, wird es als leeres Objekt gesetzt.
-  if (!it) return null;
+export default function AufgSortableCard({␊
+  item,␊
+  onClick,␊
+  onShowInfo,␊
+  onAdvance,␊
+  disableAdvance,␊
+  isNew,␊
+}) {␊
+  const it = item || {}; // Falls item nicht vorhanden ist, wird es als leeres Objekt gesetzt.
+  if (!it) return null;␊
 
   const {
     attributes,
@@ -28,9 +28,11 @@ const handleShowInfo = (item) => {
   setActiveItem(item);  // Setzt das aktive Element (Kachel)
 };
 
+  const [overdueClass, setOverdueClass] = useState(""); // Zustand für das Verfärben
+␊
   // Berechnung für Überfälligkeit
   const isOverdue = it.dueAt && new Date(it.dueAt) < new Date();
-  
+
   // Überprüfung alle 5 Sekunden, ob die Kachel weiterhin überfällig ist
   useEffect(() => {
     const interval = setInterval(() => {
@@ -40,12 +42,18 @@ const handleShowInfo = (item) => {
     return () => clearInterval(interval); // Bereinige den Intervall bei Komponentenschließung
   }, [it.dueAt, isOverdue]); // Reagiere auf Änderungen von dueAt
 
+  useEffect(() => {
+    setOverdueClass(isOverdue ? "bg-red-500" : "");
+  }, [isOverdue]);
+
   // Formatierung des dueAt-Werts im 24-Stunden-Format und mit der richtigen Zeitzone
   const formatDueAt = (dueAt) => {
     if (!dueAt) return "—";
-    return new Date(dueAt).toLocaleString("de-AT", {
-      timeZone: "Europe/Vienna",  // Berücksichtige die österreichische Zeitzone
-      hour12: false               // 24-Stunden-Format (keine AM/PM)
+    const d = new Date(dueAt);
+    if (Number.isNaN(d.getTime())) return "—";
+    return d.toLocaleString("de-AT", {
+      timeZone: "Europe/Vienna", // Berücksichtige die österreichische Zeitzone
+      hour12: false, // 24-Stunden-Format (keine AM/PM)
     });
   };
 
@@ -60,9 +68,9 @@ const handleShowInfo = (item) => {
     <div
       ref={setNodeRef}
       style={style}
-      className={`rounded-lg border bg-white p-3 shadow-sm hover:shadow cursor-pointer ${overdueClass}`}
-      {...attributes}
-      {...listeners}
+      className={`rounded-lg border bg-white p-3 shadow-sm hover:shadow cursor-pointer ${overdueClass}`}␊
+      {...attributes}␊
+      {...listeners}␊
       onClick={() => (onClick ? onClick(it) : onShowInfo?.(it))}
       role="button"
       tabIndex={0}

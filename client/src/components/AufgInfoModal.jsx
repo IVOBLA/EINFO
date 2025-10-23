@@ -1,98 +1,156 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import DatePicker, { registerLocale } from "react-datepicker";
+import de from "date-fns/locale/de";
+import "react-datepicker/dist/react-datepicker.css";
+
+registerLocale("de", de);
+
+const formatDueAt = (value) => {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString("de-AT", {
+    timeZone: "Europe/Vienna",
+    hour12: false,
+  });
+};
 
 export default function AufgInfoModal({ open, item, onClose, onSave, canEdit }) {
-  const it = item || {};
-  if (!it) return null;
-
+  const it = item || null;
   const [edit, setEdit] = useState(false);
   const [form, setForm] = useState({
-    title: it.title || "",
-    type: it.type || "",
-    responsible: it.responsible || "",
-    desc: it.desc || "",
+    title: "",
+    type: "",
+    responsible: "",
+    desc: "",
+    dueAt: null,
   });
 
-  const [dueAt, setDueAt] = useState(it.dueAt ? new Date(it.dueAt) : null);
-
   useEffect(() => {
-    if (open) {
-      setEdit(false);
-      setForm({
-        title: it.title || "",
-        type: it.type || "",
-        responsible: it.responsible || "",
-        desc: it.desc || "",
-      });
-      setDueAt(it.dueAt ? new Date(it.dueAt) : null);     // init dueAt
-    }
+    if (!open) return;
+    setEdit(false);
+    setForm({
+      title: it?.title || "",
+      type: it?.type || "",
+      responsible: it?.responsible || "",
+      desc: it?.desc || "",
+      dueAt: it?.dueAt ? new Date(it.dueAt) : null,
+    });
   }, [open, it?.id]);
 
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKeyDown = (ev) => {
+      if (ev.key === "Escape") onClose?.();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, onClose]);
+
   const changed = useMemo(() => {
+    if (!it) return false;
     return (
       (form.title ?? "") !== (it.title ?? "") ||
       (form.type ?? "") !== (it.type ?? "") ||
       (form.responsible ?? "") !== (it.responsible ?? "") ||
-      (form.desc ?? "") !== (it.desc ?? "")
+      (form.desc ?? "") !== (it.desc ?? "") ||
+      ((form.dueAt ? form.dueAt.toISOString() : null) ?? null) !==
+        ((it.dueAt ? new Date(it.dueAt).toISOString() : null) ?? null)
     );
   }, [form, it]);
 
   const handleSave = async () => {
-    if (!canEdit) return; // safety check
+    if (!canEdit || !it) return;
     if (!changed) {
       setEdit(false);
       return;
     }
-    const patch = {
+    const payload = {
       id: it.id,
-      title: form.title,
-      type: form.type,
-      responsible: form.responsible,
-      desc: form.desc,
-      dueAt: dueAt ? dueAt.toISOString() : null, // save dueAt in ISO format
+      title: form.title?.trim() || "",
+      type: form.type?.trim() || "",
+      responsible: form.responsible?.trim() || "",
+      desc: form.desc?.trim() || "",
+      dueAt: form.dueAt ? form.dueAt.toISOString() : null,
     };
-    await onSave?.(patch);
+    await onSave?.(payload);
     setEdit(false);
   };
 
-  const formatDueAt = (v) => {
-    if (!v) return "—";
-    return new Date(v).toLocaleString("de-AT", { timeZone: "Europe/Vienna", hour12: false });
-  };
+  if (!open || !it) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-      <div className="w-[840px] max-w-[90vw] rounded-2xl bg-white p-4 shadow-2xl">
+    <div
+      className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/40"
+      onClick={() => onClose?.()}
+    >
+      <div
+        className="w-[840px] max-w-[90vw] rounded-2xl bg-white p-4 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold">Aufgabe</h2>
           <div className="flex items-center gap-2">
-            {!edit ? (
-              canEdit && <button onClick={() => setEdit(true)} className="px-3 py-1.5 rounded border bg-white hover:bg-gray-50">Bearbeiten</button>
-            ) : (
-              <>
-                <button onClick={() => setEdit(false)} className="px-3 py-1.5 rounded border bg-white">Abbrechen</button>
-                <button onClick={handleSave} className="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white">Speichern</button>
-              </>
-            )}
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700" title="Schließen">✕</button>
+            {canEdit ? (
+              !edit ? (
+                <button
+                  onClick={() => setEdit(true)}
+                  className="px-3 py-1.5 rounded border bg-white hover:bg-gray-50"
+                >
+                  Bearbeiten
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setEdit(false)}
+                    className="px-3 py-1.5 rounded border bg-white"
+                  >
+                    Abbrechen
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    className="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50"
+                    disabled={!changed}
+                  >
+                    Speichern
+                  </button>
+                </>
+              )
+            ) : null}
+            <button
+              onClick={onClose}
+              className="text-gray-500 hover:text-gray-700"
+              title="Schließen"
+            >
+              ✕
+            </button>
           </div>
         </div>
 
-        {/* Anzeige-Modus */}
         {!edit ? (
           <div className="grid grid-cols-1 gap-3">
-            <div><div className="text-xs text-gray-600">Titel</div><div className="font-medium">{it.title || "—"}</div></div>
-            <div className="grid grid-cols-2 gap-3">
-              <div><div className="text-xs text-gray-600">Typ</div><div>{it.type || "—"}</div></div>
-              <div><div className="text-xs text-gray-600">Verantwortlich</div><div>{it.responsible || "—"}</div></div>
+            <div>
+              <div className="text-xs text-gray-600">Titel</div>
+              <div className="font-medium break-words">{it.title || "—"}</div>
             </div>
-
-            {/* Ursprung / Bezug */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <div className="text-xs text-gray-600">Typ</div>
+                <div>{it.type || "—"}</div>
+              </div>
+              <div>
+                <div className="text-xs text-gray-600">Verantwortlich</div>
+                <div>{it.responsible || "—"}</div>
+              </div>
+            </div>
             {it.originProtocolNr ? (
               <div className="text-xs">
                 Ursprung:{" "}
                 <button
                   className="text-blue-700 hover:underline"
-                  onClick={() => { window.location.assign(`/protokoll#/protokoll/edit/${it.originProtocolNr}`); }}
+                  onClick={() =>
+                    window.location.assign(`/protokoll#/protokoll/edit/${it.originProtocolNr}`)
+                  }
                   title={`Meldung #${it.originProtocolNr} öffnen`}
                 >
                   Meldung: {it.originProtocolNr}
@@ -101,62 +159,71 @@ export default function AufgInfoModal({ open, item, onClose, onSave, canEdit }) 
             ) : null}
             {it.relatedIncidentId ? (
               <div className="text-xs">
-                Einsatz: <span className="font-medium">{viewIncidentLabel || `#${it.relatedIncidentId}`}</span>
+                Einsatz: <span className="font-medium">{it.incidentTitle || `#${it.relatedIncidentId}`}</span>
               </div>
             ) : null}
-
             <div>
               <div className="text-xs text-gray-600">Notizen</div>
-              <div className="whitespace-pre-wrap">{it.desc || "—"}</div>
+              <div className="whitespace-pre-wrap break-words">{it.desc || "—"}</div>
             </div>
-
-            {/* Frist/Kontrollzeitpunkt Anzeige */}
-            <div className="mt-2 text-xs text-gray-600">Frist/Kontrollzeitpunkt</div>
-            <div className="font-medium">
-              {formatDueAt(it.dueAt)}
+            <div>
+              <div className="text-xs text-gray-600">Frist/Kontrollzeitpunkt</div>
+              <div className="font-medium">{formatDueAt(it.dueAt)}</div>
             </div>
           </div>
         ) : (
-          // Bearbeiten-Modus
           <div className="grid grid-cols-1 gap-3">
             <label className="block">
               <span className="text-xs text-gray-600">Titel</span>
-              <input className="w-full border rounded px-2 py-1 h-9" value={title} onChange={e=>setTitle(e.target.value)} />
+              <input
+                className="w-full border rounded px-2 py-1 h-9"
+                value={form.title}
+                onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
+              />
             </label>
-
             <div className="grid grid-cols-2 gap-3">
               <label className="block">
                 <span className="text-xs text-gray-600">Typ</span>
-                <input className="w-full border rounded px-2 py-1 h-9" value={type} onChange={e=>setType(e.target.value)} />
+                <input
+                  className="w-full border rounded px-2 py-1 h-9"
+                  value={form.type}
+                  onChange={(e) => setForm((prev) => ({ ...prev, type: e.target.value }))}
+                />
               </label>
               <label className="block">
                 <span className="text-xs text-gray-600">Verantwortlich (Rolle)</span>
-                <input className="w-full border rounded px-2 py-1 h-9" value={responsible} onChange={e=>setResponsible(e.target.value)} />
+                <input
+                  className="w-full border rounded px-2 py-1 h-9"
+                  value={form.responsible}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, responsible: e.target.value }))
+                  }
+                />
               </label>
             </div>
-
-            <label className="block">
-              <span className="text-xs text-gray-600">Einsatzbezug</span>
-              <select className="w-full border rounded px-2 py-1 h-9" value={incidentId} onChange={e=>setIncidentId(e.target.value)}>
-                <option value="">— keiner —</option>
-                {openIncidents.map(i => <option key={i.id} value={i.id}>{i.label}</option>)}
-              </select>
-            </label>
-
             <label className="block">
               <span className="text-xs text-gray-600">Notizen</span>
-              <textarea className="w-full border rounded px-2 py-2 min-h-[160px]" value={desc} onChange={e=>setDesc(e.target.value)} />
-            </label>
-
-            {/* Frist/Kontrollzeitpunkt Bearbeiten */}
-            <div className="text-xs text-gray-600">Frist/Kontrollzeitpunkt</div>
-            <div className="font-medium">
-              <input
-                type="datetime-local"
-                value={dueAt ? dueAt.toISOString().slice(0, 16) : ""}
-                onChange={(e) => setDueAt(new Date(e.target.value))}
+              <textarea
+                className="w-full border rounded px-2 py-2 min-h-[160px]"
+                value={form.desc}
+                onChange={(e) => setForm((prev) => ({ ...prev, desc: e.target.value }))}
               />
-            </div>
+            </label>
+            <label className="block">
+              <span className="text-xs text-gray-600">Frist/Kontrollzeitpunkt</span>
+              <DatePicker
+                selected={form.dueAt}
+                onChange={(date) => setForm((prev) => ({ ...prev, dueAt: date }))}
+                showTimeSelect
+                dateFormat="dd.MM.yyyy HH:mm"
+                timeIntervals={5}
+                timeFormat="HH:mm"
+                timeCaption="Zeit"
+                locale="de"
+                isClearable
+                placeholderText="Kein Termin"
+              />
+            </label>
           </div>
         )}
       </div>
