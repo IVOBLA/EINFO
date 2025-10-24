@@ -127,7 +127,7 @@ export function SortableCard(props) {
     () => (areaOptions || []).filter((opt) => opt.id !== card.id),
     [areaOptions, card.id]
   );
-  const canSelectArea = editable && isManual && typeof onAreaChange === "function";
+  const canSelectArea = editable && !card.isArea && typeof onAreaChange === "function";
   const currentAreaValue = card.areaCardId ? String(card.areaCardId) : "";
   const handleAreaSelect = (value) => {
     if (!canSelectArea) return;
