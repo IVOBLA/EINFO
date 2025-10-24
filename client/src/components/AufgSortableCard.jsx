@@ -91,7 +91,7 @@ const [dueState, setDueState] = useState("none"); // none | soon | overdue
       cursor: "grab",
     };
 
-    const formatTimestamp = (value) => {
+
 
     const formatTimestamp = (value) => {
     if (!value) return "–";
