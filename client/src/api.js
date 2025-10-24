@@ -67,6 +67,10 @@ export async function createCard(title,columnId="neu",toIndex=0,ort="",typ="",ex
   return j("POST","/api/cards", payload);
 }
 
+export async function updateCard(cardId, updates){
+  return j("PATCH", `/api/cards/${encodeURIComponent(cardId)}`, updates);
+}
+
 export async function transitionCard({cardId,from,to,toIndex=0}){
   return j("POST",`/api/cards/${encodeURIComponent(cardId)}/move`,{ from,to,toIndex });
 }
