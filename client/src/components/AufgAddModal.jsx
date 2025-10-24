@@ -6,11 +6,24 @@ import "react-datepicker/dist/react-datepicker.css"; // Importiere Styles für d
 
 registerLocale("de", de);
 
-const TIME_STEP_MINUTES = 5;
+const TIME_STEP_MINUTES = 1;
+const FALLBACK_DEFAULT_DUE_OFFSET_MINUTES = (() => {
+  const fallback = 30;
+  try {
+    const env = typeof import.meta !== "undefined" ? import.meta?.env ?? {} : {};
+    const raw = env?.VITE_DEFAULT_DUE_OFFSET_MINUTES ?? env?.DEFAULT_DUE_OFFSET_MINUTES;
+    if (raw === undefined || raw === null || raw === "") return fallback;
+    const num = Number(raw);
+    if (!Number.isFinite(num)) return fallback;
+    return Math.max(0, num);
+  } catch {
+    return fallback;
+  }
+})();
 
 function normalizeOffset(value) {
   const num = Number(value);
-  if (!Number.isFinite(num)) return 30;
+  if (!Number.isFinite(num)) return FALLBACK_DEFAULT_DUE_OFFSET_MINUTES;
   return Math.max(0, num);
 }
 
@@ -21,7 +34,13 @@ function createDefaultDueAt(offsetMinutes) {
   return base;
 }
 
-export default function AufgAddModal({ open, onClose, onAdded, incidentOptions = [], defaultDueOffsetMinutes = 30 }) {
+export default function AufgAddModal({
+  open,
+  onClose,
+  onAdded,
+  incidentOptions = [],
+  defaultDueOffsetMinutes = FALLBACK_DEFAULT_DUE_OFFSET_MINUTES,
+}) {
   const safeOffset = useMemo(() => normalizeOffset(defaultDueOffsetMinutes), [defaultDueOffsetMinutes]);
   const [dueAt, setDueAt] = useState(() => createDefaultDueAt(safeOffset));  // Initialisierung von dueAt
   const [title, setTitle] = useState("");
