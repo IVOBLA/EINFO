@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+const DEFAULT_AREA_COLOR = "#2563eb";
 
 function formatAreaLabel(card = {}) {
   const idPart = card?.humanId ? String(card.humanId) : "";
@@ -14,6 +15,9 @@ function initForm(info = {}) {
     ort: info?.additionalAddressInfo || info?.ort || "",
     isArea: !!info?.isArea,
     areaCardId: info?.isArea ? "" : info?.areaCardId || "",
+	areaColor: info?.isArea
+      ? info?.areaColor || DEFAULT_AREA_COLOR
+      : info?.areaColor || "",
   };
 }
 
@@ -122,6 +126,7 @@ const isManual = useMemo(
         ort: (form.ort || "").trim(),
         isArea: !!form.isArea,
         areaCardId: form.isArea ? null : form.areaCardId || null,
+		 areaColor: form.isArea ? form.areaColor || DEFAULT_AREA_COLOR : undefined,
       });
       setEditing(false);
     } catch (err) {
@@ -181,20 +186,23 @@ const isManual = useMemo(
           </label>
 
 <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-            <label className="inline-flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={form.isArea}
-                onChange={(e) =>
-                  setForm((prev) => ({
-                    ...prev,
-                    isArea: e.target.checked,
-                    areaCardId: e.target.checked ? "" : prev.areaCardId,
-                  }))
-                }
-                disabled={busy}
-              />
-              Bereich
+          <label className="inline-flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={form.isArea}
+              onChange={(e) =>
+                setForm((prev) => ({
+                  ...prev,
+                  isArea: e.target.checked,
+                  areaCardId: e.target.checked ? "" : prev.areaCardId,
+                  areaColor: e.target.checked
+                    ? prev.areaColor || DEFAULT_AREA_COLOR
+                    : prev.areaColor,
+                }))
+              }
+              disabled={busy}
+            />
+            Bereich
             </label>
             {!form.isArea && (
               <select
@@ -212,6 +220,23 @@ const isManual = useMemo(
           </div>
           {!form.isArea && areaSelectOptions.length === 0 && (
             <p className="text-xs text-gray-500">Noch keine Bereiche vorhanden.</p>
+          )}
+		  {form.isArea && (
+            <div className="flex items-center justify-between gap-3 text-sm text-gray-700">
+              <span>Bereichsfarbe</span>
+              <input
+                type="color"
+                className="h-9 w-16 border rounded cursor-pointer"
+                value={form.areaColor || DEFAULT_AREA_COLOR}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    areaColor: e.target.value,
+                  }))
+                }
+                disabled={busy}
+              />
+            </div>
           )}
         </div>
 
@@ -281,7 +306,38 @@ type="button"
               <Row label="Beschreibung" value={info.description} />
               <Row label="Adresse" value={info.additionalAddressInfo || info.ort} />
               <Row label="Location" value={locationCombined} />
-              <Row label="Bereich" value={areaDisplayLabel} />
+              <Row
+                label="Bereich"
+                value={
+                  info.isArea && info.areaColor
+                    ? (
+                        <span className="inline-flex items-center gap-2">
+                          <span
+                            className="h-4 w-4 rounded border"
+                            style={{ backgroundColor: info.areaColor, borderColor: info.areaColor }}
+                            aria-hidden
+                          />
+                          {areaDisplayLabel}
+                        </span>
+                      )
+                    : areaDisplayLabel
+                }
+              />
+              {!info.isArea && info.areaColor && (
+                <Row
+                  label="Bereichsfarbe"
+                  value={
+                    <span className="inline-flex items-center gap-2">
+                      <span
+                        className="h-4 w-4 rounded border"
+                        style={{ backgroundColor: info.areaColor, borderColor: info.areaColor }}
+                        aria-hidden
+                      />
+                      {info.areaColor}
+                    </span>
+                  }
+                />
+              )}
             </div>
 
             <div className="mt-4 flex justify-end">

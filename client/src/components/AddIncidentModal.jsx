@@ -2,11 +2,13 @@ import React, { useEffect, useRef, useState } from "react";
 import { usePlacesAutocomplete } from "../hooks/usePlacesAutocomplete";
 
 export default function AddIncidentModal({ onClose, onCreate, types, areaOptions = [] }) {
+  const DEFAULT_AREA_COLOR = "#2563eb";
   const [title, setTitle] = useState("");
   const [typ, setTyp] = useState("");
   const [busy, setBusy] = useState(false);
   const [isArea, setIsArea] = useState(false);
   const [areaCardId, setAreaCardId] = useState("");
+  const [areaColor, setAreaColor] = useState(DEFAULT_AREA_COLOR);
 
   // ⬇️ Fokus auf Typ-Dropdown
   const typRef = useRef(null);
@@ -33,7 +35,10 @@ export default function AddIncidentModal({ onClose, onCreate, types, areaOptions
   }, [typ]); // eslint-disable-line react-hooks/exhaustive-deps
 
 useEffect(() => {
-    if (isArea) setAreaCardId("");
+    if (isArea) {
+      setAreaCardId("");
+      setAreaColor((prev) => prev || DEFAULT_AREA_COLOR);
+    }
   }, [isArea]);
 
   const submit = async (e) => {
@@ -50,12 +55,14 @@ useEffect(() => {
         typ: (typ || "").trim(),
         isArea,
         areaCardId: isArea ? null : areaCardId || null,
+        areaColor: isArea ? areaColor : undefined,
       });
       setTitle("");
       setOrtQuery("");
       setTyp("");
       setIsArea(false);
       setAreaCardId("");
+      setAreaColor(DEFAULT_AREA_COLOR);
       resetSession();
       onClose?.();
     } finally {
@@ -165,10 +172,23 @@ useEffect(() => {
               </select>
             )}
           </div>
+          {isArea && (
+            <div className="flex items-center justify-between gap-3 text-sm text-gray-700">
+              <span>Bereichsfarbe</span>
+              <input
+                type="color"
+                className="h-9 w-16 border rounded cursor-pointer"
+                value={areaColor}
+                onChange={(e) => setAreaColor(e.target.value)}
+                disabled={busy}
+              />
+            </div>
+          )}
           {!isArea && areaOptions.length === 0 && (
             <p className="text-xs text-gray-500">Noch keine Bereiche vorhanden.</p>
           )}
         </div>
+
 
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="px-3 py-1 rounded border" disabled={busy}>

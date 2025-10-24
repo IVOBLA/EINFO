@@ -13,6 +13,7 @@ export function SortableCard(props) {
     onShowInfo,
 	 areaOptions = [],
     areaLabelById = new Map(),
+	areaColorById = new Map(),
     onAreaChange,
     onEditCard,
     nearIds, nearUntilMs,
@@ -35,10 +36,27 @@ export function SortableCard(props) {
     : { attributes:{}, listeners:{}, setNodeRef:(el)=>{}, transform:null, transition:null, isDragging:false };
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = sortable;
 
+  const resolvedAreaColor = useMemo(() => {
+    if (!card) return null;
+    const directColor = typeof card.areaColor === "string" && card.areaColor ? card.areaColor : null;
+    if (card.isArea) return directColor;
+    if (!card.areaCardId) return null;
+    if (directColor) return directColor;
+    const idStr = String(card.areaCardId);
+    if (areaColorById.has(idStr)) {
+      return areaColorById.get(idStr) || null;
+    }
+    const opt = (areaOptions || []).find((o) => String(o.id) === idStr);
+    if (opt?.color) return opt.color;
+    return null;
+  }, [card, areaColorById, areaOptions]);
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.8 : 1,
+	borderColor: resolvedAreaColor || undefined,
+    borderWidth: resolvedAreaColor ? "2px" : undefined,
   };
 
   const vehicleCount = colId === "erledigt"
