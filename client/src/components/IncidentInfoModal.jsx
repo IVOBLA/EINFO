@@ -42,6 +42,7 @@ export default function IncidentInfoModal({ open, onClose, info = {} }) {
 
         <div className="space-y-1">
           <Row label="Typ" value={info.type || info.typ} />
+		  <Row label="Einsatz ID" value={info.humanId} />
           <Row label="Alarmzeit" value={alarmzeit} />
           <Row label="Alarmiert" value={info.alerted} />
           <Row label="Beschreibung" value={info.description} />
