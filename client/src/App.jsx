@@ -46,6 +46,7 @@ import {
   setAutoImportConfig,
   fetchNearby,
   resetVehiclePosition,
+  updateCard,
 } from "./api";
 
 /** Skaliert die UI kompakt – unverändert */
@@ -98,6 +99,8 @@ const readOnly = !canEdit;
   const [newTitle, setNewTitle] = useState("");
   const [newOrt, setNewOrt] = useState("");
   const [newTyp, setNewTyp] = useState("");
+  const [newIsArea, setNewIsArea] = useState(false);
+  const [newAreaCardId, setNewAreaCardId] = useState("");
 
   const [mapCtx, setMapCtx] = useState(null);
   const [editing, setEditing] = useState(null);
@@ -113,7 +116,11 @@ const readOnly = !canEdit;
 
   const [infoOpen, setInfoOpen] = useState(false);
   const [infoCard, setInfoCard] = useState(null);
-  const onShowInfo = (card) => { setInfoCard(card); setInfoOpen(true); };
+  const [infoForceEdit, setInfoForceEdit] = useState(false);
+  const onShowInfo = (card) => { setInfoCard(card); setInfoForceEdit(false); setInfoOpen(true); };
+  useEffect(() => {
+    if (newIsArea) setNewAreaCardId("");
+  }, [newIsArea])
   
   // --- Mini-Routing über Hash (stabil) ---
 const [hash, setHash] = useState(window.location.hash);
@@ -245,6 +252,70 @@ const tick = async () => {
   const safeBoard = board ?? {
     columns: { neu: { items: [] }, "in-bearbeitung": { items: [] }, erledigt: { items: [] } },
   };
+
+const toAreaLabel = (c) => {
+    if (!c) return "";
+    const idPart = c.humanId ? String(c.humanId) : "";
+    const titlePart = c.content ? String(c.content) : "";
+    const joined = [idPart, titlePart].filter(Boolean).join(" – ");
+    return joined || idPart || titlePart || "";
+  };
+
+  const areaCards = useMemo(() => {
+    const cols = safeBoard?.columns || {};
+    const result = [];
+    for (const key of Object.keys(cols)) {
+      for (const card of cols[key]?.items || []) {
+        if (card?.isArea) result.push(card);
+      }
+    }
+    return result;
+  }, [safeBoard]);
+
+  const areaLabelById = useMemo(() => {
+    const map = new Map();
+    areaCards.forEach((c) => {
+      if (!c?.id) return;
+      map.set(c.id, toAreaLabel(c));
+    });
+    return map;
+  }, [areaCards]);
+
+  const areaOptions = useMemo(
+    () => areaCards.map((c) => ({ id: c.id, label: areaLabelById.get(c.id) || toAreaLabel(c) })),
+    [areaCards, areaLabelById]
+  );
+
+  const syncBoardAndInfo = (updatedCard, nextBoard) => {
+    if (nextBoard) {
+      setBoard(nextBoard);
+      if (updatedCard?.id && infoCard?.id === updatedCard.id) {
+        const fresh = getCardById(nextBoard, updatedCard.id);
+        setInfoCard(fresh || updatedCard);
+      }
+      return;
+    }
+    if (updatedCard) {
+      setBoard((prev) => {
+        if (!prev) return prev;
+        const b = structuredClone(prev);
+        for (const key of Object.keys(b.columns || {})) {
+          const arr = b.columns[key]?.items || [];
+          const idx = arr.findIndex((c) => c?.id === updatedCard.id);
+          if (idx >= 0) {
+            arr[idx] = { ...arr[idx], ...updatedCard };
+            break;
+          }
+        }
+        return b;
+      });
+      if (infoCard?.id === updatedCard.id) {
+        setInfoCard((prev) => (prev ? { ...prev, ...updatedCard } : updatedCard));
+      }
+    }
+  };
+  
+
   
 // --- Auto-Density -------------------------------------------------------
 const DENSE_THRESHOLD = 10;
@@ -480,7 +551,10 @@ useEffect(() => {
       createdAt: new Date().toISOString(),
       statusSince: new Date().toISOString(),
       assignedVehicles: [], everVehicles: [], everPersonnel: 0,
-      ort: (newOrt || "").trim(), typ: newTyp.trim(),
+      ort: (newOrt || "").trim(),
+      typ: newTyp.trim(),
+      isArea: newIsArea,
+      areaCardId: newIsArea ? null : (newAreaCardId || null),
     };
 
     setLoadingAddCard(true);
@@ -500,7 +574,12 @@ useEffect(() => {
         const gc = await geocodeAddressClient(temp.ort);
         if (gc) coords = { lat: gc.lat, lng: gc.lng };
       }
-      const r = await createCard(title, "neu", 0, temp.ort, temp.typ, coords ?? undefined);
+      const extraPayload = {
+        ...(coords ?? {}),
+        isArea: newIsArea,
+        areaCardId: newIsArea ? null : (newAreaCardId || null),
+      };
+      const r = await createCard(title, "neu", 0, temp.ort, temp.typ, extraPayload);
      // eigene Erstellung: Ton/Pulse unterdrücken
      suppressSoundUntilRef.current = Date.now()// + 15000; // 15s Ruhe
      if (r?.card?.id != null) suppressPulseIdsRef.current.add(String(r.card.id));	  
@@ -514,6 +593,7 @@ useEffect(() => {
       });
 
       setNewTitle(""); setOrtQuery(""); setNewOrt(""); setNewTyp("");
+	   setNewIsArea(false); setNewAreaCardId("");
       lastPlaceDetailsRef.current = null; resetSession();
     } catch {
       setBoard((p) => {
@@ -764,9 +844,13 @@ useEffect(() => {
     try { await setAutoImportConfig({ enabled: autoEnabled, intervalSec: n }); setSec(0); } catch {}
   };
 
-  const createIncident = async ({ title, ort, typ }) => {
-    const r = await createCard(title, "neu", 0, ort, typ);
-	suppressSoundUntilRef.current = Date.now()// + 15000;
+const createIncident = async ({ title, ort, typ, isArea = false, areaCardId = null }) => {
+    const finalAreaId = isArea ? null : (areaCardId ? String(areaCardId) : null);
+    const r = await createCard(title, "neu", 0, ort, typ, {
+      isArea: !!isArea,
+      areaCardId: finalAreaId,
+    });
+        suppressSoundUntilRef.current = Date.now()// + 15000;
    if (r?.card?.id != null) suppressPulseIdsRef.current.add(String(r.card.id));
     setBoard((prev) => {
       if (!prev) return prev;
@@ -774,6 +858,27 @@ useEffect(() => {
       b.columns["neu"].items.unshift(r.card);
       return b;
     });
+  };
+
+const handleAreaChange = async (card, rawAreaId) => {
+    if (!card?.id) return;
+    const nextAreaId = rawAreaId ? String(rawAreaId) : null;
+    try {
+      const res = await updateCard(card.id, { areaCardId: nextAreaId });
+      syncBoardAndInfo(res?.card, res?.board);
+    } catch (err) {
+      alert(err?.message || "Bereich konnte nicht geändert werden.");
+    }
+  };
+
+  const handleSaveIncident = async (cardId, payload) => {
+    try {
+      const res = await updateCard(cardId, payload);
+      syncBoardAndInfo(res?.card, res?.board);
+      return res;
+    } catch (err) {
+      throw err;
+    }
   };
 
   const onTypeSelectChange = (value) => {
@@ -941,7 +1046,7 @@ if (route.startsWith("/protokoll")) {
       </header>
 
       {/* Quick-Add */}
-      <section className="mb-2 grid grid-cols-1 md:grid-cols-7 gap-2">
+      <section className="mb-2 grid grid-cols-1 md:grid-cols-8 gap-2">
         <select
           className="border rounded px-2 py-1 md:col-span-2"
           value={newTyp} onChange={(e) => onTypeSelectChange(e.target.value)}
@@ -976,9 +1081,40 @@ if (route.startsWith("/protokoll")) {
           )}
         </div>
 
-        <button className="px-3 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60" disabled={readOnly || loadingAddCard} onClick={addCard}>
+           <button
+          className="px-3 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60 md:col-span-2"
+          disabled={readOnly || loadingAddCard}
+          onClick={addCard}
+        >
           {loadingAddCard ? "Wird angelegt…" : "Einsatz anlegen"}
         </button>
+		<div className="flex flex-col gap-1 md:col-span-8">
+          <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+            <input
+              type="checkbox"
+              checked={newIsArea}
+              onChange={(e) => setNewIsArea(e.target.checked)}
+              disabled={readOnly || loadingAddCard}
+            />
+            Bereich
+          </label>
+          {!newIsArea && (
+            <select
+              className="border rounded px-2 py-1 text-sm"
+              value={newAreaCardId}
+              onChange={(e) => setNewAreaCardId(e.target.value)}
+              disabled={readOnly || loadingAddCard || areaOptions.length === 0}
+            >
+              <option value="">— Bereich auswählen —</option>
+              {areaOptions.map((opt) => (
+                <option key={opt.id} value={opt.id}>{opt.label}</option>
+              ))}
+            </select>
+          )}
+          {!newIsArea && areaOptions.length === 0 && (
+            <span className="text-xs text-gray-500">Noch keine Bereiche vorhanden.</span>
+          )}
+        </div>
       </section>
 
 <DndContext
@@ -1081,6 +1217,10 @@ if (route.startsWith("/protokoll")) {
                         card={c}
                         colId={id}
                         vehiclesById={vehiclesById}
+						areaOptions={areaOptions}
+                        areaLabelById={areaLabelById}
+                        onAreaChange={canEdit ? handleAreaChange : undefined}
+                        onEditCard={canEdit ? (card) => { setInfoCard(card); setInfoForceEdit(true); setInfoOpen(true); } : undefined}
                         distById={nearbyDistById}
                         pillWidthPx={160}
 						pulse={newlyImportedIds.has(String(c.id)) && Date.now() < pulseUntilMs}
@@ -1185,10 +1325,27 @@ if (route.startsWith("/protokoll")) {
         />
       )}
 
-      {showAddModal && <AddIncidentModal onClose={() => setShowAddModal(false)} onCreate={createIncident} types={types} />}
+      {showAddModal && (
+        <AddIncidentModal
+          onClose={() => setShowAddModal(false)}
+          onCreate={createIncident}
+          types={types}
+          areaOptions={areaOptions}
+        />
+      )}
 
       {mapCtx && <MapModal context={mapCtx} onClose={() => setMapCtx(null)} />}
-      <IncidentInfoModal open={infoOpen} info={infoCard || {}} onClose={() => { setInfoOpen(false); setInfoCard(null); }} />
+      <IncidentInfoModal
+        open={infoOpen}
+        info={infoCard || {}}
+        onClose={() => { setInfoOpen(false); setInfoCard(null); setInfoForceEdit(false); }}
+        canEdit={canEdit}
+        onSave={handleSaveIncident}
+        areaOptions={areaOptions}
+        areaLabelById={areaLabelById}
+        forceEdit={infoForceEdit}
+        types={types}
+      />
     </div>
   );
 }
