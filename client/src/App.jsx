@@ -1046,9 +1046,9 @@ if (route.startsWith("/protokoll")) {
       </header>
 
       {/* Quick-Add */}
-      <section className="mb-2 grid grid-cols-1 md:grid-cols-8 gap-2">
+       <section className="mb-2 flex flex-wrap items-center gap-2">
         <select
-          className="border rounded px-2 py-1 md:col-span-2"
+          className="border rounded px-2 py-1 min-w-[160px] flex-1"
           value={newTyp} onChange={(e) => onTypeSelectChange(e.target.value)}
         >
           <option value="">— Typ auswählen —</option>
@@ -1056,12 +1056,12 @@ if (route.startsWith("/protokoll")) {
         </select>
 
         <input
-          className="border rounded px-2 py-1 md:col-span-2"
+          className="border rounded px-2 py-1 min-w-[160px] flex-1"
           placeholder="Titel (wird aus Typ übernommen)"
           value={newTitle} onChange={(e) => setNewTitle(e.target.value)}
         />
 
-        <div className="relative md:col-span-2">
+         <div className="relative flex-1 min-w-[200px]">
           <input
             className="border rounded px-2 py-1 w-full"
             placeholder="Ort (nur Österreich)"
@@ -1081,15 +1081,8 @@ if (route.startsWith("/protokoll")) {
           )}
         </div>
 
-           <button
-          className="px-3 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60 md:col-span-2"
-          disabled={readOnly || loadingAddCard}
-          onClick={addCard}
-        >
-          {loadingAddCard ? "Wird angelegt…" : "Einsatz anlegen"}
-        </button>
-		<div className="flex flex-col gap-1 md:col-span-8">
-          <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+      <div className="flex items-center gap-2 min-w-[180px]">
+          <label className="inline-flex items-center gap-2 text-sm text-gray-700 whitespace-nowrap">
             <input
               type="checkbox"
               checked={newIsArea}
@@ -1100,7 +1093,7 @@ if (route.startsWith("/protokoll")) {
           </label>
           {!newIsArea && (
             <select
-              className="border rounded px-2 py-1 text-sm"
+className="border rounded px-2 py-1 text-sm min-w-[160px]"
               value={newAreaCardId}
               onChange={(e) => setNewAreaCardId(e.target.value)}
               disabled={readOnly || loadingAddCard || areaOptions.length === 0}
@@ -1111,10 +1104,20 @@ if (route.startsWith("/protokoll")) {
               ))}
             </select>
           )}
-          {!newIsArea && areaOptions.length === 0 && (
-            <span className="text-xs text-gray-500">Noch keine Bereiche vorhanden.</span>
-          )}
+
         </div>
+		
+        <button
+          className="px-3 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60"
+          disabled={readOnly || loadingAddCard}
+          onClick={addCard}
+        >
+          {loadingAddCard ? "Wird angelegt…" : "Einsatz anlegen"}
+        </button>
+
+        {!newIsArea && areaOptions.length === 0 && (
+          <span className="basis-full text-xs text-gray-500">Noch keine Bereiche vorhanden.</span>
+        )}
       </section>
 
 <DndContext
