@@ -1048,7 +1048,7 @@ if (route.startsWith("/protokoll")) {
       {/* Quick-Add */}
        <section className="mb-2 flex flex-wrap items-center gap-2">
         <select
-          className="border rounded px-2 py-1 min-w-[160px] flex-1"
+          className="border rounded px-2 py-1 basis-40 shrink-0 min-w-[140px]"
           value={newTyp} onChange={(e) => onTypeSelectChange(e.target.value)}
         >
           <option value="">— Typ auswählen —</option>
@@ -1056,7 +1056,7 @@ if (route.startsWith("/protokoll")) {
         </select>
 
         <input
-          className="border rounded px-2 py-1 min-w-[160px] flex-1"
+className="border rounded px-2 py-1 flex-[2] min-w-[220px]"
           placeholder="Titel (wird aus Typ übernommen)"
           value={newTitle} onChange={(e) => setNewTitle(e.target.value)}
         />
