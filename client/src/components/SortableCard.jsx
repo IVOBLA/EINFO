@@ -129,7 +129,7 @@ export function SortableCard(props) {
           <div className="min-w-0">
 		     {card.humanId && (
               <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                {card.humanId}
+                Einsatz: {card.humanId}
               </div>
             )}
             <div className="font-semibold text-sm leading-5 truncate">{card.content}</div>
