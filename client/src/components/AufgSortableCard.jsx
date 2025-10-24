@@ -62,10 +62,8 @@ const [dueState, setDueState] = useState("none"); // none | soon | overdue
   const highlightClass = isDone
     ? "bg-white"
     : isOverdue
-      ? "bg-red-100 border-red-300"
-      : dueState === "soon"
-        ? "bg-yellow-100 border-amber-300"
-        : "bg-white";
+      ? "bg-yellow-100 border-amber-300"
+      : "bg-white";
 
   const showPulse = Boolean(isNew && !isDone);
 
@@ -86,12 +84,14 @@ const [dueState, setDueState] = useState("none"); // none | soon | overdue
     });
   };
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.7 : 1,
-    cursor: "grab",
-  };
+    const style = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.7 : 1,
+      cursor: "grab",
+    };
+
+    const formatTimestamp = (value) => {
 
     const formatTimestamp = (value) => {
     if (!value) return "–";
