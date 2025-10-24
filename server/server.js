@@ -299,6 +299,14 @@ async function ensureBoard(){
   const b = await readJson(BOARD_FILE, null);
   if(!b){ await writeJson(BOARD_FILE, fallback); return fallback; }
 
+ let highestHumanId=0;
+  for(const k of Object.keys(b.columns||{})){
+    for(const c of (b.columns[k].items||[])){
+      const parsed=parseHumanIdNumber(c?.humanId);
+      if(Number.isFinite(parsed)&&parsed>highestHumanId) highestHumanId=parsed;
+    }
+  }
+
   for(const k of Object.keys(b.columns||{})){
     for(const c of (b.columns[k].items||[])){
       c.createdAt        ||= new Date().toISOString();
@@ -313,6 +321,11 @@ async function ensureBoard(){
       if(!("location"    in c)) c.location="";
       if(!("description" in c)) c.description="";
       if(!("timestamp"   in c)) c.timestamp=null;
+	      if(typeof c.humanId!=="string" || !c.humanId.trim()){
+        const prefix=c.externalId?"E":"M";
+        highestHumanId+=1;
+        c.humanId=`${prefix}-${highestHumanId}`;
+      }
     }
   }
   return b;
@@ -398,6 +411,8 @@ app.post("/api/cards", async (req, res) => {
   const now = new Date().toISOString();
   const cleanTitle = stripTypePrefix(title);
   const key = ["neu", "in-bearbeitung", "erledigt"].includes(columnId) ? columnId : "neu";
+  
+  const manualHumanId = `M-${nextHumanNumber(board)}`;
 
   const latIn = latitude ?? req.body?.lat;
   const lngIn = longitude ?? req.body?.lng;
@@ -414,6 +429,7 @@ app.post("/api/cards", async (req, res) => {
     typ,
     externalId,
     alerted,
+	humanId: manualHumanId,
     latitude: Number.isFinite(+latIn) ? +latIn : null,
     longitude: Number.isFinite(+lngIn) ? +lngIn : null,
     location: String(location || ""),
@@ -848,9 +864,11 @@ async function importFromFileOnce(filename=AUTO_DEFAULT_FILENAME){
         updated++;
       }else{
         const now=new Date().toISOString();
+		const importHumanId = `E-${nextHumanNumber(board)}`;
         const card={ id:uid(), content:m.content||"(ohne Titel)", createdAt:now, statusSince:now,
           assignedVehicles:[], everVehicles:[], everPersonnel:0,
           ort:m.ort, typ:m.typ, externalId:m.externalId, alerted:m.alerted,
+		   humanId: importHumanId,
           latitude:m.latitude, longitude:m.longitude,
           location: m.location || "",
           timestamp: m.timestamp || null,
