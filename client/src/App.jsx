@@ -56,6 +56,7 @@ function useCompactScale() {
 }
 const CID = (id) => `card:${id}`;
 const unlocked = true;
+const DEFAULT_AREA_COLOR = "#2563eb";
 
 /** Clientseitiges Geocoding über Google Maps JS API (Region AT) */
 async function geocodeAddressClient(address) {
@@ -101,6 +102,7 @@ const readOnly = !canEdit;
   const [newTyp, setNewTyp] = useState("");
   const [newIsArea, setNewIsArea] = useState(false);
   const [newAreaCardId, setNewAreaCardId] = useState("");
+  const [newAreaColor, setNewAreaColor] = useState(DEFAULT_AREA_COLOR);
 
   const [mapCtx, setMapCtx] = useState(null);
   const [editing, setEditing] = useState(null);
@@ -119,8 +121,11 @@ const readOnly = !canEdit;
   const [infoForceEdit, setInfoForceEdit] = useState(false);
   const onShowInfo = (card) => { setInfoCard(card); setInfoForceEdit(false); setInfoOpen(true); };
   useEffect(() => {
-    if (newIsArea) setNewAreaCardId("");
-  }, [newIsArea])
+   if (newIsArea) {
+      setNewAreaCardId("");
+      setNewAreaColor((prev) => prev || DEFAULT_AREA_COLOR);
+    }
+  }, [newIsArea]);
   
   // --- Mini-Routing über Hash (stabil) ---
 const [hash, setHash] = useState(window.location.hash);
@@ -281,9 +286,24 @@ const toAreaLabel = (c) => {
     return map;
   }, [areaCards]);
 
+const areaColorById = useMemo(() => {
+    const map = new Map();
+    areaCards.forEach((c) => {
+      if (!c?.id) return;
+      map.set(String(c.id), c.areaColor || null);
+    });
+    return map;
+  }, [areaCards]);
+
+
   const areaOptions = useMemo(
-    () => areaCards.map((c) => ({ id: c.id, label: areaLabelById.get(c.id) || toAreaLabel(c) })),
-    [areaCards, areaLabelById]
+    () =>
+      areaCards.map((c) => ({
+        id: c.id,
+        label: areaLabelById.get(c.id) || toAreaLabel(c),
+        color: areaColorById.get(String(c.id)) || null,
+      })),
+    [areaCards, areaLabelById, areaColorById]
   );
 
   const syncBoardAndInfo = (updatedCard, nextBoard) => {
@@ -545,6 +565,10 @@ useEffect(() => {
     const title = (newTitle || cleanTyp).trim();
     if (!title) { alert("Bitte Typ oder Titel angeben."); return; }
 
+const assignedAreaColor = !newIsArea && newAreaCardId
+      ? areaColorById.get(String(newAreaCardId)) || null
+      : null;
+
     const temp = {
       id: `tmp-${Math.random().toString(36).slice(2, 10)}`,
       content: title,
@@ -555,6 +579,7 @@ useEffect(() => {
       typ: newTyp.trim(),
       isArea: newIsArea,
       areaCardId: newIsArea ? null : (newAreaCardId || null),
+	  areaColor: newIsArea ? newAreaColor : assignedAreaColor,
     };
 
     setLoadingAddCard(true);
@@ -578,6 +603,7 @@ useEffect(() => {
         ...(coords ?? {}),
         isArea: newIsArea,
         areaCardId: newIsArea ? null : (newAreaCardId || null),
+		...(newIsArea ? { areaColor: newAreaColor } : {}),
       };
       const r = await createCard(title, "neu", 0, temp.ort, temp.typ, extraPayload);
      // eigene Erstellung: Ton/Pulse unterdrücken
@@ -593,7 +619,7 @@ useEffect(() => {
       });
 
       setNewTitle(""); setOrtQuery(""); setNewOrt(""); setNewTyp("");
-	   setNewIsArea(false); setNewAreaCardId("");
+	   setNewIsArea(false); setNewAreaCardId(""); setNewAreaColor(DEFAULT_AREA_COLOR);
       lastPlaceDetailsRef.current = null; resetSession();
     } catch {
       setBoard((p) => {
@@ -844,12 +870,16 @@ useEffect(() => {
     try { await setAutoImportConfig({ enabled: autoEnabled, intervalSec: n }); setSec(0); } catch {}
   };
 
-const createIncident = async ({ title, ort, typ, isArea = false, areaCardId = null }) => {
+const createIncident = async ({ title, ort, typ, isArea = false, areaCardId = null, areaColor }) => {
     const finalAreaId = isArea ? null : (areaCardId ? String(areaCardId) : null);
-    const r = await createCard(title, "neu", 0, ort, typ, {
+    const payload = {
       isArea: !!isArea,
       areaCardId: finalAreaId,
-    });
+     };
+    if (isArea) {
+      payload.areaColor = areaColor || DEFAULT_AREA_COLOR;
+    }
+    const r = await createCard(title, "neu", 0, ort, typ, payload);
         suppressSoundUntilRef.current = Date.now()// + 15000;
    if (r?.card?.id != null) suppressPulseIdsRef.current.add(String(r.card.id));
     setBoard((prev) => {
@@ -1081,7 +1111,7 @@ className="border rounded px-2 py-1 flex-[2] min-w-[220px]"
           )}
         </div>
 
-      <div className="flex items-center gap-2 min-w-[180px]">
+<div className="flex items-center gap-2 min-w-[180px] flex-wrap">
           <label className="inline-flex items-center gap-2 text-sm text-gray-700 whitespace-nowrap">
             <input
               type="checkbox"
@@ -1104,7 +1134,18 @@ className="border rounded px-2 py-1 text-sm min-w-[160px]"
               ))}
             </select>
           )}
-
+{newIsArea && (
+            <label className="inline-flex items-center gap-2 text-sm text-gray-700 whitespace-nowrap">
+              <span>Farbe</span>
+              <input
+                type="color"
+                className="h-9 w-12 border rounded cursor-pointer"
+                value={newAreaColor}
+                onChange={(e) => setNewAreaColor(e.target.value)}
+                disabled={readOnly || loadingAddCard}
+              />
+            </label>
+          )}
         </div>
 		
         <button
@@ -1222,6 +1263,7 @@ className="border rounded px-2 py-1 text-sm min-w-[160px]"
                         vehiclesById={vehiclesById}
 						areaOptions={areaOptions}
                         areaLabelById={areaLabelById}
+						areaColorById={areaColorById}
                         onAreaChange={canEdit ? handleAreaChange : undefined}
                         onEditCard={canEdit ? (card) => { setInfoCard(card); setInfoForceEdit(true); setInfoOpen(true); } : undefined}
                         distById={nearbyDistById}
