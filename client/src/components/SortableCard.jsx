@@ -25,6 +25,7 @@ export function SortableCard(props) {
 
   // Start: in-bearbeitung = offen, erledigt = zu, neu = egal
   const [chipsOpen, setChipsOpen] = useState(colId === "in-bearbeitung");
+  const [hovered, setHovered] = useState(false);
   const prevAssignedCountRef = useRef((card.assignedVehicles || []).length);
   const chipsRef = useRef(null);
 
@@ -151,15 +152,21 @@ export function SortableCard(props) {
     if (!canSelectArea) return;
     onAreaChange(card, value);
   };
+const showDetails = hovered || chipsOpen;
+
 
   return (
     <li
       ref={setNodeRef}
       style={style}
       tabIndex={0}
-      className={`group relative rounded-lg bg-white shadow border transition mx-1 focus:outline-none
+      className={`relative rounded-lg bg-white shadow border transition mx-1 focus:outline-none
               ${pulse && colId === "neu" ? "ring-2 ring-red-400/60" : ""}`}
-    >
+    onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onFocus={() => setHovered(true)}
+      onBlur={() => setHovered(false)}
+	>
       {pulse && colId === "neu" && (
         <>
           {/* Innerer, weicher Licht-Impuls */}
@@ -201,9 +208,7 @@ export function SortableCard(props) {
             )}
           </div>
 
-                  <div
-            className="flex items-center gap-1 shrink-0 transition-opacity duration-150 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
-          >
+    <div className="flex items-center gap-1 shrink-0">
             <button
               type="button"
               title={
@@ -252,9 +257,12 @@ export function SortableCard(props) {
           </div>
         </div>
 
- <div
-          className="mt-0 overflow-hidden transition-all duration-200 ease-in-out max-h-0 opacity-0 pointer-events-none group-hover:max-h-[2000px] group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:max-h-[2000px] group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
-        >
+<div
+          className={`mt-0 overflow-hidden transition-all duration-200 ease-in-out ${
+            showDetails
+              ? "max-h-[2000px] opacity-100 pointer-events-auto"
+              : "max-h-0 opacity-0 pointer-events-none"
+          }`}        >
           <div className="pt-2 space-y-2">
             <div className="flex items-center gap-2 text-[12px]">
               <span className="text-gray-600 whitespace-nowrap">Bereich</span>
