@@ -155,6 +155,37 @@ function fmt24(iso){ return new Intl.DateTimeFormat("de-AT",{year:"2-digit",mont
 function uid(){ return Math.random().toString(36).slice(2,10); }
 const stripTypePrefix = raw => String(raw||"").replace(/^T\d+\s*,?\s*/i,"").trim();
 
+const HUMAN_ID_PATTERN=/^([EM])-(\d+)$/i;
+
+function parseHumanIdNumber(value){
+  if(typeof value!=="string") return null;
+  const match=value.trim().match(HUMAN_ID_PATTERN);
+  if(!match) return null;
+  const num=Number.parseInt(match[2],10);
+  return Number.isFinite(num)?num:null;
+}
+
+function collectHumanIdStats(board){
+  let total=0;
+  let max=0;
+  const cols=board?.columns||{};
+  for(const key of Object.keys(cols)){
+    const items=cols[key]?.items||[];
+    total+=items.length;
+    for(const card of items){
+      const n=parseHumanIdNumber(card?.humanId);
+      if(Number.isFinite(n)&&n>max) max=n;
+    }
+  }
+  return { total, max };
+}
+
+function nextHumanNumber(board){
+  const { total, max }=collectHumanIdStats(board);
+  return Math.max(total,max)+1;
+}
+
+
 // ---- Fehler-Logging ----
 async function appendError(where, err, extra){
   try{
