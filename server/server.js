@@ -83,6 +83,18 @@ function areaLabel(card = {}, board = null) {
   return format(area);
 }
 
+const DEFAULT_AREA_COLOR = "#2563eb";
+function normalizeAreaColor(input, fallback = DEFAULT_AREA_COLOR) {
+  if (typeof input !== "string") return fallback;
+  const trimmed = input.trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(trimmed)) return trimmed.toLowerCase();
+  if (/^#[0-9a-fA-F]{3}$/.test(trimmed)) {
+    const [, r, g, b] = trimmed;
+    return `#${r}${r}${g}${g}${b}${b}`.toLowerCase();
+  }
+  return fallback;
+}
+
 function buildEinsatzLog({ action, card = {}, from = "", to = "", einheit = "", note = "", board = null }) {
   return {
     EinsatzID: card.humanId || "",
@@ -327,6 +339,7 @@ async function ensureBoard(){
 
  let highestHumanId=0;
  const areaIds = new Set();
+ const areaColorById = new Map();
   for(const k of Object.keys(b.columns||{})){
     for(const c of (b.columns[k].items||[])){
       const parsed=parseHumanIdNumber(c?.humanId);
@@ -350,8 +363,18 @@ async function ensureBoard(){
       if(!("timestamp"   in c)) c.timestamp=null;
 	       if(!("isArea"      in c)) c.isArea=false;
       if(!("areaCardId"  in c)) c.areaCardId=null;
-      if(c.isArea) c.areaCardId=null;
-      if(c.isArea && c.id) areaIds.add(String(c.id));
+if(!("areaColor"   in c)) c.areaColor=null;
+      if(c.isArea){
+        c.areaCardId=null;
+        c.areaColor = normalizeAreaColor(c.areaColor || DEFAULT_AREA_COLOR, DEFAULT_AREA_COLOR);
+        if(c.id){
+          const idStr = String(c.id);
+          areaIds.add(idStr);
+          areaColorById.set(idStr, c.areaColor);
+        }
+      }else if(!c.areaCardId){
+        c.areaColor = null;
+      }
       if(typeof c.humanId!=="string" || !c.humanId.trim()){
         const prefix=c.externalId?"E":"M";
         highestHumanId+=1;
@@ -364,15 +387,17 @@ async function ensureBoard(){
     for(const k of Object.keys(b.columns||{})){
       for(const c of (b.columns[k].items||[])){
         if(c.isArea) continue;
-        if(!c.areaCardId){ c.areaCardId=null; continue; }
+if(!c.areaCardId){ c.areaCardId=null; c.areaColor=null; continue; }
         const refId=String(c.areaCardId);
-        if(!areaIds.has(refId)) c.areaCardId=null;
+        if(!areaIds.has(refId)){ c.areaCardId=null; c.areaColor=null; }
+        else c.areaColor = areaColorById.get(refId) || null;
       }
     }
   }else{
     for(const k of Object.keys(b.columns||{})){
       for(const c of (b.columns[k].items||[])){
         c.areaCardId=null;
+		c.areaColor=null;
       }
     }
   }
@@ -470,7 +495,8 @@ app.post("/api/cards", async (req, res) => {
     description = "",
     timestamp = null,
 	isArea = false,
-    areaCardId = null
+    areaCardId = null,
+	areaColor = null
   } = req.body || {};
 
   if (!title || typeof title !== "string") {
@@ -490,6 +516,8 @@ app.post("/api/cards", async (req, res) => {
 
  const isAreaBool = !!isArea;
   const areaIdStr = areaCardId ? String(areaCardId) : null;
+   const requestedAreaColor = areaColor;
+
 
   const card = {
     id: uid(),
@@ -511,6 +539,7 @@ app.post("/api/cards", async (req, res) => {
     timestamp: timestamp ? new Date(timestamp).toISOString() : null,
 	isArea: isAreaBool,
     areaCardId: null,
+	 areaColor: null,
   };
  
  if(!card.isArea && areaIdStr){
@@ -518,6 +547,12 @@ app.post("/api/cards", async (req, res) => {
     if(area?.isArea) card.areaCardId = String(area.id);
   }
 
+if (card.isArea) {
+    card.areaColor = normalizeAreaColor(requestedAreaColor || DEFAULT_AREA_COLOR, DEFAULT_AREA_COLOR);
+  } else if (card.areaCardId) {
+    const area = findCardById(board, card.areaCardId);
+    card.areaColor = area?.areaColor || null;
+  }
   const arr = board.columns[key].items;
   arr.splice(Math.max(0, Math.min(Number(toIndex) || 0, arr.length)), 0, card);
   await writeJson(BOARD_FILE, board);
@@ -713,6 +748,7 @@ app.patch("/api/cards/:id", async (req, res) => {
     typ: ref.card.typ,
     isArea: !!ref.card.isArea,
     areaCardId: ref.card.areaCardId ? String(ref.card.areaCardId) : null,
+	areaColor: ref.card.areaColor || null,
   };
   const prevAreaLabel = areaLabel(prevSnapshot, board);
 
@@ -749,6 +785,7 @@ app.patch("/api/cards/:id", async (req, res) => {
 
   const areaCards = listAreaCards(board).filter((c) => c.id !== ref.card.id);
   const areaIdSet = new Set(areaCards.map((c) => String(c.id)));
+  const areaColorMap = new Map(areaCards.map((c) => [String(c.id), c.areaColor || null]));
 
   let areaChanged = false;
   let becameArea = null;
@@ -780,25 +817,73 @@ app.patch("/api/cards/:id", async (req, res) => {
       changed = true;
       areaChanged = true;
     }
+	const desiredColor = nextArea ? (areaColorMap.get(nextArea) || null) : null;
+    if (desiredColor !== (ref.card.areaColor || null)) {
+      ref.card.areaColor = desiredColor;
+      changed = true;
+    }
   }
 
   if (ref.card.isArea) {
     ref.card.areaCardId = null;
   }
 
+let areaColorChanged = false;
+  if (ref.card.isArea) {
+    const hasColorUpdate = Object.prototype.hasOwnProperty.call(updates, "areaColor");
+    const proposed = hasColorUpdate ? updates.areaColor : (ref.card.areaColor || DEFAULT_AREA_COLOR);
+    const nextColor = normalizeAreaColor(proposed || DEFAULT_AREA_COLOR, DEFAULT_AREA_COLOR);
+    if (nextColor !== ref.card.areaColor) {
+      notes.push(`Farbe: ${(prevSnapshot.areaColor || "—")}→${nextColor}`);
+      ref.card.areaColor = nextColor;
+      changed = true;
+      areaColorChanged = true;
+    }
+  } else {
+    const currentArea = ref.card.areaCardId ? String(ref.card.areaCardId) : null;
+    const nextColor = currentArea ? (areaColorMap.get(currentArea) || null) : null;
+    if (nextColor !== (ref.card.areaColor || null)) {
+      ref.card.areaColor = nextColor;
+      changed = true;
+      areaColorChanged = true;
+    }
+  }
+
   const cleared = [];
   if (prevSnapshot.isArea && !ref.card.isArea) {
+	   if (ref.card.areaColor) {
+      ref.card.areaColor = null;
+      changed = true;
+    }
     for (const colKey of Object.keys(board.columns || {})) {
       for (const c of board.columns[colKey]?.items || []) {
         if (c.id === ref.card.id) continue;
         if (c.areaCardId && String(c.areaCardId) === String(ref.card.id)) {
           c.areaCardId = null;
+		  if (c.areaColor) {
+            c.areaColor = null;
+          }
           cleared.push(c);
         }
       }
     }
     if (cleared.length) changed = true;
   }
+
+if (ref.card.isArea && (areaColorChanged || areaChanged)) {
+    for (const colKey of Object.keys(board.columns || {})) {
+      for (const c of board.columns[colKey]?.items || []) {
+        if (!c || c.id === ref.card.id) continue;
+        if (c.areaCardId && String(c.areaCardId) === String(ref.card.id)) {
+          if (c.areaColor !== ref.card.areaColor) {
+            c.areaColor = ref.card.areaColor;
+            changed = true;
+          }
+        }
+      }
+    }
+  }
+
 
   const nextAreaLabel = areaLabel(ref.card, board);
   if (areaChanged && prevAreaLabel !== nextAreaLabel) {
