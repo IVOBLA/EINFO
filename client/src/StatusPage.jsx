@@ -67,11 +67,20 @@ function CardCompact({ c, vehiclesById, showBottomCounts = true, headerRight, ki
 
       <div className="font-semibold">{c.content /* Titel */}</div>
 
-      {(c.ort || c.typ || c.alerted) && (
-        <div className="text-[0.75rem] text-gray-600 mt-0.5 space-x-2">
-          {c.ort && <span>📍 {c.ort}</span>}
-          {c.typ && <span>🏷️ {c.typ}</span>}
-          {c.alerted && <span className="text-gray-500">🔔 {c.alerted}</span>}
+     {(c.humanId || c.typ || c.ort || c.alerted) && (
+        <div className="text-[0.75rem] text-gray-600 mt-0.5 space-y-0.5">
+          {(c.humanId || c.typ) && (
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              {c.humanId && <span className="font-semibold text-gray-700">{c.humanId}</span>}
+              {c.typ && <span>🏷️ {c.typ}</span>}
+            </div>
+          )}
+          {(c.ort || c.alerted) && (
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              {c.ort && <span>📍 {c.ort}</span>}
+              {c.alerted && <span className="text-gray-500">🔔 {c.alerted}</span>}
+            </div>
+          )}
         </div>
       )}
 
