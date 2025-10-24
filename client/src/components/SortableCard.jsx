@@ -34,7 +34,7 @@ export function SortableCard(props) {
   // DnD only when editable
   const sortable = editable
     ? useSortable({ id: `card:${card.id}`, data: { type: "card", cardId: card.id } })
-    : { attributes:{}, listeners:{}, setNodeRef:(el)=>{}, transform:null, transition:null, isDragging:false };
+   : { attributes: {}, listeners: {}, setNodeRef: () => {}, transform: null, transition: null, isDragging: false };
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = sortable;
 
   const resolvedAreaColor = useMemo(() => {
@@ -160,9 +160,10 @@ const showDetails = hovered || chipsOpen;
       ref={setNodeRef}
       style={style}
       tabIndex={0}
-      className={`relative rounded-lg bg-white shadow border transition mx-1 focus:outline-none
-              ${pulse && colId === "neu" ? "ring-2 ring-red-400/60" : ""}`}
-    onMouseEnter={() => setHovered(true)}
+  className={`relative rounded-lg bg-white shadow border transition mx-1 focus:outline-none ${
+        pulse && colId === "neu" ? "ring-2 ring-red-400/60" : ""
+      }`}
+      onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       onFocus={() => setHovered(true)}
       onBlur={() => setHovered(false)}
@@ -208,7 +209,7 @@ const showDetails = hovered || chipsOpen;
             )}
           </div>
 
-    <div className="flex items-center gap-1 shrink-0">
+<div className="flex items-center gap-1 shrink-0">
             <button
               type="button"
               title={
@@ -262,7 +263,8 @@ const showDetails = hovered || chipsOpen;
             showDetails
               ? "max-h-[2000px] opacity-100 pointer-events-auto"
               : "max-h-0 opacity-0 pointer-events-none"
-          }`}        >
+         }`}
+        >
           <div className="pt-2 space-y-2">
             <div className="flex items-center gap-2 text-[12px]">
               <span className="text-gray-600 whitespace-nowrap">Bereich</span>
@@ -316,7 +318,7 @@ const showDetails = hovered || chipsOpen;
                   />
                 ))}
               </div>
-            )}}
+            )}
 
           {colId === "erledigt" && chipsOpen && !!(card.everVehicles?.length) && (
               <ul className="text-sm text-gray-700 list-disc list-inside space-y-1">
