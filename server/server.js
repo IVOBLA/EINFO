@@ -704,10 +704,7 @@ app.patch("/api/cards/:id", async (req, res) => {
   const ref = findCardRef(board, id);
   if (!ref) return res.status(404).json({ error: "card not found" });
 
-  const isManual = String(ref.card?.humanId || "").startsWith("M-");
-  if (!isManual) {
-    return res.status(400).json({ error: "Nur manuelle Einsätze können bearbeitet werden" });
-  }
+
 
   const prevSnapshot = {
     content: ref.card.content,
