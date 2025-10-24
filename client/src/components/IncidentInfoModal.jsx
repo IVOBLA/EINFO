@@ -28,6 +28,8 @@ export default function IncidentInfoModal({
   forceEdit = false,
   types = [],
 }) {
+	 if (!open) return null;
+	
 const isManual = useMemo(
     () => String(info?.humanId || "").startsWith("M-"),
     [info]
@@ -213,7 +215,7 @@ const isManual = useMemo(
           )}
         </div>
 
-        <div className="mt-4 flex justify-end">
+        
 		 {error && <p className="text-sm text-red-600">{error}</p>}
 
         <div className="flex justify-end gap-2 pt-2">
@@ -294,6 +296,5 @@ type="button"
         )}
         </div>
       </div>
-    </div>
   );
 }
