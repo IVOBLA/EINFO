@@ -237,11 +237,11 @@ export function SortableCard(props) {
               Bereichskachel
             </span>
           ) : (
-            <div className="flex flex-col gap-1">
-              <span className="text-[12px] text-gray-600">Bereich</span>
+<div className="flex items-center gap-2 text-[12px]">
+              <span className="text-gray-600 whitespace-nowrap">Bereich</span>
               {canSelectArea ? (
                 <select
-                  className="border rounded px-2 py-1 text-[12px]"
+                  className="border rounded px-2 py-1 text-[12px] min-w-[140px]"
                   value={currentAreaValue}
                   onChange={(e) => handleAreaSelect(e.target.value)}
                   onPointerDown={(e) => e.stopPropagation()}
@@ -252,7 +252,7 @@ export function SortableCard(props) {
                   ))}
                 </select>
               ) : (
-                <span className="text-[12px] font-medium text-gray-800">{areaLabel || "—"}</span>
+ <span className="font-medium text-gray-800">{areaLabel || "—"}</span>
               )}
             </div>
           )}
