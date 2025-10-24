@@ -17,17 +17,14 @@ import AufgSortableCard from "../components/AufgSortableCard.jsx";
 import { initRolePolicy, canEditApp } from "../auth/roleUtils.js";
 import { playGong } from "../sound"; // gleicher Sound wie im Einsatz-Kanban
 import { fetchBoard } from "../api.js";
+import { ensureValidDueOffset, getFallbackDueOffsetMinutes } from "../utils/defaultDueOffset.js";
 
 const STATUS = { NEW: "Neu", IN_PROGRESS: "In Bearbeitung", DONE: "Erledigt" };
 const COLS = [STATUS.NEW, STATUS.IN_PROGRESS, STATUS.DONE];
 const INCIDENT_STATUS_KEYS = ["neu", "in-bearbeitung", "erledigt"];
-const FALLBACK_DUE_OFFSET_MINUTES = 30;
+const FALLBACK_DUE_OFFSET_MINUTES = getFallbackDueOffsetMinutes();
 
-const normalizeDefaultDueOffset = (value) => {
-  const num = Number(value);
-  if (!Number.isFinite(num)) return FALLBACK_DUE_OFFSET_MINUTES;
-  return Math.max(0, num);
-};
+const normalizeDefaultDueOffset = (value) => ensureValidDueOffset(value);
 
 const createEmptyIncidentIndex = () => ({ options: [], map: new Map() });
 
