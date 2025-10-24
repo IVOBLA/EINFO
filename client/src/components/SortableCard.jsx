@@ -11,6 +11,10 @@ export function SortableCard(props) {
     onClone,
     onVehiclesIconClick,
     onShowInfo,
+	 areaOptions = [],
+    areaLabelById = new Map(),
+    onAreaChange,
+    onEditCard,
     nearIds, nearUntilMs,
     distById,
     pulse,
@@ -102,6 +106,34 @@ export function SortableCard(props) {
     }
   };
 
+ const isManual = String(card?.humanId || "").startsWith("M-");
+  const formatArea = (c) => {
+    if (!c) return "";
+    const idPart = c.humanId ? String(c.humanId) : "";
+    const titlePart = c.content ? String(c.content) : "";
+    const joined = [idPart, titlePart].filter(Boolean).join(" – ");
+    return joined || idPart || titlePart || "";
+  };
+  const areaLabel = useMemo(() => {
+    if (card?.isArea) return formatArea(card);
+    if (!card?.areaCardId) return "";
+    const fromMap = areaLabelById.get(card.areaCardId);
+    if (fromMap) return fromMap;
+    const opt = (areaOptions || []).find((o) => o.id === card.areaCardId);
+    if (opt) return opt.label;
+    return String(card.areaCardId);
+  }, [card, areaLabelById, areaOptions]);
+  const areaSelectOptions = useMemo(
+    () => (areaOptions || []).filter((opt) => opt.id !== card.id),
+    [areaOptions, card.id]
+  );
+  const canSelectArea = editable && isManual && typeof onAreaChange === "function";
+  const currentAreaValue = card.areaCardId ? String(card.areaCardId) : "";
+  const handleAreaSelect = (value) => {
+    if (!canSelectArea) return;
+    onAreaChange(card, value);
+  };
+
   return (
     <li
       ref={setNodeRef}
@@ -130,6 +162,11 @@ export function SortableCard(props) {
 		     {card.humanId && (
               <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
                 Einsatz: {card.humanId}
+              </div>
+            )}
+			{card.isArea && (
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-600">
+                Bereich
               </div>
             )}
             <div className="font-semibold text-sm leading-5 truncate">{card.content}</div>
@@ -192,6 +229,33 @@ export function SortableCard(props) {
               </button>
             )}
           </div>
+        </div>
+
+<div className="mt-2">
+          {card.isArea ? (
+            <span className="inline-flex items-center px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[12px] font-semibold">
+              Bereichskachel
+            </span>
+          ) : (
+            <div className="flex flex-col gap-1">
+              <span className="text-[12px] text-gray-600">Bereich</span>
+              {canSelectArea ? (
+                <select
+                  className="border rounded px-2 py-1 text-[12px]"
+                  value={currentAreaValue}
+                  onChange={(e) => handleAreaSelect(e.target.value)}
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
+                  <option value="">— Bereich auswählen —</option>
+                  {areaSelectOptions.map((opt) => (
+                    <option key={opt.id} value={opt.id}>{opt.label}</option>
+                  ))}
+                </select>
+              ) : (
+                <span className="text-[12px] font-medium text-gray-800">{areaLabel || "—"}</span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Zugeordnete Einheiten */}
@@ -269,6 +333,17 @@ export function SortableCard(props) {
 
         {/* Footer */}
         <div className="mt-2 flex justify-end gap-2">
+		 {editable && isManual && typeof onEditCard === "function" && (
+            <button
+              type="button"
+              className="text-[12px] text-blue-700 hover:underline"
+              title="Bearbeiten"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); onEditCard(card); }}
+            >
+              ✎
+            </button>
+          )}
           <button
             type="button"
             className="text-[12px] text-blue-700 hover:underline"

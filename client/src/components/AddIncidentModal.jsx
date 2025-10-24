@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import { usePlacesAutocomplete } from "../hooks/usePlacesAutocomplete";
 
-export default function AddIncidentModal({ onClose, onCreate, types }) {
+export default function AddIncidentModal({ onClose, onCreate, types, areaOptions = [] }) {
   const [title, setTitle] = useState("");
   const [typ, setTyp] = useState("");
   const [busy, setBusy] = useState(false);
+  const [isArea, setIsArea] = useState(false);
+  const [areaCardId, setAreaCardId] = useState("");
 
   // ⬇️ Fokus auf Typ-Dropdown
   const typRef = useRef(null);
@@ -30,6 +32,10 @@ export default function AddIncidentModal({ onClose, onCreate, types }) {
     if (!title.trim() && clean) setTitle(clean);
   }, [typ]); // eslint-disable-line react-hooks/exhaustive-deps
 
+useEffect(() => {
+    if (isArea) setAreaCardId("");
+  }, [isArea]);
+
   const submit = async (e) => {
     e?.preventDefault?.();
     const cleanType = (typ || "").replace(/^T\d+\s*,?\s*/i, "").trim();
@@ -38,10 +44,18 @@ export default function AddIncidentModal({ onClose, onCreate, types }) {
 
     setBusy(true);
     try {
-      await onCreate({ title: finalTitle, ort: (ortQuery || "").trim(), typ: (typ || "").trim() });
+      await onCreate({
+        title: finalTitle,
+        ort: (ortQuery || "").trim(),
+        typ: (typ || "").trim(),
+        isArea,
+        areaCardId: isArea ? null : areaCardId || null,
+      });
       setTitle("");
       setOrtQuery("");
       setTyp("");
+      setIsArea(false);
+      setAreaCardId("");
       resetSession();
       onClose?.();
     } finally {
@@ -72,7 +86,7 @@ export default function AddIncidentModal({ onClose, onCreate, types }) {
         <h3 className="text-lg font-semibold">Einsatz anlegen</h3>
 
         {/* ⬇️ Reihenfolge: Typ → Titel → Ort */}
-        <div className="grid grid-cols-1 gap-2">
+<div className="grid grid-cols-1 gap-2">
           {/* Typ */}
           <select
             ref={typRef}
@@ -81,7 +95,7 @@ export default function AddIncidentModal({ onClose, onCreate, types }) {
             onChange={(e) => setTyp(e.target.value)}
           >
             <option value="">— Typ auswählen —</option>
-            {types.map((t) => (
+            {(types || []).map((t) => (
               <option key={t} value={t}>{t}</option>
             ))}
           </select>
@@ -125,7 +139,35 @@ export default function AddIncidentModal({ onClose, onCreate, types }) {
                 ))}
               </ul>
             )}
+</div>
+
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <label className="inline-flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={isArea}
+                onChange={(e) => setIsArea(e.target.checked)}
+                disabled={busy}
+              />
+              Bereich
+            </label>
+            {!isArea && (
+              <select
+                className="border rounded px-2 py-1 text-sm"
+                value={areaCardId}
+                onChange={(e) => setAreaCardId(e.target.value)}
+                disabled={busy || areaOptions.length === 0}
+              >
+                <option value="">— Bereich auswählen —</option>
+                {areaOptions.map((opt) => (
+                  <option key={opt.id} value={opt.id}>{opt.label}</option>
+                ))}
+              </select>
+            )}
           </div>
+          {!isArea && areaOptions.length === 0 && (
+            <p className="text-xs text-gray-500">Noch keine Bereiche vorhanden.</p>
+          )}
         </div>
 
         <div className="flex justify-end gap-2 pt-2">
