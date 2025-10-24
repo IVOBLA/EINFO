@@ -28,7 +28,9 @@ async function ensureCsv(file, headers, delim) {
       if (rest.length) await fs.appendFile(file, rest.join("\n"), "utf8");
       return;
     }
-const have = first.split(delim).map(s => s.trim());
+    const hadBom = first.startsWith("\uFEFF");
+    const headerLine = hadBom ? first.slice(1) : first;
+    const have = headerLine.split(delim).map(s => s.trim());
     const want = [
       ...headers,
       ...have.filter(h => !headers.includes(h))
@@ -37,7 +39,8 @@ const have = first.split(delim).map(s => s.trim());
       want.length !== have.length ||
       want.some((value, index) => value !== have[index]);
     if (changed) {
-      await fs.writeFile(file, [want.join(delim), ...rest].join("\n"), "utf8");
+      const outHeader = (hadBom ? "\uFEFF" : "") + want.join(delim);
+      await fs.writeFile(file, [outHeader, ...rest].join("\n"), "utf8");
     }
   } catch {
     await fs.mkdir(path.dirname(file), { recursive: true });

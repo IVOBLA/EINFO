@@ -67,7 +67,23 @@ let autoNextAt         = null;   // ms – nächster geplanter Auto-Import
 async function ensureDir(p){ await fs.mkdir(p,{ recursive:true }); }
 attachPrintRoutes(app, "/api/protocol");
 
-function buildEinsatzLog({ action, card = {}, from = "", to = "", einheit = "", note = "" }) {
+function areaLabel(card = {}, board = null) {
+  if (!card) return "";
+  const format = (c) => {
+    if (!c) return "";
+    const idPart = c.humanId ? String(c.humanId) : "";
+    const titlePart = c.content ? String(c.content) : "";
+    const composed = [idPart, titlePart].filter(Boolean).join(" – ");
+    return composed || idPart || titlePart || "";
+  };
+  if (card.isArea) return format(card) || "Bereich";
+  const targetId = card.areaCardId;
+  if (!targetId || !board) return "";
+  const area = findCardById(board, targetId);
+  return format(area);
+}
+
+function buildEinsatzLog({ action, card = {}, from = "", to = "", einheit = "", note = "", board = null }) {
   return {
     EinsatzID: card.humanId || "",
     InternID: card.id || "",
@@ -310,6 +326,7 @@ async function ensureBoard(){
   if(!b){ await writeJson(BOARD_FILE, fallback); return fallback; }
 
  let highestHumanId=0;
+ const areaIds = new Set();
   for(const k of Object.keys(b.columns||{})){
     for(const c of (b.columns[k].items||[])){
       const parsed=parseHumanIdNumber(c?.humanId);
@@ -331,10 +348,31 @@ async function ensureBoard(){
       if(!("location"    in c)) c.location="";
       if(!("description" in c)) c.description="";
       if(!("timestamp"   in c)) c.timestamp=null;
-	      if(typeof c.humanId!=="string" || !c.humanId.trim()){
+	       if(!("isArea"      in c)) c.isArea=false;
+      if(!("areaCardId"  in c)) c.areaCardId=null;
+      if(c.isArea) c.areaCardId=null;
+      if(c.isArea && c.id) areaIds.add(String(c.id));
+      if(typeof c.humanId!=="string" || !c.humanId.trim()){
         const prefix=c.externalId?"E":"M";
         highestHumanId+=1;
         c.humanId=`${prefix}-${highestHumanId}`;
+      }
+    }
+  }
+  
+  if(areaIds.size){
+    for(const k of Object.keys(b.columns||{})){
+      for(const c of (b.columns[k].items||[])){
+        if(c.isArea) continue;
+        if(!c.areaCardId){ c.areaCardId=null; continue; }
+        const refId=String(c.areaCardId);
+        if(!areaIds.has(refId)) c.areaCardId=null;
+      }
+    }
+  }else{
+    for(const k of Object.keys(b.columns||{})){
+      for(const c of (b.columns[k].items||[])){
+        c.areaCardId=null;
       }
     }
   }
@@ -355,6 +393,27 @@ function findCardRef(board,cardId){
   }
   return null;
 }
+
+function findCardById(board,id){
+  if(!id) return null;
+  const wanted=String(id);
+  for(const k of ["neu","in-bearbeitung","erledigt"]){
+    const hit=(board.columns[k].items||[]).find(c=>String(c?.id||"")===wanted);
+    if(hit) return hit;
+  }
+  return null;
+}
+
+function listAreaCards(board){
+  const out=[];
+  for(const k of ["neu","in-bearbeitung","erledigt"]){
+    for(const c of (board.columns[k].items||[])){
+      if(c?.isArea) out.push(c);
+    }
+  }
+  return out;
+}
+
 function findCardByExternalId(board,extId){
   if(!extId) return null;
   for(const k of ["neu","in-bearbeitung","erledigt"]){
@@ -410,6 +469,8 @@ app.post("/api/cards", async (req, res) => {
     location = "",
     description = "",
     timestamp = null,
+	isArea = false,
+    areaCardId = null
   } = req.body || {};
 
   if (!title || typeof title !== "string") {
@@ -426,6 +487,9 @@ app.post("/api/cards", async (req, res) => {
 
   const latIn = latitude ?? req.body?.lat;
   const lngIn = longitude ?? req.body?.lng;
+
+ const isAreaBool = !!isArea;
+  const areaIdStr = areaCardId ? String(areaCardId) : null;
 
   const card = {
     id: uid(),
@@ -445,16 +509,23 @@ app.post("/api/cards", async (req, res) => {
     location: String(location || ""),
     description: String(description || ""),
     timestamp: timestamp ? new Date(timestamp).toISOString() : null,
+	isArea: isAreaBool,
+    areaCardId: null,
   };
+ 
+ if(!card.isArea && areaIdStr){
+    const area = findCardById(board, areaIdStr);
+    if(area?.isArea) card.areaCardId = String(area.id);
+  }
 
   const arr = board.columns[key].items;
   arr.splice(Math.max(0, Math.min(Number(toIndex) || 0, arr.length)), 0, card);
   await writeJson(BOARD_FILE, board);
- await appendCsvRow(
-   LOG_FILE, EINSATZ_HEADERS,
-   buildEinsatzLog({ action:"Einsatz erstellt", card, from:board.columns[key].name, note:card.ort || "" }),
-   req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
- );
+await appendCsvRow(
+    LOG_FILE, EINSATZ_HEADERS,
+    buildEinsatzLog({ action:"Einsatz erstellt", card, from:board.columns[key].name, note:card.ort || "", board }),
+    req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
+  );
   markActivity("card:create");
   res.json({ ok: true, card, column: key });
 });
@@ -479,25 +550,25 @@ app.post("/api/cards/:id/move", async (req,res)=>{
     card.everVehicles=Array.from(new Set([...(card.everVehicles||[]), ...(card.assignedVehicles||[])]));
     card.everPersonnel=Number.isFinite(card?.manualPersonnel)?card.manualPersonnel:computedPersonnel(card,vmap);
     // CSV: aktuell zugeordnete Einheiten als "entfernt" loggen
-   for (const vid of (card.assignedVehicles || [])) {
-     const veh = vmap.get(vid);
-     const einheitsLabel = veh?.label || veh?.id || String(vid);
-     await appendCsvRow(
-       LOG_FILE, EINSATZ_HEADERS,
-       buildEinsatzLog({ action:"Einheit entfernt", card, einheit: einheitsLabel }),
-       req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
-     );
-   }
+ for (const vid of (card.assignedVehicles || [])) {
+      const veh = vmap.get(vid);
+      const einheitsLabel = veh?.label || veh?.id || String(vid);
+      await appendCsvRow(
+        LOG_FILE, EINSATZ_HEADERS,
+        buildEinsatzLog({ action:"Einheit entfernt", card, einheit: einheitsLabel, board }),
+        req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
+      );
+    }
     card.assignedVehicles=[];
   }
   dst.splice(Math.max(0,Math.min(Number(toIndex)||0,dst.length)),0,card);
   await writeJson(BOARD_FILE,board);
 
    await appendCsvRow(
-   LOG_FILE, EINSATZ_HEADERS,
-   buildEinsatzLog({ action:"move", card, from:fromName, to:toName }),
-   req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
- );
+    LOG_FILE, EINSATZ_HEADERS,
+    buildEinsatzLog({ action:"move", card, from:fromName, to:toName, board }),
+    req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
+  );
   markActivity("card:move");
   res.json({ ok:true, card, from, to });
 });
@@ -516,26 +587,27 @@ app.post("/api/cards/:id/assign", async (req,res)=>{
   if(!ref.card.assignedVehicles.includes(vehicleId)) ref.card.assignedVehicles.push(vehicleId);
   ref.card.everVehicles=Array.from(new Set([...(ref.card.everVehicles||[]), vehicleId]));
 
- const einheitsLabel = veh?.label || veh?.id || String(vehicleId);
- await appendCsvRow(
-   LOG_FILE, EINSATZ_HEADERS,
-   buildEinsatzLog({ action:"Einheit zugewiesen", card: ref.card, einheit: einheitsLabel }),
-   req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
- );
+const einheitsLabel = veh?.label || veh?.id || String(vehicleId);
+  await appendCsvRow(
+    LOG_FILE, EINSATZ_HEADERS,
+    buildEinsatzLog({ action:"Einheit zugewiesen", card: ref.card, einheit: einheitsLabel, board }),
+    req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
+  );
 
   if(ref.col==="neu"){
     const [c]=ref.arr.splice(ref.i,1);
     c.statusSince=new Date().toISOString();
     board.columns["in-bearbeitung"].items.unshift(c);
  await appendCsvRow(
-   LOG_FILE, EINSATZ_HEADERS,
-   buildEinsatzLog({
-     action:"move", card:c,
-     from:board.columns["neu"].name, to:board.columns["in-bearbeitung"].name,
-     note:"durch Zuweisung"
-   }),
-   req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
- );
+      LOG_FILE, EINSATZ_HEADERS,
+      buildEinsatzLog({
+        action:"move", card:c,
+        from:board.columns["neu"].name, to:board.columns["in-bearbeitung"].name,
+        note:"durch Zuweisung",
+        board,
+      }),
+      req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
+    );
   }
   await writeJson(BOARD_FILE,board);
   markActivity("vehicle:assign");
@@ -564,10 +636,10 @@ app.post("/api/cards/:id/unassign", async (req,res)=>{
  const veh = vmap.get(vehicleId);
  const einheitsLabel = veh?.label || veh?.id || String(vehicleId);
  await appendCsvRow(
-   LOG_FILE, EINSATZ_HEADERS,
-   buildEinsatzLog({ action:"Einheit entfernt", card: ref.card, einheit: einheitsLabel }),
-   req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
- );
+    LOG_FILE, EINSATZ_HEADERS,
+    buildEinsatzLog({ action:"Einheit entfernt", card: ref.card, einheit: einheitsLabel, board }),
+    req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
+  );
   markActivity("vehicle:unassign");
   res.json({ ok:true, card:ref.card });
 
@@ -594,15 +666,16 @@ app.patch("/api/cards/:id/personnel", async (req,res)=>{
     delete ref.card.manualPersonnel;
     await writeJson(BOARD_FILE,board);
    const autoNow = computedPersonnel(ref.card, vehiclesByIdMap(await getAllVehicles()));
-   await appendCsvRow(
-     LOG_FILE, EINSATZ_HEADERS,
-     buildEinsatzLog({
-       action: "Personenzahl geändert",
-       card: ref.card,
-       note: `${prev}→${autoNow}`
-     }),
-     req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
-   );
+  await appendCsvRow(
+      LOG_FILE, EINSATZ_HEADERS,
+      buildEinsatzLog({
+        action: "Personenzahl geändert",
+        card: ref.card,
+        note: `${prev}→${autoNow}`,
+        board,
+      }),
+      req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
+    );
     return res.json({ ok:true, card:ref.card });
   }else{
     const n=Number(manualPersonnel);
@@ -611,17 +684,198 @@ app.patch("/api/cards/:id/personnel", async (req,res)=>{
   }
   await writeJson(BOARD_FILE,board);
  await appendCsvRow(
-   LOG_FILE, EINSATZ_HEADERS,
-   buildEinsatzLog({
-     action: "Personenzahl geändert",
-     card: ref.card,
-     note: `${prev}→${ref.card.manualPersonnel}`
-   }),
-   req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
- );
+    LOG_FILE, EINSATZ_HEADERS,
+    buildEinsatzLog({
+      action: "Personenzahl geändert",
+      card: ref.card,
+      note: `${prev}→${ref.card.manualPersonnel}`,
+      board,
+    }),
+    req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
+  );
   markActivity("personnel:update");
   res.json({ ok:true, card:ref.card });
 });
+
+app.patch("/api/cards/:id", async (req, res) => {
+  const { id } = req.params;
+  const updates = req.body || {};
+  const board = await ensureBoard();
+  const ref = findCardRef(board, id);
+  if (!ref) return res.status(404).json({ error: "card not found" });
+
+  const isManual = String(ref.card?.humanId || "").startsWith("M-");
+  if (!isManual) {
+    return res.status(400).json({ error: "Nur manuelle Einsätze können bearbeitet werden" });
+  }
+
+  const prevSnapshot = {
+    content: ref.card.content,
+    humanId: ref.card.humanId,
+    ort: ref.card.ort,
+    typ: ref.card.typ,
+    isArea: !!ref.card.isArea,
+    areaCardId: ref.card.areaCardId ? String(ref.card.areaCardId) : null,
+  };
+  const prevAreaLabel = areaLabel(prevSnapshot, board);
+
+  let changed = false;
+  const notes = [];
+
+  if (Object.prototype.hasOwnProperty.call(updates, "title")) {
+    const nextTitle = String(updates.title || "").trim();
+    if (!nextTitle) return res.status(400).json({ error: "Titel darf nicht leer sein" });
+    if (nextTitle !== ref.card.content) {
+      notes.push(`Titel: ${ref.card.content || ""}→${nextTitle}`);
+      ref.card.content = nextTitle;
+      changed = true;
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(updates, "ort")) {
+    const nextOrt = String(updates.ort || "").trim();
+    if (nextOrt !== (ref.card.ort || "")) {
+      notes.push(`Ort: ${ref.card.ort || ""}→${nextOrt}`);
+      ref.card.ort = nextOrt;
+      changed = true;
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(updates, "typ")) {
+    const nextTyp = String(updates.typ || "").trim();
+    if (nextTyp !== (ref.card.typ || "")) {
+      notes.push(`Typ: ${ref.card.typ || ""}→${nextTyp}`);
+      ref.card.typ = nextTyp;
+      changed = true;
+    }
+  }
+
+  const areaCards = listAreaCards(board).filter((c) => c.id !== ref.card.id);
+  const areaIdSet = new Set(areaCards.map((c) => String(c.id)));
+
+  let areaChanged = false;
+  let becameArea = null;
+  if (Object.prototype.hasOwnProperty.call(updates, "isArea")) {
+    const nextIsArea = !!updates.isArea;
+    if (nextIsArea !== ref.card.isArea) {
+      ref.card.isArea = nextIsArea;
+      changed = true;
+      areaChanged = true;
+      becameArea = nextIsArea;
+      if (nextIsArea) {
+        ref.card.areaCardId = null;
+      }
+    }
+  }
+
+  if (!ref.card.isArea && Object.prototype.hasOwnProperty.call(updates, "areaCardId")) {
+    const raw = updates.areaCardId;
+    let nextArea = null;
+    if (raw) {
+      const idStr = String(raw);
+      if (!areaIdSet.has(idStr)) {
+        return res.status(400).json({ error: "Bereich ungültig" });
+      }
+      nextArea = idStr;
+    }
+    if (nextArea !== (ref.card.areaCardId ? String(ref.card.areaCardId) : null)) {
+      ref.card.areaCardId = nextArea;
+      changed = true;
+      areaChanged = true;
+    }
+  }
+
+  if (ref.card.isArea) {
+    ref.card.areaCardId = null;
+  }
+
+  const cleared = [];
+  if (prevSnapshot.isArea && !ref.card.isArea) {
+    for (const colKey of Object.keys(board.columns || {})) {
+      for (const c of board.columns[colKey]?.items || []) {
+        if (c.id === ref.card.id) continue;
+        if (c.areaCardId && String(c.areaCardId) === String(ref.card.id)) {
+          c.areaCardId = null;
+          cleared.push(c);
+        }
+      }
+    }
+    if (cleared.length) changed = true;
+  }
+
+  const nextAreaLabel = areaLabel(ref.card, board);
+  if (areaChanged && prevAreaLabel !== nextAreaLabel) {
+    notes.push(`Bereich: ${prevAreaLabel || "—"}→${nextAreaLabel || "—"}`);
+  }
+
+  if (!changed) {
+    return res.json({ ok: true, card: ref.card, board });
+  }
+
+  await writeJson(BOARD_FILE, board);
+
+  await appendCsvRow(
+    LOG_FILE,
+    EINSATZ_HEADERS,
+    buildEinsatzLog({
+      action: "Einsatz aktualisiert",
+      card: ref.card,
+      note: notes.join("; ") || "",
+      board,
+    }),
+    req,
+    { autoTimestampField: "Zeitpunkt", autoUserField: "Benutzer" }
+  );
+
+  if (becameArea === true) {
+    await appendCsvRow(
+      LOG_FILE,
+      EINSATZ_HEADERS,
+      buildEinsatzLog({
+        action: "Bereich aktiviert",
+        card: ref.card,
+        note: "Als Bereich markiert",
+        board,
+      }),
+      req,
+      { autoTimestampField: "Zeitpunkt", autoUserField: "Benutzer" }
+    );
+  } else if (becameArea === false) {
+    await appendCsvRow(
+      LOG_FILE,
+      EINSATZ_HEADERS,
+      buildEinsatzLog({
+        action: "Bereich deaktiviert",
+        card: ref.card,
+        note: "Bereich-Markierung entfernt",
+        board,
+      }),
+      req,
+      { autoTimestampField: "Zeitpunkt", autoUserField: "Benutzer" }
+    );
+  }
+
+  if (cleared.length) {
+    for (const c of cleared) {
+      await appendCsvRow(
+        LOG_FILE,
+        EINSATZ_HEADERS,
+        buildEinsatzLog({
+          action: "Bereich entfernt",
+          card: c,
+          note: `Bereich ${ref.card.humanId || ref.card.content || ref.card.id} nicht mehr verfügbar`,
+          board,
+        }),
+        req,
+        { autoTimestampField: "Zeitpunkt", autoUserField: "Benutzer" }
+      );
+    }
+  }
+
+  markActivity("card:update");
+  res.json({ ok: true, card: ref.card, board });
+});
+
 
 async function archiveAndResetLog() {
   try {
@@ -886,11 +1140,11 @@ async function importFromFileOnce(filename=AUTO_DEFAULT_FILENAME){
         };
         board.columns["neu"].items.unshift(card);
         created++;
- await appendCsvRow(
-   LOG_FILE, EINSATZ_HEADERS,
-   buildEinsatzLog({ action:"Einsatz erstellt (Auto-Import)", card, from:"Neu", note:card.ort || "" }),
-   null, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
- );
+  await appendCsvRow(
+          LOG_FILE, EINSATZ_HEADERS,
+          buildEinsatzLog({ action:"Einsatz erstellt (Auto-Import)", card, from:"Neu", note:card.ort || "", board }),
+          null, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
+        );
       }
     }
 
