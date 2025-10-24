@@ -41,7 +41,16 @@ const ERROR_LOG   = path.join(DATA_DIR, "Log.txt");
 const GROUPS_FILE = path.join(DATA_DIR, "conf","group_locations.json");
 
 const EINSATZ_HEADERS = [
-  "Zeitpunkt","Benutzer","InternID","EinsatzID","Einsatz","Aktion","Von","Nach","Einheit","Bemerkung"
+"Zeitpunkt",
+  "Benutzer",
+  "EinsatzID",
+  "Einsatz",
+  "Aktion",
+  "Von",
+  "Nach",
+  "Einheit",
+  "Bemerkung",
+  "InternID"
 ];
 
 // ==== Auto-Import ====
@@ -60,8 +69,8 @@ attachPrintRoutes(app, "/api/protocol");
 
 function buildEinsatzLog({ action, card = {}, from = "", to = "", einheit = "", note = "" }) {
   return {
-    EinsatzID: card.id || "",
-	HumanID:   card.humanId || "",
+    EinsatzID: card.humanId || "",
+    InternID: card.id || "",
     Einsatz:   card.content || "",
     Aktion:    action || "",
     Von:       from || "",

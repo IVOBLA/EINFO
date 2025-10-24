@@ -28,12 +28,14 @@ async function ensureCsv(file, headers, delim) {
       if (rest.length) await fs.appendFile(file, rest.join("\n"), "utf8");
       return;
     }
-    const have = first.split(delim).map(s => s.trim());
-    let changed = false;
-    const want = [...have];
-    for (const h of headers) {
-      if (!have.includes(h)) { want.push(h); changed = true; }
-    }
+const have = first.split(delim).map(s => s.trim());
+    const want = [
+      ...headers,
+      ...have.filter(h => !headers.includes(h))
+    ];
+    const changed =
+      want.length !== have.length ||
+      want.some((value, index) => value !== have[index]);
     if (changed) {
       await fs.writeFile(file, [want.join(delim), ...rest].join("\n"), "utf8");
     }
