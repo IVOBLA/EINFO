@@ -156,7 +156,8 @@ export function SortableCard(props) {
     <li
       ref={setNodeRef}
       style={style}
-      className={`relative rounded-lg bg-white shadow border transition mx-1
+      tabIndex={0}
+      className={`group relative rounded-lg bg-white shadow border transition mx-1 focus:outline-none
               ${pulse && colId === "neu" ? "ring-2 ring-red-400/60" : ""}`}
     >
       {pulse && colId === "neu" && (
@@ -200,7 +201,9 @@ export function SortableCard(props) {
             )}
           </div>
 
-          <div className="flex items-center gap-1 shrink-0">
+                  <div
+            className="flex items-center gap-1 shrink-0 transition-opacity duration-150 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
+          >
             <button
               type="button"
               title={
@@ -249,13 +252,11 @@ export function SortableCard(props) {
           </div>
         </div>
 
-<div className="mt-2">
-          {card.isArea ? (
-            <span className="inline-flex items-center px-2 py-0.5 rounded bg-emerald-100 text-emerald-700 text-[12px] font-semibold">
-              Bereichskachel
-            </span>
-          ) : (
-<div className="flex items-center gap-2 text-[12px]">
+ <div
+          className="mt-0 overflow-hidden transition-all duration-200 ease-in-out max-h-0 opacity-0 pointer-events-none group-hover:max-h-[2000px] group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:max-h-[2000px] group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
+        >
+          <div className="pt-2 space-y-2">
+            <div className="flex items-center gap-2 text-[12px]">
               <span className="text-gray-600 whitespace-nowrap">Bereich</span>
               {canSelectArea ? (
                 <select
@@ -270,116 +271,114 @@ export function SortableCard(props) {
                   ))}
                 </select>
               ) : (
- <span className="font-medium text-gray-800">{areaLabel || "—"}</span>
+<span className="font-medium text-gray-800">{areaLabel || "—"}</span>
               )}
             </div>
-          )}
-        </div>
+{/* Zugeordnete Einheiten */}
+            {colId === "neu" && !!assigned.length && (
+              <div className="flex flex-wrap gap-1.5">
+                {assigned.map((v) => (
+                  <AssignedVehicleChip
+                    key={`ass-${card.id}-${v.id}`}
+                    cardId={card.id}
+                    vehicle={v}
+                    pillWidthPx={pillWidthPx}
+                    onUnassign={onUnassign}
+                    onClone={onClone}
+                    near={!!nearIds && pulseActive && nearIds.has(String(v.id))}
+                    readonly={!editable}
+                    distKm={distById?.get(String(v.id)) ?? null}
+                  />
+                ))}
+              </div>
+    )}
+  {colId === "in-bearbeitung" && chipsOpen && !!assigned.length && (
+              <div ref={chipsRef} className="flex flex-wrap gap-1.5">
+                {assigned.map((v) => (
+                  <AssignedVehicleChip
+                    key={`ass-${card.id}-${v.id}`}
+                    cardId={card.id}
+                    vehicle={v}
+                    pillWidthPx={pillWidthPx}
+                    onUnassign={onUnassign}
+                    onClone={onClone}
+                    near={!!nearIds && pulseActive && nearIds.has(String(v.id))}
+                    readonly={!editable}
+                    distKm={distById?.get(String(v.id)) ?? null}
+                  />
+                ))}
+              </div>
+            )}}
 
-        {/* Zugeordnete Einheiten */}
-        {colId === "neu" && !!assigned.length && (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {assigned.map((v) => (
-              <AssignedVehicleChip
-                key={`ass-${card.id}-${v.id}`}
-                cardId={card.id}
-                vehicle={v}
-                pillWidthPx={pillWidthPx}
-                onUnassign={onUnassign}
-                onClone={onClone}
-                near={!!nearIds && pulseActive && nearIds.has(String(v.id))}
-                readonly={!editable}
-                distKm={distById?.get(String(v.id)) ?? null}
-              />
-            ))}
+          {colId === "erledigt" && chipsOpen && !!(card.everVehicles?.length) && (
+              <ul className="text-sm text-gray-700 list-disc list-inside space-y-1">
+                {card.everVehicles.map((vid) => {
+                  const v = vehiclesById.get(vid);
+                  const label = v?.label || v?.id || "Unbekannt";
+                  const ort = v?.ort ? ` (${v.ort})` : "";
+                  return <li key={vid}>{label}{ort}</li>;
+                })}
+              </ul>
+            )}
+
+    {/* Inline-Edit Personen */}
+            {editable && editing?.cardId === card.id && (
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  className="w-20 border rounded px-2 py-1 text-sm"
+                  value={editingValue}
+                  onChange={(e) => setEditingValue(e.target.value)}
+                  placeholder="Personen"
+                />
+                <button
+                  className="px-2 py-1 text-sm rounded bg-emerald-600 text-white"
+                  onClick={() => onEditPersonnelSave(card)}
+                >
+                  Speichern
+                </button>
+                <button
+                  className="px-2 py-1 text-sm rounded bg-gray-200"
+                  onClick={onEditPersonnelCancel}
+                >
+                  Abbrechen
+                </button>
+              </div>
+            )}
+
+ {/* Footer */}
+            <div className="flex justify-end gap-2">
+              {editable && isManual && typeof onEditCard === "function" && (
+                <button
+                  type="button"
+                  className="text-[12px] text-blue-700 hover:underline"
+                  title="Bearbeiten"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onClick={(e) => { e.stopPropagation(); onEditCard(card); }}
+                >
+                  ✎
+                </button>
+              )}
+              <button
+                type="button"
+                className="text-[12px] text-blue-700 hover:underline"
+                title="Ort in Karte öffnen"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); onOpenMap?.(card.ort); }}
+              >
+                Karte
+              </button>
+              <button
+                type="button"
+                className="text-[12px] text-blue-700 hover:underline"
+                title="Einsatz-Info"
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); onShowInfo?.(card); }}
+              >
+                ?
+              </button>
+            </div>
           </div>
-        )}
-
-        {colId === "in-bearbeitung" && chipsOpen && !!assigned.length && (
-          <div ref={chipsRef} className="mt-2 flex flex-wrap gap-1.5">
-            {assigned.map((v) => (
-              <AssignedVehicleChip
-                key={`ass-${card.id}-${v.id}`}
-                cardId={card.id}
-                vehicle={v}
-                pillWidthPx={pillWidthPx}
-                onUnassign={onUnassign}
-                onClone={onClone}
-                near={!!nearIds && pulseActive && nearIds.has(String(v.id))}
-                readonly={!editable}
-                distKm={distById?.get(String(v.id)) ?? null}
-              />
-            ))}
-          </div>
-        )}
-
-        {colId === "erledigt" && chipsOpen && !!(card.everVehicles?.length) && (
-          <ul className="mt-2 text-sm text-gray-700 list-disc list-inside space-y-1">
-            {card.everVehicles.map((vid) => {
-              const v = vehiclesById.get(vid);
-              const label = v?.label || v?.id || "Unbekannt";
-              const ort = v?.ort ? ` (${v.ort})` : "";
-              return <li key={vid}>{label}{ort}</li>;
-            })}
-          </ul>
-        )}
-
-        {/* Inline-Edit Personen */}
-        {editable && editing?.cardId === card.id && (
-          <div className="mt-2 flex items-center gap-2">
-            <input
-              type="number"
-              className="w-20 border rounded px-2 py-1 text-sm"
-              value={editingValue}
-              onChange={(e) => setEditingValue(e.target.value)}
-              placeholder="Personen"
-            />
-            <button
-              className="px-2 py-1 text-sm rounded bg-emerald-600 text-white"
-              onClick={() => onEditPersonnelSave(card)}
-            >
-              Speichern
-            </button>
-            <button
-              className="px-2 py-1 text-sm rounded bg-gray-200"
-              onClick={onEditPersonnelCancel}
-            >
-              Abbrechen
-            </button>
-          </div>
-        )}
-
-        {/* Footer */}
-        <div className="mt-2 flex justify-end gap-2">
-		 {editable && isManual && typeof onEditCard === "function" && (
-            <button
-              type="button"
-              className="text-[12px] text-blue-700 hover:underline"
-              title="Bearbeiten"
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => { e.stopPropagation(); onEditCard(card); }}
-            >
-              ✎
-            </button>
-          )}
-          <button
-            type="button"
-            className="text-[12px] text-blue-700 hover:underline"
-            title="Ort in Karte öffnen"
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => { e.stopPropagation(); onOpenMap?.(card.ort); }}
-          >
-            Karte
-          </button>
-          <button
-            type="button"
-            className="text-[12px] text-blue-700 hover:underline"
-            title="Einsatz-Info"
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => { e.stopPropagation(); onShowInfo?.(card); }}
-          >
-            ?
-          </button>
         </div>
       </div>
     </li>
