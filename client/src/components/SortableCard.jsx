@@ -11,6 +11,7 @@ const ensureAreaHumanId = (value) => {
   return `B${raw}`;
 };
 
+const isManualHumanId = (value) => /^([MB])-/.test(String(value || ""));
 
 export function SortableCard(props) {
   const {
@@ -146,7 +147,7 @@ useEffect(() => () => {
     }
   };
 
- const isManual = String(card?.humanId || "").startsWith("M-");
+ const isManual = isManualHumanId(card?.humanId);
   const displayHumanId = useMemo(() => {
     if (!card?.humanId) return "";
     if (card?.isArea) return ensureAreaHumanId(card.humanId);
@@ -216,9 +217,9 @@ useEffect(() => () => {
       ref={setNodeRef}
       style={style}
       tabIndex={0}
- className={`relative rounded-lg shadow border transition mx-1 focus:outline-none ${
-        card.isArea ? "bg-gray-100" : "bg-white"
-      } ${pulse && colId === "neu" ? "ring-2 ring-red-400/60" : ""}`}
+className={`relative rounded-lg shadow border transition mx-1 focus:outline-none bg-white ${
+        pulse && colId === "neu" ? "ring-2 ring-red-400/60" : ""
+      }`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onFocus={handleFocus}

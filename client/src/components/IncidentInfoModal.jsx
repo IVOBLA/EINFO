@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 const DEFAULT_AREA_COLOR = "#2563eb";
+const isManualHumanId = (value) => /^([MB])-/.test(String(value || ""));
 
 function formatAreaLabel(card = {}) {
   const idPart = card?.humanId ? String(card.humanId) : "";
@@ -36,6 +37,7 @@ export default function IncidentInfoModal({
 	
 const isManual = useMemo(
     () => String(info?.humanId || "").startsWith("M-"),
+	() => isManualHumanId(info?.humanId),
     [info]
   );
 
