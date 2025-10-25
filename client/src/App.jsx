@@ -353,11 +353,11 @@ useEffect(() => {
     if (!exists) setAreaFilter("");
   }, [areaFilter, areaOptions]);
 
-const areaFilterLabel = useMemo(() => {
+ const areaFilterLabel = useMemo(() => {
     if (!areaFilter) return "";
     const key = String(areaFilter);
     return areaLabelById.get(key) || areaOptions.find((opt) => String(opt.id) === key)?.label || "";
-  }, [ar
+  }, [areaFilter, areaLabelById, areaOptions]);
 
   const syncBoardAndInfo = (updatedCard, nextBoard) => {
     if (nextBoard) {
