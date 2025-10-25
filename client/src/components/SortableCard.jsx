@@ -217,7 +217,9 @@ useEffect(() => () => {
       ref={setNodeRef}
       style={style}
       tabIndex={0}
-className={`relative rounded-lg shadow border transition mx-1 focus:outline-none bg-white ${
+    className={`relative rounded-lg shadow border transition mx-1 focus:outline-none ${
+        card.isArea ? "bg-slate-100 border-slate-200" : "bg-white"
+      } ${
         pulse && colId === "neu" ? "ring-2 ring-red-400/60" : ""
       }`}
       onMouseEnter={handleMouseEnter}
