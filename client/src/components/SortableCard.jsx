@@ -211,14 +211,22 @@ useEffect(() => () => {
     setHovered(false);
   };
 
+  const cardBackgroundClass = card.isArea ? "bg-slate-100 border-slate-200" : "bg-white";
+  const buttonBackgroundClass = card.isArea
+    ? "bg-slate-200 hover:bg-slate-300"
+    : "bg-white hover:bg-gray-50";
+  const vehicleButtonBackgroundClass = card.isArea
+    ? "bg-slate-200 hover:bg-slate-300"
+    : "bg-white hover:bg-red-50";
+
 
   return (
     <li
       ref={setNodeRef}
       style={style}
       tabIndex={0}
-    className={`relative rounded-lg shadow border transition mx-1 focus:outline-none ${
-        card.isArea ? "bg-slate-100 border-slate-200" : "bg-white"
+      className={`relative rounded-lg shadow border transition mx-1 focus:outline-none ${
+        cardBackgroundClass
       } ${
         pulse && colId === "neu" ? "ring-2 ring-red-400/60" : ""
       }`}
@@ -276,7 +284,9 @@ useEffect(() => () => {
                   ? "Nahe Einheiten prüfen"
                   : "Einheiten auf-/zuklappen"
               }
-              className="px-2 py-1 rounded text-[12px] border hover:bg-red-50 flex items-center gap-1"
+                     className={`px-2 py-1 rounded text-[12px] border flex items-center gap-1 ${
+                vehicleButtonBackgroundClass
+              }`}
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => {
                 e.stopPropagation();
@@ -292,7 +302,7 @@ useEffect(() => () => {
 
             <button
               type="button"
-              className="px-2 py-1 rounded text-[12px] border bg-white hover:bg-gray-50"
+className={`px-2 py-1 rounded text-[12px] border ${buttonBackgroundClass}`}
               title="Personalzahl bearbeiten"
               onPointerDown={(e) => e.stopPropagation()}
               onClick={(e) => {
@@ -308,7 +318,7 @@ useEffect(() => () => {
                 type="button"
                 onPointerDown={(e) => e.stopPropagation()}
                 onClick={(e) => { e.stopPropagation(); onAdvance(card); }}
-                className="ml-1 px-2 py-1 rounded text-[12px] border bg-white hover:bg-gray-50"
+                className={`ml-1 px-2 py-1 rounded text-[12px] border ${buttonBackgroundClass}`}
                 title="weiter"
               >
                 ➔
