@@ -1104,12 +1104,16 @@ if (route.startsWith("/protokoll")) {
       </header>
 
       {/* Quick-Add */}
-       <section className="mb-2 flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-2 text-sm text-gray-700">
+<section className="mb-2 flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 text-sm text-gray-700">
           <label htmlFor="areaFilter" className="whitespace-nowrap">Filter</label>
           <select
             id="areaFilter"
-            className="border rounded px-2 py-1 basis-48 shrink-0 min-w-[160px]"
+           className={`border rounded px-2 py-1 shrink-0 min-w-[150px] transition-colors ${
+              areaFilter
+                ? "bg-red-100 border-red-500 text-red-900"
+                : "bg-white border-gray-300 text-gray-900"
+            }`}
             value={areaFilter}
             onChange={(e) => setAreaFilter(e.target.value)}
           >
@@ -1122,16 +1126,20 @@ if (route.startsWith("/protokoll")) {
           </select>
         </div>
 
-        <select
-          className="border rounded px-2 py-1 basis-40 shrink-0 min-w-[140px]"
-          value={newTyp} onChange={(e) => onTypeSelectChange(e.target.value)}
-        >
-          <option value="">— Typ auswählen —</option>
-          {types.map((t) => (<option key={t} value={t}>{t}</option>))}
-        </select>
-
+<label className="flex flex-wrap items-center gap-2 text-sm text-gray-700">
+          <span className="whitespace-nowrap">Einsatz:</span>
+          <select
+            id="quickAddType"
+            className="border rounded px-2 py-1 shrink-0 min-w-[150px] border-gray-300 bg-white text-gray-900"
+            value={newTyp}
+            onChange={(e) => onTypeSelectChange(e.target.value)}
+          >
+            <option value="">— Typ auswählen —</option>
+            {types.map((t) => (<option key={t} value={t}>{t}</option>))}
+          </select>
+</label>
         <input
-className="border rounded px-2 py-1 flex-[2] min-w-[220px]"
+ className="border rounded px-2 py-1 flex-1 min-w-[180px] border-gray-300"
           placeholder="Titel (wird aus Typ übernommen)"
           value={newTitle} onChange={(e) => setNewTitle(e.target.value)}
         />
