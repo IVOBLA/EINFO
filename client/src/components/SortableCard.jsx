@@ -186,7 +186,7 @@ useEffect(() => () => {
     hoverTimerRef.current = setTimeout(() => {
       setHovered(true);
       hoverTimerRef.current = null;
-    }, 800);
+    }, 300);
   };
   const handleMouseLeave = () => {
     if (hoverTimerRef.current) {
