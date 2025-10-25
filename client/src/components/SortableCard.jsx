@@ -3,6 +3,15 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import AssignedVehicleChip from "./AssignedVehicleChip";
 
+const ensureAreaHumanId = (value) => {
+  const raw = String(value || "");
+  if (!raw) return "";
+  if (/^B/i.test(raw)) return `B${raw.slice(1)}`;
+  if (/^[A-Za-z]/.test(raw)) return `B${raw.slice(1)}`;
+  return `B${raw}`;
+};
+
+
 export function SortableCard(props) {
   const {
     card, colId, vehiclesById, pillWidthPx = 160,
@@ -24,15 +33,24 @@ export function SortableCard(props) {
   } = props;
 
   // Start: in-bearbeitung = offen, erledigt = zu, neu = egal
-   const [chipsOpen, setChipsOpen] = useState(false);
+ const [chipsOpen, setChipsOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
   const prevAssignedCountRef = useRef((card.assignedVehicles || []).length);
   const chipsRef = useRef(null);
+  const hoverTimerRef = useRef(null);
 
   const pulseActive = Date.now() < (nearUntilMs || 0);
  useEffect(() => {
     setChipsOpen(false);
   }, [colId]);
+
+useEffect(() => () => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+  }, []);
+
 
   // DnD only when editable
   const sortable = editable
@@ -129,9 +147,15 @@ export function SortableCard(props) {
   };
 
  const isManual = String(card?.humanId || "").startsWith("M-");
+  const displayHumanId = useMemo(() => {
+    if (!card?.humanId) return "";
+    if (card?.isArea) return ensureAreaHumanId(card.humanId);
+    return String(card.humanId);
+  }, [card?.humanId, card?.isArea]);
   const formatArea = (c) => {
     if (!c) return "";
-    const idPart = c.humanId ? String(c.humanId) : "";
+     const idPartRaw = c.humanId ? String(c.humanId) : "";
+    const idPart = c.isArea ? ensureAreaHumanId(idPartRaw) : idPartRaw;
     const titlePart = c.content ? String(c.content) : "";
     const joined = [idPart, titlePart].filter(Boolean).join(" – ");
     return joined || idPart || titlePart || "";
@@ -139,14 +163,15 @@ export function SortableCard(props) {
   const areaLabel = useMemo(() => {
     if (card?.isArea) return formatArea(card);
     if (!card?.areaCardId) return "";
-    const fromMap = areaLabelById.get(card.areaCardId);
+    const key = String(card.areaCardId);
+    const fromMap = areaLabelById.get(key);
     if (fromMap) return fromMap;
-    const opt = (areaOptions || []).find((o) => o.id === card.areaCardId);
+     const opt = (areaOptions || []).find((o) => String(o.id) === key);
     if (opt) return opt.label;
     return String(card.areaCardId);
   }, [card, areaLabelById, areaOptions]);
   const areaSelectOptions = useMemo(
-    () => (areaOptions || []).filter((opt) => opt.id !== card.id),
+    () => (areaOptions || []).filter((opt) => String(opt.id) !== String(card.id)),
     [areaOptions, card.id]
   );
   const canSelectArea = editable && !card.isArea && typeof onAreaChange === "function";
@@ -155,7 +180,35 @@ export function SortableCard(props) {
     if (!canSelectArea) return;
     onAreaChange(card, value);
   };
-const showDetails = hovered || chipsOpen;
+ const showDetails = hovered || chipsOpen;
+  const handleMouseEnter = () => {
+    if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    hoverTimerRef.current = setTimeout(() => {
+      setHovered(true);
+      hoverTimerRef.current = null;
+    }, 800);
+  };
+  const handleMouseLeave = () => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    setHovered(false);
+  };
+  const handleFocus = () => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    setHovered(true);
+  };
+  const handleBlur = () => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    setHovered(false);
+  };
 
 
   return (
@@ -163,14 +216,14 @@ const showDetails = hovered || chipsOpen;
       ref={setNodeRef}
       style={style}
       tabIndex={0}
-  className={`relative rounded-lg bg-white shadow border transition mx-1 focus:outline-none ${
-        pulse && colId === "neu" ? "ring-2 ring-red-400/60" : ""
-      }`}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onFocus={() => setHovered(true)}
-      onBlur={() => setHovered(false)}
-	>
+ className={`relative rounded-lg shadow border transition mx-1 focus:outline-none ${
+        card.isArea ? "bg-gray-100" : "bg-white"
+      } ${pulse && colId === "neu" ? "ring-2 ring-red-400/60" : ""}`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+        >
       {pulse && colId === "neu" && (
         <>
           {/* Innerer, weicher Licht-Impuls */}
@@ -189,9 +242,9 @@ const showDetails = hovered || chipsOpen;
         {/* Header */}
         <div className="flex items-start justify-between gap-2" {...attributes} {...listeners}>
           <div className="min-w-0">
-		     {card.humanId && (
+		      {displayHumanId && (
               <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
-                Einsatz: {card.humanId}
+                 Einsatz: {displayHumanId}
               </div>
             )}
 			{card.isArea && (
