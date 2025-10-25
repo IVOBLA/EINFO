@@ -288,13 +288,23 @@ const matchesFilter = (card) => cardMatchesAreaFilter(card, areaId);
   }, [safeBoard, areaFilter]);
 
 
+const ensureAreaHumanId = (value, isArea = false) => {
+  const raw = String(value || "");
+  if (!isArea || !raw) return raw;
+  if (/^B/i.test(raw)) return `B${raw.slice(1)}`;
+  if (/^[A-Za-z]/.test(raw)) return `B${raw.slice(1)}`;
+  return `B${raw}`;
+};
+
+
 const toAreaLabel = (c) => {
-    if (!c) return "";
-    const idPart = c.humanId ? String(c.humanId) : "";
-    const titlePart = c.content ? String(c.content) : "";
-    const joined = [idPart, titlePart].filter(Boolean).join(" – ");
-    return joined || idPart || titlePart || "";
-  };
+   if (!c) return "";
+  const idPartRaw = c.humanId ? String(c.humanId) : "";
+  const idPart = ensureAreaHumanId(idPartRaw, !!c.isArea);
+  const titlePart = c.content ? String(c.content) : "";
+  const joined = [idPart, titlePart].filter(Boolean).join(" – ");
+  return joined || idPart || titlePart || "";
+};
 
   const areaCards = useMemo(() => {
     const cols = safeBoard?.columns || {};
@@ -311,7 +321,8 @@ const toAreaLabel = (c) => {
     const map = new Map();
     areaCards.forEach((c) => {
       if (!c?.id) return;
-      map.set(c.id, toAreaLabel(c));
+     const key = String(c.id);
+      map.set(key, toAreaLabel(c));
     });
     return map;
   }, [areaCards]);
@@ -329,8 +340,8 @@ const areaColorById = useMemo(() => {
   const areaOptions = useMemo(
     () =>
       areaCards.map((c) => ({
-        id: c.id,
-        label: areaLabelById.get(c.id) || toAreaLabel(c),
+id: String(c.id),
+        label: areaLabelById.get(String(c.id)) || toAreaLabel(c),
         color: areaColorById.get(String(c.id)) || null,
       })),
     [areaCards, areaLabelById, areaColorById]
@@ -342,6 +353,11 @@ useEffect(() => {
     if (!exists) setAreaFilter("");
   }, [areaFilter, areaOptions]);
 
+const areaFilterLabel = useMemo(() => {
+    if (!areaFilter) return "";
+    const key = String(areaFilter);
+    return areaLabelById.get(key) || areaOptions.find((opt) => String(opt.id) === key)?.label || "";
+  }, [ar
 
   const syncBoardAndInfo = (updatedCard, nextBoard) => {
     if (nextBoard) {
@@ -1339,15 +1355,17 @@ className="border rounded px-2 py-1 text-sm min-w-[160px]"
             { id: "neu", title: "Neu", bg: "bg-red-100",          totals: totalsNeu  },
             { id: "in-bearbeitung", title: "In Bearbeitung", bg: "bg-yellow-100", totals: totalsWip  },
             { id: "erledigt", title: "Erledigt", bg: "bg-green-100",   totals: totalsDone },
-          ].map(({ id, title, bg, totals }) => (
-            <div key={id} className={overColId === id ? "drag-over" : ""}>
+].map(({ id, title, bg, totals }) => {
+            const displayTitle = areaFilterLabel ? `${title}: ${areaFilterLabel}` : title;
+            return (
+              <div key={id} className={overColId === id ? "drag-over" : ""}>
               <DroppableColumn editable={canEdit}
                 colId={id}
                 bg={bg}
                 title={
                   /* (1) Sticky Header + KPI-Badges */
                   <span className="column-header flex items-center justify-between">
-                    <span className="font-semibold">{title}</span>
+                     <span className="font-semibold">{displayTitle}</span>
                     <span className="flex items-center gap-1.5">
                       <span className="kpi-badge" data-variant="units">🚒 {totals.units}</span>
                       <span className="kpi-badge" data-variant="persons">👥 {totals.persons}</span>
@@ -1416,8 +1434,9 @@ className="border rounded px-2 py-1 text-sm min-w-[160px]"
                   </SortableContext>
                 </ul>
               </DroppableColumn>
-            </div>
-          ))}
+           </div>
+            );
+          })}
         </main>
 
         <DragOverlay dropAnimation={{ duration: 180, easing: "ease-out" }}>
