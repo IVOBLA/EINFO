@@ -104,6 +104,7 @@ const readOnly = !canEdit;
   const [newAreaCardId, setNewAreaCardId] = useState("");
   const [newAreaColor, setNewAreaColor] = useState(DEFAULT_AREA_COLOR);
   const [areaFilter, setAreaFilter] = useState("");
+  const [filterPulseActive, setFilterPulseActive] = useState(false);
   const [mapCtx, setMapCtx] = useState(null);
   const [editing, setEditing] = useState(null);
   const [editingValue, setEditingValue] = useState("");
@@ -139,9 +140,9 @@ const route = hash.replace(/^#/, "");
   // Proximity
   const [nearBySet, setNearBySet] = useState(() => new Set());
   const [pulseUntilMs, setPulseUntilMs] = useState(0);
- const suppressSoundUntilRef = useRef(0);      // bis wann kein Ton
- const suppressPulseIdsRef  = useRef(new Set()); // IDs, für die kein Pulse erlaubt ist
-
+  const filterPulseTimerRef = useRef(null);
+  const suppressSoundUntilRef = useRef(0);      // bis wann kein Ton
+  const suppressPulseIdsRef  = useRef(new Set()); // IDs, für die kein Pulse erlaubt ist
 
 
 
@@ -151,7 +152,21 @@ useEffect(() => {
   initSound();       // einmalig Tonfreischaltung aktivieren
 }, []);
 
+ useEffect(() => () => {
+    if (filterPulseTimerRef.current) {
+      clearTimeout(filterPulseTimerRef.current);
+      filterPulseTimerRef.current = null;
+    }
+  }, []);
 
+  useEffect(() => {
+    if (areaFilter) return;
+    if (filterPulseTimerRef.current) {
+      clearTimeout(filterPulseTimerRef.current);
+      filterPulseTimerRef.current = null;
+    }
+    if (filterPulseActive) setFilterPulseActive(false);
+ }, [areaFilter, filterPulseActive]);
   // --- Logout ---
   const { logout } = useUserAuth?.() || {};
   const onLogout = async () => {
@@ -261,12 +276,7 @@ const tick = async () => {
 const visibleBoard = useMemo(() => {
     if (!areaFilter) return safeBoard;
     const areaId = String(areaFilter);
-    const matchesFilter = (card) => {
-      if (!card) return false;
-      if (card.isArea) return String(card.id) === areaId;
-      if (!card.areaCardId) return false;
-      return String(card.areaCardId) === areaId;
-    };
+const matchesFilter = (card) => cardMatchesAreaFilter(card, areaId);
     const nextColumns = {};
     for (const [key, col] of Object.entries(safeBoard?.columns || {})) {
       nextColumns[key] = {
@@ -404,6 +414,38 @@ function getAllCardIds(b) {
   return out;
 }
 
+function cardMatchesAreaFilter(card, targetAreaId) {
+  if (!card) return false;
+  if (!targetAreaId) return true;
+  if (card.isArea) return String(card.id) === targetAreaId;
+  if (!card.areaCardId) return false;
+  return String(card.areaCardId) === targetAreaId;
+}
+
+function getCardById(boardData, cardId) {
+  if (!boardData?.columns) return null;
+  const lookupId = String(cardId);
+  for (const col of Object.values(boardData.columns)) {
+    for (const entry of col?.items || []) {
+      if (String(entry?.id) === lookupId) {
+        return entry;
+      }
+    }
+  }
+  return null;
+}
+
+const triggerFilterPulse = (durationMs = 8000) => {
+  setFilterPulseActive(true);
+  if (filterPulseTimerRef.current) {
+    clearTimeout(filterPulseTimerRef.current);
+  }
+  filterPulseTimerRef.current = setTimeout(() => {
+    setFilterPulseActive(false);
+    filterPulseTimerRef.current = null;
+  }, durationMs);
+};
+
 function updatePulseForNewBoard({ oldIds, newBoard, pulseMs = 8000 }) {
   const now = Date.now();
   const newIds = getAllCardIds(newBoard);
@@ -422,6 +464,18 @@ function updatePulseForNewBoard({ oldIds, newBoard, pulseMs = 8000 }) {
   if (filtered.size > 0) {
     setNewlyImportedIds(filtered);
     setPulseUntilMs(now + pulseMs);
+
+ if (areaFilter) {
+      const filterId = String(areaFilter);
+      const hiddenByFilter = [...filtered].some((id) => {
+        const card = getCardById(newBoard, id);
+        if (!card) return false;
+        return !cardMatchesAreaFilter(card, filterId);
+      });
+      if (hiddenByFilter) {
+        triggerFilterPulse(pulseMs);
+      }
+    }
 
     // 🔊 Ton nur, wenn Pulse aktiv ist UND kein eigenes Sperrfenster
     if (now >= suppressSoundUntilRef.current) {
@@ -1109,9 +1163,9 @@ if (route.startsWith("/protokoll")) {
           <label htmlFor="areaFilter" className="whitespace-nowrap">Filter</label>
           <select
             id="areaFilter"
-           className={`border rounded px-2 py-1 shrink-0 min-w-[150px] transition-colors ${
+            className={`border rounded px-2 py-1 shrink-0 min-w-[150px] transition-colors ${
               areaFilter
-                ? "bg-red-100 border-red-500 text-red-900"
+                ? `bg-red-800 border-red-900 text-white ${filterPulseActive ? "filter-pulse" : ""}`
                 : "bg-white border-gray-300 text-gray-900"
             }`}
             value={areaFilter}

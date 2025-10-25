@@ -324,6 +324,16 @@ header .toolbar .interval-capsule input:focus {
   will-change: box-shadow;
 }
 
+@keyframes filterFieldPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(127, 29, 29, 0.0); }
+  50%      { box-shadow: 0 0 0 6px rgba(127, 29, 29, 0.35); }
+}
+
+.filter-pulse {
+  animation: filterFieldPulse 1.5s ease-in-out infinite;
+  will-change: box-shadow;
+}
+
 /* Stelle sicher, dass der DatePicker im Vordergrund angezeigt wird */
 .react-datepicker-popper {
   z-index: 9999 !important;
