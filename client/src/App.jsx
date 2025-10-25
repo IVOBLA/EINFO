@@ -103,7 +103,7 @@ const readOnly = !canEdit;
   const [newIsArea, setNewIsArea] = useState(false);
   const [newAreaCardId, setNewAreaCardId] = useState("");
   const [newAreaColor, setNewAreaColor] = useState(DEFAULT_AREA_COLOR);
-
+  const [areaFilter, setAreaFilter] = useState("");
   const [mapCtx, setMapCtx] = useState(null);
   const [editing, setEditing] = useState(null);
   const [editingValue, setEditingValue] = useState("");
@@ -258,6 +258,26 @@ const tick = async () => {
     columns: { neu: { items: [] }, "in-bearbeitung": { items: [] }, erledigt: { items: [] } },
   };
 
+const visibleBoard = useMemo(() => {
+    if (!areaFilter) return safeBoard;
+    const areaId = String(areaFilter);
+    const matchesFilter = (card) => {
+      if (!card) return false;
+      if (card.isArea) return String(card.id) === areaId;
+      if (!card.areaCardId) return false;
+      return String(card.areaCardId) === areaId;
+    };
+    const nextColumns = {};
+    for (const [key, col] of Object.entries(safeBoard?.columns || {})) {
+      nextColumns[key] = {
+        ...col,
+        items: (col?.items || []).filter(matchesFilter),
+      };
+    }
+    return { ...safeBoard, columns: nextColumns };
+  }, [safeBoard, areaFilter]);
+
+
 const toAreaLabel = (c) => {
     if (!c) return "";
     const idPart = c.humanId ? String(c.humanId) : "";
@@ -305,6 +325,13 @@ const areaColorById = useMemo(() => {
       })),
     [areaCards, areaLabelById, areaColorById]
   );
+
+useEffect(() => {
+    if (!areaFilter) return;
+    const exists = areaOptions.some((opt) => String(opt.id) === areaFilter);
+    if (!exists) setAreaFilter("");
+  }, [areaFilter, areaOptions]);
+
 
   const syncBoardAndInfo = (updatedCard, nextBoard) => {
     if (nextBoard) {
@@ -541,8 +568,8 @@ useEffect(() => {
     }
     return null;
   }
-  function totalsForColumn(colId) {
-    const cards = safeBoard?.columns?.[colId]?.items || [];
+  function totalsForColumn(boardLike, colId) {
+    const cards = boardLike?.columns?.[colId]?.items || [];
     if (colId === "erledigt") {
       const units   = cards.reduce((s, c) => s + (c.everVehicles?.length || 0), 0);
       const persons = cards.reduce((s, c) => s + (Number.isFinite(c?.everPersonnel) ? c.everPersonnel : 0), 0);
@@ -555,9 +582,10 @@ useEffect(() => {
     }, 0);
     return { cards: cards.length, units, persons };
   }
-  const totalsNeu = totalsForColumn("neu");
-  const totalsWip = totalsForColumn("in-bearbeitung");
-  const totalsDone = totalsForColumn("erledigt");
+  const totalsNeu = totalsForColumn(visibleBoard, "neu");
+  const totalsWip = totalsForColumn(visibleBoard, "in-bearbeitung");
+  const totalsDone = totalsForColumn(visibleBoard, "erledigt");
+
 
   // === MANUELLER EINSATZ ===
   const addCard = async () => {
@@ -1077,6 +1105,23 @@ if (route.startsWith("/protokoll")) {
 
       {/* Quick-Add */}
        <section className="mb-2 flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-2 text-sm text-gray-700">
+          <label htmlFor="areaFilter" className="whitespace-nowrap">Filter</label>
+          <select
+            id="areaFilter"
+            className="border rounded px-2 py-1 basis-48 shrink-0 min-w-[160px]"
+            value={areaFilter}
+            onChange={(e) => setAreaFilter(e.target.value)}
+          >
+            <option value="">Alles Anzeigen</option>
+            {areaOptions.map((opt) => (
+              <option key={opt.id} value={String(opt.id)}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <select
           className="border rounded px-2 py-1 basis-40 shrink-0 min-w-[140px]"
           value={newTyp} onChange={(e) => onTypeSelectChange(e.target.value)}
@@ -1249,13 +1294,15 @@ className="border rounded px-2 py-1 text-sm min-w-[160px]"
                   </span>
                 }
               >
-<ul className="space-y-2 overflow-y-auto overflow-x-hidden pl-1 pr-2 py-2"
-     style={{ maxHeight: "calc(100vh - 260px)" }}>
+ <ul
+                  className="space-y-2 overflow-y-auto overflow-x-hidden pl-1 pr-2 py-2"
+                  style={{ maxHeight: "calc(100vh - 260px)" }}
+                >
                   <SortableContext
-                    items={(safeBoard.columns[id].items || []).map((c) => CID(c.id))}
+                    items={(visibleBoard.columns[id].items || []).map((c) => CID(c.id))}
                     strategy={verticalListSortingStrategy}
                   >
-                    {(safeBoard.columns[id].items || []).map((c) => (
+                    {(visibleBoard.columns[id].items || []).map((c) => (
                       <SortableCard editable={canEdit}
                         key={c.id}
                         card={c}
