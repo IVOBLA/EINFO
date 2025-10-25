@@ -24,12 +24,15 @@ export function SortableCard(props) {
   } = props;
 
   // Start: in-bearbeitung = offen, erledigt = zu, neu = egal
-  const [chipsOpen, setChipsOpen] = useState(colId === "in-bearbeitung");
+   const [chipsOpen, setChipsOpen] = useState(false);
   const [hovered, setHovered] = useState(false);
   const prevAssignedCountRef = useRef((card.assignedVehicles || []).length);
   const chipsRef = useRef(null);
 
   const pulseActive = Date.now() < (nearUntilMs || 0);
+ useEffect(() => {
+    setChipsOpen(false);
+  }, [colId]);
 
   // DnD only when editable
   const sortable = editable
