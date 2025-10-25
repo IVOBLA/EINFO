@@ -193,7 +193,31 @@ function fmt24(iso){ return new Intl.DateTimeFormat("de-AT",{year:"2-digit",mont
 function uid(){ return Math.random().toString(36).slice(2,10); }
 const stripTypePrefix = raw => String(raw||"").replace(/^T\d+\s*,?\s*/i,"").trim();
 
-const HUMAN_ID_PATTERN=/^([EM])-(\d+)$/i;
+const HUMAN_ID_PATTERN=/^([EMB])-(\d+)$/i;
+const HUMAN_ID_PREFIX_MANUAL = "M";
+const HUMAN_ID_PREFIX_AREA = "B";
+const HUMAN_ID_PREFIX_IMPORT = "E";
+
+function ensureHumanIdWithPrefix(value, prefix, allocateNumber) {
+  const parsed = parseHumanIdNumber(value);
+  if (Number.isFinite(parsed)) {
+    return `${prefix}-${parsed}`;
+  }
+  if (typeof allocateNumber === "function") {
+    const next = allocateNumber();
+    if (Number.isFinite(next)) {
+      return `${prefix}-${next}`;
+    }
+  }
+  return `${prefix}-${Date.now()}`;
+}
+
+const ensureAreaHumanIdValue = (value, allocateNumber) =>
+  ensureHumanIdWithPrefix(value, HUMAN_ID_PREFIX_AREA, allocateNumber);
+
+const ensureManualHumanIdValue = (value, allocateNumber) =>
+  ensureHumanIdWithPrefix(value, HUMAN_ID_PREFIX_MANUAL, allocateNumber);
+
 
 function parseHumanIdNumber(value){
   if(typeof value!=="string") return null;
@@ -376,9 +400,21 @@ if(!("areaColor"   in c)) c.areaColor=null;
         c.areaColor = null;
       }
       if(typeof c.humanId!=="string" || !c.humanId.trim()){
-        const prefix=c.externalId?"E":"M";
+        const prefix = c.externalId
+          ? HUMAN_ID_PREFIX_IMPORT
+          : (c.isArea ? HUMAN_ID_PREFIX_AREA : HUMAN_ID_PREFIX_MANUAL);
         highestHumanId+=1;
         c.humanId=`${prefix}-${highestHumanId}`;
+		} else if (c.isArea) {
+        c.humanId = ensureAreaHumanIdValue(c.humanId, () => {
+          highestHumanId += 1;
+          return highestHumanId;
+        });
+      } else if (!c.externalId && /^B-/i.test(String(c.humanId))) {
+        c.humanId = ensureManualHumanIdValue(c.humanId, () => {
+          highestHumanId += 1;
+          return highestHumanId;
+        });
       }
     }
   }
@@ -509,7 +545,10 @@ app.post("/api/cards", async (req, res) => {
   const cleanTitle = stripTypePrefix(title);
   const key = ["neu", "in-bearbeitung", "erledigt"].includes(columnId) ? columnId : "neu";
   
-  const manualHumanId = `M-${nextHumanNumber(board)}`;
+const nextHumanIdNumber = nextHumanNumber(board);
+  const manualHumanId = `${HUMAN_ID_PREFIX_MANUAL}-${nextHumanIdNumber}`;
+  const areaHumanId = `${HUMAN_ID_PREFIX_AREA}-${nextHumanIdNumber}`;
+
 
   const latIn = latitude ?? req.body?.lat;
   const lngIn = longitude ?? req.body?.lng;
@@ -531,7 +570,7 @@ app.post("/api/cards", async (req, res) => {
     typ,
     externalId,
     alerted,
-	humanId: manualHumanId,
+	humanId: isAreaBool ? areaHumanId : manualHumanId,
     latitude: Number.isFinite(+latIn) ? +latIn : null,
     longitude: Number.isFinite(+lngIn) ? +lngIn : null,
     location: String(location || ""),
@@ -848,6 +887,21 @@ let areaColorChanged = false;
       areaColorChanged = true;
     }
   }
+
+ if (becameArea === true) {
+    const ensured = ensureAreaHumanIdValue(ref.card.humanId, () => nextHumanNumber(board));
+    if (ensured !== ref.card.humanId) {
+      ref.card.humanId = ensured;
+      changed = true;
+    }
+  } else if (becameArea === false && !ref.card.externalId) {
+    const ensured = ensureManualHumanIdValue(ref.card.humanId, () => nextHumanNumber(board));
+    if (ensured !== ref.card.humanId) {
+      ref.card.humanId = ensured;
+      changed = true;
+    }
+  }
+
 
   const cleared = [];
   if (prevSnapshot.isArea && !ref.card.isArea) {
