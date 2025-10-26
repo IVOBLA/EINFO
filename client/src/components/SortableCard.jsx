@@ -148,6 +148,7 @@ useEffect(() => () => {
   };
 
  const isManual = isManualHumanId(card?.humanId);
+  const isEditableCard = isManual || !!card?.isArea;
   const displayHumanId = useMemo(() => {
     if (!card?.humanId) return "";
     if (card?.isArea) return ensureAreaHumanId(card.humanId);
@@ -260,11 +261,11 @@ useEffect(() => () => {
                  Einsatz: {displayHumanId}
               </div>
             )}
-			{card.isArea && (
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-600">
-                Bereich
-              </div>
-            )}
+        {card.isArea && (
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-emerald-600">
+            Abschnitt
+          </div>
+        )}
             <div className="font-semibold text-sm leading-5 truncate">{card.content}</div>
             {!!card.ort && (
               <button
@@ -338,7 +339,7 @@ className={`px-2 py-1 rounded text-[12px] border ${buttonBackgroundClass}`}
         >
           <div className="pt-2 space-y-2">
             <div className="flex items-center gap-2 text-[12px]">
-              <span className="text-gray-600 whitespace-nowrap">Bereich</span>
+              <span className="text-gray-600 whitespace-nowrap">Abschnitt</span>
               {canSelectArea ? (
                 <select
                   className="border rounded px-2 py-1 text-[12px] min-w-[140px]"
@@ -346,7 +347,7 @@ className={`px-2 py-1 rounded text-[12px] border ${buttonBackgroundClass}`}
                   onChange={(e) => handleAreaSelect(e.target.value)}
                   onPointerDown={(e) => e.stopPropagation()}
                 >
-                  <option value="">— Bereich auswählen —</option>
+                  <option value="">— Abschnitt auswählen —</option>
                   {areaSelectOptions.map((opt) => (
                     <option key={opt.id} value={opt.id}>{opt.label}</option>
                   ))}
@@ -429,7 +430,7 @@ className={`px-2 py-1 rounded text-[12px] border ${buttonBackgroundClass}`}
 
  {/* Footer */}
             <div className="flex justify-end gap-2">
-              {editable && isManual && typeof onEditCard === "function" && (
+              {editable && isEditableCard  && typeof onEditCard === "function" && (
                 <button
                   type="button"
                   className="text-[12px] text-blue-700 hover:underline"

@@ -148,7 +148,7 @@ useEffect(() => {
             )}
 </div>
 
-          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <label className="inline-flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -156,7 +156,7 @@ useEffect(() => {
                 onChange={(e) => setIsArea(e.target.checked)}
                 disabled={busy}
               />
-              Bereich
+              Abschnitt
             </label>
             {!isArea && (
               <select
@@ -165,7 +165,7 @@ useEffect(() => {
                 onChange={(e) => setAreaCardId(e.target.value)}
                 disabled={busy || areaOptions.length === 0}
               >
-                <option value="">— Bereich auswählen —</option>
+                <option value="">— Abschnitt auswählen —</option>
                 {areaOptions.map((opt) => (
                   <option key={opt.id} value={opt.id}>{opt.label}</option>
                 ))}
@@ -174,7 +174,7 @@ useEffect(() => {
           </div>
           {isArea && (
             <div className="flex items-center justify-between gap-3 text-sm text-gray-700">
-              <span>Bereichsfarbe</span>
+              <span>Abschnittsfarbe</span>
               <input
                 type="color"
                 className="h-9 w-16 border rounded cursor-pointer"
@@ -185,7 +185,7 @@ useEffect(() => {
             </div>
           )}
           {!isArea && areaOptions.length === 0 && (
-            <p className="text-xs text-gray-500">Noch keine Bereiche vorhanden.</p>
+            <p className="text-xs text-gray-500">Noch keine Abschnitte vorhanden.</p>
           )}
         </div>
 

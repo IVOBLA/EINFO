@@ -6,7 +6,7 @@ function formatAreaLabel(card = {}) {
   const idPart = card?.humanId ? String(card.humanId) : "";
   const titlePart = card?.content ? String(card.content) : "";
   const joined = [idPart, titlePart].filter(Boolean).join(" – ");
-  return joined || idPart || titlePart || "Bereich";
+  return joined || idPart || titlePart || "Abschnitt";
 }
 
 function initForm(info = {}) {
@@ -35,12 +35,14 @@ export default function IncidentInfoModal({
 }) {
 	 if (!open) return null;
 	
-const isManual = useMemo(
-    () => String(info?.humanId || "").startsWith("M-"),
-	() => isManualHumanId(info?.humanId),
-    [info]
+ const isManual = useMemo(
+    () => isManualHumanId(info?.humanId),
+    [info?.humanId]
   );
-
+  const isEditableCard = useMemo(
+    () => isManual || !!info?.isArea,
+    [isManual, info?.isArea]
+);
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState(() => initForm(info));
@@ -80,12 +82,12 @@ const isManual = useMemo(
     setForm(initForm(info));
     setError("");
     setBusy(false);
-    if (forceEdit && canEdit && isManual) {
+    if (forceEdit && canEdit && isEditableCard) {
       setEditing(true);
     } else {
       setEditing(false);
     }
-  }, [info, forceEdit, canEdit, isManual, open]);
+  }, [info, forceEdit, canEdit, isEditableCard, open]);
 
   const close = () => {
     if (busy) return;
@@ -95,7 +97,7 @@ const isManual = useMemo(
   };
 
   const startEdit = () => {
-    if (!canEdit || !isManual) return;
+    if (!canEdit || !isEditableCard) return;
     setForm(initForm(info));
     setError("");
     setEditing(true);
@@ -187,24 +189,24 @@ const isManual = useMemo(
             />
           </label>
 
-<div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-          <label className="inline-flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={form.isArea}
-              onChange={(e) =>
-                setForm((prev) => ({
-                  ...prev,
-                  isArea: e.target.checked,
-                  areaCardId: e.target.checked ? "" : prev.areaCardId,
-                  areaColor: e.target.checked
-                    ? prev.areaColor || DEFAULT_AREA_COLOR
-                    : prev.areaColor,
-                }))
-              }
-              disabled={busy}
-            />
-            Bereich
+ <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+            <label className="inline-flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.isArea}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    isArea: e.target.checked,
+                    areaCardId: e.target.checked ? "" : prev.areaCardId,
+                    areaColor: e.target.checked
+                      ? prev.areaColor || DEFAULT_AREA_COLOR
+                      : prev.areaColor,
+                  }))
+                }
+                disabled={busy}
+              />
+              Abschnitt
             </label>
             {!form.isArea && (
               <select
@@ -213,7 +215,7 @@ const isManual = useMemo(
                 onChange={(e) => setForm((prev) => ({ ...prev, areaCardId: e.target.value }))}
                 disabled={busy || areaSelectOptions.length === 0}
               >
-                <option value="">— Bereich auswählen —</option>
+                <option value="">— Abschnitt auswählen —</option>
                 {areaSelectOptions.map((opt) => (
                   <option key={opt.id} value={opt.id}>{opt.label}</option>
                 ))}
@@ -221,11 +223,11 @@ const isManual = useMemo(
             )}
           </div>
           {!form.isArea && areaSelectOptions.length === 0 && (
-            <p className="text-xs text-gray-500">Noch keine Bereiche vorhanden.</p>
+            <p className="text-xs text-gray-500">Noch keine Abschnitte vorhanden.</p>
           )}
 		  {form.isArea && (
             <div className="flex items-center justify-between gap-3 text-sm text-gray-700">
-              <span>Bereichsfarbe</span>
+              <span>Farbe</span>
               <input
                 type="color"
                 className="h-9 w-16 border rounded cursor-pointer"
@@ -273,7 +275,7 @@ type="button"
         <div className="flex items-center justify-between mb-3 gap-2">
           <h2 className="text-lg md:text-xl font-bold">Einsatz-Info</h2>
           <div className="flex items-center gap-2">
-            {canEdit && isManual && !editing && (
+            {canEdit && isEditableCard  && !editing && (
               <button
                 type="button"
                 className="px-3 py-1.5 rounded border bg-white text-sm hover:bg-gray-50"
@@ -309,7 +311,7 @@ type="button"
               <Row label="Adresse" value={info.additionalAddressInfo || info.ort} />
               <Row label="Location" value={locationCombined} />
               <Row
-                label="Bereich"
+                label="Abschnitt"
                 value={
                   info.isArea && info.areaColor
                     ? (
@@ -327,7 +329,7 @@ type="button"
               />
               {!info.isArea && info.areaColor && (
                 <Row
-                  label="Bereichsfarbe"
+                  label="Farbe"
                   value={
                     <span className="inline-flex items-center gap-2">
                       <span
