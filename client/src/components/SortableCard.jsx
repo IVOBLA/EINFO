@@ -249,7 +249,9 @@ useEffect(() => () => {
           />
         </>
       )}
-      <div className="p-3 select-none">
+      <div
+        className={`p-3 select-none ${card.isArea ? "bg-slate-100 rounded-lg" : ""}`}
+      >
         {/* Header */}
         <div className="flex items-start justify-between gap-2" {...attributes} {...listeners}>
           <div className="min-w-0">
@@ -284,7 +286,7 @@ useEffect(() => () => {
                   ? "Nahe Einheiten prüfen"
                   : "Einheiten auf-/zuklappen"
               }
-                     className={`px-2 py-1 rounded text-[12px] border flex items-center gap-1 ${
+           className={`px-2 py-1 rounded text-[12px] border flex items-center gap-1 ${
                 vehicleButtonBackgroundClass
               }`}
               onPointerDown={(e) => e.stopPropagation()}
