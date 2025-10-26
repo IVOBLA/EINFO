@@ -995,7 +995,7 @@ const handleAreaChange = async (card, rawAreaId) => {
       const res = await updateCard(card.id, { areaCardId: nextAreaId });
       syncBoardAndInfo(res?.card, res?.board);
     } catch (err) {
-      alert(err?.message || "Bereich konnte nicht geändert werden.");
+      alert(err?.message || "Abschnitt konnte nicht geändert werden.");
     }
   };
 
@@ -1242,7 +1242,7 @@ if (route.startsWith("/protokoll")) {
               onChange={(e) => setNewIsArea(e.target.checked)}
               disabled={readOnly || loadingAddCard}
             />
-            Bereich
+            Abschnit
           </label>
           {!newIsArea && (
             <select
@@ -1251,7 +1251,7 @@ className="border rounded px-2 py-1 text-sm min-w-[160px]"
               onChange={(e) => setNewAreaCardId(e.target.value)}
               disabled={readOnly || loadingAddCard || areaOptions.length === 0}
             >
-              <option value="">— Bereich auswählen —</option>
+              <option value="">— Abschnitt auswählen —</option>
               {areaOptions.map((opt) => (
                 <option key={opt.id} value={opt.id}>{opt.label}</option>
               ))}
@@ -1280,7 +1280,7 @@ className="border rounded px-2 py-1 text-sm min-w-[160px]"
         </button>
 
         {!newIsArea && areaOptions.length === 0 && (
-          <span className="basis-full text-xs text-gray-500">Noch keine Bereiche vorhanden.</span>
+          <span className="basis-full text-xs text-gray-500">Noch keine Abschnitte vorhanden.</span>
         )}
       </section>
 
