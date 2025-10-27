@@ -18,6 +18,7 @@ import { initRolePolicy, canEditApp } from "../auth/roleUtils.js";
 import { playGong } from "../sound"; // gleicher Sound wie im Einsatz-Kanban
 import { fetchBoard } from "../api.js";
 import { ensureValidDueOffset, getFallbackDueOffsetMinutes } from "../utils/defaultDueOffset.js";
+import User_LogoffButton from "../components/User_LogoffButton.jsx";
 
 const STATUS = { NEW: "Neu", IN_PROGRESS: "In Bearbeitung", DONE: "Erledigt" };
 const COLS = [STATUS.NEW, STATUS.IN_PROGRESS, STATUS.DONE];
@@ -483,6 +484,7 @@ const r = await fetch(`/api/aufgaben/${encodeURIComponent(id)}/status${roleQuery
 
   return (
     <div className="p-4">
+      <User_LogoffButton className="fixed top-3 right-3 z-50" />
       <header className="mb-4 flex flex-wrap items-center gap-3">
         <h1 className="text-lg font-bold">Aufgaben</h1>
         <span className="text-xs px-2 py-1 rounded-full border bg-gray-50">Rolle: {roleId || "—"}</span>
