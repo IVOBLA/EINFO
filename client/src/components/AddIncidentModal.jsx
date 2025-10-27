@@ -21,6 +21,7 @@ export default function AddIncidentModal({ onClose, onCreate, types, areaOptions
     resetSession,
     loading,
     error,
+    clearPredictions,
   } = usePlacesAutocomplete({ country: "at", debounceMs: 300, minLength: 3 });
 
   useEffect(() => {
@@ -64,6 +65,7 @@ useEffect(() => {
       setAreaCardId("");
       setAreaColor(DEFAULT_AREA_COLOR);
       resetSession();
+      clearPredictions();
       onClose?.();
     } finally {
       setBusy(false);
@@ -84,6 +86,7 @@ useEffect(() => {
       setOrtQuery(p.description);
     } finally {
       resetSession();
+      clearPredictions();
     }
   };
 
