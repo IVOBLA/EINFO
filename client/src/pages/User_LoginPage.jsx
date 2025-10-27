@@ -80,7 +80,7 @@ export default function User_LoginPage(){
                   key={target.key}
                   type="button"
                   onClick={() => setTargetKey(target.key)}
-                  className={`text-left rounded-xl border px-3 py-2 transition focus:outline-none focus:ring-2 focus:ring-gray-400 ${
+                  className={`text-left rounded-xl border px-3 py-1.5 transition focus:outline-none focus:ring-2 focus:ring-gray-400 ${
                     isActive
                       ? "border-gray-900 bg-gray-900 text-white"
                       : "border-gray-200 hover:border-gray-400"
@@ -91,11 +91,6 @@ export default function User_LoginPage(){
                     <span className="font-medium">{target.label}</span>
                     {isActive && <span className="text-xs uppercase tracking-wide">ausgewählt</span>}
                   </div>
-                  {target.url && (
-                    <div className={`text-xs mt-1 break-all ${isActive ? "text-gray-100" : "text-gray-500"}`}>
-                      {target.url}
-                    </div>
-                  )}
                 </button>
               );
             })}
