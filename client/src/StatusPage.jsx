@@ -47,6 +47,23 @@ const cardPersonnelCountDyn = (card, vehiclesById) =>
     return sum + (typeof v?.mannschaft === "number" ? v.mannschaft : 0);
   }, 0);
 
+const readAreaFilterParams = () => {
+  if (typeof window === "undefined") return { id: "", label: "" };
+  try {
+    const sp = new URLSearchParams(window.location.search);
+    const idParam =
+      sp.get("bereichId") || sp.get("abschnittId") || sp.get("areaId") || "";
+    const labelParam =
+      sp.get("bereich") || sp.get("abschnitt") || sp.get("area") || "";
+    return {
+      id: String(idParam || "").trim(),
+      label: String(labelParam || "").trim()
+    };
+  } catch {
+    return { id: "", label: "" };
+  }
+};
+
 /* ---------- Kachel ---------- */
 function CardCompact({ c, vehiclesById, showBottomCounts = true, headerRight, kind }) {
   const isDone = kind === "erledigt";
@@ -58,8 +75,14 @@ function CardCompact({ c, vehiclesById, showBottomCounts = true, headerRight, ki
     ? (Number.isFinite(c?.everPersonnel) ? c.everPersonnel : 0)
     : cardPersonnelCountDyn(c, vehiclesById);
 
+  const cardBgClass = c?.isArea
+    ? "bg-slate-100 border-slate-200"
+    : "bg-white";
+
   return (
-    <div className="border rounded-lg p-2 bg-white shadow-sm text-[0.9rem] leading-tight">
+    <div
+      className={`border rounded-lg p-2 shadow-sm text-[0.9rem] leading-tight ${cardBgClass}`}
+    >
       <div className="flex items-start justify-between text-[0.72rem] text-gray-600 mb-1">
         <span>{fmt24(c.createdAt)}</span>
         <span className="font-semibold">{headerRight}</span>
@@ -67,7 +90,7 @@ function CardCompact({ c, vehiclesById, showBottomCounts = true, headerRight, ki
 
       <div className="font-semibold">{c.content /* Titel */}</div>
 
-     {(c.humanId || c.typ || c.ort || c.alerted) && (
+      {(c.humanId || c.typ || c.ort || c.alerted) && (
         <div className="text-[0.75rem] text-gray-600 mt-0.5 space-y-0.5">
           {(c.humanId || c.typ) && (
             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
@@ -112,18 +135,31 @@ function StatusColumn({ title, cards, vehiclesById, kind, viewportH }) {
   const headerRightFor = (card) => fmt24(card.statusSince);
 
   const totals = useMemo(() => {
-    const cardCount = cards.length;
-    const unitSum = cards.reduce((acc, c) => {
-      if (kind === "erledigt") return acc + (Array.isArray(c.everVehicles) ? c.everVehicles.length : 0);
-      return acc + (Array.isArray(c.assignedVehicles) ? c.assignedVehicles.length : 0);
-    }, 0);
-    const personSum = cards.reduce((acc, c) => {
-      if (kind === "erledigt") return acc + (Number.isFinite(c?.everPersonnel) ? c.everPersonnel : 0);
-      const vIds = Array.isArray(c.assignedVehicles) ? c.assignedVehicles : [];
-      const ppl = vIds.reduce((sum, vid) => sum + (vehiclesById.get(vid)?.mannschaft ?? 0), 0);
-      return acc + ppl;
-    }, 0);
-    return { cardCount, unitSum, personSum };
+    let cardCount = 0;
+    let areaCount = 0;
+    let incidentCount = 0;
+    let unitSum = 0;
+    let personSum = 0;
+
+    for (const c of cards) {
+      cardCount += 1;
+      if (c?.isArea) areaCount += 1;
+      else incidentCount += 1;
+
+      if (kind === "erledigt") {
+        unitSum += Array.isArray(c?.everVehicles) ? c.everVehicles.length : 0;
+        personSum += Number.isFinite(c?.everPersonnel) ? c.everPersonnel : 0;
+      } else {
+        unitSum += Array.isArray(c?.assignedVehicles) ? c.assignedVehicles.length : 0;
+        const vIds = Array.isArray(c?.assignedVehicles) ? c.assignedVehicles : [];
+        for (const vid of vIds) {
+          const v = vehiclesById.get(vid);
+          if (typeof v?.mannschaft === "number") personSum += v.mannschaft;
+        }
+      }
+    }
+
+    return { cardCount, areaCount, incidentCount, unitSum, personSum };
   }, [cards, kind, vehiclesById]);
 
   const colBg =
@@ -132,7 +168,7 @@ function StatusColumn({ title, cards, vehiclesById, kind, viewportH }) {
   return (
     <section className={`${colBg} rounded-xl shadow p-3 h-full flex flex-col min-h-0`}>
       <h3 className="text-sm font-semibold mb-2">
-        {title} — ⬛ {totals.cardCount} | 🚒 {totals.unitSum} | 👥 {totals.personSum}
+        {title} — ⬛ {totals.incidentCount} | 🗺️ {totals.areaCount} | 🚒 {totals.unitSum} | 👥 {totals.personSum}
       </h3>
 
       <div className={`grid ${gridColsClass} gap-2 overflow-auto pr-1 flex-1 min-h-0 place-content-start`}>
@@ -199,34 +235,128 @@ export default function StatusPage() {
     return () => { mounted = false; clearInterval(t); window.removeEventListener("resize", onRes); };
   }, []);
 
-useEffect(() => {
-  try {
-    const sp = new URLSearchParams(window.location.search);
-    if (sp.get("print") === "1" || sp.get("pdf") === "1") {
-      // kleines Delay, damit Inhalte sicher gerendert sind
-      const t = setTimeout(() => {
-        window.print();
-      }, 600);
-      return () => clearTimeout(t);
-    }
-  } catch {}
-}, []);
+  useEffect(() => {
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      if (sp.get("print") === "1" || sp.get("pdf") === "1") {
+        // kleines Delay, damit Inhalte sicher gerendert sind
+        const t = setTimeout(() => {
+          window.print();
+        }, 600);
+        return () => clearTimeout(t);
+      }
+    } catch {}
+  }, []);
 
 
-useEffect(() => {
-  const onAfterPrint = () => {
-    try { window.close(); } catch {}
-  };
-  window.addEventListener("afterprint", onAfterPrint);
-  return () => window.removeEventListener("afterprint", onAfterPrint);
-}, []);
+  useEffect(() => {
+    const onAfterPrint = () => {
+      try { window.close(); } catch {}
+    };
+    window.addEventListener("afterprint", onAfterPrint);
+    return () => window.removeEventListener("afterprint", onAfterPrint);
+  }, []);
+
+  const areaFilter = useMemo(() => readAreaFilterParams(), []);
 
   const vehiclesById = useMemo(() => new Map(vehicles.map(v => [v.id, v])), [vehicles]);
 
-  const cols = useMemo(() => {
-    const empty = { neu: { items: [] }, "in-bearbeitung": { items: [] }, erledigt: { items: [] } };
-    return board?.columns ? board.columns : empty;
-  }, [board]);
+  const { columns: cols, areaLabel } = useMemo(() => {
+    const empty = {
+      neu: { name: "Neu", items: [] },
+      "in-bearbeitung": { name: "In Bearbeitung", items: [] },
+      erledigt: { name: "Erledigt", items: [] }
+    };
+
+    const baseCols = board?.columns || empty;
+
+    const buildSafeColumn = (key) => {
+      const src = baseCols[key] || empty[key];
+      return {
+        name: src?.name || empty[key].name,
+        items: Array.isArray(src?.items) ? [...src.items] : []
+      };
+    };
+
+    const safeCols = {
+      neu: buildSafeColumn("neu"),
+      "in-bearbeitung": buildSafeColumn("in-bearbeitung"),
+      erledigt: buildSafeColumn("erledigt")
+    };
+
+    const allAreaCards = [];
+    for (const key of ["neu", "in-bearbeitung", "erledigt"]) {
+      for (const card of baseCols[key]?.items || []) {
+        if (card?.isArea) allAreaCards.push(card);
+      }
+    }
+
+    const wantedId = areaFilter.id;
+    const wantedLabel = areaFilter.label;
+    const hasAreaFilter = Boolean(wantedId || wantedLabel);
+    const wantedIdLower = String(wantedId || "").toLowerCase();
+    const wantedLabelLower = String(wantedLabel || "").toLowerCase();
+
+    let match = null;
+    if (allAreaCards.length && hasAreaFilter) {
+      if (wantedId) {
+        match =
+          allAreaCards.find((c) => String(c?.id) === wantedId) ||
+          allAreaCards.find((c) => String(c?.id || "").toLowerCase() === wantedIdLower) ||
+          allAreaCards.find((c) => String(c?.humanId || "").toLowerCase() === wantedIdLower);
+      }
+      if (!match && wantedLabel) {
+        match = allAreaCards.find(
+          (c) => String(c?.content || "").toLowerCase() === wantedLabelLower
+        );
+      }
+      if (!match && wantedLabel) {
+        match = allAreaCards.find((c) =>
+          String(c?.content || "").toLowerCase().includes(wantedLabelLower)
+        );
+      }
+    }
+
+    if (match) {
+      const matchId = String(match.id);
+      for (const key of ["neu", "in-bearbeitung", "erledigt"]) {
+        const items = safeCols[key]?.items || [];
+        safeCols[key] = {
+          ...safeCols[key],
+          items: items.filter((card) => {
+            if (card?.isArea) return String(card.id) === matchId;
+            const ref = card?.areaCardId != null ? String(card.areaCardId) : "";
+            return ref === matchId;
+          })
+        };
+      }
+    } else if (hasAreaFilter) {
+      for (const key of ["neu", "in-bearbeitung", "erledigt"]) {
+        safeCols[key] = { ...safeCols[key], items: [] };
+      }
+    }
+
+    const derivedLabel =
+      (match?.content || "").trim() ||
+      (match?.humanId || "").trim() ||
+      (hasAreaFilter ? areaFilter.label || areaFilter.id || "" : "");
+
+    return { columns: safeCols, areaLabel: derivedLabel };
+  }, [board, areaFilter.id, areaFilter.label]);
+
+  const pageTitle = useMemo(() => {
+    const base = "Einsatzstellen-Übersicht-Feuerwehr";
+    return areaLabel ? `${base} - ${areaLabel}` : base;
+  }, [areaLabel]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return undefined;
+    const prev = document.title;
+    document.title = pageTitle;
+    return () => {
+      document.title = prev;
+    };
+  }, [pageTitle]);
 
   const activeVehicles = useMemo(() => {
     let sum = 0;
@@ -244,14 +374,17 @@ useEffect(() => {
     return ppl;
   }, [cols, vehiclesById]);
 
-  const activeIncidents = useMemo(
-    () => (cols["neu"].items.length || 0) + (cols["in-bearbeitung"].items.length || 0),
-    [cols]
-  );
-  const totalIncidents = useMemo(
-    () => activeIncidents + (cols["erledigt"].items.length || 0),
-    [activeIncidents, cols]
-  );
+  const activeIncidents = useMemo(() => {
+    let count = 0;
+    for (const c of cols["neu"].items || []) if (!c?.isArea) count += 1;
+    for (const c of cols["in-bearbeitung"].items || []) if (!c?.isArea) count += 1;
+    return count;
+  }, [cols]);
+  const totalIncidents = useMemo(() => {
+    let count = activeIncidents;
+    for (const c of cols["erledigt"].items || []) if (!c?.isArea) count += 1;
+    return count;
+  }, [activeIncidents, cols]);
 
   if (!board) {
     return (
@@ -266,7 +399,7 @@ useEffect(() => {
       <div className="h-full w-full flex flex-col gap-2">
         {/* Kopfzeile */}
         <header className="flex items-center justify-between">
-          <h1 className="text-xl md:text-2xl font-bold">Einsatzstellen-Übersicht-Feuerwehr</h1>
+          <h1 className="text-xl md:text-2xl font-bold">{pageTitle}</h1>
           <div className="text-base md:text-lg font-bold flex flex-wrap gap-4">
             <span>🚒 {activeVehicles}</span>
             <span>👥 {activePersons}</span>
