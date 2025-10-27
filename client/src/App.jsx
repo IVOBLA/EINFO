@@ -640,17 +640,32 @@ useEffect(() => {
   }
   function totalsForColumn(boardLike, colId) {
     const cards = boardLike?.columns?.[colId]?.items || [];
-    if (colId === "erledigt") {
-      const units   = cards.reduce((s, c) => s + (c.everVehicles?.length || 0), 0);
-      const persons = cards.reduce((s, c) => s + (Number.isFinite(c?.everPersonnel) ? c.everPersonnel : 0), 0);
-      return { cards: cards.length, units, persons };
+    let areaCount = 0;
+    let incidentCount = 0;
+    let unitSum = 0;
+    let personSum = 0;
+
+    for (const card of cards) {
+      if (card?.isArea) areaCount += 1;
+      else incidentCount += 1;
+
+      if (colId === "erledigt") {
+        unitSum += Array.isArray(card?.everVehicles) ? card.everVehicles.length : 0;
+        personSum += Number.isFinite(card?.everPersonnel) ? card.everPersonnel : 0;
+      } else {
+        const assigned = Array.isArray(card?.assignedVehicles) ? card.assignedVehicles : [];
+        unitSum += assigned.length;
+        if (Number.isFinite(card?.manualPersonnel)) personSum += card.manualPersonnel;
+        else {
+          for (const vid of assigned) {
+            const v = vehiclesById.get(vid);
+            if (typeof v?.mannschaft === "number") personSum += v.mannschaft;
+          }
+        }
+      }
     }
-    const units = cards.reduce((s, c) => s + (c.assignedVehicles?.length || 0), 0);
-    const persons = cards.reduce((s, c) => {
-      if (Number.isFinite(c?.manualPersonnel)) return s + c.manualPersonnel;
-      return s + (c.assignedVehicles || []).reduce((p, id) => p + (vehiclesById.get(id)?.mannschaft ?? 0), 0);
-    }, 0);
-    return { cards: cards.length, units, persons };
+
+    return { areaCount, incidentCount, unitSum, personSum };
   }
   const totalsNeu = totalsForColumn(visibleBoard, "neu");
   const totalsWip = totalsForColumn(visibleBoard, "in-bearbeitung");
@@ -1357,27 +1372,39 @@ className="border rounded px-2 py-1 text-sm min-w-[160px]"
             { id: "erledigt", title: "Erledigt", bg: "bg-green-100",   totals: totalsDone },
 ].map(({ id, title, bg, totals }) => {
             const displayTitle = areaFilterLabel ? `${title}: ${areaFilterLabel}` : title;
+            const headerStats = [
+              { key: "incidents", icon: "⬛", value: totals.incidentCount },
+              { key: "areas", icon: "🗺️", value: totals.areaCount },
+              { key: "vehicles", icon: "🚒", value: totals.unitSum },
+              { key: "persons", icon: "👥", value: totals.personSum },
+            ];
+
             return (
               <div key={id} className={overColId === id ? "drag-over" : ""}>
-              <DroppableColumn editable={canEdit}
-                colId={id}
-                bg={bg}
-                title={
-                  /* (1) Sticky Header + KPI-Badges */
-                  <span className="column-header flex items-center justify-between">
-                     <span className="font-semibold">{displayTitle}</span>
-                    <span className="flex items-center gap-1.5">
-                      <span className="kpi-badge" data-variant="units">🚒 {totals.units}</span>
-                      <span className="kpi-badge" data-variant="persons">👥 {totals.persons}</span>
-                      <span className="kpi-badge" data-variant="cards">⬛ {totals.cards}</span>
+                <DroppableColumn
+                  editable={canEdit}
+                  colId={id}
+                  bg={bg}
+                  title={
+                    <span className="column-header block">
+                      <span className="flex flex-wrap items-center justify-between gap-3">
+                        <span className="font-semibold text-slate-900">{displayTitle}</span>
+                        <span className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium text-slate-600">
+                          {headerStats.map((stat) => (
+                            <span key={stat.key} className="flex items-center gap-1">
+                              <span aria-hidden="true">{stat.icon}</span>
+                              <span>{stat.value}</span>
+                            </span>
+                          ))}
+                        </span>
+                      </span>
                     </span>
-                  </span>
-                }
-              >
- <ul
-                  className="space-y-2 overflow-y-auto overflow-x-hidden pl-1 pr-2 py-2"
-                  style={{ maxHeight: "calc(100vh - 260px)" }}
+                  }
                 >
+                  <ul
+                    className="space-y-2 overflow-y-auto overflow-x-hidden pl-1 pr-2 py-2"
+                    style={{ maxHeight: "calc(100vh - 260px)" }}
+                  >
                   <SortableContext
                     items={(visibleBoard.columns[id].items || []).map((c) => CID(c.id))}
                     strategy={verticalListSortingStrategy}
