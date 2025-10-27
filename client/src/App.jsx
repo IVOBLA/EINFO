@@ -22,9 +22,6 @@ import { initSound, playGong } from "./sound";
 import ProtokollOverview from "./pages/ProtokollOverview.jsx";
 import ProtokollPage from "./pages/ProtokollPage.jsx";
 
-// Nur-AT-Autocomplete
-import { usePlacesAutocomplete } from "./hooks/usePlacesAutocomplete";
-
 // Start/Stop + Import (Icon & Button)
 import FFFetchControl from "./components/FFFetchControl.jsx";
 import { initRolePolicy, canEditApp } from "./auth/roleUtils";
@@ -58,28 +55,6 @@ const CID = (id) => `card:${id}`;
 const unlocked = true;
 const DEFAULT_AREA_COLOR = "#2563eb";
 
-/** Clientseitiges Geocoding über Google Maps JS API (Region AT) */
-async function geocodeAddressClient(address) {
-  if (!address) return null;
-  if (!window.google?.maps?.Geocoder) return null;
-  const geocoder = new google.maps.Geocoder();
-  return new Promise((resolve) => {
-    geocoder.geocode({ address, region: "AT" }, (results, status) => {
-      if (status === "OK" && results && results[0]) {
-        const r = results[0];
-        const loc = r.geometry?.location;
-        resolve({
-          lat: loc?.lat?.(),
-          lng: loc?.lng?.(),
-          formatted: r.formatted_address || address,
-        });
-      } else {
-        resolve(null);
-      }
-    });
-  });
-}
-
 export default function App() {
   const scale = useCompactScale();
   if (typeof window !== "undefined" && window.location.pathname === "/status") {
@@ -95,19 +70,11 @@ const readOnly = !canEdit;
   const [board, setBoard] = useState(null);
   const [vehicles, setVehicles] = useState([]);
   const [types, setTypes] = useState([]);
-
-  const [newTitle, setNewTitle] = useState("");
-  const [newOrt, setNewOrt] = useState("");
-  const [newTyp, setNewTyp] = useState("");
-  const [newIsArea, setNewIsArea] = useState(false);
-  const [newAreaCardId, setNewAreaCardId] = useState("");
-  const [newAreaColor, setNewAreaColor] = useState(DEFAULT_AREA_COLOR);
   const [areaFilter, setAreaFilter] = useState("");
   const [filterPulseActive, setFilterPulseActive] = useState(false);
   const [mapCtx, setMapCtx] = useState(null);
   const [editing, setEditing] = useState(null);
   const [editingValue, setEditingValue] = useState("");
-  const [loadingAddCard, setLoadingAddCard] = useState(false);
   const [loadingReset, setLoadingReset] = useState(false);
 
   const [autoEnabled, setAutoEnabled] = useState(false);
@@ -120,13 +87,6 @@ const readOnly = !canEdit;
   const [infoCard, setInfoCard] = useState(null);
   const [infoForceEdit, setInfoForceEdit] = useState(false);
   const onShowInfo = (card) => { setInfoCard(card); setInfoForceEdit(false); setInfoOpen(true); };
-  useEffect(() => {
-   if (newIsArea) {
-      setNewAreaCardId("");
-      setNewAreaColor((prev) => prev || DEFAULT_AREA_COLOR);
-    }
-  }, [newIsArea]);
-  
   // --- Mini-Routing über Hash (stabil) ---
 const [hash, setHash] = useState(window.location.hash);
 useEffect(() => {
@@ -185,18 +145,6 @@ const remaining = autoEnabled
   : 0;
 
   // Places-Autocomplete (AT)
-  const {
-    query: ortQuery,
-    setQuery: setOrtQuery,
-    predictions: ortPredictions,
-    getDetailsByPlaceId,
-    resetSession,
-    loading: ortLoading,
-    error: ortError,
-    clearPredictions,
-  } = usePlacesAutocomplete({ country: "at", debounceMs: 300, minLength: 3 });
-
-  const lastPlaceDetailsRef = useRef(null);
   useEffect(() => { document.title = "Einsatzstellen-Übersicht-Feuerwehr"; }, []);
 
   // Initial data
@@ -232,9 +180,6 @@ useEffect(() => {
   })();
 }, [unlocked, autoEnabled, autoInterval]);
 
-  // Hook-Query -> newOrt
-  useEffect(() => { setNewOrt(ortQuery || ""); }, [ortQuery]);
-
   // Polling (Board-Refresh unabhängig vom Countdown)
   useEffect(() => {
     if (!unlocked) return;
@@ -260,13 +205,11 @@ const tick = async () => {
       if (e.altKey && (e.key === "e" || e.key === "E")) {
         e.preventDefault();
         setShowAddModal(true);
-        resetSession();
-        clearPredictions();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [unlocked, resetSession, clearPredictions]);
+  }, [unlocked]);
 
   const safeBoard = board ?? {
     columns: { neu: { items: [] }, "in-bearbeitung": { items: [] }, erledigt: { items: [] } },
@@ -675,101 +618,6 @@ useEffect(() => {
   const totalsNeu = totalsForColumn(visibleBoard, "neu");
   const totalsWip = totalsForColumn(visibleBoard, "in-bearbeitung");
   const totalsDone = totalsForColumn(visibleBoard, "erledigt");
-
-
-  // === MANUELLER EINSATZ ===
-  const addCard = async () => {
-    const cleanTyp = newTyp.replace(/^T\d+\s*,?\s*/i, "").trim();
-    const title = (newTitle || cleanTyp).trim();
-    if (!title) { alert("Bitte Typ oder Titel angeben."); return; }
-
-const assignedAreaColor = !newIsArea && newAreaCardId
-      ? areaColorById.get(String(newAreaCardId)) || null
-      : null;
-
-    const temp = {
-      id: `tmp-${Math.random().toString(36).slice(2, 10)}`,
-      content: title,
-      createdAt: new Date().toISOString(),
-      statusSince: new Date().toISOString(),
-      assignedVehicles: [], everVehicles: [], everPersonnel: 0,
-      ort: (newOrt || "").trim(),
-      typ: newTyp.trim(),
-      isArea: newIsArea,
-      areaCardId: newIsArea ? null : (newAreaCardId || null),
-	  areaColor: newIsArea ? newAreaColor : assignedAreaColor,
-    };
-
-    setLoadingAddCard(true);
-    setBoard((p) => {
-      if (!p) return p;
-      const b = structuredClone(p);
-      b.columns["neu"].items.unshift(temp);
-      return b;
-    });
-
-    try {
-      let coords = null;
-      const d = lastPlaceDetailsRef.current;
-      if (d?.geometry?.location?.lat && d?.geometry?.location?.lng) {
-        coords = { lat: d.geometry.location.lat(), lng: d.geometry.location.lng() };
-      } else if (temp.ort) {
-        const gc = await geocodeAddressClient(temp.ort);
-        if (gc) coords = { lat: gc.lat, lng: gc.lng };
-      }
-      const extraPayload = {
-        ...(coords ?? {}),
-        isArea: newIsArea,
-        areaCardId: newIsArea ? null : (newAreaCardId || null),
-		...(newIsArea ? { areaColor: newAreaColor } : {}),
-      };
-      const r = await createCard(title, "neu", 0, temp.ort, temp.typ, extraPayload);
-     // eigene Erstellung: Ton/Pulse unterdrücken
-     suppressSoundUntilRef.current = Date.now()// + 15000; // 15s Ruhe
-     if (r?.card?.id != null) suppressPulseIdsRef.current.add(String(r.card.id));	  
-      setBoard((p) => {
-        if (!p) return p;
-        const b = structuredClone(p);
-        const arr = b.columns["neu"].items;
-        const i = arr.findIndex((c) => c?.id === temp.id);
-        if (i >= 0) arr[i] = r.card; else arr.unshift(r.card);
-        return b;
-      });
-
-      setNewTitle(""); setOrtQuery(""); setNewOrt(""); setNewTyp("");
-	   setNewIsArea(false); setNewAreaCardId(""); setNewAreaColor(DEFAULT_AREA_COLOR);
-      lastPlaceDetailsRef.current = null;
-      resetSession();
-      clearPredictions();
-    } catch {
-      setBoard((p) => {
-        if (!p) return p;
-        const b = structuredClone(p);
-        b.columns["neu"].items = b.columns["neu"].items.filter((c) => c?.id !== temp.id);
-        return b;
-      });
-      alert("Einsatz konnte nicht angelegt werden.");
-    } finally { setLoadingAddCard(false); }
-  };
-
-  const pickOrtPrediction = async (p) => {
-    try {
-      const details = await getDetailsByPlaceId(p.place_id, [
-        "formatted_address", "geometry", "address_components", "place_id",
-      ]);
-      lastPlaceDetailsRef.current = details || null;
-      const addr = details?.formatted_address || p.description;
-      setOrtQuery(addr); setNewOrt(addr);
-    } catch (e) {
-      console.error("Place details failed:", e);
-      lastPlaceDetailsRef.current = null;
-      setOrtQuery(p.description); setNewOrt(p.description);
-    } finally {
-      resetSession();
-      clearPredictions();
-    }
-  };
-
   const parseAlertedTokens = (s) =>
     String(s || "").split(/[;,\n]/).map(x => x.trim()).filter(Boolean);
   const norm = (s) => String(s || "")
@@ -1034,12 +882,6 @@ const handleAreaChange = async (card, rawAreaId) => {
     }
   };
 
-  const onTypeSelectChange = (value) => {
-    setNewTyp(value);
-    const clean = value.replace(/^T\d+\s*,?\s*/i, "").trim();
-    if (!newTitle.trim()) setNewTitle(clean);
-  };
-
 
 
 
@@ -1195,10 +1037,10 @@ if (route.startsWith("/protokoll")) {
         </div>
       </header>
 
-      {/* Quick-Add */}
-<section className="mb-2 flex flex-wrap items-center gap-2">
-        <div className="flex flex-wrap items-center gap-2 text-sm text-gray-700">
-          <label htmlFor="areaFilter" className="whitespace-nowrap">Filter</label>
+      {/* Filter */}
+      <section className="mb-2 flex flex-wrap items-center gap-2">
+        <label className="flex flex-wrap items-center gap-2 text-sm text-gray-700" htmlFor="areaFilter">
+          <span className="whitespace-nowrap">Filter</span>
           <select
             id="areaFilter"
             className={`border rounded px-2 py-1 shrink-0 min-w-[150px] transition-colors ${
@@ -1216,94 +1058,7 @@ if (route.startsWith("/protokoll")) {
               </option>
             ))}
           </select>
-        </div>
-
-<label className="flex flex-wrap items-center gap-2 text-sm text-gray-700">
-          <span className="whitespace-nowrap">Einsatz:</span>
-          <select
-            id="quickAddType"
-            className="border rounded px-2 py-1 shrink-0 min-w-[150px] border-gray-300 bg-white text-gray-900"
-            value={newTyp}
-            onChange={(e) => onTypeSelectChange(e.target.value)}
-          >
-            <option value="">— Typ auswählen —</option>
-            {types.map((t) => (<option key={t} value={t}>{t}</option>))}
-          </select>
-</label>
-        <input
- className="border rounded px-2 py-1 flex-1 min-w-[180px] border-gray-300"
-          placeholder="Titel (wird aus Typ übernommen)"
-          value={newTitle} onChange={(e) => setNewTitle(e.target.value)}
-        />
-
-         <div className="relative flex-1 min-w-[200px]">
-          <input
-            className="border rounded px-2 py-1 w-full"
-            placeholder="Ort (nur Österreich)"
-            autoComplete="off"
-            value={ortQuery} onChange={(e) => setOrtQuery(e.target.value)}
-          />
-          {ortLoading && (<div className="absolute z-10 mt-1 text-xs text-gray-500 bg-white border rounded px-2 py-1">Suche…</div>)}
-          {ortError && (<div className="absolute z-10 mt-1 text-xs text-red-600 bg-white border rounded px-2 py-1">Fehler: {String(ortError)}</div>)}
-          {!!ortPredictions.length && (
-            <ul className="absolute z-10 mt-1 w-full max-h-52 overflow-auto bg-white border rounded shadow">
-              {ortPredictions.map((p) => (
-                <li key={p.place_id} className="px-2 py-1 hover:bg-gray-100 cursor-pointer text-sm" onClick={() => pickOrtPrediction(p)} title={p.description}>
-                  {p.description}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-<div className="flex items-center gap-2 min-w-[180px] flex-wrap">
-          <label className="inline-flex items-center gap-2 text-sm text-gray-700 whitespace-nowrap">
-            <input
-              type="checkbox"
-              checked={newIsArea}
-              onChange={(e) => setNewIsArea(e.target.checked)}
-              disabled={readOnly || loadingAddCard}
-            />
-            Abschnit
-          </label>
-          {!newIsArea && (
-            <select
-className="border rounded px-2 py-1 text-sm min-w-[160px]"
-              value={newAreaCardId}
-              onChange={(e) => setNewAreaCardId(e.target.value)}
-              disabled={readOnly || loadingAddCard || areaOptions.length === 0}
-            >
-              <option value="">— Abschnitt auswählen —</option>
-              {areaOptions.map((opt) => (
-                <option key={opt.id} value={opt.id}>{opt.label}</option>
-              ))}
-            </select>
-          )}
-{newIsArea && (
-            <label className="inline-flex items-center gap-2 text-sm text-gray-700 whitespace-nowrap">
-              <span>Farbe</span>
-              <input
-                type="color"
-                className="h-9 w-12 border rounded cursor-pointer"
-                value={newAreaColor}
-                onChange={(e) => setNewAreaColor(e.target.value)}
-                disabled={readOnly || loadingAddCard}
-              />
-            </label>
-          )}
-        </div>
-		
-        <button
-          className="px-3 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60"
-          disabled={readOnly || loadingAddCard}
-          onClick={addCard}
-        >
-          {loadingAddCard ? "Wird angelegt…" : "Einsatz anlegen"}
-        </button>
-
-        {!newIsArea && areaOptions.length === 0 && (
-          <span className="basis-full text-xs text-gray-500">Noch keine Abschnitte vorhanden.</span>
-        )}
+        </label>
       </section>
 
 <DndContext
