@@ -640,17 +640,38 @@ useEffect(() => {
   }
   function totalsForColumn(boardLike, colId) {
     const cards = boardLike?.columns?.[colId]?.items || [];
-    if (colId === "erledigt") {
-      const units   = cards.reduce((s, c) => s + (c.everVehicles?.length || 0), 0);
-      const persons = cards.reduce((s, c) => s + (Number.isFinite(c?.everPersonnel) ? c.everPersonnel : 0), 0);
-      return { cards: cards.length, units, persons };
+
+    let areaCount = 0;
+    let incidentCount = 0;
+    let units = 0;
+    let persons = 0;
+
+    for (const card of cards) {
+      if (card?.isArea) areaCount += 1;
+      else incidentCount += 1;
+
+      if (colId === "erledigt") {
+        units += Array.isArray(card?.everVehicles) ? card.everVehicles.length : 0;
+        persons += Number.isFinite(card?.everPersonnel) ? card.everPersonnel : 0;
+      } else {
+        units += Array.isArray(card?.assignedVehicles) ? card.assignedVehicles.length : 0;
+        if (Number.isFinite(card?.manualPersonnel)) persons += card.manualPersonnel;
+        else {
+          for (const vid of card?.assignedVehicles || []) {
+            const vehicle = vehiclesById.get(vid);
+            if (typeof vehicle?.mannschaft === "number") persons += vehicle.mannschaft;
+          }
+        }
+      }
     }
-    const units = cards.reduce((s, c) => s + (c.assignedVehicles?.length || 0), 0);
-    const persons = cards.reduce((s, c) => {
-      if (Number.isFinite(c?.manualPersonnel)) return s + c.manualPersonnel;
-      return s + (c.assignedVehicles || []).reduce((p, id) => p + (vehiclesById.get(id)?.mannschaft ?? 0), 0);
-    }, 0);
-    return { cards: cards.length, units, persons };
+
+    return {
+      cards: cards.length,
+      areas: areaCount,
+      incidents: incidentCount,
+      units,
+      persons,
+    };
   }
   const totalsNeu = totalsForColumn(visibleBoard, "neu");
   const totalsWip = totalsForColumn(visibleBoard, "in-bearbeitung");
@@ -1367,9 +1388,10 @@ className="border rounded px-2 py-1 text-sm min-w-[160px]"
                   <span className="column-header flex items-center justify-between">
                      <span className="font-semibold">{displayTitle}</span>
                     <span className="flex items-center gap-1.5">
+                      <span className="kpi-badge" data-variant="incidents">⬛ {totals.incidents}</span>
+                      <span className="kpi-badge" data-variant="areas">🗺️ {totals.areas}</span>
                       <span className="kpi-badge" data-variant="units">🚒 {totals.units}</span>
                       <span className="kpi-badge" data-variant="persons">👥 {totals.persons}</span>
-                      <span className="kpi-badge" data-variant="cards">⬛ {totals.cards}</span>
                     </span>
                   </span>
                 }
