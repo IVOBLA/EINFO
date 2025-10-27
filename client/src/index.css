@@ -127,9 +127,10 @@ button[title="aufklappen"] + div, button[title="zuklappen"] + div { margin-top:.
   padding:.2rem .45rem; border-radius:999px;
   background:#f1f5f9; color:#0f172a;
 }
+.kpi-badge[data-variant="incidents"]{ background:#dcfce7; }
+.kpi-badge[data-variant="areas"]{ background:#fef3c7; }
 .kpi-badge[data-variant="units"]{ background:#e0f2fe; }
 .kpi-badge[data-variant="persons"]{ background:#e2e8f0; }
-.kpi-badge[data-variant="cards"]{ background:#dcfce7; }
 /* Drop-Over Feedback (7) – Wrapper .drag-over rund um DroppableColumn */
 .drag-over .droppable-column{
   outline: 2px dashed #60a5fa; outline-offset: 2px;
