@@ -129,11 +129,7 @@ button[title="zuklappen"] span:first-child {
   @apply border-2 border-blue-300 bg-white rounded-xl shadow-xl;
 }
 
-/* === FLOATING HILFE-BUTTON === */
-a[href$="Hilfe.pdf"] {
-  @apply bg-blue-600 text-white shadow-lg hover:bg-blue-700 hover:shadow-xl fixed bottom-4 right-4 rounded-full px-5 py-2 font-semibold transition-all duration-200;
-}
-
+/* Floating Hilfe buttons are styled within CornerHelpLogout to keep layout intact. */
 /* === NEAR PULSE (Hervorgehobene Fahrzeuge) === */
 .near-pulse {
   animation: pulseGlow 1.5s infinite ease-in-out;
