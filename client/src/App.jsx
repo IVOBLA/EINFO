@@ -195,9 +195,14 @@ const remaining = autoEnabled
 
   // Places-Autocomplete (AT)
   const {
-    query: ortQuery, setQuery: setOrtQuery,
-    predictions: ortPredictions, getDetailsByPlaceId, resetSession,
-    loading: ortLoading, error: ortError,
+    query: ortQuery,
+    setQuery: setOrtQuery,
+    predictions: ortPredictions,
+    getDetailsByPlaceId,
+    resetSession,
+    loading: ortLoading,
+    error: ortError,
+    clearPredictions,
   } = usePlacesAutocomplete({ country: "at", debounceMs: 300, minLength: 3 });
 
   const lastPlaceDetailsRef = useRef(null);
@@ -262,12 +267,15 @@ const tick = async () => {
     if (!unlocked) return;
     const onKey = (e) => {
       if (e.altKey && (e.key === "e" || e.key === "E")) {
-        e.preventDefault(); setShowAddModal(true); resetSession();
+        e.preventDefault();
+        setShowAddModal(true);
+        resetSession();
+        clearPredictions();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [unlocked, resetSession]);
+  }, [unlocked, resetSession, clearPredictions]);
 
   const safeBoard = board ?? {
     columns: { neu: { items: [] }, "in-bearbeitung": { items: [] }, erledigt: { items: [] } },
@@ -739,7 +747,9 @@ const assignedAreaColor = !newIsArea && newAreaCardId
 
       setNewTitle(""); setOrtQuery(""); setNewOrt(""); setNewTyp("");
 	   setNewIsArea(false); setNewAreaCardId(""); setNewAreaColor(DEFAULT_AREA_COLOR);
-      lastPlaceDetailsRef.current = null; resetSession();
+      lastPlaceDetailsRef.current = null;
+      resetSession();
+      clearPredictions();
     } catch {
       setBoard((p) => {
         if (!p) return p;
@@ -763,7 +773,10 @@ const assignedAreaColor = !newIsArea && newAreaCardId
       console.error("Place details failed:", e);
       lastPlaceDetailsRef.current = null;
       setOrtQuery(p.description); setNewOrt(p.description);
-    } finally { resetSession(); }
+    } finally {
+      resetSession();
+      clearPredictions();
+    }
   };
 
   const parseAlertedTokens = (s) =>

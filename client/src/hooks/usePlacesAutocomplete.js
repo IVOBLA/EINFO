@@ -140,6 +140,10 @@ export function usePlacesAutocomplete({
     [ready]
   );
 
+  const clearPredictions = useCallback(() => {
+    setPredictions([]);
+  }, []);
+
   return {
     // state
     ready,
@@ -152,6 +156,7 @@ export function usePlacesAutocomplete({
     // actions
     resetSession,
     getDetailsByPlaceId,
+    clearPredictions,
 
     // optional
     inputElRef,
