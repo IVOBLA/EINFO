@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useUserAuth } from "../components/User_AuthProvider.jsx";
+import User_LogoffButton from "../components/User_LogoffButton.jsx";
 
 /** ---------------------------
  *  Kleine Fetch-Helpers
@@ -145,7 +146,12 @@ export default function User_AdminPanel() {
 
   if (!user) return null;
   if (user.role !== "Admin") {
-    return <div className="p-4 text-red-700">403 – Nur für Admins</div>;
+    return (
+      <div className="p-4 text-red-700">
+        <User_LogoffButton className="fixed top-3 right-3 z-50" />
+        403 – Nur für Admins
+      </div>
+    );
   }
 
   // ---- Master-Setup/-Unlock (beibehalten) ----
@@ -278,6 +284,7 @@ export default function User_AdminPanel() {
   // ---- Render ----
   return (
     <div className="p-4 space-y-6">
+      <User_LogoffButton className="fixed top-3 right-3 z-50" />
       <h1 className="text-2xl font-semibold">User Admin</h1>
 
       {(msg || err || locked) && (

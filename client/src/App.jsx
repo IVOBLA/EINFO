@@ -27,9 +27,9 @@ import { usePlacesAutocomplete } from "./hooks/usePlacesAutocomplete";
 
 // Start/Stop + Import (Icon & Button)
 import FFFetchControl from "./components/FFFetchControl.jsx";
-import { initRolePolicy, canEditApp, isReadOnlyApp } from "./auth/roleUtils";
-import { useUserAuth } from "./components/User_AuthProvider.jsx"
+import { initRolePolicy, canEditApp } from "./auth/roleUtils";
 import StatusPage from "./StatusPage.jsx";
+import User_LogoffButton from "./components/User_LogoffButton.jsx";
 
 import {
   fetchBoard,
@@ -87,7 +87,6 @@ export default function App() {
 }
 
   // role gating
-  const user = (typeof window !== "undefined" && window.__USER__) || null;
 const [policyReady, setPolicyReady] = useState(false);
 useEffect(() => { initRolePolicy().then(() => setPolicyReady(true)); }, []);
 const canEdit  = policyReady && canEditApp("einsatzboard");
@@ -168,14 +167,6 @@ useEffect(() => {
     if (filterPulseActive) setFilterPulseActive(false);
  }, [areaFilter, filterPulseActive]);
   // --- Logout ---
-  const { logout } = useUserAuth?.() || {};
-  const onLogout = async () => {
-    try { await logout?.(); } finally {
-      // Nach dem Logout auf die Login-Seite leiten
-      window.location.href = "/user-login";
-    }
-  };
-
 
 // (6) Countdown für Auto-Import / Sync-Chip – läuft nur, wenn Auto-Import aktiv ist
 
@@ -1045,6 +1036,7 @@ if (route.startsWith("/protokoll/edit/")) {
   const editNr = Number(nrStr);
   return (
     <div className="h-screen w-screen bg-gray-100 flex flex-col">
+      <User_LogoffButton className="fixed top-3 right-3 z-50" />
       <header className="flex items-center justify-between p-3 border-b bg-white shadow">
         <h1 className="text-xl font-bold">Meldung – Bearbeiten</h1>
         <button
@@ -1065,6 +1057,7 @@ if (route.startsWith("/protokoll/edit/")) {
 if (route.startsWith("/protokoll/neu")) {
   return (
     <div className="h-screen w-screen bg-gray-100 flex flex-col">
+      <User_LogoffButton className="fixed top-3 right-3 z-50" />
       <header className="flex items-center justify-between p-3 border-b bg-white shadow">
         <h1 className="text-xl font-bold">Meldung – Eintrag anlegen</h1>
         <button
@@ -1085,6 +1078,7 @@ if (route.startsWith("/protokoll/neu")) {
 if (route.startsWith("/protokoll")) {
   return (
     <div className="h-screen w-screen bg-gray-100 flex flex-col">
+      <User_LogoffButton className="fixed top-3 right-3 z-50" />
       <header className="flex items-center justify-between p-3 border-b bg-white shadow">
         <h1 className="text-xl font-bold">Meldestelle</h1>
         <button
@@ -1107,6 +1101,7 @@ if (route.startsWith("/protokoll")) {
   className="h-screen w-screen bg-gray-100 p-2 md:p-3 overflow-hidden flex flex-col"
   style={{ fontSize: "var(--ui-scale)" }}
 >
+      <User_LogoffButton className="fixed top-3 right-3 z-50" />
       {!board && (
         <div className="fixed inset-0 z-10 bg-black/10 backdrop-blur-sm flex items-center justify-center">
           <div className="px-4 py-2 rounded-lg bg-white shadow">Lade…</div>
@@ -1124,13 +1119,6 @@ if (route.startsWith("/protokoll")) {
             PDF
           </button>
 		  
-		      <button
-      onClick={onLogout}
-      className="px-3 py-1.5 rounded-md border border-gray-300 hover:bg-gray-100"
-      title={user?.displayName ? `Logout (${user.displayName})` : "Logout"}
-    >
-      Logout
-    </button>
 <button
   onClick={() => window.open("/api/log.csv", "_blank")}
   className="px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white"
