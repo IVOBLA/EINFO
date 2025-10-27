@@ -122,17 +122,6 @@ return (
         </table>
       )}
     </div>
-
-    {/* Hilfe-Button */}
-    <a
-      href="/Hilfe_Meldestelle.pdf"
-      target="_blank"
-      rel="noopener noreferrer"
-      className="fixed bottom-4 right-4 px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg"
-      title="Hilfe – Meldestelle/Protokoll"
-    >
-      Hilfe
-    </a>
   </div>
 );
 

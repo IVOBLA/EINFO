@@ -26,7 +26,7 @@ import ProtokollPage from "./pages/ProtokollPage.jsx";
 import FFFetchControl from "./components/FFFetchControl.jsx";
 import { initRolePolicy, canEditApp } from "./auth/roleUtils";
 import StatusPage from "./StatusPage.jsx";
-import User_LogoffButton from "./components/User_LogoffButton.jsx";
+import CornerHelpLogout from "./components/CornerHelpLogout.jsx";
 
 import {
   fetchBoard,
@@ -891,7 +891,10 @@ if (route.startsWith("/protokoll/edit/")) {
   const editNr = Number(nrStr);
   return (
     <div className="h-screen w-screen bg-gray-100 flex flex-col">
-      <User_LogoffButton className="fixed top-3 right-3 z-50" />
+      <CornerHelpLogout
+        helpHref="/Hilfe_Meldestelle.pdf"
+        helpTitle="Hilfe – Meldestelle/Protokoll"
+      />
       <header className="flex items-center justify-between p-3 border-b bg-white shadow">
         <h1 className="text-xl font-bold">Meldung – Bearbeiten</h1>
         <button
@@ -912,7 +915,10 @@ if (route.startsWith("/protokoll/edit/")) {
 if (route.startsWith("/protokoll/neu")) {
   return (
     <div className="h-screen w-screen bg-gray-100 flex flex-col">
-      <User_LogoffButton className="fixed top-3 right-3 z-50" />
+      <CornerHelpLogout
+        helpHref="/Hilfe_Meldestelle.pdf"
+        helpTitle="Hilfe – Meldestelle/Protokoll"
+      />
       <header className="flex items-center justify-between p-3 border-b bg-white shadow">
         <h1 className="text-xl font-bold">Meldung – Eintrag anlegen</h1>
         <button
@@ -933,7 +939,10 @@ if (route.startsWith("/protokoll/neu")) {
 if (route.startsWith("/protokoll")) {
   return (
     <div className="h-screen w-screen bg-gray-100 flex flex-col">
-      <User_LogoffButton className="fixed top-3 right-3 z-50" />
+      <CornerHelpLogout
+        helpHref="/Hilfe_Meldestelle.pdf"
+        helpTitle="Hilfe – Meldestelle/Protokoll"
+      />
       <header className="flex items-center justify-between p-3 border-b bg-white shadow">
         <h1 className="text-xl font-bold">Meldestelle</h1>
         <button
@@ -956,7 +965,7 @@ if (route.startsWith("/protokoll")) {
   className="h-screen w-screen bg-gray-100 p-2 md:p-3 overflow-hidden flex flex-col"
   style={{ fontSize: "var(--ui-scale)" }}
 >
-      <User_LogoffButton className="fixed top-3 right-3 z-50" />
+      <CornerHelpLogout helpHref="/Hilfe.pdf" />
       {!board && (
         <div className="fixed inset-0 z-10 bg-black/10 backdrop-blur-sm flex items-center justify-center">
           <div className="px-4 py-2 rounded-lg bg-white shadow">Lade…</div>
@@ -1254,11 +1263,6 @@ if (route.startsWith("/protokoll")) {
 
       {/* (9) FAB */}
       {canEdit && (<button className="fab" title="Einsatz anlegen" onClick={() => setShowAddModal(true)}>＋</button>)}
-
-      <a href="/Hilfe.pdf" target="_blank" rel="noopener noreferrer"
-         className="fixed bottom-4 right-4 px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg">
-        Hilfe
-      </a>
 
       {showVehModal && (
         <NewVehicleModal
