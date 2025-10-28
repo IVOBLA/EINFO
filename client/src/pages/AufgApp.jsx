@@ -518,7 +518,7 @@ const r = await fetch(`/api/aufgaben/${encodeURIComponent(id)}/status${roleQuery
   return (
     <div className="p-4">
       <CornerHelpLogout />
-      <header className="mb-4 flex flex-wrap items-center gap-3">
+      <header className="mb-4 flex flex-wrap items-start gap-3">
         <div className="flex items-center gap-3">
           <h1 className="text-lg font-bold">Aufgaben</h1>
           <span className="text-xs px-2 py-1 rounded-full border bg-gray-50">Rolle: {roleId || "—"}</span>
@@ -528,7 +528,7 @@ const r = await fetch(`/api/aufgaben/${encodeURIComponent(id)}/status${roleQuery
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             placeholder="Suche Titel / Typ / Verantwortlich…"
-            className="w-64 md:w-80 lg:w-[28rem] max-w-full px-3 py-2 text-sm rounded-xl border"
+            className="flex-1 min-w-[16rem] sm:min-w-[20rem] md:min-w-[24rem] lg:min-w-[30rem] max-w-xl px-3 py-2 text-sm rounded-xl border"
           />
           {allowEdit && (
             <>
@@ -562,14 +562,16 @@ const r = await fetch(`/api/aufgaben/${encodeURIComponent(id)}/status${roleQuery
           >
             {loading ? "Lädt…" : "Neu laden"}
           </button>
-          {tickerMessage && (
-            <div className="ticker-container flex-1" aria-live="polite">
+        </div>
+        {tickerMessage && (
+          <div className="w-full">
+            <div className="ticker-container w-full" aria-live="polite">
               <div className="ticker-content" key={tickerMessage}>
                 <span>{tickerMessage}</span>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </header>
 
       {error && <div className="mb-3 text-sm text-red-600">{error}</div>}
