@@ -40,6 +40,38 @@ export function ffStatus() {
   };
 }
 
+function prepareChildEnv({ pollIntervalMs, runOnce = false } = {}) {
+  const childEnv = { ...process.env };
+
+  if (process.env.FF_CA_FILE) {
+    const caAbs = path.resolve(__dirname, process.env.FF_CA_FILE);
+    if (fs.existsSync(caAbs)) {
+      childEnv.NODE_EXTRA_CA_CERTS = caAbs;
+      console.log(`[FF] using NODE_EXTRA_CA_CERTS=${caAbs}`);
+    } else {
+      console.warn(`[FF] WARN: FF_CA_FILE gesetzt, aber nicht gefunden: ${caAbs}`);
+    }
+  }
+
+  childEnv.FF_OUT_FILE = process.env.FF_OUT_FILE || path.resolve(__dirname, "data", "list_filtered.json");
+  childEnv.FF_DEBUG    = process.env.FF_DEBUG || "0";
+  childEnv.FF_LIST_TIMEOUT_MIN  = process.env.FF_LIST_TIMEOUT_MIN || "1440";
+  childEnv.FF_POLL_INTERVAL_MS  = String(
+    Number.isFinite(pollIntervalMs) ? pollIntervalMs : (process.env.FF_POLL_INTERVAL_MS || 60000)
+  );
+  childEnv.FF_LIST_PATH         = process.env.FF_LIST_PATH || "/list";
+  childEnv.FF_LIST_EXTRA        = process.env.FF_LIST_EXTRA || "";
+
+  // NEU: GPS Defaults
+  childEnv.FF_GPS_PATH     = process.env.FF_GPS_PATH || "/status/gps";
+  childEnv.FF_GPS_OUT_FILE = process.env.FF_GPS_OUT_FILE
+    || path.resolve(__dirname, "data", "vehicles_gps.json");
+
+  if (runOnce) childEnv.FF_ONCE = "1";
+
+  return childEnv;
+}
+
 export async function ffStart(opts = {}) {
   if (starting) throw new Error("Start läuft bereits…");
   if (stopping) throw new Error("Stop läuft noch – bitte kurz warten.");
@@ -53,33 +85,7 @@ export async function ffStart(opts = {}) {
     await cleanupStaleLocks();
 
     const script = path.resolve(__dirname, "index.mjs");
-    const childEnv = { ...process.env };
-
-    // Optionales CA für den Kindprozess (systemweit via NODE_EXTRA_CA_CERTS)
-    if (process.env.FF_CA_FILE) {
-      const caAbs = path.resolve(__dirname, process.env.FF_CA_FILE);
-      if (fs.existsSync(caAbs)) {
-        childEnv.NODE_EXTRA_CA_CERTS = caAbs;
-        console.log(`[FF] using NODE_EXTRA_CA_CERTS=${caAbs}`);
-      } else {
-        console.warn(`[FF] WARN: FF_CA_FILE gesetzt, aber nicht gefunden: ${caAbs}`);
-      }
-    }
-
-    // Outfile/Debug Defaults
-    childEnv.FF_OUT_FILE = process.env.FF_OUT_FILE || path.resolve(__dirname, "data", "list_filtered.json");
-    childEnv.FF_DEBUG    = process.env.FF_DEBUG || "0";
-    childEnv.FF_LIST_TIMEOUT_MIN  = process.env.FF_LIST_TIMEOUT_MIN || "1440";
-        childEnv.FF_POLL_INTERVAL_MS  = String(
-      Number.isFinite(pollIntervalMs) ? pollIntervalMs : (process.env.FF_POLL_INTERVAL_MS || 60000)
-    );
-    childEnv.FF_LIST_PATH         = process.env.FF_LIST_PATH || "/list";
-    childEnv.FF_LIST_EXTRA        = process.env.FF_LIST_EXTRA || "";
-	
-	    // NEU: GPS Defaults
-    childEnv.FF_GPS_PATH     = process.env.FF_GPS_PATH || "/status/gps";
-    childEnv.FF_GPS_OUT_FILE = process.env.FF_GPS_OUT_FILE
-      || path.resolve(__dirname, "data", "vehicles_gps.json");
+    const childEnv = prepareChildEnv({ pollIntervalMs });
 
     // ⚠️ KEINE Credentials in ENV! Wir geben sie über stdin (Pipe) weiter.
     child = spawn(process.execPath, [script], {
@@ -153,4 +159,54 @@ export async function ffStop() {
     child = null;
     stopping = false;
   }
+}
+
+export async function ffRunOnce(opts = {}) {
+  if (starting) throw new Error("Start läuft bereits…");
+  if (stopping) throw new Error("Stop läuft noch – bitte kurz warten.");
+  if (childIsAlive()) throw new Error("Fetcher läuft bereits.");
+
+  const { username, password, pollIntervalMs } = opts || {};
+  if (!username || !password) throw new Error("Zugangsdaten fehlen – Start abgebrochen.");
+
+  await cleanupStaleLocks();
+
+  const script = path.resolve(__dirname, "index.mjs");
+  const childEnv = prepareChildEnv({ pollIntervalMs, runOnce: true });
+
+  return new Promise((resolve, reject) => {
+    let done = false;
+    const finish = (err, result) => {
+      if (done) return;
+      done = true;
+      if (err) reject(err); else resolve(result);
+    };
+
+    const once = spawn(process.execPath, [script], {
+      env: childEnv,
+      cwd: __dirname,
+      stdio: ["pipe", "inherit", "inherit"],
+      detached: false,
+      windowsHide: true,
+    });
+
+    once.on("error", (err) => finish(err));
+
+    try {
+      once.stdin.write(JSON.stringify({ username: String(username), password: String(password) }) + "\n");
+    } catch {}
+    try { once.stdin.end(); } catch {}
+
+    once.once("close", (code, signal) => {
+      if (code === 0) {
+        finish(null, { ok: true, code, signal });
+      } else {
+        const msg = `Fetcher einmaliger Lauf fehlgeschlagen (exit=${code}${signal ? `, signal=${signal}` : ""})`;
+        const err = new Error(msg);
+        err.code = code;
+        err.signal = signal;
+        finish(err);
+      }
+    });
+  });
 }

@@ -18,6 +18,7 @@ const LIST_PATH   = process.env.FF_LIST_PATH || "/list";
 const LIST_EXTRA  = process.env.FF_LIST_EXTRA || "";
 const TIMEOUT_MIN = Number(process.env.FF_LIST_TIMEOUT_MIN || 1440); // Minuten
 const GPS_PATH    = process.env.FF_GPS_PATH || "/status/gps";
+const RUN_ONCE    = String(process.env.FF_ONCE || "0") === "1";
 
 // Exitcodes
 const EXIT_OK            = 0;
@@ -194,7 +195,7 @@ async function loop() {
 
 
       // 1) /list → Einsätze (unverändert)
-     const data = await fetchListOnce();
+      const data = await fetchListOnce();
       await writeFileAtomic(OUT_FILE, JSON.stringify(data, null, 2), "utf8");
 
       // 2) /status/gps → Live-Fahrzeugpositionen (NEU)
@@ -206,13 +207,18 @@ async function loop() {
       }
       if (DEBUG) console.error(`[DEBUG] ${nowIso()} – fetch+write OK; next in ${POLL_MS} ms`);
     } catch (e) {
-       console.error(`[ERROR] ${nowIso()} – Polling-Fehler: ${e.message}`);
-       if (DEBUG && e?.response) {
-         console.error("[DEBUG] response status:", e.response.status);
-         const snip = typeof e.response.data === "string" ? e.response.data : JSON.stringify(e.response.data);
-         console.error("[DEBUG] response data:", String(snip).slice(0, 300));
-       }
-     }
+      console.error(`[ERROR] ${nowIso()} – Polling-Fehler: ${e.message}`);
+      if (DEBUG && e?.response) {
+        console.error("[DEBUG] response status:", e.response.status);
+        const snip = typeof e.response.data === "string" ? e.response.data : JSON.stringify(e.response.data);
+        console.error("[DEBUG] response data:", String(snip).slice(0, 300));
+      }
+    }
+
+    if (RUN_ONCE) {
+      if (DEBUG) console.error("[DEBUG] RUN_ONCE aktiv → beende nach erstem Durchlauf");
+      break;
+    }
 
     const step = 100;
     let waited = 0;
