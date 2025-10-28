@@ -198,6 +198,118 @@ const HUMAN_ID_PREFIX_MANUAL = "M";
 const HUMAN_ID_PREFIX_AREA = "B";
 const HUMAN_ID_PREFIX_IMPORT = "E";
 
+const CLONE_SUFFIX_RE = /(.*?)-(\d+)$/;
+const normalizeLabel = (value) => String(value || "").trim().toLowerCase();
+
+async function readExtraVehiclesRaw() {
+  return await readJson(VEH_EXTRA, []);
+}
+
+function buildVehicleLabelIndex(baseList = [], extraList = []) {
+  const index = new Map();
+  const push = (veh) => {
+    if (!veh) return;
+    const key = normalizeLabel(veh.label);
+    if (!key) return;
+    if (!index.has(key)) index.set(key, []);
+    index.get(key).push(veh);
+  };
+  for (const v of baseList) push(v);
+  for (const v of extraList) push(v);
+  return index;
+}
+
+function detectCloneMeta(entry, labelIndex) {
+  if (!entry) return { isClone: false, baseId: null };
+  const cloneOfRaw = typeof entry.cloneOf === "string" ? entry.cloneOf.trim() : "";
+  if (cloneOfRaw) return { isClone: true, baseId: cloneOfRaw };
+
+  const label = String(entry.label || "");
+  const match = label.match(CLONE_SUFFIX_RE);
+  if (!match) return { isClone: false, baseId: null };
+  const baseLabel = match[1].trim();
+  if (!baseLabel) return { isClone: false, baseId: null };
+
+  const candidates = labelIndex.get(normalizeLabel(baseLabel)) || [];
+  const baseCandidate = candidates.find((veh) => veh.id !== entry.id);
+  if (baseCandidate?.id) return { isClone: true, baseId: String(baseCandidate.id) };
+  if (baseCandidate) return { isClone: true, baseId: baseLabel };
+
+  const crew = Number(entry.mannschaft);
+  if (Number.isFinite(crew) && crew === 0) return { isClone: true, baseId: baseLabel };
+  return { isClone: false, baseId: null };
+}
+
+function applyCloneMetadata(extraList, labelIndex) {
+  return extraList.map((entry) => {
+    if (!entry) return entry;
+    const meta = detectCloneMeta(entry, labelIndex);
+    if (!meta.isClone) {
+      if (typeof entry.cloneOf === "string") {
+        return { ...entry, cloneOf: entry.cloneOf };
+      }
+      return entry;
+    }
+    const baseId = meta.baseId || "";
+    const cloneOf = baseId || (typeof entry.cloneOf === "string" ? entry.cloneOf : "");
+    const payload = { ...entry, isClone: true };
+    if (cloneOf) payload.cloneOf = cloneOf;
+    return payload;
+  });
+}
+
+async function getVehiclesData() {
+  const base = await readJson(VEH_BASE, []);
+  const extraRaw = await readExtraVehiclesRaw();
+  const labelIndex = buildVehicleLabelIndex(base, extraRaw);
+  const extra = applyCloneMetadata(extraRaw, labelIndex);
+  return { base, extra, extraRaw, labelIndex };
+}
+
+const isCloneVehicleRecord = (veh) => {
+  const tag = typeof veh?.cloneOf === "string" ? veh.cloneOf.trim() : "";
+  return !!tag;
+};
+
+function boardHasVehicle(board, vehicleId) {
+  if (!board) return false;
+  const wanted = String(vehicleId);
+  for (const colId of ["neu", "in-bearbeitung", "erledigt"]) {
+    const items = board?.columns?.[colId]?.items || [];
+    for (const card of items) {
+      if ((card?.assignedVehicles || []).some((id) => String(id) === wanted)) return true;
+    }
+  }
+  return false;
+}
+
+async function removeClonesByIds(ids, board = null) {
+  if (!ids || ids.size === 0) return;
+  const normalized = new Set([...ids].map((id) => String(id)));
+  if (normalized.size === 0) return;
+  const { extraRaw, labelIndex } = await getVehiclesData();
+  let changed = false;
+  const next = [];
+  for (const entry of extraRaw) {
+    const vid = String(entry?.id || "");
+    if (!normalized.has(vid)) {
+      next.push(entry);
+      continue;
+    }
+    const meta = detectCloneMeta(entry, labelIndex);
+    if (!meta.isClone) {
+      next.push(entry);
+      continue;
+    }
+    if (board && boardHasVehicle(board, vid)) {
+      next.push(entry);
+      continue;
+    }
+    changed = true;
+  }
+  if (changed) await writeJson(VEH_EXTRA, next);
+}
+
 function ensureHumanIdWithPrefix(value, prefix, allocateNumber) {
   const parsed = parseHumanIdNumber(value);
   if (Number.isFinite(parsed)) {
@@ -440,8 +552,7 @@ if(!c.areaCardId){ c.areaCardId=null; c.areaColor=null; continue; }
   return b;
 }
 async function getAllVehicles(){
-  const base=await readJson(VEH_BASE,[]);
-  const extra=await readJson(VEH_EXTRA,[]);
+  const { base, extra } = await getVehiclesData();
   return [...base,...extra];
 }
 const vehiclesByIdMap = list => new Map(list.map(v=>[v.id,v]));
@@ -496,15 +607,20 @@ app.get("/api/gps", async (_req,res)=>{
 app.get("/api/types", async (_req,res)=>{ try{ res.json(await readJson(TYPES_FILE,[])); }catch{ res.json([]); } });
 
 app.post("/api/vehicles", async (req,res)=>{
-  const { ort, label, mannschaft=0 } = req.body||{};
+  const { ort, label, mannschaft=0, cloneOf="" } = req.body||{};
   if(!ort||!label) return res.status(400).json({ error:"ort und label sind erforderlich" });
 
-  const extra = await readJson(VEH_EXTRA, []);
+  const extra = await readExtraVehiclesRaw();
   const exists = extra.find(v => (v.ort||"")===ort && (v.label||"")===label);
   if(exists) return res.status(409).json({ error:"Einheit existiert bereits" });
 
   const id = `X${Math.random().toString(36).slice(2,8)}`;
+  const cloneTag = typeof cloneOf === "string" ? cloneOf.trim() : "";
   const v  = { id, ort, label, mannschaft: Number(mannschaft)||0 };
+  if (cloneTag) {
+    v.cloneOf = cloneTag;
+    v.isClone = true;
+  }
   extra.push(v); await writeJson(VEH_EXTRA, extra);
 
   await appendCsvRow(
@@ -618,15 +734,20 @@ app.post("/api/cards/:id/move", async (req,res)=>{
   const [card]=src.splice(idx,1);
   const dst=board.columns[to]?.items||[];
   if(from!==to) card.statusSince=new Date().toISOString();
-   const fromName = board.columns[from]?.name || from || "";
- const toName   = board.columns[to]?.name   || to   || "";
+  const fromName = board.columns[from]?.name || from || "";
+  const toName   = board.columns[to]?.name   || to   || "";
 
+  let clonesToRemove = null;
   if(to==="erledigt"){
-    const vmap=vehiclesByIdMap(await getAllVehicles());
-    card.everVehicles=Array.from(new Set([...(card.everVehicles||[]), ...(card.assignedVehicles||[])]));
+    const allVehicles = await getAllVehicles();
+    const vmap=vehiclesByIdMap(allVehicles);
+    const removedIds = [...(card.assignedVehicles||[])];
+    const prevEver = (card.everVehicles||[]).filter((id)=>!isCloneVehicleRecord(vmap.get(id)));
+    const nonCloneAssigned = removedIds.filter((id)=>!isCloneVehicleRecord(vmap.get(id)));
+    card.everVehicles=Array.from(new Set([...prevEver, ...nonCloneAssigned]));
     card.everPersonnel=Number.isFinite(card?.manualPersonnel)?card.manualPersonnel:computedPersonnel(card,vmap);
     // CSV: aktuell zugeordnete Einheiten als "entfernt" loggen
- for (const vid of (card.assignedVehicles || [])) {
+    for (const vid of removedIds) {
       const veh = vmap.get(vid);
       const einheitsLabel = veh?.label || veh?.id || String(vid);
       await appendCsvRow(
@@ -636,9 +757,18 @@ app.post("/api/cards/:id/move", async (req,res)=>{
       );
     }
     card.assignedVehicles=[];
+    clonesToRemove = new Set(removedIds);
   }
   dst.splice(Math.max(0,Math.min(Number(toIndex)||0,dst.length)),0,card);
   await writeJson(BOARD_FILE,board);
+
+  if (clonesToRemove) {
+    try {
+      await removeClonesByIds(clonesToRemove, board);
+    } catch (e) {
+      await appendError("vehicle:cleanup-done", e);
+    }
+  }
 
   await appendCsvRow(
     LOG_FILE, EINSATZ_HEADERS,
@@ -709,13 +839,19 @@ app.post("/api/cards/:id/unassign", async (req,res)=>{
   await writeJson(BOARD_FILE,board);
 
   const vmap=vehiclesByIdMap(await getAllVehicles());
- const veh = vmap.get(vehicleId);
- const einheitsLabel = veh?.label || veh?.id || String(vehicleId);
- await appendCsvRow(
+  const veh = vmap.get(vehicleId);
+  const einheitsLabel = veh?.label || veh?.id || String(vehicleId);
+  await appendCsvRow(
     LOG_FILE, EINSATZ_HEADERS,
     buildEinsatzLog({ action:"Einheit entfernt", card: ref.card, einheit: einheitsLabel, board }),
     req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
   );
+
+  try {
+    await removeClonesByIds(new Set([vehicleId]), board);
+  } catch (e) {
+    await appendError("vehicle:cleanup-unassign", e);
+  }
   markActivity("vehicle:unassign");
   res.json({ ok:true, card:ref.card });
 
