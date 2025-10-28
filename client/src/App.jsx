@@ -71,6 +71,7 @@ const readOnly = !canEdit;
   const [vehicles, setVehicles] = useState([]);
   const [types, setTypes] = useState([]);
   const [areaFilter, setAreaFilter] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [filterPulseActive, setFilterPulseActive] = useState(false);
   const [mapCtx, setMapCtx] = useState(null);
   const [editing, setEditing] = useState(null);
@@ -211,23 +212,33 @@ const tick = async () => {
     return () => window.removeEventListener("keydown", onKey);
   }, [unlocked]);
 
+  const searchNeedle = useMemo(() => searchTerm.trim().toLowerCase(), [searchTerm]);
+  const hasSearch = searchNeedle.length > 0;
+
   const safeBoard = board ?? {
     columns: { neu: { items: [] }, "in-bearbeitung": { items: [] }, erledigt: { items: [] } },
   };
 
-const visibleBoard = useMemo(() => {
-    if (!areaFilter) return safeBoard;
+  const visibleBoard = useMemo(() => {
+    const hasArea = !!areaFilter;
+    if (!hasArea && !hasSearch) return safeBoard;
     const areaId = String(areaFilter);
-const matchesFilter = (card) => cardMatchesAreaFilter(card, areaId);
     const nextColumns = {};
     for (const [key, col] of Object.entries(safeBoard?.columns || {})) {
+      let items = col?.items || [];
+      if (hasArea) {
+        items = items.filter((card) => cardMatchesAreaFilter(card, areaId));
+      }
+      if (hasSearch) {
+        items = items.filter((card) => cardMatchesSearch(card, searchNeedle));
+      }
       nextColumns[key] = {
         ...col,
-        items: (col?.items || []).filter(matchesFilter),
+        items,
       };
     }
     return { ...safeBoard, columns: nextColumns };
-  }, [safeBoard, areaFilter]);
+  }, [safeBoard, areaFilter, hasSearch, searchNeedle]);
 
 
 const ensureAreaHumanId = (value, isArea = false) => {
@@ -378,6 +389,26 @@ function cardMatchesAreaFilter(card, targetAreaId) {
   if (card.isArea) return String(card.id) === targetAreaId;
   if (!card.areaCardId) return false;
   return String(card.areaCardId) === targetAreaId;
+}
+
+function cardMatchesSearch(card, needle) {
+  if (!needle) return true;
+  if (!card) return false;
+  try {
+    return JSON.stringify(card).toLowerCase().includes(needle);
+  } catch {
+    return false;
+  }
+}
+
+function vehicleMatchesSearch(vehicle, needle) {
+  if (!needle) return true;
+  if (!vehicle) return false;
+  try {
+    return JSON.stringify(vehicle).toLowerCase().includes(needle);
+  } catch {
+    return false;
+  }
 }
 
 function getCardById(boardData, cardId) {
@@ -543,6 +574,18 @@ try {
       map[k].sort((a, b) => (a.label || a.id).localeCompare(b.label || b.id));
     return Object.entries(map).sort((a, b) => a[0].localeCompare(b[0]));
   }, [freeVehicles]);
+
+  const visibleFreeByOrt = useMemo(() => {
+    if (!hasSearch) return freeByOrt;
+    const result = [];
+    for (const [ort, list] of freeByOrt) {
+      const filtered = list.filter((vehicle) => vehicleMatchesSearch(vehicle, searchNeedle));
+      if (filtered.length > 0) {
+        result.push([ort, filtered]);
+      }
+    }
+    return result;
+  }, [freeByOrt, hasSearch, searchNeedle]);
 
   // Gruppen Collapse-Init
   useEffect(() => {
@@ -1061,7 +1104,7 @@ if (route.startsWith("/protokoll")) {
       {/* Filter */}
       <section className="mb-2 flex flex-wrap items-center gap-2">
         <label className="flex flex-wrap items-center gap-2 text-sm text-gray-700" htmlFor="areaFilter">
-          <span className="whitespace-nowrap">Filter</span>
+          <span className="whitespace-nowrap">Filter Abschnitt</span>
           <select
             id="areaFilter"
             className={`border rounded px-2 py-1 shrink-0 min-w-[150px] transition-colors ${
@@ -1079,6 +1122,17 @@ if (route.startsWith("/protokoll")) {
               </option>
             ))}
           </select>
+        </label>
+        <label className="flex flex-wrap items-center gap-2 text-sm text-gray-700" htmlFor="boardSearch">
+          <span className="whitespace-nowrap">Suche</span>
+          <input
+            id="boardSearch"
+            type="search"
+            className="border rounded px-2 py-1 min-w-[220px]"
+            placeholder="Suche…"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </label>
       </section>
 
@@ -1112,8 +1166,12 @@ if (route.startsWith("/protokoll")) {
             </div>
 
             <div className="overflow-auto pr-1 flex-1 min-h-0 space-y-3">
-              {freeByOrt.length === 0 && (<div className="text-[0.85rem] text-gray-500 italic">— alle Einheiten sind zugewiesen —</div>)}
-              {freeByOrt.map(([ort, list]) => {
+              {visibleFreeByOrt.length === 0 && (
+                <div className="text-[0.85rem] text-gray-500 italic">
+                  {hasSearch ? "Keine Einheiten gefunden." : "— alle Einheiten sind zugewiesen —"}
+                </div>
+              )}
+              {visibleFreeByOrt.map(([ort, list]) => {
                 const collapsed = isCollapsed(ort);
                 return (
                   <div key={ort} className="border border-blue-400 rounded-md">
