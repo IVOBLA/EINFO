@@ -358,13 +358,23 @@ header .toolbar .interval-capsule input:focus {
 }
 
 @keyframes filterFieldPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(127, 29, 29, 0.0); }
-  50%      { box-shadow: 0 0 0 6px rgba(127, 29, 29, 0.35); }
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(127, 29, 29, 0.0);
+    background-color: #fca5a5 !important; /* hellrot */
+    border-color: #f87171 !important;
+    color: #ffffff !important;
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.25);
+    background-color: #dbeafe !important; /* hellblau */
+    border-color: #93c5fd !important;
+    color: #0f172a !important;
+  }
 }
 
 .filter-pulse {
   animation: filterFieldPulse 1.5s ease-in-out infinite;
-  will-change: box-shadow;
+  will-change: box-shadow, background-color, border-color, color;
 }
 
 /* Stelle sicher, dass der DatePicker im Vordergrund angezeigt wird */
