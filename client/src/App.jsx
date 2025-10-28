@@ -965,7 +965,19 @@ if (route.startsWith("/protokoll")) {
   className="h-screen w-screen bg-gray-100 p-2 md:p-3 overflow-hidden flex flex-col"
   style={{ fontSize: "var(--ui-scale)" }}
 >
-      <CornerHelpLogout helpHref="/Hilfe.pdf" />
+      <CornerHelpLogout helpHref="/Hilfe.pdf">
+        {canEdit && (
+          <button
+            type="button"
+            className="pointer-events-auto floating-action fab"
+            title="Einsatz anlegen"
+            aria-label="Einsatz anlegen"
+            onClick={() => setShowAddModal(true)}
+          >
+            <span aria-hidden="true">＋</span>
+          </button>
+        )}
+      </CornerHelpLogout>
       {!board && (
         <div className="fixed inset-0 z-10 bg-black/10 backdrop-blur-sm flex items-center justify-center">
           <div className="px-4 py-2 rounded-lg bg-white shadow">Lade…</div>
@@ -1260,19 +1272,6 @@ if (route.startsWith("/protokoll")) {
           })()}
         </DragOverlay>
       </DndContext>
-
-      {/* (9) FAB */}
-      {canEdit && (
-        <button
-          type="button"
-          className="floating-action fab"
-          title="Einsatz anlegen"
-          aria-label="Einsatz anlegen"
-          onClick={() => setShowAddModal(true)}
-        >
-          <span aria-hidden="true">＋</span>
-        </button>
-      )}
 
       {showVehModal && (
         <NewVehicleModal

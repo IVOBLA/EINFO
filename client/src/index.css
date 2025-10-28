@@ -174,14 +174,14 @@ a[href*="karte"]:hover, button[title*="Karte"]:hover{ text-decoration: underline
 
 /* Floating action buttons (Help / Logoff / „+“) */
 .floating-action{
-  --fab-size: 56px;
+  --fab-size: calc(56px * 0.7);
   width: var(--fab-size);
   height: var(--fab-size);
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: calc(24px * 0.7);
   font-weight: 600;
   line-height: 1;
   color: #fff;
@@ -189,8 +189,8 @@ a[href*="karte"]:hover, button[title*="Karte"]:hover{ text-decoration: underline
   transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
 }
 .floating-action svg{
-  width: 26px;
-  height: 26px;
+  width: calc(26px * 0.7);
+  height: calc(26px * 0.7);
 }
 .floating-action:hover:not(:disabled){
   transform: translateY(-2px);
@@ -210,10 +210,6 @@ a[href*="karte"]:hover, button[title*="Karte"]:hover{ text-decoration: underline
   background: #f43f5e;
 }
 .fab{
-  position: fixed;
-  right: 1.25rem;
-  bottom: 4.25rem;
-  z-index: 40;
   background: #22c55e;
   box-shadow: 0 8px 24px rgba(16,185,129,.35);
 }
