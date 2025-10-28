@@ -172,14 +172,54 @@ a[href*="karte"]:hover, button[title*="Karte"]:hover{ text-decoration: underline
   50%{ box-shadow: 0 0 10px 6px rgba(59,130,246,0.6); }
 }
 
-/* FAB „Einsatz anlegen“ (9) */
-.fab{
-  position: fixed; right: 1.25rem; bottom: 4.25rem; z-index: 40;
-  width: 56px; height: 56px; border-radius: 999px;
-  background:#22c55e; color:#fff; box-shadow:0 8px 24px rgba(16,185,129,.35);
-  display:flex; align-items:center; justify-content:center; font-size:24px; line-height:1;
+/* Floating action buttons (Help / Logoff / „+“) */
+.floating-action{
+  --fab-size: 56px;
+  width: var(--fab-size);
+  height: var(--fab-size);
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1;
+  color: #fff;
+  box-shadow: 0 10px 28px rgba(15,23,42,.18);
+  transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
 }
-.fab:hover{ filter: brightness(.95); }
+.floating-action svg{
+  width: 26px;
+  height: 26px;
+}
+.floating-action:hover:not(:disabled){
+  transform: translateY(-2px);
+  box-shadow: 0 14px 32px rgba(15,23,42,.22);
+  filter: brightness(.96);
+}
+.floating-action:disabled{
+  opacity: .65;
+  cursor: not-allowed;
+  transform: none;
+  filter: none;
+}
+.floating-action.help-btn{
+  background: #2563eb;
+}
+.floating-action.logoff-btn{
+  background: #f43f5e;
+}
+.fab{
+  position: fixed;
+  right: 1.25rem;
+  bottom: 4.25rem;
+  z-index: 40;
+  background: #22c55e;
+  box-shadow: 0 8px 24px rgba(16,185,129,.35);
+}
+.fab:hover{
+  filter: brightness(.95);
+}
 
 /* Einheitliche Maße in der Kopfzeile */
 header .toolbar > * {
