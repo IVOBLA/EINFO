@@ -1262,7 +1262,17 @@ if (route.startsWith("/protokoll")) {
       </DndContext>
 
       {/* (9) FAB */}
-      {canEdit && (<button className="fab" title="Einsatz anlegen" onClick={() => setShowAddModal(true)}>＋</button>)}
+      {canEdit && (
+        <button
+          type="button"
+          className="floating-action fab"
+          title="Einsatz anlegen"
+          aria-label="Einsatz anlegen"
+          onClick={() => setShowAddModal(true)}
+        >
+          <span aria-hidden="true">＋</span>
+        </button>
+      )}
 
       {showVehModal && (
         <NewVehicleModal

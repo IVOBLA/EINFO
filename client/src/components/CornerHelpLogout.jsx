@@ -3,8 +3,8 @@ import User_LogoffButton from "./User_LogoffButton.jsx";
 
 export default function CornerHelpLogout({
   helpHref,
-  helpLabel = "Hilfe",
-  helpTitle,
+  helpLabel = "i",
+  helpTitle = "Hilfe",
   helpClassName = "",
   className = "",
   logoffClassName = "",
@@ -15,9 +15,8 @@ export default function CornerHelpLogout({
     "bottom-4",
     "right-4",
     "flex",
-    "flex-col",
-    "items-end",
-    "gap-2",
+    "items-center",
+    "gap-3",
     "z-50",
     "pointer-events-none",
     className,
@@ -33,12 +32,22 @@ export default function CornerHelpLogout({
           target="_blank"
           rel="noopener noreferrer"
           title={helpTitle || helpLabel}
-          className={`pointer-events-auto px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-lg ${helpClassName}`.trim()}
+          aria-label={helpTitle || helpLabel}
+          className={[
+            "pointer-events-auto",
+            "floating-action",
+            "help-btn",
+            helpClassName,
+          ]
+            .filter(Boolean)
+            .join(" ")}
         >
-          {helpLabel}
+          <span aria-hidden="true">{helpLabel}</span>
         </a>
       )}
-      <User_LogoffButton className={`pointer-events-auto ${logoffClassName}`.trim()} />
+      <User_LogoffButton
+        className={`pointer-events-auto floating-action logoff-btn ${logoffClassName}`.trim()}
+      />
     </div>
   );
 }
