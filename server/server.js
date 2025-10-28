@@ -487,8 +487,11 @@ async function ensureBoard(){
     for(const c of (b.columns[k].items||[])){
       c.createdAt        ||= new Date().toISOString();
       c.statusSince      ||= new Date().toISOString();
-      c.assignedVehicles ||= [];
-      c.everVehicles     ||= [];
+      c.assignedVehicles   ||= [];
+      c.everVehicles       ||= [];
+      if (!c.everVehicleLabels || typeof c.everVehicleLabels !== "object" || Array.isArray(c.everVehicleLabels)) {
+        c.everVehicleLabels = {};
+      }
       if(typeof c.everPersonnel!=="number") c.everPersonnel=0;
       if(!("externalId" in c)) c.externalId="";
       if(!("alerted"     in c)) c.alerted="";
@@ -683,6 +686,7 @@ const nextHumanIdNumber = nextHumanNumber(board);
     statusSince: now,
     assignedVehicles: [],
     everVehicles: [],
+    everVehicleLabels: {},
     everPersonnel: 0,
     ort,
     typ,
@@ -742,8 +746,17 @@ app.post("/api/cards/:id/move", async (req,res)=>{
     const allVehicles = await getAllVehicles();
     const vmap=vehiclesByIdMap(allVehicles);
     const removedIds = [...(card.assignedVehicles||[])];
+    const snapshotLabels = { ...(card.everVehicleLabels || {}) };
     const prevEver = (card.everVehicles||[]).filter((id)=>!isCloneVehicleRecord(vmap.get(id)));
     const nonCloneAssigned = removedIds.filter((id)=>!isCloneVehicleRecord(vmap.get(id)));
+    for (const vid of removedIds) {
+      const veh = vmap.get(vid);
+      const vidStr = String(vid);
+      const label = veh?.label || veh?.id || vidStr;
+      const ort = typeof veh?.ort === "string" ? veh.ort : null;
+      snapshotLabels[vidStr] = { label, ort };
+    }
+    card.everVehicleLabels = snapshotLabels;
     card.everVehicles=Array.from(new Set([...prevEver, ...nonCloneAssigned]));
     card.everPersonnel=Number.isFinite(card?.manualPersonnel)?card.manualPersonnel:computedPersonnel(card,vmap);
     // CSV: aktuell zugeordnete Einheiten als "entfernt" loggen
@@ -792,6 +805,12 @@ app.post("/api/cards/:id/assign", async (req,res)=>{
 
   if(!ref.card.assignedVehicles.includes(vehicleId)) ref.card.assignedVehicles.push(vehicleId);
   ref.card.everVehicles=Array.from(new Set([...(ref.card.everVehicles||[]), vehicleId]));
+  const labelStore = { ...(ref.card.everVehicleLabels || {}) };
+  const vehicleIdStr = String(vehicleId);
+  const snapshotLabel = veh?.label || veh?.id || vehicleIdStr;
+  const snapshotOrt = typeof veh?.ort === "string" ? veh.ort : null;
+  labelStore[vehicleIdStr] = { label: snapshotLabel, ort: snapshotOrt };
+  ref.card.everVehicleLabels = labelStore;
 
 const einheitsLabel = veh?.label || veh?.id || String(vehicleId);
   await appendCsvRow(

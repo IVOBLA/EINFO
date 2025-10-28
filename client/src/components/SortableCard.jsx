@@ -396,8 +396,13 @@ className={`px-2 py-1 rounded text-[12px] border ${buttonBackgroundClass}`}
               <ul className="text-sm text-gray-700 list-disc list-inside space-y-1">
                 {card.everVehicles.map((vid) => {
                   const v = vehiclesById.get(vid);
-                  const label = v?.label || v?.id || "Unbekannt";
-                  const ort = v?.ort ? ` (${v.ort})` : "";
+                  const vidStr = String(vid);
+                  const fallback = card?.everVehicleLabels?.[vidStr];
+                  const fallbackLabel = typeof fallback === "string" ? fallback : fallback?.label;
+                  const fallbackOrt = typeof fallback === "object" && fallback ? fallback.ort : null;
+                  const label = v?.label || fallbackLabel || v?.id || "Unbekannt";
+                  const ortValue = v?.ort ?? fallbackOrt ?? null;
+                  const ort = ortValue ? ` (${ortValue})` : "";
                   return <li key={vid}>{label}{ort}</li>;
                 })}
               </ul>
