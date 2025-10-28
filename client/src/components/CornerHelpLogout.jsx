@@ -8,6 +8,7 @@ export default function CornerHelpLogout({
   helpClassName = "",
   className = "",
   logoffClassName = "",
+  children,
 }) {
   const showHelp = Boolean(helpHref);
   const containerClasses = [
@@ -15,7 +16,8 @@ export default function CornerHelpLogout({
     "bottom-4",
     "right-4",
     "flex",
-    "items-center",
+    "flex-col",
+    "items-end",
     "gap-3",
     "z-50",
     "pointer-events-none",
@@ -26,6 +28,7 @@ export default function CornerHelpLogout({
 
   return (
     <div className={containerClasses}>
+      {children}
       {showHelp && (
         <a
           href={helpHref}
