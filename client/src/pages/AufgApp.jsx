@@ -133,6 +133,39 @@ export default function AufgApp() {
   const prevIdsRef = useRef(new Set());
   const myCreatedIdsRef = useRef(new Set());
 
+  const tickerMessage = useMemo(() => {
+    const candidates = items
+      .filter((item) => {
+        const type = String(item?.type ?? "");
+        const status = String(item?.status ?? "");
+        return /lagemeldung/i.test(type) && status.toLowerCase() === STATUS.NEW.toLowerCase();
+      })
+      .map((item) => {
+        const created = Number.isFinite(item?.createdAt)
+          ? Number(item.createdAt)
+          : Date.parse(item?.createdAt ?? "");
+        const updated = Number.isFinite(item?.updatedAt)
+          ? Number(item.updatedAt)
+          : Date.parse(item?.updatedAt ?? "");
+        const timestamp = Number.isFinite(updated) && updated > 0
+          ? updated
+          : (Number.isFinite(created) && created > 0 ? created : 0);
+        const rawText = [item?.desc, item?.title, item?.incidentTitle]
+          .map((v) => (typeof v === "string" ? v : ""))
+          .map((v) => v.replace(/\s+/g, " ").trim())
+          .find((v) => v.length > 0) || "";
+        return { item, timestamp, text: rawText };
+      })
+      .filter((entry) => entry.text.length > 0);
+
+    if (!candidates.length) return "";
+    const newest = candidates.reduce((best, current) =>
+      current.timestamp > best.timestamp ? current : best,
+      candidates[0]
+    );
+    return newest.text ? `XXX ${newest.text} XXX` : "";
+  }, [items]);
+
   const loadIncidents = useCallback(async (signal = null) => {
     if (signal?.aborted) return;
     try {
@@ -486,14 +519,16 @@ const r = await fetch(`/api/aufgaben/${encodeURIComponent(id)}/status${roleQuery
     <div className="p-4">
       <CornerHelpLogout />
       <header className="mb-4 flex flex-wrap items-center gap-3">
-        <h1 className="text-lg font-bold">Aufgaben</h1>
-        <span className="text-xs px-2 py-1 rounded-full border bg-gray-50">Rolle: {roleId || "—"}</span>
-         <div className="ml-auto flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          <h1 className="text-lg font-bold">Aufgaben</h1>
+          <span className="text-xs px-2 py-1 rounded-full border bg-gray-50">Rolle: {roleId || "—"}</span>
+        </div>
+        <div className="ml-auto flex flex-1 min-w-0 flex-wrap items-center gap-2 justify-end">
           <input
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
             placeholder="Suche Titel / Typ / Verantwortlich…"
-            className="px-3 py-2 text-sm rounded-xl border"
+            className="w-64 md:w-80 lg:w-[28rem] max-w-full px-3 py-2 text-sm rounded-xl border"
           />
           {allowEdit && (
             <>
@@ -527,6 +562,13 @@ const r = await fetch(`/api/aufgaben/${encodeURIComponent(id)}/status${roleQuery
           >
             {loading ? "Lädt…" : "Neu laden"}
           </button>
+          {tickerMessage && (
+            <div className="ticker-container flex-1" aria-live="polite">
+              <div className="ticker-content" key={tickerMessage}>
+                <span>{tickerMessage}</span>
+              </div>
+            </div>
+          )}
         </div>
       </header>
 

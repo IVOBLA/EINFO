@@ -38,6 +38,33 @@ header h1 {
   @apply text-2xl md:text-3xl font-bold tracking-tight text-slate-800 drop-shadow-sm;
 }
 
+/* === LAGEMELDUNG TICKER === */
+.ticker-container {
+  @apply relative overflow-hidden rounded-xl border border-slate-300 bg-white/70 px-3 py-2 text-sm text-slate-700 shadow-inner max-w-full;
+  min-height: 2.5rem;
+  min-width: 12rem;
+}
+
+.ticker-container .ticker-content {
+  display: inline-block;
+  white-space: nowrap;
+  animation: ticker-scroll 18s linear infinite;
+  will-change: transform;
+}
+
+.ticker-container:hover .ticker-content {
+  animation-play-state: paused;
+}
+
+@keyframes ticker-scroll {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
 /* === BUTTONS === */
 button {
   @apply transition-all duration-200 ease-out select-none;
