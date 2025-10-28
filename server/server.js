@@ -17,7 +17,7 @@ import { User_authMiddleware, User_createRouter, User_requireAuth } from "./User
 import { User_update, User_getGlobalFetcher, User_hasGlobalFetcher } from "./User_store.mjs";
 
 // Fetcher Runner
-import { ffStart, ffStop, ffStatus } from "./ffRunner.js";
+import { ffStart, ffStop, ffStatus, ffRunOnce } from "./ffRunner.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1344,9 +1344,32 @@ if(next.enabled){
 
 async function triggerOnce(_req,res){
   try{
-    const cfg=await readAutoCfg();
-    const r=await importFromFileOnce(cfg.filename);
+    const cfg = await readAutoCfg();
+    const status = ffStatus();
+
+    if (!status.running && !status.starting && !status.stopping) {
+      const creds = await User_getGlobalFetcher();
+      if (!creds?.creds?.username || !creds?.creds?.password) {
+        return res.status(400).json({ ok:false, error:"Keine globalen Fetcher-Zugangsdaten hinterlegt" });
+      }
+
+      try {
+        const pollMs = (cfg.intervalSec || 30) * 1000;
+        await ffRunOnce({
+          username: creds.creds.username,
+          password: creds.creds.password,
+          pollIntervalMs: pollMs,
+        });
+        markActivity("fetcher:run-once");
+      } catch (err) {
+        await appendError("triggerOnce/fetcher-once", err);
+        return res.status(500).json({ ok:false, error: err.message || "Fetcher konnte nicht gestartet werden" });
+      }
+    }
+
+    const r = await importFromFileOnce(cfg.filename);
     if(!r.ok) return res.status(400).json(r);
+    markActivity("import:manual");
     res.json(r);
   }catch(e){
     await appendError("triggerOnce", e);
