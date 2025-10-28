@@ -491,8 +491,9 @@ try {
     try {
       const newLabel = nextCloneLabel(vehicles, v.label || v.id);
       const res = await fetch("/api/vehicles", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ort: v.ort || "", label: newLabel, mannschaft: 0 }),
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ort: v.ort || "", label: newLabel, mannschaft: 0, cloneOf: v.id }),
       });
       const js = await res.json().catch(() => ({}));
       if (!res.ok || js?.error) throw new Error(js?.error || "Clone fehlgeschlagen");
@@ -514,6 +515,49 @@ try {
   }
 
   const vehiclesById = useMemo(() => new Map(vehicles.map((v) => [v.id, v])), [vehicles]);
+
+  const cloneIdSet = useMemo(() => {
+    const clones = new Set();
+    const labelIndex = new Map();
+    for (const veh of vehicles) {
+      if (!veh) continue;
+      const key = String(veh.label || "").trim().toLowerCase();
+      if (!key) continue;
+      if (!labelIndex.has(key)) labelIndex.set(key, []);
+      labelIndex.get(key).push(veh);
+    }
+    const suffixRe = /(.*?)-(\d+)$/;
+    for (const veh of vehicles) {
+      if (!veh || typeof veh.id === "undefined") continue;
+      const idStr = String(veh.id);
+      const cloneTag = typeof veh.cloneOf === "string" ? veh.cloneOf.trim() : "";
+      if (cloneTag) {
+        clones.add(idStr);
+        continue;
+      }
+      if (veh.isClone) {
+        clones.add(idStr);
+        continue;
+      }
+      const label = String(veh.label || "");
+      const match = label.match(suffixRe);
+      if (!match) continue;
+      const baseLabel = match[1].trim();
+      if (!baseLabel) continue;
+      const baseCandidates = labelIndex.get(baseLabel.toLowerCase()) || [];
+      const baseCandidate = baseCandidates.find((candidate) => candidate && candidate.id !== veh.id);
+      if (baseCandidate) {
+        clones.add(idStr);
+        continue;
+      }
+      const crew = Number(veh.mannschaft);
+      if (Number.isFinite(crew) && crew === 0) {
+        clones.add(idStr);
+      }
+    }
+    return clones;
+  }, [vehicles]);
+  const isCloneId = (id) => cloneIdSet.has(String(id));
 
   const [nearbyDistById, setNearbyDistById] = useState(new Map()); // unitId -> distanceKm|null
   const vehiclesByIdObj = useMemo(() => {
@@ -593,13 +637,15 @@ useEffect(() => {
       else incidentCount += 1;
 
       if (colId === "erledigt") {
-        units += Array.isArray(card?.everVehicles) ? card.everVehicles.length : 0;
+        const everVehicles = Array.isArray(card?.everVehicles) ? card.everVehicles : [];
+        units += everVehicles.filter((vid) => !isCloneId(vid)).length;
         persons += Number.isFinite(card?.everPersonnel) ? card.everPersonnel : 0;
       } else {
-        units += Array.isArray(card?.assignedVehicles) ? card.assignedVehicles.length : 0;
+        const assignedVehicles = Array.isArray(card?.assignedVehicles) ? card.assignedVehicles : [];
+        units += assignedVehicles.filter((vid) => !isCloneId(vid)).length;
         if (Number.isFinite(card?.manualPersonnel)) persons += card.manualPersonnel;
         else {
-          for (const vid of card?.assignedVehicles || []) {
+          for (const vid of assignedVehicles) {
             const vehicle = vehiclesById.get(vid);
             if (typeof vehicle?.mannschaft === "number") persons += vehicle.mannschaft;
           }
@@ -797,7 +843,16 @@ useEffect(() => {
         if (from !== to) {
           try {
             await transitionCard({ cardId, from, to, toIndex: 0 });
-            setBoard(await fetchBoard());
+            if (to === "erledigt") {
+              const [nextBoard, nextVehicles] = await Promise.all([
+                fetchBoard(),
+                fetchVehicles(),
+              ]);
+              setBoard(nextBoard);
+              setVehicles(nextVehicles);
+            } else {
+              setBoard(await fetchBoard());
+            }
           } catch { alert("Statuswechsel konnte nicht gespeichert werden."); }
         }
         return;
@@ -808,7 +863,16 @@ useEffect(() => {
         if (to) {
           try {
             await transitionCard({ cardId, from, to, toIndex: 0 });
-            setBoard(await fetchBoard());
+            if (to === "erledigt") {
+              const [nextBoard, nextVehicles] = await Promise.all([
+                fetchBoard(),
+                fetchVehicles(),
+              ]);
+              setBoard(nextBoard);
+              setVehicles(nextVehicles);
+            } else {
+              setBoard(await fetchBoard());
+            }
           } catch { alert("Statuswechsel konnte nicht gespeichert werden."); }
         }
       }
@@ -1198,20 +1262,30 @@ if (route.startsWith("/protokoll")) {
                         onUnassign={async (cardId, vehicleId) => {
                           await unassignVehicle(cardId, vehicleId);
                           try { await resetVehiclePosition(vehicleId); } catch {}
-                          setBoard(await fetchBoard());
+                          const [nextBoard, nextVehicles] = await Promise.all([
+                            fetchBoard(),
+                            fetchVehicles(),
+                          ]);
+                          setBoard(nextBoard);
+                          setVehicles(nextVehicles);
                         }}
                         onOpenMap={(_) => setMapCtx({
                           address: c.ort, card: c, board: safeBoard, vehiclesById: vehiclesByIdObj,
                         })}
                         onAdvance={canEdit ? async (card) => {
-                          if (id === "neu") {
-                            await transitionCard({ cardId: card.id, from: "neu", to: "in-bearbeitung", toIndex: 0 });
-                            setBoard(await fetchBoard());
-                          } else if (id === "in-bearbeitung") {
-                            await transitionCard({ cardId: card.id, from: "in-bearbeitung", to: "erledigt", toIndex: 0 });
-                            setBoard(await fetchBoard());
-                          }
-                        } : undefined}
+                        if (id === "neu") {
+                          await transitionCard({ cardId: card.id, from: "neu", to: "in-bearbeitung", toIndex: 0 });
+                          setBoard(await fetchBoard());
+                        } else if (id === "in-bearbeitung") {
+                          await transitionCard({ cardId: card.id, from: "in-bearbeitung", to: "erledigt", toIndex: 0 });
+                          const [nextBoard, nextVehicles] = await Promise.all([
+                            fetchBoard(),
+                            fetchVehicles(),
+                          ]);
+                          setBoard(nextBoard);
+                          setVehicles(nextVehicles);
+                        }
+                      } : undefined}
                         onEditPersonnelStart={canEdit ? (card, disp) => { setEditing({ cardId: card.id }); setEditingValue(disp); } : undefined}
                         editing={editing}
                         editingValue={editingValue}
