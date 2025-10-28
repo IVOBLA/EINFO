@@ -507,11 +507,13 @@ app.post("/api/vehicles", async (req,res)=>{
   const v  = { id, ort, label, mannschaft: Number(mannschaft)||0 };
   extra.push(v); await writeJson(VEH_EXTRA, extra);
 
- await appendCsvRow(
-   LOG_FILE, EINSATZ_HEADERS,
-   buildEinsatzLog({ action:"Einheit angelegt", note:`${label} (${ort})` }),
-   req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
- );
+  await appendCsvRow(
+    LOG_FILE,
+    EINSATZ_HEADERS,
+    buildEinsatzLog({ action: "Einheit geteilt", note: `${label} (${ort})` }),
+    req,
+    { autoTimestampField: "Zeitpunkt", autoUserField: "Benutzer" }
+  );
   res.json({ ok:true, vehicle:v });
 });
 
@@ -638,9 +640,9 @@ app.post("/api/cards/:id/move", async (req,res)=>{
   dst.splice(Math.max(0,Math.min(Number(toIndex)||0,dst.length)),0,card);
   await writeJson(BOARD_FILE,board);
 
-   await appendCsvRow(
+  await appendCsvRow(
     LOG_FILE, EINSATZ_HEADERS,
-    buildEinsatzLog({ action:"move", card, from:fromName, to:toName, board }),
+    buildEinsatzLog({ action:"Status gewechselt", card, from:fromName, to:toName, board }),
     req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
   );
   markActivity("card:move");
@@ -675,7 +677,7 @@ const einheitsLabel = veh?.label || veh?.id || String(vehicleId);
  await appendCsvRow(
       LOG_FILE, EINSATZ_HEADERS,
       buildEinsatzLog({
-        action:"move", card:c,
+        action:"Status gewechselt", card:c,
         from:board.columns["neu"].name, to:board.columns["in-bearbeitung"].name,
         note:"durch Zuweisung",
         board,
@@ -941,7 +943,7 @@ if (ref.card.isArea && (areaColorChanged || areaChanged)) {
 
   const nextAreaLabel = areaLabel(ref.card, board);
   if (areaChanged && prevAreaLabel !== nextAreaLabel) {
-    notes.push(`Bereich: ${prevAreaLabel || "—"}→${nextAreaLabel || "—"}`);
+    notes.push(`Abschnitt: ${prevAreaLabel || "—"}→${nextAreaLabel || "—"}`);
   }
 
   if (!changed) {
@@ -950,11 +952,16 @@ if (ref.card.isArea && (areaColorChanged || areaChanged)) {
 
   await writeJson(BOARD_FILE, board);
 
+  let actionLabel = "Einsatz aktualisiert";
+  if (!ref.card.isArea && areaChanged && ref.card.areaCardId) {
+    actionLabel = "Zu Abschnitt zugeordnet";
+  }
+
   await appendCsvRow(
     LOG_FILE,
     EINSATZ_HEADERS,
     buildEinsatzLog({
-      action: "Einsatz aktualisiert",
+      action: actionLabel,
       card: ref.card,
       note: notes.join("; ") || "",
       board,
