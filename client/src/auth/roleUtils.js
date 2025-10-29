@@ -93,3 +93,10 @@ export function canEditApp(appId, userLike) {
 export function isReadOnlyApp(appId, userLike) {
   return !canEditApp(appId, userLike);
 }
+
+export function hasRole(roleId, userLike) {
+  const target = String(roleId || "").trim().toUpperCase();
+  if (!target) return false;
+  const ids = userRoleIds(userLike ?? currentUser());
+  return ids.includes(target);
+}
