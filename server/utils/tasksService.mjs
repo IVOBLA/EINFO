@@ -12,14 +12,26 @@ const DATA_DIR   = path.resolve(__dirname, "..", "data"); // => <repo>/server/da
 const AUFG_PREFIX = "Aufg";
 const DEFAULT_DUE_OFFSET_MINUTES = getDefaultDueOffsetMinutes();
 
+function normalizeBoardId(roleId){
+  const raw = String(roleId ?? "").trim().toUpperCase();
+  const norm = raw.replace(/[^A-Z0-9_-]/g, "");
+  if (!norm) throw new Error("roleId missing");
+  return norm;
+}
+
+function canonicalRoleKey(value){
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  const match = raw.match(/\b(S[1-6]|EL|LTSTB)\b/i);
+  if (match) return match[1].toUpperCase();
+  return raw.replace(/\s+/g, "").toUpperCase();
+}
+
 function boardPath(roleId){
-  const r = String(roleId||"").toUpperCase().replace(/[^A-Z0-9_-]/g,"");
-  if (!r) throw new Error("roleId missing");
-  return path.join(DATA_DIR, `${AUFG_PREFIX}_board_${r}.json`);
+  return path.join(DATA_DIR, `${AUFG_PREFIX}_board_${normalizeBoardId(roleId)}.json`);
 }
 function logPath(roleId){
-  const r = String(roleId||"").toUpperCase().replace(/[^A-Z0-9_-]/g,"");
-  return path.join(DATA_DIR, `${AUFG_PREFIX}_log_${r}.csv`);
+  return path.join(DATA_DIR, `${AUFG_PREFIX}_log_${normalizeBoardId(roleId)}.csv`);
 }
 async function ensureDir(){ await fsp.mkdir(DATA_DIR,{recursive:true}); }
 function csv(v){ if(v==null) return '""'; const s=String(v).replace(/[\r\n]+/g," ").replace(/"/g,'""'); return `"${s}"`; }
@@ -58,10 +70,19 @@ function normalizeDueAt(v){
   return d.toISOString();
 }
 
-export async function ensureTaskForRole({roleId, protoNr, item, actor}){
+export async function ensureTaskForRole({roleId, protoNr, item, actor, responsibleLabel}){
+  const responsible = String(responsibleLabel ?? roleId ?? "").trim();
+  if (!responsible) return null;
+  const boardId = normalizeBoardId(roleId ?? responsible);
+  const roleKey = canonicalRoleKey(responsible);
+
   // idempotent: existiert bereits Karte mit derselben Protokoll-Nr + Rolle?
-  const board = await loadBoard(roleId);
-  const exists = (board.items||[]).some(it => String(it?.meta?.protoNr||"") === String(protoNr||"") && String(it.responsible||"") === String(roleId||""));
+  const board = await loadBoard(boardId);
+  const exists = (board.items || []).some((it) => {
+    const sameProto = String(it?.meta?.protoNr || "") === String(protoNr || "");
+    const sameRole = canonicalRoleKey(it?.responsible) === roleKey;
+    return sameProto && sameRole;
+  });
   if (exists) return null;
 
   const defaultDueAt = new Date(Date.now() + DEFAULT_DUE_OFFSET_MINUTES * 60 * 1000);
@@ -71,7 +92,7 @@ export async function ensureTaskForRole({roleId, protoNr, item, actor}){
     id: `p-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
     title: item.title || "Aufgabe",
     type: item.type || "",
-    responsible: roleId,
+    responsible,
     desc: item.desc || "",
     status: "Neu",
     kind: "task",
@@ -83,7 +104,7 @@ export async function ensureTaskForRole({roleId, protoNr, item, actor}){
     createdBy: actor || null
   };
   board.items = [card, ...(board.items||[])];
-  await saveBoard(roleId, board);
-  await appendLog(roleId, { actor, action:"create", id:card.id, title:card.title, type:card.type, responsible:card.responsible, toStatus:card.status, meta:card.meta });
+  await saveBoard(boardId, board);
+  await appendLog(boardId, { actor, action:"create", id:card.id, title:card.title, type:card.type, responsible:card.responsible, toStatus:card.status, meta:card.meta });
   return card;
 }
