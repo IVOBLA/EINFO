@@ -754,8 +754,11 @@ app.post("/api/cards/:id/move", async (req,res)=>{
     for (const vid of removedIds) {
       const veh = vmap.get(vid);
       const vidStr = String(vid);
-      const label = veh?.label || veh?.id || vidStr;
-      const ort = typeof veh?.ort === "string" ? veh.ort : null;
+      const prev = snapshotLabels[vidStr];
+      const prevLabel = typeof prev === "string" ? prev : prev?.label;
+      const prevOrt = typeof prev === "object" && prev ? prev.ort : null;
+      const label = veh?.label || prevLabel || veh?.id || vidStr;
+      const ort = typeof veh?.ort === "string" ? veh.ort : prevOrt;
       snapshotLabels[vidStr] = { label, ort };
     }
     card.everVehicleLabels = snapshotLabels;
@@ -809,8 +812,11 @@ app.post("/api/cards/:id/assign", async (req,res)=>{
   ref.card.everVehicles=Array.from(new Set([...(ref.card.everVehicles||[]), vehicleId]));
   const labelStore = { ...(ref.card.everVehicleLabels || {}) };
   const vehicleIdStr = String(vehicleId);
-  const snapshotLabel = veh?.label || veh?.id || vehicleIdStr;
-  const snapshotOrt = typeof veh?.ort === "string" ? veh.ort : null;
+  const prev = labelStore[vehicleIdStr];
+  const prevLabel = typeof prev === "string" ? prev : prev?.label;
+  const prevOrt = typeof prev === "object" && prev ? prev.ort : null;
+  const snapshotLabel = veh?.label || prevLabel || veh?.id || vehicleIdStr;
+  const snapshotOrt = typeof veh?.ort === "string" ? veh.ort : prevOrt;
   labelStore[vehicleIdStr] = { label: snapshotLabel, ort: snapshotOrt };
   ref.card.everVehicleLabels = labelStore;
 
