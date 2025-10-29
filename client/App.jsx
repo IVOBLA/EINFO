@@ -856,9 +856,25 @@ if (!unlocked) {
         {tickerMessage && (
           <div className="w-full">
             <div className="ticker-container w-full" aria-live="polite">
-              <div className="ticker-content" key={tickerMessage}>
+              <marquee
+                className="ticker-content"
+                key={tickerMessage}
+                behavior="scroll"
+                direction="left"
+                scrollAmount={6}
+                onMouseEnter={(event) => {
+                  if (typeof event.target.stop === "function") {
+                    event.target.stop();
+                  }
+                }}
+                onMouseLeave={(event) => {
+                  if (typeof event.target.start === "function") {
+                    event.target.start();
+                  }
+                }}
+              >
                 <span>{tickerMessage}</span>
-              </div>
+              </marquee>
             </div>
           </div>
         )}
