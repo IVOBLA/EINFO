@@ -88,6 +88,8 @@ export async function ensureTaskForRole({roleId, protoNr, item, actor, responsib
   const defaultDueAt = new Date(Date.now() + DEFAULT_DUE_OFFSET_MINUTES * 60 * 1000);
   const dueAt = normalizeDueAt(item?.dueAt) ?? defaultDueAt.toISOString();
 
+  const creator = typeof actor === "string" ? actor.trim() : actor ? String(actor).trim() : "";
+
   const card = {
     id: `p-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
     title: item.title || "Aufgabe",
@@ -101,10 +103,10 @@ export async function ensureTaskForRole({roleId, protoNr, item, actor, responsib
     dueAt,
     originProtocolNr: protoNr ?? null,
     meta: { ...(item.meta||{}), protoNr },
-    createdBy: actor || null
+    createdBy: creator || null
   };
   board.items = [card, ...(board.items||[])];
   await saveBoard(boardId, board);
-  await appendLog(boardId, { actor, action:"create", id:card.id, title:card.title, type:card.type, responsible:card.responsible, toStatus:card.status, meta:card.meta });
+  await appendLog(boardId, { actor: creator || actor || "", action:"create", id:card.id, title:card.title, type:card.type, responsible:card.responsible, toStatus:card.status, meta:card.meta });
   return card;
 }

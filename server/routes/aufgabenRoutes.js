@@ -2,7 +2,7 @@ import express from "express";
 import fsp from "fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { appendCsvRow } from "../auditLog.mjs";
+import { appendCsvRow, resolveUserName } from "../auditLog.mjs";
 import { markResponsibleDone } from "./protocolMarkDone.mjs";
 
 const router = express.Router();
@@ -83,9 +83,15 @@ function normalizeItem(x) {
   const status = STATUSES.includes(x.status)
     ? x.status
     : st.startsWith("in") ? "In Bearbeitung" : st.startsWith("erled") ? "Erledigt" : "Neu";
-	const dueAt = normalizeDueAt(x.dueAt ?? x.due_at ?? x.deadline ?? x.frist ?? null);
-
-
+  const dueAt = normalizeDueAt(x.dueAt ?? x.due_at ?? x.deadline ?? x.frist ?? null);
+  const rawCreatedBy =
+    x.createdBy ??
+    x.created_by ??
+    x.creator ??
+    x.user ??
+    x.actor ??
+    null;
+  const createdBy = typeof rawCreatedBy === "string" ? rawCreatedBy.trim() : "";
 
   return {
     id: x.id ?? x._id ?? x.key ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -95,12 +101,13 @@ function normalizeItem(x) {
     responsible,
     desc,
     status,
-	dueAt,
+    dueAt,
     createdAt: x.createdAt ?? x.ts ?? x.timestamp ?? Date.now(),
     updatedAt: x.updatedAt ?? Date.now(),
     kind: "task",
     meta: (x.meta ?? {}),
     originProtocolNr: x.originProtocolNr ?? null,
+    createdBy: createdBy || null,
     relatedIncidentId: normalizeIncidentId(x.relatedIncidentId ?? x.meta?.relatedIncidentId ?? null),
     incidentTitle: (() => {
       const v = x.incidentTitle ?? x.meta?.incidentTitle ?? null;
@@ -277,6 +284,8 @@ router.post("/", express.json(), async (req,res)=>{
     }
 
     const item = normalizeItem({ ...req.body, clientId });
+    const creator = resolveUserName(req);
+    item.createdBy = creator || item.createdBy || null;
 
     // Deduplikation
     const now = Date.now();
