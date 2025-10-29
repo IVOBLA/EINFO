@@ -65,6 +65,8 @@ function useCompactScale() {
   }, []);
   return scale;
 }
+const TICKER_PREFIX = " - *** - NEUE LAGEMELDUNG: ";
+const TICKER_SUFFIX = " - *** -";
 const CID = (id) => `card:${id}`;
 
 /** Clientseitiges Geocoding über Google Maps JS API (Region AT) */
@@ -254,7 +256,7 @@ export default function App() {
 
     if (!candidates.length) return "";
     const newest = candidates.reduce((best, current) => (current.timestamp > best.timestamp ? current : best), candidates[0]);
-    return newest.text ? `XXX ${newest.text} XXX` : "";
+    return newest.text ? `${TICKER_PREFIX}${newest.text}${TICKER_SUFFIX}` : "";
   }, [board]);
 
   // Sofort-Import (manuell)

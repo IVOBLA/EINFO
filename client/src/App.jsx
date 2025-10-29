@@ -49,7 +49,8 @@ import {
 
 const TICKER_ROLE_ID = "S2";
 const TICKER_REFRESH_INTERVAL_MS = 30_000;
-const TICKER_MARKER = " - *** - NEUE LAGEMELDUNG: ";
+const TICKER_PREFIX = " - *** - NEUE LAGEMELDUNG: ";
+const TICKER_SUFFIX = " - *** -";
 
 /** Skaliert die UI kompakt – unverändert */
 function useCompactScale() {
@@ -229,7 +230,7 @@ const tick = async () => {
   const tickerText = useMemo(() => {
     if (!tickerMessages.length) return "";
     return tickerMessages
-      .map((message) => `${TICKER_MARKER}${message}${TICKER_MARKER}`)
+      .map((message) => `${TICKER_PREFIX}${message}${TICKER_SUFFIX}`)
       .join(" ")
       .trim();
   }, [tickerMessages]);
