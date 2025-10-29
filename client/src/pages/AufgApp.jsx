@@ -133,46 +133,6 @@ export default function AufgApp() {
   const prevIdsRef = useRef(new Set());
   const myCreatedIdsRef = useRef(new Set());
 
-  const tickerMessage = useMemo(() => {
-    const candidates = items
-      .filter((item) => {
-        const typeRaw = String(item?.type ?? "");
-        const typeTokens = typeRaw
-          .normalize("NFKD")
-          .toLocaleLowerCase("de-DE")
-          .split(/[^a-z0-9äöüß]+/i)
-          .filter(Boolean);
-        const isLageType = typeTokens.some((token) => token === "lage" || token === "lagemeldung");
-        if (!isLageType) return false;
-        const status = String(item?.status ?? "").toLocaleLowerCase("de-DE");
-        return status === STATUS.NEW.toLowerCase();
-      })
-      .map((item) => {
-        const created = Number.isFinite(item?.createdAt)
-          ? Number(item.createdAt)
-          : Date.parse(item?.createdAt ?? "");
-        const updated = Number.isFinite(item?.updatedAt)
-          ? Number(item.updatedAt)
-          : Date.parse(item?.updatedAt ?? "");
-        const timestamp = Number.isFinite(updated) && updated > 0
-          ? updated
-          : (Number.isFinite(created) && created > 0 ? created : 0);
-        const rawText = [item?.desc, item?.title, item?.incidentTitle]
-          .map((v) => (typeof v === "string" ? v : ""))
-          .map((v) => v.replace(/\s+/g, " ").trim())
-          .find((v) => v.length > 0) || "";
-        return { item, timestamp, text: rawText };
-      })
-      .filter((entry) => entry.text.length > 0);
-
-    if (!candidates.length) return "";
-    const newest = candidates.reduce((best, current) =>
-      current.timestamp > best.timestamp ? current : best,
-      candidates[0]
-    );
-    return newest.text ? `XXX ${newest.text} XXX` : "";
-  }, [items]);
-
   const loadIncidents = useCallback(async (signal = null) => {
     if (signal?.aborted) return;
     try {
@@ -572,15 +532,6 @@ const r = await fetch(`/api/aufgaben/${encodeURIComponent(id)}/status${roleQuery
             </button>
           </div>
         </div>
-        {tickerMessage && (
-          <div className="w-full">
-            <div className="ticker-container w-full" aria-live="polite">
-              <div className="ticker-content" key={tickerMessage}>
-                <span>{tickerMessage}</span>
-              </div>
-            </div>
-          </div>
-        )}
       </header>
 
       {error && <div className="mb-3 text-sm text-red-600">{error}</div>}
