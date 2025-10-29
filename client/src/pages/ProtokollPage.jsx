@@ -74,8 +74,8 @@ const initialForm = () => ({
   datum: new Date().toISOString().slice(0, 10),
   zeit: new Date().toTimeString().slice(0, 5),
   uebermittlungsart: { richtung: "", kanalNr: "" }, // "", "ein", "aus"
-  anvon: { richtung: "an", name: "" }, // Startfokus auf "an"
-  infoTyp: "Information",
+  anvon: { richtung: "", name: "" },
+  infoTyp: "",
   information: "",
   rueckmeldung1: "",
   rueckmeldung2: "",
