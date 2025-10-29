@@ -230,10 +230,8 @@ const tick = async () => {
 
   const tickerText = useMemo(() => {
     if (!tickerMessages.length) return "";
-    return tickerMessages
-      .map((message) => `${TICKER_PREFIX}${message}${TICKER_SUFFIX}`)
-      .join(TICKER_SEPARATOR)
-      .trim();
+    const entries = tickerMessages.map((message) => `${TICKER_PREFIX}${message}${TICKER_SUFFIX}`);
+    return `${entries.join(TICKER_SEPARATOR)}${TICKER_SEPARATOR}`;
   }, [tickerMessages]);
 
   const loadTickerMessages = useCallback(async () => {
