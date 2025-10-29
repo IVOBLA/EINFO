@@ -219,14 +219,19 @@ function buildVehicleLabelIndex(baseList = [], extraList = []) {
   return index;
 }
 
+function isCloneMarker(value) {
+  return value === true || value === "clone";
+}
+
 function detectCloneMeta(entry, labelIndex) {
   if (!entry) return { isClone: false, baseId: null };
   const cloneOfRaw = typeof entry.cloneOf === "string" ? entry.cloneOf.trim() : "";
   if (cloneOfRaw) return { isClone: true, baseId: cloneOfRaw };
+  const markedClone = isCloneMarker(entry.clone);
 
   const label = String(entry.label || "");
   const match = label.match(CLONE_SUFFIX_RE);
-  if (!match) return { isClone: false, baseId: null };
+  if (!match) return markedClone ? { isClone: true, baseId: cloneOfRaw || null } : { isClone: false, baseId: null };
   const baseLabel = match[1].trim();
   if (!baseLabel) return { isClone: false, baseId: null };
 
@@ -237,6 +242,7 @@ function detectCloneMeta(entry, labelIndex) {
 
   const crew = Number(entry.mannschaft);
   if (Number.isFinite(crew) && crew === 0) return { isClone: true, baseId: baseLabel };
+  if (markedClone) return { isClone: true, baseId: baseLabel || null };
   return { isClone: false, baseId: null };
 }
 
@@ -252,7 +258,7 @@ function applyCloneMetadata(extraList, labelIndex) {
     }
     const baseId = meta.baseId || "";
     const cloneOf = baseId || (typeof entry.cloneOf === "string" ? entry.cloneOf : "");
-    const payload = { ...entry, isClone: true };
+    const payload = { ...entry, isClone: true, clone: isCloneMarker(entry.clone) ? entry.clone : "clone" };
     if (cloneOf) payload.cloneOf = cloneOf;
     return payload;
   });
@@ -286,8 +292,16 @@ async function removeClonesByIds(ids, board = null) {
   let changed = false;
   const next = [];
   for (const entry of extraRaw) {
+    if (!entry) {
+      next.push(entry);
+      continue;
+    }
     const vid = String(entry?.id || "");
     if (!normalized.has(vid)) {
+      next.push(entry);
+      continue;
+    }
+    if (board && boardHasVehicle(board, vid)) {
       next.push(entry);
       continue;
     }
@@ -296,11 +310,13 @@ async function removeClonesByIds(ids, board = null) {
       next.push(entry);
       continue;
     }
-    if (board && boardHasVehicle(board, vid)) {
-      next.push(entry);
-      continue;
+    const cloneOf = meta.baseId || (typeof entry.cloneOf === "string" ? entry.cloneOf : "");
+    const payload = { ...entry, isClone: true, clone: isCloneMarker(entry.clone) ? entry.clone : "clone" };
+    if (cloneOf) payload.cloneOf = cloneOf;
+    if (!isCloneMarker(entry.clone) || !entry.isClone || payload.cloneOf !== entry.cloneOf) {
+      changed = true;
     }
-    changed = true;
+    next.push(payload);
   }
   if (changed) await writeJson(VEH_EXTRA, next);
 }
@@ -618,6 +634,7 @@ app.post("/api/vehicles", async (req,res)=>{
   if (cloneTag) {
     v.cloneOf = cloneTag;
     v.isClone = true;
+    v.clone = "clone";
   }
   extra.push(v); await writeJson(VEH_EXTRA, extra);
 
