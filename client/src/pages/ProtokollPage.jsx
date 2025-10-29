@@ -127,6 +127,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
   const [id, setId] = useState(null);
   const [errors, setErrors] = useState({});
   const anvonInputRef = useRef(null);
+  const anvonDirAnRef = useRef(null);
   const infoTypInfoRef = useRef(null); // ← Erstfokus „Information“
   const datumRef = useRef(null);
   const zeitRef = useRef(null);
@@ -438,6 +439,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
     if (!snapshot.zeit) validationErrors.zeit = true;
     if (!snapshot.infoTyp) validationErrors.infoTyp = true;
     if (!snapshot.anvon.name) validationErrors.anvonName = true;
+    if (!snapshot.anvon.richtung) validationErrors.anvonDir = true;
     if (!snapshot.uebermittlungsart.richtung) validationErrors.richtung = true;
     if (!String(snapshot.information || "").trim()) validationErrors.information = true;
     const recipientsCheck = [...snapshot.ergehtAn];
@@ -446,13 +448,14 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
 
     if (Object.keys(validationErrors).length) {
       setErrors(validationErrors);
-      const focusOrder = ["datum", "zeit", "infoTyp", "anvonName", "richtung", "information", "ergehtAn"];
+      const focusOrder = ["datum", "zeit", "infoTyp", "anvonName", "anvonDir", "richtung", "information", "ergehtAn"];
       const firstKey = focusOrder.find((key) => validationErrors[key]);
       const focusMap = {
         datum: datumRef,
         zeit: zeitRef,
         infoTyp: infoTypInfoRef,
         anvonName: anvonInputRef,
+        anvonDir: anvonDirAnRef,
         richtung: richtungEinRef,
         information: informationRef,
         ergehtAn: ergehtAnTextRef,
@@ -663,7 +666,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
     <label className="inline-flex items-center gap-2">
       <input
         ref={infoTypInfoRef}
-        type="radio" name="infoTyp" value="Information"
+        type="radio" name="infoTyp" value="Information" required
         checked={form.infoTyp === "Information"}
         onChange={() => { clearError("infoTyp"); set("infoTyp", "Information"); }}
       />
@@ -703,29 +706,30 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
                     name="anvonName"
                     className={`border rounded px-2 h-9 w-full flex-1 ${errors.anvonName ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500" : ""}`}
                     placeholder="Name / Stelle"
+                    required
                     list="dl-anvon"
                     value={form.anvon.name}
                     onChange={(e) => {
                       clearError("anvonName");
                       let v = e.target.value;
                       const raw = v.trim();
-                      if (/^an\s*:/i.test(raw)) { set(["anvon","richtung"], "an");  v = raw.replace(/^an\s*:/i, "").trim(); }
-                      else if (/^von\s*:/i.test(raw)) { set(["anvon","richtung"], "von"); v = raw.replace(/^von\s*:/i, "").trim(); }
+                      if (/^an\s*:/i.test(raw)) { clearError("anvonDir"); set(["anvon","richtung"], "an");  v = raw.replace(/^an\s*:/i, "").trim(); }
+                      else if (/^von\s*:/i.test(raw)) { clearError("anvonDir"); set(["anvon","richtung"], "von"); v = raw.replace(/^von\s*:/i, "").trim(); }
                       set(["anvon","name"], v);
                     }}
                     title='Optional mit Präfix "an: …" oder "von: …"'
                   />
-                  <div className="flex items-center gap-4 pl-2 min-w-[140px] shrink-0">
+                  <div className={`flex items-center gap-4 pl-2 min-w-[140px] shrink-0 ${errors.anvonDir ? "outline outline-2 outline-red-500 rounded-md" : ""}`}>
                     <label className="inline-flex items-center gap-2">
-                      <input type="radio" name="anvonDir" value="an"
+                      <input ref={anvonDirAnRef} type="radio" name="anvonDir" value="an" required
                         checked={form.anvon.richtung === "an"}
-                        onChange={() => set(["anvon","richtung"], "an")} />
+                        onChange={() => { clearError("anvonDir"); set(["anvon","richtung"], "an"); }} />
                       <span>An</span>
                     </label>
                     <label className="inline-flex items-center gap-2">
                       <input type="radio" name="anvonDir" value="von"
                         checked={form.anvon.richtung === "von"}
-                        onChange={() => set(["anvon","richtung"], "von")} />
+                        onChange={() => { clearError("anvonDir"); set(["anvon","richtung"], "von"); }} />
                       <span>Von</span>
                     </label>
                   </div>
