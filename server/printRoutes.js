@@ -95,6 +95,7 @@ function sheetHtml(item, recipient, nr) {
   const mass = Array.isArray(item?.massnahmen) ? item.massnahmen : [];
   const ergehtSet = new Set(Array.isArray(item?.ergehtAn) ? item.ergehtAn : []);
   const EA = ["EL","LtStb","S1","S2","S3","S4","S5","S6"];
+  const displayNr = !nr || nr === "blank" ? "" : nr;
 
   return `<!doctype html>
 <html lang="de"><head><meta charset="utf-8"/>
@@ -107,7 +108,7 @@ function sheetHtml(item, recipient, nr) {
   .title { font-weight: 800; font-size: 22px; letter-spacing:.5px; padding:12px; }
   .nrbox { border-left: 2px solid #111; }
   .nrbox .lbl { font-size: 12px; color:#555; border-bottom:2px solid #111; padding:6px 10px; }
-  .nrbox .val { font-size: 26px; text-align:center; padding:14px 10px; font-weight:800; }
+  .nrbox .val { font-size: 26px; text-align:center; padding:14px 10px; font-weight:800; min-height: 30px; }
 
   /* Grids */
   .row3 { display: grid; grid-template-columns: 6fr 4fr 3fr; column-gap: 8px; } /* 3-spaltig */
@@ -117,12 +118,14 @@ function sheetHtml(item, recipient, nr) {
   .label { font-size: 12px; color: #555; margin-bottom: 4px; }
   .input { border:1px solid #999; border-radius:6px; padding:6px 8px; min-height: 28px; }
 
-  .mh160 { min-height: 200px; }
-  .mh100 { min-height: 50px; }
+  .mh160 { min-height: 240px; }
+  .mh100 { min-height: 42px; }
 
   .tgrid { display:grid; grid-template-columns: 6fr 5fr 1fr; }
+  .tgrid .cell { padding:4px 6px; font-size:12px; line-height:1.3; }
   .thead { background:#f1f5f9; font-weight:600; }
-  .chk   { text-align:center; }
+  .thead .cell { font-size:11px; text-transform:uppercase; letter-spacing:.4px; }
+  .chk   { text-align:center; display:flex; align-items:center; justify-content:center; }
   .pb    { page-break-after: always; }
 
   .vstack { display:flex; flex-direction:column; gap:6px; }
@@ -133,17 +136,18 @@ function sheetHtml(item, recipient, nr) {
 
   .pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 
-  .ea-row   { display:grid; grid-template-columns: 1fr 320px; column-gap: 12px; align-items:center; }
-  .ea-left  { display:flex; align-items:center; gap:10px; flex-wrap:nowrap; font-size: 12px; }
-  .ea-right { display:flex; align-items:center; gap:8px; }
-  .ea-input { min-width: 220px; width:100%; }
+  .ea-row   { display:grid; grid-template-columns: 1fr 300px; column-gap: 8px; align-items:center; }
+  .ea-left  { display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size: 11px; }
+  .ea-left span { display:inline-flex; align-items:center; gap:4px; }
+  .ea-right { display:flex; align-items:center; gap:6px; font-size:11px; }
+  .ea-input { min-width: 200px; width:100%; }
 </style></head><body>
 <div class="sheet">
   <div class="header">
     <div class="title">MELDUNG/INFORMATION</div>
     <div class="nrbox">
       <div class="lbl">PROTOKOLL-NR</div>
-      <div class="val">${esc(nr ?? "—")}</div>
+      <div class="val">${esc(displayNr || "")}</div>
     </div>
   </div>
 
@@ -219,7 +223,7 @@ function sheetHtml(item, recipient, nr) {
         ${EA.map(k => `<span>${yes(ergehtSet.has(k))} ${k}</span>`).join("")}
       </div>
       <div class="ea-right">
-        <span style="font-size:12px; color:#555">sonst. Empf.:</span>
+        <span style="color:#555">sonst. Empf.:</span>
         <span class="input ea-input">${esc(item?.ergehtAnText || recipient || "")}</span>
       </div>
     </div>
@@ -247,7 +251,8 @@ function sheetHtml(item, recipient, nr) {
 // ---------- Render ----------
 async function renderBundlePdf(item, recipients, nr) {
   const list = [...recipients];
-  for (let i = 0; i < EXTRA_COPIES; i++) list.push(EXTRA_COPY_LABEL);
+  const extraCopies = nr === "blank" ? 0 : EXTRA_COPIES;
+  for (let i = 0; i < extraCopies; i++) list.push(EXTRA_COPY_LABEL);
 
   const pagesHtml = list.map(r => sheetHtml(item, r, nr)).join('<div class="pb"></div>');
   const outName = `protokoll_${nr ?? "neu"}_${Date.now()}.pdf`;
