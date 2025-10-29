@@ -50,6 +50,29 @@ export async function fetchBoard(){ return j("GET","/api/board"); }
 export async function fetchVehicles(){ return j("GET","/api/vehicles"); }
 export async function fetchTypes(){ try{ return await j("GET","/api/types"); }catch{ return []; } }
 
+export async function fetchAufgabenBoard(roleId = "", { signal } = {}) {
+  const qs = roleId ? `?role=${encodeURIComponent(roleId)}` : "";
+  const headers = roleId ? { "X-Role-Id": roleId } : {};
+  const init = {
+    method: "GET",
+    credentials: "include",
+    cache: "no-store",
+    headers,
+  };
+  if (signal) init.signal = signal;
+
+  const res = await fetch(`/api/aufgaben${qs}`, init);
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status} ${res.statusText}`);
+  }
+
+  try {
+    return await res.json();
+  } catch {
+    return {};
+  }
+}
+
 /**
  * createCard – akzeptiert zusätzliche Felder in `extra`
  * (latitude/longitude/location/description/timestamp oder lat/lng)
