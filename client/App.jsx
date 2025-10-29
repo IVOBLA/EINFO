@@ -280,30 +280,23 @@ export default function App() {
 
   // --- Clone-Funktionen für Fahrzeuge ---
   const [cloneBusy, setCloneBusy] = useState(false);
-  const esc = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  function nextCloneLabel(allVehicles, label) {
-    const m = String(label).match(/^(.*?)-(\d+)$/);
-    const base = m ? m[1] : String(label);
-    let max = m ? parseInt(m[2], 10) : 1;
-    for (const v of allVehicles) {
-      const mm = String(v.label || "").match(new RegExp("^" + esc(base) + "-(\\d+)$"));
-      if (!mm) continue;
-      const n = parseInt(mm[1], 10);
-      if (Number.isFinite(n) && n > max) max = n;
-    }
-    return `${base}-${max + 1}`;
-  }
   async function cloneVehicleById(vehicleId, assignToCardId) {
     if (cloneBusy) return;
     const v = vehiclesById.get(vehicleId);
     if (!v) return;
+    const baseId = String(v.id || "");
+    const previousCloneIds = new Set(
+      vehicles
+        .filter((x) => String(x?.cloneOf || "").trim() === baseId)
+        .map((x) => String(x?.id))
+    );
     setCloneBusy(true);
     try {
-      const newLabel = nextCloneLabel(vehicles, v.label || v.id);
+      const cloneLabel = v.label || v.id;
       const res = await fetch("/api/vehicles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ort: v.ort || "", label: newLabel, mannschaft: 0, cloneOf: v.id }),
+        body: JSON.stringify({ ort: v.ort || "", label: cloneLabel, mannschaft: 0, cloneOf: v.id }),
       });
       const js = await res.json().catch(() => ({}));
       if (!res.ok || js?.error) throw new Error(js?.error || "Clone fehlgeschlagen");
@@ -315,7 +308,14 @@ export default function App() {
       let newId = js?.vehicle?.id;
       if (!newId) {
         const hit = vList.find(
-          (x) => x.label === newLabel && x.ort === (v.ort || "") && Number(x.mannschaft) === 0
+          (x) => {
+            if (!x) return false;
+            const idStr = String(x.id || "");
+            if (!idStr || previousCloneIds.has(idStr)) return false;
+            if (String(x.ort || "") !== String(v.ort || "")) return false;
+            const target = String(x.cloneOf || "").trim();
+            return target === baseId;
+          }
         );
         newId = hit?.id;
       }
@@ -334,44 +334,18 @@ export default function App() {
 
   const cloneIdSet = useMemo(() => {
     const clones = new Set();
-    const labelIndex = new Map();
-    for (const veh of vehicles) {
-      if (!veh) continue;
-      const key = String(veh.label || "").trim().toLowerCase();
-      if (!key) continue;
-      if (!labelIndex.has(key)) labelIndex.set(key, []);
-      labelIndex.get(key).push(veh);
-    }
-    const suffixRe = /(.*?)-(\d+)$/;
+    const isCloneMarker = (value) =>
+      value === true || (typeof value === "string" && value.trim().toLowerCase() === "clone");
     for (const veh of vehicles) {
       if (!veh || typeof veh.id === "undefined") continue;
       const idStr = String(veh.id);
+      if (!idStr) continue;
       const cloneTag = typeof veh.cloneOf === "string" ? veh.cloneOf.trim() : "";
       if (cloneTag) {
         clones.add(idStr);
         continue;
       }
-      if (veh.clone === "clone" || veh.clone === true) {
-        clones.add(idStr);
-        continue;
-      }
-      if (veh.isClone) {
-        clones.add(idStr);
-        continue;
-      }
-      const label = String(veh.label || "");
-      const match = label.match(suffixRe);
-      if (!match) continue;
-      const baseLabel = match[1].trim();
-      if (!baseLabel) continue;
-      const baseCandidates = labelIndex.get(baseLabel.toLowerCase()) || [];
-      const baseCandidate = baseCandidates.find((candidate) => candidate && candidate.id !== veh.id);
-      if (baseCandidate) {
-        clones.add(idStr);
-        continue;
-      }
-      const crew = Number(veh.mannschaft);
-      if (Number.isFinite(crew) && crew === 0) {
+      if (veh.isClone === true || isCloneMarker(veh.clone)) {
         clones.add(idStr);
       }
     }

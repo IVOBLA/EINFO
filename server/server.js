@@ -227,23 +227,22 @@ function detectCloneMeta(entry, labelIndex) {
   if (!entry) return { isClone: false, baseId: null };
   const cloneOfRaw = typeof entry.cloneOf === "string" ? entry.cloneOf.trim() : "";
   if (cloneOfRaw) return { isClone: true, baseId: cloneOfRaw };
-  const markedClone = isCloneMarker(entry.clone);
+  const explicitClone = entry.isClone === true || isCloneMarker(entry.clone);
+  if (!explicitClone) return { isClone: false, baseId: null };
 
   const label = String(entry.label || "");
   const match = label.match(CLONE_SUFFIX_RE);
-  if (!match) return markedClone ? { isClone: true, baseId: cloneOfRaw || null } : { isClone: false, baseId: null };
-  const baseLabel = match[1].trim();
-  if (!baseLabel) return { isClone: false, baseId: null };
-
-  const candidates = labelIndex.get(normalizeLabel(baseLabel)) || [];
-  const baseCandidate = candidates.find((veh) => veh.id !== entry.id);
-  if (baseCandidate?.id) return { isClone: true, baseId: String(baseCandidate.id) };
-  if (baseCandidate) return { isClone: true, baseId: baseLabel };
-
-  const crew = Number(entry.mannschaft);
-  if (Number.isFinite(crew) && crew === 0) return { isClone: true, baseId: baseLabel };
-  if (markedClone) return { isClone: true, baseId: baseLabel || null };
-  return { isClone: false, baseId: null };
+  if (match) {
+    const baseLabel = match[1].trim();
+    if (baseLabel) {
+      const candidates = labelIndex.get(normalizeLabel(baseLabel)) || [];
+      const baseCandidate = candidates.find((veh) => veh.id !== entry.id);
+      if (baseCandidate?.id) return { isClone: true, baseId: String(baseCandidate.id) };
+      if (baseCandidate) return { isClone: true, baseId: baseLabel };
+      return { isClone: true, baseId: baseLabel };
+    }
+  }
+  return { isClone: true, baseId: null };
 }
 
 function applyCloneMetadata(extraList, labelIndex) {
@@ -625,13 +624,24 @@ app.post("/api/vehicles", async (req,res)=>{
   if(!ort||!label) return res.status(400).json({ error:"ort und label sind erforderlich" });
 
   const extra = await readExtraVehiclesRaw();
-  const exists = extra.find(v => (v.ort||"")===ort && (v.label||"")===label);
-  if(exists) return res.status(409).json({ error:"Einheit existiert bereits" });
+  const cloneTag = typeof cloneOf === "string" ? cloneOf.trim() : "";
+  const isCloneRequest = !!cloneTag;
+  if (!isCloneRequest) {
+    const exists = extra.find(v => {
+      if ((v.ort||"")!==ort) return false;
+      if ((v.label||"")!==label) return false;
+      const existingCloneTag = typeof v.cloneOf === "string" ? v.cloneOf.trim() : "";
+      if (existingCloneTag) return false;
+      if (v.isClone === true) return false;
+      if (isCloneMarker(v.clone)) return false;
+      return true;
+    });
+    if(exists) return res.status(409).json({ error:"Einheit existiert bereits" });
+  }
 
   const id = `X${Math.random().toString(36).slice(2,8)}`;
-  const cloneTag = typeof cloneOf === "string" ? cloneOf.trim() : "";
   const v  = { id, ort, label, mannschaft: Number(mannschaft)||0 };
-  if (cloneTag) {
+  if (isCloneRequest) {
     v.cloneOf = cloneTag;
     v.isClone = true;
     v.clone = "clone";
