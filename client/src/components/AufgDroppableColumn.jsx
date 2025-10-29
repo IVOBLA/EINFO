@@ -59,7 +59,7 @@ export default function AufgDroppableColumn({ id, title, count, itemIds, bg = ""
 
       {/* Scrollt bis zum unteren Rand; keine globale CSS-Änderung nötig */}
       <SortableContext items={itemIds} strategy={verticalListSortingStrategy}>
-        <ul className="flex-1 overflow-y-auto overflow-x-hidden pl-1 pr-2 py-2 space-y-2">
+        <ul className="flex-1 overflow-y-auto overflow-x-hidden pl-1 pr-2 py-2 space-y-8">
           {children}
         </ul>
       </SortableContext>
