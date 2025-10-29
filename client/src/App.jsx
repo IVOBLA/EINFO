@@ -219,6 +219,51 @@ const tick = async () => {
     columns: { neu: { items: [] }, "in-bearbeitung": { items: [] }, erledigt: { items: [] } },
   };
 
+  const tickerMessage = useMemo(() => {
+    const neuCards = board?.columns?.neu?.items ?? [];
+    const parseTimestamp = (value) => {
+      if (Number.isFinite(value)) return Number(value);
+      const parsed = Date.parse(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
+
+    const candidates = neuCards
+      .map((card) => {
+        const typeRaw = [card?.typ, card?.type, card?.category]
+          .map((v) => (typeof v === "string" ? v : ""))
+          .map((v) => v.replace(/\s+/g, " ").trim())
+          .find((v) => v.length > 0) || "";
+
+        const typeTokens = typeRaw
+          ? typeRaw
+              .normalize("NFKD")
+              .toLocaleLowerCase("de-DE")
+              .split(/[^a-z0-9äöüß]+/i)
+              .filter(Boolean)
+          : [];
+
+        const isLageType = typeTokens.some((token) => token === "lage" || token === "lagemeldung");
+        if (!isLageType) return null;
+
+        const text = [card?.description, card?.content, card?.typ, card?.title]
+          .map((v) => (typeof v === "string" ? v : ""))
+          .map((v) => v.replace(/\s+/g, " ").trim())
+          .find((v) => v.length > 0) || "";
+        if (!text) return null;
+
+        const timestamp = [card?.updatedAt, card?.statusSince, card?.createdAt, card?.timestamp]
+          .map((value) => parseTimestamp(value))
+          .reduce((best, current) => (current > best ? current : best), 0);
+
+        return { card, text, timestamp };
+      })
+      .filter(Boolean);
+
+    if (!candidates.length) return "";
+    const newest = candidates.reduce((best, current) => (current.timestamp > best.timestamp ? current : best), candidates[0]);
+    return newest.text ? `XXX ${newest.text} XXX` : "";
+  }, [board]);
+
   const visibleBoard = useMemo(() => {
     const hasArea = !!areaFilter;
     if (!hasArea && !hasSearch) return safeBoard;
@@ -1187,20 +1232,31 @@ if (route.startsWith("/protokoll")) {
             ))}
           </select>
         </label>
-        <label
-          className="flex flex-wrap items-center gap-2 text-sm text-gray-700 w-full sm:w-auto"
-          htmlFor="boardSearch"
-        >
-          <span className="whitespace-nowrap">Suche</span>
-          <input
-            id="boardSearch"
-            type="search"
-            className="border rounded px-3 py-2 w-full sm:w-56 md:w-64 lg:w-72 max-w-full"
-            placeholder="Suche…"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </label>
+        <div className="flex flex-1 flex-wrap items-center gap-2 min-w-[240px]">
+          <label
+            className="flex items-center gap-2 text-sm text-gray-700 flex-1 min-w-[240px] sm:flex-none sm:w-auto"
+            htmlFor="boardSearch"
+          >
+            <span className="whitespace-nowrap">Suche</span>
+            <input
+              id="boardSearch"
+              type="search"
+              className="border rounded px-3 py-2 w-full sm:w-56 md:w-64 lg:w-72 max-w-full"
+              placeholder="Suche…"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </label>
+          {tickerMessage && (
+            <div className="flex-1 min-w-[200px] min-h-[2.5rem] max-w-full sm:min-w-[260px]">
+              <div className="ticker-container w-full" aria-live="polite">
+                <div className="ticker-content" key={tickerMessage}>
+                  <span>{tickerMessage}</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </section>
 
 <DndContext
