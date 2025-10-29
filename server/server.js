@@ -266,11 +266,6 @@ async function getVehiclesData() {
   return { base, extra, extraRaw, labelIndex };
 }
 
-const isCloneVehicleRecord = (veh) => {
-  const tag = typeof veh?.cloneOf === "string" ? veh.cloneOf.trim() : "";
-  return !!tag;
-};
-
 function boardHasVehicle(board, vehicleId) {
   if (!board) return false;
   const wanted = String(vehicleId);
@@ -747,8 +742,15 @@ app.post("/api/cards/:id/move", async (req,res)=>{
     const vmap=vehiclesByIdMap(allVehicles);
     const removedIds = [...(card.assignedVehicles||[])];
     const snapshotLabels = { ...(card.everVehicleLabels || {}) };
-    const prevEver = (card.everVehicles||[]).filter((id)=>!isCloneVehicleRecord(vmap.get(id)));
-    const nonCloneAssigned = removedIds.filter((id)=>!isCloneVehicleRecord(vmap.get(id)));
+    const prevEver = Array.isArray(card.everVehicles) ? card.everVehicles : [];
+    const dedupedEver = [];
+    const seenEver = new Set();
+    for (const rawId of [...prevEver, ...removedIds]) {
+      const idKey = String(rawId);
+      if (seenEver.has(idKey)) continue;
+      seenEver.add(idKey);
+      dedupedEver.push(rawId);
+    }
     for (const vid of removedIds) {
       const veh = vmap.get(vid);
       const vidStr = String(vid);
@@ -757,7 +759,7 @@ app.post("/api/cards/:id/move", async (req,res)=>{
       snapshotLabels[vidStr] = { label, ort };
     }
     card.everVehicleLabels = snapshotLabels;
-    card.everVehicles=Array.from(new Set([...prevEver, ...nonCloneAssigned]));
+    card.everVehicles = dedupedEver;
     card.everPersonnel=Number.isFinite(card?.manualPersonnel)?card.manualPersonnel:computedPersonnel(card,vmap);
     // CSV: aktuell zugeordnete Einheiten als "entfernt" loggen
     for (const vid of removedIds) {
