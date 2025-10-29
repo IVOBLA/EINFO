@@ -100,3 +100,11 @@ export function hasRole(roleId, userLike) {
   const ids = userRoleIds(userLike ?? currentUser());
   return ids.includes(target);
 }
+
+export function getAllRoles() {
+  if (!ROLE_MAP) return [];
+  return Array.from(ROLE_MAP.entries()).map(([id, role]) => ({
+    id,
+    label: role?.label || role?.id || id,
+  }));
+}

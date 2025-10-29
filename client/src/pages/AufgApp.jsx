@@ -14,7 +14,7 @@ import AufgDroppableColumn from "../components/AufgDroppableColumn.jsx";
 import AufgAddModal from "../components/AufgAddModal.jsx";
 import AufgInfoModal from "../components/AufgInfoModal.jsx";
 import AufgSortableCard from "../components/AufgSortableCard.jsx";
-import { initRolePolicy, canEditApp } from "../auth/roleUtils.js";
+import { initRolePolicy, canEditApp, getAllRoles } from "../auth/roleUtils.js";
 import { playGong } from "../sound"; // gleicher Sound wie im Einsatz-Kanban
 import { fetchBoard } from "../api.js";
 import { ensureValidDueOffset, getFallbackDueOffsetMinutes } from "../utils/defaultDueOffset.js";
@@ -128,7 +128,16 @@ export default function AufgApp() {
 
 
   const user = getCurrentUser();
-  const roleId = useMemo(() => getPrimaryRoleId(user), [user]);
+  const primaryRoleId = useMemo(() => getPrimaryRoleId(user), [user]);
+  const [roleId, setRoleId] = useState(() => primaryRoleId || "");
+  const roleSelectionManualRef = useRef(false);
+  const prevPrimaryRoleRef = useRef(primaryRoleId);
+  const [roleOptions, setRoleOptions] = useState([]);
+  const roleSelectOptions = useMemo(() => {
+    if (!roleId) return roleOptions;
+    const exists = roleOptions.some((opt) => opt.id === roleId);
+    return exists ? roleOptions : [...roleOptions, { id: roleId, label: roleId }];
+  }, [roleId, roleOptions]);
   const [freshIds, setFreshIds] = useState(new Set());
   const prevIdsRef = useRef(new Set());
   const myCreatedIdsRef = useRef(new Set());
@@ -146,15 +155,44 @@ export default function AufgApp() {
   }, []);
 
   // Rollen-Policy einmal laden und Edit-Flag setzen
-    useEffect(() => {
+  useEffect(() => {
     let alive = true;
     (async () => {
       await initRolePolicy();
       if (!alive) return;
       setAllowEdit(canEditApp("aufgabenboard", user));
+      const opts = getAllRoles();
+      const sorted = [...opts].sort((a, b) =>
+        String(a?.label || a?.id || "").localeCompare(String(b?.label || b?.id || ""), "de", {
+          sensitivity: "base",
+        })
+      );
+      setRoleOptions(sorted);
     })();
     return () => { alive = false; };
   }, [user]);
+
+  useEffect(() => {
+    if (prevPrimaryRoleRef.current !== primaryRoleId) {
+      prevPrimaryRoleRef.current = primaryRoleId;
+      roleSelectionManualRef.current = false;
+    }
+    if (!roleSelectionManualRef.current) {
+      setRoleId(primaryRoleId || "");
+    }
+  }, [primaryRoleId]);
+
+  useEffect(() => {
+    if (!roleId && roleOptions.length) {
+      setRoleId(roleOptions[0].id);
+    }
+  }, [roleId, roleOptions]);
+
+  const handleRoleChange = useCallback((event) => {
+    const value = String(event.target.value || "").trim().toUpperCase();
+    roleSelectionManualRef.current = true;
+    setRoleId(value);
+  }, []);
 
   useEffect(() => {
     if (!roleId) return undefined;
@@ -489,7 +527,23 @@ const r = await fetch(`/api/aufgaben/${encodeURIComponent(id)}/status${roleQuery
         <div className="flex flex-wrap items-center gap-3 w-full">
           <div className="flex items-center gap-3">
             <h1 className="text-lg font-bold">Aufgaben</h1>
-            <span className="text-xs px-2 py-1 rounded-full border bg-gray-50">Rolle: {roleId || "—"}</span>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-gray-600">Rolle:</span>
+              <select
+                value={roleId}
+                onChange={handleRoleChange}
+                className="px-2 py-1 rounded-full border bg-gray-50 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                disabled={!roleSelectOptions.length}
+                aria-label="Rolle auswählen"
+                title={roleId ? `Rolle ${roleId}` : "Rolle auswählen"}
+              >
+                {roleSelectOptions.map((opt) => (
+                  <option key={opt.id} value={opt.id}>
+                    {opt.label || opt.id}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-2 w-full md:w-auto md:ml-auto md:justify-end">
             <input
