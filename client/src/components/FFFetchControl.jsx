@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 
-export default function FFFetchControl({ disabled = false }) {
+export default function FFFetchControl({ autoEnabled, remaining, disabled = false }) {
   // Laufzustand + globale Creds
   const [running, setRunning] = useState(false);
   const [hasCreds, setHasCreds] = useState(false);
@@ -114,12 +114,16 @@ export default function FFFetchControl({ disabled = false }) {
     return () => clearInterval(timer);
   }, [enabled, intervalSec, importInfo.lastLoadedIso]);
 
+  const effectiveEnabled = typeof autoEnabled === "boolean" ? autoEnabled : enabled;
+  const displaySecondsLeft =
+    typeof remaining === "number" ? remaining : secondsLeft;
+
   return (
     <div className={`flex items-center h-9 gap-2 ${disabled ? "opacity-60 pointer-events-none" : ""}`} style={{ alignItems: "center" }}>
       {/* Countdown-Chip (wie alt) */}
       <span
-        className={`sync-chip ${enabled ? "active" : ""}`}
-        title={enabled ? "Auto-Import Countdown" : "Auto-Import ist deaktiviert"}
+        className={`sync-chip ${effectiveEnabled ? "active" : ""}`}
+        title={effectiveEnabled ? "Auto-Import Countdown" : "Auto-Import ist deaktiviert"}
         style={{
           display: "inline-flex",
           alignItems: "center",
@@ -129,7 +133,7 @@ export default function FFFetchControl({ disabled = false }) {
           textAlign: "center",
         }}
       >
-        {enabled ? `⟳ in ${secondsLeft != null ? secondsLeft : "–"}s` : "⏸ manuell"}
+        {effectiveEnabled ? `⟳ in ${displaySecondsLeft != null ? displaySecondsLeft : "–"}s` : "⏸ manuell"}
       </span>
 
       {/* Hinweis (z. B. keine globalen Creds) */}
