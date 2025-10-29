@@ -94,7 +94,10 @@ const readOnly = !canEdit;
   const [infoForceEdit, setInfoForceEdit] = useState(false);
   const onShowInfo = (card) => { setInfoCard(card); setInfoForceEdit(false); setInfoOpen(true); };
   const tickerRequestRef = useRef(null);
+  const tickerContainerRef = useRef(null);
+  const tickerContentRef = useRef(null);
   const [tickerMessages, setTickerMessages] = useState([]);
+  const [tickerDuration, setTickerDuration] = useState(20);
   // --- Mini-Routing über Hash (stabil) ---
 const [hash, setHash] = useState(window.location.hash);
 useEffect(() => {
@@ -233,6 +236,50 @@ const tick = async () => {
       .join(" ")
       .trim();
   }, [tickerMessages]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+
+    if (!tickerText) {
+      setTickerDuration(20);
+      return undefined;
+    }
+
+    let frame = null;
+
+    const updateDuration = () => {
+      const container = tickerContainerRef.current;
+      const content = tickerContentRef.current;
+      if (!container || !content) return;
+
+      const containerWidth = container.offsetWidth || 0;
+      const contentWidth = content.scrollWidth || 0;
+      if (!containerWidth || !contentWidth) {
+        setTickerDuration(20);
+        return;
+      }
+
+      const distance = containerWidth + contentWidth;
+      const pixelsPerSecond = 35;
+      const duration = Math.max(distance / pixelsPerSecond, 18);
+      setTickerDuration(duration);
+    };
+
+    const measure = () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(updateDuration);
+    };
+
+    measure();
+    window.addEventListener("resize", measure);
+
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      window.removeEventListener("resize", measure);
+    };
+  }, [tickerText]);
 
   const loadTickerMessages = useCallback(async () => {
     if (tickerRequestRef.current) {
@@ -1269,8 +1316,17 @@ if (route.startsWith("/protokoll")) {
           </label>
           <div className="flex-1 min-w-[200px] min-h-[2.5rem] max-w-full sm:min-w-[260px]">
             {tickerText ? (
-              <div className="ticker-container w-full h-full flex items-center" aria-live="polite">
-                <div className="ticker-content" key={tickerText}>
+              <div
+                ref={tickerContainerRef}
+                className="ticker-container w-full h-full flex items-center"
+                aria-live="polite"
+              >
+                <div
+                  ref={tickerContentRef}
+                  className="ticker-content"
+                  key={tickerText}
+                  style={{ "--ticker-duration": `${tickerDuration}s` }}
+                >
                   <span>{tickerText}</span>
                 </div>
               </div>
