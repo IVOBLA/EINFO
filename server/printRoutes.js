@@ -301,7 +301,37 @@ router.post("/:nr/print", express.json(), async (req, res) => {
   }
 });
 
+router.post("/blank/print", express.json(), async (req, res) => {
+  try {
+    const incoming = Array.isArray(req.body?.recipients) ? req.body.recipients : [];
+    const recipients = incoming.length ? incoming.map((r) => String(r ?? "")) : [""];
+    const item = req.body?.data && typeof req.body.data === "object" ? req.body.data : {};
+    const { fileName, pageCount } = await renderBundlePdf(item, recipients, "blank");
+    res.json({
+      ok: true,
+      file: fileName,
+      fileUrl: `/api/protocol/blank/print/file/${encodeURIComponent(fileName)}`,
+      pages: pageCount,
+    });
+  } catch (e) {
+    console.error("[print-blank] error:", e);
+    res.status(500).json({ ok:false, error: e?.message || String(e) });
+  }
+});
+
 router.get("/:nr/print/file/:file", async (req, res) => {
+  try {
+    const f = path.join(PDF_DIR, req.params.file);
+    if (!fss.existsSync(f)) return res.status(404).end();
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `inline; filename="${path.basename(f)}"`);
+    res.sendFile(f);
+  } catch {
+    res.status(500).end();
+  }
+});
+
+router.get("/blank/print/file/:file", async (req, res) => {
   try {
     const f = path.join(PDF_DIR, req.params.file);
     if (!fss.existsSync(f)) return res.status(404).end();

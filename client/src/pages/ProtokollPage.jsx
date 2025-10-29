@@ -1,6 +1,6 @@
 // client/src/pages/ProtokollPage.jsx
 import { useEffect, useRef, useState } from "react";
-import { initRolePolicy, canEditApp } from "../auth/roleUtils";
+import { initRolePolicy, canEditApp, hasRole } from "../auth/roleUtils";
 
 const ERGEHT_OPTIONS = ["EL", "LtStb", "S1", "S2", "S3", "S4", "S5", "S6"];
 
@@ -90,11 +90,12 @@ const initialForm = () => ({
 });
 
 export default function ProtokollPage({ mode = "create", editNr = null }) {
- 
+
   const [creatingTask, setCreatingTask] = useState(false);
-  
+
   // ---- Rechte ---------------------------------------------------------------
   const [canEdit, setCanEdit] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -102,9 +103,11 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
         await initRolePolicy();
         if (!mounted) return;
         setCanEdit(canEditApp("protokoll"));
+        setIsAdmin(hasRole("Admin"));
       } catch {
         if (!mounted) return;
         setCanEdit(false);
+        setIsAdmin(false);
       }
     })();
     return () => { mounted = false; };
@@ -122,8 +125,14 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
   // ---- UI -------------------------------------------------------------------
   const [saving, setSaving] = useState(false);
   const [id, setId] = useState(null);
+  const [errors, setErrors] = useState({});
   const anvonInputRef = useRef(null);
   const infoTypInfoRef = useRef(null); // ← Erstfokus „Information“
+  const datumRef = useRef(null);
+  const zeitRef = useRef(null);
+  const richtungEinRef = useRef(null);
+  const informationRef = useRef(null);
+  const ergehtAnTextRef = useRef(null);
   const keylockRef = useRef(false);
   const formRef = useRef(null);
 
@@ -150,6 +159,15 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
 
   // ---- Formular-State + Helper ----------------------------------------------
   const [form, setForm] = useState(initialForm());
+  const clearError = (key) => {
+    if (!key) return;
+    setErrors((prev) => {
+      if (!prev || !prev[key]) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  };
   const set = (path, value) => {
     const parts = Array.isArray(path) ? path : String(path).split(".");
     setForm((prev) => {
@@ -199,6 +217,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
               return { massnahme: m.massnahme || "", verantwortlich: m.verantwortlich || "", done: !!m.done };
             }),
           });
+          setErrors({});
           setId(it.id || null);
           setTimeout(() => infoTypInfoRef.current?.focus(), 0); // Erstfokus nach Laden
         }
@@ -244,6 +263,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
 
   // ➕ Serverdruck
   const [printing, setPrinting] = useState(false);
+  const [printingKind, setPrintingKind] = useState(null);
   const printFrameRef = useRef(null);
 
   function buildRecipients() {
@@ -253,9 +273,37 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
     return base;
   }
 
+  const startPdfPrint = (fileUrl) => {
+    const src = `${fileUrl}#toolbar=0&navpanes=0&scrollbar=0`;
+    let iframe = printFrameRef.current;
+    if (!iframe) {
+      iframe = document.createElement("iframe");
+      iframe.style.position = "fixed";
+      iframe.style.width = "0";
+      iframe.style.height = "0";
+      iframe.style.border = "0";
+      iframe.style.visibility = "hidden";
+      document.body.appendChild(iframe);
+      printFrameRef.current = iframe;
+    }
+    iframe.onload = () => {
+      try {
+        setTimeout(() => {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+        }, 100);
+      } catch {
+        const w = window.open(src, "_blank", "noopener,noreferrer");
+        w?.focus();
+      }
+    };
+    iframe.src = src;
+  };
+
   const handlePrint = async () => {
     if (!canEdit) { showToast?.("error", "Keine Berechtigung zum Drucken/Speichern"); return; }
-	if (printing) return;
+        if (printing) return;
+    setPrintingKind("data");
     const recipients = buildRecipients();
     if (!recipients.length) {
       showToast?.("error", "Bitte Empfänger wählen oder 'Sonstiger Empfänger' ausfüllen.");
@@ -266,7 +314,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
     try {
       // 1) Speichern → NR sicherstellen
       const nrSaved = await saveCore();
-      if (!nrSaved) throw new Error("Speichern fehlgeschlagen");
+      if (!nrSaved) return;
       setNr(nrSaved);
 
       // 2) Datensatz holen
@@ -286,36 +334,50 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
       if (!r?.ok || !r?.fileUrl) throw new Error(r?.error || "PDF-Erzeugung fehlgeschlagen");
 
       // 4) PDF laden und einmal drucken
-      let iframe = printFrameRef.current;
-      if (!iframe) {
-        iframe = document.createElement("iframe");
-        iframe.style.position = "fixed";
-        iframe.style.width = "0";
-        iframe.style.height = "0";
-        iframe.style.border = "0";
-        iframe.style.visibility = "hidden";
-        document.body.appendChild(iframe);
-        printFrameRef.current = iframe;
-      }
-      const src = `${r.fileUrl}#toolbar=0&navpanes=0&scrollbar=0`;
-      iframe.onload = () => {
-        try {
-          setTimeout(() => {
-            iframe.contentWindow?.focus();
-            iframe.contentWindow?.print();
-          }, 100);
-        } catch {
-          const w = window.open(src, "_blank", "noopener,noreferrer");
-          w?.focus();
-        }
-      };
-      iframe.src = src;
+      startPdfPrint(r.fileUrl);
 
       const pages = Number(r?.pages) || recipients.length;
       showToast?.("success", `Druck gestartet (${pages} Seite${pages > 1 ? "n" : ""})`);
     } catch (e) {
       showToast?.("error", `Drucken fehlgeschlagen: ${e.message || e}`);
     } finally {
+      setPrintingKind(null);
+      setPrinting(false);
+    }
+  };
+
+  const handlePrintBlank = async () => {
+    if (!isAdmin) return;
+    if (printing) return;
+    setPrinting(true);
+    setPrintingKind("blank");
+    try {
+      const blankItem = {
+        datum: "",
+        zeit: "",
+        infoTyp: "__blank__",
+        uebermittlungsart: { kanalNr: "", ein: false, aus: false },
+        anvon: "",
+        information: "",
+        rueckmeldung1: "",
+        rueckmeldung2: "",
+        ergehtAn: [],
+        ergehtAnText: "",
+        massnahmen: Array.from({ length: 5 }, () => ({ massnahme: "", verantwortlich: "", done: false })),
+      };
+      const r = await fetch(`/api/protocol/blank/print`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ recipients: [""], data: blankItem }),
+      }).then((res) => res.json());
+      if (!r?.ok || !r?.fileUrl) throw new Error(r?.error || "PDF-Erzeugung fehlgeschlagen");
+      startPdfPrint(r.fileUrl);
+      const pages = Number(r?.pages) || 1;
+      showToast?.("success", `Leeres Formular – Druck gestartet (${pages} Seite${pages > 1 ? "n" : ""})`);
+    } catch (e) {
+      showToast?.("error", `Leeres Formular konnte nicht gedruckt werden: ${e.message || e}`);
+    } finally {
+      setPrintingKind(null);
       setPrinting(false);
     }
   };
@@ -350,7 +412,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
 
     // „Ergeht an“ (mehrfach)
     const eaDom = fd ? Array.from(fd.getAll("ergehtAn")).map(String) : form.ergehtAn;
-    snapshot.ergehtAn = eaDom.length ? eaDom : form.ergehtAn;
+    snapshot.ergehtAn = (eaDom.length ? eaDom : form.ergehtAn).map((v) => String(v || "").trim()).filter(Boolean);
 
     // Maßnahmen
     snapshot.massnahmen = snapshot.massnahmen.map((m, i) => {
@@ -361,6 +423,47 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
         done: !!domDone,
       };
     });
+
+    snapshot.datum = String(snapshot.datum || "").trim();
+    snapshot.zeit = String(snapshot.zeit || "").trim();
+    snapshot.infoTyp = String(snapshot.infoTyp || "").trim();
+    snapshot.anvon.name = String(snapshot.anvon?.name || "").trim();
+    snapshot.anvon.richtung = String(snapshot.anvon?.richtung || "").trim();
+    snapshot.uebermittlungsart.richtung = String(snapshot.uebermittlungsart?.richtung || "").trim();
+    snapshot.uebermittlungsart.kanalNr = String(snapshot.uebermittlungsart?.kanalNr || "").trim();
+    snapshot.ergehtAnText = String(snapshot.ergehtAnText || "").trim();
+
+    const validationErrors = {};
+    if (!snapshot.datum) validationErrors.datum = true;
+    if (!snapshot.zeit) validationErrors.zeit = true;
+    if (!snapshot.infoTyp) validationErrors.infoTyp = true;
+    if (!snapshot.anvon.name) validationErrors.anvonName = true;
+    if (!snapshot.uebermittlungsart.richtung) validationErrors.richtung = true;
+    if (!String(snapshot.information || "").trim()) validationErrors.information = true;
+    const recipientsCheck = [...snapshot.ergehtAn];
+    if (snapshot.ergehtAnText) recipientsCheck.push(snapshot.ergehtAnText);
+    if (!recipientsCheck.length) validationErrors.ergehtAn = true;
+
+    if (Object.keys(validationErrors).length) {
+      setErrors(validationErrors);
+      const focusOrder = ["datum", "zeit", "infoTyp", "anvonName", "richtung", "information", "ergehtAn"];
+      const firstKey = focusOrder.find((key) => validationErrors[key]);
+      const focusMap = {
+        datum: datumRef,
+        zeit: zeitRef,
+        infoTyp: infoTypInfoRef,
+        anvonName: anvonInputRef,
+        richtung: richtungEinRef,
+        information: informationRef,
+        ergehtAn: ergehtAnTextRef,
+      };
+      const targetRef = focusMap[firstKey];
+      if (targetRef?.current) setTimeout(() => targetRef.current?.focus(), 0);
+      showToast?.("error", "Bitte alle Pflichtfelder ausfüllen.");
+      return null;
+    }
+
+    setErrors({});
 
     // Payload
     const payload = {
@@ -426,7 +529,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
       const nrSaved = await saveCore();
       if (nrSaved) {
         showToast("success", `Gespeichert (NR ${nrSaved}) – neuer Eintrag`);
-        setForm(initialForm()); setNr(null); setId(null);
+        setForm(initialForm()); setErrors({}); setNr(null); setId(null);
         setTimeout(() => infoTypInfoRef.current?.focus(), 0); // Erstfokus nach Neu
       }
     } catch (e) {
@@ -448,7 +551,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
 
   // „Alle“-Checkbox (in Tabreihenfolge)
   const allSelected = ERGEHT_OPTIONS.every((k) => form.ergehtAn.includes(k));
-  const toggleAll = (checked) => set("ergehtAn", checked ? [...ERGEHT_OPTIONS] : []);
+  const toggleAll = (checked) => { clearError("ergehtAn"); set("ergehtAn", checked ? [...ERGEHT_OPTIONS] : []); };
 
   return (
     <div className="mx-auto w-full max-w-[1100px] relative">
@@ -470,8 +573,19 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
               className="px-3 py-1.5 rounded-md border bg-white hover:bg-gray-50 disabled:opacity-60"
               title="Formular drucken – Anzahl gemäß 'ergeht an' + 'Sonstiger Empfänger'"
             >
-              {printing ? "Drucken…" : "Drucken"}
+              {printing && printingKind === "data" ? "Drucken…" : "Drucken"}
             </button>
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={handlePrintBlank}
+                disabled={printing}
+                className="px-3 py-1.5 rounded-md border bg-white hover:bg-gray-50 disabled:opacity-60"
+                title="Leeres Formular drucken"
+              >
+                {printing && printingKind === "blank" ? "Drucken…" : "Leer drucken"}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -517,11 +631,12 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
               <div className="col-span-6 border-r-2 p-2">
                 <div className="text-xs text-gray-600 mb-1">Datum</div>
                 <input
+                  ref={datumRef}
                   name="datum" type="text"
-                  className="border rounded px-2 h-9 w-full"
+                  className={`border rounded px-2 h-9 w-full ${errors.datum ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500" : ""}`}
                   placeholder="yyyy-mm-dd"
                   value={form.datum}
-                  onChange={(e) => set("datum", e.target.value)}
+                  onChange={(e) => { clearError("datum"); set("datum", e.target.value); }}
                   onBlur={(e) => set("datum", normDate(e.target.value))}
                   title="Datum (auch 101025 oder 10.10.2025 möglich)"
                 />
@@ -530,11 +645,12 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
               <div className="col-span-3 border-r-2 p-2">
                 <div className="text-xs text-gray-600 mb-1">Uhrzeit</div>
                 <input
+                  ref={zeitRef}
                   name="zeit" type="text"
-                  className="border rounded px-2 h-9 w-full"
+                  className={`border rounded px-2 h-9 w-full ${errors.zeit ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500" : ""}`}
                   placeholder="hh:mm"
                   value={form.zeit}
-                  onChange={(e) => set("zeit", e.target.value)}
+                  onChange={(e) => { clearError("zeit"); set("zeit", e.target.value); }}
                   onBlur={(e) => set("zeit", normTime(e.target.value))}
                   title="Uhrzeit (915, 09:15 oder 0915 möglich)"
                 />
@@ -543,13 +659,13 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
 {/* Typ → exakt über Richtung */}
 <div className="col-span-3 p-2">
   <div className="text-xs text-gray-600 mb-1">Typ</div>
-  <div className="grid grid-cols-3 gap-x-6 h-9 items-center">
+  <div className={`grid grid-cols-3 gap-x-6 h-9 items-center ${errors.infoTyp ? "outline outline-2 outline-red-500 rounded-md" : ""}`}>
     <label className="inline-flex items-center gap-2">
       <input
         ref={infoTypInfoRef}
         type="radio" name="infoTyp" value="Information"
         checked={form.infoTyp === "Information"}
-        onChange={() => set("infoTyp", "Information")}
+        onChange={() => { clearError("infoTyp"); set("infoTyp", "Information"); }}
       />
       <span>Info</span>
     </label>
@@ -557,7 +673,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
       <input
         type="radio" name="infoTyp" value="Auftrag"
         checked={form.infoTyp === "Auftrag"}
-        onChange={() => set("infoTyp", "Auftrag")}
+        onChange={() => { clearError("infoTyp"); set("infoTyp", "Auftrag"); }}
       />
       <span>Auftrag</span>
     </label>
@@ -565,7 +681,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
       <input
         type="radio" name="infoTyp" value="Lagemeldung"
         checked={form.infoTyp === "Lagemeldung"}
-        onChange={() => set("infoTyp", "Lagemeldung")}
+        onChange={() => { clearError("infoTyp"); set("infoTyp", "Lagemeldung"); }}
       />
       <span>Lage</span>
     </label>
@@ -585,11 +701,12 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
                   <input
                     ref={anvonInputRef}
                     name="anvonName"
-                    className="border rounded px-2 h-9 w-full flex-1"
+                    className={`border rounded px-2 h-9 w-full flex-1 ${errors.anvonName ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500" : ""}`}
                     placeholder="Name / Stelle"
                     list="dl-anvon"
                     value={form.anvon.name}
                     onChange={(e) => {
+                      clearError("anvonName");
                       let v = e.target.value;
                       const raw = v.trim();
                       if (/^an\s*:/i.test(raw)) { set(["anvon","richtung"], "an");  v = raw.replace(/^an\s*:/i, "").trim(); }
@@ -633,12 +750,13 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
               {/* Richtung → exakt unter „Typ“ */}
               <div className="col-span-3 p-2">
                 <div className="text-xs text-gray-600 mb-1">Richtung</div>
-                <div className="grid grid-cols-2 gap-x-6 h-9 items-center">
+                <div className={`grid grid-cols-2 gap-x-6 h-9 items-center ${errors.richtung ? "outline outline-2 outline-red-500 rounded-md" : ""}`}>
                   <label className="inline-flex items-center gap-2" title="Meldung wurde empfangen">
                     <input
+                      ref={richtungEinRef}
                       type="radio" name="richtung" value="ein"
                       checked={form.uebermittlungsart.richtung === "ein"}
-                      onChange={() => set(["uebermittlungsart","richtung"], "ein")}
+                      onChange={() => { clearError("richtung"); set(["uebermittlungsart","richtung"], "ein"); }}
                     />
                     <span>Eingang</span>
                   </label>
@@ -646,7 +764,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
                     <input
                       type="radio" name="richtung" value="aus"
                       checked={form.uebermittlungsart.richtung === "aus"}
-                      onChange={() => set(["uebermittlungsart","richtung"], "aus")}
+                      onChange={() => { clearError("richtung"); set(["uebermittlungsart","richtung"], "aus"); }}
                     />
                     <span>Ausgang</span>
                   </label>
@@ -659,10 +777,11 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
           <div className="col-span-12 border-y-2 p-2">
             <div className="text-xs text-gray-600 mb-1">Information/Auftrag</div>
             <textarea
+              ref={informationRef}
               name="information"
-              className="border rounded px-2 py-2 w-full min-h-[160px]"
+              className={`border rounded px-2 py-2 w-full min-h-[160px] ${errors.information ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500" : ""}`}
               value={form.information}
-              onChange={(e) => set("information", e.target.value)}
+              onChange={(e) => { clearError("information"); set("information", e.target.value); }}
               title="Sachverhalt / Meldetext"
             />
           </div>
@@ -692,7 +811,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
           {/* ergeht an */}
           <div className="col-span-12 border-t-2 p-2">
             <div className="text-xs text-gray-600 mb-2">ergeht an:</div>
-            <div className="flex flex-wrap items-center gap-3">
+            <div className={`flex flex-wrap items-center gap-3 rounded-md ${errors.ergehtAn ? "ring-2 ring-red-500" : ""}`}>
               {/* Alle */}
               <label className="inline-flex items-center gap-2 mr-3" title="Alle Empfänger auswählen / abwählen">
                 <input type="checkbox" checked={allSelected} onChange={(e) => toggleAll(e.target.checked)} />
@@ -709,6 +828,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
                     value={key}
                     checked={form.ergehtAn.includes(key)}
                     onChange={() => {
+                      clearError("ergehtAn");
                       const s = new Set(form.ergehtAn);
                       s.has(key) ? s.delete(key) : s.add(key);
                       set("ergehtAn", [...s]);
@@ -721,10 +841,11 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
 
               <span className="ml-2 text-xs text-gray-600">sonstiger Empfänger:</span>
               <input
+                ref={ergehtAnTextRef}
                 name="ergehtAnText"
-                className="border rounded px-2 h-9"
+                className={`border rounded px-2 h-9 ${errors.ergehtAn ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500" : ""}`}
                 value={form.ergehtAnText}
-                onChange={(e) => set("ergehtAnText", e.target.value)}
+                onChange={(e) => { clearError("ergehtAn"); set("ergehtAnText", e.target.value); }}
                 placeholder="Name/Gruppe"
               />
             </div>
