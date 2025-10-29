@@ -212,6 +212,51 @@ export default function App() {
     columns: { neu: { items: [] }, "in-bearbeitung": { items: [] }, erledigt: { items: [] } },
   };
 
+  const tickerMessage = useMemo(() => {
+    const neuCards = board?.columns?.neu?.items ?? [];
+    const parseTimestamp = (value) => {
+      if (Number.isFinite(value)) return Number(value);
+      const parsed = Date.parse(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    };
+
+    const candidates = neuCards
+      .map((card) => {
+        const typeRaw = [card?.typ, card?.type, card?.category]
+          .map((v) => (typeof v === "string" ? v : ""))
+          .map((v) => v.replace(/\s+/g, " ").trim())
+          .find((v) => v.length > 0) || "";
+
+        const typeTokens = typeRaw
+          ? typeRaw
+              .normalize("NFKD")
+              .toLocaleLowerCase("de-DE")
+              .split(/[^a-z0-9äöüß]+/i)
+              .filter(Boolean)
+          : [];
+
+        const isLageType = typeTokens.some((token) => token === "lage" || token === "lagemeldung");
+        if (!isLageType) return null;
+
+        const text = [card?.description, card?.content, card?.typ, card?.title]
+          .map((v) => (typeof v === "string" ? v : ""))
+          .map((v) => v.replace(/\s+/g, " ").trim())
+          .find((v) => v.length > 0) || "";
+        if (!text) return null;
+
+        const timestamp = [card?.updatedAt, card?.statusSince, card?.createdAt, card?.timestamp]
+          .map((value) => parseTimestamp(value))
+          .reduce((best, current) => (current > best ? current : best), 0);
+
+        return { card, text, timestamp };
+      })
+      .filter(Boolean);
+
+    if (!candidates.length) return "";
+    const newest = candidates.reduce((best, current) => (current.timestamp > best.timestamp ? current : best), candidates[0]);
+    return newest.text ? `XXX ${newest.text} XXX` : "";
+  }, [board]);
+
   // Sofort-Import (manuell)
   const [importBusy, setImportBusy] = useState(false);
   const doManualImport = async () => {
@@ -761,50 +806,62 @@ if (!unlocked) {
         </div>
       )}
 
-      <header className="flex flex-wrap items-center justify-between gap-2 mb-2">
-        <h1 className="text-xl md:text-2xl font-bold">Einsatzstellen-Übersicht-Feuerwehr</h1>
+      <header className="flex flex-col gap-2 items-stretch justify-start mb-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h1 className="text-xl md:text-2xl font-bold">Einsatzstellen-Übersicht-Feuerwehr</h1>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <button onClick={onPdf} className="px-3 py-1.5 rounded-md bg-purple-600 hover:bg-purple-700 text-white">
-            PDF
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button onClick={onPdf} className="px-3 py-1.5 rounded-md bg-purple-600 hover:bg-purple-700 text-white">
+              PDF
+            </button>
 
-          <button
-            onClick={doManualImport}
-            disabled={importBusy}
-            className="px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-60"
-            title="Import sofort ausführen"
-          >
-            {importBusy ? "Import…" : "Import"}
-          </button>
+            <button
+              onClick={doManualImport}
+              disabled={importBusy}
+              className="px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-60"
+              title="Import sofort ausführen"
+            >
+              {importBusy ? "Import…" : "Import"}
+            </button>
 
-          <label className="inline-flex items-center gap-2 text-sm px-2 py-1 rounded-md bg-white border">
-            <input type="checkbox" checked={autoEnabled} onChange={toggleAuto} /> Auto-Import
-          </label>
+            <label className="inline-flex items-center gap-2 text-sm px-2 py-1 rounded-md bg-white border">
+              <input type="checkbox" checked={autoEnabled} onChange={toggleAuto} /> Auto-Import
+            </label>
 
-          <label className="inline-flex items-center gap-2 text-sm">
-            Intervall (s):
-            <input
-              type="number"
-              min="5"
-              max="3600"
-              value={autoInterval}
-              onChange={(e) => changeInterval(e.target.value)}
-              className="w-20 border rounded px-2 py-1 text-sm"
-            />
-          </label>
+            <label className="inline-flex items-center gap-2 text-sm">
+              Intervall (s):
+              <input
+                type="number"
+                min="5"
+                max="3600"
+                value={autoInterval}
+                onChange={(e) => changeInterval(e.target.value)}
+                className="w-20 border rounded px-2 py-1 text-sm"
+              />
+            </label>
 
-          {/* Feuerwehr-Fetcher Control */}
-          <FFFetchControl />
+            {/* Feuerwehr-Fetcher Control */}
+            <FFFetchControl />
 
-          <button
-            onClick={onReset}
-            disabled={loadingReset}
-            className={`px-3 py-1.5 rounded-md text-white ${loadingReset ? "bg-gray-400" : "bg-gray-700 hover:bg-gray-800"}`}
-          >
-            {loadingReset ? "Reset…" : "Reset"}
-          </button>
+            <button
+              onClick={onReset}
+              disabled={loadingReset}
+              className={`px-3 py-1.5 rounded-md text-white ${loadingReset ? "bg-gray-400" : "bg-gray-700 hover:bg-gray-800"}`}
+            >
+              {loadingReset ? "Reset…" : "Reset"}
+            </button>
+          </div>
         </div>
+
+        {tickerMessage && (
+          <div className="w-full">
+            <div className="ticker-container w-full" aria-live="polite">
+              <div className="ticker-content" key={tickerMessage}>
+                <span>{tickerMessage}</span>
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Quick-Add – Reihenfolge: Typ → Titel → Ort */}
