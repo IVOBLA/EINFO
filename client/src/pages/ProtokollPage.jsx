@@ -409,7 +409,8 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
     snapshot.rueckmeldung1 = (fd?.get("rueckmeldung1") || form.rueckmeldung1 || "").toString();
     snapshot.rueckmeldung2 = (fd?.get("rueckmeldung2") || form.rueckmeldung2 || "").toString();
     snapshot.ergehtAnText  = (fd?.get("ergehtAnText")  || form.ergehtAnText  || "").toString();
-    snapshot.infoTyp       = (fd?.get("infoTyp")       || form.infoTyp       || "Information").toString();
+    const domInfoTyp = fd?.get("infoTyp");
+    snapshot.infoTyp       = (domInfoTyp !== null && domInfoTyp !== undefined ? domInfoTyp : (form.infoTyp || "")).toString();
 
     // „Ergeht an“ (mehrfach)
     const eaDom = fd ? Array.from(fd.getAll("ergehtAn")).map(String) : form.ergehtAn;
