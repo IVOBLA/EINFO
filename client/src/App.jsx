@@ -632,6 +632,10 @@ try {
         clones.add(idStr);
         continue;
       }
+      if (veh.clone === "clone" || veh.clone === true) {
+        clones.add(idStr);
+        continue;
+      }
       if (veh.isClone) {
         clones.add(idStr);
         continue;
@@ -670,8 +674,15 @@ try {
   }, [safeBoard]);
 
   const freeVehicles = useMemo(
-    () => vehicles.filter((v) => v && typeof v.id !== "undefined" && !assignedIds.has(v.id)),
-    [vehicles, assignedIds]
+    () =>
+      vehicles.filter(
+        (v) =>
+          v &&
+          typeof v.id !== "undefined" &&
+          !assignedIds.has(v.id) &&
+          !cloneIdSet.has(String(v.id))
+      ),
+    [vehicles, assignedIds, cloneIdSet]
   );
 
   const freeByOrt = useMemo(() => {
