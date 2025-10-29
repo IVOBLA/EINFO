@@ -1187,12 +1187,15 @@ if (route.startsWith("/protokoll")) {
             ))}
           </select>
         </label>
-        <label className="flex flex-wrap items-center gap-2 text-sm text-gray-700" htmlFor="boardSearch">
+        <label
+          className="flex flex-wrap items-center gap-2 text-sm text-gray-700 flex-1 min-w-[260px]"
+          htmlFor="boardSearch"
+        >
           <span className="whitespace-nowrap">Suche</span>
           <input
             id="boardSearch"
             type="search"
-            className="border rounded px-2 py-1 min-w-[220px]"
+            className="border rounded px-3 py-2 min-w-[260px] sm:min-w-[300px] md:min-w-[340px] flex-1"
             placeholder="Suche…"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}

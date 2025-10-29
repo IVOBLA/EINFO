@@ -136,9 +136,16 @@ export default function AufgApp() {
   const tickerMessage = useMemo(() => {
     const candidates = items
       .filter((item) => {
-        const type = String(item?.type ?? "");
-        const status = String(item?.status ?? "");
-        return /lagemeldung/i.test(type) && status.toLowerCase() === STATUS.NEW.toLowerCase();
+        const typeRaw = String(item?.type ?? "");
+        const typeTokens = typeRaw
+          .normalize("NFKD")
+          .toLocaleLowerCase("de-DE")
+          .split(/[^a-z0-9äöüß]+/i)
+          .filter(Boolean);
+        const isLageType = typeTokens.some((token) => token === "lage" || token === "lagemeldung");
+        if (!isLageType) return false;
+        const status = String(item?.status ?? "").toLocaleLowerCase("de-DE");
+        return status === STATUS.NEW.toLowerCase();
       })
       .map((item) => {
         const created = Number.isFinite(item?.createdAt)
