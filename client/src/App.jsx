@@ -51,7 +51,7 @@ const TICKER_ROLE_ID = "S2";
 const TICKER_REFRESH_INTERVAL_MS = 30_000;
 const TICKER_PREFIX = " - *** - NEUE LAGEMELDUNG: ";
 const TICKER_SUFFIX = " - *** -";
-const TICKER_SEPARATOR = " ".repeat(30);
+const TICKER_SEPARATOR = "\u00a0".repeat(30);
 
 /** Skaliert die UI kompakt – unverändert */
 function useCompactScale() {
