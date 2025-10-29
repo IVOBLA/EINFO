@@ -49,7 +49,7 @@ import {
 
 const TICKER_ROLE_ID = "S2";
 const TICKER_REFRESH_INTERVAL_MS = 30_000;
-const TICKER_MARKER = " - *** - ";
+const TICKER_MARKER = " - *** - NEUE LAGEMELDUNG: ";
 
 /** Skaliert die UI kompakt – unverändert */
 function useCompactScale() {
