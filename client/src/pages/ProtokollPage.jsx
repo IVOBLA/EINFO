@@ -624,8 +624,8 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
             <div className="text-3xl font-extrabold tracking-wide">MELDUNG/INFORMATION</div>
           </div>
           <div className="col-span-3 border-l-2">
-            <div className="p-2 text-[11px] text-gray-600 border-b-2">PROTOKOLL-NR</div>
-            <div className="p-4 text-center text-3xl font-semibold">{nr ?? "—"}</div>
+            <div className="p-2 text-[10px] text-gray-600 border-b-2">PROTOKOLL-NR</div>
+            <div className="p-3 text-center text-2xl font-semibold">{nr ?? "—"}</div>
           </div>
 
           {/* Datum/Uhrzeit + Typ (6/3/3) */}
@@ -633,11 +633,11 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
             <div className="grid grid-cols-12 gap-0">
               {/* Datum */}
               <div className="col-span-6 border-r-2 p-2">
-                <div className="text-xs text-gray-600 mb-1">Datum</div>
+                <div className="text-[11px] text-gray-600 mb-1">Datum</div>
                 <input
                   ref={datumRef}
                   name="datum" type="text"
-                  className={`border rounded px-2 h-8 text-sm w-full ${errors.datum ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500" : ""}`}
+                  className={`border rounded px-2 h-7 text-[13px] w-full ${errors.datum ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500" : ""}`}
                   placeholder="yyyy-mm-dd"
                   value={form.datum}
                   onChange={(e) => { clearError("datum"); set("datum", e.target.value); }}
@@ -647,11 +647,11 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
               </div>
               {/* Uhrzeit */}
               <div className="col-span-3 border-r-2 p-2">
-                <div className="text-xs text-gray-600 mb-1">Uhrzeit</div>
+                <div className="text-[11px] text-gray-600 mb-1">Uhrzeit</div>
                 <input
                   ref={zeitRef}
                   name="zeit" type="text"
-                  className={`border rounded px-2 h-8 text-sm w-full ${errors.zeit ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500" : ""}`}
+                  className={`border rounded px-2 h-7 text-[13px] w-full ${errors.zeit ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500" : ""}`}
                   placeholder="hh:mm"
                   value={form.zeit}
                   onChange={(e) => { clearError("zeit"); set("zeit", e.target.value); }}
@@ -661,8 +661,8 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
               </div>
               {/* Typ → exakt über Richtung */}
               <div className="col-span-3 p-2">
-                <div className="text-xs text-gray-600 mb-1">Typ</div>
-                <div className={`grid grid-cols-3 gap-x-4 h-8 items-center text-sm ${errors.infoTyp ? "outline outline-2 outline-red-500 rounded-md" : ""}`}>
+                <div className="text-[11px] text-gray-600 mb-1">Typ</div>
+                <div className={`grid grid-cols-3 gap-x-4 h-7 items-center text-[13px] ${errors.infoTyp ? "outline outline-2 outline-red-500 rounded-md" : ""}`}>
                   <label className="inline-flex items-center gap-1.5">
                     <input
                       ref={infoTypInfoRef}
@@ -699,12 +699,12 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
             <div className="grid grid-cols-12 gap-0 items-end">
               {/* An/Von */}
               <div className="col-span-6 border-r-2 p-2">
-                <div className="text-xs text-gray-600 mb-1">An/Von</div>
-                <div className="flex items-center gap-3">
+                <div className="text-[11px] text-gray-600 mb-1">An/Von</div>
+                <div className="flex items-center gap-2.5">
                   <input
                     ref={anvonInputRef}
                     name="anvonName"
-                    className={`border rounded px-2 h-8 text-sm w-full flex-1 ${errors.anvonName ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500" : ""}`}
+                    className={`border rounded px-2 h-7 text-[13px] w-full flex-1 ${errors.anvonName ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500" : ""}`}
                     placeholder="Name / Stelle"
                     required
                     list="dl-anvon"
@@ -719,7 +719,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
                     }}
                     title='Optional mit Präfix "an: …" oder "von: …"'
                   />
-                  <div className={`flex items-center gap-3 pl-2 min-w-[140px] shrink-0 text-sm ${errors.anvonDir ? "outline outline-2 outline-red-500 rounded-md" : ""}`}>
+                  <div className={`flex items-center gap-2.5 pl-2 min-w-[128px] shrink-0 text-[13px] ${errors.anvonDir ? "outline outline-2 outline-red-500 rounded-md" : ""}`}>
                     <label className="inline-flex items-center gap-1.5">
                       <input ref={anvonDirAnRef} type="radio" name="anvonDir" value="an" required
                         checked={form.anvon.richtung === "an"}
@@ -739,10 +739,10 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
 
               {/* Kanal */}
               <div className="col-span-3 border-r-2 p-2">
-                <div className="text-xs text-gray-600 mb-1">Kanal</div>
+                <div className="text-[11px] text-gray-600 mb-1">Kanal</div>
                 <input
                   name="kanalNr"
-                  className="border rounded px-2 h-8 text-sm w-full"
+                  className="border rounded px-2 h-7 text-[13px] w-full"
                   list="dl-kanal"
                   value={form.uebermittlungsart.kanalNr}
                   onChange={(e) => set(["uebermittlungsart","kanalNr"], e.target.value)}
@@ -753,8 +753,8 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
 
               {/* Richtung → exakt unter „Typ“ */}
               <div className="col-span-3 p-2">
-                <div className="text-xs text-gray-600 mb-1">Richtung</div>
-                <div className={`grid grid-cols-2 gap-x-4 h-8 items-center text-sm ${errors.richtung ? "outline outline-2 outline-red-500 rounded-md" : ""}`}>
+                <div className="text-[11px] text-gray-600 mb-1">Richtung</div>
+                <div className={`grid grid-cols-2 gap-x-4 h-7 items-center text-[13px] ${errors.richtung ? "outline outline-2 outline-red-500 rounded-md" : ""}`}>
                   <label className="inline-flex items-center gap-1.5" title="Meldung wurde empfangen">
                     <input
                       ref={richtungEinRef}
@@ -779,11 +779,11 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
 
           {/* Information/Auftrag */}
           <div className="col-span-12 border-y-2 p-2">
-            <div className="text-xs text-gray-600 mb-1">Information/Auftrag</div>
+            <div className="text-[11px] text-gray-600 mb-1">Information/Auftrag</div>
             <textarea
               ref={informationRef}
               name="information"
-              className={`border rounded px-2 py-2 w-full min-h-[210px] text-[15px] leading-relaxed ${errors.information ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500" : ""}`}
+              className={`border rounded px-2 py-2 w-full min-h-[260px] text-[15px] leading-relaxed ${errors.information ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500" : ""}`}
               value={form.information}
               onChange={(e) => { clearError("information"); set("information", e.target.value); }}
               title="Sachverhalt / Meldetext"
