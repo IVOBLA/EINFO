@@ -46,10 +46,19 @@ header h1 {
 }
 
 .ticker-container .ticker-content {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   white-space: nowrap;
-  animation: ticker-scroll 18s linear infinite;
+  animation: ticker-scroll var(--ticker-duration, 20s) linear infinite;
   will-change: transform;
+  padding-right: 2rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ticker-container .ticker-content {
+    animation: none;
+    transform: translateX(0);
+  }
 }
 
 .ticker-container:hover .ticker-content {
