@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -42,9 +42,14 @@ import {
   getAutoImportConfig,
   setAutoImportConfig,
   fetchNearby,
+  fetchAufgabenBoard,
   resetVehiclePosition,
   updateCard,
 } from "./api";
+
+const TICKER_ROLE_ID = "S2";
+const TICKER_REFRESH_INTERVAL_MS = 30_000;
+const TICKER_MARKER = " - *** - ";
 
 /** Skaliert die UI kompakt – unverändert */
 function useCompactScale() {
@@ -88,6 +93,8 @@ const readOnly = !canEdit;
   const [infoCard, setInfoCard] = useState(null);
   const [infoForceEdit, setInfoForceEdit] = useState(false);
   const onShowInfo = (card) => { setInfoCard(card); setInfoForceEdit(false); setInfoOpen(true); };
+  const tickerRequestRef = useRef(null);
+  const [tickerMessages, setTickerMessages] = useState([]);
   // --- Mini-Routing über Hash (stabil) ---
 const [hash, setHash] = useState(window.location.hash);
 useEffect(() => {
@@ -219,50 +226,63 @@ const tick = async () => {
     columns: { neu: { items: [] }, "in-bearbeitung": { items: [] }, erledigt: { items: [] } },
   };
 
-  const tickerMessage = useMemo(() => {
-    const neuCards = board?.columns?.neu?.items ?? [];
-    const parseTimestamp = (value) => {
-      if (Number.isFinite(value)) return Number(value);
-      const parsed = Date.parse(value);
-      return Number.isFinite(parsed) ? parsed : 0;
+  const tickerText = useMemo(() => {
+    if (!tickerMessages.length) return "";
+    return tickerMessages
+      .map((message) => `${TICKER_MARKER}${message}${TICKER_MARKER}`)
+      .join(" ")
+      .trim();
+  }, [tickerMessages]);
+
+  const loadTickerMessages = useCallback(async () => {
+    if (tickerRequestRef.current) {
+      tickerRequestRef.current.abort();
+    }
+    const controller = new AbortController();
+    tickerRequestRef.current = controller;
+
+    try {
+      const data = await fetchAufgabenBoard(TICKER_ROLE_ID, { signal: controller.signal });
+      const items = Array.isArray(data?.items) ? data.items : [];
+
+      const nextMessages = items
+        .filter((item) => String(item?.status ?? "").trim().toLowerCase() === "neu")
+        .filter((item) => String(item?.type ?? "").trim().toLowerCase() === "lagemeldung")
+        .map((item) => (typeof item?.desc === "string" ? item.desc : ""))
+        .map((desc) => desc.replace(/\s+/g, " ").trim())
+        .filter(Boolean);
+
+      if (!controller.signal.aborted) {
+        setTickerMessages(nextMessages);
+      }
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        setTickerMessages([]);
+      }
+    } finally {
+      if (tickerRequestRef.current === controller) {
+        tickerRequestRef.current = null;
+      }
+    }
+  }, [setTickerMessages]);
+
+  useEffect(() => {
+    if (!policyReady) return undefined;
+
+    const run = () => {
+      loadTickerMessages().catch(() => {});
     };
 
-    const candidates = neuCards
-      .map((card) => {
-        const typeRaw = [card?.typ, card?.type, card?.category]
-          .map((v) => (typeof v === "string" ? v : ""))
-          .map((v) => v.replace(/\s+/g, " ").trim())
-          .find((v) => v.length > 0) || "";
+    run();
+    const interval = setInterval(run, TICKER_REFRESH_INTERVAL_MS);
 
-        const typeTokens = typeRaw
-          ? typeRaw
-              .normalize("NFKD")
-              .toLocaleLowerCase("de-DE")
-              .split(/[^a-z0-9äöüß]+/i)
-              .filter(Boolean)
-          : [];
-
-        const isLageType = typeTokens.some((token) => token === "lage" || token === "lagemeldung");
-        if (!isLageType) return null;
-
-        const text = [card?.description, card?.content, card?.typ, card?.title]
-          .map((v) => (typeof v === "string" ? v : ""))
-          .map((v) => v.replace(/\s+/g, " ").trim())
-          .find((v) => v.length > 0) || "";
-        if (!text) return null;
-
-        const timestamp = [card?.updatedAt, card?.statusSince, card?.createdAt, card?.timestamp]
-          .map((value) => parseTimestamp(value))
-          .reduce((best, current) => (current > best ? current : best), 0);
-
-        return { card, text, timestamp };
-      })
-      .filter(Boolean);
-
-    if (!candidates.length) return "";
-    const newest = candidates.reduce((best, current) => (current.timestamp > best.timestamp ? current : best), candidates[0]);
-    return newest.text ? `XXX ${newest.text} XXX` : "";
-  }, [board]);
+    return () => {
+      clearInterval(interval);
+      if (tickerRequestRef.current) {
+        tickerRequestRef.current.abort();
+      }
+    };
+  }, [loadTickerMessages, policyReady]);
 
   const visibleBoard = useMemo(() => {
     const hasArea = !!areaFilter;
@@ -1247,15 +1267,17 @@ if (route.startsWith("/protokoll")) {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </label>
-          {tickerMessage && (
-            <div className="flex-1 min-w-[200px] min-h-[2.5rem] max-w-full sm:min-w-[260px]">
-              <div className="ticker-container w-full" aria-live="polite">
-                <div className="ticker-content" key={tickerMessage}>
-                  <span>{tickerMessage}</span>
+          <div className="flex-1 min-w-[200px] min-h-[2.5rem] max-w-full sm:min-w-[260px]">
+            {tickerText ? (
+              <div className="ticker-container w-full h-full flex items-center" aria-live="polite">
+                <div className="ticker-content" key={tickerText}>
+                  <span>{tickerText}</span>
                 </div>
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="h-full" aria-hidden="true" />
+            )}
+          </div>
         </div>
       </section>
 
