@@ -1,4 +1,4 @@
-timestamp;role;user;action;id;title;type;responsible;fromStatus;toStatus;beforeId;originProtocolNr;originType;relatedIncidentId;protoNr
-2025-10-22T08:01:12.482Z;ADMIN;Administrator;create;1761120072472-elw9hg;q;q;;;Neu;;;;c4sgibga;
-2025-10-22T08:02:39.921Z;ADMIN;Administrator;reorder;1761120072472-elw9hg;q;q;;Neu;In Bearbeitung;;;;c4sgibga;
-2025-10-22T08:04:08.105Z;ADMIN;Administrator;reorder;1761120072472-elw9hg;q;q;;In Bearbeitung;Neu;;;;c4sgibga;
+Zeitpunkt;Rolle;Benutzer;Aktion;Titel;Typ;Verantwortlich;Von Status;Nach Status;Einsatz;Notiz;ID
+"22.10.2025  08:01:12";"ADMIN";"Administrator";"Angelegt";"q";"q";"";"";"Neu";"#c4sgibga";"";"1761120072472-elw9hg"
+"22.10.2025  08:02:39";"ADMIN";"Administrator";"Position geändert";"q";"q";"";"Neu";"In Bearbeitung";"#c4sgibga";"";"1761120072472-elw9hg"
+"22.10.2025  08:04:08";"ADMIN";"Administrator";"Position geändert";"q";"q";"";"In Bearbeitung";"Neu";"#c4sgibga";"";"1761120072472-elw9hg"

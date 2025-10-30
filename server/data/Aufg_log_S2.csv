@@ -1,2 +1,2 @@
-timestamp;actor;action;id;title;type;responsible;fromStatus;toStatus;beforeId;meta
-"2025-10-23 12:11:24";"::1";"create";"p-1761221484226-0mlw";"An: xxx";"Auftrag";"S2";"";"Neu";"";"{""source"":""protokoll"",""protoNr"":1}"
+Zeitpunkt;Rolle;Benutzer;Aktion;Titel;Typ;Verantwortlich;Von Status;Nach Status;Einsatz;Notiz;ID
+"23.10.2025  12:11:24";"S2";"::1";"Angelegt";"An: xxx";"Auftrag";"S2";"";"Neu";"";"Quelle: protokoll; Protokoll-Nr.: 1";"p-1761221484226-0mlw"

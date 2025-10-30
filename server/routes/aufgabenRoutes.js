@@ -4,6 +4,12 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { appendCsvRow, resolveUserName } from "../auditLog.mjs";
 import { markResponsibleDone } from "./protocolMarkDone.mjs";
+import {
+  AUFG_HEADERS,
+  buildAufgabenLog,
+  detectIncidentChange,
+  ensureAufgabenLogFile,
+} from "../utils/aufgabenLog.mjs";
 
 const router = express.Router();
 
@@ -12,33 +18,6 @@ const AUFG_PREFIX = "Aufg";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.resolve(__dirname, "..", "data");   // => <repo>/server/data
 const ROLES_FILE = path.join(DATA_DIR, "user", "User_roles.json");
-
-const AUFG_HEADERS = [
-  "timestamp", "role", "user", "action", "id", "title", "type", "responsible", "fromStatus", "toStatus", "beforeId"
-];
-
-// Helper-Funktionen für Log und Board speichern, siehe vorherige vollständige Implementierung
-
-const clean = (v) => (v == null ? "" : String(v).replace(/\s+/g, " ").trim());
-
-function buildAufgabenLog({ role = "", action = "", item = {}, fromStatus = "", toStatus = "", beforeId = "" }) {
-  const normalized = normalizeItem(item);
-  const statusFrom = clean(fromStatus || item.fromStatus || "");
-  const statusTo = clean(toStatus || normalized.status || "");
-
-  return {
-    role: clean(role || item.role || ""),
-    action: clean(action || (item.action ?? "")),
-    id: clean(item.id ?? item._id ?? item.key ?? normalized.id),
-    title: clean(item.title ?? item.name ?? normalized.title),
-    type: clean(item.type ?? item.category ?? normalized.type),
-    responsible: clean(item.responsible ?? item.verantwortlich ?? item.owner ?? normalized.responsible),
-    fromStatus: statusFrom,
-    toStatus: statusTo,
-    beforeId: clean(beforeId || item.beforeId || ""),
-  };
-}
-
 
 // Helper-Funktionen für Log und Board speichern, siehe vorherige vollständige Implementierung
 
@@ -140,11 +119,8 @@ function boardPath(roleId) {
 
 // --- Logheader sicherstellen ---
 async function ensureAufgLogHeader(file) {
-  try { await fsp.access(file); }
-  catch {
-    await ensureDir(); // <-- Ordner <repo>/server/data sicher anlegen
-    await fsp.writeFile(file, AUFG_HEADERS.join(";") + "\n", "utf8");
-  }
+  await ensureDir();
+  await ensureAufgabenLogFile(file);
 }
 
 // --- Sicherstellen des Verzeichnisses ---
@@ -353,6 +329,24 @@ router.post("/:id/edit", express.json(), async (req, res) => {
     await ensureAufgLogHeader(LOG_FILE);
     await appendCsvRow(LOG_FILE, AUFG_HEADERS, buildAufgabenLog({ role, action: "edit", item: next }), req);
 
+    const incidentChange = detectIncidentChange(prev, next);
+    if (incidentChange) {
+      await appendCsvRow(
+        LOG_FILE,
+        AUFG_HEADERS,
+        buildAufgabenLog({
+          role,
+          action: incidentChange.type,
+          item: next,
+          fromStatus: prev.status,
+          toStatus: next.status,
+          relatedIncidentId: incidentChange.id,
+          relatedIncidentTitle: incidentChange.title,
+        }),
+        req
+      );
+    }
+
     res.json({ ok: true, item: next });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -424,7 +418,12 @@ router.post("/reorder", express.json(), async (req,res)=>{
 
     const LOG_FILE = logPath(role);
     await ensureAufgLogHeader(LOG_FILE);
-    await appendCsvRow(LOG_FILE, AUFG_HEADERS, buildAufgabenLog({ role, action: "reorder", item: moved, fromStatus: prev.status, toStatus, beforeId }), req);
+    await appendCsvRow(
+      LOG_FILE,
+      AUFG_HEADERS,
+      buildAufgabenLog({ role, action: "reorder", item: moved, fromStatus: prev.status, toStatus }),
+      req
+    );
 
 await syncProtocolDoneIfNeeded(moved);
 
