@@ -1,3 +1,5 @@
+import { forbiddenError } from "./forbidden.js";
+
 const BASE = "";
 
 async function j(method, url, body){
@@ -8,7 +10,10 @@ async function j(method, url, body){
     cache:"no-store",
      credentials:"include",      // sendet Cookies in jedem Fall mit
   });
-  if(!res.ok){ throw new Error(`HTTP ${res.status} ${await res.text().catch(()=>res.statusText)}`); }
+  if(!res.ok){
+    if (res.status === 403) throw forbiddenError();
+    throw new Error(`HTTP ${res.status} ${await res.text().catch(()=>res.statusText)}`);
+  }
   const ct = res.headers.get("content-type")||"";
   return ct.includes("application/json") ? res.json() : res.text();
 }
@@ -24,6 +29,7 @@ export async function unlock(master) {
 
   // Optional: Fehlermeldung nach vorne durchreichen
   if (!res.ok) {
+    if (res.status === 403) throw forbiddenError();
     let msg = "Falsches Master-Passwort";
     try {
       const j = await res.json();
@@ -101,6 +107,9 @@ export async function fetchNearby(cardId, radiusKm){
   const has = Number.isFinite(Number(radiusKm)) && Number(radiusKm) > 0;
   const qs = has ? `${base}&radiusKm=${encodeURIComponent(radiusKm)}` : base;
   const r = await fetch(`/api/nearby?${qs}`, { credentials:"same-origin", cache:"no-store" });
-  if (!r.ok) throw new Error("fetchNearby failed");
+  if (!r.ok) {
+    if (r.status === 403) throw forbiddenError();
+    throw new Error("fetchNearby failed");
+  }
   return r.json();
 }

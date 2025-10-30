@@ -17,6 +17,7 @@ import AufgSortableCard from "../components/AufgSortableCard.jsx";
 import { initRolePolicy, canEditApp, getAllRoles } from "../auth/roleUtils.js";
 import { playGong } from "../sound"; // gleicher Sound wie im Einsatz-Kanban
 import { fetchBoard } from "../api.js";
+import { forbiddenError, notifyForbidden } from "../../forbidden.js";
 import { ensureValidDueOffset, getFallbackDueOffsetMinutes } from "../utils/defaultDueOffset.js";
 import CornerHelpLogout from "../components/CornerHelpLogout.jsx";
 
@@ -203,7 +204,10 @@ export default function AufgApp() {
           cache: "no-store",
           headers: roleHeaders(roleId),
         });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) {
+          if (res.status === 403) throw forbiddenError();
+          throw new Error(`HTTP ${res.status}`);
+        }
         const data = await res.json();
         if (!active) return;
         setAufgabenConfig({
@@ -249,7 +253,10 @@ export default function AufgApp() {
     setLoading(true); setError("");
     try {
       const res = await fetch(`/api/aufgaben${roleQuery(roleId)}`, { cache: "no-store", headers: roleHeaders(roleId) });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      if (!res.ok) {
+        if (res.status === 403) throw forbiddenError();
+        throw new Error(`HTTP ${res.status}`);
+      }
       const data = await res.json();
       const arr = Array.isArray(data?.items) ? data.items : [];
       const mapped = arr.map(x => ({
@@ -304,7 +311,10 @@ export default function AufgApp() {
       credentials: "include",
       body: JSON.stringify(patch),
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      if (res.status === 403) throw forbiddenError();
+      throw new Error(`HTTP ${res.status}`);
+    }
     const j = await res.json();
     return j.item || patch;
   }, [roleId]);
@@ -325,21 +335,23 @@ export default function AufgApp() {
   // ---- Persist-Helper: Reorder (DnD) & Status (Pfeil)
   async function persistReorder({ id, toStatus, beforeId }) {
     try {
-const r = await fetch(`/api/aufgaben/reorder${roleQuery(roleId)}`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json", ...roleHeaders(roleId) },
-  body: JSON.stringify({ id, toStatus, beforeId, role: roleId }),
-});
+      const r = await fetch(`/api/aufgaben/reorder${roleQuery(roleId)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...roleHeaders(roleId) },
+        body: JSON.stringify({ id, toStatus, beforeId, role: roleId }),
+      });
+      if (r.status === 403) { notifyForbidden(); return false; }
       return r.ok;
     } catch { return false; }
   }
   async function persistStatus({ id, toStatus }) {
     try {
-const r = await fetch(`/api/aufgaben/${encodeURIComponent(id)}/status${roleQuery(roleId)}`, {
-  method: "POST",
-  headers: { "Content-Type": "application/json", ...roleHeaders(roleId) },
-  body: JSON.stringify({ toStatus, role: roleId }),
-});
+      const r = await fetch(`/api/aufgaben/${encodeURIComponent(id)}/status${roleQuery(roleId)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...roleHeaders(roleId) },
+        body: JSON.stringify({ toStatus, role: roleId }),
+      });
+      if (r.status === 403) { notifyForbidden(); return false; }
       return r.ok;
     } catch { return false; }
   }
@@ -374,7 +386,10 @@ const r = await fetch(`/api/aufgaben/${encodeURIComponent(id)}/status${roleQuery
       body: JSON.stringify(body),
     });
 
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      if (res.status === 403) throw forbiddenError();
+      throw new Error(`HTTP ${res.status}`);
+    }
     const json = await res.json();
     const saved = json?.item || body;
     if (saved?.id) myCreatedIdsRef.current.add(String(saved.id));

@@ -43,6 +43,7 @@ import {
   unlock,
   checkUnlocked,
 } from "./api";
+import { forbiddenError } from "./forbidden.js";
 
 /** Skaliert die UI kompakt – unverändert */
 function useCompactScale() {
@@ -267,11 +268,13 @@ export default function App() {
     try {
       const res = await fetch("/api/import/trigger", { method: "POST" });
       if (!res.ok) {
+        if (res.status === 403) throw forbiddenError();
         const txt = await res.text().catch(() => "");
         throw new Error(`Import fehlgeschlagen (HTTP ${res.status}) ${txt}`);
       }
       setBoard(await fetchBoard());
     } catch (e) {
+      if (e?.status === 403) return;
       alert(e.message || "Import fehlgeschlagen.");
     } finally {
       setImportBusy(false);
@@ -299,7 +302,10 @@ export default function App() {
         body: JSON.stringify({ ort: v.ort || "", label: cloneLabel, mannschaft: 0, cloneOf: v.id }),
       });
       const js = await res.json().catch(() => ({}));
-      if (!res.ok || js?.error) throw new Error(js?.error || "Clone fehlgeschlagen");
+      if (!res.ok || js?.error) {
+        if (res.status === 403) throw forbiddenError();
+        throw new Error(js?.error || "Clone fehlgeschlagen");
+      }
 
       const vRes = await fetch("/api/vehicles");
       const vList = await vRes.json();
@@ -324,6 +330,7 @@ export default function App() {
       }
       setBoard(await fetchBoard());
     } catch (e) {
+      if (e?.status === 403) return;
       alert(e.message || "Clone fehlgeschlagen");
     } finally {
       setCloneBusy(false);
@@ -498,13 +505,14 @@ export default function App() {
       setNewTyp("");
       lastPlaceDetailsRef.current = null;
       resetSession();
-    } catch {
+    } catch (err) {
       setBoard((p) => {
         if (!p) return p;
         const b = structuredClone(p);
         b.columns["neu"].items = b.columns["neu"].items.filter((c) => c?.id !== temp.id);
         return b;
       });
+      if (err?.status === 403) return;
       alert("Einsatz konnte nicht angelegt werden.");
     } finally {
       setLoadingAddCard(false);
@@ -647,7 +655,8 @@ function addAllAlertedMatches(card, vehicles, idsSet, distMap) {
           await unassignVehicle(fromCardId, vehicleId);
           await assignVehicle(toCardId, vehicleId);
           setBoard(await fetchBoard());
-        } catch {
+        } catch (err) {
+          if (err?.status === 403) return;
           alert("Einheit konnte nicht umgehängt werden.");
         }
       }
@@ -659,7 +668,8 @@ function addAllAlertedMatches(card, vehicles, idsSet, distMap) {
       try {
         await assignVehicle(oid.slice(5), aid.slice(4));
         setBoard(await fetchBoard());
-      } catch {
+      } catch (err) {
+        if (err?.status === 403) return;
         alert("Einheit konnte nicht zugewiesen werden.");
       }
       return;
@@ -686,7 +696,8 @@ function addAllAlertedMatches(card, vehicles, idsSet, distMap) {
             } else {
               setBoard(await fetchBoard());
             }
-          } catch {
+          } catch (err) {
+            if (err?.status === 403) return;
             alert("Statuswechsel konnte nicht gespeichert werden.");
           }
         }
@@ -708,7 +719,8 @@ function addAllAlertedMatches(card, vehicles, idsSet, distMap) {
             } else {
               setBoard(await fetchBoard());
             }
-          } catch {
+          } catch (err) {
+            if (err?.status === 403) return;
             alert("Statuswechsel konnte nicht gespeichert werden.");
           }
         }
@@ -722,7 +734,8 @@ function addAllAlertedMatches(card, vehicles, idsSet, distMap) {
     try {
       await resetBoard();
       setBoard(await fetchBoard());
-    } catch {
+    } catch (err) {
+      if (err?.status === 403) return;
       alert("Reset fehlgeschlagen.");
     } finally {
       setLoadingReset(false);
@@ -735,7 +748,8 @@ function addAllAlertedMatches(card, vehicles, idsSet, distMap) {
       const next = await setAutoImportConfig({ enabled: !autoEnabled, intervalSec: autoInterval });
       setAutoEnabled(!!next.enabled);
       setAutoInterval(Number(next.intervalSec) || 30);
-    } catch {
+    } catch (err) {
+      if (err?.status === 403) return;
       alert("Konnte Auto-Import nicht ändern.");
     }
   };
@@ -1153,6 +1167,7 @@ if (!unlocked) {
               body: JSON.stringify(payload),
             });
             if (!res.ok) {
+              if (res.status === 403) throw forbiddenError();
               const txt = await res.text().catch(() => String(res.status));
               throw new Error(`HTTP ${res.status} ${txt}`);
             }
