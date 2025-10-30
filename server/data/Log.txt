@@ -1,7 +1,0 @@
-[21.10.2025, 09:05:47] [importFromFileOnce(list_filtered.json)] Error: ENOENT: no such file or directory, open '/home/bfkdo/kanban/server/data/list_filtered.json'
-    at async open (node:internal/fs/promises:639:25)
-    at async Object.readFile (node:internal/fs/promises:1246:14)
-    at async importFromFileOnce (file:///home/bfkdo/kanban/server/server.js:791:15)
-    at async Timeout._onTimeout (file:///home/bfkdo/kanban/server/server.js:857:15)
-[21.10.2025, 09:05:47] [auto-import] Error: Kann list_filtered.json nicht lesen: ENOENT: no such file or directory, open '/home/bfkdo/kanban/server/data/list_filtered.json'
-    at Timeout._onTimeout (file:///home/bfkdo/kanban/server/server.js:861:42)
