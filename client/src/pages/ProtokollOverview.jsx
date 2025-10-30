@@ -14,10 +14,10 @@ export default function ProtokollOverview() {
   useEffect(() => {
     (async () => {
       try { await initRolePolicy(); setCanEdit(canEditApp("protokoll")); } catch { setCanEdit(false); }
-    })(); 
- (async () => {
+    })();
+    (async () => {
       try {
-        const r = await fetch("/api/protocol").then(res => res.json());
+        const r = await fetch("/api/protocol", { credentials: "include" }).then(res => res.json());
         setData(Array.isArray(r?.items) ? r.items : []);
       } catch {
         setData([]);
