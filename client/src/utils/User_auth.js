@@ -1,3 +1,5 @@
+import { forbiddenError } from "../../forbidden.js";
+
 export async function User_api(path, method="GET", body){
   const res = await fetch(`/api/user${path}`, {
     method,
@@ -6,6 +8,7 @@ export async function User_api(path, method="GET", body){
     credentials: "include"
   });
   if(!res.ok){
+    if (res.status === 403) throw forbiddenError();
     let txt; try{ txt = await res.json(); }catch{ txt = {error:res.statusText}; }
     throw new Error(txt.error || "API_ERROR");
   }

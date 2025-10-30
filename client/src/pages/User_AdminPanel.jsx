@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useUserAuth } from "../components/User_AuthProvider.jsx";
 import CornerHelpLogout from "../components/CornerHelpLogout.jsx";
+import { FORBIDDEN_MESSAGE, notifyForbidden } from "../../forbidden.js";
 
 /** ---------------------------
  *  Kleine Fetch-Helpers
@@ -144,12 +145,18 @@ export default function User_AdminPanel() {
   }
   useEffect(() => { void refresh(); }, []);
 
+  useEffect(() => {
+    if (user && user.role !== "Admin") {
+      notifyForbidden();
+    }
+  }, [user]);
+
   if (!user) return null;
   if (user.role !== "Admin") {
     return (
       <div className="p-4 text-red-700">
         <CornerHelpLogout />
-        403 – Nur für Admins
+        {FORBIDDEN_MESSAGE}
       </div>
     );
   }
