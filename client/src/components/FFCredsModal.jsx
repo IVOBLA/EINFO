@@ -14,7 +14,7 @@ export default function FFCredsModal({ open, onClose, onSaved }) {
     if (!open) return;
     (async () => {
       try {
-        const j = await fetch("/api/ff/creds").then(r=>r.json());
+        const j = await fetch("/api/ff/creds", { credentials: "include" }).then(r=>r.json());
         setHasCreds(Boolean(j.has));
       } catch {}
     })();
@@ -33,6 +33,7 @@ export default function FFCredsModal({ open, onClose, onSaved }) {
       const r = await fetch("/api/ff/creds", {
         method: "POST",
         headers: { "Content-Type":"application/json" },
+        credentials: "include",
         body: JSON.stringify({ username, password, master })
       });
       const j = await r.json().catch(()=>({}));

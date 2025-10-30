@@ -548,7 +548,7 @@ function updatePulseForNewBoard({ oldIds, newBoard, pulseMs = 8000 }) {
 try {
   const oldIds = new Set(prevIdsRef.current);
 
-  const res = await fetch("/api/import/trigger", { method: "POST" });
+  const res = await fetch("/api/import/trigger", { method: "POST", credentials: "include" });
   if (!res.ok) {
     const txt = await res.text().catch(() => "");
     throw new Error(`Import fehlgeschlagen (HTTP ${res.status}) ${txt}`);
@@ -582,12 +582,13 @@ try {
       const res = await fetch("/api/vehicles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ ort: v.ort || "", label: cloneLabel, mannschaft: 0, cloneOf: v.id }),
       });
       const js = await res.json().catch(() => ({}));
       if (!res.ok || js?.error) throw new Error(js?.error || "Clone fehlgeschlagen");
 
-      const vRes = await fetch("/api/vehicles");
+      const vRes = await fetch("/api/vehicles", { credentials: "include" });
       const vList = await vRes.json();
       setVehicles(vList);
 
@@ -696,7 +697,7 @@ useEffect(() => {
   if (!unlocked) return;
   let t = setInterval(async () => {
     try {
-      const s = await fetch("/api/activity/status", { cache: "no-store" }).then(r => r.json());
+      const s = await fetch("/api/activity/status", { cache: "no-store", credentials: "include" }).then(r => r.json());
       if (typeof s?.auto?.enabled === "boolean" && s.auto.enabled !== autoEnabled) {
         setAutoEnabled(!!s.auto.enabled);
       }
@@ -1492,7 +1493,7 @@ if (route.startsWith("/protokoll")) {
           onClose={() => setShowVehModal(false)}
           onCreate={async (payload) => {
             const res = await fetch("/api/vehicles", {
-              method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+              method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify(payload),
             });
             if (!res.ok) {
               const txt = await res.text().catch(() => String(res.status));

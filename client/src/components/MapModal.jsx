@@ -64,7 +64,7 @@ const norm = (s) => String(s || "").trim().toLowerCase();
 
 async function loadMergedVehicles() {
   try {
-    const r = await fetch("/api/vehicles", { cache: "no-store" });
+    const r = await fetch("/api/vehicles", { cache: "no-store", credentials: "include" });
     if (!r.ok) return [];
     return r.json();
   } catch {
@@ -74,7 +74,7 @@ async function loadMergedVehicles() {
 
 async function loadGpsList() {
   try {
-    const res = await fetch("/api/gps", { cache: "no-store" });
+    const res = await fetch("/api/gps", { cache: "no-store", credentials: "include" });
     if (res.ok) return await res.json();
   } catch (e) {
     console.error("GPS fetch failed:", e);

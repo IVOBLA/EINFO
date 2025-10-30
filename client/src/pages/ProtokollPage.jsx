@@ -192,7 +192,9 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
 
     (async () => {
       try {
-        const r = await fetch(`/api/protocol/${n}`).then((res) => res.json());
+        const r = await fetch(`/api/protocol/${n}`, { credentials: "include" }).then((res) =>
+          res.json()
+        );
         if (r?.ok && r.item) {
           const it = r.item;
           const u = it.uebermittlungsart || {};
@@ -319,7 +321,9 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
       setNr(nrSaved);
 
       // 2) Datensatz holen
-      const rItem = await fetch(`/api/protocol/${nrSaved}`).then((res) => res.json());
+      const rItem = await fetch(`/api/protocol/${nrSaved}`, { credentials: "include" }).then((res) =>
+        res.json()
+      );
       const item = rItem?.item;
       if (!item) throw new Error("Datensatz für Druck nicht gefunden");
 
@@ -329,6 +333,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
       const r = await fetch(`/api/protocol/${nrSaved}/print`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ recipients, data: item }),
       }).then((res) => res.json());
 
@@ -369,6 +374,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
       const r = await fetch(`/api/protocol/blank/print`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ recipients: [""], data: blankItem }),
       }).then((res) => res.json());
       if (!r?.ok || !r?.fileUrl) throw new Error(r?.error || "PDF-Erzeugung fehlgeschlagen");
@@ -499,6 +505,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
       const r = await fetch(`/api/protocol/${nr}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(payload),
       }).then(res => res.json());
       if (!r?.ok) throw new Error(r?.error || "Speichern fehlgeschlagen");
@@ -508,6 +515,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
       const r = await fetch("/api/protocol", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(payload),
       }).then(res => res.json());
       if (!r?.ok) throw new Error(r?.error || "Speichern fehlgeschlagen");
