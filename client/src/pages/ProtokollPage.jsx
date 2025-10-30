@@ -625,7 +625,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
           </div>
           <div className="col-span-3 border-l-2">
             <div className="p-2 text-[10px] text-gray-600 border-b-2">PROTOKOLL-NR</div>
-            <div className="p-3 text-center text-2xl font-semibold">{nr ?? "—"}</div>
+            <div className="p-2 text-center text-xl font-semibold">{nr ?? "—"}</div>
           </div>
 
           {/* Datum/Uhrzeit + Typ (6/3/3) */}
@@ -637,7 +637,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
                 <input
                   ref={datumRef}
                   name="datum" type="text"
-                  className={`border rounded px-2 h-7 text-[13px] w-full ${errors.datum ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500" : ""}`}
+                  className={`border rounded px-2 h-6 text-[13px] w-full ${errors.datum ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500" : ""}`}
                   placeholder="yyyy-mm-dd"
                   value={form.datum}
                   onChange={(e) => { clearError("datum"); set("datum", e.target.value); }}
@@ -651,7 +651,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
                 <input
                   ref={zeitRef}
                   name="zeit" type="text"
-                  className={`border rounded px-2 h-7 text-[13px] w-full ${errors.zeit ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500" : ""}`}
+                  className={`border rounded px-2 h-6 text-[13px] w-full ${errors.zeit ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500" : ""}`}
                   placeholder="hh:mm"
                   value={form.zeit}
                   onChange={(e) => { clearError("zeit"); set("zeit", e.target.value); }}
@@ -662,7 +662,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
               {/* Typ → exakt über Richtung */}
               <div className="col-span-3 p-2">
                 <div className="text-[11px] text-gray-600 mb-1">Typ</div>
-                <div className={`grid grid-cols-3 gap-x-4 h-7 items-center text-[13px] ${errors.infoTyp ? "outline outline-2 outline-red-500 rounded-md" : ""}`}>
+                <div className={`grid grid-cols-3 gap-x-4 h-6 items-center text-[13px] ${errors.infoTyp ? "outline outline-2 outline-red-500 rounded-md" : ""}`}>
                   <label className="inline-flex items-center gap-1.5">
                     <input
                       ref={infoTypInfoRef}
@@ -704,7 +704,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
                   <input
                     ref={anvonInputRef}
                     name="anvonName"
-                    className={`border rounded px-2 h-7 text-[13px] w-full flex-1 ${errors.anvonName ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500" : ""}`}
+                    className={`border rounded px-2 h-6 text-[13px] w-full flex-1 ${errors.anvonName ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500" : ""}`}
                     placeholder="Name / Stelle"
                     required
                     list="dl-anvon"
@@ -742,7 +742,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
                 <div className="text-[11px] text-gray-600 mb-1">Kanal</div>
                 <input
                   name="kanalNr"
-                  className="border rounded px-2 h-7 text-[13px] w-full"
+                  className="border rounded px-2 h-6 text-[13px] w-full"
                   list="dl-kanal"
                   value={form.uebermittlungsart.kanalNr}
                   onChange={(e) => set(["uebermittlungsart","kanalNr"], e.target.value)}
@@ -754,7 +754,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
               {/* Richtung → exakt unter „Typ“ */}
               <div className="col-span-3 p-2">
                 <div className="text-[11px] text-gray-600 mb-1">Richtung</div>
-                <div className={`grid grid-cols-2 gap-x-4 h-7 items-center text-[13px] ${errors.richtung ? "outline outline-2 outline-red-500 rounded-md" : ""}`}>
+                <div className={`grid grid-cols-2 gap-x-4 h-6 items-center text-[13px] ${errors.richtung ? "outline outline-2 outline-red-500 rounded-md" : ""}`}>
                   <label className="inline-flex items-center gap-1.5" title="Meldung wurde empfangen">
                     <input
                       ref={richtungEinRef}
@@ -817,14 +817,14 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
             <div className="text-xs text-gray-600 mb-2">ergeht an:</div>
             <div className={`flex flex-wrap items-center gap-3 rounded-md ${errors.ergehtAn ? "ring-2 ring-red-500" : ""}`}>
               {/* Alle */}
-              <label className="inline-flex items-center gap-2 mr-3" title="Alle Empfänger auswählen / abwählen">
+              <label className="inline-flex items-center gap-2 mr-3 text-sm" title="Alle Empfänger auswählen / abwählen">
                 <input type="checkbox" checked={allSelected} onChange={(e) => toggleAll(e.target.checked)} />
                 <span>Alle</span>
               </label>
 
               {/* Einzelne */}
               {ERGEHT_OPTIONS.map((key) => (
-                <label key={key} className="inline-flex items-center gap-2 mr-3">
+                <label key={key} className="inline-flex items-center gap-2 mr-3 text-sm">
                   <input
                     tabIndex={-1}
                     type="checkbox"
