@@ -6,7 +6,7 @@ import express from "express";
 import { randomUUID } from "crypto";
 import { resolveUserName } from "../auditLog.mjs";
 import { ensureTaskForRole } from "../utils/tasksService.mjs";
-import { CSV_HEADER, ensureCsvStructure, rewriteCsvFromJson } from "../utils/protocolCsv.mjs";
+import { CSV_HEADER, ensureCsvStructure, appendHistoryEntriesToCsv } from "../utils/protocolCsv.mjs";
 
 const isLage = v => /^(lage|lagemeldung)$/i.test(String(v || ""));
 const infoText = x => String(x?.information ?? x?.INFORMATION ?? x?.beschreibung ?? x?.text ?? x?.ERGAENZUNG ?? "").trim();
@@ -216,8 +216,9 @@ router.post("/", express.json(), async (req, res) => {
     payload.lastBy = userBy;        // <-- für CSV-BENUTZER
     all.push(payload);
 
+    const latestEntry = payload.history?.[payload.history.length - 1];
     writeAllJson(all);
-    rewriteCsvFromJson(all, CSV_FILE);
+    if (latestEntry) appendHistoryEntriesToCsv(payload, [latestEntry], CSV_FILE);
 // Ergänzung: Aufgaben je Verantwortlicher (nur Auftrag/Lage)
 try {
   if (taskType(payload)) {
@@ -300,17 +301,19 @@ router.put("/:nr", express.json(), async (req, res) => {
 
     const userBy  = resolveUserName(req);
     const changes = computeDiff(existing, next);
+    let newHistoryEntry = null;
     if (changes.length) {
+      newHistoryEntry = { ts: Date.now(), action: "update", by: userBy, changes, after: snapshotForHistory(next) };
       next.history = [
         ...next.history,
-        { ts: Date.now(), action: "update", by: userBy, changes, after: snapshotForHistory(next) }
+        newHistoryEntry
       ];
     }
     next.lastBy = userBy;     // <-- für CSV-BENUTZER
 
     all[idx] = next;
     writeAllJson(all);
-    rewriteCsvFromJson(all, CSV_FILE);
+    if (newHistoryEntry) appendHistoryEntriesToCsv(next, [newHistoryEntry], CSV_FILE);
  // Ergänzung: neu hinzugekommene Verantwortliche ==> Aufgaben nachziehen
  try{
    if (taskType(next)) {
