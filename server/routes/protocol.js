@@ -213,7 +213,7 @@ router.post("/", express.json(), async (req, res) => {
       by: userBy,
       after: snapshotForHistory(payload)
     });
-    payload.lastBy = userBy;        // <-- für CSV-BENUTZER
+    payload.lastBy = userBy;        // Merkt den letzten Bearbeiter
     all.push(payload);
 
     const latestEntry = payload.history?.[payload.history.length - 1];
@@ -222,7 +222,7 @@ router.post("/", express.json(), async (req, res) => {
 // Ergänzung: Aufgaben je Verantwortlicher (nur Auftrag/Lage)
 try {
   if (taskType(payload)) {
-    const actor = resolveUserName(req);
+    const actor = payload.createdBy || resolveUserName(req);
     const { roles, desc } = collectMeasureRoles(payload);
     const type = payload?.infoTyp ?? "";
 
@@ -309,7 +309,7 @@ router.put("/:nr", express.json(), async (req, res) => {
         newHistoryEntry
       ];
     }
-    next.lastBy = userBy;     // <-- für CSV-BENUTZER
+    next.lastBy = userBy;     // Merkt den letzten Bearbeiter
 
     all[idx] = next;
     writeAllJson(all);
@@ -317,7 +317,7 @@ router.put("/:nr", express.json(), async (req, res) => {
  // Ergänzung: neu hinzugekommene Verantwortliche ==> Aufgaben nachziehen
  try{
    if (taskType(next)) {
-     const actor = userBy;
+     const actor = next.createdBy || userBy;
      const { roles, desc } = collectMeasureRoles(next);
      const type = next?.infoTyp ?? next?.TYP ?? "";
      const seen = new Set();

@@ -1,7 +1,7 @@
 import fs from "fs";
 
 export const CSV_HEADER = [
-  "ZEITPUNKT","AKTION","NR","DRUCK","DATUM","ZEIT","ANGELEGT_VON","BENUTZER","EING","AUSG","KANAL",
+  "ZEITPUNKT","AKTION","NR","DRUCK","DATUM","ZEIT","ANGELEGT_VON","EING","AUSG","KANAL",
   "AN/VON","INFORMATION","RUECKMELDUNG1","RUECKMELDUNG2","TYP",
   "ERGEHT_AN","ERGAENZUNG",
   "M1","V1","X1","M2","V2","X2","M3","V3","X3","M4","V4","X4","M5","V5","X5",
@@ -22,7 +22,6 @@ export function toCsvRow(item, meta = {}) {
   const {
     timestamp = Date.now(),
     action = "",
-    actor = "",
     createdBy: createdByMeta
   } = meta;
 
@@ -31,13 +30,6 @@ export function toCsvRow(item, meta = {}) {
   const M  = (i) => ms[i] || {};
   const ergehtAn = Array.isArray(item?.ergehtAn) ? item.ergehtAn.join(", ") : "";
   const createdBy = String(createdByMeta ?? item.createdBy ?? "");
-  const benutzer = String(
-    actor ||
-    item.lastBy ||
-    (Array.isArray(item.history) && item.history.length
-      ? (item.history[item.history.length - 1].by || "")
-      : "")
-  );
 
   const cols = [
     new Date(timestamp || Date.now()).toISOString(),
@@ -48,7 +40,6 @@ export function toCsvRow(item, meta = {}) {
     item.datum ?? "",
     item.zeit ?? "",
     createdBy,
-    benutzer,
     u.ein ? "x" : "",
     u.aus ? "x" : "",
     (u.kanalNr ?? u.kanal ?? u.art ?? ""),
