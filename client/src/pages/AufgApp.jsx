@@ -462,11 +462,17 @@ export default function AufgApp() {
   }, [listIds]);
 
   const handleAddOpen = () => {
+    if (!allowEdit) return;
     setAddOpen(true); // Öffnet das "Neu"-Modal
   };
   const handleModalClose = () => {
     setAddOpen(false); // Schließt das „Neu“-Modal
   };
+  useEffect(() => {
+    if (!allowEdit && addOpen) {
+      setAddOpen(false);
+    }
+  }, [allowEdit, addOpen]);
   const handleShowInfo = useCallback((item) => {
     if (!item) return;
     const found = items.find((x) => x.id === item.id);
@@ -567,30 +573,30 @@ export default function AufgApp() {
               placeholder="Suche Titel / Typ / Verantwortlich…"
               className="w-full sm:w-64 md:w-72 lg:w-80 max-w-full px-3 py-2 text-sm rounded-xl border"
             />
+            <button
+              onClick={handleAddOpen}
+              className="text-sm px-3 py-2 rounded-xl bg-sky-600 text-white disabled:opacity-60 disabled:cursor-not-allowed"
+              disabled={!allowEdit}
+              title={allowEdit ? undefined : "Keine Berechtigung (Aufgabenboard)"}
+            >
+              Neu
+            </button>
+            {/* Modal zur Erstellung neuer Einträge */}
             {allowEdit && (
-              <>
-                <button
-                  onClick={handleAddOpen}
-                  className="text-sm px-3 py-2 rounded-xl bg-sky-600 text-white"
-                >
-                  Neu
-                </button>
-                {/* Modal zur Erstellung neuer Einträge */}
-                <AufgAddModal
-                  open={addOpen} // Der Zustand `addOpen` steuert, ob das Modal sichtbar ist
-                  onClose={handleModalClose} // Schließt das Modal
-                  incidentOptions={incidentIndex.options}
-                  defaultDueOffsetMinutes={aufgabenConfig.defaultDueOffsetMinutes}
-                  onAdded={async (created) => {
-                    try {
-                      const saved = await createItemOnServer(created); // Speichert das neue Element
-                      setItems((prev) => [saved, ...prev]); // Fügt das neue Element zur Liste hinzu
-                    } catch (e) {
-                      setError(String(e?.message || e)); // Fehlerbehandlung
-                    }
-                  }}
-                />
-              </>
+              <AufgAddModal
+                open={addOpen} // Der Zustand `addOpen` steuert, ob das Modal sichtbar ist
+                onClose={handleModalClose} // Schließt das Modal
+                incidentOptions={incidentIndex.options}
+                defaultDueOffsetMinutes={aufgabenConfig.defaultDueOffsetMinutes}
+                onAdded={async (created) => {
+                  try {
+                    const saved = await createItemOnServer(created); // Speichert das neue Element
+                    setItems((prev) => [saved, ...prev]); // Fügt das neue Element zur Liste hinzu
+                  } catch (e) {
+                    setError(String(e?.message || e)); // Fehlerbehandlung
+                  }
+                }}
+              />
             )}
             <button
               onClick={() => { void load(); void loadIncidents(); }}
