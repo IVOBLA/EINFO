@@ -40,6 +40,45 @@ const ARCHIVE_DIR = path.join(DATA_DIR, "archive");
 const ERROR_LOG   = path.join(DATA_DIR, "Log.txt");
 const GROUPS_FILE = path.join(DATA_DIR, "conf","group_locations.json");
 
+const DEFAULT_BOARD_COLUMNS = {
+  neu: "Neu",
+  "in-bearbeitung": "In Bearbeitung",
+  erledigt: "Erledigt",
+};
+
+const BOARD_CACHE_MAX_AGE_MS = (() => {
+  const raw = Number(process.env.BOARD_CACHE_MAX_AGE_MS);
+  return Number.isFinite(raw) && raw >= 0 ? raw : 5_000;
+})();
+
+let boardCacheValue = null;
+let boardCacheExpiresAt = 0;
+let boardCachePromise = null;
+
+const cloneBoard = (value) => {
+  if (!value) return value;
+  if (typeof globalThis.structuredClone === "function") {
+    return globalThis.structuredClone(value);
+  }
+  return JSON.parse(JSON.stringify(value));
+};
+
+function updateBoardCache(nextBoard) {
+  boardCacheValue = cloneBoard(nextBoard);
+  boardCacheExpiresAt = Date.now() + BOARD_CACHE_MAX_AGE_MS;
+}
+
+function invalidateBoardCache() {
+  boardCacheValue = null;
+  boardCacheExpiresAt = 0;
+  boardCachePromise = null;
+}
+
+async function saveBoard(board) {
+  await writeJson(BOARD_FILE, board);
+  updateBoardCache(board);
+}
+
 const VEHICLE_CACHE_TTL_MS = 10_000;
 let vehiclesCacheValue = null;
 let vehiclesCacheExpiresAt = 0;
@@ -452,6 +491,146 @@ async function ensureLogFile(){
 }
 
 
+function createEmptyBoard() {
+  const columns = {};
+  for (const [key, name] of Object.entries(DEFAULT_BOARD_COLUMNS)) {
+    columns[key] = { name, items: [] };
+  }
+  return { columns };
+}
+
+function normalizeBoardStructure(inputBoard) {
+  const board = (inputBoard && typeof inputBoard === "object") ? inputBoard : createEmptyBoard();
+  if (!board.columns || typeof board.columns !== "object") {
+    board.columns = {};
+  }
+
+  for (const [key, name] of Object.entries(DEFAULT_BOARD_COLUMNS)) {
+    const col = board.columns[key];
+    if (!col || typeof col !== "object") {
+      board.columns[key] = { name, items: [] };
+    } else {
+      if (typeof col.name !== "string" || !col.name.trim()) col.name = name;
+      if (!Array.isArray(col.items)) col.items = [];
+    }
+  }
+
+  for (const key of Object.keys(board.columns)) {
+    const col = board.columns[key];
+    if (!Array.isArray(col.items)) col.items = [];
+    if (typeof col.name !== "string" || !col.name.trim()) col.name = key;
+  }
+
+  const isoNow = new Date().toISOString();
+  let highestHumanId = 0;
+  for (const col of Object.values(board.columns)) {
+    for (const card of col.items) {
+      if (!card || typeof card !== "object") continue;
+      const parsed = parseHumanIdNumber(card?.humanId);
+      if (Number.isFinite(parsed) && parsed > highestHumanId) highestHumanId = parsed;
+    }
+  }
+
+  const areaIds = new Set();
+  const areaColorById = new Map();
+
+  for (const col of Object.values(board.columns)) {
+    for (const card of col.items) {
+      if (!card || typeof card !== "object") continue;
+      card.createdAt ||= isoNow;
+      card.statusSince ||= isoNow;
+      card.assignedVehicles ||= [];
+      card.everVehicles ||= [];
+      if (!card.everVehicleLabels || typeof card.everVehicleLabels !== "object" || Array.isArray(card.everVehicleLabels)) {
+        card.everVehicleLabels = {};
+      }
+      if (typeof card.everPersonnel !== "number") card.everPersonnel = 0;
+      if (!("externalId" in card)) card.externalId = "";
+      if (!("alerted" in card)) card.alerted = "";
+      if (!("latitude" in card)) card.latitude = null;
+      if (!("longitude" in card)) card.longitude = null;
+      if (!("location" in card)) card.location = "";
+      if (!("description" in card)) card.description = "";
+      if (!("timestamp" in card)) card.timestamp = null;
+      if (!("isArea" in card)) card.isArea = false;
+      if (!("areaCardId" in card)) card.areaCardId = null;
+      if (!("areaColor" in card)) card.areaColor = null;
+
+      if (card.isArea) {
+        card.areaCardId = null;
+        card.areaColor = normalizeAreaColor(card.areaColor || DEFAULT_AREA_COLOR, DEFAULT_AREA_COLOR);
+        if (card.id) {
+          const idStr = String(card.id);
+          areaIds.add(idStr);
+          areaColorById.set(idStr, card.areaColor);
+        }
+      } else if (!card.areaCardId) {
+        card.areaColor = null;
+      }
+
+      if (typeof card.humanId !== "string" || !card.humanId.trim()) {
+        const prefix = card.externalId
+          ? HUMAN_ID_PREFIX_IMPORT
+          : (card.isArea ? HUMAN_ID_PREFIX_AREA : HUMAN_ID_PREFIX_MANUAL);
+        highestHumanId += 1;
+        card.humanId = `${prefix}-${highestHumanId}`;
+      } else if (card.isArea) {
+        card.humanId = ensureAreaHumanIdValue(card.humanId, () => {
+          highestHumanId += 1;
+          return highestHumanId;
+        });
+      } else if (!card.externalId && /^B-/i.test(String(card.humanId))) {
+        card.humanId = ensureManualHumanIdValue(card.humanId, () => {
+          highestHumanId += 1;
+          return highestHumanId;
+        });
+      }
+    }
+  }
+
+  if (areaIds.size) {
+    for (const col of Object.values(board.columns)) {
+      for (const card of col.items) {
+        if (!card || typeof card !== "object" || card.isArea) continue;
+        if (!card.areaCardId) {
+          card.areaCardId = null;
+          card.areaColor = null;
+          continue;
+        }
+        const refId = String(card.areaCardId);
+        if (!areaIds.has(refId)) {
+          card.areaCardId = null;
+          card.areaColor = null;
+        } else {
+          card.areaColor = areaColorById.get(refId) || null;
+        }
+      }
+    }
+  } else {
+    for (const col of Object.values(board.columns)) {
+      for (const card of col.items) {
+        if (!card || typeof card !== "object") continue;
+        card.areaCardId = null;
+        card.areaColor = null;
+      }
+    }
+  }
+
+  return board;
+}
+
+async function loadBoardFresh() {
+  await ensureDir(DATA_DIR);
+  const raw = await readJson(BOARD_FILE, null);
+  const board = normalizeBoardStructure(raw ?? createEmptyBoard());
+  if (!raw) {
+    await saveBoard(board);
+  } else {
+    updateBoardCache(board);
+  }
+  return board;
+}
+
 // --- Distanz (Haversine) ---
 function haversineKm(a, b) {
   const R = 6371;
@@ -528,95 +707,24 @@ app.use((req,res,next)=>{
 // =                         BOARD & VEHICLES                        =
 // ===================================================================
 async function ensureBoard(){
-  await ensureDir(DATA_DIR);
-  const fallback={ columns:{
-    "neu":{name:"Neu",items:[]},
-    "in-bearbeitung":{name:"In Bearbeitung",items:[]},
-    "erledigt":{name:"Erledigt",items:[]}
-  }};
-  const b = await readJson(BOARD_FILE, null);
-  if(!b){ await writeJson(BOARD_FILE, fallback); return fallback; }
-
- let highestHumanId=0;
- const areaIds = new Set();
- const areaColorById = new Map();
-  for(const k of Object.keys(b.columns||{})){
-    for(const c of (b.columns[k].items||[])){
-      const parsed=parseHumanIdNumber(c?.humanId);
-      if(Number.isFinite(parsed)&&parsed>highestHumanId) highestHumanId=parsed;
-    }
+  const now = Date.now();
+  if (boardCacheValue && boardCacheExpiresAt > now) {
+    return cloneBoard(boardCacheValue);
   }
 
-  for(const k of Object.keys(b.columns||{})){
-    for(const c of (b.columns[k].items||[])){
-      c.createdAt        ||= new Date().toISOString();
-      c.statusSince      ||= new Date().toISOString();
-      c.assignedVehicles   ||= [];
-      c.everVehicles       ||= [];
-      if (!c.everVehicleLabels || typeof c.everVehicleLabels !== "object" || Array.isArray(c.everVehicleLabels)) {
-        c.everVehicleLabels = {};
-      }
-      if(typeof c.everPersonnel!=="number") c.everPersonnel=0;
-      if(!("externalId" in c)) c.externalId="";
-      if(!("alerted"     in c)) c.alerted="";
-      if(!("latitude"    in c)) c.latitude=null;
-      if(!("longitude"   in c)) c.longitude=null;
-      if(!("location"    in c)) c.location="";
-      if(!("description" in c)) c.description="";
-      if(!("timestamp"   in c)) c.timestamp=null;
-	       if(!("isArea"      in c)) c.isArea=false;
-      if(!("areaCardId"  in c)) c.areaCardId=null;
-if(!("areaColor"   in c)) c.areaColor=null;
-      if(c.isArea){
-        c.areaCardId=null;
-        c.areaColor = normalizeAreaColor(c.areaColor || DEFAULT_AREA_COLOR, DEFAULT_AREA_COLOR);
-        if(c.id){
-          const idStr = String(c.id);
-          areaIds.add(idStr);
-          areaColorById.set(idStr, c.areaColor);
-        }
-      }else if(!c.areaCardId){
-        c.areaColor = null;
-      }
-      if(typeof c.humanId!=="string" || !c.humanId.trim()){
-        const prefix = c.externalId
-          ? HUMAN_ID_PREFIX_IMPORT
-          : (c.isArea ? HUMAN_ID_PREFIX_AREA : HUMAN_ID_PREFIX_MANUAL);
-        highestHumanId+=1;
-        c.humanId=`${prefix}-${highestHumanId}`;
-		} else if (c.isArea) {
-        c.humanId = ensureAreaHumanIdValue(c.humanId, () => {
-          highestHumanId += 1;
-          return highestHumanId;
-        });
-      } else if (!c.externalId && /^B-/i.test(String(c.humanId))) {
-        c.humanId = ensureManualHumanIdValue(c.humanId, () => {
-          highestHumanId += 1;
-          return highestHumanId;
-        });
-      }
-    }
+  if (!boardCachePromise) {
+    boardCachePromise = loadBoardFresh()
+      .catch((error) => {
+        invalidateBoardCache();
+        throw error;
+      })
+      .finally(() => {
+        boardCachePromise = null;
+      });
   }
-  
-  if(areaIds.size){
-    for(const k of Object.keys(b.columns||{})){
-      for(const c of (b.columns[k].items||[])){
-        if(c.isArea) continue;
-if(!c.areaCardId){ c.areaCardId=null; c.areaColor=null; continue; }
-        const refId=String(c.areaCardId);
-        if(!areaIds.has(refId)){ c.areaCardId=null; c.areaColor=null; }
-        else c.areaColor = areaColorById.get(refId) || null;
-      }
-    }
-  }else{
-    for(const k of Object.keys(b.columns||{})){
-      for(const c of (b.columns[k].items||[])){
-        c.areaCardId=null;
-		c.areaColor=null;
-      }
-    }
-  }
-  return b;
+
+  const board = await boardCachePromise;
+  return cloneBoard(boardCacheValue ?? board);
 }
 async function getAllVehicles(){
   const { base, extra } = await getVehiclesData();
@@ -794,7 +902,7 @@ if (card.isArea) {
   }
   const arr = board.columns[key].items;
   arr.splice(Math.max(0, Math.min(Number(toIndex) || 0, arr.length)), 0, card);
-  await writeJson(BOARD_FILE, board);
+  await saveBoard(board);
 await appendCsvRow(
     LOG_FILE, EINSATZ_HEADERS,
     buildEinsatzLog({ action:"Einsatz erstellt", card, from:board.columns[key].name, note:card.ort || "", board }),
@@ -861,7 +969,7 @@ app.post("/api/cards/:id/move", async (req,res)=>{
     clonesToRemove = new Set(removedIds);
   }
   dst.splice(Math.max(0,Math.min(Number(toIndex)||0,dst.length)),0,card);
-  await writeJson(BOARD_FILE,board);
+  await saveBoard(board);
 
   if (clonesToRemove) {
     try {
@@ -925,7 +1033,7 @@ const einheitsLabel = veh?.label || veh?.id || String(vehicleId);
       req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
     );
   }
-  await writeJson(BOARD_FILE,board);
+  await saveBoard(board);
   markActivity("vehicle:assign");
   res.json({ ok:true, card:ref.card });
 
@@ -946,7 +1054,7 @@ app.post("/api/cards/:id/unassign", async (req,res)=>{
   if(!ref) return res.status(404).json({ error:"card not found" });
 
   ref.card.assignedVehicles=(ref.card.assignedVehicles||[]).filter(v=>v!==vehicleId);
-  await writeJson(BOARD_FILE,board);
+  await saveBoard(board);
 
   const vmap=vehiclesByIdMap(await getAllVehicles());
   const veh = vmap.get(vehicleId);
@@ -986,7 +1094,7 @@ app.patch("/api/cards/:id/personnel", async (req,res)=>{
 
   if(manualPersonnel===null||manualPersonnel===""||manualPersonnel===undefined){
     delete ref.card.manualPersonnel;
-    await writeJson(BOARD_FILE,board);
+    await saveBoard(board);
    const autoNow = computedPersonnel(ref.card, vehiclesByIdMap(await getAllVehicles()));
   await appendCsvRow(
       LOG_FILE, EINSATZ_HEADERS,
@@ -1004,7 +1112,7 @@ app.patch("/api/cards/:id/personnel", async (req,res)=>{
     if(!Number.isFinite(n)||n<0) return res.status(400).json({ error:"manualPersonnel ungültig" });
     ref.card.manualPersonnel=n;
   }
-  await writeJson(BOARD_FILE,board);
+  await saveBoard(board);
  await appendCsvRow(
     LOG_FILE, EINSATZ_HEADERS,
     buildEinsatzLog({
@@ -1196,7 +1304,7 @@ if (ref.card.isArea && (areaColorChanged || areaChanged)) {
     return res.json({ ok: true, card: ref.card, board });
   }
 
-  await writeJson(BOARD_FILE, board);
+  await saveBoard(board);
 
   let actionLabel = "Einsatz aktualisiert";
   if (!ref.card.isArea && areaChanged && ref.card.areaCardId) {
@@ -1291,7 +1399,7 @@ app.post("/api/reset", async (_req,res)=>{
     "in-bearbeitung":{name:"In Bearbeitung",items:[]},
     "erledigt":{name:"Erledigt",items:[]}
   }};
-  await writeJson(BOARD_FILE,fresh);
+  await saveBoard(fresh);
   await archiveAndResetLog();
   res.json({ ok:true });
 });
@@ -1549,7 +1657,7 @@ async function importFromFileOnce(filename=AUTO_DEFAULT_FILENAME){
       }
     }
 
-    await writeJson(BOARD_FILE,board);
+    await saveBoard(board);
     importLastLoadedAt = Date.now();
     importLastFile     = filename;
     return { ok:true, created, updated, skipped, file:filename };
