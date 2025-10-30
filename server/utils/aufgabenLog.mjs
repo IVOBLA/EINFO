@@ -113,6 +113,51 @@ function parseCsvLine(line, delim = ";") {
   return cells;
 }
 
+function parseCsvRows(lines, delim = ";") {
+  const rows = [];
+  let buffer = "";
+  let quoted = false;
+
+  const pushRow = () => {
+    if (!buffer || !buffer.trim()) {
+      buffer = "";
+      return;
+    }
+    rows.push(parseCsvLine(buffer, delim));
+    buffer = "";
+  };
+
+  for (let i = 0; i < lines.length; i += 1) {
+    const raw = lines[i];
+    const line = raw == null ? "" : String(raw);
+    if (!buffer && !line.trim()) continue;
+
+    buffer = buffer ? `${buffer}\n${line}` : line;
+
+    let localQuoted = quoted;
+    for (let j = 0; j < line.length; j += 1) {
+      if (line[j] === '"') {
+        if (localQuoted) {
+          if (line[j + 1] === '"') {
+            j += 1;
+          } else {
+            localQuoted = false;
+          }
+        } else {
+          localQuoted = true;
+        }
+      }
+    }
+    quoted = localQuoted;
+
+    if (!quoted) pushRow();
+  }
+
+  if (buffer) pushRow();
+
+  return rows;
+}
+
 function joinCsvRow(values) {
   return values
     .map((value) => {
@@ -480,10 +525,8 @@ export async function ensureAufgabenLogFile(file) {
       const delim = first.includes(";") ? ";" : ",";
       const headers = parseCsvLine(first, delim);
       const migrated = [header];
-      for (let i = 1; i < lines.length; i += 1) {
-        const line = lines[i];
-        if (!line || !line.trim()) continue;
-        const values = parseCsvLine(line, delim);
+      const records = parseCsvRows(lines.slice(1), delim);
+      for (const values of records) {
         const payload = convertLegacyRecord(headers, values);
         migrated.push(joinCsvRow(AUFG_HEADERS.map((h) => payload[h])));
       }
