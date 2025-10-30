@@ -23,6 +23,25 @@ const canonicalRoleId = (value) => {
   return raw.replace(/\s+/g, "").toUpperCase();
 };
 
+const normalizeRoleValue = (value) => (typeof value === "string" ? value.trim() : "");
+const resolveActorRole = (req) => {
+  const direct = normalizeRoleValue(req?.user?.role);
+  if (direct) return direct;
+  const headers = req?.headers || {};
+  const headerCandidates = [
+    headers["x-role-id"],
+    headers["x-user-role"],
+    headers["x-auth-role"],
+  ];
+  for (const cand of headerCandidates) {
+    const role = normalizeRoleValue(cand);
+    if (role) return role;
+  }
+  const bodyRole = normalizeRoleValue(req?.body?.role ?? req?.body?.userRole);
+  if (bodyRole) return bodyRole;
+  return "";
+};
+
 function collectMeasureRoles(item) {
   const roles = new Map();
   const baseAnVon = titleFromAnVon(item);
@@ -228,6 +247,7 @@ router.post("/", express.json(), async (req, res) => {
 try {
   if (taskType(payload)) {
     const actor = payload.createdBy || userBy || resolveUserName(req);
+    const actorRole = resolveActorRole(req);
     const { roles, desc } = collectMeasureRoles(payload);
     const type = payload?.infoTyp ?? "";
 
@@ -237,6 +257,7 @@ try {
         responsibleLabel: label,
         protoNr: payload.nr,
         actor,
+        actorRole,
         item: {
           title,
           type,
@@ -258,6 +279,7 @@ try {
         responsibleLabel: "S2",
         protoNr: payload.nr,
         actor,
+        actorRole,
         item: {
           title: titleAuto,
           type,
@@ -322,23 +344,25 @@ router.put("/:nr", express.json(), async (req, res) => {
  // Ergänzung: neu hinzugekommene Verantwortliche ==> Aufgaben nachziehen
  try{
    if (taskType(next)) {
-     const actor = next.createdBy || userBy;
-     const { roles, desc } = collectMeasureRoles(next);
-     const type = next?.infoTyp ?? next?.TYP ?? "";
-     const seen = new Set();
+    const actor = next.createdBy || userBy;
+    const actorRole = resolveActorRole(req);
+    const { roles, desc } = collectMeasureRoles(next);
+    const type = next?.infoTyp ?? next?.TYP ?? "";
+    const seen = new Set();
 
-     for (const [key, info] of roles.entries()) {
+    for (const [key, info] of roles.entries()) {
        seen.add(key);
        await ensureTaskForRole({
-         roleId: info.label,
-         responsibleLabel: info.label,
-         protoNr: next.nr,
-         actor,
-         item: {
-           title: info.title,
-           type,
-           desc,
-           meta: { source: "protokoll", protoNr: next.nr }
+        roleId: info.label,
+        responsibleLabel: info.label,
+        protoNr: next.nr,
+        actor,
+        actorRole,
+        item: {
+          title: info.title,
+          type,
+          desc,
+          meta: { source: "protokoll", protoNr: next.nr }
          }
        });
      }
@@ -352,15 +376,16 @@ router.put("/:nr", express.json(), async (req, res) => {
        if (!key || seen.has(key)) continue;
        seen.add(key);
        await ensureTaskForRole({
-         roleId: label,
-         responsibleLabel: label,
-         protoNr: next.nr,
-         actor,
-         item: {
-           title: fallbackTitle,
-           type,
-           desc: text,
-           meta: { source: "protokoll", protoNr: next.nr }
+        roleId: label,
+        responsibleLabel: label,
+        protoNr: next.nr,
+        actor,
+        actorRole,
+        item: {
+          title: fallbackTitle,
+          type,
+          desc: text,
+          meta: { source: "protokoll", protoNr: next.nr }
          }
        });
      }
@@ -374,15 +399,16 @@ router.put("/:nr", express.json(), async (req, res) => {
        const titleAutoU = `${titleFromAnVon(next)} ${String(next?.massnahmen?.[0]?.massnahme ?? "").trim()}`.trim();
 
        await ensureTaskForRole({
-         roleId: "S2",
-         responsibleLabel: "S2",
-         protoNr: next.nr,
-         actor,
-         item: {
-           title: titleAutoU,
-           type,
-           desc: infoText(next),
-           meta: { source: "protokoll", protoNr: next.nr }
+        roleId: "S2",
+        responsibleLabel: "S2",
+        protoNr: next.nr,
+        actor,
+        actorRole,
+        item: {
+          title: titleAutoU,
+          type,
+          desc: infoText(next),
+          meta: { source: "protokoll", protoNr: next.nr }
          }
        });
      }
