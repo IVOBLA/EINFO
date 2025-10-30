@@ -95,8 +95,10 @@ function normalizeAreaColor(input, fallback = DEFAULT_AREA_COLOR) {
   return fallback;
 }
 
-function buildEinsatzLog({ action, card = {}, from = "", to = "", einheit = "", note = "", board = null }) {
+function buildEinsatzLog({ action, card = {}, from = "", to = "", einheit = "", note = "", board = null, user = "" }) {
+  const userName = typeof user === "string" ? user.trim() : "";
   return {
+    Benutzer: userName,
     EinsatzID: card.humanId || "",
     InternID: card.id || "",
     Einsatz:   card.content || "",
@@ -1473,9 +1475,9 @@ async function importFromFileOnce(filename=AUTO_DEFAULT_FILENAME){
         };
         board.columns["neu"].items.unshift(card);
         created++;
-  await appendCsvRow(
+        await appendCsvRow(
           LOG_FILE, EINSATZ_HEADERS,
-          buildEinsatzLog({ action:"Einsatz erstellt (Auto-Import)", card, from:"Neu", note:card.ort || "", board }),
+          buildEinsatzLog({ action:"Einsatz erstellt (Auto-Import)", card, from:"Neu", note:card.ort || "", board, user: "EinsatzInfo" }),
           null, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
         );
       }

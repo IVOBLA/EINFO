@@ -73,6 +73,69 @@ export function toCsvRow(item, meta = {}) {
   return joinCsvRow(cols);
 }
 
+function ensureCsvHeader(csvFile) {
+  if (!fs.existsSync(csvFile)) {
+    fs.writeFileSync(csvFile, CSV_HEADER.join(";") + "\r\n", "utf8");
+    return;
+  }
+
+  try {
+    const content = fs.readFileSync(csvFile, "utf8");
+    const [firstLine = "", ...rest] = content.split(/\r?\n/);
+    const header = CSV_HEADER.join(";");
+    const normalizedFirst = firstLine.trim();
+    if (normalizedFirst === header) return;
+
+    const remaining = rest.join("\n").replace(/\r?\n/g, "\r\n");
+    const rebuilt = [header, remaining].filter(Boolean).join("\r\n");
+    const suffix = rebuilt.endsWith("\r\n") ? "" : "\r\n";
+    fs.writeFileSync(csvFile, rebuilt + suffix, "utf8");
+  } catch {
+    fs.writeFileSync(csvFile, CSV_HEADER.join(";") + "\r\n", "utf8");
+  }
+}
+
+function entryToRecord(item, entry) {
+  if (!item || !entry) return null;
+
+  const snapshot = (entry?.after && typeof entry.after === "object")
+    ? entry.after
+    : item;
+
+  const snapshotItem = {
+    ...item,
+    ...snapshot,
+    nr: item.nr,
+    id: item.id,
+  };
+
+  const createdBy = snapshotItem.createdBy ?? item.createdBy ?? null;
+
+  return {
+    item: snapshotItem,
+    meta: {
+      timestamp: Number(entry?.ts) || Date.now(),
+      action: entry?.action ?? "",
+      actor: entry?.by ?? "",
+      createdBy,
+    },
+  };
+}
+
+export function appendHistoryEntriesToCsv(item, entries, csvFile) {
+  if (!csvFile || !item) return;
+  const list = Array.isArray(entries) ? entries : [];
+  const records = list
+    .map((entry) => entryToRecord(item, entry))
+    .filter(Boolean);
+
+  if (!records.length) return;
+
+  ensureCsvHeader(csvFile);
+  const lines = records.map(({ item: rowItem, meta }) => toCsvRow(rowItem, meta));
+  fs.appendFileSync(csvFile, lines.join("\r\n") + "\r\n", "utf8");
+}
+
 export function rewriteCsvFromJson(arr, csvFile) {
   const list = Array.isArray(arr) ? arr : [];
   const records = [];

@@ -5,7 +5,7 @@ import fss from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import puppeteer from "puppeteer";
-import { rewriteCsvFromJson } from "./utils/protocolCsv.mjs";
+import { appendHistoryEntriesToCsv } from "./utils/protocolCsv.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -70,6 +70,9 @@ function stripHistoryForSnapshot(src) {
 async function recordPrint(nr, recipients, pages, fileName, by, latestSnapshotFromClient) {
   const all = await readAll();
   const idx = all.findIndex(x => Number(x.nr) === Number(nr));
+  let csvItem = null;
+  let csvEntries = [];
+
   if (idx < 0) {
     const it = {
       ...(latestSnapshotFromClient || {}),
@@ -78,6 +81,8 @@ async function recordPrint(nr, recipients, pages, fileName, by, latestSnapshotFr
       printCount: pages,
       history: [{ ts: Date.now(), action: "print", by, recipients, pages, fileName, after: stripHistoryForSnapshot(latestSnapshotFromClient || {}) }],
     };
+    csvItem = it;
+    csvEntries = it.history.slice(-1);
     all.push(it);
   } else {
     const ex = all[idx];
@@ -85,10 +90,14 @@ async function recordPrint(nr, recipients, pages, fileName, by, latestSnapshotFr
     merged.printCount = Number.isFinite(+merged.printCount) ? +merged.printCount + (pages || 0) : (pages || 0);
     merged.history = Array.isArray(merged.history) ? merged.history : [];
     merged.history.push({ ts: Date.now(), action: "print", by, recipients, pages, fileName, after: stripHistoryForSnapshot(merged) });
+    csvItem = merged;
+    csvEntries = merged.history.slice(-1);
     all[idx] = merged;
   }
   await writeAll(all);
-  rewriteCsvFromJson(all, CSV_FILE);
+  if (csvItem && csvEntries.length) {
+    appendHistoryEntriesToCsv(csvItem, csvEntries, CSV_FILE);
+  }
 }
 
 // ---------- HTML/CSS ----------
