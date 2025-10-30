@@ -1,5 +1,7 @@
 import fs from "fs";
 
+const CSV_BOM = "\uFEFF";
+
 export const CSV_HEADER = [
   "ZEITPUNKT","AKTION","NR","DRUCK","DATUM","ZEIT","ANGELEGT_VON","EING","AUSG","KANAL",
   "AN/VON","INFORMATION","RUECKMELDUNG1","RUECKMELDUNG2","TYP",
@@ -65,24 +67,26 @@ export function toCsvRow(item, meta = {}) {
 }
 
 function ensureCsvHeader(csvFile) {
+  const header = CSV_HEADER.join(";");
+  const headerLine = `${header}\r\n`;
   if (!fs.existsSync(csvFile)) {
-    fs.writeFileSync(csvFile, CSV_HEADER.join(";") + "\r\n", "utf8");
+    fs.writeFileSync(csvFile, CSV_BOM + headerLine, "utf8");
     return;
   }
 
   try {
     const content = fs.readFileSync(csvFile, "utf8");
     const [firstLine = "", ...rest] = content.split(/\r?\n/);
-    const header = CSV_HEADER.join(";");
-    const normalizedFirst = firstLine.trim();
-    if (normalizedFirst === header) return;
+    const normalizedFirst = firstLine.replace(/^\uFEFF/, "").trim();
+    const hasBom = firstLine.startsWith(CSV_BOM);
+    if (normalizedFirst === header && hasBom) return;
 
-    const remaining = rest.join("\n").replace(/\r?\n/g, "\r\n");
-    const rebuilt = [header, remaining].filter(Boolean).join("\r\n");
-    const suffix = rebuilt.endsWith("\r\n") ? "" : "\r\n";
-    fs.writeFileSync(csvFile, rebuilt + suffix, "utf8");
+    const remaining = rest.join("\n").replace(/^\uFEFF/, "").replace(/\r?\n/g, "\r\n");
+    const rebuiltBody = [header, remaining].filter(Boolean).join("\r\n");
+    const suffix = rebuiltBody.endsWith("\r\n") ? "" : "\r\n";
+    fs.writeFileSync(csvFile, CSV_BOM + rebuiltBody + suffix, "utf8");
   } catch {
-    fs.writeFileSync(csvFile, CSV_HEADER.join(";") + "\r\n", "utf8");
+    fs.writeFileSync(csvFile, CSV_BOM + headerLine, "utf8");
   }
 }
 
@@ -182,19 +186,23 @@ export function rewriteCsvFromJson(arr, csvFile) {
     ...records.map(({ item, ...meta }) => toCsvRow(item, meta))
   ];
 
-  fs.writeFileSync(csvFile, lines.join("\r\n") + "\r\n", "utf8");
+  let content = CSV_BOM + lines.join("\r\n");
+  if (!content.endsWith("\r\n")) content += "\r\n";
+  fs.writeFileSync(csvFile, content, "utf8");
 }
 
 export function ensureCsvStructure(arr, csvFile) {
   try {
     const content = fs.readFileSync(csvFile, "utf8");
     const firstLine = content.split(/\r?\n/, 1)[0] ?? "";
-    if (firstLine.trim() !== CSV_HEADER.join(";")) {
+    const normalizedFirst = firstLine.replace(/^\uFEFF/, "").trim();
+    const hasBom = firstLine.startsWith(CSV_BOM);
+    if (normalizedFirst !== CSV_HEADER.join(";") || !hasBom) {
       rewriteCsvFromJson(arr, csvFile);
     }
   } catch {
     const headerLine = CSV_HEADER.join(";") + "\r\n";
-    fs.writeFileSync(csvFile, headerLine, "utf8");
+    fs.writeFileSync(csvFile, CSV_BOM + headerLine, "utf8");
     if (Array.isArray(arr) && arr.length) rewriteCsvFromJson(arr, csvFile);
   }
 }
