@@ -5,6 +5,8 @@ import { fileURLToPath } from "url";
 import express from "express";
 import { randomUUID } from "crypto";
 import { resolveUserName } from "../auditLog.mjs";
+import { User_authMiddleware } from "../User_auth.mjs";
+import { User_initStore } from "../User_store.mjs";
 import { ensureTaskForRole } from "../utils/tasksService.mjs";
 import { CSV_HEADER, ensureCsvStructure, appendHistoryEntriesToCsv } from "../utils/protocolCsv.mjs";
 
@@ -48,8 +50,6 @@ const rolesOf = x => {
   return [...set].filter(Boolean);
 };
 
-const router = express.Router();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
@@ -58,6 +58,11 @@ const SERVER_DIR = path.resolve(__dirname, "..");
 const DATA_DIR   = path.resolve(SERVER_DIR, "data");   // => <repo>/server/data
 const CSV_FILE   = path.join(DATA_DIR, "protocol.csv");
 const JSON_FILE  = path.join(DATA_DIR, "protocol.json");
+
+User_initStore(DATA_DIR);
+
+const router = express.Router();
+router.use(User_authMiddleware());
 
 const titleFromAnVon = (o) =>
   String(
@@ -205,7 +210,7 @@ router.post("/", express.json(), async (req, res) => {
       printCount: 0,
       history: []
     };
-    const userBy = resolveUserName(req);
+    const userBy = resolveUserName(req) || req?.user?.displayName || req?.user?.username || "";
     payload.createdBy = userBy;
     payload.history.push({
       ts: Date.now(),
@@ -222,7 +227,7 @@ router.post("/", express.json(), async (req, res) => {
 // Ergänzung: Aufgaben je Verantwortlicher (nur Auftrag/Lage)
 try {
   if (taskType(payload)) {
-    const actor = payload.createdBy || resolveUserName(req);
+    const actor = payload.createdBy || userBy || resolveUserName(req);
     const { roles, desc } = collectMeasureRoles(payload);
     const type = payload?.infoTyp ?? "";
 
@@ -299,7 +304,7 @@ router.put("/:nr", express.json(), async (req, res) => {
     // 🔁 Reset: jedes Update setzt das Druck-Flag zurück
     next.printCount = 0;
 
-    const userBy  = resolveUserName(req);
+    const userBy  = resolveUserName(req) || req?.user?.displayName || req?.user?.username || "";
     const changes = computeDiff(existing, next);
     let newHistoryEntry = null;
     if (changes.length) {
