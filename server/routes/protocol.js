@@ -1,5 +1,6 @@
 // server/routes/protocol.js
 import fs from "fs";
+import fsp from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import express from "express";
@@ -95,13 +96,30 @@ const isEingang = v => {
 };
 
 // ==== Files sicherstellen ====
+let ensureFilesPromise = null;
 function ensureFiles() {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-  if (!fs.existsSync(JSON_FILE)) fs.writeFileSync(JSON_FILE, "[]", "utf8");
-  if (!fs.existsSync(CSV_FILE)) {
-    // CRLF-Zeilenende für maximale Excel-Kompatibilität
-    fs.writeFileSync(CSV_FILE, CSV_HEADER.join(";") + "\r\n", "utf8");
+  if (!ensureFilesPromise) {
+    ensureFilesPromise = (async () => {
+      try {
+        await fsp.mkdir(DATA_DIR, { recursive: true });
+        try {
+          await fsp.access(JSON_FILE, fs.constants.F_OK);
+        } catch {
+          await fsp.writeFile(JSON_FILE, "[]", "utf8");
+        }
+        try {
+          await fsp.access(CSV_FILE, fs.constants.F_OK);
+        } catch {
+          // CRLF-Zeilenende für maximale Excel-Kompatibilität
+          await fsp.writeFile(CSV_FILE, CSV_HEADER.join(";") + "\r\n", "utf8");
+        }
+      } catch (err) {
+        ensureFilesPromise = null;
+        throw err;
+      }
+    })();
   }
+  return ensureFilesPromise;
 }
 
 // Migration: id + printCount + history ergänzen
@@ -120,18 +138,39 @@ function migrateMeta(arr) {
   return changed;
 }
 
-function readAllJson() {
-  ensureFiles();
-  let arr = [];
-  try { arr = JSON.parse(fs.readFileSync(JSON_FILE, "utf8")); }
-  catch { arr = []; }
-  if (!Array.isArray(arr)) arr = [];
-  if (migrateMeta(arr)) fs.writeFileSync(JSON_FILE, JSON.stringify(arr, null, 2), "utf8");
-  ensureCsvStructure(arr, CSV_FILE);
-  return arr;
+let cachedJson = null;
+let csvStructureEnsured = false;
+
+async function persistJson(arr) {
+  await fsp.writeFile(JSON_FILE, JSON.stringify(arr, null, 2), "utf8");
 }
-function writeAllJson(arr) {
-  fs.writeFileSync(JSON_FILE, JSON.stringify(arr, null, 2), "utf8");
+
+async function readAllJson() {
+  await ensureFiles();
+  if (cachedJson) return cachedJson;
+
+  let arr = [];
+  try {
+    arr = JSON.parse(await fsp.readFile(JSON_FILE, "utf8"));
+  } catch {
+    arr = [];
+  }
+
+  if (!Array.isArray(arr)) arr = [];
+  if (migrateMeta(arr)) await persistJson(arr);
+
+  if (!csvStructureEnsured) {
+    ensureCsvStructure(arr, CSV_FILE);
+    csvStructureEnsured = true;
+  }
+
+  cachedJson = arr;
+  return cachedJson;
+}
+
+async function writeAllJson(arr) {
+  cachedJson = arr;
+  await persistJson(arr);
 }
 function nextNr(arr) {
   const max = arr.reduce((m, x) => Math.max(m, Number(x?.nr) || 0), 0);
@@ -185,30 +224,32 @@ function snapshotForHistory(src) {
 // ---------- API ----------
 
 // CSV-Download (Route vor '/:nr')
-router.get("/csv/file", (_req, res) => {
+router.get("/csv/file", async (_req, res) => {
   try {
+    await ensureFiles();
     res.setHeader("Content-Type", "text/csv; charset=utf-8");
     res.setHeader("Content-Disposition", 'attachment; filename="protocol.csv"');
-    const buf = fs.readFileSync(CSV_FILE);
+    const buf = await fsp.readFile(CSV_FILE);
     res.send(buf);
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
 });
 // Liste
-router.get("/", (_req, res) => {
+router.get("/", async (_req, res) => {
   try {
-    res.json({ ok: true, items: readAllJson() });
+    const items = await readAllJson();
+    res.json({ ok: true, items });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
 });
 
 // Detail
-router.get("/:nr", (req, res) => {
+router.get("/:nr", async (req, res) => {
   try {
     const nr  = Number(req.params.nr);
-    const all = readAllJson();
+    const all = await readAllJson();
     const it  = all.find(x => Number(x.nr) === nr);
     if (!it) return res.status(404).json({ ok: false, error: "Not found" });
     res.json({ ok: true, item: it });
@@ -220,7 +261,7 @@ router.get("/:nr", (req, res) => {
 // Neu
 router.post("/", express.json(), async (req, res) => {
   try {
-    const all = readAllJson();
+    const all = await readAllJson();
     const nr  = nextNr(all);
     const payload = {
       ...(req.body || {}),
@@ -241,7 +282,7 @@ router.post("/", express.json(), async (req, res) => {
     all.push(payload);
 
     const latestEntry = payload.history?.[payload.history.length - 1];
-    writeAllJson(all);
+    await writeAllJson(all);
     if (latestEntry) appendHistoryEntriesToCsv(payload, [latestEntry], CSV_FILE);
 // Ergänzung: Aufgaben je Verantwortlicher (nur Auftrag/Lage)
 try {
@@ -302,7 +343,7 @@ try {
 router.put("/:nr", express.json(), async (req, res) => {
   try {
     const nr  = Number(req.params.nr);
-    const all = readAllJson();
+    const all = await readAllJson();
     const idx = all.findIndex(x => Number(x.nr) === nr);
     if (idx < 0) return res.status(404).json({ ok: false, error: "Not found" });
 
@@ -339,7 +380,7 @@ router.put("/:nr", express.json(), async (req, res) => {
     next.lastBy = userBy;     // Merkt den letzten Bearbeiter
 
     all[idx] = next;
-    writeAllJson(all);
+    await writeAllJson(all);
     if (newHistoryEntry) appendHistoryEntriesToCsv(next, [newHistoryEntry], CSV_FILE);
  // Ergänzung: neu hinzugekommene Verantwortliche ==> Aufgaben nachziehen
  try{
