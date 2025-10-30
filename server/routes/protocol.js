@@ -35,18 +35,18 @@ function collectMeasureRoles(item) {
   }
   return { roles, baseAnVon, desc };
 }
- const rolesOf = x => {
-   const set = new Set();
-   // 1) explizit angegebene Rollen
-   if (Array.isArray(x?.verantwortliche)) x.verantwortliche.forEach(r => set.add(String(r).trim()));
-   // 2) "ergehtAn" (Array oder String)
-   if (Array.isArray(x?.ergehtAn)) x.ergehtAn.forEach(r => set.add(String(r).trim()));
-   const bucket = String(x?.ergehtAn ?? x?.ERGEHT_AN ?? "").trim();
-   if (bucket) bucket.split(/[,;|]/).map(s => s.trim()).filter(Boolean).forEach(r => set.add(r));
-   // 3) Maßnahmen-Verantwortliche
-   (x?.massnahmen || []).forEach(m => { if (m?.verantwortlich) set.add(String(m.verantwortlich).trim()); });
-   return [...set].filter(Boolean);
- };
+const rolesOf = x => {
+  const set = new Set();
+  // 1) explizit angegebene Rollen
+  if (Array.isArray(x?.verantwortliche)) {
+    x.verantwortliche.forEach((r) => set.add(String(r).trim()));
+  }
+  // 2) Maßnahmen-Verantwortliche
+  (x?.massnahmen || []).forEach((m) => {
+    if (m?.verantwortlich) set.add(String(m.verantwortlich).trim());
+  });
+  return [...set].filter(Boolean);
+};
 
 const router = express.Router();
 
