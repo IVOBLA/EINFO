@@ -62,7 +62,7 @@ const JSON_FILE  = path.join(DATA_DIR, "protocol.json");
 // ==== CSV: Spalten ====
 
 const CSV_HEADER = [
-  "NR","DRUCK","DATUM","ZEIT","BENUTZER","EING","AUSG","KANAL",
+  "ZEITPUNKT","AKTION","NR","DRUCK","DATUM","ZEIT","ANGELEGT_VON","BENUTZER","EING","AUSG","KANAL",
   "AN/VON","INFORMATION","RUECKMELDUNG1","RUECKMELDUNG2","TYP",
   "ERGEHT_AN","ERGAENZUNG",
   "M1","V1","X1","M2","V2","X2","M3","V3","X3","M4","V4","X4","M5","V5","X5",
@@ -97,6 +97,11 @@ function migrateMeta(arr) {
     if (!it.id) { it.id = randomUUID(); changed = true; }
     if (typeof it.printCount !== "number") { it.printCount = 0; changed = true; }
     if (!Array.isArray(it.history)) { it.history = []; changed = true; }
+    if (typeof it.createdBy === "undefined") {
+      const creatorFromHistory = it.history.find?.(h => h?.action === "create" && h?.by)?.by;
+      it.createdBy = creatorFromHistory || it.lastBy || null;
+      changed = true;
+    }
   }
   return changed;
 }
@@ -108,6 +113,7 @@ function readAllJson() {
   catch { arr = []; }
   if (!Array.isArray(arr)) arr = [];
   if (migrateMeta(arr)) fs.writeFileSync(JSON_FILE, JSON.stringify(arr, null, 2), "utf8");
+  ensureCsvStructure(arr);
   return arr;
 }
 function writeAllJson(arr) {
@@ -130,24 +136,37 @@ function joinCsvRow(cols) {
   }).join(";");
 }
 
-function toCsvRow(item) {
+function toCsvRow(item, meta = {}) {
+  const {
+    timestamp = Date.now(),
+    action = "",
+    actor = "",
+    createdBy: createdByMeta
+  } = meta;
+
   const u  = item?.uebermittlungsart || {};
   const ms = (item?.massnahmen || []).slice(0, 5);
   const M  = (i) => ms[i] || {};
   const ergehtAn = Array.isArray(item?.ergehtAn) ? item.ergehtAn.join(", ") : "";
-  const benutzer =
-  item.lastBy ||
-  (Array.isArray(item.history) && item.history.length
-    ? (item.history[item.history.length - 1].by || "")
-    : "");
+  const createdBy = String(createdByMeta ?? item.createdBy ?? "");
+  const benutzer = String(
+    actor ||
+    item.lastBy ||
+    (Array.isArray(item.history) && item.history.length
+      ? (item.history[item.history.length - 1].by || "")
+      : "")
+  );
 
   const cols = [
+    new Date(timestamp || Date.now()).toISOString(),
+    action,
     item.nr,
     Number(item?.printCount) > 0 ? "x" : "",
 
     item.datum ?? "",
     item.zeit ?? "",
-	benutzer,
+    createdBy,
+    benutzer,
     u.ein ? "x" : "",
     u.aus ? "x" : "",
     (u.kanalNr ?? u.kanal ?? u.art ?? ""),
@@ -167,18 +186,80 @@ function toCsvRow(item) {
     M(3).massnahme ?? "", M(3).verantwortlich ?? "", M(3).done ? "x" : "",
     M(4).massnahme ?? "", M(4).verantwortlich ?? "", M(4).done ? "x" : "",
 
-    item.id || "", // ID als letzte Spalte
+    item.id || "",
   ];
   return joinCsvRow(cols);
 }
 
 function rewriteCsvFromJson(arr) {
+  const records = [];
+
+  for (const item of arr) {
+    const historyEntries = Array.isArray(item.history) ? item.history : [];
+    if (!historyEntries.length) {
+      records.push({
+        item,
+        timestamp: Date.now(),
+        action: "snapshot",
+        actor: item.lastBy || "",
+        createdBy: item.createdBy ?? ""
+      });
+      continue;
+    }
+
+    for (const entry of historyEntries) {
+      const snapshot = (entry?.after && typeof entry.after === "object")
+        ? entry.after
+        : item;
+
+      const creator = item.createdBy ?? snapshot?.createdBy ?? null;
+      const snapshotItem = {
+        ...item,
+        ...snapshot,
+        nr: item.nr,
+        id: item.id,
+        createdBy: creator
+      };
+
+      records.push({
+        item: snapshotItem,
+        timestamp: entry?.ts ?? Date.now(),
+        action: entry?.action ?? "",
+        actor: entry?.by ?? "",
+        createdBy: snapshotItem.createdBy ?? ""
+      });
+    }
+  }
+
+  records.sort((a, b) => {
+    const ta = Number(a.timestamp) || 0;
+    const tb = Number(b.timestamp) || 0;
+    if (ta !== tb) return ta - tb;
+    const na = Number(a?.item?.nr) || 0;
+    const nb = Number(b?.item?.nr) || 0;
+    return na - nb;
+  });
+
   const lines = [
     CSV_HEADER.join(";"),
-    ...arr.sort((a, b) => (a.nr || 0) - (b.nr || 0)).map(toCsvRow),
+    ...records.map(({ item, ...meta }) => toCsvRow(item, meta))
   ];
-  // CRLF zwischen Records
+
   fs.writeFileSync(CSV_FILE, lines.join("\r\n") + "\r\n", "utf8");
+}
+
+function ensureCsvStructure(arr) {
+  try {
+    const content = fs.readFileSync(CSV_FILE, "utf8");
+    const firstLine = content.split(/\r?\n/, 1)[0] ?? "";
+    if (firstLine.trim() !== CSV_HEADER.join(";")) {
+      rewriteCsvFromJson(arr);
+    }
+  } catch {
+    const headerLine = CSV_HEADER.join(";") + "\r\n";
+    fs.writeFileSync(CSV_FILE, headerLine, "utf8");
+    if (arr.length) rewriteCsvFromJson(arr);
+  }
 }
 
 // ----- History-Helfer --------------------------------------------------------
@@ -272,14 +353,15 @@ router.post("/", express.json(), async (req, res) => {
       printCount: 0,
       history: []
     };
-  const userBy = resolveUserName(req);
+    const userBy = resolveUserName(req);
+    payload.createdBy = userBy;
     payload.history.push({
       ts: Date.now(),
       action: "create",
-     by: userBy,
-     after: snapshotForHistory(payload)
+      by: userBy,
+      after: snapshotForHistory(payload)
     });
-   payload.lastBy = userBy;        // <-- für CSV-BENUTZER
+    payload.lastBy = userBy;        // <-- für CSV-BENUTZER
     all.push(payload);
 
     writeAllJson(all);
@@ -353,6 +435,13 @@ router.put("/:nr", express.json(), async (req, res) => {
       id: existing.id,
       history: existing.history || []
     };
+
+    const existingCreator =
+      existing.createdBy ??
+      existing.history?.find?.((h) => h?.action === "create" && h?.by)?.by ??
+      existing.lastBy ??
+      null;
+    next.createdBy = existingCreator;
 
     // 🔁 Reset: jedes Update setzt das Druck-Flag zurück
     next.printCount = 0;
