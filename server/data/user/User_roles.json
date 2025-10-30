@@ -54,6 +54,51 @@
         "aufgabenboard": "edit",
         "protokoll": "edit"
       }
+    },
+    {
+      "id": "S1",
+      "label": "S1",
+      "apps": {
+        "einsatzboard": "view",
+        "aufgabenboard": "edit",
+        "protokoll": "view"
+      }
+    },
+    {
+      "id": "S3",
+      "label": "S3",
+      "apps": {
+        "einsatzboard": "view",
+        "aufgabenboard": "edit",
+        "protokoll": "view"
+      }
+    },
+    {
+      "id": "S4",
+      "label": "S4",
+      "apps": {
+        "einsatzboard": "view",
+        "aufgabenboard": "edit",
+        "protokoll": "view"
+      }
+    },
+    {
+      "id": "S5",
+      "label": "S5",
+      "apps": {
+        "einsatzboard": "view",
+        "aufgabenboard": "edit",
+        "protokoll": "view"
+      }
+    },
+    {
+      "id": "S6",
+      "label": "S6",
+      "apps": {
+        "einsatzboard": "view",
+        "aufgabenboard": "edit",
+        "protokoll": "view"
+      }
     }
   ]
 }
