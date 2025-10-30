@@ -1,27 +1,27 @@
-timestamp;actor;action;id;title;type;responsible;fromStatus;toStatus;beforeId;meta;role;user
-"2025-10-23 14:15:18";"::1";"create";"p-1761228918059-ttmf";"An: Adasdasd";"Auftrag";"TEST";"";"Neu";"";"{""source"":""protokoll"",""protoNr"":3}"
-2025-10-23T14:15:47.403Z;TEST;TEST;status;p-1761228918059-ttmf;An: Adasdasd;Auftrag;TEST;Neu;In Bearbeitung;
-2025-10-23T14:15:49.654Z;TEST;TEST;reorder;p-1761228918059-ttmf;An: Adasdasd;Auftrag;TEST;In Bearbeitung;Erledigt;
-2025-10-23T14:16:45.125Z;TEST;TEST;reorder;p-1761228918059-ttmf;An: Adasdasd;Auftrag;TEST;Erledigt;In Bearbeitung;
-2025-10-23T14:16:47.485Z;TEST;TEST;status;p-1761228918059-ttmf;An: Adasdasd;Auftrag;TEST;In Bearbeitung;Erledigt;
-2025-10-23T14:17:42.199Z;TEST;TEST;reorder;p-1761228918059-ttmf;An: Adasdasd;Auftrag;TEST;Erledigt;Neu;
-2025-10-23T14:18:29.169Z;TEST;TEST;reorder;p-1761228918059-ttmf;An: Adasdasd;Auftrag;TEST;Neu;In Bearbeitung;
-2025-10-23T14:18:31.771Z;TEST;TEST;reorder;p-1761228918059-ttmf;An: Adasdasd;Auftrag;TEST;In Bearbeitung;Erledigt;
-2025-10-23T14:18:33.988Z;TEST;TEST;reorder;p-1761228918059-ttmf;An: Adasdasd;Auftrag;TEST;Erledigt;In Bearbeitung;
-2025-10-23T14:18:38.405Z;TEST;TEST;reorder;p-1761228918059-ttmf;An: Adasdasd;Auftrag;TEST;In Bearbeitung;Neu;
-2025-10-23T14:18:54.220Z;TEST;TEST;edit;p-1761228918059-ttmf;An: Adasdasd;Auftrag;TEST;;Neu;
-2025-10-23T14:20:52.021Z;TEST;TEST;edit;p-1761228918059-ttmf;An: Adasdasd;Auftrag;TEST;;Neu;
-2025-10-23T14:21:09.612Z;TEST;TEST;reorder;p-1761228918059-ttmf;An: Adasdasd;Auftrag;TEST;Neu;In Bearbeitung;
-2025-10-23T14:21:14.595Z;TEST;TEST;reorder;p-1761228918059-ttmf;An: Adasdasd;Auftrag;TEST;In Bearbeitung;Erledigt;
-2025-10-23T14:21:21.206Z;TEST;TEST;reorder;p-1761228918059-ttmf;An: Adasdasd;Auftrag;TEST;Erledigt;In Bearbeitung;
-2025-10-23T14:21:40.862Z;TEST;TEST;edit;p-1761228918059-ttmf;An: Adasdasd;Auftrag;TEST;;In Bearbeitung;
-2025-10-23T14:30:04.546Z;TEST;TEST;create;1761229804538-162xjl;q;q;q;;Neu;
-2025-10-23T14:32:24.781Z;TEST;TEST;reorder;p-1761228918059-ttmf;An: Adasdasd;Auftrag;TEST;In Bearbeitung;Erledigt;
-"2025-10-23 14:34:03";"::1";"create";"p-1761230043075-31gg";"An:";"Auftrag";"TEST";"";"Neu";"";"{""source"":""protokoll"",""protoNr"":4}"
-2025-10-23T14:42:11.489Z;TEST;TEST;reorder;p-1761230043075-31gg;An:;Auftrag;TEST;Neu;Erledigt;p-1761228918059-ttmf
-2025-10-23T14:42:17.991Z;TEST;TEST;reorder;p-1761230043075-31gg;An:;Auftrag;TEST;Erledigt;Neu;1761229804538-162xjl
-2025-10-23T14:42:30.040Z;TEST;TEST;reorder;p-1761230043075-31gg;An:;Auftrag;TEST;Neu;In Bearbeitung;
-"2025-10-23 15:01:24";"::1";"create";"p-1761231684893-y0dd";"An: 111";"Auftrag";"TEST";"";"Neu";"";"{""source"":""protokoll"",""protoNr"":5}"
-2025-10-23T15:01:55.403Z;TEST;TEST;reorder;p-1761231684893-y0dd;An: 111;Auftrag;TEST;Neu;Erledigt;
-2025-10-23T15:02:27.250Z;TEST;TEST;reorder;p-1761231684893-y0dd;An: 111;Auftrag;TEST;Erledigt;In Bearbeitung;p-1761230043075-31gg
-2025-10-23T15:02:34.746Z;TEST;TEST;edit;p-1761231684893-y0dd;An: 111;Auftrag;TEST;;In Bearbeitung;
+Zeitpunkt;Rolle;Benutzer;Aktion;Titel;Typ;Verantwortlich;Von Status;Nach Status;Einsatz;Notiz;ID
+"23.10.2025  14:15:18";"TEST";"::1";"Angelegt";"An: Adasdasd";"Auftrag";"TEST";"";"Neu";"";"Quelle: protokoll; Protokoll-Nr.: 3";"p-1761228918059-ttmf"
+"23.10.2025  14:15:47";"TEST";"TEST";"Status geändert";"An: Adasdasd";"Auftrag";"TEST";"Neu";"In Bearbeitung";"";"";"p-1761228918059-ttmf"
+"23.10.2025  14:15:49";"TEST";"TEST";"Position geändert";"An: Adasdasd";"Auftrag";"TEST";"In Bearbeitung";"Erledigt";"";"";"p-1761228918059-ttmf"
+"23.10.2025  14:16:45";"TEST";"TEST";"Position geändert";"An: Adasdasd";"Auftrag";"TEST";"Erledigt";"In Bearbeitung";"";"";"p-1761228918059-ttmf"
+"23.10.2025  14:16:47";"TEST";"TEST";"Status geändert";"An: Adasdasd";"Auftrag";"TEST";"In Bearbeitung";"Erledigt";"";"";"p-1761228918059-ttmf"
+"23.10.2025  14:17:42";"TEST";"TEST";"Position geändert";"An: Adasdasd";"Auftrag";"TEST";"Erledigt";"Neu";"";"";"p-1761228918059-ttmf"
+"23.10.2025  14:18:29";"TEST";"TEST";"Position geändert";"An: Adasdasd";"Auftrag";"TEST";"Neu";"In Bearbeitung";"";"";"p-1761228918059-ttmf"
+"23.10.2025  14:18:31";"TEST";"TEST";"Position geändert";"An: Adasdasd";"Auftrag";"TEST";"In Bearbeitung";"Erledigt";"";"";"p-1761228918059-ttmf"
+"23.10.2025  14:18:33";"TEST";"TEST";"Position geändert";"An: Adasdasd";"Auftrag";"TEST";"Erledigt";"In Bearbeitung";"";"";"p-1761228918059-ttmf"
+"23.10.2025  14:18:38";"TEST";"TEST";"Position geändert";"An: Adasdasd";"Auftrag";"TEST";"In Bearbeitung";"Neu";"";"";"p-1761228918059-ttmf"
+"23.10.2025  14:18:54";"TEST";"TEST";"Bearbeitet";"An: Adasdasd";"Auftrag";"TEST";"";"Neu";"";"";"p-1761228918059-ttmf"
+"23.10.2025  14:20:52";"TEST";"TEST";"Bearbeitet";"An: Adasdasd";"Auftrag";"TEST";"";"Neu";"";"";"p-1761228918059-ttmf"
+"23.10.2025  14:21:09";"TEST";"TEST";"Position geändert";"An: Adasdasd";"Auftrag";"TEST";"Neu";"In Bearbeitung";"";"";"p-1761228918059-ttmf"
+"23.10.2025  14:21:14";"TEST";"TEST";"Position geändert";"An: Adasdasd";"Auftrag";"TEST";"In Bearbeitung";"Erledigt";"";"";"p-1761228918059-ttmf"
+"23.10.2025  14:21:21";"TEST";"TEST";"Position geändert";"An: Adasdasd";"Auftrag";"TEST";"Erledigt";"In Bearbeitung";"";"";"p-1761228918059-ttmf"
+"23.10.2025  14:21:40";"TEST";"TEST";"Bearbeitet";"An: Adasdasd";"Auftrag";"TEST";"";"In Bearbeitung";"";"";"p-1761228918059-ttmf"
+"23.10.2025  14:30:04";"TEST";"TEST";"Angelegt";"q";"q";"q";"";"Neu";"";"";"1761229804538-162xjl"
+"23.10.2025  14:32:24";"TEST";"TEST";"Position geändert";"An: Adasdasd";"Auftrag";"TEST";"In Bearbeitung";"Erledigt";"";"";"p-1761228918059-ttmf"
+"23.10.2025  14:34:03";"TEST";"::1";"Angelegt";"An:";"Auftrag";"TEST";"";"Neu";"";"Quelle: protokoll; Protokoll-Nr.: 4";"p-1761230043075-31gg"
+"23.10.2025  14:42:11";"TEST";"TEST";"Position geändert";"An:";"Auftrag";"TEST";"Neu";"Erledigt";"";"";"p-1761230043075-31gg"
+"23.10.2025  14:42:17";"TEST";"TEST";"Position geändert";"An:";"Auftrag";"TEST";"Erledigt";"Neu";"";"";"p-1761230043075-31gg"
+"23.10.2025  14:42:30";"TEST";"TEST";"Position geändert";"An:";"Auftrag";"TEST";"Neu";"In Bearbeitung";"";"";"p-1761230043075-31gg"
+"23.10.2025  15:01:24";"TEST";"::1";"Angelegt";"An: 111";"Auftrag";"TEST";"";"Neu";"";"Quelle: protokoll; Protokoll-Nr.: 5";"p-1761231684893-y0dd"
+"23.10.2025  15:01:55";"TEST";"TEST";"Position geändert";"An: 111";"Auftrag";"TEST";"Neu";"Erledigt";"";"";"p-1761231684893-y0dd"
+"23.10.2025  15:02:27";"TEST";"TEST";"Position geändert";"An: 111";"Auftrag";"TEST";"Erledigt";"In Bearbeitung";"";"";"p-1761231684893-y0dd"
+"23.10.2025  15:02:34";"TEST";"TEST";"Bearbeitet";"An: 111";"Auftrag";"TEST";"";"In Bearbeitung";"";"";"p-1761231684893-y0dd"

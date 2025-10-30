@@ -207,7 +207,7 @@ export async function appendCsvRow(file, headers, payload, req, opts = {}) {
   if (autoTimestampField && !row[autoTimestampField]) {
     if (autoTimestampField === "Zeitpunkt") {
       const d = new Date(), p = n => String(n).padStart(2,"0");
-      row.Zeitpunkt = `${p(d.getDate())}.${p(d.getMonth()+1)}.${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+      row.Zeitpunkt = `${p(d.getDate())}.${p(d.getMonth()+1)}.${d.getFullYear()}  ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
     } else {
       row.timestamp = new Date().toISOString();
     }

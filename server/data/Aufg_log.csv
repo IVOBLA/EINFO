@@ -1,9 +1,9 @@
-timestamp;role;action;id;title;type;responsible;fromStatus;toStatus;beforeId
-"2025-10-17 07:04:39";"S2";"create";"1760684679341-5i4mvz";"1";"1";"";"";"Neu";""
-"2025-10-17 07:14:48";"S2";"update";"1760684679341-5i4mvz";"2";"1";"";"Neu";"Neu";""
-"2025-10-17 07:15:04";"S2";"update";"1760684679341-5i4mvz";"2";"12";"";"Neu";"Neu";""
-"2025-10-17 07:15:15";"S2";"update";"1760684679341-5i4mvz";"2";"12";"";"Neu";"Neu";""
-"2025-10-17 07:15:46";"S2";"reorder";"1760684679341-5i4mvz";"2";"12";"";"Neu";"In Bearbeitung";""
-"2025-10-17 07:15:51";"S2";"status";"1760684679341-5i4mvz";"2";"12";"";"In Bearbeitung";"Erledigt";""
-"2025-10-17 07:25:59";"S2";"update";"1760684679341-5i4mvz";"2";"12";"";"Erledigt";"Erledigt";""
-"2025-10-17 07:26:05";"S2";"reorder";"1760684679341-5i4mvz";"2";"12";"";"Erledigt";"Neu";""
+Zeitpunkt;Rolle;Benutzer;Aktion;Titel;Typ;Verantwortlich;Von Status;Nach Status;Einsatz;Notiz;ID
+"17.10.2025  07:04:39";"S2";"";"Angelegt";"1";"1";"";"";"Neu";"";"";"1760684679341-5i4mvz"
+"17.10.2025  07:14:48";"S2";"";"Bearbeitet";"2";"1";"";"Neu";"Neu";"";"";"1760684679341-5i4mvz"
+"17.10.2025  07:15:04";"S2";"";"Bearbeitet";"2";"12";"";"Neu";"Neu";"";"";"1760684679341-5i4mvz"
+"17.10.2025  07:15:15";"S2";"";"Bearbeitet";"2";"12";"";"Neu";"Neu";"";"";"1760684679341-5i4mvz"
+"17.10.2025  07:15:46";"S2";"";"Position geändert";"2";"12";"";"Neu";"In Bearbeitung";"";"";"1760684679341-5i4mvz"
+"17.10.2025  07:15:51";"S2";"";"Status geändert";"2";"12";"";"In Bearbeitung";"Erledigt";"";"";"1760684679341-5i4mvz"
+"17.10.2025  07:25:59";"S2";"";"Bearbeitet";"2";"12";"";"Erledigt";"Erledigt";"";"";"1760684679341-5i4mvz"
+"17.10.2025  07:26:05";"S2";"";"Position geändert";"2";"12";"";"Erledigt";"Neu";"";"";"1760684679341-5i4mvz"
