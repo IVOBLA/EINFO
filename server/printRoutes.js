@@ -6,6 +6,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import puppeteer from "puppeteer";
 import { appendHistoryEntriesToCsv } from "./utils/protocolCsv.mjs";
+import { resolveUserName } from "./auditLog.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -304,7 +305,8 @@ router.post("/:nr/print", express.json(), async (req, res) => {
     }
 
     const { fileName, pageCount } = await renderBundlePdf(item, recipients, nr);
-    await recordPrint(nr, recipients, pageCount, fileName, req.ip || "", item);
+    const actor = resolveUserName(req) || req.ip || "";
+    await recordPrint(nr, recipients, pageCount, fileName, actor, item);
 
     res.json({
       ok: true,
