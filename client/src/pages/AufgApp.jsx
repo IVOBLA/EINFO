@@ -14,7 +14,7 @@ import AufgDroppableColumn from "../components/AufgDroppableColumn.jsx";
 import AufgAddModal from "../components/AufgAddModal.jsx";
 import AufgInfoModal from "../components/AufgInfoModal.jsx";
 import AufgSortableCard from "../components/AufgSortableCard.jsx";
-import { initRolePolicy, canEditApp, getAllRoles } from "../auth/roleUtils.js";
+import { initRolePolicy, canEditApp, getAllRoles, hasRole } from "../auth/roleUtils.js";
 import { playGong } from "../sound"; // gleicher Sound wie im Einsatz-Kanban
 import { fetchBoard } from "../api.js";
 import { forbiddenError, notifyForbidden } from "../../forbidden.js";
@@ -25,6 +25,7 @@ const STATUS = { NEW: "Neu", IN_PROGRESS: "In Bearbeitung", DONE: "Erledigt" };
 const COLS = [STATUS.NEW, STATUS.IN_PROGRESS, STATUS.DONE];
 const INCIDENT_STATUS_KEYS = ["neu", "in-bearbeitung", "erledigt"];
 const FALLBACK_DUE_OFFSET_MINUTES = getFallbackDueOffsetMinutes();
+const ROLE_SWITCH_IDS = ["LTSTB", "LTSTBSTV"];
 
 const normalizeDefaultDueOffset = (value) => ensureValidDueOffset(value);
 
@@ -134,6 +135,10 @@ export default function AufgApp() {
   const roleSelectionManualRef = useRef(false);
   const prevPrimaryRoleRef = useRef(primaryRoleId);
   const [roleOptions, setRoleOptions] = useState([]);
+  const canSwitchRoles = useMemo(
+    () => ROLE_SWITCH_IDS.some((id) => hasRole(id, user)),
+    [user]
+  );
   const roleSelectOptions = useMemo(() => {
     if (!roleId) return roleOptions;
     const exists = roleOptions.some((opt) => opt.id === roleId);
@@ -190,10 +195,14 @@ export default function AufgApp() {
   }, [roleId, roleOptions]);
 
   const handleRoleChange = useCallback((event) => {
+    if (!canSwitchRoles) {
+      event?.preventDefault?.();
+      return;
+    }
     const value = String(event.target.value || "").trim().toUpperCase();
     roleSelectionManualRef.current = true;
     setRoleId(value);
-  }, []);
+  }, [canSwitchRoles]);
 
   useEffect(() => {
     if (!roleId) return undefined;
@@ -554,9 +563,15 @@ export default function AufgApp() {
                 value={roleId}
                 onChange={handleRoleChange}
                 className="px-2 py-1 rounded-full border bg-gray-50 focus:outline-none focus:ring-2 focus:ring-sky-500"
-                disabled={!roleSelectOptions.length}
+                disabled={!roleSelectOptions.length || !canSwitchRoles}
                 aria-label="Rolle auswählen"
-                title={roleId ? `Rolle ${roleId}` : "Rolle auswählen"}
+                title={
+                  !canSwitchRoles
+                    ? "Nur LtStb oder LtStbStv dürfen Rollen wechseln"
+                    : roleId
+                      ? `Rolle ${roleId}`
+                      : "Rolle auswählen"
+                }
               >
                 {roleSelectOptions.map((opt) => (
                   <option key={opt.id} value={opt.id}>
