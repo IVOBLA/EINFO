@@ -179,6 +179,7 @@ async function saveAufgBoard(roleId, board) {
 
 // --- Rollen-Ermittlung (keine eigenen Routen pro Rolle) ---
 const BAD = new Set(["", "NULL", "UNDEFINED", "NONE", "N/A"]);
+const BOARD_ADMIN_ROLES = new Set(["LTSTB", "LTSTBSTV"]);
 const normRole = (s) => {
   const v = String(s ?? "").trim().toUpperCase();
   const clean = v.replace(/[^A-Z0-9_-]/g, "");
@@ -210,7 +211,10 @@ function targetRoleOrSend(req, res) {
 
   if (!userRole) return res.status(401).json({ error: "unauthorized (no role)" });
   if (!target) return res.status(400).json({ error: "role missing" });
-  if (target !== userRole) return res.status(403).json({ error: "forbidden (role mismatch)" });
+  if (target !== userRole) {
+    const canOverride = BOARD_ADMIN_ROLES.has(userRole) && req.method === "GET" && !!qRole;
+    if (!canOverride) return res.status(403).json({ error: "forbidden (role mismatch)" });
+  }
 
   return target;
 }
