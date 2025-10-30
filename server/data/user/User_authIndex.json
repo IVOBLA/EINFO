@@ -13,61 +13,6 @@
       }
     },
     {
-      "id": 2,
-      "username": "TEST",
-      "displayName": "TEST",
-      "role": "TEST",
-      "pass": {
-        "algo": "scrypt",
-        "salt": "eCR4nByt39zPFyEgkafcZQ==",
-        "hash": "PCj+rlKUnszIyWLr0JVaA6sTAxG9RR1O5Mauxm+ril4="
-      }
-    },
-    {
-      "id": 5,
-      "username": "bla",
-      "displayName": "bla",
-      "role": "S2",
-      "pass": {
-        "algo": "scrypt",
-        "salt": "xMQp2VpPP9zlokjw+F53mg==",
-        "hash": "dBT7ay0gpCSkDkV3ss2I8Nio97v4BoqcUUlFjyaGcU4="
-      }
-    },
-    {
-      "id": 7,
-      "username": "MS",
-      "displayName": "Meldestelle",
-      "role": "MS",
-      "pass": {
-        "algo": "scrypt",
-        "salt": "s0S6BTU4D+z+70uitoMisw==",
-        "hash": "kj846iLm4SIl5nPXAUeE67wB3A33Kjsbo88zHgNEjRI="
-      }
-    },
-    {
-      "id": 8,
-      "username": "S2",
-      "displayName": "S2",
-      "role": "S2",
-      "pass": {
-        "algo": "scrypt",
-        "salt": "8ByQFoM1iv4F8vlts+qa4w==",
-        "hash": "OknZ+ZpuV7lw6m3AH12wxL2pDxpVNFFjFzoZBBjiqUI="
-      }
-    },
-    {
-      "id": 9,
-      "username": "S2A",
-      "displayName": "S2A",
-      "role": "S2",
-      "pass": {
-        "algo": "scrypt",
-        "salt": "UCHtXD6sUQgdfbZoxZl1jA==",
-        "hash": "T4SeubSZ630WY38AcgmdOOTCl2yWRn9sAZUxBVpPwiM="
-      }
-    },
-    {
       "id": 10,
       "username": "Leiter",
       "displayName": "Leiter Stab",
@@ -76,6 +21,72 @@
         "algo": "scrypt",
         "salt": "tu8R7b7krOVD1v0ZkB+pqw==",
         "hash": "A3SYkH6z12FFFZJVsz9YzakweYJhmvpm4uzB9d+Q8tY="
+      }
+    },
+    {
+      "id": 11,
+      "username": "S3",
+      "displayName": "S3",
+      "role": "S3",
+      "pass": {
+        "algo": "scrypt",
+        "salt": "hG3TdgR6ajplorp1EAxd2w==",
+        "hash": "wg18nAhOCFbsEEmeKZg9eO5Z1AuwwvxFvJJSWFoIG+o="
+      }
+    },
+    {
+      "id": 12,
+      "username": "S1",
+      "displayName": "S1",
+      "role": "S1",
+      "pass": {
+        "algo": "scrypt",
+        "salt": "ucRy5S6Bd/Ye171mucu3aA==",
+        "hash": "BBUImQkWthi8dzCrGEgJNOzuaV24zbcJK91MNQ/cIOA="
+      }
+    },
+    {
+      "id": 13,
+      "username": "S2",
+      "displayName": "S2",
+      "role": "S2",
+      "pass": {
+        "algo": "scrypt",
+        "salt": "YiwcsmZXYDL4s6QB/fB25A==",
+        "hash": "AdgFwNYicIUsKgul8eXH0j1/2+FJamEUuZHe3rGXGjQ="
+      }
+    },
+    {
+      "id": 14,
+      "username": "S4",
+      "displayName": "S4",
+      "role": "S4",
+      "pass": {
+        "algo": "scrypt",
+        "salt": "304L+KuFr+6owDM8ErNXvQ==",
+        "hash": "ZPjoE0EVT9+1JIBbTVXYi2l/2XxXOWpWdEY5uG06zuY="
+      }
+    },
+    {
+      "id": 15,
+      "username": "S5",
+      "displayName": "S5",
+      "role": "S5",
+      "pass": {
+        "algo": "scrypt",
+        "salt": "6WkCdF32b0lrUS1e05u2sw==",
+        "hash": "/6TnmmcApeES45ZevW4hvtwglnAyiCZeqXguCBl/oe0="
+      }
+    },
+    {
+      "id": 16,
+      "username": "S6",
+      "displayName": "S6",
+      "role": "S6",
+      "pass": {
+        "algo": "scrypt",
+        "salt": "7hWS2Uht217BlKEUQiVq7g==",
+        "hash": "mVGkBNi51bZqUIqRpke9woAYdKkGQf7SiCeAVHrv22w="
       }
     }
   ]
