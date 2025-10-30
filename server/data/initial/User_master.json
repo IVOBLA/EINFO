@@ -1,0 +1,10 @@
+{
+  "v": 1,
+  "salt": "FgTbPiEuao8yJ5mjldTr0A==",
+  "params": {
+    "N": 16384,
+    "r": 8,
+    "p": 1
+  },
+  "verify": "WDmJLkFfWV72k28ZpGjOC61C9wvZw6rwiRacAgy6oIo="
+}

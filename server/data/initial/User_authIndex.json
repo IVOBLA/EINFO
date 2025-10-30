@@ -1,0 +1,49 @@
+{
+  "v": 1,
+  "users": [
+    {
+      "id": 1,
+      "username": "admin",
+      "displayName": "Administrator",
+      "role": "Admin",
+      "pass": {
+        "algo": "scrypt",
+        "salt": "EFQoM9/WpY5j7thQomPXkg==",
+        "hash": "x8/cAu1zLgPA6VtRcJ2/N7nIfy4IjalCOPZPoiq6Zn0="
+      }
+    },
+    {
+      "id": 2,
+      "username": "TEST",
+      "displayName": "TEST",
+      "role": "TEST",
+      "pass": {
+        "algo": "scrypt",
+        "salt": "eCR4nByt39zPFyEgkafcZQ==",
+        "hash": "PCj+rlKUnszIyWLr0JVaA6sTAxG9RR1O5Mauxm+ril4="
+      }
+    },
+    {
+      "id": 5,
+      "username": "bla",
+      "displayName": "bla",
+      "role": "S2",
+      "pass": {
+        "algo": "scrypt",
+        "salt": "xMQp2VpPP9zlokjw+F53mg==",
+        "hash": "dBT7ay0gpCSkDkV3ss2I8Nio97v4BoqcUUlFjyaGcU4="
+      }
+    },
+    {
+      "id": 7,
+      "username": "MS",
+      "displayName": "Meldestelle",
+      "role": "MS",
+      "pass": {
+        "algo": "scrypt",
+        "salt": "s0S6BTU4D+z+70uitoMisw==",
+        "hash": "kj846iLm4SIl5nPXAUeE67wB3A33Kjsbo88zHgNEjRI="
+      }
+    }
+  ]
+}
