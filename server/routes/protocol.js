@@ -5,7 +5,8 @@ import { fileURLToPath } from "url";
 import express from "express";
 import { randomUUID } from "crypto";
 import { resolveUserName } from "../auditLog.mjs";
- import { ensureTaskForRole } from "../utils/tasksService.mjs";
+import { ensureTaskForRole } from "../utils/tasksService.mjs";
+import { CSV_HEADER, ensureCsvStructure, rewriteCsvFromJson } from "../utils/protocolCsv.mjs";
 
 const isLage = v => /^(lage|lagemeldung)$/i.test(String(v || ""));
 const infoText = x => String(x?.information ?? x?.INFORMATION ?? x?.beschreibung ?? x?.text ?? x?.ERGAENZUNG ?? "").trim();
@@ -58,27 +59,16 @@ const DATA_DIR   = path.resolve(SERVER_DIR, "data");   // => <repo>/server/data
 const CSV_FILE   = path.join(DATA_DIR, "protocol.csv");
 const JSON_FILE  = path.join(DATA_DIR, "protocol.json");
 
+const titleFromAnVon = (o) =>
+  String(
+    o?.anvon ?? o?.an_von ?? o?.anVon ??
+    o?.name_stelle ?? o?.nameStelle ?? o?.name ?? ""
+  ).trim() || "An/Von";
 
-// ==== CSV: Spalten ====
-
-const CSV_HEADER = [
-  "ZEITPUNKT","AKTION","NR","DRUCK","DATUM","ZEIT","ANGELEGT_VON","BENUTZER","EING","AUSG","KANAL",
-  "AN/VON","INFORMATION","RUECKMELDUNG1","RUECKMELDUNG2","TYP",
-  "ERGEHT_AN","ERGAENZUNG",
-  "M1","V1","X1","M2","V2","X2","M3","V3","X3","M4","V4","X4","M5","V5","X5",
-  "ID"
-];
-
- const titleFromAnVon = (o) =>
-   String(
-     o?.anvon ?? o?.an_von ?? o?.anVon ??
-     o?.name_stelle ?? o?.nameStelle ?? o?.name ?? ""
-   ).trim() || "An/Von";
-
- const isEingang = v => {
-   const x = (v?.ein ?? v)?.toString().trim().toLowerCase();
-   return x === "true" || x === "1" || x === "x" || x === "eingang";
- };
+const isEingang = v => {
+  const x = (v?.ein ?? v)?.toString().trim().toLowerCase();
+  return x === "true" || x === "1" || x === "x" || x === "eingang";
+};
 
 // ==== Files sicherstellen ====
 function ensureFiles() {
@@ -113,7 +103,7 @@ function readAllJson() {
   catch { arr = []; }
   if (!Array.isArray(arr)) arr = [];
   if (migrateMeta(arr)) fs.writeFileSync(JSON_FILE, JSON.stringify(arr, null, 2), "utf8");
-  ensureCsvStructure(arr);
+  ensureCsvStructure(arr, CSV_FILE);
   return arr;
 }
 function writeAllJson(arr) {
@@ -122,144 +112,6 @@ function writeAllJson(arr) {
 function nextNr(arr) {
   const max = arr.reduce((m, x) => Math.max(m, Number(x?.nr) || 0), 0);
   return max + 1;
-}
-
-// CSV: robustes Quoting + CRLF normalisieren (auch innerhalb von Feldern)
-function joinCsvRow(cols) {
-  return cols.map((c) => {
-    const raw = String(c ?? "");
-    // Excel erwartet CRLF (\r\n) sowohl als Record-Separator als auch innerhalb gequoteter Felder
-    const s = raw.replace(/\r?\n/g, "\r\n");
-    return (s.includes(";") || s.includes('"') || s.includes("\r\n"))
-      ? `"${s.replaceAll('"', '""')}"`
-      : s;
-  }).join(";");
-}
-
-function toCsvRow(item, meta = {}) {
-  const {
-    timestamp = Date.now(),
-    action = "",
-    actor = "",
-    createdBy: createdByMeta
-  } = meta;
-
-  const u  = item?.uebermittlungsart || {};
-  const ms = (item?.massnahmen || []).slice(0, 5);
-  const M  = (i) => ms[i] || {};
-  const ergehtAn = Array.isArray(item?.ergehtAn) ? item.ergehtAn.join(", ") : "";
-  const createdBy = String(createdByMeta ?? item.createdBy ?? "");
-  const benutzer = String(
-    actor ||
-    item.lastBy ||
-    (Array.isArray(item.history) && item.history.length
-      ? (item.history[item.history.length - 1].by || "")
-      : "")
-  );
-
-  const cols = [
-    new Date(timestamp || Date.now()).toISOString(),
-    action,
-    item.nr,
-    Number(item?.printCount) > 0 ? "x" : "",
-
-    item.datum ?? "",
-    item.zeit ?? "",
-    createdBy,
-    benutzer,
-    u.ein ? "x" : "",
-    u.aus ? "x" : "",
-    (u.kanalNr ?? u.kanal ?? u.art ?? ""),
-
-    item.anvon ?? "",
-    item.information ?? "",
-    item.rueckmeldung1 ?? "",
-    item.rueckmeldung2 ?? "",
-    item.infoTyp ?? "",
-
-    ergehtAn,
-    item?.ergehtAnText ?? "",
-
-    M(0).massnahme ?? "", M(0).verantwortlich ?? "", M(0).done ? "x" : "",
-    M(1).massnahme ?? "", M(1).verantwortlich ?? "", M(1).done ? "x" : "",
-    M(2).massnahme ?? "", M(2).verantwortlich ?? "", M(2).done ? "x" : "",
-    M(3).massnahme ?? "", M(3).verantwortlich ?? "", M(3).done ? "x" : "",
-    M(4).massnahme ?? "", M(4).verantwortlich ?? "", M(4).done ? "x" : "",
-
-    item.id || "",
-  ];
-  return joinCsvRow(cols);
-}
-
-function rewriteCsvFromJson(arr) {
-  const records = [];
-
-  for (const item of arr) {
-    const historyEntries = Array.isArray(item.history) ? item.history : [];
-    if (!historyEntries.length) {
-      records.push({
-        item,
-        timestamp: Date.now(),
-        action: "snapshot",
-        actor: item.lastBy || "",
-        createdBy: item.createdBy ?? ""
-      });
-      continue;
-    }
-
-    for (const entry of historyEntries) {
-      const snapshot = (entry?.after && typeof entry.after === "object")
-        ? entry.after
-        : item;
-
-      const creator = item.createdBy ?? snapshot?.createdBy ?? null;
-      const snapshotItem = {
-        ...item,
-        ...snapshot,
-        nr: item.nr,
-        id: item.id,
-        createdBy: creator
-      };
-
-      records.push({
-        item: snapshotItem,
-        timestamp: entry?.ts ?? Date.now(),
-        action: entry?.action ?? "",
-        actor: entry?.by ?? "",
-        createdBy: snapshotItem.createdBy ?? ""
-      });
-    }
-  }
-
-  records.sort((a, b) => {
-    const ta = Number(a.timestamp) || 0;
-    const tb = Number(b.timestamp) || 0;
-    if (ta !== tb) return ta - tb;
-    const na = Number(a?.item?.nr) || 0;
-    const nb = Number(b?.item?.nr) || 0;
-    return na - nb;
-  });
-
-  const lines = [
-    CSV_HEADER.join(";"),
-    ...records.map(({ item, ...meta }) => toCsvRow(item, meta))
-  ];
-
-  fs.writeFileSync(CSV_FILE, lines.join("\r\n") + "\r\n", "utf8");
-}
-
-function ensureCsvStructure(arr) {
-  try {
-    const content = fs.readFileSync(CSV_FILE, "utf8");
-    const firstLine = content.split(/\r?\n/, 1)[0] ?? "";
-    if (firstLine.trim() !== CSV_HEADER.join(";")) {
-      rewriteCsvFromJson(arr);
-    }
-  } catch {
-    const headerLine = CSV_HEADER.join(";") + "\r\n";
-    fs.writeFileSync(CSV_FILE, headerLine, "utf8");
-    if (arr.length) rewriteCsvFromJson(arr);
-  }
 }
 
 // ----- History-Helfer --------------------------------------------------------
@@ -365,7 +217,7 @@ router.post("/", express.json(), async (req, res) => {
     all.push(payload);
 
     writeAllJson(all);
-    rewriteCsvFromJson(all);
+    rewriteCsvFromJson(all, CSV_FILE);
 // Ergänzung: Aufgaben je Verantwortlicher (nur Auftrag/Lage)
 try {
   if (taskType(payload)) {
@@ -458,7 +310,7 @@ router.put("/:nr", express.json(), async (req, res) => {
 
     all[idx] = next;
     writeAllJson(all);
-    rewriteCsvFromJson(all);
+    rewriteCsvFromJson(all, CSV_FILE);
  // Ergänzung: neu hinzugekommene Verantwortliche ==> Aufgaben nachziehen
  try{
    if (taskType(next)) {

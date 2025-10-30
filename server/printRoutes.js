@@ -5,6 +5,7 @@ import fss from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import puppeteer from "puppeteer";
+import { rewriteCsvFromJson } from "./utils/protocolCsv.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -17,6 +18,7 @@ await fs.mkdir(PDF_DIR, { recursive: true });
 
 // Protokoll-Daten (JSON) für Autosave/History
 const JSON_FILE = path.join(DATA_ROOT, "protocol.json");
+const CSV_FILE  = path.join(DATA_ROOT, "protocol.csv");
 
 // immer mindestens eine Zusatzkopie
 const EXTRA_COPIES = 1;
@@ -86,6 +88,7 @@ async function recordPrint(nr, recipients, pages, fileName, by, latestSnapshotFr
     all[idx] = merged;
   }
   await writeAll(all);
+  rewriteCsvFromJson(all, CSV_FILE);
 }
 
 // ---------- HTML/CSS ----------
