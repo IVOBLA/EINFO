@@ -57,6 +57,7 @@ const EINSATZ_HEADERS = [
 const AUTO_CFG_FILE         = path.join(DATA_DIR, "conf","auto-import.json");
 const AUTO_DEFAULT_FILENAME = "list_filtered.json";
 const AUTO_DEFAULT          = { enabled:false, intervalSec:30, filename:AUTO_DEFAULT_FILENAME };
+const AUTO_IMPORT_USER      = "EinsatzInfo";
 
 // Merker für Import-Status
 let importLastLoadedAt = null;   // ms
@@ -1475,10 +1476,22 @@ async function importFromFileOnce(filename=AUTO_DEFAULT_FILENAME){
         };
         board.columns["neu"].items.unshift(card);
         created++;
+        const logUser = AUTO_IMPORT_USER;
+        const logRow = buildEinsatzLog({
+          action: "Einsatz erstellt (Auto-Import)",
+          card,
+          from: "Neu",
+          note: card.ort || "",
+          board,
+          user: logUser
+        });
+        if (!logRow.Benutzer) logRow.Benutzer = logUser;
         await appendCsvRow(
-          LOG_FILE, EINSATZ_HEADERS,
-          buildEinsatzLog({ action:"Einsatz erstellt (Auto-Import)", card, from:"Neu", note:card.ort || "", board, user: "EinsatzInfo" }),
-          null, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
+          LOG_FILE,
+          EINSATZ_HEADERS,
+          logRow,
+          null,
+          { autoTimestampField: "Zeitpunkt", autoUserField: "Benutzer" }
         );
       }
     }
