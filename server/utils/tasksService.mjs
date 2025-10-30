@@ -56,12 +56,20 @@ function normalizeDueAt(v){
   return d.toISOString();
 }
 
-export async function ensureTaskForRole({roleId, protoNr, item, actor, responsibleLabel}){
+export async function ensureTaskForRole({
+  roleId,
+  protoNr,
+  item,
+  actor,
+  actorRole,
+  responsibleLabel,
+}){
   const responsible = String(responsibleLabel ?? roleId ?? "").trim();
   if (!responsible) return null;
   const boardId = normalizeBoardId(roleId ?? responsible);
   const roleKey = canonicalRoleKey(responsible);
   const logRole = String(responsibleLabel ?? roleId ?? boardId).trim() || boardId;
+  const actorRoleValue = typeof actorRole === "string" ? actorRole.trim() : "";
 
   // idempotent: existiert bereits Karte mit derselben Protokoll-Nr + Rolle?
   const board = await loadBoard(boardId);
@@ -100,7 +108,7 @@ export async function ensureTaskForRole({roleId, protoNr, item, actor, responsib
     logFile,
     AUFG_HEADERS,
     buildAufgabenLog({
-      role: logRole,
+      role: actorRoleValue || logRole,
       action: "create",
       item: card,
       toStatus: card.status,
