@@ -40,6 +40,11 @@ const ARCHIVE_DIR = path.join(DATA_DIR, "archive");
 const ERROR_LOG   = path.join(DATA_DIR, "Log.txt");
 const GROUPS_FILE = path.join(DATA_DIR, "conf","group_locations.json");
 
+const VEHICLE_CACHE_TTL_MS = 10_000;
+let vehiclesCacheValue = null;
+let vehiclesCacheExpiresAt = 0;
+let vehiclesCachePromise = null;
+
 const EINSATZ_HEADERS = [
 "Zeitpunkt",
   "Benutzer",
@@ -162,7 +167,10 @@ async function readJson(file, fallback){
 }
 
 async function readOverrides(){ return await readJson(VEH_OVERRIDES, {}); }
-async function writeOverrides(next){ await writeJson(VEH_OVERRIDES, next); }
+async function writeOverrides(next){
+  await writeJson(VEH_OVERRIDES, next);
+  invalidateVehiclesCache();
+}
 
 // GPS > manuell > leer
 async function getAllVehiclesMerged(){
@@ -206,6 +214,24 @@ const normalizeLabel = (value) => String(value || "").trim().toLowerCase();
 
 async function readExtraVehiclesRaw() {
   return await readJson(VEH_EXTRA, []);
+}
+
+function invalidateVehiclesCache() {
+  vehiclesCacheValue = null;
+  vehiclesCacheExpiresAt = 0;
+  vehiclesCachePromise = null;
+}
+
+function snapshotVehiclesData(source) {
+  if (!source) {
+    return { base: [], extra: [], extraRaw: [], labelIndex: new Map() };
+  }
+  return {
+    base: [...source.base],
+    extra: [...source.extra],
+    extraRaw: [...source.extraRaw],
+    labelIndex: new Map(source.labelIndex),
+  };
 }
 
 function buildVehicleLabelIndex(baseList = [], extraList = []) {
@@ -267,11 +293,33 @@ function applyCloneMetadata(extraList, labelIndex) {
 }
 
 async function getVehiclesData() {
-  const base = await readJson(VEH_BASE, []);
-  const extraRaw = await readExtraVehiclesRaw();
-  const labelIndex = buildVehicleLabelIndex(base, extraRaw);
-  const extra = applyCloneMetadata(extraRaw, labelIndex);
-  return { base, extra, extraRaw, labelIndex };
+  const now = Date.now();
+  if (vehiclesCacheValue && vehiclesCacheExpiresAt > now) {
+    return snapshotVehiclesData(vehiclesCacheValue);
+  }
+
+  if (!vehiclesCachePromise) {
+    vehiclesCachePromise = (async () => {
+      const base = await readJson(VEH_BASE, []);
+      const extraRaw = await readExtraVehiclesRaw();
+      const labelIndex = buildVehicleLabelIndex(base, extraRaw);
+      const extra = applyCloneMetadata(extraRaw, labelIndex);
+      return { base, extra, extraRaw, labelIndex };
+    })();
+  }
+
+  try {
+    const loaded = await vehiclesCachePromise;
+    vehiclesCacheValue = loaded;
+    vehiclesCacheExpiresAt = Date.now() + VEHICLE_CACHE_TTL_MS;
+    return snapshotVehiclesData(loaded);
+  } catch (error) {
+    vehiclesCacheValue = null;
+    vehiclesCacheExpiresAt = 0;
+    throw error;
+  } finally {
+    vehiclesCachePromise = null;
+  }
 }
 
 function boardHasVehicle(board, vehicleId) {
@@ -320,7 +368,10 @@ async function removeClonesByIds(ids, board = null) {
     }
     next.push(payload);
   }
-  if (changed) await writeJson(VEH_EXTRA, next);
+  if (changed) {
+    await writeJson(VEH_EXTRA, next);
+    invalidateVehiclesCache();
+  }
 }
 
 function ensureHumanIdWithPrefix(value, prefix, allocateNumber) {
@@ -649,7 +700,9 @@ app.post("/api/vehicles", async (req,res)=>{
     v.isClone = true;
     v.clone = "clone";
   }
-  extra.push(v); await writeJson(VEH_EXTRA, extra);
+  extra.push(v);
+  await writeJson(VEH_EXTRA, extra);
+  invalidateVehiclesCache();
 
   await appendCsvRow(
     LOG_FILE,
