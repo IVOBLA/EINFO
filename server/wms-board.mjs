@@ -47,7 +47,9 @@ const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
 /* ---------- Konfiguration ---------- */
 const PORT       = Number(process.env.WMS_PORT || 8090);
-const DATA_DIR   = path.resolve(process.env.DATA_DIR || "./data");
+const DATA_DIR   = process.env.DATA_DIR
+  ? path.resolve(process.env.DATA_DIR)
+  : path.resolve(__dirname, "data");
 const CAPS_TITLE = process.env.WMS_TITLE || "Lagekarte WMS (MapModal-Logik)";
 const CAPS_ABS   = process.env.WMS_ABSTRACT || "Einsätze & Fahrzeuge (Positionen wie MapModal)";
 

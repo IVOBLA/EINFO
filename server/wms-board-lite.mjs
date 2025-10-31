@@ -23,8 +23,12 @@ import { createCanvas, loadImage } from "@napi-rs/canvas";
 /* ---------- Setup ---------- */
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 const PORT       = Number(process.env.WMS_PORT || 8090);
-const DATA_DIR   = path.resolve(process.env.DATA_DIR || "./data");
-const PUBLIC_DIR = path.resolve("./public"); // Icons bevorzugt hier
+const DATA_DIR   = process.env.DATA_DIR
+  ? path.resolve(process.env.DATA_DIR)
+  : path.resolve(__dirname, "data");
+const PUBLIC_DIR = process.env.PUBLIC_DIR
+  ? path.resolve(process.env.PUBLIC_DIR)
+  : path.resolve(__dirname, "public"); // Icons bevorzugt hier
 
 // Daten-Dateien
 const f = (p) => path.join(DATA_DIR, p);
