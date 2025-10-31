@@ -1002,14 +1002,31 @@ useEffect(() => {
     try { await setAutoImportConfig({ enabled: autoEnabled, intervalSec: n }); setSec(0); } catch {}
   };
 
-const createIncident = async ({ title, ort, typ, isArea = false, areaCardId = null, areaColor }) => {
+const createIncident = async ({
+    title,
+    ort,
+    typ,
+    isArea = false,
+    areaCardId = null,
+    areaColor,
+    coordinates = null,
+    location = "",
+  }) => {
     const finalAreaId = isArea ? null : (areaCardId ? String(areaCardId) : null);
     const payload = {
       isArea: !!isArea,
       areaCardId: finalAreaId,
-     };
+    };
     if (isArea) {
       payload.areaColor = areaColor || DEFAULT_AREA_COLOR;
+    }
+    if (coordinates && Number.isFinite(coordinates?.lat) && Number.isFinite(coordinates?.lng)) {
+      payload.lat = Number(coordinates.lat);
+      payload.lng = Number(coordinates.lng);
+    }
+    const locationLabel = typeof location === "string" ? location.trim() : "";
+    if (locationLabel) {
+      payload.location = locationLabel;
     }
     const r = await createCard(title, "neu", 0, ort, typ, payload);
         suppressSoundUntilRef.current = Date.now()// + 15000;
