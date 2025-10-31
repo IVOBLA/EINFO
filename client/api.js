@@ -106,7 +106,7 @@ export async function fetchNearby(cardId, radiusKm){
   const base = `cardId=${encodeURIComponent(cardId)}`;
   const has = Number.isFinite(Number(radiusKm)) && Number(radiusKm) > 0;
   const qs = has ? `${base}&radiusKm=${encodeURIComponent(radiusKm)}` : base;
-  const r = await fetch(`/api/nearby?${qs}`, { credentials:"same-origin", cache:"no-store" });
+  const r = await fetch(`/api/nearby?${qs}`, { credentials:"include", cache:"no-store" });
   if (!r.ok) {
     if (r.status === 403) throw forbiddenError();
     throw new Error("fetchNearby failed");
