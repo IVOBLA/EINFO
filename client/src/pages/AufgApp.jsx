@@ -470,6 +470,8 @@ export default function AufgApp() {
     return null;
   }, [listIds]);
 
+  const confirmDoneTransition = useCallback(() => window.confirm("Sind sie sicher?"), []);
+
   const handleAddOpen = () => {
     if (!allowEdit) return;
     setAddOpen(true); // Öffnet das "Neu"-Modal
@@ -490,11 +492,14 @@ export default function AufgApp() {
   // ---- Pfeil „Weiter→“ → jetzt dedizierter Status-Endpunkt
   const advance = useCallback((item) => {
      if (!allowEdit) return;     // read-only blocken
-	const to = nextStatus(item?.status || STATUS.NEW);
+        const to = nextStatus(item?.status || STATUS.NEW);
     if (to === item?.status) return;
+    if (to === STATUS.DONE && item?.status !== STATUS.DONE && !confirmDoneTransition()) {
+      return;
+    }
     setItems(prev => prev.map(x => x.id === item.id ? { ...x, status: to } : x));
     void persistStatus({ id: item.id, toStatus: to }); // <<— HIER die Änderung
-   }, [allowEdit]);
+   }, [allowEdit, confirmDoneTransition]);
 
   // ---- DnD (wie _old)
   const onDragStart = useCallback(({ active }) => {
@@ -514,7 +519,7 @@ export default function AufgApp() {
 
   const onDragEnd = useCallback(({ active, over }) => {
     if (!allowEdit) return;
-	setDraggingItem(null); setOverColId(null);
+        setDraggingItem(null); setOverColId(null);
     const dropId = over?.id ?? lastOverRef.current; if (!dropId) return;
 
     const activeId = active.id;
@@ -523,6 +528,9 @@ export default function AufgApp() {
     if (!fromCol || !toCol) return;
 
     if (fromCol !== toCol) {
+      if (toCol === STATUS.DONE && fromCol !== STATUS.DONE && !confirmDoneTransition()) {
+        originColRef.current = null; lastOverRef.current = null; return;
+      }
       const beforeId = COLS.includes(dropId) ? null : dropId;
       setItems(prev => prev.map(x => x.id === activeId ? { ...x, status: toCol } : x));
       void persistReorder({ id: activeId, toStatus: toCol, beforeId });
@@ -548,7 +556,7 @@ export default function AufgApp() {
       void persistReorder({ id: activeId, toStatus: toCol, beforeId });
     }
     originColRef.current = null; lastOverRef.current = null;
-  }, [getColByItemId, lists, allowEdit]);
+  }, [getColByItemId, lists, allowEdit, confirmDoneTransition]);
 
   return (
     <div className="p-4">

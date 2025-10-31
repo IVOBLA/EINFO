@@ -901,6 +901,8 @@ useEffect(() => {
     } else setOverColId(null);
   };
 
+  const confirmDoneTransition = () => window.confirm("Sind sie sicher?");
+
   const onDragEnd = async (e) => {
     if (readOnly) { setOverColId(null); setActiveDrag(null); return; }
     setOverColId(null);
@@ -943,6 +945,9 @@ useEffect(() => {
       if (oid.startsWith("col:")) {
         const to = oid.slice(4);
         if (from !== to) {
+          if (to === "erledigt" && from !== "erledigt" && !confirmDoneTransition()) {
+            return;
+          }
           try {
             await transitionCard({ cardId, from, to, toIndex: 0 });
             if (to === "erledigt") {
@@ -963,6 +968,9 @@ useEffect(() => {
       if (oid.startsWith("card:")) {
         const to = getCardCol(safeBoard, oid.slice(5));
         if (to) {
+          if (to === "erledigt" && from !== "erledigt" && !confirmDoneTransition()) {
+            return;
+          }
           try {
             await transitionCard({ cardId, from, to, toIndex: 0 });
             if (to === "erledigt") {
@@ -1443,6 +1451,9 @@ if (route.startsWith("/protokoll")) {
                           await transitionCard({ cardId: card.id, from: "neu", to: "in-bearbeitung", toIndex: 0 });
                           setBoard(await fetchBoard());
                         } else if (id === "in-bearbeitung") {
+                          if (!confirmDoneTransition()) {
+                            return;
+                          }
                           await transitionCard({ cardId: card.id, from: "in-bearbeitung", to: "erledigt", toIndex: 0 });
                           const [nextBoard, nextVehicles] = await Promise.all([
                             fetchBoard(),
