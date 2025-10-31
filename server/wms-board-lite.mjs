@@ -366,7 +366,29 @@ app.get("/tiles/:layer/:z/:x/:y.png", async (req, res) => {
     const [minLon, minLat, maxLon, maxLat] = tileBBox(Z, X, Y);
 
     const data = await loadData();
-    const { incidents, incidentPos, vehicles } = data;
+    const { incidents, incidentPos, vehicles, assignedById, gpsByKey, overrides } = data;
+
+    // Für Fahrzeuge ohne GPS/Override eine deterministische Orbit-Reihenfolge aufbauen,
+    // damit mehrere Fahrzeuge am selben Einsatz nicht übereinander landen.
+    const ringOrder = new Map();
+    for (const v of vehicles) {
+      const vid = String(v.id);
+      const assignedIncident = assignedById.get(vid);
+      if (!assignedIncident) continue;
+
+      const key = norm(`${v?.label || ""} ${v?.ort || ""}`);
+      const hasGps = gpsByKey.has(key);
+      const override = overrides?.[vid];
+      const hasOverride =
+        override && Number.isFinite(override.lat) && Number.isFinite(override.lng);
+
+      if (hasGps || hasOverride) continue; // diese erhalten echte Koordinaten
+
+      const pool = ringOrder.get(assignedIncident) || [];
+      pool.push(vid);
+      ringOrder.set(assignedIncident, pool);
+    }
+    for (const arr of ringOrder.values()) arr.sort();
 
     const size = 256;
     const canvas = createCanvas(size, size);
@@ -405,7 +427,7 @@ app.get("/tiles/:layer/:z/:x/:y.png", async (req, res) => {
     // --- Layer: Fahrzeuge (nur zugeordnete) ---
     if (layer === "FZG") {
       for (const v of vehicles) {
-        const pos = resolveVehiclePosition(v, data, new Map());
+        const pos = resolveVehiclePosition(v, data, ringOrder);
         if (!pos.pos || !pos.assignedIncident) continue; // nur zugeordnete!
         if (
           pos.pos.lng < minLon || pos.pos.lng > maxLon ||
