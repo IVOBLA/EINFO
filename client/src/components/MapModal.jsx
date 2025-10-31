@@ -301,6 +301,7 @@ export function MapModal({ context, address, onClose }) {
             });
 	    if (canDrag) {
       try { marker.draggable = true; } catch {}
+      // Persistiert via /api/vehicles/:id/position → server/data/vehicles-overrides.json
       marker.addListener("dragend", async (ev) => {
         const p = ev?.latLng || marker.position;
         const lat = typeof p.lat === "function" ? p.lat() : p.lat;
@@ -338,6 +339,7 @@ export function MapModal({ context, address, onClose }) {
               },
             });
 			    if (canDrag) {
+      // Persistiert via /api/vehicles/:id/position → server/data/vehicles-overrides.json
       marker.addListener("dragend", async (ev) => {
         const p = ev?.latLng || marker.getPosition();
         const lat = typeof p.lat === "function" ? p.lat() : p.lat;
