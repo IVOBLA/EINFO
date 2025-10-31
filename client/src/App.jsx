@@ -109,6 +109,7 @@ const route = hash.replace(/^#/, "");
   // Proximity
   const [nearBySet, setNearBySet] = useState(() => new Set());
   const [pulseUntilMs, setPulseUntilMs] = useState(0);
+  const pulseTimerRef = useRef(null);
   const filterPulseTimerRef = useRef(null);
   const suppressSoundUntilRef = useRef(0);      // bis wann kein Ton
   const suppressPulseIdsRef  = useRef(new Set()); // IDs, für die kein Pulse erlaubt ist
@@ -121,10 +122,14 @@ useEffect(() => {
   initSound();       // einmalig Tonfreischaltung aktivieren
 }, []);
 
- useEffect(() => () => {
+  useEffect(() => () => {
     if (filterPulseTimerRef.current) {
       clearTimeout(filterPulseTimerRef.current);
       filterPulseTimerRef.current = null;
+    }
+    if (pulseTimerRef.current) {
+      clearTimeout(pulseTimerRef.current);
+      pulseTimerRef.current = null;
     }
   }, []);
 
