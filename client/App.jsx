@@ -576,11 +576,14 @@ function addAllAlertedMatches(card, vehicles, idsSet, distMap) {
     if (colId !== "neu" || !card?.id) return;
     try {
       const r = await fetchNearby(card.id);
+      if (!r?.ok) {
+        alert(r?.error || "Für diesen Einsatz sind keine Koordinaten hinterlegt.");
+      }
       const ids = new Set((r?.units || []).map(u => String(u.unitId)));
       setNearBySet(ids);
       setPulseUntilMs(Date.now() + 3000);
-	  
- // ✅ Distanzen in Map legen (als Number!)
+
+// ✅ Distanzen in Map legen (als Number!)
  const m = new Map();
  for (const u of (r?.units || [])) {
    const val = Number(u?.distanceKm);

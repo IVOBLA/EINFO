@@ -784,6 +784,9 @@ useEffect(() => {
     if (colId !== "neu" || !card?.id) return;
     try {
       const r = await fetchNearby(card.id);
+      if (!r?.ok) {
+        alert(r?.error || "Für diesen Einsatz sind keine Koordinaten hinterlegt.");
+      }
       const ids = new Set((r?.units || []).map(u => String(u.unitId)));
       if (card?.alerted) {
         const alertedTokens = parseAlertedTokens(card.alerted).map(norm);
