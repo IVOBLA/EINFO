@@ -262,10 +262,10 @@ export function MapModal({ context, address, onClose }) {
             .map(v => [String(v.id), { lat: Number(v.latitude), lng: Number(v.longitude) }])
         );
 
-        // 9b) Fahrzeuge: nur anzeigen wenn assigned ODER im GPS
+        // 9b) Fahrzeuge: nur anzeigen wenn assigned, im GPS oder mit manueller Position
         const vehiclesArray = Object.values(context.vehiclesById || {});
-        const baseRadiusM = 10;  // Ring-Abstand (fix)
-        const stepDeg = 50;      // Winkel-Schritt
+        const baseRadiusM = 10; // Ring-Abstand (fix)
+        const stepDeg = 50; // Winkel-Schritt
         const angleByIncident = new Map(); // incidentId -> angle
 
         // AdvancedMarkerElement?
@@ -377,7 +377,9 @@ export function MapModal({ context, address, onClose }) {
           // Sichtbarkeitsregel:
           // - Zeige, wenn assigned (egal ob GPS vorhanden)
           // - Zeige, wenn nicht assigned, aber im GPS (grau)
-          if (!assignedIncident && !gps) continue;
+          // - Zeige, wenn manuelle Koordinaten existieren
+          const hasManualOverride = manualPosById.has(vid);
+          if (!assignedIncident && !gps && !hasManualOverride) continue;
 
           let pos = null;
           let gpsPos = null;
@@ -385,8 +387,8 @@ export function MapModal({ context, address, onClose }) {
           if (gps) {
             gpsPos = { lat: Number(gps.lat), lng: Number(gps.lng) };
             pos = gpsPos;
-         } else if (manualPosById.has(vid)) {
-           pos = manualPosById.get(vid);     // ← manuelle Override-Position
+          } else if (hasManualOverride) {
+            pos = manualPosById.get(vid); // ← manuelle Override-Position
           } else if (assignedIncident && incidentPositions.has(assignedIncident)) {
             // Ring um den zugeordneten Einsatz
             const centerPos = incidentPositions.get(assignedIncident);
