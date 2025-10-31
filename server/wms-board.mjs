@@ -34,12 +34,11 @@
  *  WMS_LABEL_TRIM=28
  */
 import express from "express";
-import fs from "fs";
 import fsp from "fs/promises";
 import path from "path";
 import url from "url";
 import proj4 from "proj4";
-import { createCanvas } from "canvas";
+import { createCanvas } from "@napi-rs/canvas";
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
 
@@ -407,8 +406,9 @@ app.get("/wms", async (req, res) => {
       }
     }
 
+    const buffer = canvas.toBuffer("image/png");
     res.set("Content-Type", "image/png");
-    return canvas.pngStream().pipe(res);
+    return res.send(buffer);
 
   } catch (e) {
     console.error("[WMS ERROR]", e.stack || e.message);
