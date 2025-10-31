@@ -28,6 +28,7 @@ const PORT = process.env.PORT || 4040;
 const ROOT      = path.join(__dirname);
 const DATA_DIR  = path.join(ROOT, "data");
 const DIST_DIR  = path.join(ROOT, "dist");
+const PUBLIC_DIR = path.join(ROOT, "public");
 const VEH_OVERRIDES = path.join(DATA_DIR, "vehicles-overrides.json");
 
 const BOARD_FILE  = path.join(DATA_DIR, "board.json");
@@ -1877,6 +1878,7 @@ app.get("/Hilfe.pdf", async (_req,res)=>{
 app.get("/status", (_req,res)=>res.sendFile(path.join(DIST_DIR,"index.html")));
 
 // ---- Static + SPA-Fallback -------------------------------------------
+app.use(express.static(PUBLIC_DIR));
 app.use(express.static(DIST_DIR));
 
 app.get("*", (req, res, next) => {
