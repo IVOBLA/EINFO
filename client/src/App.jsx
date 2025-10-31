@@ -61,6 +61,7 @@ function useCompactScale() {
 const CID = (id) => `card:${id}`;
 const unlocked = true;
 const DEFAULT_AREA_COLOR = "#2563eb";
+const INITIAL_PULSE_SUPPRESS_MS = 20_000;
 
 export default function App() {
   const scale = useCompactScale();
@@ -113,6 +114,7 @@ const route = hash.replace(/^#/, "");
   const filterPulseTimerRef = useRef(null);
   const suppressSoundUntilRef = useRef(0);      // bis wann kein Ton
   const suppressPulseIdsRef  = useRef(new Set()); // IDs, für die kein Pulse erlaubt ist
+  const initialPulseSuppressUntilRef = useRef(0); // Start-Sperre nach Laden
 
 
 
@@ -168,11 +170,12 @@ const remaining = autoEnabled
     (async () => {
       const [b, v, t] = await Promise.all([fetchBoard(), fetchVehicles(), fetchTypes()]);
       setBoard(b); setVehicles(v); setTypes(Array.isArray(t) ? t : []);
+      prevIdsRef.current = getAllCardIds(b);
+      initialPulseSuppressUntilRef.current = Date.now() + INITIAL_PULSE_SUPPRESS_MS;
       try {
         const cfg = await getAutoImportConfig();
         setAutoEnabled(!!cfg.enabled);
         setAutoInterval(Number(cfg.intervalSec) || 30);
-		prevIdsRef.current = getAllCardIds(b);
       } catch {}
       setSec(0); // (6) Countdown reset nach frischem Fetch
     })();
@@ -519,14 +522,25 @@ function updatePulseForNewBoard({ oldIds, newBoard, pulseMs = 8000 }) {
   // einmalige Nutzung, danach wieder freigeben
   for (const id of added) suppressPulseIdsRef.current.delete(String(id));
 
-  // Nur wenn es tatsächlich fremde neue Karten gibt (=> Pulse)
-  if (filtered.size > 0) {
-    setNewlyImportedIds(filtered);
+  const neuColumnItems = newBoard?.columns?.["neu"]?.items || [];
+  const neuIdSet = new Set(neuColumnItems.map((card) => String(card?.id)));
+  const eligible = new Set(
+    [...filtered].filter((id) => neuIdSet.has(String(id)))
+  );
+
+  // Nur wenn es tatsächlich fremde neue Karten im Status "Neu" gibt (=> Pulse)
+  if (eligible.size > 0) {
+    if (now < initialPulseSuppressUntilRef.current) {
+      prevIdsRef.current = newIds;
+      return;
+    }
+
+    setNewlyImportedIds(eligible);
     setPulseUntilMs(now + pulseMs);
 
- if (areaFilter) {
+    if (areaFilter) {
       const filterId = String(areaFilter);
-      const hiddenByFilter = [...filtered].some((id) => {
+      const hiddenByFilter = [...eligible].some((id) => {
         const card = getCardById(newBoard, id);
         if (!card) return false;
         return !cardMatchesAreaFilter(card, filterId);
