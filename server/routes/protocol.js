@@ -84,6 +84,50 @@ User_initStore(DATA_DIR);
 const router = express.Router();
 router.use(User_authMiddleware());
 
+const LOCK_TTL_MS = 5 * 60 * 1000; // 5 Minuten
+const activeLocks = new Map(); // nr -> { userId, username, displayName, lockedAt, expiresAt }
+
+const describeLock = (lock) => {
+  if (!lock) return null;
+  return {
+    userId: lock.userId ?? null,
+    username: lock.username ?? null,
+    lockedBy: lock.displayName || lock.username || "Unbekannt",
+    lockedAt: lock.lockedAt ?? null,
+    expiresAt: lock.expiresAt ?? null,
+  };
+};
+
+const cleanupExpiredLocks = () => {
+  const now = Date.now();
+  for (const [nr, info] of activeLocks.entries()) {
+    if (!info || !info.expiresAt || info.expiresAt <= now) {
+      activeLocks.delete(nr);
+    }
+  }
+};
+
+const resolveUserIdentity = (req) => {
+  const user = req?.user || {};
+  const userId =
+    user?.id != null
+      ? String(user.id)
+      : user?.username
+        ? String(user.username)
+        : null;
+  const username = user?.username ? String(user.username) : null;
+  const displayName =
+    resolveUserName(req) ||
+    (typeof user?.displayName === "string" && user.displayName.trim()) ||
+    username ||
+    (userId != null ? `ID ${userId}` : "");
+  return {
+    userId,
+    username,
+    displayName: displayName || "Unbekannt",
+  };
+};
+
 const titleFromAnVon = (o) =>
   String(
     o?.anvon ?? o?.an_von ?? o?.anVon ??
@@ -245,6 +289,85 @@ router.get("/", async (_req, res) => {
   }
 });
 
+router.post("/:nr/lock", async (req, res) => {
+  try {
+    const nr = Number(req.params.nr);
+    if (!Number.isFinite(nr) || nr <= 0) {
+      return res.status(400).json({ ok: false, error: "INVALID_NUMBER" });
+    }
+
+    const all = await readAllJson();
+    const itemExists = all.some((x) => Number(x?.nr) === nr);
+    if (!itemExists) {
+      return res.status(404).json({ ok: false, error: "NOT_FOUND" });
+    }
+
+    cleanupExpiredLocks();
+    const identity = resolveUserIdentity(req);
+    if (!identity.userId) {
+      return res.status(401).json({ ok: false, error: "UNAUTHORIZED" });
+    }
+
+    const existing = activeLocks.get(nr);
+    const now = Date.now();
+    if (existing && existing.userId && existing.userId !== identity.userId) {
+      return res.status(423).json({
+        ok: false,
+        error: "LOCKED",
+        lockedBy: existing.displayName || existing.username || "Unbekannt",
+        lock: describeLock(existing),
+      });
+    }
+
+    const lock = {
+      userId: identity.userId,
+      username: identity.username,
+      displayName: identity.displayName,
+      lockedAt: existing?.lockedAt || now,
+      expiresAt: now + LOCK_TTL_MS,
+    };
+    activeLocks.set(nr, lock);
+
+    res.json({ ok: true, lock: describeLock(lock) });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+router.delete("/:nr/lock", async (req, res) => {
+  try {
+    const nr = Number(req.params.nr);
+    if (!Number.isFinite(nr) || nr <= 0) {
+      return res.status(400).json({ ok: false, error: "INVALID_NUMBER" });
+    }
+
+    cleanupExpiredLocks();
+    const existing = activeLocks.get(nr);
+    if (!existing) {
+      return res.json({ ok: true, released: false });
+    }
+
+    const identity = resolveUserIdentity(req);
+    if (!identity.userId) {
+      return res.status(401).json({ ok: false, error: "UNAUTHORIZED" });
+    }
+
+    if (existing.userId && existing.userId !== identity.userId) {
+      return res.status(423).json({
+        ok: false,
+        error: "LOCKED",
+        lockedBy: existing.displayName || existing.username || "Unbekannt",
+        lock: describeLock(existing),
+      });
+    }
+
+    activeLocks.delete(nr);
+    res.json({ ok: true, released: true });
+  } catch (e) {
+    res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
 // Detail
 router.get("/:nr", async (req, res) => {
   try {
@@ -349,6 +472,18 @@ router.put("/:nr", express.json(), async (req, res) => {
 
     const existing = all[idx];
 
+    cleanupExpiredLocks();
+    const identity = resolveUserIdentity(req);
+    const existingLock = activeLocks.get(nr);
+    if (existingLock && existingLock.userId && identity.userId && existingLock.userId !== identity.userId) {
+      return res.status(423).json({
+        ok: false,
+        error: "LOCKED",
+        lockedBy: existingLock.displayName || existingLock.username || "Unbekannt",
+        lock: describeLock(existingLock),
+      });
+    }
+
     const next = {
       ...existing,
       ...(req.body || {}),
@@ -381,6 +516,18 @@ router.put("/:nr", express.json(), async (req, res) => {
 
     all[idx] = next;
     await writeAllJson(all);
+
+    if (identity.userId) {
+      const now = Date.now();
+      const lock = {
+        userId: identity.userId,
+        username: identity.username,
+        displayName: identity.displayName,
+        lockedAt: existingLock?.lockedAt || now,
+        expiresAt: now + LOCK_TTL_MS,
+      };
+      activeLocks.set(nr, lock);
+    }
     if (newHistoryEntry) appendHistoryEntriesToCsv(next, [newHistoryEntry], CSV_FILE);
  // Ergänzung: neu hinzugekommene Verantwortliche ==> Aufgaben nachziehen
  try{
