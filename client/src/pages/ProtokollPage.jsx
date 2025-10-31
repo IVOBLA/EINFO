@@ -121,6 +121,11 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
   });
   const isEditMode = Number.isFinite(Number(nr)) && Number(nr) > 0;
   const [loading, setLoading] = useState(isEditMode);
+  const [lockStatus, setLockStatus] = useState(() => (isEditMode ? "pending" : "not-needed"));
+  const [lockError, setLockError] = useState(null);
+  const lockRefreshTimerRef = useRef(null);
+  const lockReleaseRef = useRef(null);
+  const lockStateRef = useRef({ nr: null, hasLock: false });
 
   // ---- UI -------------------------------------------------------------------
   const [saving, setSaving] = useState(false);
@@ -145,6 +150,22 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(null), ms);
   };
+
+  useEffect(() => {
+    if (isEditMode) {
+      setLockStatus("pending");
+      setLockError(null);
+    } else {
+      setLockStatus("not-needed");
+      setLockError(null);
+      if (lockRefreshTimerRef.current) {
+        clearTimeout(lockRefreshTimerRef.current);
+        lockRefreshTimerRef.current = null;
+      }
+      lockStateRef.current = { nr: null, hasLock: false };
+      lockReleaseRef.current = null;
+    }
+  }, [isEditMode, nr]);
 
   // ---- Vorschläge ------------------------------------------------------------
   const [suggAnvon, setSuggAnvon] = useState([]);
@@ -180,6 +201,95 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
     });
   };
 
+  useEffect(() => {
+    if (!isEditMode) return;
+    const currentNr = Number(nr);
+    if (!Number.isFinite(currentNr) || currentNr <= 0) return;
+
+    let cancelled = false;
+
+    const releaseLock = async () => {
+      if (!lockStateRef.current.hasLock || lockStateRef.current.nr !== currentNr) return;
+      lockStateRef.current = { nr: null, hasLock: false };
+      try {
+        await fetch(`/api/protocol/${currentNr}/lock`, {
+          method: "DELETE",
+          credentials: "include",
+        }).catch(() => {});
+      } catch {}
+    };
+
+    lockReleaseRef.current = releaseLock;
+
+    const acquire = async ({ silent = false } = {}) => {
+      try {
+        const res = await fetch(`/api/protocol/${currentNr}/lock`, {
+          method: "POST",
+          credentials: "include",
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          if (res.status === 423) {
+            lockStateRef.current = { nr: null, hasLock: false };
+            if (!cancelled) {
+              setLockStatus("blocked");
+              setLockError({ lockedBy: data?.lockedBy || data?.lock?.lockedBy || "Unbekannt" });
+            }
+          } else if (!silent) {
+            const message = data?.error || `Sperren fehlgeschlagen (${res.status})`;
+            if (!cancelled) {
+              setLockStatus("error");
+              setLockError({ message });
+            }
+          }
+          return false;
+        }
+
+        if (cancelled) return true;
+        lockStateRef.current = { nr: currentNr, hasLock: true };
+        setLockStatus("acquired");
+        setLockError(null);
+        return true;
+      } catch (err) {
+        if (!silent && !cancelled) {
+          setLockStatus("error");
+          setLockError({ message: err?.message || String(err) });
+        }
+        return false;
+      }
+    };
+
+    const scheduleRefresh = () => {
+      if (cancelled) return;
+      if (lockRefreshTimerRef.current) {
+        clearTimeout(lockRefreshTimerRef.current);
+        lockRefreshTimerRef.current = null;
+      }
+      lockRefreshTimerRef.current = setTimeout(async () => {
+        const ok = await acquire({ silent: true });
+        if (cancelled) return;
+        if (ok || (lockStateRef.current.hasLock && lockStateRef.current.nr === currentNr)) {
+          scheduleRefresh();
+        }
+      }, 60000);
+    };
+
+    (async () => {
+      const ok = await acquire({ silent: false });
+      if (ok) scheduleRefresh();
+    })();
+
+    return () => {
+      cancelled = true;
+      if (lockRefreshTimerRef.current) {
+        clearTimeout(lockRefreshTimerRef.current);
+        lockRefreshTimerRef.current = null;
+      }
+      lockReleaseRef.current = null;
+      releaseLock();
+    };
+  }, [isEditMode, nr]);
+
   // ---- Datensatz laden (Edit) -----------------------------------------------
   useEffect(() => {
     if (!isEditMode) {
@@ -189,6 +299,8 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
     }
     const n = Number(nr);
     if (!Number.isFinite(n) || n <= 0) return;
+
+    if (lockStatus !== "acquired") return;
 
     (async () => {
       try {
@@ -228,7 +340,35 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
         setLoading(false);
       }
     })();
-  }, [isEditMode, nr]);
+  }, [isEditMode, nr, lockStatus]);
+
+  useEffect(() => {
+    if (!isEditMode) return;
+    if (lockStatus === "blocked" || lockStatus === "error") {
+      setLoading(false);
+    }
+  }, [isEditMode, lockStatus]);
+
+  useEffect(() => {
+    if (!isEditMode) return;
+    if (lockStatus === "error" && lockError?.message) {
+      showToast?.("error", lockError.message);
+    }
+  }, [isEditMode, lockStatus, lockError]);
+
+  useEffect(() => {
+    if (!isEditMode) return;
+    if (lockStatus !== "blocked") return;
+    const name = lockError?.lockedBy || "Unbekannt";
+    setTimeout(() => {
+      try {
+        window.alert(`Gerade in Bearbeitung durch ${name}`);
+      } catch {
+        // ignore missing window (SSR/tests)
+      }
+      window.location.hash = "/protokoll";
+    }, 0);
+  }, [isEditMode, lockStatus, lockError]);
 
   // ---- Shortcuts -------------------------------------------------------------
   useEffect(() => {
@@ -389,7 +529,15 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
     }
   };
 
-  const handleCancel = () => { window.location.hash = "/protokoll"; };
+  const handleCancel = () => {
+    try {
+      const maybePromise = lockReleaseRef.current?.();
+      if (maybePromise && typeof maybePromise.then === "function") {
+        maybePromise.catch(() => {});
+      }
+    } catch {}
+    window.location.hash = "/protokoll";
+  };
 
   // ---- Speichern (FormData + State-Merge) ----
   const saveCore = async () => {
