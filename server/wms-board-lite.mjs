@@ -103,7 +103,7 @@ async function loadData() {
   // Zuweisung vehicleId -> incidentId
   const assignedById = new Map();
   for (const i of incidents) for (const vid of (i.assignedVehicles || [])) {
-    assignedById.set(String(vid), i.id);
+    assignedById.set(String(vid), String(i.id));
   }
 
   // GPS Index (realname = label + ort normalisiert)
@@ -131,32 +131,33 @@ function resolveVehiclePosition(v, ctx, ringOrder) {
   const { assignedById, incidentPos, gpsByKey, overrides, groups } = ctx;
   const vid = String(v.id);
   const assignedIncident = assignedById.get(vid);
+  const assignedIncidentKey = assignedIncident ? String(assignedIncident) : null;
   const key = norm(`${v?.label || ""} ${v?.ort || ""}`);
 
   // 1) GPS
   const gps = gpsByKey.get(key);
-  if (gps) return { pos: gps, source: "gps", assignedIncident };
+  if (gps) return { pos: gps, source: "gps", assignedIncident: assignedIncidentKey };
 
   // 2) Manuelle Overrides
   const ov = overrides[vid];
   if (ov && Number.isFinite(ov.lat) && Number.isFinite(ov.lng)) {
-    return { pos: { lat: +ov.lat, lng: +ov.lng }, source: ov.source || "manual", assignedIncident };
+    return { pos: { lat: +ov.lat, lng: +ov.lng }, source: ov.source || "manual", assignedIncident: assignedIncidentKey };
   }
 
   // 3) Orbit um Einsatz, wenn zugeordnet
-  if (assignedIncident && incidentPos.has(assignedIncident)) {
-    const pool = ringOrder.get(assignedIncident) || [];
+  if (assignedIncidentKey && incidentPos.has(assignedIncidentKey)) {
+    const pool = ringOrder.get(assignedIncidentKey) || [];
     const idx = pool.indexOf(vid);
     const angle = ((idx + 1) * ORBIT_STEP_DEG) % 360;
-    const center = incidentPos.get(assignedIncident);
-    return { pos: offsetLatLng(center, ORBIT_RADIUS_M, angle), source: "orbit", assignedIncident };
+    const center = incidentPos.get(assignedIncidentKey);
+    return { pos: offsetLatLng(center, ORBIT_RADIUS_M, angle), source: "orbit", assignedIncident: assignedIncidentKey };
   }
 
   // 4) Gruppenstandort (Orts-Depot)
   const gp = groups.get(v?.ort || "");
-  if (gp) return { pos: gp, source: "group", assignedIncident: null };
+  if (gp) return { pos: gp, source: "group", assignedIncident: assignedIncidentKey };
 
-  return { pos: null, source: "none", assignedIncident: null };
+  return { pos: null, source: "none", assignedIncident: assignedIncidentKey };
 }
 
 function bboxFilter(crs, bbox) {
@@ -248,13 +249,14 @@ app.get("/geojson", async (req, res) => {
       const vid = String(v.id);
       const ass = assignedById.get(vid);
       if (!ass) continue;
+      const assKey = String(ass);
       const key = norm(`${v?.label || ""} ${v?.ort || ""}`);
       const hasGps = data.gpsByKey.has(key);
       const hasOv  = !!data.overrides[vid];
       if (!hasGps && !hasOv) {
-        const arr = nonGpsByIncident.get(ass) || [];
+        const arr = nonGpsByIncident.get(assKey) || [];
         arr.push(vid);
-        nonGpsByIncident.set(ass, arr);
+        nonGpsByIncident.set(assKey, arr);
       }
     }
     for (const [id, arr] of nonGpsByIncident.entries()) arr.sort();
@@ -378,6 +380,7 @@ app.get("/tiles/:layer/:z/:x/:y.png", async (req, res) => {
       const vid = String(v.id);
       const assignedIncident = assignedById.get(vid);
       if (!assignedIncident) continue;
+      const assignedKey = String(assignedIncident);
 
       const key = norm(`${v?.label || ""} ${v?.ort || ""}`);
       const hasGps = gpsByKey.has(key);
@@ -387,9 +390,9 @@ app.get("/tiles/:layer/:z/:x/:y.png", async (req, res) => {
 
       if (hasGps || hasOverride) continue; // diese erhalten echte Koordinaten
 
-      const pool = ringOrder.get(assignedIncident) || [];
+      const pool = ringOrder.get(assignedKey) || [];
       pool.push(vid);
-      ringOrder.set(assignedIncident, pool);
+      ringOrder.set(assignedKey, pool);
     }
     for (const arr of ringOrder.values()) arr.sort();
 

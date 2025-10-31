@@ -6,7 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const logsDir = path.resolve(__dirname, "..", "logs");
-const LOG_FILE = path.join(logsDir, "wms.log");
+const LOG_FILE = path.join(logsDir, "WMS_TILES.log");
 
 const truthy = new Set(["1", "true", "yes", "y", "on"]);
 const rawDebug = process.env.WMS_Debug ?? process.env.WMS_DEBUG ?? "";
