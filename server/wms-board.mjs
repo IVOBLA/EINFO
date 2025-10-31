@@ -56,6 +56,7 @@ const CAPS_ABS   = process.env.WMS_ABSTRACT || "Einsätze & Fahrzeuge (Positione
 /* Dateien */
 const BOARD_FILE   = path.join(DATA_DIR, "board.json");
 const VEH_BASE     = path.join(DATA_DIR, "vehicles.json");
+const VEH_CONF     = path.join(DATA_DIR, "conf", "vehicles.json");
 const VEH_EXTRA    = path.join(DATA_DIR, "vehicles-extra.json");
 const GPS_FILE     = path.join(DATA_DIR, "vehicles_gps.json");
 const OVERRIDES    = path.join(DATA_DIR, "vehicles-overrides.json");
@@ -136,7 +137,14 @@ async function readJson(file, fallback) {
 /* ---------- Datenaufbereitung (MapModal-kompatibel) ---------- */
 async function loadData() {
   const board = await readJson(BOARD_FILE, { columns: { "neu": { items: [] }, "in-bearbeitung": { items: [] }, "erledigt": { items: [] } } });
-  const vehiclesA = await readJson(VEH_BASE, []);
+  let vehiclesA = await readJson(VEH_BASE, null);
+  if (!Array.isArray(vehiclesA) || vehiclesA.length === 0) {
+    const confVehicles = await readJson(VEH_CONF, null);
+    if (Array.isArray(confVehicles) && confVehicles.length > 0) {
+      vehiclesA = confVehicles;
+    }
+  }
+  if (!Array.isArray(vehiclesA)) vehiclesA = [];
   const vehiclesB = await readJson(VEH_EXTRA, []);
   const vehicles = [...vehiclesA, ...vehiclesB];
 

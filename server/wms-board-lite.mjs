@@ -34,6 +34,7 @@ const PUBLIC_DIR = process.env.PUBLIC_DIR
 const f = (p) => path.join(DATA_DIR, p);
 const BOARD_FILE   = f("board.json");
 const VEH_BASE     = f("vehicles.json");
+const VEH_CONF     = f(path.join("conf", "vehicles.json"));
 const VEH_EXTRA    = f("vehicles-extra.json");
 const GPS_FILE     = f("vehicles_gps.json");
 const OVERRIDES    = f("vehicles-overrides.json");
@@ -88,7 +89,14 @@ async function readJson(file, fallback) {
 
 async function loadData() {
   const board     = await readJson(BOARD_FILE, { columns: { "neu": { items: [] }, "in-bearbeitung": { items: [] } } });
-  const vehiclesA = await readJson(VEH_BASE, []);
+  let vehiclesA = await readJson(VEH_BASE, null);
+  if (!Array.isArray(vehiclesA) || vehiclesA.length === 0) {
+    const confVehicles = await readJson(VEH_CONF, null);
+    if (Array.isArray(confVehicles) && confVehicles.length > 0) {
+      vehiclesA = confVehicles;
+    }
+  }
+  if (!Array.isArray(vehiclesA)) vehiclesA = [];
   const vehiclesB = await readJson(VEH_EXTRA, []);
   const vehicles  = [...vehiclesA, ...vehiclesB];
   const gpsList   = await readJson(GPS_FILE, []);
