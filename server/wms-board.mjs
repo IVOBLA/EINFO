@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+import "./utils/loadEnv.mjs";
+import { wmsLogMiddleware } from "./utils/wmsLogger.mjs";
+
 /**
  * wms-board.mjs
  * WMS 1.3.0, der die Positionslogik aus MapModal.jsx nachbildet.
@@ -316,6 +319,7 @@ function capabilities(baseUrl) {
 const app = express();
 app.disable("x-powered-by");
 app.use((_,res,next)=>{ res.setHeader("Access-Control-Allow-Origin","*"); next(); });
+app.use(wmsLogMiddleware);
 
 app.get("/wms", async (req, res) => {
   try {
