@@ -86,6 +86,25 @@ return (
                 .concat(u.aus ? "Ausgang" : []);
               const richtung = richtungen.join(" / ");
               const printed = Number(r?.printCount) > 0;
+              const massnahmen = Array.isArray(r?.massnahmen) ? r.massnahmen : [];
+              const relevantMeasures = massnahmen.filter((m) => {
+                const text = `${m?.massnahme ?? ""} ${m?.verantwortlich ?? ""}`.trim();
+                return text.length > 0;
+              });
+              const doneCount = relevantMeasures.filter((m) => !!m?.done).length;
+              const allDone = doneCount > 0 && doneCount === relevantMeasures.length;
+              const showDot = printed || doneCount > 0;
+              const dotColor = allDone ? "bg-emerald-500" : printed ? "bg-yellow-400" : "bg-gray-300";
+              const dotTitleParts = [];
+              if (printed) dotTitleParts.push(`Gedruckt (${r.printCount})`);
+              if (doneCount > 0) {
+                dotTitleParts.push(
+                  allDone
+                    ? "Alle Maßnahmen erledigt"
+                    : `${doneCount}/${relevantMeasures.length} Maßnahmen erledigt`
+                );
+              }
+              const dotTitle = dotTitleParts.join(" • ");
 
               return (
                 <tr
@@ -95,10 +114,11 @@ return (
                   title="Zum Bearbeiten öffnen"
                 >
                   <td className="align-middle">
-                    {printed ? (
+                    {showDot ? (
                       <span
-                        className="inline-block w-3 h-3 rounded-full bg-yellow-400"
-                        title={`Gedruckt (${r.printCount})`}
+                        className={`inline-block w-3 h-3 rounded-full ${dotColor}`}
+                        title={dotTitle || undefined}
+                        aria-label={dotTitle || undefined}
                       />
                     ) : null}
                   </td>
