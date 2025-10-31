@@ -1,5 +1,44 @@
+/* global google */
 import React, { useEffect, useRef, useState } from "react";
 import { usePlacesAutocomplete } from "../hooks/usePlacesAutocomplete";
+
+function normalizeLatLng(location) {
+  if (!location) return null;
+  try {
+    const lat = typeof location.lat === "function" ? location.lat() : Number(location.lat);
+    const lng = typeof location.lng === "function" ? location.lng() : Number(location.lng);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      return { lat, lng };
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
+async function geocodeAddress(address) {
+  const clean = (address || "").trim();
+  if (!clean) return null;
+  if (!window.google?.maps?.Geocoder) return null;
+  const geocoder = new google.maps.Geocoder();
+  return new Promise((resolve) => {
+    geocoder.geocode({ address: clean, region: "AT" }, (results, status) => {
+      if (status === "OK" && results && results[0]) {
+        const first = results[0];
+        const coords = normalizeLatLng(first.geometry?.location);
+        if (coords) {
+          resolve({
+            ...coords,
+            formatted: first.formatted_address || clean,
+            placeId: first.place_id || null,
+          });
+          return;
+        }
+      }
+      resolve(null);
+    });
+  });
+}
 
 export default function AddIncidentModal({ onClose, onCreate, types, areaOptions = [] }) {
   const DEFAULT_AREA_COLOR = "#2563eb";
@@ -35,7 +74,9 @@ export default function AddIncidentModal({ onClose, onCreate, types, areaOptions
     if (!title.trim() && clean) setTitle(clean);
   }, [typ]); // eslint-disable-line react-hooks/exhaustive-deps
 
-useEffect(() => {
+  const placeDetailsRef = useRef(null);
+
+  useEffect(() => {
     if (isArea) {
       setAreaCardId("");
       setAreaColor((prev) => prev || DEFAULT_AREA_COLOR);
@@ -50,6 +91,25 @@ useEffect(() => {
 
     setBusy(true);
     try {
+      let coords = null;
+      let locationLabel = (ortQuery || "").trim();
+
+      const stored = placeDetailsRef.current;
+      if (stored) {
+        const extracted = normalizeLatLng(stored.geometry?.location);
+        if (extracted) coords = extracted;
+        const formatted = stored.formatted_address || stored.name || "";
+        if (formatted) locationLabel = formatted;
+      }
+
+      if (!coords && locationLabel) {
+        const geo = await geocodeAddress(locationLabel);
+        if (geo) {
+          coords = { lat: geo.lat, lng: geo.lng };
+          if (geo.formatted) locationLabel = geo.formatted;
+        }
+      }
+
       await onCreate({
         title: finalTitle,
         ort: (ortQuery || "").trim(),
@@ -57,6 +117,8 @@ useEffect(() => {
         isArea,
         areaCardId: isArea ? null : areaCardId || null,
         areaColor: isArea ? areaColor : undefined,
+        coordinates: coords,
+        location: locationLabel,
       });
       setTitle("");
       setOrtQuery("");
@@ -64,6 +126,7 @@ useEffect(() => {
       setIsArea(false);
       setAreaCardId("");
       setAreaColor(DEFAULT_AREA_COLOR);
+      placeDetailsRef.current = null;
       resetSession();
       clearPredictions();
       onClose?.();
@@ -82,7 +145,9 @@ useEffect(() => {
       ]);
       const addr = details?.formatted_address || p.description;
       setOrtQuery(addr);
+      placeDetailsRef.current = details || null;
     } catch {
+      placeDetailsRef.current = null;
       setOrtQuery(p.description);
     } finally {
       resetSession();
@@ -125,7 +190,10 @@ useEffect(() => {
               placeholder="Ort (nur Österreich)"
               autoComplete="off"
               value={ortQuery}
-              onChange={(e) => setOrtQuery(e.target.value)}
+              onChange={(e) => {
+                placeDetailsRef.current = null;
+                setOrtQuery(e.target.value);
+              }}
             />
             {loading && (
               <div className="absolute z-10 mt-1 text-xs text-gray-500 bg-white border rounded px-2 py-1">Suche…</div>
