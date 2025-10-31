@@ -43,6 +43,79 @@ const resolveActorRole = (req) => {
   return "";
 };
 
+const CONFIRM_ROLES = new Set(["LTSTB", "LTSTBSTV", "S3"]);
+const defaultConfirmation = () => ({ confirmed: false, by: null, byRole: null, at: null });
+const normalizeConfirmation = (value) => {
+  if (!value || typeof value !== "object" || !value.confirmed) return defaultConfirmation();
+  const by = typeof value.by === "string" && value.by.trim() ? value.by.trim() : null;
+  const rawRole = typeof value.byRole === "string" && value.byRole.trim() ? value.byRole.trim() : null;
+  const byRole = canonicalRoleId(rawRole) || rawRole || null;
+  let at = null;
+  if (Number.isFinite(value.at)) {
+    at = Number(value.at);
+  } else if (value.at) {
+    const parsed = Date.parse(value.at);
+    if (Number.isFinite(parsed)) at = parsed;
+  }
+  return { confirmed: true, by, byRole, at };
+};
+const collectActorRoles = (req) => {
+  const roles = new Set();
+  const add = (raw) => {
+    const id = canonicalRoleId(raw);
+    if (id) roles.add(id);
+  };
+  add(req?.user?.role);
+  if (Array.isArray(req?.user?.roles)) {
+    for (const r of req.user.roles) {
+      if (!r) continue;
+      if (typeof r === "string") add(r);
+      else if (typeof r?.id === "string") add(r.id);
+      else if (typeof r?.role === "string") add(r.role);
+    }
+  }
+  add(resolveActorRole(req));
+  return roles;
+};
+const sanitizeConfirmation = (input, { existing, identity, actorRoles }) => {
+  const existingNorm = normalizeConfirmation(existing);
+  const existingRole = existingNorm.confirmed ? canonicalRoleId(existingNorm.byRole) || existingNorm.byRole || null : null;
+  const actorHasExistingRole = existingRole ? actorRoles.has(existingRole) : false;
+  const actorConfirmRoles = [...actorRoles].filter((roleId) => CONFIRM_ROLES.has(roleId));
+  const hasConfirmPermission = actorConfirmRoles.length > 0;
+
+  if (!input || typeof input !== "object") {
+    return existingNorm.confirmed ? existingNorm : defaultConfirmation();
+  }
+
+  const requestedConfirmed = !!input.confirmed;
+
+  if (requestedConfirmed) {
+    if (existingNorm.confirmed) return existingNorm;
+    if (!hasConfirmPermission) {
+      const err = new Error("CONFIRM_NOT_ALLOWED");
+      err.status = 403;
+      throw err;
+    }
+    const roleToUse = actorConfirmRoles[0];
+    const displayName = identity?.displayName || identity?.username || identity?.userId || null;
+    return {
+      confirmed: true,
+      by: displayName,
+      byRole: roleToUse,
+      at: Date.now(),
+    };
+  }
+
+  if (existingNorm.confirmed && !actorHasExistingRole) {
+    const err = new Error("CONFIRM_LOCKED");
+    err.status = 403;
+    throw err;
+  }
+
+  return defaultConfirmation();
+};
+
 function collectMeasureRoles(item) {
   const roles = new Map();
   const baseAnVon = titleFromAnVon(item);
@@ -176,6 +249,13 @@ function migrateMeta(arr) {
     if (typeof it.createdBy === "undefined") {
       const creatorFromHistory = it.history.find?.(h => h?.action === "create" && h?.by)?.by;
       it.createdBy = creatorFromHistory || it.lastBy || null;
+      changed = true;
+    }
+    const normalizedConfirm = normalizeConfirmation(it.otherRecipientConfirmation);
+    const currentConfirmJson = JSON.stringify(it.otherRecipientConfirmation ?? defaultConfirmation());
+    const normalizedJson = JSON.stringify(normalizedConfirm);
+    if (currentConfirmJson !== normalizedJson) {
+      it.otherRecipientConfirmation = normalizedConfirm;
       changed = true;
     }
   }
@@ -393,7 +473,19 @@ router.post("/", express.json(), async (req, res) => {
       printCount: 0,
       history: []
     };
-    const userBy = resolveUserName(req) || req?.user?.displayName || req?.user?.username || "";
+    const identity = resolveUserIdentity(req);
+    const actorRoles = collectActorRoles(req);
+    try {
+      payload.otherRecipientConfirmation = sanitizeConfirmation(req.body?.otherRecipientConfirmation, {
+        existing: null,
+        identity,
+        actorRoles,
+      });
+    } catch (err) {
+      const status = err?.status && Number.isFinite(err.status) ? Number(err.status) : 400;
+      return res.status(status).json({ ok: false, error: err?.message || "CONFIRM_ERROR" });
+    }
+    const userBy = identity.displayName || req?.user?.displayName || req?.user?.username || resolveUserName(req) || "";
     payload.createdBy = userBy;
     payload.history.push({
       ts: Date.now(),
@@ -474,6 +566,7 @@ router.put("/:nr", express.json(), async (req, res) => {
 
     cleanupExpiredLocks();
     const identity = resolveUserIdentity(req);
+    const actorRoles = collectActorRoles(req);
     const existingLock = activeLocks.get(nr);
     if (existingLock && existingLock.userId && identity.userId && existingLock.userId !== identity.userId) {
       return res.status(423).json({
@@ -492,6 +585,17 @@ router.put("/:nr", express.json(), async (req, res) => {
       history: existing.history || []
     };
 
+    try {
+      next.otherRecipientConfirmation = sanitizeConfirmation(req.body?.otherRecipientConfirmation, {
+        existing: existing.otherRecipientConfirmation,
+        identity,
+        actorRoles,
+      });
+    } catch (err) {
+      const status = err?.status && Number.isFinite(err.status) ? Number(err.status) : 400;
+      return res.status(status).json({ ok: false, error: err?.message || "CONFIRM_ERROR" });
+    }
+
     const existingCreator =
       existing.createdBy ??
       existing.history?.find?.((h) => h?.action === "create" && h?.by)?.by ??
@@ -502,8 +606,15 @@ router.put("/:nr", express.json(), async (req, res) => {
     // 🔁 Reset: jedes Update setzt das Druck-Flag zurück
     next.printCount = 0;
 
-    const userBy  = resolveUserName(req) || req?.user?.displayName || req?.user?.username || "";
+    const userBy  = identity.displayName || req?.user?.displayName || req?.user?.username || resolveUserName(req) || "";
     const changes = computeDiff(existing, next);
+    if (changes.length) {
+      const existingConfirm = normalizeConfirmation(existing.otherRecipientConfirmation);
+      const existingRole = existingConfirm.confirmed ? canonicalRoleId(existingConfirm.byRole) || existingConfirm.byRole || null : null;
+      if (existingConfirm.confirmed && existingRole && !actorRoles.has(existingRole)) {
+        return res.status(403).json({ ok: false, error: "CONFIRM_LOCKED" });
+      }
+    }
     let newHistoryEntry = null;
     if (changes.length) {
       newHistoryEntry = { ts: Date.now(), action: "update", by: userBy, changes, after: snapshotForHistory(next) };
