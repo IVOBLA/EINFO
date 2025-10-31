@@ -1531,6 +1531,7 @@ app.get("/api/nearby", async (req, res) => {
   res.json({ ok:true, center, radiusKm, nearestGroup, units: hits });
 });
 
+// Speichert manuell gesetzte Fahrzeug-Koordinaten in data/vehicles-overrides.json
 app.patch("/api/vehicles/:id/position", async (req,res)=>{
   const { id } = req.params;
   const { lat, lng, incidentId=null, source="manual" } = req.body||{};
