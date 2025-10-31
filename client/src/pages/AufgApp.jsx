@@ -257,6 +257,8 @@ export default function AufgApp() {
   );
 
   // ---- Laden (rollen-spezifisch)
+  const initialLoadRef = useRef(true);
+
   async function load() {
     if (!roleId) { setError("Keine Rolle gefunden – bitte anmelden."); setItems([]); return; }
     setLoading(true); setError("");
@@ -280,29 +282,39 @@ export default function AufgApp() {
         updatedAt: x.updatedAt ?? null,
         meta: x.meta ?? {},
         originProtocolNr: x.originProtocolNr ?? null,
-                relatedIncidentId: x.relatedIncidentId != null && x.relatedIncidentId !== ""
+        relatedIncidentId: x.relatedIncidentId != null && x.relatedIncidentId !== ""
           ? String(x.relatedIncidentId)
           : null,
         incidentTitle: x.incidentTitle ?? null,
       }));
       setItems(mapped);
-	  
-	  try{
-  const ids = new Set(mapped.map(x => String(x.id)));
-  const prev = prevIdsRef.current;
-  const added = [...ids].filter(id => !prev.has(id));
-  const toPulse = added.filter(id => !myCreatedIdsRef.current.has(id));
-  if (toPulse.length) {
-    setFreshIds(new Set(toPulse));
-	try { await playGong(); } catch {}
-    setTimeout(() => setFreshIds(new Set()), 9000);
-  }
-  prevIdsRef.current = ids;
-}catch{}
+
+      try {
+        const ids = new Set(mapped.map((x) => String(x.id)));
+        const prev = prevIdsRef.current;
+        const added = [...ids].filter((id) => !prev.has(id));
+        const toPulse = initialLoadRef.current
+          ? []
+          : added.filter((id) => !myCreatedIdsRef.current.has(id));
+
+        if (toPulse.length) {
+          setFreshIds(new Set(toPulse));
+          try { await playGong(); } catch {}
+          setTimeout(() => setFreshIds(new Set()), 9000);
+        }
+
+        prevIdsRef.current = ids;
+        initialLoadRef.current = false;
+      } catch {}
     } catch (e) { setError(String(e?.message || e)); }
     finally { setLoading(false); }
   }
-  useEffect(() => { void load(); }, [roleId]);
+  useEffect(() => {
+    prevIdsRef.current = new Set();
+    initialLoadRef.current = true;
+    setFreshIds(new Set());
+    void load();
+  }, [roleId]);
   
    // Auto-Reload alle 30s (nur wenn eine Rolle vorhanden ist)
  useEffect(() => {
