@@ -128,8 +128,27 @@ export async function fetchNearby(cardId, radiusKm){
   const has = Number.isFinite(Number(radiusKm)) && Number(radiusKm) > 0;
   const qs = has ? `${base}&radiusKm=${encodeURIComponent(radiusKm)}` : base;
   const r = await fetch(`/api/nearby?${qs}`, { credentials:"include", cache:"no-store" });
-  if (!r.ok) throw new Error("fetchNearby failed");
-  return r.json();
+  let data = null;
+  try {
+    data = await r.json();
+  } catch {
+    data = null;
+  }
+  if (!r.ok) {
+    if (r.status === 400 || r.status === 404) {
+      return {
+        ok: false,
+        error: data?.error || "card has no coordinates",
+        center: data?.center ?? null,
+        radiusKm: data?.radiusKm ?? null,
+        units: Array.isArray(data?.units) ? data.units : [],
+      };
+    }
+    const err = new Error("fetchNearby failed");
+    if (data) err.response = data;
+    throw err;
+  }
+  return data;
 }
 export async function setVehiclePosition(id, lat, lng, incidentId=null, source="manual"){
   return j("PATCH", `/api/vehicles/${encodeURIComponent(id)}/position`, { lat:Number(lat), lng:Number(lng), incidentId, source });
