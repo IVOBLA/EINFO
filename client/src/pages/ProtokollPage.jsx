@@ -1,8 +1,23 @@
 // client/src/pages/ProtokollPage.jsx
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { initRolePolicy, canEditApp, hasRole } from "../auth/roleUtils";
+import { useUserAuth } from "../components/User_AuthProvider.jsx";
 
 const ERGEHT_OPTIONS = ["EL", "LtStb", "S1", "S2", "S3", "S4", "S5", "S6"];
+
+const CONFIRM_ROLES = ["LTSTB", "LTSTBSTV", "S3"];
+const ROLE_LABELS = {
+  LTSTB: "LtStb",
+  LTSTBSTV: "LtStbStv",
+  S3: "S3",
+};
+
+const defaultConfirmation = () => ({
+  confirmed: false,
+  by: null,
+  byRole: null,
+  at: null,
+});
 
 
 
@@ -81,6 +96,7 @@ const initialForm = () => ({
   rueckmeldung2: "",
   ergehtAn: [],
   ergehtAnText: "",
+  otherRecipientConfirmation: defaultConfirmation(),
   lagebericht: "",
   massnahmen: Array.from({ length: 5 }, () => ({
     massnahme: "",
@@ -91,11 +107,13 @@ const initialForm = () => ({
 
 export default function ProtokollPage({ mode = "create", editNr = null }) {
 
+  const { user } = useUserAuth() || {};
   const [creatingTask, setCreatingTask] = useState(false);
 
   // ---- Rechte ---------------------------------------------------------------
   const [canEdit, setCanEdit] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [confirmRoleIds, setConfirmRoleIds] = useState([]);
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -104,10 +122,12 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
         if (!mounted) return;
         setCanEdit(canEditApp("protokoll"));
         setIsAdmin(hasRole("Admin"));
+        setConfirmRoleIds(CONFIRM_ROLES.filter((roleId) => hasRole(roleId)));
       } catch {
         if (!mounted) return;
         setCanEdit(false);
         setIsAdmin(false);
+        setConfirmRoleIds([]);
       }
     })();
     return () => { mounted = false; };
@@ -193,10 +213,93 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
   const set = (path, value) => {
     const parts = Array.isArray(path) ? path : String(path).split(".");
     setForm((prev) => {
+      const prevConfirm = prev?.otherRecipientConfirmation || defaultConfirmation();
+      const prevRoleUpper = String(prevConfirm.byRole || "").toUpperCase();
+      const confirmed = !!prevConfirm.confirmed;
+      if (!canEdit || (confirmed && !confirmRoleSet.has(prevRoleUpper))) return prev;
       const next = structuredClone(prev);
       let ref = next;
       for (let i = 0; i < parts.length - 1; i++) ref = ref[parts[i]];
       ref[parts.at(-1)] = value;
+      return next;
+    });
+  };
+
+  const confirmRoleSet = useMemo(() => new Set(confirmRoleIds.map((r) => String(r || "").toUpperCase())), [confirmRoleIds]);
+  const confirmationState = form.otherRecipientConfirmation || defaultConfirmation();
+  const confirmationRoleUpper = String(confirmationState.byRole || "").toUpperCase();
+  const entryConfirmed = !!confirmationState.confirmed;
+  const confirmationDetails = entryConfirmed
+    ? (() => {
+        const roleLabel = ROLE_LABELS[confirmationRoleUpper] || confirmationState.byRole || confirmationRoleUpper || "unbekannt";
+        const by = confirmationState.by || null;
+        const when = confirmationState.at ? new Date(confirmationState.at) : null;
+        const whenText = when && !Number.isNaN(when.valueOf()) ? when.toLocaleString("de-DE") : null;
+        return { roleLabel, by, whenText };
+      })()
+    : null;
+  const lockedByOtherRole = entryConfirmed && !confirmRoleSet.has(confirmationRoleUpper);
+  const canModify = canEdit && !lockedByOtherRole;
+  const lockInfoText = lockedByOtherRole && confirmationDetails
+    ? `Bestätigt durch ${confirmationDetails.roleLabel}${confirmationDetails.by ? ` (${confirmationDetails.by})` : ""}${confirmationDetails.whenText ? ` am ${confirmationDetails.whenText}` : ""}`
+    : null;
+  const confirmationInfoText = confirmationDetails
+    ? `${confirmationDetails.roleLabel}${confirmationDetails.by ? ` (${confirmationDetails.by})` : ""}${confirmationDetails.whenText ? ` – ${confirmationDetails.whenText}` : ""}`
+    : null;
+  const showModificationDenied = () => {
+    if (lockInfoText) {
+      showToast?.("error", `${lockInfoText} – Änderungen nur durch diese Rolle möglich.`);
+    } else {
+      showToast?.("error", "Keine Berechtigung (Meldestelle)");
+    }
+  };
+
+  const userConfirmRole = (() => {
+    if (confirmRoleSet.has(confirmationRoleUpper)) return confirmationRoleUpper;
+    for (const id of confirmRoleIds) {
+      const upper = String(id || "").toUpperCase();
+      if (upper) return upper;
+    }
+    return null;
+  })();
+  const canToggleConfirmation = entryConfirmed ? confirmRoleSet.has(confirmationRoleUpper) : confirmRoleSet.size > 0;
+  const confirmationToggleTitle = entryConfirmed
+    ? confirmRoleSet.has(confirmationRoleUpper)
+      ? "Bestätigung zurücknehmen"
+      : "Nur die bestätigende Rolle darf zurücksetzen"
+    : confirmRoleSet.size > 0
+      ? "Bestätigung setzen"
+      : "Nur LtStb, LtStbStv oder S3 dürfen bestätigen";
+
+  const handleConfirmationToggle = (checked) => {
+    if (!canEdit) { showModificationDenied(); return; }
+    if (!checked && !entryConfirmed) return;
+    if (checked && !confirmRoleSet.size) {
+      showToast?.("error", "Keine Berechtigung zum Bestätigen");
+      return;
+    }
+    const targetRole = checked ? userConfirmRole : confirmationRoleUpper;
+    if (checked && !targetRole) {
+      showToast?.("error", "Keine Berechtigung zum Bestätigen");
+      return;
+    }
+    if (!checked && confirmationRoleUpper && !confirmRoleSet.has(confirmationRoleUpper)) {
+      showToast?.("error", "Nur die bestätigende Rolle darf zurücksetzen");
+      return;
+    }
+    setForm((prev) => {
+      const next = structuredClone(prev);
+      if (!checked) {
+        next.otherRecipientConfirmation = defaultConfirmation();
+      } else {
+        const displayName = user?.displayName || user?.username || (user?.id != null ? `ID ${user.id}` : null);
+        next.otherRecipientConfirmation = {
+          confirmed: true,
+          by: displayName,
+          byRole: targetRole,
+          at: Date.now(),
+        };
+      }
       return next;
     });
   };
@@ -326,6 +429,18 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
             rueckmeldung2: it.rueckmeldung2 || "",
             ergehtAn: Array.isArray(it.ergehtAn) ? it.ergehtAn : [],
             ergehtAnText: it.ergehtAnText || "",
+            otherRecipientConfirmation: (() => {
+              const src = it.otherRecipientConfirmation;
+              if (!src || typeof src !== "object") return defaultConfirmation();
+              if (!src.confirmed) return defaultConfirmation();
+              const ts = Number.isFinite(src.at) ? Number(src.at) : Number(new Date(src.at).valueOf());
+              return {
+                confirmed: true,
+                by: src.by || null,
+                byRole: src.byRole || null,
+                at: Number.isFinite(ts) ? ts : null,
+              };
+            })(),
             lagebericht: it.lagebericht || "",
             massnahmen: Array.from({ length: 5 }, (_, i) => {
               const m = it.massnahmen?.[i] || {};
@@ -382,16 +497,16 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
 
       if (isCtrl && !e.shiftKey && key === "s") {
         e.preventDefault(); e.stopPropagation();
-         if (!canEdit) { showToast?.("error", "Keine Berechtigung (Meldestelle)"); return; }
-		if (keylockRef.current) return;
+         if (!canModify) { showModificationDenied(); return; }
+                if (keylockRef.current) return;
         keylockRef.current = true;
         later(async () => { blurActive(); await new Promise(r => setTimeout(r,0)); handleSaveClose().finally(()=> keylockRef.current=false); });
         return;
       }
       if (isCtrl && ((e.shiftKey && key === "s") || key === "enter")) {
         e.preventDefault(); e.stopPropagation();
-         if (!canEdit) { showToast?.("error", "Keine Berechtigung (Meldestelle)"); return; }
-		if (keylockRef.current) return;
+         if (!canModify) { showModificationDenied(); return; }
+                if (keylockRef.current) return;
         keylockRef.current = true;
         later(async () => { blurActive(); await new Promise(r => setTimeout(r,0)); handleSaveNew().finally(()=> keylockRef.current=false); });
         return;
@@ -541,6 +656,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
 
   // ---- Speichern (FormData + State-Merge) ----
   const saveCore = async () => {
+    if (!canModify) return nr;
     const fd = formRef.current ? new FormData(formRef.current) : null;
     const snapshot = structuredClone(form);
 
@@ -565,6 +681,18 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
     snapshot.ergehtAnText  = (fd?.get("ergehtAnText")  || form.ergehtAnText  || "").toString();
     const domInfoTyp = fd?.get("infoTyp");
     snapshot.infoTyp       = (domInfoTyp !== null && domInfoTyp !== undefined ? domInfoTyp : (form.infoTyp || "")).toString();
+    const snapshotConfirm = snapshot.otherRecipientConfirmation || {};
+    if (snapshotConfirm.confirmed) {
+      const ts = Number.isFinite(snapshotConfirm.at) ? Number(snapshotConfirm.at) : Number(new Date(snapshotConfirm.at).valueOf());
+      snapshot.otherRecipientConfirmation = {
+        confirmed: true,
+        by: snapshotConfirm.by || null,
+        byRole: snapshotConfirm.byRole || null,
+        at: Number.isFinite(ts) ? ts : Date.now(),
+      };
+    } else {
+      snapshot.otherRecipientConfirmation = defaultConfirmation();
+    }
 
     // „Ergeht an“ (mehrfach)
     const eaDom = fd ? Array.from(fd.getAll("ergehtAn")).map(String) : form.ergehtAn;
@@ -588,6 +716,15 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
     snapshot.uebermittlungsart.richtung = String(snapshot.uebermittlungsart?.richtung || "").trim();
     snapshot.uebermittlungsart.kanalNr = String(snapshot.uebermittlungsart?.kanalNr || "").trim();
     snapshot.ergehtAnText = String(snapshot.ergehtAnText || "").trim();
+    if (snapshot.otherRecipientConfirmation.confirmed) {
+      snapshot.otherRecipientConfirmation.by = snapshot.otherRecipientConfirmation.by || null;
+      snapshot.otherRecipientConfirmation.byRole = snapshot.otherRecipientConfirmation.byRole || null;
+      snapshot.otherRecipientConfirmation.at = Number.isFinite(snapshot.otherRecipientConfirmation.at)
+        ? Number(snapshot.otherRecipientConfirmation.at)
+        : Date.now();
+    } else {
+      snapshot.otherRecipientConfirmation = defaultConfirmation();
+    }
 
     const validationErrors = {};
     if (!snapshot.datum) validationErrors.datum = true;
@@ -673,8 +810,8 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
   };
 
   const handleSaveClose = async () => {
-    if (!canEdit) { showToast?.("error", "Keine Berechtigung (Meldestelle)"); return; }
-	if (saving) return;
+    if (!canModify) { showModificationDenied(); return; }
+        if (saving) return;
     setSaving(true);
     try { const nrSaved = await saveCore(); if (nrSaved) window.location.hash = "/protokoll"; }
     catch (e) { showToast("error", "Fehler beim Speichern: " + e.message, 4000); }
@@ -682,8 +819,8 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
   };
 
   const handleSaveNew = async () => {
-    if (!canEdit) { showToast?.("error", "Keine Berechtigung (Meldestelle)"); return; }
-	if (saving) return;
+    if (!canModify) { showModificationDenied(); return; }
+        if (saving) return;
     setSaving(true);
     try {
       const nrSaved = await saveCore();
@@ -705,13 +842,17 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
     if (isCtrl && !e.shiftKey && key === "s") { e.preventDefault(); e.stopPropagation(); handleSaveClose(); }
     else if (isCtrl && ((e.shiftKey && key === "s") || key === "enter")) { e.preventDefault(); e.stopPropagation(); handleSaveNew(); }
   };
-  const onSubmit = (e) => { e.preventDefault(); if (!canEdit) { showToast?.("error", "Keine Berechtigung (Meldestelle)"); return; } handleSaveClose(); };
+  const onSubmit = (e) => { e.preventDefault(); if (!canModify) { showModificationDenied(); return; } handleSaveClose(); };
 
   if (loading) return <div className="p-4">Lade…</div>;
 
   // „Alle“-Checkbox (in Tabreihenfolge)
   const allSelected = ERGEHT_OPTIONS.every((k) => form.ergehtAn.includes(k));
-  const toggleAll = (checked) => { clearError("ergehtAn"); set("ergehtAn", checked ? [...ERGEHT_OPTIONS] : []); };
+  const toggleAll = (checked) => {
+    if (!canModify) return;
+    clearError("ergehtAn");
+    set("ergehtAn", checked ? [...ERGEHT_OPTIONS] : []);
+  };
 
   return (
     <div className="mx-auto w-full max-w-[1100px] relative">
@@ -723,8 +864,8 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
           </div>
           <div className="flex gap-2">
             <button type="button" onClick={handleCancel} className="px-3 py-1.5 rounded-md border" title="Maske schließen und zur Übersicht wechseln (ESC)">Abbrechen</button>
-            <button type="button" onClick={handleSaveNew} disabled={saving} className="px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-60" title="Speichern und neue Maske (Strg+Shift+S oder Strg+Enter)">Speichern/Neu</button>
-            <button type="button" onClick={handleSaveClose} disabled={saving} className="px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-60" title="Speichern und schließen (Strg+S)">{saving ? "Speichern…" : "Speichern"}</button>
+            <button type="button" onClick={handleSaveNew} disabled={saving || !canModify} className="px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-60" title="Speichern und neue Maske (Strg+Shift+S oder Strg+Enter)">Speichern/Neu</button>
+            <button type="button" onClick={handleSaveClose} disabled={saving || !canModify} className="px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-60" title="Speichern und schließen (Strg+S)">{saving ? "Speichern…" : "Speichern"}</button>
             {/* ➕ Drucken */}
             <button
               type="button"
@@ -749,6 +890,12 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
           </div>
         </div>
       </div>
+
+      {lockedByOtherRole && lockInfoText && (
+        <div className="mx-2 md:mx-0 mt-3 px-3 py-2 rounded border border-amber-300 bg-amber-50 text-amber-900 text-sm">
+          {lockInfoText} – Änderungen nur durch diese Rolle möglich.
+        </div>
+      )}
 
       {/* Toast */}
       {toast && (
@@ -974,7 +1121,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
             <div className={`flex flex-wrap items-center gap-3 rounded-md ${errors.ergehtAn ? "ring-2 ring-red-500" : ""}`}>
               {/* Alle */}
               <label className="inline-flex items-center gap-2 mr-3 text-sm" title="Alle Empfänger auswählen / abwählen">
-                <input type="checkbox" checked={allSelected} onChange={(e) => toggleAll(e.target.checked)} />
+                <input type="checkbox" checked={allSelected} onChange={(e) => toggleAll(e.target.checked)} disabled={!canModify} />
                 <span>Alle</span>
               </label>
 
@@ -993,6 +1140,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
                       s.has(key) ? s.delete(key) : s.add(key);
                       set("ergehtAn", [...s]);
                     }}
+                    disabled={!canModify}
                     title={`Empfänger ${key} ${form.ergehtAn.includes(key) ? "entfernen" : "hinzufügen"}`}
                   />
                   <span>{key}</span>
@@ -1007,7 +1155,21 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
                 value={form.ergehtAnText}
                 onChange={(e) => { clearError("ergehtAn"); set("ergehtAnText", e.target.value); }}
                 placeholder="Name/Gruppe"
+                readOnly={!canModify}
               />
+              <label className="inline-flex items-center gap-2 ml-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={entryConfirmed}
+                  onChange={(e) => handleConfirmationToggle(e.target.checked)}
+                  disabled={!canEdit || !canToggleConfirmation}
+                  title={confirmationToggleTitle}
+                />
+                <span>bestätigt:</span>
+              </label>
+              {confirmationInfoText && (
+                <span className="text-xs text-gray-600">{confirmationInfoText}</span>
+              )}
             </div>
           </div>
 
