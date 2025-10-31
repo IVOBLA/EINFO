@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import "./utils/loadEnv.mjs";
+import { wmsLogMiddleware } from "./utils/wmsLogger.mjs";
 /**
  * wms-board-lite.mjs — WMS/GeoJSON/XYZ-Lite
  *  - GET /wms?service=WMS&request=GetCapabilities
@@ -174,6 +176,7 @@ function bboxFilter(crs, bbox) {
 const app = express();
 app.disable("x-powered-by");
 
+app.use(wmsLogMiddleware);
 // (optional) statische Auslieferung der Icons
 app.use(express.static(PUBLIC_DIR));
 
