@@ -480,6 +480,7 @@ export function MapModal({ context, address, onClose }) {
             const key = norm(`${v?.label || ""} ${v?.ort || ""}`);
             const gps = idx.get(key);
             const assignedIncident = assignedNow.get(vid);
+            let gpsPos = null;
 
             // Position
             if (gps) {
