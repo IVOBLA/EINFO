@@ -5,12 +5,18 @@ import { useUserAuth } from "../components/User_AuthProvider.jsx";
 
 const ERGEHT_OPTIONS = ["EL", "LtStb", "S1", "S2", "S3", "S4", "S5", "S6"];
 
-const CONFIRM_ROLES = ["LTSTB", "LTSTBSTV", "S3"];
-const ROLE_LABELS = {
-  LTSTB: "LtStb",
-  LTSTBSTV: "LtStbStv",
-  S3: "S3",
+const CONFIRM_ROLE_INFO = {
+  LTSTB: { label: "LtStb", description: "Leiter Stab" },
+  LTSTBSTV: { label: "LtStbStv", description: "Stellv. Leiter Stab" },
+  S3: { label: "S3", description: null },
 };
+const CONFIRM_ROLES = Object.keys(CONFIRM_ROLE_INFO);
+const ROLE_LABELS = Object.fromEntries(Object.entries(CONFIRM_ROLE_INFO).map(([key, value]) => [key, value.label]));
+const DEFAULT_CONFIRM_ROLE_TEXT = (() => {
+  const info = CONFIRM_ROLE_INFO.LTSTB;
+  if (!info) return "LtStb (Leiter Stab)";
+  return info.description ? `${info.label} (${info.description})` : info.label;
+})();
 
 const defaultConfirmation = () => ({
   confirmed: false,
@@ -231,11 +237,17 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
   const entryConfirmed = !!confirmationState.confirmed;
   const confirmationDetails = entryConfirmed
     ? (() => {
-        const roleLabel = ROLE_LABELS[confirmationRoleUpper] || confirmationState.byRole || confirmationRoleUpper || "unbekannt";
+        const roleInfo = CONFIRM_ROLE_INFO[confirmationRoleUpper];
+        const roleLabel = roleInfo?.label || confirmationState.byRole || confirmationRoleUpper || "unbekannt";
+        const roleDisplay = roleInfo
+          ? roleInfo.description
+            ? `${roleLabel} (${roleInfo.description})`
+            : roleLabel
+          : confirmationState.byRole || confirmationRoleUpper || DEFAULT_CONFIRM_ROLE_TEXT;
         const by = confirmationState.by || null;
         const when = confirmationState.at ? new Date(confirmationState.at) : null;
         const whenText = when && !Number.isNaN(when.valueOf()) ? when.toLocaleString("de-DE") : null;
-        return { roleLabel, by, whenText };
+        return { roleLabel, roleDisplay, by, whenText };
       })()
     : null;
   const lockedByOtherRole = entryConfirmed && !confirmRoleSet.has(confirmationRoleUpper);
@@ -246,6 +258,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
   const confirmationInfoText = confirmationDetails
     ? `${confirmationDetails.roleLabel}${confirmationDetails.by ? ` (${confirmationDetails.by})` : ""}${confirmationDetails.whenText ? ` – ${confirmationDetails.whenText}` : ""}`
     : null;
+  const showConfirmationControl = confirmRoleSet.size > 0;
   const showModificationDenied = () => {
     if (lockInfoText) {
       showToast?.("error", `${lockInfoText} – Änderungen nur durch diese Rolle möglich.`);
@@ -1157,18 +1170,29 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
                 placeholder="Name/Gruppe"
                 readOnly={!canModify}
               />
-              <label className="inline-flex items-center gap-2 ml-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={entryConfirmed}
-                  onChange={(e) => handleConfirmationToggle(e.target.checked)}
-                  disabled={!canEdit || !canToggleConfirmation}
-                  title={confirmationToggleTitle}
-                />
-                <span>bestätigt:</span>
-              </label>
-              {confirmationInfoText && (
-                <span className="text-xs text-gray-600">{confirmationInfoText}</span>
+              {showConfirmationControl ? (
+                <>
+                  <label className="inline-flex items-center gap-2 ml-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={entryConfirmed}
+                      onChange={(e) => handleConfirmationToggle(e.target.checked)}
+                      disabled={!canEdit || !canToggleConfirmation}
+                      title={confirmationToggleTitle}
+                    />
+                    <span>bestätigt:</span>
+                  </label>
+                  {confirmationInfoText && (
+                    <span className="text-xs text-gray-600">{confirmationInfoText}</span>
+                  )}
+                </>
+              ) : (
+                <div className="ml-2 flex flex-col text-sm text-gray-700">
+                  <span>{confirmationDetails?.roleDisplay || DEFAULT_CONFIRM_ROLE_TEXT}</span>
+                  {confirmationDetails?.whenText && (
+                    <span className="text-xs text-gray-600">{confirmationDetails.whenText}</span>
+                  )}
+                </div>
               )}
             </div>
           </div>

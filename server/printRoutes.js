@@ -27,6 +27,44 @@ const EXTRA_COPY_LABEL = "Archiv";
 
 const router = express.Router();
 
+const CONFIRM_ROLE_INFO = {
+  LTSTB: { label: "LtStb", description: "Leiter Stab" },
+  LTSTBSTV: { label: "LtStbStv", description: "Stellv. Leiter Stab" },
+  S3: { label: "S3", description: null },
+};
+const DEFAULT_CONFIRM_TEXT = (() => {
+  const info = CONFIRM_ROLE_INFO.LTSTB;
+  if (!info) return "LtStb (Leiter Stab)";
+  return info.description ? `${info.label} (${info.description})` : info.label;
+})();
+
+function canonicalRoleId(raw) {
+  return String(raw ?? "").trim().toUpperCase();
+}
+
+function confirmRoleDisplay(raw) {
+  const role = canonicalRoleId(raw);
+  const info = CONFIRM_ROLE_INFO[role];
+  if (!info) return role || DEFAULT_CONFIRM_TEXT;
+  return info.description ? `${info.label} (${info.description})` : info.label;
+}
+
+function formatConfirmTimestamp(value) {
+  if (value === null || value === undefined) return "";
+  if (Number.isFinite(value)) {
+    const d = new Date(value);
+    if (!Number.isNaN(d.valueOf())) return d.toLocaleString("de-DE");
+  }
+  const numeric = Number(value);
+  if (Number.isFinite(numeric)) {
+    const d = new Date(numeric);
+    if (!Number.isNaN(d.valueOf())) return d.toLocaleString("de-DE");
+  }
+  const d = new Date(value);
+  if (!Number.isNaN(d.valueOf())) return d.toLocaleString("de-DE");
+  return "";
+}
+
 // ---------- Helpers ----------
 function esc(s) {
   return String(s ?? "")
@@ -109,6 +147,16 @@ function sheetHtml(item, recipient, nr) {
   const ergehtSet = new Set(Array.isArray(item?.ergehtAn) ? item.ergehtAn : []);
   const EA = ["EL","LtStb","S1","S2","S3","S4","S5","S6"];
   const displayNr = !nr || nr === "blank" ? "" : nr;
+  const confirm = item?.otherRecipientConfirmation && typeof item.otherRecipientConfirmation === "object"
+    ? item.otherRecipientConfirmation
+    : null;
+  const confirmActive = !!confirm?.confirmed;
+  const confirmRole = confirmActive ? confirmRoleDisplay(confirm?.byRole) : DEFAULT_CONFIRM_TEXT;
+  const confirmTime = confirmActive ? formatConfirmTimestamp(confirm?.at) : "";
+  const confirmHtml = `<div class="ea-confirm${confirmActive ? " ea-confirm--active" : ""}">
+    <div class="ea-confirm-role">${esc(confirmRole)}</div>
+    ${confirmTime ? `<div class="ea-confirm-time">${esc(confirmTime)}</div>` : ""}
+  </div>`;
 
   return `<!doctype html>
 <html lang="de"><head><meta charset="utf-8"/>
@@ -154,6 +202,10 @@ function sheetHtml(item, recipient, nr) {
   .ea-left span { display:inline-flex; align-items:center; gap:4px; }
   .ea-right { display:flex; align-items:center; gap:6px; font-size:11px; }
   .ea-input { min-width: 200px; width:100%; }
+  .ea-confirm { margin-top:8px; font-size:12px; color:#4b5563; display:flex; flex-direction:column; gap:2px; }
+  .ea-confirm-role { font-weight:600; }
+  .ea-confirm-time { font-size:11px; color:inherit; }
+  .ea-confirm--active { color:#dc2626; }
 </style></head><body>
 <div class="sheet">
   <div class="header">
@@ -240,6 +292,7 @@ function sheetHtml(item, recipient, nr) {
         <span class="input ea-input">${esc(item?.ergehtAnText || recipient || "")}</span>
       </div>
     </div>
+    ${confirmHtml}
   </div>
 
   <div class="cell">
