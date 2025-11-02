@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { initRolePolicy, canEditApp, hasRole } from "../auth/roleUtils";
 import { useUserAuth } from "../components/User_AuthProvider.jsx";
+import useOnlineRoles from "../hooks/useOnlineRoles.js";
 
 const ERGEHT_OPTIONS = ["EL", "LtStb", "S1", "S2", "S3", "S4", "S5", "S6"];
 
@@ -115,6 +116,11 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
 
   const { user } = useUserAuth() || {};
   const [creatingTask, setCreatingTask] = useState(false);
+  const { roles: onlineRoles } = useOnlineRoles();
+  const ltStbOnline = useMemo(
+    () => onlineRoles.some((roleId) => roleId === "LTSTB" || roleId === "LTSTBSTV"),
+    [onlineRoles]
+  );
 
   // ---- Rechte ---------------------------------------------------------------
   const [canEdit, setCanEdit] = useState(false);
@@ -128,7 +134,13 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
         if (!mounted) return;
         setCanEdit(canEditApp("protokoll"));
         setIsAdmin(hasRole("Admin"));
-        setConfirmRoleIds(CONFIRM_ROLES.filter((roleId) => hasRole(roleId)));
+        setConfirmRoleIds(
+          CONFIRM_ROLES.filter((roleId) => {
+            if (!hasRole(roleId)) return false;
+            if (roleId === "S3" && ltStbOnline) return false;
+            return true;
+          })
+        );
       } catch {
         if (!mounted) return;
         setCanEdit(false);
@@ -137,7 +149,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
       }
     })();
     return () => { mounted = false; };
-  }, []);
+  }, [ltStbOnline, user]);
 
 
  // ---- Modus/NR -------------------------------------------------------------
@@ -282,7 +294,9 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
       : "Nur die bestätigende Rolle darf zurücksetzen"
     : confirmRoleSet.size > 0
       ? "Bestätigung setzen"
-      : "Nur LtStb, LtStbStv oder S3 dürfen bestätigen";
+      : ltStbOnline
+        ? "Nur LtStb oder LtStbStv dürfen bestätigen"
+        : "Nur LtStb, LtStbStv oder S3 (wenn LtStb abgemeldet) dürfen bestätigen";
 
   const handleConfirmationToggle = (checked) => {
     if (!canEdit) { showModificationDenied(); return; }

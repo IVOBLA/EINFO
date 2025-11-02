@@ -20,12 +20,14 @@ import { fetchBoard } from "../api.js";
 import { forbiddenError, notifyForbidden } from "../../forbidden.js";
 import { ensureValidDueOffset, getFallbackDueOffsetMinutes } from "../utils/defaultDueOffset.js";
 import CornerHelpLogout from "../components/CornerHelpLogout.jsx";
+import useOnlineRoles from "../hooks/useOnlineRoles.js";
 
 const STATUS = { NEW: "Neu", IN_PROGRESS: "In Bearbeitung", DONE: "Erledigt" };
 const COLS = [STATUS.NEW, STATUS.IN_PROGRESS, STATUS.DONE];
 const INCIDENT_STATUS_KEYS = ["neu", "in-bearbeitung", "erledigt"];
 const FALLBACK_DUE_OFFSET_MINUTES = getFallbackDueOffsetMinutes();
-const ROLE_SWITCH_IDS = ["LTSTB", "LTSTBSTV"];
+const PRIMARY_ROLE_SWITCH_IDS = ["LTSTB", "LTSTBSTV"];
+const FALLBACK_SWITCH_ROLE_ID = "S3";
 
 const normalizeDefaultDueOffset = (value) => ensureValidDueOffset(value);
 
@@ -135,10 +137,16 @@ export default function AufgApp() {
   const roleSelectionManualRef = useRef(false);
   const prevPrimaryRoleRef = useRef(primaryRoleId);
   const [roleOptions, setRoleOptions] = useState([]);
-  const canSwitchRoles = useMemo(
-    () => ROLE_SWITCH_IDS.some((id) => hasRole(id, user)),
-    [user]
+  const { roles: onlineRoles } = useOnlineRoles();
+  const ltStbOnline = useMemo(
+    () => onlineRoles.some((roleId) => roleId === "LTSTB" || roleId === "LTSTBSTV"),
+    [onlineRoles]
   );
+  const canSwitchRoles = useMemo(() => {
+    if (PRIMARY_ROLE_SWITCH_IDS.some((id) => hasRole(id, user))) return true;
+    if (!ltStbOnline && hasRole(FALLBACK_SWITCH_ROLE_ID, user)) return true;
+    return false;
+  }, [user, ltStbOnline]);
   const roleSelectOptions = useMemo(() => {
     if (!roleId) return roleOptions;
     const exists = roleOptions.some((opt) => opt.id === roleId);
@@ -587,7 +595,9 @@ export default function AufgApp() {
                 aria-label="Rolle auswählen"
                 title={
                   !canSwitchRoles
-                    ? "Nur LtStb oder LtStbStv dürfen Rollen wechseln"
+                    ? ltStbOnline
+                      ? "Nur LtStb oder LtStbStv dürfen Rollen wechseln"
+                      : "Nur LtStb oder LtStbStv dürfen Rollen wechseln – S3 nur, wenn LtStb abgemeldet"
                     : roleId
                       ? `Rolle ${roleId}`
                       : "Rolle auswählen"
