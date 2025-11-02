@@ -3,6 +3,7 @@ import fsp from "fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { appendCsvRow, resolveUserName } from "../auditLog.mjs";
+import { User_isAnyRoleOnline } from "../User_auth.mjs";
 import { markResponsibleDone } from "./protocolMarkDone.mjs";
 import {
   AUFG_HEADERS,
@@ -188,7 +189,9 @@ function targetRoleOrSend(req, res) {
   if (!userRole) return res.status(401).json({ error: "unauthorized (no role)" });
   if (!target) return res.status(400).json({ error: "role missing" });
   if (target !== userRole) {
-    const canOverride = BOARD_ADMIN_ROLES.has(userRole) && req.method === "GET" && !!qRole;
+    const ltStbOnline = User_isAnyRoleOnline(["LTSTB", "LTSTBSTV"]);
+    const s3FallbackActive = userRole === "S3" && !ltStbOnline;
+    const canOverride = (BOARD_ADMIN_ROLES.has(userRole) || s3FallbackActive) && req.method === "GET" && !!qRole;
     if (!canOverride) return res.status(403).json({ error: "forbidden (role mismatch)" });
   }
 

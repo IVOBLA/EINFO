@@ -73,6 +73,13 @@ export async function fetchAufgabenBoard(roleId = "", { signal } = {}) {
   }
 }
 
+export async function fetchOnlineRoles() {
+  const data = await j("GET", "/api/user/online-roles");
+  if (Array.isArray(data?.roles)) return data.roles;
+  if (Array.isArray(data)) return data;
+  return [];
+}
+
 /**
  * createCard – akzeptiert zusätzliche Felder in `extra`
  * (latitude/longitude/location/description/timestamp oder lat/lng)

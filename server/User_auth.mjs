@@ -13,7 +13,36 @@ function readCookie(req, name){
   return found ? decodeURIComponent(found.split("=").slice(1).join("=")) : null;
 }
 
-const _sessions = new Map(); // sid -> { userId, createdAt, lastSeen }
+const _sessions = new Map(); // sid -> { userId, createdAt, lastSeen, roles:Set<string> }
+
+function normalizeRoleId(raw) {
+  if (!raw) return "";
+  if (typeof raw === "string") return raw.trim().toUpperCase();
+  if (typeof raw?.id === "string") return raw.id.trim().toUpperCase();
+  if (typeof raw?.role === "string") return raw.role.trim().toUpperCase();
+  return "";
+}
+
+function extractRoleIds(userLike) {
+  const out = new Set();
+  if (!userLike) return [];
+  const collect = (value) => {
+    const id = normalizeRoleId(value);
+    if (id) out.add(id);
+  };
+  collect(userLike?.role);
+  if (Array.isArray(userLike?.roles)) {
+    for (const entry of userLike.roles) collect(entry);
+  }
+  return [...out];
+}
+
+function syncSessionRoles(session, userLike) {
+  if (!session) return;
+  const roleIds = extractRoleIds(userLike);
+  session.roles = roleIds;
+  session.primaryRole = roleIds[0] || null;
+}
 
 export function User_authMiddleware(){
   return async (req,res,next)=>{
@@ -23,6 +52,7 @@ export function User_authMiddleware(){
       s.lastSeen = Date.now();
       try{ req.user = await User_getByIdLoose(s.userId); }
       catch{ req.user = null; }
+      syncSessionRoles(s, req.user);
     }
     next();
   };
@@ -81,7 +111,8 @@ export function User_createRouter({ dataDir, secureCookies=false }){
     const u = await User_authenticateLoose(username, password);
     if(!u) return res.status(401).json({error:"INVALID_CREDENTIALS"});
     const sid = randomBytes(24).toString("hex");
-    _sessions.set(sid, { userId:u.id, createdAt:Date.now(), lastSeen:Date.now() });
+    const roles = extractRoleIds(u);
+    _sessions.set(sid, { userId:u.id, createdAt:Date.now(), lastSeen:Date.now(), roles, primaryRole: roles[0] || null });
     setSessionCookie(res, sid, secureCookies);
     res.json({ id:u.id, username:u.username, role:u.role, displayName:u.displayName });
   });
@@ -95,6 +126,11 @@ export function User_createRouter({ dataDir, secureCookies=false }){
     if(sid) _sessions.delete(sid);
     setSessionCookie(res, "", secureCookies);
     res.json({ ok:true });
+  });
+
+  r.get("/online-roles", User_requireAuth, (_req, res) => {
+    res.set("Cache-Control", "no-store");
+    res.json({ roles: User_onlineRoleIds() });
   });
 
   // --- Rollen & Benutzer (Admin + Master erforderlich) ---
@@ -139,4 +175,36 @@ export function User_createRouter({ dataDir, secureCookies=false }){
   });
 
   return r;
+}
+
+function onlineRoleSet() {
+  const roles = new Set();
+  for (const session of _sessions.values()) {
+    if (!session) continue;
+    if (Array.isArray(session.roles)) {
+      for (const roleId of session.roles) {
+        const norm = normalizeRoleId(roleId);
+        if (norm) roles.add(norm);
+      }
+      continue;
+    }
+    const norm = normalizeRoleId(session.primaryRole || session.role);
+    if (norm) roles.add(norm);
+  }
+  return roles;
+}
+
+export function User_onlineRoleIds() {
+  return [...onlineRoleSet()];
+}
+
+export function User_isAnyRoleOnline(roleIds = []) {
+  if (!Array.isArray(roleIds) || roleIds.length === 0) return false;
+  const target = new Set(roleIds.map(normalizeRoleId).filter(Boolean));
+  if (!target.size) return false;
+  const online = onlineRoleSet();
+  for (const id of target) {
+    if (online.has(id)) return true;
+  }
+  return false;
 }

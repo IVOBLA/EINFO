@@ -6,7 +6,7 @@ import { fileURLToPath } from "url";
 import express from "express";
 import { randomUUID } from "crypto";
 import { resolveUserName } from "../auditLog.mjs";
-import { User_authMiddleware } from "../User_auth.mjs";
+import { User_authMiddleware, User_isAnyRoleOnline } from "../User_auth.mjs";
 import { User_initStore } from "../User_store.mjs";
 import { ensureTaskForRole } from "../utils/tasksService.mjs";
 import { CSV_HEADER, ensureCsvStructure, appendHistoryEntriesToCsv } from "../utils/protocolCsv.mjs";
@@ -44,6 +44,8 @@ const resolveActorRole = (req) => {
 };
 
 const CONFIRM_ROLES = new Set(["LTSTB", "LTSTBSTV", "S3"]);
+const PRIMARY_CONFIRM_ROLES = new Set(["LTSTB", "LTSTBSTV"]);
+const BACKUP_CONFIRM_ROLE = "S3";
 const defaultConfirmation = () => ({ confirmed: false, by: null, byRole: null, at: null });
 const normalizeConfirmation = (value) => {
   if (!value || typeof value !== "object" || !value.confirmed) return defaultConfirmation();
@@ -80,8 +82,14 @@ const collectActorRoles = (req) => {
 const sanitizeConfirmation = (input, { existing, identity, actorRoles }) => {
   const existingNorm = normalizeConfirmation(existing);
   const existingRole = existingNorm.confirmed ? canonicalRoleId(existingNorm.byRole) || existingNorm.byRole || null : null;
-  const actorHasExistingRole = existingRole ? actorRoles.has(existingRole) : false;
-  const actorConfirmRoles = [...actorRoles].filter((roleId) => CONFIRM_ROLES.has(roleId));
+  const actorHasExistingRole = existingRole
+    ? actorRoles.has(existingRole) ||
+      (existingRole === BACKUP_CONFIRM_ROLE && [...actorRoles].some((roleId) => PRIMARY_CONFIRM_ROLES.has(roleId)))
+    : false;
+  const ltStbAvailable = User_isAnyRoleOnline([...PRIMARY_CONFIRM_ROLES]);
+  const actorConfirmRoles = [...actorRoles]
+    .filter((roleId) => CONFIRM_ROLES.has(roleId))
+    .filter((roleId) => roleId !== BACKUP_CONFIRM_ROLE || !ltStbAvailable);
   const hasConfirmPermission = actorConfirmRoles.length > 0;
 
   if (!input || typeof input !== "object") {
@@ -97,12 +105,17 @@ const sanitizeConfirmation = (input, { existing, identity, actorRoles }) => {
       err.status = 403;
       throw err;
     }
-    const roleToUse = actorConfirmRoles[0];
+    const requestedRole = actorConfirmRoles[0];
+    if (!requestedRole) {
+      const err = new Error("CONFIRM_NOT_ALLOWED");
+      err.status = 403;
+      throw err;
+    }
     const displayName = identity?.displayName || identity?.username || identity?.userId || null;
     return {
       confirmed: true,
       by: displayName,
-      byRole: roleToUse,
+      byRole: requestedRole,
       at: Date.now(),
     };
   }
