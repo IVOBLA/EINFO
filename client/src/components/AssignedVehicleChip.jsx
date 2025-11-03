@@ -43,11 +43,14 @@ export default function AssignedVehicleChip({
       {...attributes}
       {...listeners}
       className={`relative self-start border-2 rounded-2xl bg-white px-2 pr-9 py-1 shadow-sm
-                  select-none cursor-grab active:cursor-grabbing
+                  select-none ${readonly ? "cursor-not-allowed" : "cursor-grab active:cursor-grabbing"}
                   ${near ? "border-emerald-500 ring-2 ring-emerald-300" : "border-red-300"}
                   ${isDragging ? "opacity-50" : ""}`}
-      title="Ziehen: auf andere Karte verschieben · Doppelklick: klonen"
+      title={readonly
+        ? "Einheit kann derzeit nicht verschoben werden"
+        : "Ziehen: auf andere Karte verschieben · Doppelklick: klonen"}
       onDoubleClick={() => { if (!readonly) onClone?.(vehicle.id, cardId); }}
+      aria-disabled={readonly}
     >
       {/* Proximity-Pulse (dezent) */}
       {near && (

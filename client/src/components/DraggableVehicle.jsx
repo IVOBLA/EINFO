@@ -3,17 +3,20 @@ import { useDraggable } from "@dnd-kit/core";
 
 export function DraggableVehicle({ vehicle, pillWidthPx = 160, near = false, distKm = null, editable = true }) {
   const id = `veh:${vehicle.id}`;
-  const drag = editable ? useDraggable({
-    id,
-    data: { type: "vehicle", vehicleId: vehicle.id },
-  }) : null;
+  const vehicleAvailable = vehicle?.available !== false;
+  const groupAvailable = vehicle?.groupAvailable !== false;
+  const isDraggable = editable && vehicleAvailable && groupAvailable;
+  const drag = isDraggable
+    ? useDraggable({
+        id,
+        data: { type: "vehicle", vehicleId: vehicle.id },
+      })
+    : null;
   const attributes = drag?.attributes ?? {};
   const listeners = drag?.listeners ?? {};
   const setNodeRef = drag?.setNodeRef ?? (()=>{});
   const transform = drag?.transform ?? null;
   const isDragging = drag?.isDragging ?? false;
-  const vehicleAvailable = vehicle?.available !== false;
-  const groupAvailable = vehicle?.groupAvailable !== false;
   const isDimmed = !vehicleAvailable || !groupAvailable;
   const style = {
     width: pillWidthPx,
@@ -30,9 +33,11 @@ export function DraggableVehicle({ vehicle, pillWidthPx = 160, near = false, dis
       {...attributes}
       {...listeners}
       className={`relative max-w-full select-none border-2 ${near ? "border-emerald-500" : "border-red-300"} rounded-2xl bg-white
-                 px-2 py-1 shadow-sm cursor-grab active:cursor-grabbing
+                 px-2 py-1 shadow-sm
+                 ${isDraggable ? "cursor-grab active:cursor-grabbing" : "cursor-not-allowed"}
                  ${isDragging ? "opacity-50" : ""}
                  ${isDimmed ? "border-gray-200 bg-gray-100" : ""}`}
+      aria-disabled={!isDraggable}
     >
       {/* Proximity-Pulse */}
       {near && (

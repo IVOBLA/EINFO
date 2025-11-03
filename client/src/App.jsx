@@ -697,6 +697,15 @@ try {
     if (!groupName) return;
     const target = nextAvailable === true;
     const prevValue = groupAvailability.get(groupName) ?? true;
+    const prevVehicleAvailability = new Map();
+    for (const item of vehicles) {
+      if (String(item?.ort ?? "") === groupName) {
+        const idStr = String(item?.id ?? "");
+        if (idStr) {
+          prevVehicleAvailability.set(idStr, item?.available !== false);
+        }
+      }
+    }
     if (prevValue === target) return;
     setGroupAvailability((prev) => {
       const next = new Map(prev);
@@ -705,7 +714,13 @@ try {
     });
     setVehicles((prev) =>
       prev.map((item) =>
-        String(item?.ort ?? "") === groupName ? { ...item, groupAvailable: target } : item
+        String(item?.ort ?? "") === groupName
+          ? {
+              ...item,
+              groupAvailable: target,
+              available: target,
+            }
+          : item
       )
     );
     try {
@@ -719,7 +734,15 @@ try {
       });
       setVehicles((prev) =>
         prev.map((item) =>
-          String(item?.ort ?? "") === groupName ? { ...item, groupAvailable: prevValue } : item
+          String(item?.ort ?? "") === groupName
+            ? {
+                ...item,
+                groupAvailable: prevValue,
+                available: prevVehicleAvailability.has(String(item?.id ?? ""))
+                  ? prevVehicleAvailability.get(String(item?.id ?? ""))
+                  : item?.available !== false,
+              }
+            : item
         )
       );
       alert(error?.message || "Verfügbarkeit der Gruppe konnte nicht gespeichert werden.");
@@ -1502,18 +1525,24 @@ if (route.startsWith("/protokoll")) {
                     {!collapsed && (
                       <div className="px-2 pb-2 grid grid-cols-1 gap-1.5">
                         {list.map((v) => {
-                          const vehicleAvailable = v?.available !== false;
+                          const rawVehicleAvailable = v?.available !== false;
                           const effectiveGroupAvailable = groupAvailability.has(v?.ort || "")
                             ? groupAvailability.get(v?.ort || "")
                             : v?.groupAvailable !== false;
+                          const effectiveVehicleAvailable = rawVehicleAvailable && effectiveGroupAvailable;
                           const vehicleForRender =
                             effectiveGroupAvailable === (v?.groupAvailable !== false)
+                            && effectiveVehicleAvailable === rawVehicleAvailable
                               ? v
-                              : { ...v, groupAvailable: effectiveGroupAvailable };
+                              : {
+                                  ...v,
+                                  available: effectiveVehicleAvailable,
+                                  groupAvailable: effectiveGroupAvailable,
+                                };
                           return (
                             <div key={v.id} className="flex items-center gap-2 justify-between">
                               <DraggableVehicle
-                                editable={canEdit}
+                                editable={canEdit && effectiveVehicleAvailable}
                                 vehicle={vehicleForRender}
                                 pillWidthPx={160}
                                 near={nearBySet.has(String(v.id)) && Date.now() < pulseUntilMs}
@@ -1521,14 +1550,14 @@ if (route.startsWith("/protokoll")) {
                               />
                               <label
                                 className="flex items-center gap-1 text-[11px] text-gray-600 shrink-0"
-                                title={vehicleAvailable ? "Einheit verfügbar" : "Einheit deaktiviert"}
+                                title={effectiveVehicleAvailable ? "Einheit verfügbar" : "Einheit deaktiviert"}
                               >
                                 <span className="sr-only">Einheit verfügbar</span>
                                 <input
                                   type="checkbox"
-                                  checked={vehicleAvailable}
+                                  checked={effectiveVehicleAvailable}
                                   onChange={(e) => handleVehicleAvailabilityChange(v, e.target.checked)}
-                                  disabled={readOnly}
+                                  disabled={readOnly || !effectiveGroupAvailable}
                                 />
                               </label>
                             </div>
