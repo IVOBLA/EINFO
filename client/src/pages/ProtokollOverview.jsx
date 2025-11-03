@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { initRolePolicy, canEditApp } from "../auth/roleUtils";
 
 function short30(s) {
@@ -10,22 +10,77 @@ export default function ProtokollOverview() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [canEdit, setCanEdit] = useState(false);
+  const aliveRef = useRef(true);
+
+  useEffect(() => {
+    aliveRef.current = true;
+    return () => {
+      aliveRef.current = false;
+    };
+  }, []);
+
+  const fetchData = useCallback(async (options = {}) => {
+    const silent = typeof options === "boolean" ? options : !!options.silent;
+    if (!silent) setLoading(true);
+    try {
+      const r = await fetch("/api/protocol", { credentials: "include" }).then((res) => res.json());
+      if (!aliveRef.current) return;
+      setData(Array.isArray(r?.items) ? r.items : []);
+    } catch {
+      if (!aliveRef.current) return;
+      setData([]);
+    } finally {
+      if (!aliveRef.current) return;
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     (async () => {
-      try { await initRolePolicy(); setCanEdit(canEditApp("protokoll")); } catch { setCanEdit(false); }
-    })();
-    (async () => {
       try {
-        const r = await fetch("/api/protocol", { credentials: "include" }).then(res => res.json());
-        setData(Array.isArray(r?.items) ? r.items : []);
+        await initRolePolicy();
+        if (!aliveRef.current) return;
+        setCanEdit(canEditApp("protokoll"));
       } catch {
-        setData([]);
-      } finally {
-        setLoading(false);
+        if (!aliveRef.current) return;
+        setCanEdit(false);
       }
     })();
   }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof document === "undefined") {
+      return undefined;
+    }
+    const handleFocus = () => fetchData({ silent: true });
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        fetchData({ silent: true });
+      }
+    };
+    const handleProtocolUpdate = () => fetchData({ silent: true });
+    const handleStorage = (event) => {
+      if (event?.key === "protocol:last-update") {
+        fetchData({ silent: true });
+      }
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("protocol:data-changed", handleProtocolUpdate);
+    window.addEventListener("storage", handleStorage);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("protocol:data-changed", handleProtocolUpdate);
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [fetchData]);
 
   const rows = useMemo(
     () => [...data].sort((a, b) => (Number(b.nr) || 0) - (Number(a.nr) || 0)),
@@ -87,7 +142,6 @@ return (
                 .concat(u.aus ? "Ausgang" : []);
               const richtung = richtungen.join(" / ");
               const printCount = Math.max(0, Number(r?.printCount) || 0);
-              const printed = printCount > 0;
               const massnahmen = Array.isArray(r?.massnahmen) ? r.massnahmen : [];
               const relevantMeasures = massnahmen.filter((m) => {
                 const text = `${m?.massnahme ?? ""} ${m?.verantwortlich ?? ""}`.trim();
@@ -99,22 +153,20 @@ return (
               const confirmation = r?.otherRecipientConfirmation || {};
               const confirmedRole = String(confirmation?.byRole || "").toUpperCase();
               const confirmedByLtStbOrS3 = !!confirmation?.confirmed && (confirmedRole === "LTSTB" || confirmedRole === "S3");
-              const showPrintCircle = openTasks || confirmedByLtStbOrS3;
+              const showPrintCircle = confirmedByLtStbOrS3;
               const printTitleParts = [`${printCount}× gedruckt`];
               if (openTasks) {
                 printTitleParts.push("Offene Aufgaben vorhanden");
-              } else if (confirmedByLtStbOrS3) {
+              }
+              if (confirmedByLtStbOrS3) {
                 const label = confirmedRole === "LTSTB" ? "LtStb" : confirmedRole;
                 printTitleParts.push(`Bestätigt durch ${label}`);
               }
               const printTitle = printTitleParts.join(" • ");
-              const printCircleClass = openTasks
-                ? "border-red-500 text-red-600"
-                : "border-emerald-500 text-emerald-600";
-              const showDot = printed || doneCount > 0;
-              const dotColor = allDone ? "bg-emerald-500" : printed ? "bg-yellow-400" : "bg-gray-300";
+              const printCircleClass = "border-emerald-500 text-emerald-600";
+              const showDot = doneCount > 0;
+              const dotColor = allDone ? "bg-emerald-500" : "bg-gray-400";
               const dotTitleParts = [];
-              if (printed) dotTitleParts.push(`Gedruckt (${r.printCount})`);
               if (doneCount > 0) {
                 dotTitleParts.push(
                   allDone

@@ -629,6 +629,12 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
 
       const pages = Number(r?.pages) || recipients.length;
       showToast?.("success", `Druck gestartet (${pages} Seite${pages > 1 ? "n" : ""})`);
+      try {
+        window.dispatchEvent(new CustomEvent("protocol:data-changed", { detail: { nr: nrSaved, reason: "print" } }));
+      } catch {}
+      try {
+        localStorage.setItem("protocol:last-update", `${Date.now()}:${nrSaved}`);
+      } catch {}
     } catch (e) {
       showToast?.("error", `Drucken fehlgeschlagen: ${e.message || e}`);
     } finally {
