@@ -304,9 +304,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
       : "Nur die bestätigende Rolle darf zurücksetzen"
     : confirmRoleSet.size > 0
       ? "Bestätigung setzen"
-      : ltStbOnline
-        ? "Nur LtStb oder LtStbStv dürfen bestätigen"
-        : "Nur LtStb, LtStbStv oder S3 (wenn LtStb abgemeldet) dürfen bestätigen";
+      : "Bestätigung nur durch berechtigte Rolle möglich";
 
   const handleConfirmationToggle = (checked) => {
     if (!canEdit) { showModificationDenied(); return; }
@@ -1299,7 +1297,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
               ) : (
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
                   <span className="font-medium text-gray-700">{DEFAULT_CONFIRM_ROLE_TEXT}</span>
-                  <span>Nur LtStb, LtStbStv oder S3 dürfen bestätigen</span>
+                  <span>Bestätigung nur durch berechtigte Rolle möglich</span>
                 </div>
               )}
             </div>
