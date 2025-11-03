@@ -48,6 +48,13 @@ export async function checkUnlocked() {
 
 export async function fetchBoard(){ return j("GET","/api/board"); }
 export async function fetchVehicles(){ return j("GET","/api/vehicles"); }
+export async function fetchGroupAvailability(){ return j("GET", "/api/groups/availability"); }
+export async function updateVehicleAvailability(id, available){
+  return j("PATCH", `/api/vehicles/${encodeURIComponent(id)}/availability`, { available });
+}
+export async function updateGroupAvailability(name, available){
+  return j("PATCH", `/api/groups/${encodeURIComponent(name)}/availability`, { available });
+}
 export async function fetchTypes(){ try{ return await j("GET","/api/types"); }catch{ return []; } }
 
 export async function fetchAufgabenBoard(roleId = "", { signal } = {}) {

@@ -31,6 +31,7 @@ const DATA_DIR  = path.join(ROOT, "data");
 const DIST_DIR  = path.join(ROOT, "dist");
 const PUBLIC_DIR = path.join(ROOT, "public");
 const VEH_OVERRIDES = path.join(DATA_DIR, "vehicles-overrides.json");
+const VEH_AVAILABILITY_FILE = path.join(DATA_DIR, "vehicles-availability.json");
 
 const BOARD_FILE  = path.join(DATA_DIR, "board.json");
 const VEH_BASE    = path.join(DATA_DIR, "conf","vehicles.json");
@@ -41,6 +42,7 @@ const LOG_FILE    = path.join(DATA_DIR, "Lage_log.csv");
 const ARCHIVE_DIR = path.join(DATA_DIR, "archive");
 const ERROR_LOG   = path.join(DATA_DIR, "Log.txt");
 const GROUPS_FILE = path.join(DATA_DIR, "conf","group_locations.json");
+const GROUP_AVAILABILITY_FILE = path.join(DATA_DIR, "conf","group-availability.json");
 
 const DEFAULT_BOARD_COLUMNS = {
   neu: "Neu",
@@ -212,6 +214,12 @@ async function writeOverrides(next){
   await writeJson(VEH_OVERRIDES, next);
   invalidateVehiclesCache();
 }
+
+async function readVehicleAvailability(){ return await readJson(VEH_AVAILABILITY_FILE, {}); }
+async function writeVehicleAvailability(next){ await writeJson(VEH_AVAILABILITY_FILE, next); }
+
+async function readGroupAvailability(){ return await readJson(GROUP_AVAILABILITY_FILE, {}); }
+async function writeGroupAvailability(next){ await writeJson(GROUP_AVAILABILITY_FILE, next); }
 
 // GPS > manuell > leer
 async function getAllVehiclesMerged(){
@@ -730,7 +738,21 @@ async function ensureBoard(){
 }
 async function getAllVehicles(){
   const { base, extra } = await getVehiclesData();
-  return [...base,...extra];
+  const availability = await readVehicleAvailability().catch(() => ({}));
+  const groupAvailability = await readGroupAvailability().catch(() => ({}));
+  const list = [...base, ...extra];
+  return list.map((veh) => {
+    if (!veh) return veh;
+    const idStr = String(veh.id ?? "");
+    const ortStr = String(veh.ort ?? "");
+    const vehicleAvailable = Object.prototype.hasOwnProperty.call(availability || {}, idStr)
+      ? availability[idStr] !== false
+      : true;
+    const groupAvailable = Object.prototype.hasOwnProperty.call(groupAvailability || {}, ortStr)
+      ? groupAvailability[ortStr] !== false
+      : true;
+    return { ...veh, available: vehicleAvailable, groupAvailable };
+  });
 }
 const vehiclesByIdMap = list => new Map(list.map(v=>[v.id,v]));
 const computedPersonnel = (card,vmap)=>(card.assignedVehicles||[]).reduce((s,vid)=>s+(vmap.get(vid)?.mannschaft??0),0);
@@ -775,6 +797,10 @@ function findCardByExternalId(board,extId){
 // --- API: Basics ---
 app.get("/api/board",    async (_req,res)=>res.json(await ensureBoard()));
 app.get("/api/vehicles", async (_req,res)=>res.json(await getAllVehiclesMerged()));
+app.get("/api/groups/availability", async (_req,res)=>{
+  const availability = await readGroupAvailability().catch(() => ({}));
+  res.json({ availability });
+});
 
 app.get("/api/gps", async (_req,res)=>{
   try{ const txt = await fs.readFile(GPS_FILE, "utf8"); res.type("json").send(txt); }
@@ -822,6 +848,29 @@ app.post("/api/vehicles", async (req,res)=>{
     { autoTimestampField: "Zeitpunkt", autoUserField: "Benutzer" }
   );
   res.json({ ok:true, vehicle:v });
+});
+
+app.patch("/api/vehicles/:id/availability", async (req,res)=>{
+  const id = String(req.params?.id || "").trim();
+  if(!id) return res.status(400).json({ ok:false, error:"vehicle id erforderlich" });
+  const all = await getAllVehicles();
+  const exists = all.find(v=>String(v?.id||"")===id);
+  if(!exists) return res.status(404).json({ ok:false, error:"vehicle not found" });
+  const available = req.body?.available !== false;
+  const map = await readVehicleAvailability().catch(() => ({}));
+  if(available) delete map[id]; else map[id] = false;
+  await writeVehicleAvailability(map);
+  res.json({ ok:true, id, available });
+});
+
+app.patch("/api/groups/:name/availability", async (req,res)=>{
+  const name = String(req.params?.name || "").trim();
+  if(!name) return res.status(400).json({ ok:false, error:"group name erforderlich" });
+  const available = req.body?.available !== false;
+  const map = await readGroupAvailability().catch(() => ({}));
+  if(available) delete map[name]; else map[name] = false;
+  await writeGroupAvailability(map);
+  res.json({ ok:true, name, available });
 });
 
 // ---- Karten anlegen (mit Koordinaten) ----
