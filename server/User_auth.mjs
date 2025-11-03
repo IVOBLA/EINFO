@@ -51,6 +51,25 @@ function sessionIsExpired(session, now = Date.now()) {
   return reference + SESSION_IDLE_TIMEOUT_MS <= now;
 }
 
+function sessionExpiryInfo(session, now = Date.now()) {
+  if (!session) {
+    const refIso = new Date(now).toISOString();
+    return {
+      idleTimeoutMs: SESSION_IDLE_TIMEOUT_MS,
+      idleTimeoutSeconds: SESSION_IDLE_TIMEOUT_SECONDS,
+      lastSeenIso: refIso,
+      expiresAtIso: new Date(now + SESSION_IDLE_TIMEOUT_MS).toISOString(),
+    };
+  }
+  const ref = session.lastSeen ?? session.createdAt ?? now;
+  return {
+    idleTimeoutMs: SESSION_IDLE_TIMEOUT_MS,
+    idleTimeoutSeconds: SESSION_IDLE_TIMEOUT_SECONDS,
+    lastSeenIso: new Date(ref).toISOString(),
+    expiresAtIso: new Date(ref + SESSION_IDLE_TIMEOUT_MS).toISOString(),
+  };
+}
+
 function cleanupExpiredSessions(now = Date.now()) {
   for (const [sid, session] of _sessions) {
     if (sessionIsExpired(session, now)) {
@@ -119,6 +138,14 @@ export function User_authMiddleware(options = {}){
       try{ req.user = await User_getByIdLoose(session.userId); }
       catch{ req.user = null; }
       syncSessionRoles(session, req.user);
+      req.session = session;
+      req.sessionId = sid;
+      req.sessionInfo = sessionExpiryInfo(session);
+    }
+    else {
+      req.session = null;
+      req.sessionId = null;
+      req.sessionInfo = null;
     }
     next();
   };
@@ -182,12 +209,26 @@ export function User_createRouter({ dataDir, secureCookies=false }){
     const now = Date.now();
     _sessions.set(sid, { userId:u.id, createdAt:now, lastSeen:now, roles, primaryRole: roles[0] || null });
     setSessionCookie(res, sid, { secure: secureCookies, maxAgeSeconds: SESSION_IDLE_TIMEOUT_SECONDS });
-    res.json({ id:u.id, username:u.username, role:u.role, displayName:u.displayName });
+    const session = _sessions.get(sid);
+    res.json({
+      id: u.id,
+      username: u.username,
+      role: u.role,
+      displayName: u.displayName,
+      session: sessionExpiryInfo(session, now),
+    });
   });
   r.get("/me", (req,res)=>{
     if(!req.user) return res.status(401).json({error:"UNAUTHORIZED"});
     const { id, username, role, displayName } = req.user;
-    res.json({ id, username, role, displayName });
+    const session = req.session || getActiveSession(readCookie(req, "User_sid"));
+    res.json({
+      id,
+      username,
+      role,
+      displayName,
+      session: sessionExpiryInfo(session),
+    });
   });
   r.post("/logout", (req,res)=>{
     const sid = readCookie(req, "User_sid");
