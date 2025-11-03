@@ -66,6 +66,7 @@ return (
         <table className="min-w-[1100px] w-full text-sm">
           <thead className="bg-gray-50 sticky top-0 z-10">
             <tr className="[&>th]:px-2 [&>th]:py-2 [&>th]:text-left [&>th]:font-semibold border-b">
+              <th style={{ width: 70 }} className="text-center" title="Druckanzahl">Drucke</th>
               <th style={{ width: 28 }} title="Druckstatus"></th>
               <th style={{ width: 60 }}>NR</th>
               <th style={{ width: 110 }}>Datum</th>
@@ -85,7 +86,8 @@ return (
                 .concat(u.ein ? "Eingang" : [])
                 .concat(u.aus ? "Ausgang" : []);
               const richtung = richtungen.join(" / ");
-              const printed = Number(r?.printCount) > 0;
+              const printCount = Math.max(0, Number(r?.printCount) || 0);
+              const printed = printCount > 0;
               const massnahmen = Array.isArray(r?.massnahmen) ? r.massnahmen : [];
               const relevantMeasures = massnahmen.filter((m) => {
                 const text = `${m?.massnahme ?? ""} ${m?.verantwortlich ?? ""}`.trim();
@@ -93,6 +95,22 @@ return (
               });
               const doneCount = relevantMeasures.filter((m) => !!m?.done).length;
               const allDone = doneCount > 0 && doneCount === relevantMeasures.length;
+              const openTasks = relevantMeasures.some((m) => !m?.done);
+              const confirmation = r?.otherRecipientConfirmation || {};
+              const confirmedRole = String(confirmation?.byRole || "").toUpperCase();
+              const confirmedByLtStbOrS3 = !!confirmation?.confirmed && (confirmedRole === "LTSTB" || confirmedRole === "S3");
+              const showPrintCircle = openTasks || confirmedByLtStbOrS3;
+              const printTitleParts = [`${printCount}× gedruckt`];
+              if (openTasks) {
+                printTitleParts.push("Offene Aufgaben vorhanden");
+              } else if (confirmedByLtStbOrS3) {
+                const label = confirmedRole === "LTSTB" ? "LtStb" : confirmedRole;
+                printTitleParts.push(`Bestätigt durch ${label}`);
+              }
+              const printTitle = printTitleParts.join(" • ");
+              const printCircleClass = openTasks
+                ? "border-red-500 text-red-600"
+                : "border-emerald-500 text-emerald-600";
               const showDot = printed || doneCount > 0;
               const dotColor = allDone ? "bg-emerald-500" : printed ? "bg-yellow-400" : "bg-gray-300";
               const dotTitleParts = [];
@@ -113,6 +131,21 @@ return (
                   onClick={() => { window.location.hash = `/protokoll/edit/${r.nr}`; }}
                   title="Zum Bearbeiten öffnen"
                 >
+                  <td className="align-middle text-center">
+                    {showPrintCircle ? (
+                      <span
+                        className={`inline-flex items-center justify-center w-8 h-8 rounded-full border-2 text-sm font-semibold ${printCircleClass}`}
+                        title={printTitle}
+                        aria-label={printTitle}
+                      >
+                        {printCount}
+                      </span>
+                    ) : (
+                      <span className="inline-block min-w-[2ch] text-sm font-semibold" title={printTitle} aria-label={printTitle}>
+                        {printCount}
+                      </span>
+                    )}
+                  </td>
                   <td className="align-middle">
                     {showDot ? (
                       <span
@@ -135,7 +168,7 @@ return (
             })}
             {!rows.length && (
               <tr>
-                <td colSpan={9} className="p-4 text-gray-500 italic">— keine Einträge —</td>
+                <td colSpan={10} className="p-4 text-gray-500 italic">— keine Einträge —</td>
               </tr>
             )}
           </tbody>
