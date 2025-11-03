@@ -6,7 +6,11 @@ import { fileURLToPath } from "url";
 import express from "express";
 import { randomUUID } from "crypto";
 import { resolveUserName } from "../auditLog.mjs";
-import { User_authMiddleware, User_isAnyRoleOnline } from "../User_auth.mjs";
+import {
+  User_authMiddleware,
+  User_isAnyRoleOnline,
+  USER_ONLINE_ROLE_ACTIVE_LIMIT_MS,
+} from "../User_auth.mjs";
 import { User_initStore } from "../User_store.mjs";
 import { ensureTaskForRole } from "../utils/tasksService.mjs";
 import { CSV_HEADER, ensureCsvStructure, appendHistoryEntriesToCsv } from "../utils/protocolCsv.mjs";
@@ -86,7 +90,10 @@ const sanitizeConfirmation = (input, { existing, identity, actorRoles }) => {
     ? actorRoles.has(existingRole) ||
       (existingRole === BACKUP_CONFIRM_ROLE && [...actorRoles].some((roleId) => PRIMARY_CONFIRM_ROLES.has(roleId)))
     : false;
-  const ltStbAvailable = User_isAnyRoleOnline([...PRIMARY_CONFIRM_ROLES]);
+  const ltStbAvailable = User_isAnyRoleOnline(
+    [...PRIMARY_CONFIRM_ROLES],
+    { activeWithinMs: USER_ONLINE_ROLE_ACTIVE_LIMIT_MS },
+  );
   const actorConfirmRoles = [...actorRoles]
     .filter((roleId) => CONFIRM_ROLES.has(roleId))
     .filter((roleId) => roleId !== BACKUP_CONFIRM_ROLE || !ltStbAvailable);

@@ -122,7 +122,6 @@ return (
           <thead className="bg-gray-50 sticky top-0 z-10">
             <tr className="[&>th]:px-2 [&>th]:py-2 [&>th]:text-left [&>th]:font-semibold border-b">
               <th style={{ width: 70 }} className="text-center" title="Druckanzahl">Drucke</th>
-              <th style={{ width: 28 }} title="Druckstatus"></th>
               <th style={{ width: 60 }}>NR</th>
               <th style={{ width: 110 }}>Datum</th>
               <th style={{ width: 80 }}>Zeit</th>
@@ -147,8 +146,6 @@ return (
                 const text = `${m?.massnahme ?? ""} ${m?.verantwortlich ?? ""}`.trim();
                 return text.length > 0;
               });
-              const doneCount = relevantMeasures.filter((m) => !!m?.done).length;
-              const allDone = doneCount > 0 && doneCount === relevantMeasures.length;
               const openTasks = relevantMeasures.some((m) => !m?.done);
               const confirmation = r?.otherRecipientConfirmation || {};
               const confirmedRole = String(confirmation?.byRole || "").toUpperCase();
@@ -198,15 +195,6 @@ return (
                       </span>
                     )}
                   </td>
-                  <td className="align-middle">
-                    {showDot ? (
-                      <span
-                        className={`inline-block w-3 h-3 rounded-full ${dotColor}`}
-                        title={dotTitle || undefined}
-                        aria-label={dotTitle || undefined}
-                      />
-                    ) : null}
-                  </td>
                   <td className="font-semibold">{r.nr}</td>
                   <td>{r.datum}</td>
                   <td>{r.zeit}</td>
@@ -220,7 +208,7 @@ return (
             })}
             {!rows.length && (
               <tr>
-                <td colSpan={10} className="p-4 text-gray-500 italic">— keine Einträge —</td>
+                <td colSpan={9} className="p-4 text-gray-500 italic">— keine Einträge —</td>
               </tr>
             )}
           </tbody>
