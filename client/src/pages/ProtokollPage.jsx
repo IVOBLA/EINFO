@@ -959,12 +959,12 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
       <form ref={formRef} onKeyDown={onFormKeyDown} onSubmit={onSubmit} className="bg-white border-2 rounded-b-xl overflow-hidden shadow">
         <div className="grid grid-cols-12">
           {/* Kopf */}
-          <div className="col-span-9 p-6 border-b-2">
+          <div className="col-span-9 px-6 py-4 border-b-2">
             <div className="text-3xl font-extrabold tracking-wide">MELDUNG/INFORMATION</div>
           </div>
           <div className="col-span-3 border-l-2">
-            <div className="p-2 text-[10px] text-gray-600 border-b-2">PROTOKOLL-NR</div>
-            <div className="p-2 text-center text-xl font-semibold">{nr ?? "—"}</div>
+            <div className="px-2 py-1 text-[10px] text-gray-600 border-b-2">PROTOKOLL-NR</div>
+            <div className="px-2 py-1.5 text-center text-xl font-semibold">{nr ?? "—"}</div>
           </div>
 
           {/* Datum/Uhrzeit + Typ (6/3/3) */}
@@ -1122,7 +1122,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
             <textarea
               ref={informationRef}
               name="information"
-              className={`border rounded px-2 py-2 w-full min-h-[260px] text-[15px] leading-relaxed ${errors.information ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500" : ""}`}
+              className={`border rounded px-2 py-2 w-full min-h-[360px] md:min-h-[420px] text-[15px] leading-relaxed ${errors.information ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500" : ""}`}
               value={form.information}
               onChange={(e) => { clearError("information"); set("information", e.target.value); }}
               title="Sachverhalt / Meldetext"
@@ -1193,46 +1193,6 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
                 placeholder="Name/Gruppe"
                 readOnly={!canModify}
               />
-              {showConfirmationControl ? (
-                <>
-                  <label className="inline-flex items-center gap-2 ml-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={entryConfirmed}
-                      onChange={(e) => handleConfirmationToggle(e.target.checked)}
-                      disabled={!canEdit || !canToggleConfirmation}
-                      title={confirmationToggleTitle}
-                    />
-                    <span>bestätigt:</span>
-                  </label>
-                  {entryConfirmed && confirmationDisplayLines.length > 0 && (
-                    <div className="flex flex-col leading-tight text-xs text-red-600">
-                      {confirmationDisplayLines.map((line, idx) => (
-                        <span key={idx} className={idx === 0 ? "text-sm font-semibold" : undefined}>
-                          {line}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="ml-2 flex flex-col text-sm">
-                  {entryConfirmed && confirmationDisplayLines.length > 0 ? (
-                    <div className="flex flex-col leading-tight text-red-600">
-                      {confirmationDisplayLines.map((line, idx) => (
-                        <span key={idx} className={idx === 0 ? "font-semibold" : "text-xs"}>
-                          {line}
-                        </span>
-                      ))}
-                    </div>
-                  ) : (
-                    <>
-                      <span className="font-medium text-gray-700">{DEFAULT_CONFIRM_ROLE_TEXT}</span>
-                      <span className="text-xs text-gray-500">Nur LtStb, LtStbStv oder S3 dürfen bestätigen</span>
-                    </>
-                  )}
-                </div>
-              )}
             </div>
           </div>
 
@@ -1302,6 +1262,47 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
               </div>
             ))}
             <datalist id="dl-ver">{suggVer.map((v) => <option key={v} value={v} />)}</datalist>
+          </div>
+
+          <div className="col-span-12 border-t-2 p-2">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+              {showConfirmationControl ? (
+                <>
+                  <label className="inline-flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={entryConfirmed}
+                      onChange={(e) => handleConfirmationToggle(e.target.checked)}
+                      disabled={!canEdit || !canToggleConfirmation}
+                      title={confirmationToggleTitle}
+                    />
+                    <span>bestätigt:</span>
+                  </label>
+                  {entryConfirmed && confirmationDisplayLines.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-red-600">
+                      {confirmationDisplayLines.map((line, idx) => (
+                        <span key={idx} className={idx === 0 ? "text-sm font-semibold" : undefined}>
+                          {line}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </>
+              ) : entryConfirmed && confirmationDisplayLines.length > 0 ? (
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-red-600 text-xs">
+                  {confirmationDisplayLines.map((line, idx) => (
+                    <span key={idx} className={idx === 0 ? "font-semibold" : undefined}>
+                      {line}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                  <span className="font-medium text-gray-700">{DEFAULT_CONFIRM_ROLE_TEXT}</span>
+                  <span>Nur LtStb, LtStbStv oder S3 dürfen bestätigen</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
