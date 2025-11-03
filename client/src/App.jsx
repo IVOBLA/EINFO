@@ -45,6 +45,9 @@ import {
   fetchAufgabenBoard,
   resetVehiclePosition,
   updateCard,
+  fetchGroupAvailability,
+  updateVehicleAvailability,
+  updateGroupAvailability,
 } from "./api";
 
 const TICKER_ROLE_ID = "S2";
@@ -78,6 +81,34 @@ const readOnly = !canEdit;
   const [board, setBoard] = useState(null);
   const [vehicles, setVehicles] = useState([]);
   const [types, setTypes] = useState([]);
+  const [groupAvailability, setGroupAvailability] = useState(new Map());
+
+  const syncGroupAvailabilityFromVehicles = useCallback((list) => {
+    if (!Array.isArray(list)) return;
+    setGroupAvailability((prev) => {
+      let changed = false;
+      const next = new Map(prev);
+      for (const veh of list) {
+        if (!veh || !veh.ort) continue;
+        const ort = String(veh.ort);
+        const available = veh.groupAvailable !== false;
+        if (!next.has(ort) || next.get(ort) !== available) {
+          next.set(ort, available);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, []);
+
+  useEffect(() => {
+    syncGroupAvailabilityFromVehicles(vehicles);
+  }, [vehicles, syncGroupAvailabilityFromVehicles]);
+
+  const applyGroupAvailabilityResponse = useCallback((payload) => {
+    const entries = Object.entries(payload?.availability || {});
+    setGroupAvailability(new Map(entries.map(([name, value]) => [name, value !== false])));
+  }, []);
   const [areaFilter, setAreaFilter] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [filterPulseActive, setFilterPulseActive] = useState(false);
@@ -168,8 +199,14 @@ const remaining = autoEnabled
   useEffect(() => {
     if (!unlocked) return;
     (async () => {
-      const [b, v, t] = await Promise.all([fetchBoard(), fetchVehicles(), fetchTypes()]);
+      const [b, v, t, g] = await Promise.all([
+        fetchBoard(),
+        fetchVehicles(),
+        fetchTypes(),
+        fetchGroupAvailability().catch(() => ({ availability: {} })),
+      ]);
       setBoard(b); setVehicles(v); setTypes(Array.isArray(t) ? t : []);
+      applyGroupAvailabilityResponse(g);
       prevIdsRef.current = getAllCardIds(b);
       initialPulseSuppressUntilRef.current = Date.now() + INITIAL_PULSE_SUPPRESS_MS;
       try {
@@ -631,6 +668,63 @@ try {
   }
 
   const vehiclesById = useMemo(() => new Map(vehicles.map((v) => [v.id, v])), [vehicles]);
+
+  async function handleVehicleAvailabilityChange(vehicle, nextAvailable) {
+    if (readOnly) return;
+    if (!vehicle) return;
+    const idStr = String(vehicle.id ?? "").trim();
+    if (!idStr) return;
+    const target = nextAvailable === true;
+    const prevValue = vehicle.available !== false;
+    if (prevValue === target) return;
+    setVehicles((prev) =>
+      prev.map((item) => (String(item?.id ?? "") === idStr ? { ...item, available: target } : item))
+    );
+    try {
+      await updateVehicleAvailability(idStr, target);
+    } catch (error) {
+      console.error(error);
+      setVehicles((prev) =>
+        prev.map((item) => (String(item?.id ?? "") === idStr ? { ...item, available: prevValue } : item))
+      );
+      alert(error?.message || "Verfügbarkeit der Einheit konnte nicht gespeichert werden.");
+    }
+  }
+
+  async function handleGroupAvailabilityChange(name, nextAvailable) {
+    if (readOnly) return;
+    const groupName = String(name ?? "").trim();
+    if (!groupName) return;
+    const target = nextAvailable === true;
+    const prevValue = groupAvailability.get(groupName) ?? true;
+    if (prevValue === target) return;
+    setGroupAvailability((prev) => {
+      const next = new Map(prev);
+      next.set(groupName, target);
+      return next;
+    });
+    setVehicles((prev) =>
+      prev.map((item) =>
+        String(item?.ort ?? "") === groupName ? { ...item, groupAvailable: target } : item
+      )
+    );
+    try {
+      await updateGroupAvailability(groupName, target);
+    } catch (error) {
+      console.error(error);
+      setGroupAvailability((prev) => {
+        const next = new Map(prev);
+        next.set(groupName, prevValue);
+        return next;
+      });
+      setVehicles((prev) =>
+        prev.map((item) =>
+          String(item?.ort ?? "") === groupName ? { ...item, groupAvailable: prevValue } : item
+        )
+      );
+      alert(error?.message || "Verfügbarkeit der Gruppe konnte nicht gespeichert werden.");
+    }
+  }
 
   const cloneIdSet = useMemo(() => {
     const clones = new Set();
@@ -1367,31 +1461,79 @@ if (route.startsWith("/protokoll")) {
               )}
               {visibleFreeByOrt.map(([ort, list]) => {
                 const collapsed = isCollapsed(ort);
+                const groupAvailable = groupAvailability.has(ort)
+                  ? groupAvailability.get(ort)
+                  : true;
                 return (
-                  <div key={ort} className="border border-blue-400 rounded-md">
-                    {/* Gruppen-Header → klick toggelt */}
-                    <button
-                      type="button"
-                      onClick={() => setCollapsed(ort, !collapsed)}
-                      className="w-full flex items-center justify-between px-2 py-2 text-left"
-                      title={collapsed ? "aufklappen" : "zuklappen"}
-                    >
-                      <span className="text-xs font-semibold text-gray-700">{ort}</span>
-                      <span className="group-chip">{list.length}</span>
-                    </button>
+                  <div
+                    key={ort}
+                    className={`border rounded-md ${groupAvailable ? "border-blue-400" : "border-gray-300 bg-gray-50"}`}
+                  >
+                    <div className="flex items-center justify-between px-2 py-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setCollapsed(ort, !collapsed)}
+                        className="flex-1 flex items-center justify-between gap-2 text-left"
+                        title={collapsed ? "aufklappen" : "zuklappen"}
+                      >
+                        <span
+                          className={`text-xs font-semibold ${groupAvailable ? "text-gray-700" : "text-gray-400"}`}
+                        >
+                          {ort}
+                        </span>
+                      </button>
+                      <div className="flex items-center gap-2">
+                        <label
+                          className="flex items-center gap-1 text-[11px] text-gray-600"
+                          title={groupAvailable ? "Gruppe verfügbar" : "Gruppe deaktiviert"}
+                        >
+                          <span className="sr-only">Gruppe verfügbar</span>
+                          <input
+                            type="checkbox"
+                            checked={groupAvailable}
+                            onChange={(e) => handleGroupAvailabilityChange(ort, e.target.checked)}
+                            disabled={readOnly}
+                          />
+                        </label>
+                        <span className="group-chip">{list.length}</span>
+                      </div>
+                    </div>
 
-                    {/* Inhalt nur wenn aufgeklappt */}
                     {!collapsed && (
                       <div className="px-2 pb-2 grid grid-cols-1 gap-1.5">
-                        {list.map((v) => (
-                          <DraggableVehicle editable={canEdit}
-                            key={v.id}
-                            vehicle={v}
-                            pillWidthPx={160}
-                            near={nearBySet.has(String(v.id)) && Date.now() < pulseUntilMs}
-                            distKm={nearbyDistById.get(String(v.id))}
-                          />
-                        ))}
+                        {list.map((v) => {
+                          const vehicleAvailable = v?.available !== false;
+                          const effectiveGroupAvailable = groupAvailability.has(v?.ort || "")
+                            ? groupAvailability.get(v?.ort || "")
+                            : v?.groupAvailable !== false;
+                          const vehicleForRender =
+                            effectiveGroupAvailable === (v?.groupAvailable !== false)
+                              ? v
+                              : { ...v, groupAvailable: effectiveGroupAvailable };
+                          return (
+                            <div key={v.id} className="flex items-center gap-2 justify-between">
+                              <DraggableVehicle
+                                editable={canEdit}
+                                vehicle={vehicleForRender}
+                                pillWidthPx={160}
+                                near={nearBySet.has(String(v.id)) && Date.now() < pulseUntilMs}
+                                distKm={nearbyDistById.get(String(v.id))}
+                              />
+                              <label
+                                className="flex items-center gap-1 text-[11px] text-gray-600 shrink-0"
+                                title={vehicleAvailable ? "Einheit verfügbar" : "Einheit deaktiviert"}
+                              >
+                                <span className="sr-only">Einheit verfügbar</span>
+                                <input
+                                  type="checkbox"
+                                  checked={vehicleAvailable}
+                                  onChange={(e) => handleVehicleAvailabilityChange(v, e.target.checked)}
+                                  disabled={readOnly}
+                                />
+                              </label>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>

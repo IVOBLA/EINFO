@@ -12,19 +12,27 @@ export function DraggableVehicle({ vehicle, pillWidthPx = 160, near = false, dis
   const setNodeRef = drag?.setNodeRef ?? (()=>{});
   const transform = drag?.transform ?? null;
   const isDragging = drag?.isDragging ?? false;
+  const vehicleAvailable = vehicle?.available !== false;
+  const groupAvailable = vehicle?.groupAvailable !== false;
+  const isDimmed = !vehicleAvailable || !groupAvailable;
+  const style = {
+    width: pillWidthPx,
+    transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
+  };
+  if (isDimmed && !isDragging) {
+    style.opacity = 0.6;
+  }
 
   return (
     <div
       ref={setNodeRef}
-      style={{
-        width: pillWidthPx,
-        transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined,
-      }}
+      style={style}
       {...attributes}
       {...listeners}
       className={`relative max-w-full select-none border-2 ${near ? "border-emerald-500" : "border-red-300"} rounded-2xl bg-white
                  px-2 py-1 shadow-sm cursor-grab active:cursor-grabbing
-                 ${isDragging ? "opacity-50" : ""}`}
+                 ${isDragging ? "opacity-50" : ""}
+                 ${isDimmed ? "border-gray-200 bg-gray-100" : ""}`}
     >
       {/* Proximity-Pulse */}
       {near && (
@@ -33,10 +41,10 @@ export function DraggableVehicle({ vehicle, pillWidthPx = 160, near = false, dis
           className="pointer-events-none absolute -inset-0.5 rounded-2xl border-2 border-emerald-400/50 animate-ping"
         />
       )}
-      <div className="text-[13px] font-semibold leading-5 truncate">
+      <div className={`text-[13px] font-semibold leading-5 truncate ${isDimmed ? "text-gray-500" : ""}`}>
         {vehicle.label || vehicle.id}
       </div>
-      <div className="text-[12px] text-gray-600 leading-4 truncate flex justify-between items-center">
+      <div className={`text-[12px] leading-4 truncate flex justify-between items-center ${isDimmed ? "text-gray-400" : "text-gray-600"}`}>
         <span>{vehicle.ort || "—"} · 👥 {vehicle.mannschaft ?? 0}</span>
         {near && Number.isFinite(Number(distKm)) && (
           <span className="absolute top-1 right-1 text-[11px] tabular-nums text-gray-800 bg-gray-100 px-1.5 py-0.5 rounded whitespace-nowrap">
