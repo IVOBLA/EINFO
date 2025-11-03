@@ -43,6 +43,34 @@ const SESSION_SWEEP_INTERVAL_MS = (() => {
   return Math.min(SESSION_IDLE_TIMEOUT_MS, 60_000);
 })();
 
+const ONLINE_ROLE_ACTIVE_LIMIT_MS = (() => {
+  const minuteCandidates = [
+    process.env.USER_ONLINE_ROLE_ACTIVE_MIN,
+    process.env.USER_ONLINE_ROLE_ACTIVE_MINUTES,
+    process.env.USER_ONLINE_ACTIVE_MINUTES,
+  ];
+  for (const value of minuteCandidates) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed * 60_000;
+    }
+  }
+  const msCandidates = [
+    process.env.USER_ONLINE_ROLE_ACTIVE_MS,
+    process.env.USER_ONLINE_ACTIVE_MS,
+    process.env.USER_ONLINE_ROLE_RECENT_MS,
+  ];
+  for (const value of msCandidates) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+  const fallback = 2 * 60_000; // 2 Minuten – synchronisiert S3-Fallback schneller
+  const limit = Math.min(SESSION_IDLE_TIMEOUT_MS, fallback);
+  return Math.max(15_000, limit);
+})();
+
 const SESSION_IDLE_TIMEOUT_SECONDS = Math.max(1, Math.floor(SESSION_IDLE_TIMEOUT_MS / 1000));
 
 function sessionIsExpired(session, now = Date.now()) {
@@ -239,7 +267,7 @@ export function User_createRouter({ dataDir, secureCookies=false }){
 
   r.get("/online-roles", User_requireAuth, (_req, res) => {
     res.set("Cache-Control", "no-store");
-    res.json({ roles: User_onlineRoleIds() });
+    res.json({ roles: User_onlineRoleIds({ activeWithinMs: ONLINE_ROLE_ACTIVE_LIMIT_MS }) });
   });
 
   // --- Rollen & Benutzer (Admin + Master erforderlich) ---
@@ -286,11 +314,21 @@ export function User_createRouter({ dataDir, secureCookies=false }){
   return r;
 }
 
-function onlineRoleSet() {
+function onlineRoleSet(options = {}) {
   cleanupExpiredSessions();
   const roles = new Set();
+  const now = Date.now();
+  const activeWithinMs = Number.isFinite(options?.activeWithinMs) && options.activeWithinMs > 0
+    ? Number(options.activeWithinMs)
+    : null;
   for (const session of _sessions.values()) {
     if (!session) continue;
+    if (activeWithinMs) {
+      const ref = Number(session.lastSeen ?? session.createdAt ?? 0);
+      if (!Number.isFinite(ref) || ref + activeWithinMs <= now) {
+        continue;
+      }
+    }
     if (Array.isArray(session.roles)) {
       for (const roleId of session.roles) {
         const norm = normalizeRoleId(roleId);
@@ -304,17 +342,19 @@ function onlineRoleSet() {
   return roles;
 }
 
-export function User_onlineRoleIds() {
-  return [...onlineRoleSet()];
+export function User_onlineRoleIds(options = {}) {
+  return [...onlineRoleSet(options)];
 }
 
-export function User_isAnyRoleOnline(roleIds = []) {
+export function User_isAnyRoleOnline(roleIds = [], options = {}) {
   if (!Array.isArray(roleIds) || roleIds.length === 0) return false;
   const target = new Set(roleIds.map(normalizeRoleId).filter(Boolean));
   if (!target.size) return false;
-  const online = onlineRoleSet();
+  const online = onlineRoleSet(options);
   for (const id of target) {
     if (online.has(id)) return true;
   }
   return false;
 }
+
+export const USER_ONLINE_ROLE_ACTIVE_LIMIT_MS = ONLINE_ROLE_ACTIVE_LIMIT_MS;
