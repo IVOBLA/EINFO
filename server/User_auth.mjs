@@ -43,6 +43,8 @@ const SESSION_SWEEP_INTERVAL_MS = (() => {
   return Math.min(SESSION_IDLE_TIMEOUT_MS, 60_000);
 })();
 
+const SESSION_IDLE_TIMEOUT_SECONDS = Math.max(1, Math.floor(SESSION_IDLE_TIMEOUT_MS / 1000));
+
 function sessionIsExpired(session, now = Date.now()) {
   if (!session) return true;
   const reference = session.lastSeen ?? session.createdAt ?? 0;
@@ -104,12 +106,16 @@ function syncSessionRoles(session, userLike) {
   session.primaryRole = roleIds[0] || null;
 }
 
-export function User_authMiddleware(){
+export function User_authMiddleware(options = {}){
+  const secureCookies = options.secureCookies ?? (String(process.env.KANBAN_COOKIE_SECURE || "") === "1");
   return async (req,res,next)=>{
     const sid = readCookie(req, "User_sid");
     const session = getActiveSession(sid);
     if(session){
       session.lastSeen = Date.now();
+      if (sid && res && typeof res.setHeader === "function" && !res.headersSent) {
+        setSessionCookie(res, sid, { secure: secureCookies, maxAgeSeconds: SESSION_IDLE_TIMEOUT_SECONDS });
+      }
       try{ req.user = await User_getByIdLoose(session.userId); }
       catch{ req.user = null; }
       syncSessionRoles(session, req.user);
@@ -175,7 +181,7 @@ export function User_createRouter({ dataDir, secureCookies=false }){
     const roles = extractRoleIds(u);
     const now = Date.now();
     _sessions.set(sid, { userId:u.id, createdAt:now, lastSeen:now, roles, primaryRole: roles[0] || null });
-    setSessionCookie(res, sid, { secure: secureCookies, maxAgeSeconds: Math.floor(SESSION_IDLE_TIMEOUT_MS / 1000) });
+    setSessionCookie(res, sid, { secure: secureCookies, maxAgeSeconds: SESSION_IDLE_TIMEOUT_SECONDS });
     res.json({ id:u.id, username:u.username, role:u.role, displayName:u.displayName });
   });
   r.get("/me", (req,res)=>{
