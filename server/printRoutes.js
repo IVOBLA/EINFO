@@ -152,10 +152,12 @@ function sheetHtml(item, recipient, nr) {
     : null;
   const confirmActive = !!confirm?.confirmed;
   const confirmRole = confirmActive ? confirmRoleDisplay(confirm?.byRole) : DEFAULT_CONFIRM_TEXT;
+  const confirmBy = confirmActive ? fmt(confirm?.by).trim() : "";
   const confirmTime = confirmActive ? formatConfirmTimestamp(confirm?.at) : "";
+  const confirmMeta = confirmActive ? [confirmBy, confirmTime].filter(Boolean).join(" – ") : "";
   const confirmHtml = `<div class="ea-confirm${confirmActive ? " ea-confirm--active" : ""}">
     <div class="ea-confirm-role">${esc(confirmRole)}</div>
-    ${confirmTime ? `<div class="ea-confirm-time">${esc(confirmTime)}</div>` : ""}
+    ${confirmMeta ? `<div class="ea-confirm-meta">${esc(confirmMeta)}</div>` : ""}
   </div>`;
 
   return `<!doctype html>
@@ -204,7 +206,7 @@ function sheetHtml(item, recipient, nr) {
   .ea-input { min-width: 200px; width:100%; }
   .ea-confirm { margin-top:8px; font-size:12px; color:#4b5563; display:flex; flex-direction:column; gap:2px; }
   .ea-confirm-role { font-weight:600; }
-  .ea-confirm-time { font-size:11px; color:inherit; }
+  .ea-confirm-meta { font-size:11px; color:inherit; }
   .ea-confirm--active { color:#dc2626; }
 </style></head><body>
 <div class="sheet">
