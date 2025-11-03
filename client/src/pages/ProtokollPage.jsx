@@ -219,6 +219,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
 
   // ---- Formular-State + Helper ----------------------------------------------
   const [form, setForm] = useState(initialForm());
+  const hasEditLock = !isEditMode || lockStatus === "acquired";
   const clearError = (key) => {
     if (!key) return;
     setErrors((prev) => {
@@ -234,7 +235,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
       const prevConfirm = prev?.otherRecipientConfirmation || defaultConfirmation();
       const prevRoleUpper = String(prevConfirm.byRole || "").toUpperCase();
       const confirmed = !!prevConfirm.confirmed;
-      if (!canEdit || (confirmed && !confirmRoleSet.has(prevRoleUpper))) return prev;
+      if (!canEdit || !hasEditLock || (confirmed && !confirmRoleSet.has(prevRoleUpper))) return prev;
       const next = structuredClone(prev);
       let ref = next;
       for (let i = 0; i < parts.length - 1; i++) ref = ref[parts[i]];
@@ -263,9 +264,13 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
       })()
     : null;
   const lockedByOtherRole = entryConfirmed && !confirmRoleSet.has(confirmationRoleUpper);
-  const canModify = canEdit && !lockedByOtherRole;
+  const lockedByOtherUser = isEditMode && lockStatus === "blocked";
+  const canModify = canEdit && hasEditLock && !lockedByOtherRole;
   const lockInfoText = lockedByOtherRole && confirmationDetails
     ? `Bestätigt durch ${confirmationDetails.roleLabel}${confirmationDetails.by ? ` (${confirmationDetails.by})` : ""}${confirmationDetails.whenText ? ` am ${confirmationDetails.whenText}` : ""}`
+    : null;
+  const lockBlockedInfoText = lockedByOtherUser
+    ? `Gerade in Bearbeitung durch ${lockError?.lockedBy || lockError?.lock?.lockedBy || "Unbekannt"}`
     : null;
   const confirmationDisplayLines = confirmationDetails
     ? [
@@ -275,7 +280,9 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
     : [];
   const showConfirmationControl = confirmRoleSet.size > 0;
   const showModificationDenied = () => {
-    if (lockInfoText) {
+    if (lockBlockedInfoText) {
+      showToast?.("error", `${lockBlockedInfoText} – Änderungen sind derzeit gesperrt.`);
+    } else if (lockInfoText) {
       showToast?.("error", `${lockInfoText} – Änderungen nur durch diese Rolle möglich.`);
     } else {
       showToast?.("error", "Keine Berechtigung (Meldestelle)");
@@ -433,7 +440,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
     const n = Number(nr);
     if (!Number.isFinite(n) || n <= 0) return;
 
-    if (lockStatus !== "acquired") return;
+    if (lockStatus !== "acquired" && lockStatus !== "blocked") return;
 
     (async () => {
       try {
@@ -504,15 +511,8 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
   useEffect(() => {
     if (!isEditMode) return;
     if (lockStatus !== "blocked") return;
-    const name = lockError?.lockedBy || "Unbekannt";
-    setTimeout(() => {
-      try {
-        window.alert(`Gerade in Bearbeitung durch ${name}`);
-      } catch {
-        // ignore missing window (SSR/tests)
-      }
-      window.location.hash = "/protokoll";
-    }, 0);
+    const name = lockError?.lockedBy || lockError?.lock?.lockedBy || "Unbekannt";
+    showToast?.("error", `Gerade in Bearbeitung durch ${name} – Änderungen nicht möglich.`);
   }, [isEditMode, lockStatus, lockError]);
 
   // ---- Shortcuts -------------------------------------------------------------
@@ -920,6 +920,12 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
           </div>
         </div>
       </div>
+
+      {lockedByOtherUser && lockBlockedInfoText && (
+        <div className="mx-2 md:mx-0 mt-3 px-3 py-2 rounded border border-amber-300 bg-amber-50 text-amber-900 text-sm">
+          {lockBlockedInfoText} – Änderungen sind derzeit gesperrt.
+        </div>
+      )}
 
       {lockedByOtherRole && lockInfoText && (
         <div className="mx-2 md:mx-0 mt-3 px-3 py-2 rounded border border-amber-300 bg-amber-50 text-amber-900 text-sm">
