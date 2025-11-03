@@ -751,7 +751,7 @@ async function getAllVehicles(){
     const groupAvailable = Object.prototype.hasOwnProperty.call(groupAvailability || {}, ortStr)
       ? groupAvailability[ortStr] !== false
       : true;
-    return { ...veh, available: vehicleAvailable, groupAvailable };
+    return { ...veh, available: vehicleAvailable && groupAvailable, groupAvailable };
   });
 }
 const vehiclesByIdMap = list => new Map(list.map(v=>[v.id,v]));
@@ -870,6 +870,20 @@ app.patch("/api/groups/:name/availability", async (req,res)=>{
   const map = await readGroupAvailability().catch(() => ({}));
   if(available) delete map[name]; else map[name] = false;
   await writeGroupAvailability(map);
+
+  const vehicleAvailability = await readVehicleAvailability().catch(() => ({}));
+  const allVehicles = await getAllVehicles();
+  for (const vehicle of allVehicles) {
+    if (!vehicle) continue;
+    const ort = String(vehicle.ort ?? "");
+    if (ort !== name) continue;
+    const idStr = String(vehicle.id ?? "");
+    if (!idStr) continue;
+    if (available) delete vehicleAvailability[idStr];
+    else vehicleAvailability[idStr] = false;
+  }
+  await writeVehicleAvailability(vehicleAvailability);
+
   res.json({ ok:true, name, available });
 });
 

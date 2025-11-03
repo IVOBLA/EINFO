@@ -359,36 +359,46 @@ className={`px-2 py-1 rounded text-[12px] border ${buttonBackgroundClass}`}
 {/* Zugeordnete Einheiten */}
             {colId === "neu" && !!assigned.length && (
               <div className="flex flex-wrap gap-1.5">
-                {assigned.map((v) => (
-                  <AssignedVehicleChip
-                    key={`ass-${card.id}-${v.id}`}
-                    cardId={card.id}
-                    vehicle={v}
-                    pillWidthPx={pillWidthPx}
-                    onUnassign={onUnassign}
-                    onClone={onClone}
-                    near={!!nearIds && pulseActive && nearIds.has(String(v.id))}
-                    readonly={!editable}
-                    distKm={distById?.get(String(v.id)) ?? null}
-                  />
-                ))}
+                {assigned.map((v) => {
+                  const vehicleAvailable = v?.available !== false;
+                  const groupAvailable = v?.groupAvailable !== false;
+                  const readonlyChip = !editable || !vehicleAvailable || !groupAvailable;
+                  return (
+                    <AssignedVehicleChip
+                      key={`ass-${card.id}-${v.id}`}
+                      cardId={card.id}
+                      vehicle={v}
+                      pillWidthPx={pillWidthPx}
+                      onUnassign={onUnassign}
+                      onClone={onClone}
+                      near={!!nearIds && pulseActive && nearIds.has(String(v.id))}
+                      readonly={readonlyChip}
+                      distKm={distById?.get(String(v.id)) ?? null}
+                    />
+                  );
+                })}
               </div>
     )}
   {colId === "in-bearbeitung" && chipsOpen && !!assigned.length && (
               <div ref={chipsRef} className="flex flex-wrap gap-1.5">
-                {assigned.map((v) => (
-                  <AssignedVehicleChip
-                    key={`ass-${card.id}-${v.id}`}
-                    cardId={card.id}
-                    vehicle={v}
-                    pillWidthPx={pillWidthPx}
-                    onUnassign={onUnassign}
-                    onClone={onClone}
-                    near={!!nearIds && pulseActive && nearIds.has(String(v.id))}
-                    readonly={!editable}
-                    distKm={distById?.get(String(v.id)) ?? null}
-                  />
-                ))}
+                {assigned.map((v) => {
+                  const vehicleAvailable = v?.available !== false;
+                  const groupAvailable = v?.groupAvailable !== false;
+                  const readonlyChip = !editable || !vehicleAvailable || !groupAvailable;
+                  return (
+                    <AssignedVehicleChip
+                      key={`ass-${card.id}-${v.id}`}
+                      cardId={card.id}
+                      vehicle={v}
+                      pillWidthPx={pillWidthPx}
+                      onUnassign={onUnassign}
+                      onClone={onClone}
+                      near={!!nearIds && pulseActive && nearIds.has(String(v.id))}
+                      readonly={readonlyChip}
+                      distKm={distById?.get(String(v.id)) ?? null}
+                    />
+                  );
+                })}
               </div>
             )}
 
