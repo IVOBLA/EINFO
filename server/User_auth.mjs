@@ -15,6 +15,66 @@ function readCookie(req, name){
 
 const _sessions = new Map(); // sid -> { userId, createdAt, lastSeen, roles:Set<string> }
 
+const SESSION_IDLE_TIMEOUT_MS = (() => {
+  const minuteCandidates = [
+    process.env.USER_SESSION_IDLE_TIMEOUT_MIN,
+    process.env.USER_SESSION_IDLE_TIMEOUT_MINUTES,
+    process.env.SESSION_IDLE_TIMEOUT_MIN,
+    process.env.SESSION_IDLE_TIMEOUT_MINUTES,
+  ];
+  for (const value of minuteCandidates) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed * 60_000;
+    }
+  }
+  const rawMs = Number(process.env.USER_SESSION_IDLE_TIMEOUT_MS);
+  if (Number.isFinite(rawMs) && rawMs > 0) {
+    return rawMs;
+  }
+  return 15 * 60_000;
+})();
+
+const SESSION_SWEEP_INTERVAL_MS = (() => {
+  const raw = Number(process.env.USER_SESSION_SWEEP_INTERVAL_MS);
+  if (Number.isFinite(raw) && raw > 0) {
+    return raw;
+  }
+  return Math.min(SESSION_IDLE_TIMEOUT_MS, 60_000);
+})();
+
+function sessionIsExpired(session, now = Date.now()) {
+  if (!session) return true;
+  const reference = session.lastSeen ?? session.createdAt ?? 0;
+  return reference + SESSION_IDLE_TIMEOUT_MS <= now;
+}
+
+function cleanupExpiredSessions(now = Date.now()) {
+  for (const [sid, session] of _sessions) {
+    if (sessionIsExpired(session, now)) {
+      _sessions.delete(sid);
+    }
+  }
+}
+
+const cleanupInterval = setInterval(() => {
+  cleanupExpiredSessions();
+}, SESSION_SWEEP_INTERVAL_MS);
+if (typeof cleanupInterval?.unref === "function") {
+  cleanupInterval.unref();
+}
+
+function getActiveSession(sid) {
+  if (!sid) return null;
+  const session = _sessions.get(sid);
+  if (!session) return null;
+  if (sessionIsExpired(session)) {
+    _sessions.delete(sid);
+    return null;
+  }
+  return session;
+}
+
 function normalizeRoleId(raw) {
   if (!raw) return "";
   if (typeof raw === "string") return raw.trim().toUpperCase();
@@ -47,22 +107,23 @@ function syncSessionRoles(session, userLike) {
 export function User_authMiddleware(){
   return async (req,res,next)=>{
     const sid = readCookie(req, "User_sid");
-    if(sid && _sessions.has(sid)){
-      const s = _sessions.get(sid);
-      s.lastSeen = Date.now();
-      try{ req.user = await User_getByIdLoose(s.userId); }
+    const session = getActiveSession(sid);
+    if(session){
+      session.lastSeen = Date.now();
+      try{ req.user = await User_getByIdLoose(session.userId); }
       catch{ req.user = null; }
-      syncSessionRoles(s, req.user);
+      syncSessionRoles(session, req.user);
     }
     next();
   };
 }
-function setSessionCookie(res, sid, secure=false){
+function setSessionCookie(res, sid, { secure=false, maxAgeSeconds=null } = {}){
   const flags = [
     `HttpOnly`,
     `Path=/`,
     `SameSite=Lax`,
     secure ? `Secure` : null,
+    Number.isFinite(maxAgeSeconds) ? `Max-Age=${Math.max(0, Math.floor(maxAgeSeconds))}` : null,
   ].filter(Boolean).join("; ");
   res.setHeader("Set-Cookie", `User_sid=${encodeURIComponent(sid)}; ${flags}`);
 }
@@ -112,8 +173,9 @@ export function User_createRouter({ dataDir, secureCookies=false }){
     if(!u) return res.status(401).json({error:"INVALID_CREDENTIALS"});
     const sid = randomBytes(24).toString("hex");
     const roles = extractRoleIds(u);
-    _sessions.set(sid, { userId:u.id, createdAt:Date.now(), lastSeen:Date.now(), roles, primaryRole: roles[0] || null });
-    setSessionCookie(res, sid, secureCookies);
+    const now = Date.now();
+    _sessions.set(sid, { userId:u.id, createdAt:now, lastSeen:now, roles, primaryRole: roles[0] || null });
+    setSessionCookie(res, sid, { secure: secureCookies, maxAgeSeconds: Math.floor(SESSION_IDLE_TIMEOUT_MS / 1000) });
     res.json({ id:u.id, username:u.username, role:u.role, displayName:u.displayName });
   });
   r.get("/me", (req,res)=>{
@@ -124,7 +186,7 @@ export function User_createRouter({ dataDir, secureCookies=false }){
   r.post("/logout", (req,res)=>{
     const sid = readCookie(req, "User_sid");
     if(sid) _sessions.delete(sid);
-    setSessionCookie(res, "", secureCookies);
+    setSessionCookie(res, "", { secure: secureCookies, maxAgeSeconds: 0 });
     res.json({ ok:true });
   });
 
@@ -178,6 +240,7 @@ export function User_createRouter({ dataDir, secureCookies=false }){
 }
 
 function onlineRoleSet() {
+  cleanupExpiredSessions();
   const roles = new Set();
   for (const session of _sessions.values()) {
     if (!session) continue;
