@@ -38,6 +38,8 @@ const DEFAULT_CONFIRM_TEXT = (() => {
   return info.description ? `${info.label} (${info.description})` : info.label;
 })();
 
+const PRINT_HISTORY_ACTION = "print";
+
 function canonicalRoleId(raw) {
   return String(raw ?? "").trim().toUpperCase();
 }
@@ -105,30 +107,74 @@ function stripHistoryForSnapshot(src) {
   return clone(src);
 }
 
+function normalizePrintCount(value, fallback = 0) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function sumPrintHistory(history) {
+  if (!Array.isArray(history)) return 0;
+  return history.reduce((total, entry) => {
+    if (!entry || entry.action !== PRINT_HISTORY_ACTION) return total;
+    const value = Number(entry.printCount ?? entry.pages ?? 0);
+    return Number.isFinite(value) ? total + value : total;
+  }, 0);
+}
+
 // History/Autosave nach dem Druck
 async function recordPrint(nr, recipients, pages, fileName, by, latestSnapshotFromClient) {
   const all = await readAll();
   const idx = all.findIndex(x => Number(x.nr) === Number(nr));
   let csvItem = null;
   let csvEntries = [];
+  const printCount = normalizePrintCount(pages, Array.isArray(recipients) ? recipients.length : 0);
 
   if (idx < 0) {
+    const base = latestSnapshotFromClient && typeof latestSnapshotFromClient === "object" ? { ...latestSnapshotFromClient } : {};
+    const baseHistory = Array.isArray(base.history) ? [...base.history] : [];
+    delete base.history;
+    delete base.printCount;
+    const entry = {
+      ts: Date.now(),
+      action: PRINT_HISTORY_ACTION,
+      by,
+      recipients,
+      pages: printCount,
+      printCount,
+      fileName,
+      after: null,
+    };
+    const history = [...baseHistory, entry];
     const it = {
-      ...(latestSnapshotFromClient || {}),
+      ...base,
       nr: Number(nr),
       id: crypto.randomUUID?.() || Math.random().toString(36).slice(2),
-      printCount: pages,
-      history: [{ ts: Date.now(), action: "print", by, recipients, pages, fileName, after: stripHistoryForSnapshot(latestSnapshotFromClient || {}) }],
+      history,
     };
+    it.printCount = sumPrintHistory(it.history);
+    entry.after = stripHistoryForSnapshot(it);
     csvItem = it;
     csvEntries = it.history.slice(-1);
     all.push(it);
   } else {
     const ex = all[idx];
-    const merged = { ...ex, ...(latestSnapshotFromClient || {}), nr: ex.nr, id: ex.id };
-    merged.printCount = Number.isFinite(+merged.printCount) ? +merged.printCount + (pages || 0) : (pages || 0);
-    merged.history = Array.isArray(merged.history) ? merged.history : [];
-    merged.history.push({ ts: Date.now(), action: "print", by, recipients, pages, fileName, after: stripHistoryForSnapshot(merged) });
+    const latest = latestSnapshotFromClient && typeof latestSnapshotFromClient === "object" ? latestSnapshotFromClient : {};
+    const baseHistory = Array.isArray(ex.history) ? [...ex.history] : [];
+    const merged = { ...ex, ...latest, nr: ex.nr, id: ex.id };
+    merged.history = baseHistory;
+    const entry = {
+      ts: Date.now(),
+      action: PRINT_HISTORY_ACTION,
+      by,
+      recipients,
+      pages: printCount,
+      printCount,
+      fileName,
+      after: null,
+    };
+    merged.history = [...merged.history, entry];
+    merged.printCount = sumPrintHistory(merged.history);
+    entry.after = stripHistoryForSnapshot(merged);
     csvItem = merged;
     csvEntries = merged.history.slice(-1);
     all[idx] = merged;

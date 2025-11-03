@@ -6,6 +6,22 @@ function short30(s) {
   return t.length > 30 ? t.slice(0, 30) + "…" : t;
 }
 
+function sumPrintHistory(history) {
+  if (!Array.isArray(history)) return 0;
+  return history.reduce((total, entry) => {
+    if (!entry || entry.action !== "print") return total;
+    const value = Number(entry?.printCount ?? entry?.pages ?? 0);
+    return Number.isFinite(value) ? total + value : total;
+  }, 0);
+}
+
+function resolvePrintCount(item) {
+  const historyPrints = sumPrintHistory(item?.history);
+  if (historyPrints > 0) return historyPrints;
+  const direct = Number(item?.printCount);
+  return Number.isFinite(direct) ? Math.max(0, direct) : 0;
+}
+
 export default function ProtokollOverview() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -85,7 +101,7 @@ return (
                 .concat(u.ein ? "Eingang" : [])
                 .concat(u.aus ? "Ausgang" : []);
               const richtung = richtungen.join(" / ");
-              const printCount = Math.max(0, Number(r?.printCount) || 0);
+              const printCount = resolvePrintCount(r);
               const printed = printCount > 0;
               const massnahmen = Array.isArray(r?.massnahmen) ? r.massnahmen : [];
               const relevantMeasures = massnahmen.filter((m) => {
