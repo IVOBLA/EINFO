@@ -59,30 +59,38 @@ export default function User_AuthProvider({ children }) {
   const [ready, setReady] = useState(false);
   const lastActivityRef = useRef(Date.now());
   const idleLogoutRef = useRef(false);
+  const authVersionRef = useRef(0);
 
   const applyAuthPayload = useCallback((payload) => {
+    const nextVersion = authVersionRef.current + 1;
+    authVersionRef.current = nextVersion;
     if (payload && typeof payload === "object") {
       const { session, ...userData } = payload;
       setUser(userData);
       const normalized = normalizeSessionInfo(session);
       setSessionInfo(normalized);
       lastActivityRef.current = Date.now();
-      return { user: userData, session: normalized };
+      return { user: userData, session: normalized, version: nextVersion };
     }
     setUser(null);
     setSessionInfo(null);
     lastActivityRef.current = Date.now();
-    return { user: null, session: null };
+    return { user: null, session: null, version: nextVersion };
   }, []);
 
   useEffect(() => {
     let cancelled = false;
+    const startVersion = authVersionRef.current;
     (async () => {
       try {
         const me = await User_me();
-        if (!cancelled) applyAuthPayload(me);
+        if (!cancelled && authVersionRef.current === startVersion) {
+          applyAuthPayload(me);
+        }
       } catch {
-        if (!cancelled) applyAuthPayload(null);
+        if (!cancelled && authVersionRef.current === startVersion) {
+          applyAuthPayload(null);
+        }
       } finally {
         if (!cancelled) setReady(true);
       }
