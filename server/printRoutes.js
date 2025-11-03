@@ -151,14 +151,28 @@ function sheetHtml(item, recipient, nr) {
     ? item.otherRecipientConfirmation
     : null;
   const confirmActive = !!confirm?.confirmed;
-  const confirmRole = confirmActive ? confirmRoleDisplay(confirm?.byRole) : DEFAULT_CONFIRM_TEXT;
-  const confirmBy = confirmActive ? fmt(confirm?.by).trim() : "";
-  const confirmTime = confirmActive ? formatConfirmTimestamp(confirm?.at) : "";
-  const confirmMeta = confirmActive ? [confirmBy, confirmTime].filter(Boolean).join(" – ") : "";
-  const confirmHtml = `<div class="ea-confirm${confirmActive ? " ea-confirm--active" : ""}">
-    <div class="ea-confirm-role">${esc(confirmRole)}</div>
-    ${confirmMeta ? `<div class="ea-confirm-meta">${esc(confirmMeta)}</div>` : ""}
-  </div>`;
+  let confirmText = "";
+  if (confirmActive) {
+    const roleId = canonicalRoleId(confirm?.byRole);
+    const roleInfo = CONFIRM_ROLE_INFO[roleId];
+    const roleText = roleInfo?.description || roleInfo?.label || confirmRoleDisplay(confirm?.byRole);
+    const name = fmt(confirm?.by).trim();
+    let line = name;
+    if (roleText) {
+      line = line ? `${line} (${roleText})` : roleText;
+    }
+    const time = formatConfirmTimestamp(confirm?.at);
+    confirmText = line ? `Bestätigt durch: ${line}` : "Bestätigt";
+    if (time) {
+      confirmText = `${confirmText} – ${time}`;
+    }
+  } else {
+    confirmText = `Bestätigt durch: ${DEFAULT_CONFIRM_TEXT}`;
+  }
+  const confirmHtml = confirmText
+    ? `<div class="ea-confirm${confirmActive ? " ea-confirm--active" : ""}"><span class="ea-confirm-text">${esc(confirmText)}</span></div>`
+    : "";
+  const confirmSection = confirmHtml ? `<div class=\"cell\">${confirmHtml}</div>` : "";
 
   return `<!doctype html>
 <html lang="de"><head><meta charset="utf-8"/>
@@ -204,9 +218,8 @@ function sheetHtml(item, recipient, nr) {
   .ea-left span { display:inline-flex; align-items:center; gap:4px; }
   .ea-right { display:flex; align-items:center; gap:6px; font-size:11px; }
   .ea-input { min-width: 200px; width:100%; }
-  .ea-confirm { margin-top:8px; font-size:12px; color:#4b5563; display:flex; flex-direction:column; gap:2px; }
-  .ea-confirm-role { font-weight:600; }
-  .ea-confirm-meta { font-size:11px; color:inherit; }
+  .ea-confirm { margin-top:8px; font-size:12px; color:#4b5563; font-weight:600; }
+  .ea-confirm-text { display:block; }
   .ea-confirm--active { color:#dc2626; }
 </style></head><body>
 <div class="sheet">
@@ -294,7 +307,6 @@ function sheetHtml(item, recipient, nr) {
         <span class="input ea-input">${esc(item?.ergehtAnText || recipient || "")}</span>
       </div>
     </div>
-    ${confirmHtml}
   </div>
 
   <div class="cell">
@@ -312,6 +324,7 @@ function sheetHtml(item, recipient, nr) {
       </div>`;
     }).join("")}
   </div>
+  ${confirmSection}
 </div>
 </body></html>`;
 }
