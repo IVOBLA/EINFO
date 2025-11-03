@@ -267,9 +267,12 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
   const lockInfoText = lockedByOtherRole && confirmationDetails
     ? `Bestätigt durch ${confirmationDetails.roleLabel}${confirmationDetails.by ? ` (${confirmationDetails.by})` : ""}${confirmationDetails.whenText ? ` am ${confirmationDetails.whenText}` : ""}`
     : null;
-  const confirmationInfoText = confirmationDetails
-    ? `${confirmationDetails.roleLabel}${confirmationDetails.by ? ` (${confirmationDetails.by})` : ""}${confirmationDetails.whenText ? ` – ${confirmationDetails.whenText}` : ""}`
-    : null;
+  const confirmationDisplayLines = confirmationDetails
+    ? [
+        confirmationDetails.roleDisplay,
+        [confirmationDetails.by, confirmationDetails.whenText].filter(Boolean).join(" – ") || null,
+      ].filter(Boolean)
+    : [];
   const showConfirmationControl = confirmRoleSet.size > 0;
   const showModificationDenied = () => {
     if (lockInfoText) {
@@ -1196,15 +1199,31 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
                     />
                     <span>bestätigt:</span>
                   </label>
-                  {confirmationInfoText && (
-                    <span className="text-xs text-gray-600">{confirmationInfoText}</span>
+                  {entryConfirmed && confirmationDisplayLines.length > 0 && (
+                    <div className="flex flex-col leading-tight text-xs text-red-600">
+                      {confirmationDisplayLines.map((line, idx) => (
+                        <span key={idx} className={idx === 0 ? "text-sm font-semibold" : undefined}>
+                          {line}
+                        </span>
+                      ))}
+                    </div>
                   )}
                 </>
               ) : (
-                <div className="ml-2 flex flex-col text-sm text-gray-700">
-                  <span>{confirmationDetails?.roleDisplay || DEFAULT_CONFIRM_ROLE_TEXT}</span>
-                  {confirmationDetails?.whenText && (
-                    <span className="text-xs text-gray-600">{confirmationDetails.whenText}</span>
+                <div className="ml-2 flex flex-col text-sm">
+                  {entryConfirmed && confirmationDisplayLines.length > 0 ? (
+                    <div className="flex flex-col leading-tight text-red-600">
+                      {confirmationDisplayLines.map((line, idx) => (
+                        <span key={idx} className={idx === 0 ? "font-semibold" : "text-xs"}>
+                          {line}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <>
+                      <span className="font-medium text-gray-700">{DEFAULT_CONFIRM_ROLE_TEXT}</span>
+                      <span className="text-xs text-gray-500">Nur LtStb, LtStbStv oder S3 dürfen bestätigen</span>
+                    </>
                   )}
                 </div>
               )}
