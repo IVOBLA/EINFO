@@ -24,6 +24,7 @@ const __dirname = path.dirname(__filename);
 
 const app  = express();
 const PORT = process.env.PORT || 4040;
+const SECURE_COOKIES = process.env.KANBAN_COOKIE_SECURE === "1";
 
 const ROOT      = path.join(__dirname);
 const DATA_DIR  = path.join(ROOT, "data");
@@ -662,10 +663,10 @@ app.use("/api/protocol", protocolRouter);
 
 app.use("/api/user", userRolesRouter({ dataDir: DATA_DIR }));
 
-app.use(User_authMiddleware());
+app.use(User_authMiddleware({ secureCookies: SECURE_COOKIES }));
 app.use("/api/user", User_createRouter({
   dataDir: DATA_DIR,
-  secureCookies: process.env.KANBAN_COOKIE_SECURE === "1"
+  secureCookies: SECURE_COOKIES
 }));
 
 // ===================================================================

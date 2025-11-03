@@ -168,7 +168,8 @@ const JSON_FILE  = path.join(DATA_DIR, "protocol.json");
 User_initStore(DATA_DIR);
 
 const router = express.Router();
-router.use(User_authMiddleware());
+const SECURE_COOKIES = process.env.KANBAN_COOKIE_SECURE === "1";
+router.use(User_authMiddleware({ secureCookies: SECURE_COOKIES }));
 
 const LOCK_TTL_MS = 5 * 60 * 1000; // 5 Minuten
 const activeLocks = new Map(); // nr -> { userId, username, displayName, lockedAt, expiresAt }
