@@ -265,8 +265,22 @@ function migrateMeta(arr) {
   let changed = false;
   for (const it of arr) {
     if (!it.id) { it.id = randomUUID(); changed = true; }
-    if (typeof it.printCount !== "number") { it.printCount = 0; changed = true; }
     if (!Array.isArray(it.history)) { it.history = []; changed = true; }
+    else {
+      let historyChanged = false;
+      for (const entry of it.history) {
+        if (!entry || entry.action !== PRINT_HISTORY_ACTION) continue;
+        const before = entry.printCount;
+        normalizePrintHistoryEntry(entry);
+        if (before !== entry.printCount) historyChanged = true;
+      }
+      if (historyChanged) changed = true;
+    }
+    const historyPrintSum = sumPrintHistory(it.history);
+    if (typeof it.printCount !== "number" || it.printCount !== historyPrintSum) {
+      it.printCount = historyPrintSum;
+      changed = true;
+    }
     if (typeof it.createdBy === "undefined") {
       const creatorFromHistory = it.history.find?.(h => h?.action === "create" && h?.by)?.by;
       it.createdBy = creatorFromHistory || it.lastBy || null;
@@ -324,6 +338,7 @@ function nextNr(arr) {
 
 // ----- History-Helfer --------------------------------------------------------
 const HIST_IGNORE = new Set(["id", "nr", "printCount", "history"]);
+const PRINT_HISTORY_ACTION = "print";
 function flatten(obj, prefix = "", out = {}) {
   if (obj && typeof obj === "object" && !Array.isArray(obj)) {
     for (const [k, v] of Object.entries(obj)) {
@@ -364,6 +379,27 @@ function snapshotForHistory(src) {
     return v;
   };
   return clone(src);
+}
+
+function normalizePrintHistoryEntry(entry) {
+  if (!entry || entry.action !== PRINT_HISTORY_ACTION) return entry;
+  const raw = entry.printCount ?? entry.pages ?? 0;
+  const numeric = Number(raw);
+  if (Number.isFinite(numeric)) {
+    if (entry.printCount !== numeric) entry.printCount = numeric;
+  } else {
+    entry.printCount = 0;
+  }
+  return entry;
+}
+
+function sumPrintHistory(history) {
+  if (!Array.isArray(history)) return 0;
+  return history.reduce((total, entry) => {
+    if (!entry || entry.action !== PRINT_HISTORY_ACTION) return total;
+    const value = Number(entry.printCount ?? entry.pages ?? 0);
+    return Number.isFinite(value) ? total + value : total;
+  }, 0);
 }
 
 // ---------- API ----------
@@ -514,6 +550,7 @@ router.post("/", express.json(), async (req, res) => {
       by: userBy,
       after: snapshotForHistory(payload)
     });
+    payload.printCount = sumPrintHistory(payload.history);
     payload.lastBy = userBy;        // Merkt den letzten Bearbeiter
     all.push(payload);
 
@@ -624,9 +661,6 @@ router.put("/:nr", express.json(), async (req, res) => {
       null;
     next.createdBy = existingCreator;
 
-    // 🔁 Reset: jedes Update setzt das Druck-Flag zurück
-    next.printCount = 0;
-
     const userBy  = identity.displayName || req?.user?.displayName || req?.user?.username || resolveUserName(req) || "";
     const changes = computeDiff(existing, next);
     if (changes.length) {
@@ -644,6 +678,7 @@ router.put("/:nr", express.json(), async (req, res) => {
         newHistoryEntry
       ];
     }
+    next.printCount = sumPrintHistory(next.history);
     next.lastBy = userBy;     // Merkt den letzten Bearbeiter
 
     all[idx] = next;
