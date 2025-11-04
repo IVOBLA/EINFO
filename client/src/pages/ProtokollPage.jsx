@@ -173,6 +173,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
   const lockRefreshTimerRef = useRef(null);
   const lockReleaseRef = useRef(null);
   const lockStateRef = useRef({ nr: null, hasLock: false });
+  const lockAttemptRef = useRef({ nr: null, success: false });
 
   // ---- UI -------------------------------------------------------------------
   const [saving, setSaving] = useState(false);
@@ -364,7 +365,10 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
     let cancelled = false;
 
     const releaseLock = async () => {
-      if (!lockStateRef.current.hasLock || lockStateRef.current.nr !== currentNr) return;
+      const attempt = lockAttemptRef.current;
+      const hasCurrentLock = lockStateRef.current.hasLock && lockStateRef.current.nr === currentNr;
+      if (!hasCurrentLock && (attempt.nr !== currentNr || !attempt.success)) return;
+      lockAttemptRef.current = { nr: null, success: false };
       lockStateRef.current = { nr: null, hasLock: false };
       try {
         await fetch(`/api/protocol/${currentNr}/lock`, {
@@ -378,14 +382,19 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
 
     const acquire = async ({ silent = false } = {}) => {
       try {
+		lockAttemptRef.current = { nr: currentNr, success: false };  
         const res = await fetch(`/api/protocol/${currentNr}/lock`, {
           method: "POST",
           credentials: "include",
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
+			 lockStateRef.current = { nr: null, hasLock: false };
+          if (lockAttemptRef.current.nr === currentNr) {
+            lockAttemptRef.current = { nr: null, success: false };
+          }
           if (res.status === 423) {
-            lockStateRef.current = { nr: null, hasLock: false };
+           
             if (!cancelled) {
               setLockStatus("blocked");
               setLockError({ lockedBy: data?.lockedBy || data?.lock?.lockedBy || "Unbekannt" });
@@ -400,12 +409,21 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
           return false;
         }
 
-        if (cancelled) return true;
+  
         lockStateRef.current = { nr: currentNr, hasLock: true };
+		        lockAttemptRef.current = { nr: currentNr, success: true };
+        if (cancelled) {
+          await releaseLock();
+          return true;
+        }
         setLockStatus("acquired");
         setLockError(null);
         return true;
       } catch (err) {
+		  if (lockAttemptRef.current.nr === currentNr) {
+          lockAttemptRef.current = { nr: null, success: false };
+        }
+        lockStateRef.current = { nr: null, hasLock: false };
         if (!silent && !cancelled) {
           setLockStatus("error");
           setLockError({ message: err?.message || String(err) });
