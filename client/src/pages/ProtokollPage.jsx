@@ -278,6 +278,10 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
         [confirmationDetails.by, confirmationDetails.whenText].filter(Boolean).join(" – ") || null,
       ].filter(Boolean)
     : [];
+  const canS3OverrideLtStbConfirmation =
+    confirmRoleSet.has("S3") &&
+    !ltStbOnline &&
+    (confirmationRoleUpper === "LTSTB" || confirmationRoleUpper === "LTSTBSTV");
   const showConfirmationControl = confirmRoleSet.size > 0;
   const showModificationDenied = () => {
     if (lockBlockedInfoText) {
@@ -297,9 +301,11 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
     }
     return null;
   })();
-  const canToggleConfirmation = entryConfirmed ? confirmRoleSet.has(confirmationRoleUpper) : confirmRoleSet.size > 0;
+  const canToggleConfirmation = entryConfirmed
+    ? confirmRoleSet.has(confirmationRoleUpper) || canS3OverrideLtStbConfirmation
+    : confirmRoleSet.size > 0;
   const confirmationToggleTitle = entryConfirmed
-    ? confirmRoleSet.has(confirmationRoleUpper)
+    ? confirmRoleSet.has(confirmationRoleUpper) || canS3OverrideLtStbConfirmation
       ? "Bestätigung zurücknehmen"
       : "Nur die bestätigende Rolle darf zurücksetzen"
     : confirmRoleSet.size > 0
@@ -318,7 +324,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
       showToast?.("error", "Keine Berechtigung zum Bestätigen");
       return;
     }
-    if (!checked && confirmationRoleUpper && !confirmRoleSet.has(confirmationRoleUpper)) {
+    if (!checked && confirmationRoleUpper && !(confirmRoleSet.has(confirmationRoleUpper) || canS3OverrideLtStbConfirmation)) {
       showToast?.("error", "Nur die bestätigende Rolle darf zurücksetzen");
       return;
     }
