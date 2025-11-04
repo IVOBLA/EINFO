@@ -9,17 +9,23 @@ function short30(s) {
 }
 
 function sumPrintHistory(history) {
-  if (!Array.isArray(history)) return 0;
-  return history.reduce((total, entry) => {
-    if (!entry || entry.action !== "print") return total;
-    const value = Number(entry?.printCount ?? entry?.pages ?? 0);
-    return Number.isFinite(value) ? total + value : total;
-  }, 0);
+  if (!Array.isArray(history)) return { sum: 0, hasPrintEntries: false };
+  return history.reduce(
+    (acc, entry) => {
+      if (!entry || entry.action !== "print") return acc;
+      const value = Number(entry?.printCount ?? entry?.pages ?? 0);
+      if (!Number.isFinite(value)) return acc;
+      acc.sum += Math.max(0, value);
+      acc.hasPrintEntries = true;
+      return acc;
+    },
+    { sum: 0, hasPrintEntries: false }
+  );
 }
 
 function resolvePrintCount(item) {
-  const historyPrints = sumPrintHistory(item?.history);
-  if (historyPrints > 0) return historyPrints;
+  const { sum: historyPrints, hasPrintEntries } = sumPrintHistory(item?.history);
+  if (hasPrintEntries) return historyPrints;
   const direct = Number(item?.printCount);
   return Number.isFinite(direct) ? Math.max(0, direct) : 0;
 }
