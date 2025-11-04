@@ -359,7 +359,12 @@ const rows = useMemo(
               const tokenChanged = hasSeenStorage && entryToken && seenToken !== entryToken;
               const entryTokenInfo = parseHighlightToken(entryToken);
               const seenTokenInfo = parseHighlightToken(seenToken);
-              const doneSignatureChanged = entryTokenInfo.doneSignature !== seenTokenInfo.doneSignature;
+              const entryHasDoneSignature = !!entryTokenInfo.doneSignature;
+              const seenHasDoneSignature = !!seenTokenInfo.doneSignature;
+              const doneAcknowledged =
+                entryHasDoneSignature &&
+                seenHasDoneSignature &&
+                entryTokenInfo.doneSignature === seenTokenInfo.doneSignature;
               const actorRawName = typeof changeInfo.by === "string" ? changeInfo.by : null;
               let changeByCurrentUser = false;
               if (actorRawName && userNameVariants.size) {
@@ -371,7 +376,7 @@ const rows = useMemo(
                   }
                 }
               }
-              const highlightDueToDone = tokenChanged && doneSignatureChanged;
+              const highlightDueToDone = entryHasDoneSignature && (!hasSeenStorage || !doneAcknowledged);
               const highlightByOthers = tokenChanged && !changeByCurrentUser;
               const isHighlighted = highlightDueToDone || highlightByOthers;
               const actorName = actorRawName && actorRawName.trim() ? actorRawName.trim() : "Unbekannt";
