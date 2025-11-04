@@ -215,8 +215,49 @@ export default function User_AuthProvider({ children }) {
       return false;
     };
 
-    const sendLogoutBeacon = () => {
+    const navigationLooksLikeReload = () => {
+      if (typeof performance === "undefined") {
+        return false;
+      }
+      try {
+        if (typeof performance.getEntriesByType === "function") {
+          const navEntries = performance.getEntriesByType("navigation");
+          if (Array.isArray(navEntries) && navEntries.length > 0) {
+            const latest = navEntries[navEntries.length - 1];
+            if (latest?.type === "reload") {
+              return true;
+            }
+            if (typeof latest?.type === "string" && typeof latest?.activationStart === "number") {
+              if (latest.type === "navigate" && latest.activationStart > 0) {
+                return true;
+              }
+            }
+          }
+        }
+      } catch {
+        /* ignore */
+      }
+      try {
+        const legacyNav = performance.navigation;
+        if (
+          legacyNav &&
+          typeof legacyNav === "object" &&
+          "type" in legacyNav &&
+          legacyNav.type === legacyNav.TYPE_RELOAD
+        ) {
+          return true;
+        }
+      } catch {
+        /* ignore */
+      }
+      return false;
+    };
+
+    const sendLogoutBeacon = (event) => {
       if (shouldSkipLogout()) {
+        return;
+      }
+      if (event && navigationLooksLikeReload()) {
         return;
       }
       if (beaconSent) return;
@@ -244,13 +285,13 @@ export default function User_AuthProvider({ children }) {
       }
     };
 
-    const handleBeforeUnload = () => {
-      sendLogoutBeacon();
+    const handleBeforeUnload = (event) => {
+      sendLogoutBeacon(event);
     };
 
     const handlePageHide = (event) => {
       if (event?.persisted) return;
-      sendLogoutBeacon();
+      sendLogoutBeacon(event);
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
