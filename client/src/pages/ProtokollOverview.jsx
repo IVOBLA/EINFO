@@ -55,6 +55,8 @@ export default function ProtokollOverview() {
     () => onlineRoles.some((roleId) => roleId === "LTSTB" || roleId === "LTSTBSTV"),
     [onlineRoles]
   );
+  const s3User = hasRole("S3", user);
+  const s3BlockedByLtStb = s3User && ltStbOnline;
 
   useEffect(() => {
     let cancelled = false;
@@ -106,11 +108,17 @@ return (
         </a>
         <button
           onClick={() => {
-            if (!canEdit) return;
+            if (!canEdit || s3BlockedByLtStb) return;
             window.location.hash = "/protokoll/neu";
           }}
           className="px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white"
-          title={canEdit ? undefined : "Keine Berechtigung (Meldestelle)"}
+           title={
+      !canEdit
+        ? "Keine Berechtigung (Meldestelle)"
+        : s3BlockedByLtStb
+          ? "S3 darf nur anlegen, wenn LtStb nicht angemeldet ist"
+          : undefined
+    }
         >
           + Eintrag anlegen
         </button>

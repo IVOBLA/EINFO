@@ -122,6 +122,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
     [onlineRoles]
   );
 
+
   // ---- Rechte ---------------------------------------------------------------
   const [canEdit, setCanEdit] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -267,7 +268,9 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
     : null;
   const lockedByOtherRole = entryConfirmed && !confirmRoleSet.has(confirmationRoleUpper);
   const lockedByOtherUser = isEditMode && lockStatus === "blocked";
-  const canModify = canEdit && hasEditLock && !lockedByOtherRole;
+  const isS3 = hasRole("S3", user);
+const s3BlockedByLtStb = isS3 && ltStbOnline;
+  const canModify = canEdit && hasEditLock && !lockedByOtherRole && !s3BlockedByLtStb;
   const lockInfoText = lockedByOtherRole && confirmationDetails
     ? `Bestätigt durch ${confirmationDetails.roleLabel}${confirmationDetails.by ? ` (${confirmationDetails.by})` : ""}${confirmationDetails.whenText ? ` am ${confirmationDetails.whenText}` : ""}`
     : null;
