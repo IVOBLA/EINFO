@@ -19,6 +19,7 @@ const ACTIVITY_EVENTS = [
   "touchstart",
   "wheel",
 ];
+const SKIP_LOGOUT_FLAG_KEY = "auth.skipLogoutOnUnload";
 
 function normalizeSessionInfo(raw) {
   if (!raw || typeof raw !== "object") {
@@ -59,6 +60,7 @@ export default function User_AuthProvider({ children }) {
   const [ready, setReady] = useState(false);
   const lastActivityRef = useRef(Date.now());
   const idleLogoutRef = useRef(false);
+  const skipLogoutOnUnloadRef = useRef(false);
 
   const applyAuthPayload = useCallback((payload) => {
     if (payload && typeof payload === "object") {
@@ -116,6 +118,60 @@ export default function User_AuthProvider({ children }) {
   }, [user, sessionInfo]);
 
   useEffect(() => {
+    if (typeof window === "undefined") {
+      return () => {};
+    }
+
+    const markReloadIntent = () => {
+      skipLogoutOnUnloadRef.current = true;
+      try {
+        window.sessionStorage?.setItem(SKIP_LOGOUT_FLAG_KEY, "1");
+      } catch {
+        /* ignore */
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (!event) return;
+      if (event.key === "F5") {
+        markReloadIntent();
+        return;
+      }
+      if (
+        (event.key === "r" || event.key === "R") &&
+        (event.ctrlKey || event.metaKey) &&
+        !event.altKey
+      ) {
+        markReloadIntent();
+      }
+    };
+
+    let originalReload = null;
+    if (typeof window.location?.reload === "function") {
+      originalReload = window.location.reload;
+      window.location.reload = function reloadPatched(...args) {
+        markReloadIntent();
+        return originalReload.apply(this, args);
+      };
+    }
+
+    window.addEventListener("keydown", handleKeyDown, true);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown, true);
+      if (originalReload) {
+        window.location.reload = originalReload;
+      }
+      skipLogoutOnUnloadRef.current = false;
+      try {
+        window.sessionStorage?.removeItem(SKIP_LOGOUT_FLAG_KEY);
+      } catch {
+        /* ignore */
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (typeof window === "undefined" || typeof document === "undefined") {
       return () => {};
     }
@@ -127,7 +183,32 @@ export default function User_AuthProvider({ children }) {
     const payload = JSON.stringify({ reason: "unload" });
     let beaconSent = false;
 
+    const shouldSkipLogout = () => {
+      if (skipLogoutOnUnloadRef.current) {
+        skipLogoutOnUnloadRef.current = false;
+        try {
+          window.sessionStorage?.removeItem(SKIP_LOGOUT_FLAG_KEY);
+        } catch {
+          /* ignore */
+        }
+        return true;
+      }
+      try {
+        if (window.sessionStorage?.getItem(SKIP_LOGOUT_FLAG_KEY) === "1") {
+          window.sessionStorage?.removeItem(SKIP_LOGOUT_FLAG_KEY);
+          skipLogoutOnUnloadRef.current = false;
+          return true;
+        }
+      } catch {
+        /* ignore */
+      }
+      return false;
+    };
+
     const sendLogoutBeacon = () => {
+      if (shouldSkipLogout()) {
+        return;
+      }
       if (beaconSent) return;
       beaconSent = true;
       try {
