@@ -75,6 +75,43 @@ export function updateSeenEntry(storageKey, nr, token, currentMap = null) {
   return next;
 }
 
+function buildDoneSignature(item) {
+  if (!item || !Array.isArray(item.massnahmen)) {
+    return { raw: null, encoded: null };
+  }
+
+  const entries = [];
+  for (let i = 0; i < item.massnahmen.length; i += 1) {
+    const measure = item.massnahmen[i];
+    if (!measure || !measure.done) continue;
+
+    const responsible = typeof measure.verantwortlich === "string" ? measure.verantwortlich.trim() : "";
+    const normalizedResponsible = responsible ? responsible.toUpperCase() : "";
+    const label = typeof measure.massnahme === "string" ? measure.massnahme.trim() : "";
+    const keyBase = [normalizedResponsible, label].filter(Boolean).join("::") || `idx:${i}`;
+    entries.push(`${keyBase}#${i}`);
+  }
+
+  if (!entries.length) {
+    return { raw: null, encoded: null };
+  }
+
+  entries.sort((a, b) => {
+    if (a === b) return 0;
+    return a > b ? 1 : -1;
+  });
+
+  const rawSignature = entries.join("||");
+  let encodedSignature = rawSignature;
+  try {
+    encodedSignature = encodeURIComponent(rawSignature);
+  } catch {
+    /* ignore */
+  }
+
+  return { raw: rawSignature, encoded: encodedSignature };
+}
+
 export function getLastChangeInfo(item) {
   const history = Array.isArray(item?.history) ? item.history : [];
   let token = null;
@@ -119,9 +156,15 @@ export function getLastChangeInfo(item) {
     token = `init:${history.length}:${item?.nr ?? ""}`;
   }
 
+  const doneSignature = buildDoneSignature(item);
+
+  const baseToken = token;
+  const finalToken = doneSignature.encoded ? `${baseToken}||done:${doneSignature.encoded}` : baseToken;
+
   return {
-    token,
+    token: finalToken,
     by: actor || null,
     action,
+    doneSignature: doneSignature.raw,
   };
 }
