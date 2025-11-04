@@ -1225,7 +1225,7 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
             {form.massnahmen.map((m, i) => (
               <div
                 key={i}
-                className={`grid grid-cols-12 border-t ${m?.done ? "bg-yellow-100" : ""}`}
+                className="grid grid-cols-12 border-t"
               >
                 <div className="col-span-6 p-2 border-r">
                   <input
