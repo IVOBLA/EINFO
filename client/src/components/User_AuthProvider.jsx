@@ -147,20 +147,30 @@ export default function User_AuthProvider({ children }) {
     };
 
     let originalReload = null;
+    let reloadPatched = false;
     if (typeof window.location?.reload === "function") {
       originalReload = window.location.reload;
-      window.location.reload = function reloadPatched(...args) {
-        markReloadIntent();
-        return originalReload.apply(this, args);
-      };
+      try {
+        window.location.reload = function reloadPatched(...args) {
+          markReloadIntent();
+          return originalReload.apply(this, args);
+        };
+        reloadPatched = true;
+      } catch {
+        originalReload = null;
+      }
     }
 
     window.addEventListener("keydown", handleKeyDown, true);
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown, true);
-      if (originalReload) {
-        window.location.reload = originalReload;
+      if (reloadPatched && originalReload) {
+        try {
+          window.location.reload = originalReload;
+        } catch {
+          /* ignore */
+        }
       }
       skipLogoutOnUnloadRef.current = false;
       try {
