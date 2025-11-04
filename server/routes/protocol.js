@@ -766,6 +766,20 @@ router.put("/:nr", express.json(), async (req, res) => {
         return res.status(403).json({ ok: false, error: "CONFIRM_LOCKED" });
       }
     }
+    if (!changes.length) {
+      if (identity.userId) {
+        const now = Date.now();
+        const lock = {
+          userId: identity.userId,
+          username: identity.username,
+          displayName: identity.displayName,
+          lockedAt: existingLock?.lockedAt || now,
+          expiresAt: now + LOCK_TTL_MS,
+        };
+        activeLocks.set(nr, lock);
+      }
+      return res.json({ ok: true, nr, id: existing.id, unchanged: true });
+    }
     let newHistoryEntry = null;
     if (changes.length) {
       newHistoryEntry = { ts: Date.now(), action: "update", by: userBy, changes, after: snapshotForHistory(next) };
