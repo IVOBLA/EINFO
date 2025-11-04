@@ -132,11 +132,13 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
       try {
         await initRolePolicy();
         if (!mounted) return;
-        setCanEdit(canEditApp("protokoll"));
-        setIsAdmin(hasRole("Admin"));
+        const baseCanEdit = canEditApp("protokoll", user);
+        const s3Fallback = !ltStbOnline && hasRole("S3", user);
+        setCanEdit(baseCanEdit || s3Fallback);
+        setIsAdmin(hasRole("Admin", user));
         setConfirmRoleIds(
           CONFIRM_ROLES.filter((roleId) => {
-            if (!hasRole(roleId)) return false;
+            if (!hasRole(roleId, user)) return false;
             if (roleId === "S3" && ltStbOnline) return false;
             return true;
           })
