@@ -183,10 +183,12 @@ const LOCK_TTL_MS = 5 * 60 * 1000; // 5 Minuten
 const activeLocks = new Map(); // nr -> { userId, username, displayName, lockedAt, expiresAt }
 
 const releaseLocksForUser = (userId) => {
-  if (!userId) return 0;
+  if (userId == null) return 0;
+  const targetId = String(userId);
   let removed = 0;
   for (const [nr, info] of activeLocks.entries()) {
-    if (info?.userId && info.userId === userId) {
+    const lockUserId = info?.userId == null ? null : String(info.userId);
+    if (lockUserId === targetId) {
       activeLocks.delete(nr);
       removed += 1;
     }
@@ -197,7 +199,7 @@ const releaseLocksForUser = (userId) => {
 User_onSessionDestroyed((session) => {
   if (!session) return;
   const userId = session?.userId ?? null;
-  if (userId) releaseLocksForUser(userId);
+  if (userId != null) releaseLocksForUser(userId);
 });
 
 const describeLock = (lock) => {
