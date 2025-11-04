@@ -10,6 +10,7 @@ import {
   User_authMiddleware,
   User_isAnyRoleOnline,
   USER_ONLINE_ROLE_ACTIVE_LIMIT_MS,
+  User_onSessionDestroyed,
 } from "../User_auth.mjs";
 import { User_initStore } from "../User_store.mjs";
 import { ensureTaskForRole } from "../utils/tasksService.mjs";
@@ -180,6 +181,24 @@ router.use(User_authMiddleware({ secureCookies: SECURE_COOKIES }));
 
 const LOCK_TTL_MS = 5 * 60 * 1000; // 5 Minuten
 const activeLocks = new Map(); // nr -> { userId, username, displayName, lockedAt, expiresAt }
+
+const releaseLocksForUser = (userId) => {
+  if (!userId) return 0;
+  let removed = 0;
+  for (const [nr, info] of activeLocks.entries()) {
+    if (info?.userId && info.userId === userId) {
+      activeLocks.delete(nr);
+      removed += 1;
+    }
+  }
+  return removed;
+};
+
+User_onSessionDestroyed((session) => {
+  if (!session) return;
+  const userId = session?.userId ?? null;
+  if (userId) releaseLocksForUser(userId);
+});
 
 const describeLock = (lock) => {
   if (!lock) return null;
