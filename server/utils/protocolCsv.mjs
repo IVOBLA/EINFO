@@ -3,10 +3,10 @@ import fs from "fs";
 const CSV_BOM = "\uFEFF";
 
 export const CSV_HEADER = [
-  "ZEITPUNKT","AKTION","NR","DRUCK","DATUM","ZEIT","ANGELEGT_VON","EING","AUSG","KANAL",
+  "ZEITPUNKT","AKTION","NR","DRUCK","DATUM","ZEIT","BENUTZER","EING","AUSG","KANAL",
   "AN/VON","INFORMATION","RUECKMELDUNG1","RUECKMELDUNG2","TYP",
   "ERGEHT_AN","ERGAENZUNG",
-  "M1","V1","X1","M2","V2","X2","M3","V3","X3","M4","V4","X4","M5","V5","X5",
+  "M1","V1","X1","M2","V2","X2","M3","V3","X3","M4","V4","X4","M5","V5","X5","BESTÄTIGT_DURCH",
   "ID"
 ];
 
@@ -24,17 +24,28 @@ export function toCsvRow(item, meta = {}) {
   const {
     timestamp = Date.now(),
     action = "",
-    createdBy: createdByMeta
+    createdBy: createdByMeta,
+    actor,
+    confirmedBy = ""      // ← NEU: Bestätiger (nur bei Bestätigungs-Änderung)
   } = meta;
 
   const u  = item?.uebermittlungsart || {};
   const ms = (item?.massnahmen || []).slice(0, 5);
   const M  = (i) => ms[i] || {};
   const ergehtAn = Array.isArray(item?.ergehtAn) ? item.ergehtAn.join(", ") : "";
-  const createdBy = String(createdByMeta ?? item.createdBy ?? "");
+ // Bei "create": Creator, sonst Actor (letzter Änderer)
+ const createdBy = String(
+   action === "create"
+     ? (createdByMeta ?? item.createdBy ?? "")
+     : (actor ?? createdByMeta ?? item.createdBy ?? "")
+ );
 
   const cols = [
-    new Date(timestamp || Date.now()).toISOString(),
+ new Intl.DateTimeFormat("de-AT", {
+   year: "numeric", month: "2-digit", day: "2-digit",
+   hour: "2-digit", minute: "2-digit", second: "2-digit",
+   hour12: false
+ }).format(new Date(timestamp || Date.now())),
     action,
     item.nr,
     Number(item?.printCount) > 0 ? "x" : "",
@@ -60,7 +71,7 @@ export function toCsvRow(item, meta = {}) {
     M(2).massnahme ?? "", M(2).verantwortlich ?? "", M(2).done ? "x" : "",
     M(3).massnahme ?? "", M(3).verantwortlich ?? "", M(3).done ? "x" : "",
     M(4).massnahme ?? "", M(4).verantwortlich ?? "", M(4).done ? "x" : "",
-
+	confirmedBy || "",         // ← NEU: nur befüllt, wenn eine Bestätigung geändert wurde
     item.id || "",
   ];
   return joinCsvRow(cols);
@@ -93,9 +104,16 @@ function ensureCsvHeader(csvFile) {
 function entryToRecord(item, entry) {
   if (!item || !entry) return null;
 
+ // Bestätigungsänderung + Zustand NACH der Änderung
+  const isConfirmChange = Array.isArray(entry?.changes)
+    && entry.changes.some(ch => String(ch?.path || "").startsWith("otherRecipientConfirmation"));
+
+
   const snapshot = (entry?.after && typeof entry.after === "object")
     ? entry.after
     : item;
+	
+  const isConfirmedAfter = !!snapshot?.otherRecipientConfirmation?.confirmed;	
 
   const snapshotItem = {
     ...item,
@@ -113,6 +131,9 @@ function entryToRecord(item, entry) {
       action: entry?.action ?? "",
       actor: entry?.by ?? "",
       createdBy,
+      confirmedBy: (isConfirmChange && isConfirmedAfter)
+        ? (entry?.by || snapshotItem?.otherRecipientConfirmation?.by || "")
+        : ""   // ← bei Entfernen der Bestätigung bleibt die Spalte leer
     },
   };
 }
@@ -162,12 +183,17 @@ export function rewriteCsvFromJson(arr, csvFile) {
         createdBy: creator
       };
 
+      const confirmChange = Array.isArray(entry?.changes)
+        && entry.changes.some(ch => String(ch?.path || "").startsWith("otherRecipientConfirmation"));
       records.push({
         item: snapshotItem,
         timestamp: entry?.ts ?? Date.now(),
         action: entry?.action ?? "",
         actor: entry?.by ?? "",
-        createdBy: snapshotItem.createdBy ?? ""
+        createdBy: snapshotItem.createdBy ?? "",
+        confirmedBy: (confirmChange && confirmedAfter)
+          ? (entry?.by || snapshotItem?.otherRecipientConfirmation?.by || "")
+          : ""   // ← bei „Bestätigung entfernt“ wird die Spalte geleert
       });
     }
   }
