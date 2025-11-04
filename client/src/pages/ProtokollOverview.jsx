@@ -9,6 +9,104 @@ import {
   updateSeenEntry,
 } from "../utils/protokollSeen.js";
 
+const TOKEN_SEPARATOR = "||";
+const DONE_TOKEN_PREFIX = "done:";
+
+function normalizeNameValue(value) {
+  if (value == null) return "";
+  try {
+    return String(value)
+      .normalize("NFKC")
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim();
+  } catch {
+    return String(value)
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+}
+
+function collectNameVariants(value) {
+  const variants = new Set();
+  if (value == null) return variants;
+
+  const raw = String(value);
+  const normalized = normalizeNameValue(raw);
+  if (normalized) {
+    variants.add(normalized);
+    const collapsed = normalized.replace(/\s+/g, "");
+    if (collapsed && collapsed !== normalized) variants.add(collapsed);
+  }
+
+  const parts = raw.split(/[/()[\]|]+/);
+  for (const part of parts) {
+    const norm = normalizeNameValue(part);
+    if (!norm) continue;
+    variants.add(norm);
+    const collapsed = norm.replace(/\s+/g, "");
+    if (collapsed && collapsed !== norm) variants.add(collapsed);
+  }
+
+  return variants;
+}
+
+function collectUserNameVariants(user) {
+  const variants = new Set();
+  const add = (value) => {
+    if (value == null) return;
+    for (const variant of collectNameVariants(value)) {
+      variants.add(variant);
+    }
+  };
+
+  if (user && typeof user === "object") {
+    add(user.displayName);
+    add(user.username);
+    add(user.name);
+    add(user.userId);
+    if (user.id != null) add(user.id);
+    add(user.role);
+    if (user.role && typeof user.role === "object") {
+      add(user.role.id);
+      add(user.role.name);
+      add(user.role.label);
+      add(user.role.displayName);
+    }
+  }
+
+  return variants;
+}
+
+function parseHighlightToken(token) {
+  if (typeof token !== "string" || !token) {
+    return { raw: token ?? null, base: token ?? null, doneSignature: null };
+  }
+
+  const parts = token.split(TOKEN_SEPARATOR);
+  const base = parts[0] || token;
+  let doneSignature = null;
+
+  for (let i = 1; i < parts.length; i += 1) {
+    const part = parts[i];
+    if (part.startsWith(DONE_TOKEN_PREFIX)) {
+      const raw = part.slice(DONE_TOKEN_PREFIX.length);
+      if (!raw) {
+        doneSignature = "";
+      } else {
+        try {
+          doneSignature = decodeURIComponent(raw);
+        } catch {
+          doneSignature = raw;
+        }
+      }
+    }
+  }
+
+  return { raw: token, base, doneSignature };
+}
+
 function short30(s) {
   const t = (s ?? "").toString();
   return t.length > 30 ? t.slice(0, 30) + "…" : t;
@@ -56,6 +154,7 @@ export default function ProtokollOverview() {
   const [loading, setLoading] = useState(true);
   const [canEdit, setCanEdit] = useState(false);
   const { user } = useUserAuth() || {};
+  const userNameVariants = useMemo(() => collectUserNameVariants(user), [user]);
   const { roles: onlineRoles } = useOnlineRoles();
   const ltStbOnline = useMemo(
     () => onlineRoles.some((roleId) => roleId === "LTSTB" || roleId === "LTSTBSTV"),
@@ -257,8 +356,25 @@ const rows = useMemo(
               const entryKey = String(r?.nr ?? "");
               const seenToken = entryKey && seenEntries ? seenEntries[entryKey] : null;
               const hasSeenStorage = !!seenStorageKey;
-              const isHighlighted = hasSeenStorage && entryToken && seenToken !== entryToken;
-              const actorName = (changeInfo.by && changeInfo.by.trim()) || "Unbekannt";
+              const tokenChanged = hasSeenStorage && entryToken && seenToken !== entryToken;
+              const entryTokenInfo = parseHighlightToken(entryToken);
+              const seenTokenInfo = parseHighlightToken(seenToken);
+              const doneSignatureChanged = entryTokenInfo.doneSignature !== seenTokenInfo.doneSignature;
+              const actorRawName = typeof changeInfo.by === "string" ? changeInfo.by : null;
+              let changeByCurrentUser = false;
+              if (actorRawName && userNameVariants.size) {
+                const variants = collectNameVariants(actorRawName);
+                for (const variant of variants) {
+                  if (userNameVariants.has(variant)) {
+                    changeByCurrentUser = true;
+                    break;
+                  }
+                }
+              }
+              const highlightDueToDone = tokenChanged && doneSignatureChanged;
+              const highlightByOthers = tokenChanged && !changeByCurrentUser;
+              const isHighlighted = highlightDueToDone || highlightByOthers;
+              const actorName = actorRawName && actorRawName.trim() ? actorRawName.trim() : "Unbekannt";
               const hoverTitle = isHighlighted
                 ? `Erstellt/geändert durch ${actorName}`
                 : `Geändert durch ${actorName}`;
