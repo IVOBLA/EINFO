@@ -115,6 +115,62 @@ export default function User_AuthProvider({ children }) {
     }
   }, [user, sessionInfo]);
 
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof document === "undefined") {
+      return () => {};
+    }
+    if (!user) {
+      return () => {};
+    }
+
+    const logoutUrl = "/api/user/logout";
+    const payload = JSON.stringify({ reason: "unload" });
+    let beaconSent = false;
+
+    const sendLogoutBeacon = () => {
+      if (beaconSent) return;
+      beaconSent = true;
+      try {
+        if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
+          const blob = new Blob([payload], { type: "application/json" });
+          if (navigator.sendBeacon(logoutUrl, blob)) {
+            return;
+          }
+        }
+      } catch {
+        /* ignore – fallback below */
+      }
+      try {
+        fetch(logoutUrl, {
+          method: "POST",
+          credentials: "include",
+          keepalive: true,
+          headers: { "Content-Type": "application/json" },
+          body: payload,
+        }).catch(() => {});
+      } catch {
+        /* ignore */
+      }
+    };
+
+    const handleBeforeUnload = () => {
+      sendLogoutBeacon();
+    };
+
+    const handlePageHide = (event) => {
+      if (event?.persisted) return;
+      sendLogoutBeacon();
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("pagehide", handlePageHide);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("pagehide", handlePageHide);
+    };
+  }, [user]);
+
   const login = useCallback(async (username, password) => {
     const payload = await User_login(username, password);
     applyAuthPayload(payload);
