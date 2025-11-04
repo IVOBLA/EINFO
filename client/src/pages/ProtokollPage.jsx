@@ -3,6 +3,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { initRolePolicy, canEditApp, hasRole } from "../auth/roleUtils";
 import { useUserAuth } from "../components/User_AuthProvider.jsx";
 import useOnlineRoles from "../hooks/useOnlineRoles.js";
+import {
+  getLastChangeInfo,
+  resolveSeenStorageKey,
+  updateSeenEntry,
+} from "../utils/protokollSeen.js";
 
 const ERGEHT_OPTIONS = ["EL", "LtStb", "S1", "S2", "S3", "S4", "S5", "S6"];
 
@@ -121,6 +126,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
     () => onlineRoles.some((roleId) => roleId === "LTSTB" || roleId === "LTSTBSTV"),
     [onlineRoles]
   );
+  const seenStorageKey = useMemo(() => resolveSeenStorageKey(user), [user]);
 
 
   // ---- Rechte ---------------------------------------------------------------
@@ -496,12 +502,16 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
           setErrors({});
           setId(it.id || null);
           setTimeout(() => infoTypInfoRef.current?.focus(), 0); // Erstfokus nach Laden
+          if (seenStorageKey) {
+            const changeInfo = getLastChangeInfo(it);
+            updateSeenEntry(seenStorageKey, it.nr, changeInfo.token);
+          }
         }
       } finally {
         setLoading(false);
       }
     })();
-  }, [isEditMode, nr, lockStatus, canEdit]);
+  }, [isEditMode, nr, lockStatus, canEdit, seenStorageKey]);
 
   useEffect(() => {
     if (!isEditMode) return;

@@ -1,7 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { initRolePolicy, canEditApp, hasRole } from "../auth/roleUtils";
 import { useUserAuth } from "../components/User_AuthProvider.jsx";
 import useOnlineRoles from "../hooks/useOnlineRoles.js";
+import {
+  getLastChangeInfo,
+  loadSeenEntries,
+  resolveSeenStorageKey,
+  updateSeenEntry,
+} from "../utils/protokollSeen.js";
 
 function short30(s) {
   const t = (s ?? "").toString();
@@ -57,6 +63,45 @@ export default function ProtokollOverview() {
   );
   const s3User = hasRole("S3", user);
   const s3BlockedByLtStb = s3User && ltStbOnline;
+  const seenStorageKey = useMemo(() => resolveSeenStorageKey(user), [user]);
+  const [seenEntries, setSeenEntries] = useState({});
+
+  useEffect(() => {
+    if (!seenStorageKey) {
+      setSeenEntries({});
+      return;
+    }
+    setSeenEntries(loadSeenEntries(seenStorageKey));
+  }, [seenStorageKey]);
+
+  useEffect(() => {
+    if (!seenStorageKey || typeof window === "undefined") return () => {};
+    const handleStorage = (event) => {
+      if (event?.key === seenStorageKey) {
+        setSeenEntries(loadSeenEntries(seenStorageKey));
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+    };
+  }, [seenStorageKey]);
+
+  const markEntrySeen = useCallback(
+    (nr, token) => {
+      if (!seenStorageKey) return;
+      setSeenEntries((prev) => updateSeenEntry(seenStorageKey, nr, token, prev));
+    },
+    [seenStorageKey]
+  );
+
+  const handleRowClick = useCallback(
+    (item, token) => {
+      markEntrySeen(item.nr, token);
+      window.location.hash = `/protokoll/edit/${item.nr}`;
+    },
+    [markEntrySeen]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -132,12 +177,12 @@ export default function ProtokollOverview() {
     };
   }, []);
 
-  const rows = useMemo(
+const rows = useMemo(
     () => [...data].sort((a, b) => (Number(b.nr) || 0) - (Number(a.nr) || 0)),
     [data]
   );
 
-return (
+  return (
   <div className="p-3 md:p-4 max-w-[1400px] mx-auto h-full flex flex-col">
     {/* Kopf */}
     <div className="flex items-center justify-between gap-2 mb-3">
@@ -207,32 +252,47 @@ return (
               const confirmation = r?.otherRecipientConfirmation || {};
               const confirmedRole = String(confirmation?.byRole || "").toUpperCase();
               const confirmedByLtStbOrS3 = !!confirmation?.confirmed && (confirmedRole === "LTSTB" || confirmedRole === "S3");
-// --- Anzeige-Logik Druckanzeige ---
-const showPrintCircle = !!confirmation?.confirmed; // Kreis nur bei bestätigten Einträgen
-const printTitleParts = [`${printCount}× gedruckt`];
+              const changeInfo = getLastChangeInfo(r);
+              const entryToken = changeInfo.token;
+              const entryKey = String(r?.nr ?? "");
+              const seenToken = entryKey && seenEntries ? seenEntries[entryKey] : null;
+              const hasSeenStorage = !!seenStorageKey;
+              const isHighlighted = hasSeenStorage && entryToken && seenToken !== entryToken;
+              const actorName = (changeInfo.by && changeInfo.by.trim()) || "Unbekannt";
+              const hoverTitle = isHighlighted
+                ? `Erstellt/geändert durch ${actorName}`
+                : `Geändert durch ${actorName}`;
+              // --- Anzeige-Logik Druckanzeige ---
+              const showPrintCircle = !!confirmation?.confirmed; // Kreis nur bei bestätigten Einträgen
+              const printTitleParts = [`${printCount}× gedruckt`];
 
-if (openTasks) {
-  printTitleParts.push("Offene Aufgaben vorhanden");
-}
-if (confirmation?.confirmed) {
-  const label = confirmedRole || "Bestätigt";
-  printTitleParts.push(`Bestätigt durch ${label}`);
-}
+              if (openTasks) {
+                printTitleParts.push("Offene Aufgaben vorhanden");
+              }
+              if (confirmation?.confirmed) {
+                const label = confirmedRole || "Bestätigt";
+                printTitleParts.push(`Bestätigt durch ${label}`);
+              }
 
-const printTitle = printTitleParts.join(" • ");
+              const printTitle = printTitleParts.join(" • ");
 
-// Farbe abhängig vom Zustand
- const printCircleClass = openTasks
-   ? "border-red-500 text-red-600"
-   : "border-emerald-500 text-emerald-600";
- // auch ohne Kreis rot färben, wenn offene Aufgaben existieren
- const printPlainTextClass = openTasks ? "text-red-600" : "";
+              // Farbe abhängig vom Zustand
+              const printCircleClass = openTasks
+                ? "border-red-500 text-red-600"
+                : "border-emerald-500 text-emerald-600";
+              // auch ohne Kreis rot färben, wenn offene Aufgaben existieren
+              const printPlainTextClass = openTasks ? "text-red-600" : "";
+              const rowClasses = [
+                "border-b align-top cursor-pointer",
+                isHighlighted ? "bg-yellow-100 hover:bg-yellow-100" : "hover:bg-gray-50",
+              ].join(" ");
               return (
                 <tr
                   key={r.nr}
-                  className="border-b align-top hover:bg-gray-50 cursor-pointer"
-                  onClick={() => { window.location.hash = `/protokoll/edit/${r.nr}`; }}
-                  title="Zum Bearbeiten öffnen"
+                  className={rowClasses}
+                  onClick={() => handleRowClick(r, entryToken)}
+                  title={hoverTitle}
+                  aria-label={hoverTitle}
                 >
                   <td className="align-middle text-center">
                     {showPrintCircle ? (
