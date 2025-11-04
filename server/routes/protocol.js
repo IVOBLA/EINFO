@@ -380,6 +380,7 @@ function migrateMeta(arr) {
 }
 
 let cachedJson = null;
+let lastMtime = 0;
 let csvStructureEnsured = false;
 
 async function persistJson(arr) {
@@ -388,24 +389,16 @@ async function persistJson(arr) {
 
 async function readAllJson() {
   await ensureFiles();
-  if (cachedJson) return cachedJson;
-
-  let arr = [];
-  try {
-    arr = JSON.parse(await fsp.readFile(JSON_FILE, "utf8"));
-  } catch {
-    arr = [];
+  const stat = await fsp.stat(JSON_FILE).catch(() => ({ mtimeMs: 0 }));
+  if (!cachedJson || stat.mtimeMs > lastMtime) {
+    let arr = [];
+    try { arr = JSON.parse(await fsp.readFile(JSON_FILE, "utf8")); } catch { arr = []; }
+    if (!Array.isArray(arr)) arr = [];
+    if (migrateMeta(arr)) await persistJson(arr);
+    if (!csvStructureEnsured) { ensureCsvStructure(arr, CSV_FILE); csvStructureEnsured = true; }
+    cachedJson = arr;
+    lastMtime = stat.mtimeMs;
   }
-
-  if (!Array.isArray(arr)) arr = [];
-  if (migrateMeta(arr)) await persistJson(arr);
-
-  if (!csvStructureEnsured) {
-    ensureCsvStructure(arr, CSV_FILE);
-    csvStructureEnsured = true;
-  }
-
-  cachedJson = arr;
   return cachedJson;
 }
 
@@ -888,3 +881,4 @@ router.put("/:nr", express.json(), async (req, res) => {
 });
 
 export default router;
+export function invalidateProtocolCache() { cachedJson = null; /* lastMtime optional */ }
