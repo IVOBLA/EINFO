@@ -7,6 +7,7 @@ import { fileURLToPath } from "url";
 import puppeteer from "puppeteer";
 import { appendHistoryEntriesToCsv } from "./utils/protocolCsv.mjs";
 import { resolveUserName } from "./auditLog.mjs";
+import { invalidateProtocolCache } from "./routes/protocol.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -183,6 +184,7 @@ async function recordPrint(nr, recipients, pages, fileName, by, latestSnapshotFr
   if (csvItem && csvEntries.length) {
     appendHistoryEntriesToCsv(csvItem, csvEntries, CSV_FILE);
   }
+  invalidateProtocolCache();
 }
 
 // ---------- HTML/CSS ----------
