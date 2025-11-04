@@ -398,9 +398,14 @@ const rows = useMemo(
                 : "border-emerald-500 text-emerald-600";
               // auch ohne Kreis rot färben, wenn offene Aufgaben existieren
               const printPlainTextClass = openTasks ? "text-red-600" : "";
+              const hasCompletedTasks = relevantMeasures.some((m) => !!m?.done);
               const rowClasses = [
                 "border-b align-top cursor-pointer",
-                isHighlighted ? "bg-yellow-100 hover:bg-yellow-100" : "hover:bg-gray-50",
+                isHighlighted
+                  ? "bg-yellow-100 hover:bg-yellow-100"
+                  : hasCompletedTasks
+                    ? "bg-yellow-50 hover:bg-yellow-100"
+                    : "hover:bg-gray-50",
               ].join(" ");
               return (
                 <tr
