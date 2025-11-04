@@ -321,8 +321,8 @@ const rows = useMemo(
         <table className="min-w-[1100px] w-full text-sm">
           <thead className="bg-gray-50 sticky top-0 z-10">
             <tr className="[&>th]:px-2 [&>th]:py-2 [&>th]:text-left [&>th]:font-semibold border-b">
-              <th style={{ width: 70 }} className="text-center" title="Druckanzahl">Drucke</th>
-              <th style={{ width: 60 }}>NR</th>
+              <th style={{ width: 70 }} className="text-center" title="Druckanzahl">NR</th>
+              <th style={{ width: 60 }}>Druck</th>
               <th style={{ width: 110 }}>Datum</th>
               <th style={{ width: 80 }}>Zeit</th>
               <th style={{ width: 120 }}>Kanal</th>
@@ -417,16 +417,16 @@ const rows = useMemo(
                         title={printTitle}
                         aria-label={printTitle}
                       >
-                        {printCount}
+                        {r.nr}
                       </span>
                     ) : (
                       <span className={`inline-block min-w-[2ch] text-sm font-semibold ${printPlainTextClass}`} title={printTitle} aria-label={printTitle}>
 
-                        {printCount}
+                        {r.nr}
                       </span>
                     )}
                   </td>
-                  <td className="font-semibold">{r.nr}</td>
+                  <td className="font-semibold">{printCount}</td>
                   <td>{r.datum}</td>
                   <td>{r.zeit}</td>
                   <td title={kanal}>{kanal}</td>
