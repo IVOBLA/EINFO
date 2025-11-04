@@ -24,7 +24,7 @@ import ProtokollPage from "./pages/ProtokollPage.jsx";
 
 // Start/Stop + Import (Icon & Button)
 import FFFetchControl from "./components/FFFetchControl.jsx";
-import { initRolePolicy, canEditApp } from "./auth/roleUtils";
+import { initRolePolicy, canEditApp, hasRole } from "./auth/roleUtils";
 import StatusPage from "./StatusPage.jsx";
 import CornerHelpLogout from "./components/CornerHelpLogout.jsx";
 
@@ -76,6 +76,7 @@ export default function App() {
 const [policyReady, setPolicyReady] = useState(false);
 useEffect(() => { initRolePolicy().then(() => setPolicyReady(true)); }, []);
 const canEdit  = policyReady && canEditApp("einsatzboard");
+const canManageFreeUnits = canEdit || (policyReady && hasRole("S1"));
 const readOnly = !canEdit;
   // === State =================================================
   const [board, setBoard] = useState(null);
@@ -670,7 +671,7 @@ try {
   const vehiclesById = useMemo(() => new Map(vehicles.map((v) => [v.id, v])), [vehicles]);
 
   async function handleVehicleAvailabilityChange(vehicle, nextAvailable) {
-    if (readOnly) return;
+    if (!canManageFreeUnits) return;
     if (!vehicle) return;
     const idStr = String(vehicle.id ?? "").trim();
     if (!idStr) return;
@@ -692,7 +693,7 @@ try {
   }
 
   async function handleGroupAvailabilityChange(name, nextAvailable) {
-    if (readOnly) return;
+    if (!canManageFreeUnits) return;
     const groupName = String(name ?? "").trim();
     if (!groupName) return;
     const target = nextAvailable === true;
@@ -1469,7 +1470,7 @@ if (route.startsWith("/protokoll")) {
                   Einheiten (frei)
                 </button>
               </h3>
-              {canEdit && (
+              {canManageFreeUnits && (
               <button onClick={() => setShowVehModal(true)} className="px-2 py-1 text-sm rounded bg-emerald-600 text-white">
                 + Einheit
               </button>
@@ -1515,7 +1516,7 @@ if (route.startsWith("/protokoll")) {
                             type="checkbox"
                             checked={groupAvailable}
                             onChange={(e) => handleGroupAvailabilityChange(ort, e.target.checked)}
-                            disabled={readOnly}
+                            disabled={!canManageFreeUnits}
                           />
                         </label>
                         <span className="group-chip">{list.length}</span>
@@ -1557,7 +1558,7 @@ if (route.startsWith("/protokoll")) {
                                   type="checkbox"
                                   checked={effectiveVehicleAvailable}
                                   onChange={(e) => handleVehicleAvailabilityChange(v, e.target.checked)}
-                                  disabled={readOnly || !effectiveGroupAvailable}
+                                  disabled={!canManageFreeUnits || !effectiveGroupAvailable}
                                 />
                               </label>
                             </div>
