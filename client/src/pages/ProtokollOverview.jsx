@@ -23,6 +23,21 @@ function sumPrintHistory(history) {
   );
 }
 
+
+function getTotalPrints(item) {
+  if (!item) return 0;
+  const hist = Array.isArray(item.history) ? item.history : [];
+  const sum = hist.reduce((acc, h) => {
+    if (h?.action === "print") {
+      const val = Number(h.printCount ?? h.pages ?? 0);
+      if (Number.isFinite(val)) acc += val;
+    }
+    return acc;
+  }, 0);
+  // falls History fehlt, fallback auf backend-Wert
+  return sum > 0 ? sum : Number(item.printCount ?? 0);
+}
+
 function resolvePrintCount(item) {
   const { sum: historyPrints, hasPrintEntries } = sumPrintHistory(item?.history);
   if (hasPrintEntries) return historyPrints;
@@ -51,7 +66,7 @@ export default function ProtokollOverview() {
         const s3Fallback = !ltStbOnline && hasRole("S3", user);
         setCanEdit(baseCanEdit || s3Fallback);
       } catch {
-        if (!cancelled) return;
+        if (cancelled) return;
         setCanEdit(false);
       }
     })();
@@ -140,18 +155,26 @@ return (
               const confirmation = r?.otherRecipientConfirmation || {};
               const confirmedRole = String(confirmation?.byRole || "").toUpperCase();
               const confirmedByLtStbOrS3 = !!confirmation?.confirmed && (confirmedRole === "LTSTB" || confirmedRole === "S3");
-              const showPrintCircle = openTasks || confirmedByLtStbOrS3;
-              const printTitleParts = [`${printCount}× gedruckt`];
-              if (openTasks) {
-                printTitleParts.push("Offene Aufgaben vorhanden");
-              } else if (confirmedByLtStbOrS3) {
-                const label = confirmedRole === "LTSTB" ? "LtStb" : confirmedRole;
-                printTitleParts.push(`Bestätigt durch ${label}`);
-              }
-              const printTitle = printTitleParts.join(" • ");
-              const printCircleClass = openTasks
-                ? "border-red-500 text-red-600"
-                : "border-emerald-500 text-emerald-600";
+// --- Anzeige-Logik Druckanzeige ---
+const showPrintCircle = !!confirmation?.confirmed; // Kreis nur bei bestätigten Einträgen
+const printTitleParts = [`${printCount}× gedruckt`];
+
+if (openTasks) {
+  printTitleParts.push("Offene Aufgaben vorhanden");
+}
+if (confirmation?.confirmed) {
+  const label = confirmedRole || "Bestätigt";
+  printTitleParts.push(`Bestätigt durch ${label}`);
+}
+
+const printTitle = printTitleParts.join(" • ");
+
+// Farbe abhängig vom Zustand
+ const printCircleClass = openTasks
+   ? "border-red-500 text-red-600"
+   : "border-emerald-500 text-emerald-600";
+ // auch ohne Kreis rot färben, wenn offene Aufgaben existieren
+ const printPlainTextClass = openTasks ? "text-red-600" : "";
               return (
                 <tr
                   key={r.nr}
@@ -169,7 +192,8 @@ return (
                         {printCount}
                       </span>
                     ) : (
-                      <span className="inline-block min-w-[2ch] text-sm font-semibold" title={printTitle} aria-label={printTitle}>
+                      <span className={`inline-block min-w-[2ch] text-sm font-semibold ${printPlainTextClass}`} title={printTitle} aria-label={printTitle}>
+
                         {printCount}
                       </span>
                     )}
