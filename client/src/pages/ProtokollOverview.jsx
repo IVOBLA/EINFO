@@ -76,16 +76,60 @@ export default function ProtokollOverview() {
   }, [ltStbOnline, user]);
 
   useEffect(() => {
-    (async () => {
+    let cancelled = false;
+    let controller = null;
+    let intervalId = null;
+    let initialLoad = true;
+    let isFetching = false;
+
+    const fetchData = async () => {
+      if (cancelled || isFetching) return;
+      isFetching = true;
+      if (initialLoad) setLoading(true);
+
+      controller?.abort();
+      const currentController = new AbortController();
+      controller = currentController;
+
       try {
-        const r = await fetch("/api/protocol", { credentials: "include" }).then(res => res.json());
-        setData(Array.isArray(r?.items) ? r.items : []);
-      } catch {
-        setData([]);
+        const response = await fetch("/api/protocol", {
+          credentials: "include",
+          signal: currentController.signal,
+        });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const payload = await response.json();
+        if (cancelled || controller !== currentController) return;
+        const items = Array.isArray(payload?.items) ? payload.items : [];
+        setData(items);
+      } catch (error) {
+        if (cancelled || error?.name === "AbortError") return;
+        if (initialLoad) setData([]);
+        console.warn("[ProtokollOverview] Aktualisierung fehlgeschlagen", error);
       } finally {
-        setLoading(false);
+        if (!cancelled && initialLoad) {
+          setLoading(false);
+        }
+        initialLoad = false;
+        isFetching = false;
       }
-    })();
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        fetchData();
+      }
+    };
+
+    fetchData();
+    intervalId = window.setInterval(fetchData, 5000);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      cancelled = true;
+      controller?.abort();
+      if (intervalId) window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, []);
 
   const rows = useMemo(
