@@ -172,12 +172,73 @@ const SERVER_DIR = path.resolve(__dirname, "..");
 const DATA_DIR   = path.resolve(SERVER_DIR, "data");   // => <repo>/server/data
 const CSV_FILE   = path.join(DATA_DIR, "protocol.csv");
 const JSON_FILE  = path.join(DATA_DIR, "protocol.json");
+const ROLES_FILE = path.join(DATA_DIR, "user", "User_roles.json");
+const PROTOCOL_APP_ID = "protokoll";
 
 User_initStore(DATA_DIR);
 
 const router = express.Router();
 const SECURE_COOKIES = process.env.KANBAN_COOKIE_SECURE === "1";
 router.use(User_authMiddleware({ secureCookies: SECURE_COOKIES }));
+
+async function loadRolesVAny() {
+  try {
+    const raw = JSON.parse(await fsp.readFile(ROLES_FILE, "utf8"));
+    const arr = Array.isArray(raw) ? raw : (Array.isArray(raw?.roles) ? raw.roles : []);
+    return arr
+      .map((entry) => {
+        if (!entry) return null;
+        const idSource = entry.id ?? entry.label ?? "";
+        const canonicalId = canonicalRoleId(idSource) || trimRoleLabel(idSource).toUpperCase();
+        if (!canonicalId) return null;
+        const apps = {};
+        if (entry.apps && typeof entry.apps === "object") {
+          for (const [key, value] of Object.entries(entry.apps)) {
+            const app = String(key || "").trim().toLowerCase();
+            if (!app) continue;
+            const level = String(value || "").trim().toLowerCase();
+            if (!level) continue;
+            if (!apps[app] || level === "edit") {
+              apps[app] = level;
+            }
+          }
+        }
+        if (Array.isArray(entry.capabilities)) {
+          for (const capability of entry.capabilities) {
+            const match = String(capability || "").trim().match(/^([a-z0-9_-]+)[:.]([a-z]+)$/i);
+            if (!match) continue;
+            const app = match[1].toLowerCase();
+            const level = match[2].toLowerCase();
+            if (!apps[app] || level === "edit") {
+              apps[app] = level;
+            }
+          }
+        }
+        return { id: canonicalId, apps };
+      })
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+async function userHasProtocolEditPermission(req) {
+  const actorRoles = collectActorRoles(req);
+  if (!actorRoles.size) return false;
+  const roles = await loadRolesVAny();
+  const roleMap = new Map();
+  for (const role of roles) {
+    if (!role?.id) continue;
+    if (!roleMap.has(role.id)) roleMap.set(role.id, role);
+  }
+  for (const roleId of actorRoles) {
+    const role = roleMap.get(roleId);
+    if (!role) continue;
+    const level = role.apps?.[PROTOCOL_APP_ID];
+    if (level === "edit") return true;
+  }
+  return false;
+}
 
 const LOCK_TTL_MS = 5 * 60 * 1000; // 5 Minuten
 const activeLocks = new Map(); // nr -> { userId, username, displayName, lockedAt, expiresAt }
@@ -464,6 +525,10 @@ router.post("/:nr/lock", async (req, res) => {
       return res.status(401).json({ ok: false, error: "UNAUTHORIZED" });
     }
 
+    if (!(await userHasProtocolEditPermission(req))) {
+      return res.status(403).json({ ok: false, error: "EDIT_FORBIDDEN" });
+    }
+
     const existing = activeLocks.get(nr);
     const now = Date.now();
     if (existing && existing.userId && existing.userId !== identity.userId) {
@@ -542,6 +607,14 @@ router.post("/", express.json(), async (req, res) => {
   try {
     const all = await readAllJson();
     const nr  = nextNr(all);
+    const identity = resolveUserIdentity(req);
+    if (!identity.userId) {
+      return res.status(401).json({ ok: false, error: "UNAUTHORIZED" });
+    }
+    if (!(await userHasProtocolEditPermission(req))) {
+      return res.status(403).json({ ok: false, error: "EDIT_FORBIDDEN" });
+    }
+    const actorRoles = collectActorRoles(req);
     const payload = {
       ...(req.body || {}),
       nr,
@@ -549,8 +622,6 @@ router.post("/", express.json(), async (req, res) => {
       printCount: 0,
       history: []
     };
-    const identity = resolveUserIdentity(req);
-    const actorRoles = collectActorRoles(req);
     try {
       payload.otherRecipientConfirmation = sanitizeConfirmation(req.body?.otherRecipientConfirmation, {
         existing: null,
@@ -643,7 +714,13 @@ router.put("/:nr", express.json(), async (req, res) => {
 
     cleanupExpiredLocks();
     const identity = resolveUserIdentity(req);
+    if (!identity.userId) {
+      return res.status(401).json({ ok: false, error: "UNAUTHORIZED" });
+    }
     const actorRoles = collectActorRoles(req);
+    if (!(await userHasProtocolEditPermission(req))) {
+      return res.status(403).json({ ok: false, error: "EDIT_FORBIDDEN" });
+    }
     const existingLock = activeLocks.get(nr);
     if (existingLock && existingLock.userId && identity.userId && existingLock.userId !== identity.userId) {
       return res.status(423).json({
