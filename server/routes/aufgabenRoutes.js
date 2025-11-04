@@ -39,23 +39,26 @@ function normalizeIncidentId(v) {
   return s ? s : null;
 }
 
-async function syncProtocolDoneIfNeeded(item) {
+async function syncProtocolDoneIfNeeded(item, req) {
   if (!item || String(item?.status ?? "") !== "Erledigt") return;
+
   const protoNr =
     item.originProtocolNr ??
     item.meta?.protoNr ??
     item.meta?.protoNR ??
     item.meta?.proto_nr ??
     null;
+
   const responsible = item?.responsible;
   if (!protoNr || !responsible) return;
+
   try {
-    await markResponsibleDone(protoNr, responsible);
+    const actorName = resolveUserName(req) || "Automatisch";
+    await markResponsibleDone(protoNr, responsible, actorName);
   } catch (err) {
     console.warn("[aufgaben→protocol]", err?.message || err);
   }
 }
-
 
 
 
@@ -385,7 +388,7 @@ router.post("/:id/status", express.json(), async (req,res)=>{
     await ensureAufgLogHeader(LOG_FILE);
     await appendCsvRow(LOG_FILE, AUFG_HEADERS, buildAufgabenLog({ role, action: "status", item: next, fromStatus: prev.status, toStatus: status }), req);
 
- await syncProtocolDoneIfNeeded(next);
+ await syncProtocolDoneIfNeeded(next, req);
 
     res.json({ ok: true });
   } catch (e) {
@@ -435,7 +438,7 @@ router.post("/reorder", express.json(), async (req,res)=>{
       req
     );
 
-await syncProtocolDoneIfNeeded(moved);
+ await syncProtocolDoneIfNeeded(moved, req);
 
     res.json({ ok : true });
 } catch (e) {
