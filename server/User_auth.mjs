@@ -14,6 +14,28 @@ function readCookie(req, name){
 }
 
 const _sessions = new Map(); // sid -> { userId, createdAt, lastSeen, roles:Set<string> }
+const sessionDestroyListeners = new Set();
+
+function notifySessionDestroyed(session) {
+  if (!session) return;
+  for (const listener of sessionDestroyListeners) {
+    try {
+      listener(session);
+    } catch (err) {
+      console.warn("[User_auth] session destroy listener error", err);
+    }
+  }
+}
+
+export function User_onSessionDestroyed(listener) {
+  if (typeof listener !== "function") {
+    return () => {};
+  }
+  sessionDestroyListeners.add(listener);
+  return () => {
+    sessionDestroyListeners.delete(listener);
+  };
+}
 
 const SESSION_IDLE_TIMEOUT_MS = (() => {
   const minuteCandidates = [
@@ -102,6 +124,7 @@ function cleanupExpiredSessions(now = Date.now()) {
   for (const [sid, session] of _sessions) {
     if (sessionIsExpired(session, now)) {
       _sessions.delete(sid);
+      notifySessionDestroyed(session);
     }
   }
 }
@@ -119,6 +142,7 @@ function getActiveSession(sid) {
   if (!session) return null;
   if (sessionIsExpired(session)) {
     _sessions.delete(sid);
+    notifySessionDestroyed(session);
     return null;
   }
   return session;
@@ -260,7 +284,11 @@ export function User_createRouter({ dataDir, secureCookies=false }){
   });
   r.post("/logout", (req,res)=>{
     const sid = readCookie(req, "User_sid");
-    if(sid) _sessions.delete(sid);
+    if(sid){
+      const session = _sessions.get(sid);
+      if (session) notifySessionDestroyed(session);
+      _sessions.delete(sid);
+    }
     setSessionCookie(res, "", { secure: secureCookies, maxAgeSeconds: 0 });
     res.json({ ok:true });
   });
