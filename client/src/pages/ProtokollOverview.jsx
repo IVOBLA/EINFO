@@ -379,10 +379,20 @@ const rows = useMemo(
               const highlightDueToDone = entryHasDoneSignature && (!hasSeenStorage || !doneAcknowledged);
               const highlightByOthers = tokenChanged && !changeByCurrentUser;
               const isHighlighted = highlightDueToDone || highlightByOthers;
-              const actorName = actorRawName && actorRawName.trim() ? actorRawName.trim() : "Unbekannt";
-              const hoverTitle = isHighlighted
-                ? `Erstellt/geändert durch ${actorName}`
-                : `Geändert durch ${actorName}`;
+ const fallbackActor = actorRawName && actorRawName.trim() ? actorRawName.trim() : "Unbekannt";
+ const rawDoneSig = entryTokenInfo.doneSignature && String(entryTokenInfo.doneSignature).trim();
+ // NUR den *letzten* Bearbeiter aus der Done-Signatur nehmen, "#<index>" entfernen
+ const lastDoneActor = rawDoneSig
+   ? (() => {
+       const parts = rawDoneSig.split(",").map(p => p.trim()).filter(Boolean);
+       const last = parts[parts.length - 1] || "";
+       return last.replace(/\s*#\d+\s*$/, "").trim() || null;
+     })()
+   : null;
+ const lastActor = lastDoneActor || fallbackActor;
+ const hoverTitle = isHighlighted
+   ? `Erstellt/geändert durch ${lastActor}`
+   : `Geändert durch ${lastActor}`;
               // --- Anzeige-Logik Druckanzeige ---
               const showPrintCircle = !!confirmation?.confirmed; // Kreis nur bei bestätigten Einträgen
               const printTitleParts = [`${printCount}× gedruckt`];
@@ -407,10 +417,8 @@ const rows = useMemo(
               const rowClasses = [
                 "border-b align-top cursor-pointer",
                 isHighlighted
-                  ? "bg-yellow-100 hover:bg-yellow-100"
-                  : hasCompletedTasks
-                    ? "bg-yellow-50 hover:bg-yellow-100"
-                    : "hover:bg-gray-50",
+                  ? "bg-yellow-50 hover:bg-yellow-100"
+				  : "hover:bg-gray-50",          
               ].join(" ");
               return (
                 <tr
