@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { initRolePolicy, canEditApp } from "../auth/roleUtils";
+import { initRolePolicy, canEditApp, hasRole } from "../auth/roleUtils";
+import { useUserAuth } from "../components/User_AuthProvider.jsx";
+import useOnlineRoles from "../hooks/useOnlineRoles.js";
 
 function short30(s) {
   const t = (s ?? "").toString();
@@ -26,11 +28,31 @@ export default function ProtokollOverview() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [canEdit, setCanEdit] = useState(false);
+  const { user } = useUserAuth() || {};
+  const { roles: onlineRoles } = useOnlineRoles();
+  const ltStbOnline = useMemo(
+    () => onlineRoles.some((roleId) => roleId === "LTSTB" || roleId === "LTSTBSTV"),
+    [onlineRoles]
+  );
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
-      try { await initRolePolicy(); setCanEdit(canEditApp("protokoll")); } catch { setCanEdit(false); }
+      try {
+        await initRolePolicy();
+        if (cancelled) return;
+        const baseCanEdit = canEditApp("protokoll", user);
+        const s3Fallback = !ltStbOnline && hasRole("S3", user);
+        setCanEdit(baseCanEdit || s3Fallback);
+      } catch {
+        if (!cancelled) return;
+        setCanEdit(false);
+      }
     })();
+    return () => { cancelled = true; };
+  }, [ltStbOnline, user]);
+
+  useEffect(() => {
     (async () => {
       try {
         const r = await fetch("/api/protocol", { credentials: "include" }).then(res => res.json());
