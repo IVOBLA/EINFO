@@ -190,20 +190,20 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
   };
 
   useEffect(() => {
-    if (isEditMode) {
+    if (isEditMode && canEdit) {
       setLockStatus("pending");
       setLockError(null);
-    } else {
-      setLockStatus("not-needed");
-      setLockError(null);
-      if (lockRefreshTimerRef.current) {
-        clearTimeout(lockRefreshTimerRef.current);
-        lockRefreshTimerRef.current = null;
-      }
-      lockStateRef.current = { nr: null, hasLock: false };
-      lockReleaseRef.current = null;
+      return;
     }
-  }, [isEditMode, nr]);
+    setLockStatus("not-needed");
+    setLockError(null);
+    if (lockRefreshTimerRef.current) {
+      clearTimeout(lockRefreshTimerRef.current);
+      lockRefreshTimerRef.current = null;
+    }
+    lockStateRef.current = { nr: null, hasLock: false };
+    lockReleaseRef.current = null;
+  }, [isEditMode, nr, canEdit]);
 
   // ---- Vorschläge ------------------------------------------------------------
   const [suggAnvon, setSuggAnvon] = useState([]);
@@ -346,7 +346,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
   };
 
   useEffect(() => {
-    if (!isEditMode) return;
+    if (!isEditMode || !canEdit) return;
     const currentNr = Number(nr);
     if (!Number.isFinite(currentNr) || currentNr <= 0) return;
 
@@ -432,7 +432,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
       lockReleaseRef.current = null;
       releaseLock();
     };
-  }, [isEditMode, nr]);
+  }, [isEditMode, nr, canEdit]);
 
   // ---- Datensatz laden (Edit) -----------------------------------------------
   useEffect(() => {
@@ -444,7 +444,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
     const n = Number(nr);
     if (!Number.isFinite(n) || n <= 0) return;
 
-    if (lockStatus !== "acquired" && lockStatus !== "blocked") return;
+    if (canEdit && lockStatus !== "acquired" && lockStatus !== "blocked") return;
 
     (async () => {
       try {
@@ -496,7 +496,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
         setLoading(false);
       }
     })();
-  }, [isEditMode, nr, lockStatus]);
+  }, [isEditMode, nr, lockStatus, canEdit]);
 
   useEffect(() => {
     if (!isEditMode) return;
