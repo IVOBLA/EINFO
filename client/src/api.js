@@ -55,7 +55,6 @@ export async function updateVehicleAvailability(id, available){
 export async function updateGroupAvailability(name, available){
   return j("PATCH", `/api/groups/${encodeURIComponent(name)}/availability`, { available });
 }
-export async function fetchImportAlertedGroups(){ return j("GET", "/api/import/alerted-groups"); }
 export async function fetchTypes(){ try{ return await j("GET","/api/types"); }catch{ return []; } }
 
 export async function fetchAufgabenBoard(roleId = "", { signal } = {}) {

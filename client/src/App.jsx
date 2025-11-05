@@ -48,7 +48,6 @@ import {
   fetchGroupAvailability,
   updateVehicleAvailability,
   updateGroupAvailability,
-  fetchImportAlertedGroups,
 } from "./api";
 
 const TICKER_ROLE_ID = "S2";
@@ -66,7 +65,6 @@ const CID = (id) => `card:${id}`;
 const unlocked = true;
 const DEFAULT_AREA_COLOR = "#2563eb";
 const INITIAL_PULSE_SUPPRESS_MS = 20_000;
-const ALERTED_SPLIT_RE = /[;,\n]+/;
 
 export default function App() {
   const scale = useCompactScale();
@@ -85,8 +83,6 @@ const readOnly = !canEdit;
   const [vehicles, setVehicles] = useState([]);
   const [types, setTypes] = useState([]);
   const [groupAvailability, setGroupAvailability] = useState(new Map());
-  const [importAlertedTokens, setImportAlertedTokens] = useState(() => new Set());
-  const [fulfilledAlertByToken, setFulfilledAlertByToken] = useState(() => new Map());
 
   const syncGroupAvailabilityFromVehicles = useCallback((list) => {
     if (!Array.isArray(list)) return;
@@ -113,39 +109,6 @@ const readOnly = !canEdit;
   const applyGroupAvailabilityResponse = useCallback((payload) => {
     const entries = Object.entries(payload?.availability || {});
     setGroupAvailability(new Map(entries.map(([name, value]) => [name, value !== false])));
-  }, []);
-  const applyImportAlertedResponse = useCallback((payload) => {
-    const normalizedValues = Array.isArray(payload?.normalized) ? payload.normalized : [];
-    const rawValues = Array.isArray(payload?.raw) ? payload.raw : [];
-    const nextTokens = new Set();
-
-    for (const value of normalizedValues) {
-      const cleaned = String(value || "").trim();
-      if (cleaned) nextTokens.add(cleaned);
-    }
-
-    for (const value of rawValues) {
-      const cleaned = String(value || "")
-        .normalize?.("NFD").replace?.(/\p{Diacritic}/gu, "")
-        .replace(/\s+/g, " ")
-        .replace(/^\s*FF\s+/i, "")
-        .replace(/[._\-\/]+/g, " ")
-        .replace(/\s+/g, " ")
-        .toLowerCase()
-        .trim();
-      if (cleaned) nextTokens.add(cleaned);
-    }
-
-    setImportAlertedTokens((prev) => {
-      if (prev.size === nextTokens.size) {
-        let identical = true;
-        for (const entry of prev) {
-          if (!nextTokens.has(entry)) { identical = false; break; }
-        }
-        if (identical) return prev;
-      }
-      return new Set(nextTokens);
-    });
   }, []);
   const [areaFilter, setAreaFilter] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -237,16 +200,14 @@ const remaining = autoEnabled
   useEffect(() => {
     if (!unlocked) return;
     (async () => {
-      const [b, v, t, g, ag] = await Promise.all([
+      const [b, v, t, g] = await Promise.all([
         fetchBoard(),
         fetchVehicles(),
         fetchTypes(),
         fetchGroupAvailability().catch(() => ({ availability: {} })),
-        fetchImportAlertedGroups().catch(() => null),
       ]);
       setBoard(b); setVehicles(v); setTypes(Array.isArray(t) ? t : []);
       applyGroupAvailabilityResponse(g);
-      if (ag) applyImportAlertedResponse(ag);
       prevIdsRef.current = getAllCardIds(b);
       initialPulseSuppressUntilRef.current = Date.now() + INITIAL_PULSE_SUPPRESS_MS;
       try {
@@ -256,7 +217,7 @@ const remaining = autoEnabled
       } catch {}
       setSec(0); // (6) Countdown reset nach frischem Fetch
     })();
-  }, [unlocked, applyGroupAvailabilityResponse, applyImportAlertedResponse]);
+  }, [unlocked]);
 
   // Fetcher nur bei aktivem Auto-Import automatisch (re)starten
 
@@ -283,19 +244,15 @@ useEffect(() => {
 const tick = async () => {
   try {
     const oldIds = new Set(prevIdsRef.current);
-    const [nb, ag] = await Promise.all([
-      fetchBoard(),
-      fetchImportAlertedGroups().catch(() => null),
-    ]);
+    const nb = await fetchBoard();
     setBoard(nb);
     updatePulseForNewBoard({ oldIds, newBoard: nb, pulseMs: 8000 });
-    if (ag) applyImportAlertedResponse(ag);
   } catch {}
   timer = setTimeout(tick, period * 1000);
 };
     timer = setTimeout(tick, period * 1000);
     return () => clearTimeout(timer);
-  }, [unlocked, autoEnabled, applyImportAlertedResponse]);
+  }, [unlocked, autoEnabled]);
 
   // Hotkey Alt+E
   useEffect(() => {
@@ -939,107 +896,11 @@ useEffect(() => {
   const totalsWip = totalsForColumn(visibleBoard, "in-bearbeitung");
   const totalsDone = totalsForColumn(visibleBoard, "erledigt");
   const parseAlertedTokens = (s) =>
-    String(s || "")
-      .split(ALERTED_SPLIT_RE)
-      .map((x) => x.replace(/\s+/g, " ").trim())
-      .filter(Boolean);
+    String(s || "").split(/[;,\n]/).map(x => x.trim()).filter(Boolean);
   const norm = (s) => String(s || "")
     .normalize?.("NFD").replace?.(/\p{Diacritic}/gu, "")
     .replace(/^\s*FF\s+/i, "").replace(/[._\-\/]+/g, " ")
     .replace(/\s+/g, " ").toLowerCase().trim();
-
-  useEffect(() => {
-    setFulfilledAlertByToken((prev) => {
-      const columns = safeBoard?.columns || {};
-      const next = new Map();
-
-      for (const col of Object.values(columns)) {
-        const items = Array.isArray(col?.items) ? col.items : [];
-        for (const card of items) {
-          const cardId = card?.id;
-          if (cardId === null || typeof cardId === "undefined") continue;
-          const cardIdStr = String(cardId);
-          const alertedTokens = parseAlertedTokens(card?.alerted).map(norm).filter(Boolean);
-          if (!alertedTokens.length) continue;
-
-          const assignedVehicles = Array.isArray(card?.assignedVehicles) ? card.assignedVehicles : [];
-          const assignedTokens = new Set();
-          for (const vehicleId of assignedVehicles) {
-            const vehicle = vehiclesById.get(vehicleId);
-            if (!vehicle) continue;
-            const ortToken = norm(vehicle?.ort);
-            if (ortToken) assignedTokens.add(ortToken);
-            const labelToken = norm(vehicle?.label);
-            if (labelToken) assignedTokens.add(labelToken);
-          }
-
-          for (const token of alertedTokens) {
-            const fulfilledByAssignment = assignedTokens.has(token);
-            const prevCardId = prev.get(token);
-            if (!fulfilledByAssignment && prevCardId !== cardIdStr) continue;
-            next.set(token, cardIdStr);
-          }
-        }
-      }
-
-      if (next.size === prev.size) {
-        let identical = true;
-        for (const [token, cardIdStr] of next.entries()) {
-          if (prev.get(token) !== cardIdStr) {
-            identical = false;
-            break;
-          }
-        }
-        if (identical) return prev;
-      }
-
-      return next;
-    });
-  }, [safeBoard, vehiclesById]);
-
-  const alertedGroupTokens = useMemo(() => {
-    const tokens = new Set(importAlertedTokens);
-    const columns = safeBoard?.columns || {};
-    for (const col of Object.values(columns)) {
-      const items = Array.isArray(col?.items) ? col.items : [];
-      for (const card of items) {
-        if (!card) continue;
-        const cardId = card?.id;
-        const cardIdStr = cardId === null || typeof cardId === "undefined" ? null : String(cardId);
-        const alertedTokens = parseAlertedTokens(card?.alerted);
-        for (const token of alertedTokens) {
-          const normalized = norm(token);
-          if (!normalized) continue;
-          if (cardIdStr && fulfilledAlertByToken.get(normalized) === cardIdStr) continue;
-          tokens.add(normalized);
-        }
-      }
-    }
-    for (const token of fulfilledAlertByToken.keys()) {
-      tokens.delete(token);
-    }
-
-    return tokens;
-  }, [safeBoard, importAlertedTokens, fulfilledAlertByToken]);
-
-  const assignedGroupTokens = useMemo(() => {
-    const tokens = new Set();
-    const columns = safeBoard?.columns || {};
-    for (const col of Object.values(columns)) {
-      const items = Array.isArray(col?.items) ? col.items : [];
-      for (const card of items) {
-        if (!card) continue;
-        const assignedVehicles = Array.isArray(card?.assignedVehicles) ? card.assignedVehicles : [];
-        for (const vehicleId of assignedVehicles) {
-          const vehicle = vehiclesById.get(vehicleId);
-          if (!vehicle?.ort) continue;
-          const normalized = norm(vehicle.ort);
-          if (normalized) tokens.add(normalized);
-        }
-      }
-    }
-    return tokens;
-  }, [safeBoard, vehiclesById]);
 
   function addAllAlertedMatches(card, vehicles, idsSet, distMap) {
     const toks = parseAlertedTokens(card?.alerted).map(norm);
@@ -1627,25 +1488,10 @@ if (route.startsWith("/protokoll")) {
                 const groupAvailable = groupAvailability.has(ort)
                   ? groupAvailability.get(ort)
                   : true;
-                const normalizedOrt = norm(ort);
-                const hasAssignedVehicle = assignedGroupTokens.has(normalizedOrt);
-                const isAlerted = alertedGroupTokens.has(normalizedOrt) && !assignedGroupTokens.has(normalizedOrt);
-                const containerClasses = (() => {
-                  if (!groupAvailable) return "border-gray-300 bg-gray-50";
-                  if (hasAssignedVehicle) return "border-red-500 bg-white";
-                  if (isAlerted) return "border-blue-500 bg-blue-100";
-                  return "border-green-500 bg-white";
-                })();
-                const titleClasses = (() => {
-                  if (!groupAvailable) return "text-gray-400";
-                  if (hasAssignedVehicle) return "text-red-700";
-                  if (isAlerted) return "text-blue-900";
-                  return "text-gray-700";
-                })();
                 return (
                   <div
                     key={ort}
-                    className={`border rounded-md ${containerClasses}`}
+                    className={`border rounded-md ${groupAvailable ? "border-blue-400" : "border-gray-300 bg-gray-50"}`}
                   >
                     <div className="flex items-center justify-between px-2 py-2 gap-2">
                       <button
@@ -1655,7 +1501,7 @@ if (route.startsWith("/protokoll")) {
                         title={collapsed ? "aufklappen" : "zuklappen"}
                       >
                         <span
-                          className={`text-xs font-semibold ${titleClasses}`}
+                          className={`text-xs font-semibold ${groupAvailable ? "text-gray-700" : "text-gray-400"}`}
                         >
                           {ort}
                         </span>
