@@ -1,6 +1,6 @@
 [
   { "id": "TLF-A",     "label": "TLF A",     "ort": "FF Feldkirchen", "mannschaft": 9 },
-  { "id": "RLFA-2000", "label": "RLFA 2000", "ort": "Poitschach",  "mannschaft": 9 },
+  { "id": "RLFA-2000", "label": "RLFA 2000", "ort": "FF Poitschach",  "mannschaft": 9 },
   { "id": "KDOF-1",    "label": "KDOF 1",    "ort": "FF Feldkirchen", "mannschaft": 3 },
   { "id": "MTF-2",     "label": "MTF 2",     "ort": "FF Feldkirchen", "mannschaft": 9 },
   { "id": "MTF-3",     "label": "SLFA",     "ort": "FF Feldkirchen", "mannschaft": 9 },

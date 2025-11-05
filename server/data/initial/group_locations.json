@@ -1,6 +1,6 @@
 {
   "FF Feldkirchen": { "lat": 46.7225, "lon": 14.0958 },
-  "Poitschach":  { "lat": 46.75240, "lon": 14.09384 },
-  "St. Ulrich":  { "lat": 46.75072, "lon": 14.10885 },
+  "FF Poitschach":  { "lat": 46.75240, "lon": 14.09384 },
+  "FF St.Ulrich/Feldkirchen":  { "lat": 46.75072, "lon": 14.10885 },
   "FF Tschwarzen":  { "lat": 46.73387, "lon": 14.11689 }
 }

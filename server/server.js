@@ -105,64 +105,6 @@ const EINSATZ_HEADERS = [
 const AUTO_CFG_FILE         = path.join(DATA_DIR, "conf","auto-import.json");
 const AUTO_DEFAULT_FILENAME = "list_filtered.json";
 const AUTO_DEFAULT          = { enabled:false, intervalSec:30, filename:AUTO_DEFAULT_FILENAME, demoMode:false };
-
-const ALERTED_SPLIT_RE = /[;,\n]+/;
-
-let lastImportAlerted = {
-  updatedAt: null,
-  raw: [],
-  normalized: [],
-};
-
-const normalizeAlertedToken = (value) => {
-  let result = String(value ?? "");
-  if (!result) return "";
-  try {
-    if (typeof result.normalize === "function") {
-      result = result.normalize("NFD");
-    }
-    result = result.replace?.(/\p{Diacritic}/gu, "") ?? result;
-  } catch {}
-  result = result.replace(/\s+/g, " ");
-  result = result.replace(/^[\s]*FF\s+/i, "");
-  result = result.replace(/[._\-\/]+/g, " ");
-  result = result.replace(/\s+/g, " ");
-  return result.toLowerCase().trim();
-};
-
-const parseAlertedTokens = (value) =>
-  String(value ?? "")
-    .split(ALERTED_SPLIT_RE)
-    .map((token) => token.replace(/\s+/g, " ").trim())
-    .filter(Boolean);
-
-function updateLastImportAlerted(items) {
-  const rawSet = new Set();
-  const normalizedSet = new Set();
-  if (Array.isArray(items)) {
-    for (const entry of items) {
-      const tokens = parseAlertedTokens(entry?.alerted);
-      for (const token of tokens) {
-        rawSet.add(token);
-        const norm = normalizeAlertedToken(token);
-        if (norm) normalizedSet.add(norm);
-      }
-    }
-  }
-  lastImportAlerted = {
-    updatedAt: new Date().toISOString(),
-    raw: [...rawSet],
-    normalized: [...normalizedSet],
-  };
-}
-
-try {
-  const existingAlertedRaw = await fs.readFile(path.join(DATA_DIR, AUTO_DEFAULT_FILENAME), "utf8").catch(() => null);
-  if (existingAlertedRaw) {
-    const existingAlerted = JSON.parse(existingAlertedRaw);
-    if (Array.isArray(existingAlerted)) updateLastImportAlerted(existingAlerted);
-  }
-} catch {}
 const AUTO_IMPORT_USER      = "EinsatzInfo";
 
 // Merker für Import-Status
@@ -1769,8 +1711,6 @@ async function importFromFileOnce(filename=AUTO_DEFAULT_FILENAME){
     return { ok:false, error:`Kann ${filename} nicht lesen: ${e.message}` };
   }
 
-  updateLastImportAlerted(arr);
-
   const board=await ensureBoard();
   let created=0, updated=0, skipped=0;
 
@@ -1932,14 +1872,6 @@ async function triggerOnce(_req,res){
 }
 app.post("/api/import/trigger", triggerOnce);
 app.get ("/api/import/trigger",  triggerOnce);
-
-app.get("/api/import/alerted-groups", (_req,res) => {
-  res.json({
-    updatedAt: lastImportAlerted.updatedAt,
-    raw: Array.from(lastImportAlerted.raw || []),
-    normalized: Array.from(lastImportAlerted.normalized || []),
-  });
-});
 
 // Zusammengefasster Status für UI
 app.get("/api/ff/status", (req, res) => {
