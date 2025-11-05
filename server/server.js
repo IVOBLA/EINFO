@@ -1680,6 +1680,54 @@ function normalizeGroupNameForAlert(value) {
   return cleaned;
 }
 
+function collectAlertedTokens(value) {
+  const tokens = [];
+  const push = (input) => {
+    const normalized = normalizeGroupNameForAlert(input);
+    if (normalized) tokens.push(normalized);
+  };
+
+  if (value === null || value === undefined) return tokens;
+  if (Array.isArray(value)) {
+    for (const entry of value) push(entry);
+    return tokens;
+  }
+  if (value && typeof value === "object") {
+    for (const key of Object.keys(value)) push(key);
+    return tokens;
+  }
+  if (typeof value === "string") {
+    if (!value.trim()) return tokens;
+    const replaced = value
+      .replace(/[\u2022\u2023\u25E6\u2043\u2219•◆●■◦▪◉]/g, ",")
+      .replace(/\s+\/\s+/g, ",")
+      .replace(/\s+\|\s+/g, ",")
+      .replace(/\s+·\s+/g, ",");
+    for (const part of replaced.split(/[,;\n\r]+/)) push(part);
+    return tokens;
+  }
+
+  push(String(value));
+  return tokens;
+}
+
+function mergeAlertedValues(existingValue, incomingValue) {
+  const seen = new Set();
+  const merged = [];
+  const append = (value) => {
+    for (const token of collectAlertedTokens(value)) {
+      if (seen.has(token)) continue;
+      seen.add(token);
+      merged.push(token);
+    }
+  };
+
+  append(existingValue);
+  append(incomingValue);
+
+  return merged.join(", ");
+}
+
 function extractAlertedGroupsFromItem(item) {
   const groups = new Set();
   if (!item || typeof item !== "object") return groups;
@@ -1790,7 +1838,10 @@ function applyIncomingFieldsToCard(target, incoming) {
   if (incoming.content) target.content = incoming.content;
   if (incoming.ort) target.ort = incoming.ort;
   if (incoming.typ) target.typ = incoming.typ;
-  if (incoming.alerted) target.alerted = incoming.alerted;
+  if (incoming.alerted) {
+    const mergedAlerted = mergeAlertedValues(target.alerted, incoming.alerted);
+    if (mergedAlerted) target.alerted = mergedAlerted;
+  }
   if (incoming.latitude !== null) target.latitude = incoming.latitude;
   if (incoming.longitude !== null) target.longitude = incoming.longitude;
   if (typeof incoming.location === "string" && incoming.location) target.location = incoming.location;
