@@ -1125,6 +1125,9 @@ const einheitsLabel = veh?.label || veh?.id || String(vehicleId);
     );
   }
   await saveBoard(board);
+  if (snapshotOrt) {
+    await markGroupAlertedResolved(snapshotOrt);
+  }
   markActivity("vehicle:assign");
   res.json({ ok:true, card:ref.card });
 
@@ -1718,7 +1721,11 @@ async function updateGroupAlertedStatuses(alertedGroups) {
   try {
     const prev = await readGroupAlerted().catch(() => ({}));
     const groupLocations = await readJson(GROUPS_FILE, {});
-    const normalizedAlerted = new Set(Array.from(alertedGroups || []));
+    const normalizedAlerted = new Set(
+      Array.from(alertedGroups || [])
+        .map(normalizeGroupNameForAlert)
+        .filter(Boolean)
+    );
     const combined = new Set([
       ...Object.keys(prev || {}).map(normalizeGroupNameForAlert),
       ...Object.keys(groupLocations || {}).map(normalizeGroupNameForAlert),
@@ -1729,12 +1736,36 @@ async function updateGroupAlertedStatuses(alertedGroups) {
     for (const name of combined) {
       const normalized = normalizeGroupNameForAlert(name);
       if (!normalized) continue;
-      next[normalized] = normalizedAlerted.has(normalized);
+
+      const hadPrev = Object.prototype.hasOwnProperty.call(prev || {}, normalized);
+      const prevValue = prev?.[normalized];
+
+      if (normalizedAlerted.has(normalized)) {
+        next[normalized] = prevValue === true || !hadPrev;
+      } else {
+        next[normalized] = false;
+      }
     }
 
     await writeGroupAlerted(next);
   } catch (error) {
     await appendError("group-alerted/update", error);
+  }
+}
+
+async function markGroupAlertedResolved(groupName) {
+  const normalized = normalizeGroupNameForAlert(groupName);
+  if (!normalized) return;
+
+  try {
+    const prev = await readGroupAlerted().catch(() => ({}));
+    if (Object.prototype.hasOwnProperty.call(prev || {}, normalized) && prev[normalized] === false) {
+      return;
+    }
+    const next = { ...prev, [normalized]: false };
+    await writeGroupAlerted(next);
+  } catch (error) {
+    await appendError("group-alerted/resolve", error, { group: normalized });
   }
 }
 
