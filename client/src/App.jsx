@@ -902,6 +902,42 @@ useEffect(() => {
     .replace(/^\s*FF\s+/i, "").replace(/[._\-\/]+/g, " ")
     .replace(/\s+/g, " ").toLowerCase().trim();
 
+  const alertedGroupTokens = useMemo(() => {
+    const tokens = new Set();
+    const columns = safeBoard?.columns || {};
+    for (const col of Object.values(columns)) {
+      const items = Array.isArray(col?.items) ? col.items : [];
+      for (const card of items) {
+        if (!card) continue;
+        const alertedTokens = parseAlertedTokens(card?.alerted);
+        for (const token of alertedTokens) {
+          const normalized = norm(token);
+          if (normalized) tokens.add(normalized);
+        }
+      }
+    }
+    return tokens;
+  }, [safeBoard]);
+
+  const assignedGroupTokens = useMemo(() => {
+    const tokens = new Set();
+    const columns = safeBoard?.columns || {};
+    for (const col of Object.values(columns)) {
+      const items = Array.isArray(col?.items) ? col.items : [];
+      for (const card of items) {
+        if (!card) continue;
+        const assignedVehicles = Array.isArray(card?.assignedVehicles) ? card.assignedVehicles : [];
+        for (const vehicleId of assignedVehicles) {
+          const vehicle = vehiclesById.get(vehicleId);
+          if (!vehicle?.ort) continue;
+          const normalized = norm(vehicle.ort);
+          if (normalized) tokens.add(normalized);
+        }
+      }
+    }
+    return tokens;
+  }, [safeBoard, vehiclesById]);
+
   function addAllAlertedMatches(card, vehicles, idsSet, distMap) {
     const toks = parseAlertedTokens(card?.alerted).map(norm);
     if (!toks.length) return;
@@ -1488,10 +1524,25 @@ if (route.startsWith("/protokoll")) {
                 const groupAvailable = groupAvailability.has(ort)
                   ? groupAvailability.get(ort)
                   : true;
+                const normalizedOrt = norm(ort);
+                const hasAssignedVehicle = assignedGroupTokens.has(normalizedOrt);
+                const isAlerted = alertedGroupTokens.has(normalizedOrt);
+                const containerClasses = (() => {
+                  if (!groupAvailable) return "border-gray-300 bg-gray-50";
+                  if (hasAssignedVehicle) return "border-red-500 bg-white";
+                  if (isAlerted) return "border-blue-500 bg-blue-100";
+                  return "border-green-500 bg-white";
+                })();
+                const titleClasses = (() => {
+                  if (!groupAvailable) return "text-gray-400";
+                  if (hasAssignedVehicle) return "text-red-700";
+                  if (isAlerted) return "text-blue-900";
+                  return "text-gray-700";
+                })();
                 return (
                   <div
                     key={ort}
-                    className={`border rounded-md ${groupAvailable ? "border-blue-400" : "border-gray-300 bg-gray-50"}`}
+                    className={`border rounded-md ${containerClasses}`}
                   >
                     <div className="flex items-center justify-between px-2 py-2 gap-2">
                       <button
@@ -1501,7 +1552,7 @@ if (route.startsWith("/protokoll")) {
                         title={collapsed ? "aufklappen" : "zuklappen"}
                       >
                         <span
-                          className={`text-xs font-semibold ${groupAvailable ? "text-gray-700" : "text-gray-400"}`}
+                          className={`text-xs font-semibold ${titleClasses}`}
                         >
                           {ort}
                         </span>
