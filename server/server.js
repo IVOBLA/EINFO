@@ -43,6 +43,7 @@ const ARCHIVE_DIR = path.join(DATA_DIR, "archive");
 const ERROR_LOG   = path.join(DATA_DIR, "Log.txt");
 const GROUPS_FILE = path.join(DATA_DIR, "conf","group_locations.json");
 const GROUP_AVAILABILITY_FILE = path.join(DATA_DIR, "conf","group-availability.json");
+const GROUP_ALERTED_FILE = path.join(DATA_DIR, "conf", "group-alerted.json");
 
 const DEFAULT_BOARD_COLUMNS = {
   neu: "Neu",
@@ -220,6 +221,9 @@ async function writeVehicleAvailability(next){ await writeJson(VEH_AVAILABILITY_
 
 async function readGroupAvailability(){ return await readJson(GROUP_AVAILABILITY_FILE, {}); }
 async function writeGroupAvailability(next){ await writeJson(GROUP_AVAILABILITY_FILE, next); }
+
+async function readGroupAlerted(){ return await readJson(GROUP_ALERTED_FILE, {}); }
+async function writeGroupAlerted(next){ await writeJson(GROUP_ALERTED_FILE, next); }
 
 // GPS > manuell > leer
 async function getAllVehiclesMerged(){
@@ -818,6 +822,10 @@ app.get("/api/vehicles", async (_req,res)=>res.json(await getAllVehiclesMerged()
 app.get("/api/groups/availability", async (_req,res)=>{
   const availability = await readGroupAvailability().catch(() => ({}));
   res.json({ availability });
+});
+app.get("/api/groups/alerted", async (_req,res)=>{
+  const alerted = await readGroupAlerted().catch(() => ({}));
+  res.json({ alerted });
 });
 
 app.get("/api/gps", async (_req,res)=>{
@@ -1660,6 +1668,76 @@ async function writeAutoCfg(next){
   return sanitized;
 }
 
+function normalizeGroupNameForAlert(value) {
+  if (typeof value !== "string") return "";
+  const cleaned = value
+    .replace(/[\u2022\u2023\u25E6\u2043\u2219•◆●■◦▪◉]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return cleaned;
+}
+
+function extractAlertedGroupsFromItem(item) {
+  const groups = new Set();
+  if (!item || typeof item !== "object") return groups;
+
+  const push = (value) => {
+    const name = normalizeGroupNameForAlert(value);
+    if (name) groups.add(name);
+  };
+
+  const alertedGroupsArray = Array.isArray(item?.alertedGroups)
+    ? item.alertedGroups
+    : Array.isArray(item?.groups)
+      ? item.groups
+      : null;
+  if (alertedGroupsArray) {
+    for (const value of alertedGroupsArray) push(value);
+  }
+
+  const alertedRaw = item?.alerted;
+  if (Array.isArray(alertedRaw)) {
+    for (const value of alertedRaw) push(value);
+  } else if (alertedRaw && typeof alertedRaw === "object") {
+    for (const key of Object.keys(alertedRaw)) push(key);
+  } else if (typeof alertedRaw === "string") {
+    const replaced = alertedRaw
+      .replace(/[\u2022\u2023\u25E6\u2043\u2219]/g, ",")
+      .replace(/\s+\/\s+/g, ",")
+      .replace(/\s+\|\s+/g, ",")
+      .replace(/\s+·\s+/g, ",");
+    for (const part of replaced.split(/[,;\n\r]+/)) {
+      push(part);
+    }
+  }
+
+  return groups;
+}
+
+async function updateGroupAlertedStatuses(alertedGroups) {
+  try {
+    const prev = await readGroupAlerted().catch(() => ({}));
+    const groupLocations = await readJson(GROUPS_FILE, {});
+    const normalizedAlerted = new Set(Array.from(alertedGroups || []));
+    const combined = new Set([
+      ...Object.keys(prev || {}).map(normalizeGroupNameForAlert),
+      ...Object.keys(groupLocations || {}).map(normalizeGroupNameForAlert),
+      ...normalizedAlerted,
+    ]);
+
+    const next = {};
+    for (const name of combined) {
+      const normalized = normalizeGroupNameForAlert(name);
+      if (!normalized) continue;
+      next[normalized] = normalizedAlerted.has(normalized);
+    }
+
+    await writeGroupAlerted(next);
+  } catch (error) {
+    await appendError("group-alerted/update", error);
+  }
+}
+
 function mapIncomingItemToCardFields(item){
   const type       = String(item?.type??"").replace(/\n/g," ").trim();
   const content    = stripTypePrefix(type);
@@ -1713,10 +1791,14 @@ async function importFromFileOnce(filename=AUTO_DEFAULT_FILENAME){
 
   const board=await ensureBoard();
   let created=0, updated=0, skipped=0;
+  const alertedGroups = new Set();
 
   try{
     for(const item of arr){
       const m=mapIncomingItemToCardFields(item);
+      for (const groupName of extractAlertedGroupsFromItem(item)) {
+        alertedGroups.add(groupName);
+      }
       if(!m.externalId){ skipped++; continue; }
       const existing=findCardByExternalId(board,m.externalId);
       if(existing){
@@ -1762,6 +1844,7 @@ async function importFromFileOnce(filename=AUTO_DEFAULT_FILENAME){
       }
     }
 
+    await updateGroupAlertedStatuses(alertedGroups);
     await saveBoard(board);
     importLastLoadedAt = Date.now();
     importLastFile     = filename;

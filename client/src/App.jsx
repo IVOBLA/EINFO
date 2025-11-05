@@ -46,6 +46,7 @@ import {
   resetVehiclePosition,
   updateCard,
   fetchGroupAvailability,
+  fetchGroupAlerted,
   updateVehicleAvailability,
   updateGroupAvailability,
 } from "./api";
@@ -66,6 +67,31 @@ const unlocked = true;
 const DEFAULT_AREA_COLOR = "#2563eb";
 const INITIAL_PULSE_SUPPRESS_MS = 20_000;
 
+function getGroupVisualClasses({ available, alerted, assigned }) {
+  if (!available) {
+    return {
+      container: "border-gray-300 bg-gray-50",
+      label: "text-gray-400",
+    };
+  }
+  if (assigned) {
+    return {
+      container: "border-red-400 bg-white",
+      label: "text-gray-700",
+    };
+  }
+  if (alerted) {
+    return {
+      container: "border-blue-500 bg-blue-50",
+      label: "text-blue-900",
+    };
+  }
+  return {
+    container: "border-green-400 bg-white",
+    label: "text-gray-700",
+  };
+}
+
 export default function App() {
   const scale = useCompactScale();
   if (typeof window !== "undefined" && window.location.pathname === "/status") {
@@ -83,6 +109,7 @@ const readOnly = !canEdit;
   const [vehicles, setVehicles] = useState([]);
   const [types, setTypes] = useState([]);
   const [groupAvailability, setGroupAvailability] = useState(new Map());
+  const [groupAlerted, setGroupAlerted] = useState(new Map());
 
   const syncGroupAvailabilityFromVehicles = useCallback((list) => {
     if (!Array.isArray(list)) return;
@@ -109,6 +136,10 @@ const readOnly = !canEdit;
   const applyGroupAvailabilityResponse = useCallback((payload) => {
     const entries = Object.entries(payload?.availability || {});
     setGroupAvailability(new Map(entries.map(([name, value]) => [name, value !== false])));
+  }, []);
+  const applyGroupAlertedResponse = useCallback((payload) => {
+    const entries = Object.entries(payload?.alerted || {});
+    setGroupAlerted(new Map(entries.map(([name, value]) => [name, value === true])));
   }, []);
   const [areaFilter, setAreaFilter] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -200,14 +231,16 @@ const remaining = autoEnabled
   useEffect(() => {
     if (!unlocked) return;
     (async () => {
-      const [b, v, t, g] = await Promise.all([
+      const [b, v, t, g, ga] = await Promise.all([
         fetchBoard(),
         fetchVehicles(),
         fetchTypes(),
         fetchGroupAvailability().catch(() => ({ availability: {} })),
+        fetchGroupAlerted().catch(() => ({ alerted: {} })),
       ]);
       setBoard(b); setVehicles(v); setTypes(Array.isArray(t) ? t : []);
       applyGroupAvailabilityResponse(g);
+      applyGroupAlertedResponse(ga);
       prevIdsRef.current = getAllCardIds(b);
       initialPulseSuppressUntilRef.current = Date.now() + INITIAL_PULSE_SUPPRESS_MS;
       try {
@@ -253,6 +286,32 @@ const tick = async () => {
     timer = setTimeout(tick, period * 1000);
     return () => clearTimeout(timer);
   }, [unlocked, autoEnabled]);
+
+  useEffect(() => {
+    if (!unlocked) return undefined;
+    let cancelled = false;
+    let timer = null;
+    const period = Math.max(5, Math.min(60, autoEnabled ? 8 : 15));
+
+    const tick = async () => {
+      try {
+        const data = await fetchGroupAlerted();
+        if (!cancelled) {
+          applyGroupAlertedResponse(data);
+        }
+      } catch {}
+      if (!cancelled) {
+        timer = setTimeout(tick, period * 1000);
+      }
+    };
+
+    tick();
+
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
+  }, [unlocked, autoEnabled, applyGroupAlertedResponse]);
 
   // Hotkey Alt+E
   useEffect(() => {
@@ -783,6 +842,16 @@ try {
         for (const vid of c.assignedVehicles || []) s.add(vid);
     return s;
   }, [safeBoard]);
+
+  const assignedGroups = useMemo(() => {
+    const set = new Set();
+    for (const id of assignedIds) {
+      const vehicle = vehiclesById.get(id);
+      const ort = typeof vehicle?.ort === "string" ? vehicle.ort : "";
+      if (ort) set.add(ort);
+    }
+    return set;
+  }, [assignedIds, vehiclesById]);
 
   const freeVehicles = useMemo(
     () =>
@@ -1488,10 +1557,17 @@ if (route.startsWith("/protokoll")) {
                 const groupAvailable = groupAvailability.has(ort)
                   ? groupAvailability.get(ort)
                   : true;
+                const isAlerted = groupAlerted.get(ort) === true;
+                const hasAssigned = assignedGroups.has(ort);
+                const groupVisual = getGroupVisualClasses({
+                  available: groupAvailable,
+                  alerted: isAlerted,
+                  assigned: hasAssigned,
+                });
                 return (
                   <div
                     key={ort}
-                    className={`border rounded-md ${groupAvailable ? "border-blue-400" : "border-gray-300 bg-gray-50"}`}
+                    className={`border rounded-md ${groupVisual.container}`}
                   >
                     <div className="flex items-center justify-between px-2 py-2 gap-2">
                       <button
@@ -1501,7 +1577,7 @@ if (route.startsWith("/protokoll")) {
                         title={collapsed ? "aufklappen" : "zuklappen"}
                       >
                         <span
-                          className={`text-xs font-semibold ${groupAvailable ? "text-gray-700" : "text-gray-400"}`}
+                          className={`text-xs font-semibold ${groupVisual.label}`}
                         >
                           {ort}
                         </span>
