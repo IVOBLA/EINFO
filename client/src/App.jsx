@@ -1003,10 +1003,7 @@ useEffect(() => {
         for (const token of alertedTokens) {
           const normalized = norm(token);
           if (!normalized) continue;
-          if (cardIdStr && fulfilledAlertByToken.get(normalized) === cardIdStr) {
-            tokens.delete(normalized);
-            continue;
-          }
+          if (cardIdStr && fulfilledAlertByToken.get(normalized) === cardIdStr) continue;
           tokens.add(normalized);
         }
       }
