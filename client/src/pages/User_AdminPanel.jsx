@@ -45,6 +45,8 @@ export default function User_AdminPanel() {
   const [roles, setRoles]             = useState([]); // Strings ODER Objekte {id,label,apps|capabilities}
   const [users, setUsers]             = useState([]);
   const [fetcherInfo, setFetcherInfo] = useState({ has:false, updatedAt:null });
+  const [autoConfig, setAutoConfig]   = useState({ enabled:false, intervalSec:30, demoMode:false });
+  const [savingAutoConfig, setSavingAutoConfig] = useState(false);
 
   // ---- capabilities ↔ apps Konvertierung ----
   const parseCapToken = (t) => {
@@ -135,6 +137,17 @@ export default function User_AdminPanel() {
           has: !!(fi?.has || fi?.ok || fi?.present),
           updatedAt: fi?.updatedAt ?? fi?.ts ?? null
         });
+      } catch (_) {/* optional */}
+      try {
+        const cfgRes = await fetch("/api/import/auto-config", { credentials: "include", cache: "no-store" });
+        if (cfgRes.ok) {
+          const cfg = await cfgRes.json().catch(() => ({}));
+          setAutoConfig({
+            enabled: !!cfg.enabled,
+            intervalSec: Number(cfg.intervalSec) || 30,
+            demoMode: !!cfg.demoMode,
+          });
+        }
       } catch (_) {/* optional */}
     } catch (e) {
       if (e.status === 423) setLocked(true);
@@ -285,6 +298,38 @@ export default function User_AdminPanel() {
       setErr(ex.message || "Aktualisieren fehlgeschlagen");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function toggleDemoMode() {
+    if (savingAutoConfig) return;
+    const nextValue = !autoConfig.demoMode;
+    setErr(""); setMsg(""); setSavingAutoConfig(true);
+    try {
+      const res = await fetch("/api/import/auto-config", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          enabled: autoConfig.enabled,
+          intervalSec: autoConfig.intervalSec,
+          demoMode: nextValue,
+        }),
+      });
+      const js = await res.json().catch(() => ({}));
+      if (!res.ok || js?.error) throw new Error(js?.error || "Speichern fehlgeschlagen");
+      setAutoConfig({
+        enabled: !!js.enabled,
+        intervalSec: Number(js.intervalSec) || autoConfig.intervalSec || 30,
+        demoMode: !!js.demoMode,
+      });
+      setMsg(nextValue
+        ? "Demomodus aktiviert. Fetcher wird beim Import nicht gestartet."
+        : "Demomodus deaktiviert. Fetcher startet beim Import wieder.");
+    } catch (ex) {
+      setErr(ex.message || "Speichern fehlgeschlagen");
+    } finally {
+      setSavingAutoConfig(false);
     }
   }
 
@@ -546,7 +591,26 @@ export default function User_AdminPanel() {
         </div>
       </details>
 
-      {/* 5) Globale Fetcher-Creds (beibehalten) */}
+      {/* 5) Import-Einstellungen */}
+      <details className="border rounded p-3" open>
+        <summary className="cursor-pointer font-medium">Import-Einstellungen</summary>
+        <div className="mt-3 space-y-2 text-sm">
+          <label className="inline-flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={!!autoConfig.demoMode}
+              onChange={toggleDemoMode}
+              disabled={locked || savingAutoConfig}
+            />
+            Demomodus (Fetcher beim Import nicht starten)
+          </label>
+          <div className="text-xs text-gray-500">
+            Bei aktivem Demomodus wird der Fetcher für manuelle und automatische Importe nicht aufgerufen.
+          </div>
+        </div>
+      </details>
+
+      {/* 6) Globale Fetcher-Creds (beibehalten) */}
       <details className="border rounded p-3" open>
         <summary className="cursor-pointer font-medium">Fetcher-Zugangsdaten (global)</summary>
         <div className="mt-3 text-sm">
@@ -582,7 +646,7 @@ export default function User_AdminPanel() {
           Diese Zugangsdaten gelten für <b>alle Benutzer</b>. Start/Stopp nutzt immer den globalen Satz.
         </div>
       </details>
-      {/* 6) Wartung: Initialsetup & Archive */}
+      {/* 7) Wartung: Initialsetup & Archive */}
       <details className="border rounded p-3" open>
         <summary className="cursor-pointer font-medium">Wartung (Admin)</summary>
         <div className="mt-3 grid gap-2 max-w-xl">

@@ -104,7 +104,7 @@ const EINSATZ_HEADERS = [
 // ==== Auto-Import ====
 const AUTO_CFG_FILE         = path.join(DATA_DIR, "conf","auto-import.json");
 const AUTO_DEFAULT_FILENAME = "list_filtered.json";
-const AUTO_DEFAULT          = { enabled:false, intervalSec:30, filename:AUTO_DEFAULT_FILENAME };
+const AUTO_DEFAULT          = { enabled:false, intervalSec:30, filename:AUTO_DEFAULT_FILENAME, demoMode:false };
 const AUTO_IMPORT_USER      = "EinsatzInfo";
 
 // Merker für Import-Status
@@ -1642,13 +1642,22 @@ async function readAutoCfg(){
   const cfg=await readJson(AUTO_CFG_FILE,AUTO_DEFAULT);
   cfg.filename   = AUTO_DEFAULT_FILENAME;
   cfg.intervalSec= Number.isFinite(+cfg.intervalSec)&&+cfg.intervalSec>0 ? +cfg.intervalSec : AUTO_DEFAULT.intervalSec;
+  cfg.enabled    = !!cfg.enabled;
+  cfg.demoMode   = !!cfg.demoMode;
   return cfg;
 }
 async function writeAutoCfg(next){
   const keep=await readAutoCfg();
-  const merged={ ...keep, ...next, filename:AUTO_DEFAULT_FILENAME };
-  await writeJson(AUTO_CFG_FILE,merged);
-  return merged;
+  const merged={ ...keep, ...next };
+  const sanitized={
+    ...merged,
+    filename: AUTO_DEFAULT_FILENAME,
+    enabled: !!merged.enabled,
+    intervalSec: Number.isFinite(+merged.intervalSec)&&+merged.intervalSec>0 ? +merged.intervalSec : keep.intervalSec,
+    demoMode: !!merged.demoMode,
+  };
+  await writeJson(AUTO_CFG_FILE,sanitized);
+  return sanitized;
 }
 
 function mapIncomingItemToCardFields(item){
@@ -1787,28 +1796,44 @@ async function startAutoTimer(){
 
 app.get("/api/import/auto-config",  async (_req,res)=>{ res.json(await readAutoCfg()); });
 app.post("/api/import/auto-config", async (req,res)=>{
-  const { enabled, intervalSec }=req.body||{};
-  const next=await writeAutoCfg({ enabled:!!enabled, intervalSec:Number.isFinite(+intervalSec)&&+intervalSec>0 ? +intervalSec : undefined });
-if(next.enabled){
-  await startAutoTimer();
   try{
-    const pollMs = (next.intervalSec||30)*1000;
-    if (ffStatus().running) await ffStop();
-
-    const it = await User_getGlobalFetcher(); // <— GLOBAL
-    if (it?.creds?.username && it?.creds?.password) {
-      await ffStart({ username: it.creds.username, password: it.creds.password, pollIntervalMs: pollMs });
-      markActivity("auto-config:enable-or-restart");
-      importLastLoadedAt = null; importLastFile = AUTO_DEFAULT_FILENAME; autoNextAt = null;
-    } else {
-      console.warn("[auto-config] keine globalen Fetcher-Creds gesetzt");
+    const body = req.body||{};
+    const update = {};
+    if (body.enabled !== undefined) update.enabled = !!body.enabled;
+    if (body.intervalSec !== undefined) {
+      const num = Number(body.intervalSec);
+      if (Number.isFinite(num) && num > 0) update.intervalSec = num;
     }
-  }catch(e){ await appendError("auto-config/restart-fetcher", e); }
-}else{
-    clearAutoTimer(); autoNextAt=null;
-    try{ await ffStop(); }catch{}
+    if (body.demoMode !== undefined) update.demoMode = !!body.demoMode;
+
+    const next=await writeAutoCfg(update);
+    if(next.enabled){
+      await startAutoTimer();
+      if(next.demoMode){
+        try{ if (ffStatus().running) await ffStop(); }catch{}
+      }else{
+        try{
+          const pollMs = (next.intervalSec||30)*1000;
+          if (ffStatus().running) await ffStop();
+
+          const it = await User_getGlobalFetcher(); // <— GLOBAL
+          if (it?.creds?.username && it?.creds?.password) {
+            await ffStart({ username: it.creds.username, password: it.creds.password, pollIntervalMs: pollMs });
+            markActivity("auto-config:enable-or-restart");
+            importLastLoadedAt = null; importLastFile = AUTO_DEFAULT_FILENAME; autoNextAt = null;
+          } else {
+            console.warn("[auto-config] keine globalen Fetcher-Creds gesetzt");
+          }
+        }catch(e){ await appendError("auto-config/restart-fetcher", e); }
+      }
+    }else{
+      clearAutoTimer(); autoNextAt=null;
+      try{ await ffStop(); }catch{}
+    }
+    res.json(next);
+  }catch(err){
+    res.status(400).json({ ok:false, error:err?.message||"Speichern fehlgeschlagen" });
   }
-  res.json(next);
 });
 
 async function triggerOnce(_req,res){
@@ -1816,7 +1841,7 @@ async function triggerOnce(_req,res){
     const cfg = await readAutoCfg();
     const status = ffStatus();
 
-    if (!status.running && !status.starting && !status.stopping) {
+    if (!cfg.demoMode && !status.running && !status.starting && !status.stopping) {
       const creds = await User_getGlobalFetcher();
       if (!creds?.creds?.username || !creds?.creds?.password) {
         return res.status(400).json({ ok:false, error:"Keine globalen Fetcher-Zugangsdaten hinterlegt" });
