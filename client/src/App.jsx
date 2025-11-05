@@ -951,8 +951,7 @@ useEffect(() => {
   useEffect(() => {
     setFulfilledAlertByToken((prev) => {
       const columns = safeBoard?.columns || {};
-      const next = new Map(prev);
-      let changed = false;
+      const next = new Map();
 
       for (const col of Object.values(columns)) {
         const items = Array.isArray(col?.items) ? col.items : [];
@@ -964,8 +963,6 @@ useEffect(() => {
           if (!alertedTokens.length) continue;
 
           const assignedVehicles = Array.isArray(card?.assignedVehicles) ? card.assignedVehicles : [];
-          if (!assignedVehicles.length) continue;
-
           const assignedTokens = new Set();
           for (const vehicleId of assignedVehicles) {
             const vehicle = vehiclesById.get(vehicleId);
@@ -975,18 +972,28 @@ useEffect(() => {
             const labelToken = norm(vehicle?.label);
             if (labelToken) assignedTokens.add(labelToken);
           }
-          if (!assignedTokens.size) continue;
 
           for (const token of alertedTokens) {
-            if (!assignedTokens.has(token)) continue;
-            if (next.get(token) === cardIdStr) continue;
+            const fulfilledByAssignment = assignedTokens.has(token);
+            const prevCardId = prev.get(token);
+            if (!fulfilledByAssignment && prevCardId !== cardIdStr) continue;
             next.set(token, cardIdStr);
-            changed = true;
           }
         }
       }
 
-      return changed ? next : prev;
+      if (next.size === prev.size) {
+        let identical = true;
+        for (const [token, cardIdStr] of next.entries()) {
+          if (prev.get(token) !== cardIdStr) {
+            identical = false;
+            break;
+          }
+        }
+        if (identical) return prev;
+      }
+
+      return next;
     });
   }, [safeBoard, vehiclesById]);
 
@@ -1008,6 +1015,10 @@ useEffect(() => {
         }
       }
     }
+    for (const token of fulfilledAlertByToken.keys()) {
+      tokens.delete(token);
+    }
+
     return tokens;
   }, [safeBoard, importAlertedTokens, fulfilledAlertByToken]);
 
