@@ -794,6 +794,24 @@ function findCardByExternalId(board,extId){
   return null;
 }
 
+function findCardByCoordinates(board, lat, lng, columnKeys = ["neu", "in-bearbeitung"]) {
+  const latNum = Number(lat);
+  const lngNum = Number(lng);
+  if (!Number.isFinite(latNum) || !Number.isFinite(lngNum)) return null;
+  const epsilon = 1e-6;
+  for (const key of columnKeys) {
+    const items = board?.columns?.[key]?.items || [];
+    const match = items.find((card) => {
+      const cLat = Number(card?.latitude);
+      const cLng = Number(card?.longitude);
+      if (!Number.isFinite(cLat) || !Number.isFinite(cLng)) return false;
+      return Math.abs(cLat - latNum) <= epsilon && Math.abs(cLng - lngNum) <= epsilon;
+    });
+    if (match) return match;
+  }
+  return null;
+}
+
 // --- API: Basics ---
 app.get("/api/board",    async (_req,res)=>res.json(await ensureBoard()));
 app.get("/api/vehicles", async (_req,res)=>res.json(await getAllVehiclesMerged()));
@@ -1648,6 +1666,20 @@ function mapIncomingItemToCardFields(item){
   const description= item?.description ?? "";
   return { content, ort, alerted, latitude, longitude, externalId, typ:type, location, timestamp, description };
 }
+
+function applyIncomingFieldsToCard(target, incoming) {
+  if (!target || !incoming) return;
+  if (incoming.content) target.content = incoming.content;
+  if (incoming.ort) target.ort = incoming.ort;
+  if (incoming.typ) target.typ = incoming.typ;
+  if (incoming.alerted) target.alerted = incoming.alerted;
+  if (incoming.latitude !== null) target.latitude = incoming.latitude;
+  if (incoming.longitude !== null) target.longitude = incoming.longitude;
+  if (typeof incoming.location === "string" && incoming.location) target.location = incoming.location;
+  if (incoming.timestamp) target.timestamp = incoming.timestamp;
+  if (typeof incoming.description === "string") target.description = incoming.description;
+}
+
 function parseAT(ts) {
   if (!ts) return null;
   const m = String(ts).match(/^(\d{2})\.(\d{2})\.(\d{4})\s+(\d{2}):(\d{2})(?::(\d{2}))?$/);
@@ -1679,19 +1711,17 @@ async function importFromFileOnce(filename=AUTO_DEFAULT_FILENAME){
       if(!m.externalId){ skipped++; continue; }
       const existing=findCardByExternalId(board,m.externalId);
       if(existing){
-        existing.content = m.content || existing.content;
-        if(m.ort)        existing.ort = m.ort;
-        if(m.typ)        existing.typ = m.typ;
-        if(m.alerted)    existing.alerted = m.alerted;
-        if(m.latitude!==null)  existing.latitude  = m.latitude;
-        if(m.longitude!==null) existing.longitude = m.longitude;
-        if(typeof m.location === "string" && m.location) existing.location = m.location;
-        if(m.timestamp)  existing.timestamp = m.timestamp;
-        if(typeof m.description === "string") existing.description = m.description;
+        applyIncomingFieldsToCard(existing, m);
         updated++;
       }else{
+        const duplicateByCoords = findCardByCoordinates(board, m.latitude, m.longitude, ["neu", "in-bearbeitung"]);
+        if (duplicateByCoords) {
+          applyIncomingFieldsToCard(duplicateByCoords, m);
+          updated++;
+          continue;
+        }
         const now=new Date().toISOString();
-		const importHumanId = `E-${nextHumanNumber(board)}`;
+                const importHumanId = `E-${nextHumanNumber(board)}`;
         const card={ id:uid(), content:m.content||"(ohne Titel)", createdAt:now, statusSince:now,
           assignedVehicles:[], everVehicles:[], everPersonnel:0,
           ort:m.ort, typ:m.typ, externalId:m.externalId, alerted:m.alerted,
