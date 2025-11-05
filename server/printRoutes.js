@@ -8,6 +8,7 @@ import puppeteer from "puppeteer";
 import { appendHistoryEntriesToCsv } from "./utils/protocolCsv.mjs";
 import { resolveUserName } from "./auditLog.mjs";
 import { invalidateProtocolCache } from "./routes/protocol.js";
+import { User_authMiddleware } from "./User_auth.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -22,11 +23,14 @@ await fs.mkdir(PDF_DIR, { recursive: true });
 const JSON_FILE = path.join(DATA_ROOT, "protocol.json");
 const CSV_FILE  = path.join(DATA_ROOT, "protocol.csv");
 
+const SECURE_COOKIES = process.env.KANBAN_COOKIE_SECURE === "1";
+
 // immer mindestens eine Zusatzkopie
 const EXTRA_COPIES = 1;
 const EXTRA_COPY_LABEL = "Archiv";
 
 const router = express.Router();
+router.use(User_authMiddleware({ secureCookies: SECURE_COOKIES }));
 
 const CONFIRM_ROLE_INFO = {
   LTSTB: { label: "LtStb", description: "Leiter Stab" },
@@ -421,7 +425,9 @@ router.post("/:nr/print", express.json(), async (req, res) => {
     }
 
     const { fileName, pageCount } = await renderBundlePdf(item, recipients, nr);
-    const actor = resolveUserName(req) || req.ip || "";
+    const displayName = typeof req?.user?.displayName === "string" ? req.user.displayName.trim() : "";
+    const username = typeof req?.user?.username === "string" ? req.user.username.trim() : "";
+    const actor = resolveUserName(req) || displayName || username || req.ip || "";
     await recordPrint(nr, recipients, pageCount, fileName, actor, item);
 
     res.json({
