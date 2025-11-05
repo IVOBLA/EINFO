@@ -1741,7 +1741,7 @@ async function updateGroupAlertedStatuses(alertedGroups) {
       const prevValue = prev?.[normalized];
 
       if (normalizedAlerted.has(normalized)) {
-        next[normalized] = prevValue === true || !hadPrev;
+        next[normalized] = true;
       } else {
         next[normalized] = false;
       }
