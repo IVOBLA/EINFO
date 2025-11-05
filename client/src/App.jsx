@@ -86,6 +86,7 @@ const readOnly = !canEdit;
   const [types, setTypes] = useState([]);
   const [groupAvailability, setGroupAvailability] = useState(new Map());
   const [importAlertedTokens, setImportAlertedTokens] = useState(() => new Set());
+  const [fulfilledAlertByToken, setFulfilledAlertByToken] = useState(() => new Map());
 
   const syncGroupAvailabilityFromVehicles = useCallback((list) => {
     if (!Array.isArray(list)) return;
@@ -947,6 +948,48 @@ useEffect(() => {
     .replace(/^\s*FF\s+/i, "").replace(/[._\-\/]+/g, " ")
     .replace(/\s+/g, " ").toLowerCase().trim();
 
+  useEffect(() => {
+    setFulfilledAlertByToken((prev) => {
+      const columns = safeBoard?.columns || {};
+      const next = new Map(prev);
+      let changed = false;
+
+      for (const col of Object.values(columns)) {
+        const items = Array.isArray(col?.items) ? col.items : [];
+        for (const card of items) {
+          const cardId = card?.id;
+          if (cardId === null || typeof cardId === "undefined") continue;
+          const cardIdStr = String(cardId);
+          const alertedTokens = parseAlertedTokens(card?.alerted).map(norm).filter(Boolean);
+          if (!alertedTokens.length) continue;
+
+          const assignedVehicles = Array.isArray(card?.assignedVehicles) ? card.assignedVehicles : [];
+          if (!assignedVehicles.length) continue;
+
+          const assignedTokens = new Set();
+          for (const vehicleId of assignedVehicles) {
+            const vehicle = vehiclesById.get(vehicleId);
+            if (!vehicle) continue;
+            const ortToken = norm(vehicle?.ort);
+            if (ortToken) assignedTokens.add(ortToken);
+            const labelToken = norm(vehicle?.label);
+            if (labelToken) assignedTokens.add(labelToken);
+          }
+          if (!assignedTokens.size) continue;
+
+          for (const token of alertedTokens) {
+            if (!assignedTokens.has(token)) continue;
+            if (next.get(token) === cardIdStr) continue;
+            next.set(token, cardIdStr);
+            changed = true;
+          }
+        }
+      }
+
+      return changed ? next : prev;
+    });
+  }, [safeBoard, vehiclesById]);
+
   const alertedGroupTokens = useMemo(() => {
     const tokens = new Set(importAlertedTokens);
     const columns = safeBoard?.columns || {};
@@ -954,15 +997,22 @@ useEffect(() => {
       const items = Array.isArray(col?.items) ? col.items : [];
       for (const card of items) {
         if (!card) continue;
+        const cardId = card?.id;
+        const cardIdStr = cardId === null || typeof cardId === "undefined" ? null : String(cardId);
         const alertedTokens = parseAlertedTokens(card?.alerted);
         for (const token of alertedTokens) {
           const normalized = norm(token);
-          if (normalized) tokens.add(normalized);
+          if (!normalized) continue;
+          if (cardIdStr && fulfilledAlertByToken.get(normalized) === cardIdStr) {
+            tokens.delete(normalized);
+            continue;
+          }
+          tokens.add(normalized);
         }
       }
     }
     return tokens;
-  }, [safeBoard, importAlertedTokens]);
+  }, [safeBoard, importAlertedTokens, fulfilledAlertByToken]);
 
   const assignedGroupTokens = useMemo(() => {
     const tokens = new Set();
@@ -1571,7 +1621,7 @@ if (route.startsWith("/protokoll")) {
                   : true;
                 const normalizedOrt = norm(ort);
                 const hasAssignedVehicle = assignedGroupTokens.has(normalizedOrt);
-                const isAlerted = alertedGroupTokens.has(normalizedOrt);
+                const isAlerted = alertedGroupTokens.has(normalizedOrt) && !assignedGroupTokens.has(normalizedOrt);
                 const containerClasses = (() => {
                   if (!groupAvailable) return "border-gray-300 bg-gray-50";
                   if (hasAssignedVehicle) return "border-red-500 bg-white";
