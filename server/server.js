@@ -41,8 +41,8 @@ const TYPES_FILE  = path.join(DATA_DIR, "conf","types.json");
 const LOG_FILE    = path.join(DATA_DIR, "Lage_log.csv");
 const ARCHIVE_DIR = path.join(DATA_DIR, "archive");
 const ERROR_LOG   = path.join(DATA_DIR, "Log.txt");
-const GROUPS_FILE = path.join(DATA_DIR, "conf","group_locations.json");
-const GROUP_AVAILABILITY_FILE = path.join(DATA_DIR, "conf","group-availability.json");
+const GROUPS_FILE = path.join(DATA_DIR, "group_locations.json");
+const GROUP_AVAILABILITY_FILE = path.join(DATA_DIR, "group-availability.json");
 const GROUP_ALERTED_FILE = path.join(DATA_DIR, "conf", "group-alerted.json");
 
 const DEFAULT_BOARD_COLUMNS = {
