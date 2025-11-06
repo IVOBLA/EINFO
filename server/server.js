@@ -1019,6 +1019,7 @@ app.post("/api/cards/:id/move", async (req,res)=>{
   const toName   = board.columns[to]?.name   || to   || "";
 
   let clonesToRemove = null;
+  let groupsToResolve = null;
   if(to==="erledigt"){
     const allVehicles = await getAllVehicles();
     const vmap=vehiclesByIdMap(allVehicles);
@@ -1058,6 +1059,26 @@ app.post("/api/cards/:id/move", async (req,res)=>{
     }
     card.assignedVehicles=[];
     clonesToRemove = new Set(removedIds);
+
+    const resolveNames = new Set();
+    for (const token of collectAlertedTokens(card?.alerted)) {
+      resolveNames.add(token);
+    }
+    for (const entry of Object.values(snapshotLabels)) {
+      if (!entry) continue;
+      if (typeof entry === "string") {
+        resolveNames.add(entry);
+        continue;
+      }
+      const ortName = typeof entry?.ort === "string" ? entry.ort : "";
+      if (ortName) resolveNames.add(ortName);
+      else if (typeof entry?.label === "string" && entry.label) resolveNames.add(entry.label);
+    }
+    for (const vid of removedIds) {
+      const veh = vmap.get(vid);
+      if (veh?.ort) resolveNames.add(veh.ort);
+    }
+    if (resolveNames.size > 0) groupsToResolve = resolveNames;
   }
   dst.splice(Math.max(0,Math.min(Number(toIndex)||0,dst.length)),0,card);
   await saveBoard(board);
@@ -1075,6 +1096,11 @@ app.post("/api/cards/:id/move", async (req,res)=>{
     buildEinsatzLog({ action:"Status gewechselt", card, from:fromName, to:toName, board }),
     req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
   );
+  if (groupsToResolve) {
+    for (const name of groupsToResolve) {
+      await markGroupAlertedResolved(name);
+    }
+  }
   markActivity("card:move");
   res.json({ ok:true, card, from, to });
 });
