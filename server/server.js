@@ -1905,11 +1905,22 @@ async function importFromFileOnce(filename=AUTO_DEFAULT_FILENAME){
   try{
     for(const item of arr){
       const m=mapIncomingItemToCardFields(item);
-      for (const groupName of extractAlertedGroupsFromItem(item)) {
-        alertedGroups.add(groupName);
+      const incomingAlertedGroups = Array.from(extractAlertedGroupsFromItem(item));
+      if (!m.externalId) {
+        for (const groupName of incomingAlertedGroups) {
+          alertedGroups.add(groupName);
+        }
+        skipped++;
+        continue;
       }
-      if(!m.externalId){ skipped++; continue; }
       const existing=findCardByExternalId(board,m.externalId);
+      const existingRef = existing ? findCardRef(board, existing.id) : null;
+      const existingIsDone = existingRef?.col === "erledigt";
+      if (!existingIsDone) {
+        for (const groupName of incomingAlertedGroups) {
+          alertedGroups.add(groupName);
+        }
+      }
       if(existing){
         applyIncomingFieldsToCard(existing, m);
         updated++;
