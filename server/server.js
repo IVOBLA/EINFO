@@ -770,6 +770,38 @@ async function getAllVehicles(){
 }
 const vehiclesByIdMap = list => new Map(list.map(v=>[v.id,v]));
 const computedPersonnel = (card,vmap)=>(card.assignedVehicles||[]).reduce((s,vid)=>s+(vmap.get(vid)?.mannschaft??0),0);
+
+function extractVehicleLabelParts(entry) {
+  if (!entry) return { label: "", ort: "" };
+  if (typeof entry === "string") return { label: entry, ort: "" };
+  const label = typeof entry.label === "string" ? entry.label : "";
+  const ort = typeof entry.ort === "string" ? entry.ort : "";
+  return { label, ort };
+}
+
+function formatVehicleDisplay(veh, fallbackEntry, fallbackId = "") {
+  const { label: fallbackLabel, ort: fallbackOrt } = extractVehicleLabelParts(fallbackEntry);
+  const rawLabel = typeof veh?.label === "string" ? veh.label : fallbackLabel;
+  const rawOrt = typeof veh?.ort === "string" ? veh.ort : fallbackOrt;
+  const idStr = (() => {
+    if (veh?.id !== undefined && veh?.id !== null) return String(veh.id);
+    if (fallbackId !== undefined && fallbackId !== null && fallbackId !== "") return String(fallbackId);
+    return "";
+  })();
+  const label = String(rawLabel || "").trim();
+  const ort = String(rawOrt || "").trim();
+  const finalLabel = label || idStr || "Unbekannt";
+  const finalOrt = ort || "Unbekannt";
+  return `${finalLabel} (${finalOrt})`;
+}
+
+function formatVehicleDisplayById(id, vmap, labelStore) {
+  const idKey = id != null ? String(id) : "";
+  const map = vmap instanceof Map ? vmap : null;
+  const vehicle = map?.get?.(id) ?? map?.get?.(idKey) ?? map?.get?.(Number(idKey)) ?? null;
+  const fallbackEntry = labelStore ? labelStore[idKey] : undefined;
+  return formatVehicleDisplay(vehicle, fallbackEntry, idKey);
+}
 function findCardRef(board,cardId){
   for(const k of ["neu","in-bearbeitung","erledigt"]){
     const arr = board.columns[k].items||[];
@@ -1061,7 +1093,9 @@ app.post("/api/cards/:id/move", async (req,res)=>{
     // CSV: aktuell zugeordnete Einheiten als "entfernt" loggen
     for (const vid of removedIds) {
       const veh = vmap.get(vid);
-      const einheitsLabel = veh?.label || veh?.id || String(vid);
+      const vidStr = String(vid);
+      const snapshotEntry = snapshotLabels[vidStr];
+      const einheitsLabel = formatVehicleDisplay(veh, snapshotEntry, vidStr);
       await appendCsvRow(
         LOG_FILE, EINSATZ_HEADERS,
         buildEinsatzLog({ action:"Einheit entfernt", card, einheit: einheitsLabel, board }),
@@ -1139,7 +1173,7 @@ app.post("/api/cards/:id/assign", async (req,res)=>{
   labelStore[vehicleIdStr] = { label: snapshotLabel, ort: snapshotOrt };
   ref.card.everVehicleLabels = labelStore;
 
-const einheitsLabel = veh?.label || veh?.id || String(vehicleId);
+  const einheitsLabel = formatVehicleDisplay(veh, labelStore[vehicleIdStr], vehicleIdStr);
   await appendCsvRow(
     LOG_FILE, EINSATZ_HEADERS,
     buildEinsatzLog({ action:"Einheit zugewiesen", card: ref.card, einheit: einheitsLabel, board }),
@@ -1189,7 +1223,8 @@ app.post("/api/cards/:id/unassign", async (req,res)=>{
 
   const vmap=vehiclesByIdMap(await getAllVehicles());
   const veh = vmap.get(vehicleId);
-  const einheitsLabel = veh?.label || veh?.id || String(vehicleId);
+  const labelStore = ref.card.everVehicleLabels || {};
+  const einheitsLabel = formatVehicleDisplay(veh, labelStore[String(vehicleId)], vehicleId);
   await appendCsvRow(
     LOG_FILE, EINSATZ_HEADERS,
     buildEinsatzLog({ action:"Einheit entfernt", card: ref.card, einheit: einheitsLabel, board }),
@@ -2172,7 +2207,12 @@ app.get("/api/export/pdf", async (_req,res)=>{
     parts.push(`Erst.: ${fmt24(c.createdAt)}  |  Seit: ${fmt24(c.statusSince)}`);
     doc.text(parts.join("  |  "),{width:w});
     const ids = k==="erledigt" ? (c.everVehicles||[]) : (c.assignedVehicles||[]);
-    if(ids.length){ doc.moveDown(0.1); doc.text(`Einheiten: ${ids.join(", ")}`,{width:w}); }
+    if(ids.length){
+      const labelStore = c.everVehicleLabels || {};
+      const entries = ids.map(id => formatVehicleDisplayById(id, vmap, labelStore));
+      doc.moveDown(0.1);
+      doc.text(`Einheiten: ${entries.join(", ")}`,{width:w});
+    }
     doc.moveDown(0.35);
   }
   function addPage(key){
