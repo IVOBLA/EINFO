@@ -866,10 +866,11 @@ app.post("/api/vehicles", async (req,res)=>{
   await writeJson(VEH_EXTRA, extra);
   invalidateVehiclesCache();
 
+  const action = isCloneRequest ? "Einheit geteilt" : "Einheit angelegt";
   await appendCsvRow(
     LOG_FILE,
     EINSATZ_HEADERS,
-    buildEinsatzLog({ action: "Einheit geteilt", note: `${label} (${ort})` }),
+    buildEinsatzLog({ action, note: `${label} (${ort})` }),
     req,
     { autoTimestampField: "Zeitpunkt", autoUserField: "Benutzer" }
   );
