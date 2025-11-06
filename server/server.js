@@ -43,6 +43,8 @@ const ARCHIVE_DIR = path.join(DATA_DIR, "archive");
 const ERROR_LOG   = path.join(DATA_DIR, "Log.txt");
 const GROUPS_FILE = path.join(DATA_DIR, "group_locations.json");
 const GROUP_AVAILABILITY_FILE = path.join(DATA_DIR, "group-availability.json");
+const LEGACY_GROUPS_FILE = path.join(DATA_DIR, "conf", "group_locations.json");
+const LEGACY_GROUP_AVAILABILITY_FILE = path.join(DATA_DIR, "conf", "group-availability.json");
 const GROUP_ALERTED_FILE = path.join(DATA_DIR, "conf", "group-alerted.json");
 
 const DEFAULT_BOARD_COLUMNS = {
@@ -219,8 +221,53 @@ async function writeOverrides(next){
 async function readVehicleAvailability(){ return await readJson(VEH_AVAILABILITY_FILE, {}); }
 async function writeVehicleAvailability(next){ await writeJson(VEH_AVAILABILITY_FILE, next); }
 
-async function readGroupAvailability(){ return await readJson(GROUP_AVAILABILITY_FILE, {}); }
-async function writeGroupAvailability(next){ await writeJson(GROUP_AVAILABILITY_FILE, next); }
+async function migrateLegacyFile(currentPath, legacyPath) {
+  try {
+    await fs.access(currentPath);
+    return;
+  } catch (err) {
+    if (err?.code && err.code !== "ENOENT") throw err;
+  }
+
+  try {
+    await fs.access(legacyPath);
+  } catch (err) {
+    if (err?.code === "ENOENT") return;
+    throw err;
+  }
+
+  await ensureDir(path.dirname(currentPath));
+  await fs.rename(legacyPath, currentPath);
+}
+
+let groupFilesMigrationPromise = null;
+async function ensureGroupFilesMigrated() {
+  if (!groupFilesMigrationPromise) {
+    groupFilesMigrationPromise = (async () => {
+      await migrateLegacyFile(GROUPS_FILE, LEGACY_GROUPS_FILE);
+      await migrateLegacyFile(GROUP_AVAILABILITY_FILE, LEGACY_GROUP_AVAILABILITY_FILE);
+    })();
+  }
+  return groupFilesMigrationPromise;
+}
+
+async function readGroupAvailability(){
+  await ensureGroupFilesMigrated();
+  return await readJson(GROUP_AVAILABILITY_FILE, {});
+}
+async function writeGroupAvailability(next){
+  await ensureGroupFilesMigrated();
+  await writeJson(GROUP_AVAILABILITY_FILE, next);
+}
+
+async function readGroupLocations(){
+  await ensureGroupFilesMigrated();
+  return await readJson(GROUPS_FILE, {});
+}
+async function writeGroupLocations(next){
+  await ensureGroupFilesMigrated();
+  await writeJson(GROUPS_FILE, next);
+}
 
 async function readGroupAlerted(){ return await readJson(GROUP_ALERTED_FILE, {}); }
 async function writeGroupAlerted(next){ await writeJson(GROUP_ALERTED_FILE, next); }
@@ -1529,7 +1576,7 @@ app.get("/api/nearby", async (req, res) => {
   const vehicles = await getAllVehiclesMerged();
 
   // Gruppen-Positionen
-  const groupsRaw = await readJson(GROUPS_FILE, {});
+  const groupsRaw = await readGroupLocations();
   const groupPos = new Map(
     Object.entries(groupsRaw || {})
       .map(([name, g]) => [name, { lat: Number(g?.lat), lng: Number(g?.lon ?? g?.lng) }])
@@ -1768,7 +1815,7 @@ function extractAlertedGroupsFromItem(item) {
 async function updateGroupAlertedStatuses(alertedGroups) {
   try {
     const prev = await readGroupAlerted().catch(() => ({}));
-    const groupLocations = await readJson(GROUPS_FILE, {});
+    const groupLocations = await readGroupLocations();
     const normalizedAlerted = new Set(
       Array.from(alertedGroups || [])
         .map(normalizeGroupNameForAlert)
