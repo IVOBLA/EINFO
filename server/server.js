@@ -166,9 +166,19 @@ function markActivity(reason=""){
   lastActivityMs = Date.now();
   if (reason) console.log(`[activity] ${reason} @ ${new Date().toISOString()}`);
 }
-const AUTO_STOP_MIN = Number(process.env.FF_AUTO_STOP_MIN || 60); // Minuten (Default 60)
+const rawAutoStop = process.env.FF_AUTO_STOP_MIN;
+const AUTO_STOP_MIN = (() => {
+  if (rawAutoStop === undefined || rawAutoStop === "") return null;
+  const parsed = Number(rawAutoStop);
+  if (Number.isFinite(parsed) && parsed >= 0) return parsed;
+  return 60;
+})();
+// Ohne FF_AUTO_STOP_MIN (oder leerem Wert) bleibt der Fetcher dauerhaft aktiv.
+// Bei ungültigen Werten greifen wir auf 60 Minuten zurück, um bestehendes Verhalten zu erhalten.
+const AUTO_STOP_ENABLED = AUTO_STOP_MIN !== null;
 setInterval(async () => {
   try{
+    if (!AUTO_STOP_ENABLED) return;
     const idleMin = (Date.now() - lastActivityMs) / 60000;
     if (idleMin >= AUTO_STOP_MIN) {
       const st = ffStatus();
