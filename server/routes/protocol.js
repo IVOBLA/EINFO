@@ -31,6 +31,23 @@ const canonicalRoleId = (value) => {
 
 const normalizeRoleValue = (value) => (typeof value === "string" ? value.trim() : "");
 const sanitizeZu = (value) => (typeof value === "string" ? value.trim() : "");
+const splitLegacyProtocolNumber = (value) => {
+  if (value == null) return null;
+  const raw = typeof value === "number" ? String(value) : String(value || "").trim();
+  if (!raw) return null;
+
+  const match = raw.match(/^\s*(\d+)\s*(?:[-/]|ZU[:\s-]*)\s*(.+)$/i);
+  if (!match) return null;
+
+  const nrPart = Number(match[1]);
+  let zuPart = sanitizeZu(match[2]);
+  if (/^ZU\b/i.test(zuPart)) {
+    zuPart = sanitizeZu(zuPart.replace(/^ZU[:\s-]*/i, ""));
+  }
+
+  const nrValue = Number.isFinite(nrPart) ? nrPart : match[1];
+  return { nr: nrValue, zu: zuPart };
+};
 const resolveActorRole = (req) => {
   const direct = normalizeRoleValue(req?.user?.role);
   if (direct) return direct;
@@ -396,10 +413,39 @@ function migrateMeta(arr) {
       it.otherRecipientConfirmation = normalizedConfirm;
       changed = true;
     }
-    const normalizedZu = sanitizeZu(it.zu);
+    let normalizedZu = sanitizeZu(it.zu);
+    if (/^ZU\b/i.test(normalizedZu)) {
+      const trimmedZu = sanitizeZu(normalizedZu.replace(/^ZU[:\s-]*/i, ""));
+      if (trimmedZu !== normalizedZu) {
+        normalizedZu = trimmedZu;
+      }
+    }
     if (it.zu !== normalizedZu) {
       it.zu = normalizedZu;
       changed = true;
+    }
+
+    const legacySplit = splitLegacyProtocolNumber(it.nr);
+    if (legacySplit) {
+      if (!it.zu && legacySplit.zu) {
+        it.zu = sanitizeZu(legacySplit.zu);
+        changed = true;
+      }
+      if (typeof legacySplit.nr !== "undefined") {
+        const numericNr = Number(legacySplit.nr);
+        if (Number.isFinite(numericNr) && it.nr !== numericNr) {
+          it.nr = numericNr;
+          changed = true;
+        }
+      }
+    }
+
+    if (typeof it.nr === "string") {
+      const numericNr = Number(it.nr);
+      if (Number.isFinite(numericNr)) {
+        if (it.nr !== numericNr) changed = true;
+        it.nr = numericNr;
+      }
     }
   }
   return changed;
