@@ -101,6 +101,17 @@ function normTime(input) {
   return s;
 }
 
+function normalizeProtocolNr(value) {
+  if (value == null) return "";
+  const raw = String(value).trim();
+  if (!raw) return "";
+  if (/^\d+$/.test(raw)) {
+    const normalized = String(Number(raw));
+    return normalized === "0" ? "" : normalized;
+  }
+  return raw;
+}
+
 const initialForm = () => ({
   datum: new Date().toISOString().slice(0, 10),
   zeit: new Date().toTimeString().slice(0, 5),
@@ -235,6 +246,8 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
       if (infoTypPrefill) next.infoTyp = infoTypPrefill;
       return next;
     });
+    const originZu = normalizeProtocolNr(data?.originProtocolNr);
+    if (originZu) setZu(originZu);
     setTimeout(() => informationRef.current?.focus(), 0);
     showToast?.("info", "Meldungsformular aus Aufgabe geöffnet – Angaben prüfen und ergänzen.");
   }, [mode, taskOverrideActive]);
