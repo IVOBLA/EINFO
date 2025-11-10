@@ -172,6 +172,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
     const n = Number(editNr);
     return Number.isFinite(n) && n > 0 ? n : null;
   });
+  const [zu, setZu] = useState("");
   const isEditMode = Number.isFinite(Number(nr)) && Number(nr) > 0;
   const [loading, setLoading] = useState(isEditMode);
   const [lockStatus, setLockStatus] = useState(() => (isEditMode ? "pending" : "not-needed"));
@@ -507,6 +508,7 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
   useEffect(() => {
     if (!isEditMode) {
       setLoading(false);
+      setZu("");
       setTimeout(() => infoTypInfoRef.current?.focus(), 0); // Erstfokus
       return;
     }
@@ -557,6 +559,7 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
               return { massnahme: m.massnahme || "", verantwortlich: m.verantwortlich || "", done: !!m.done };
             }),
           });
+          setZu(it.zu || "");
           setErrors({});
           setId(it.id || null);
           setTimeout(() => infoTypInfoRef.current?.focus(), 0); // Erstfokus nach Laden
@@ -901,7 +904,7 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
         body: JSON.stringify(payload),
       }).then(res => res.json());
       if (!r?.ok) throw new Error(r?.error || "Speichern fehlgeschlagen");
-      setNr(r.nr); setId(r.id || id || null);
+      setNr(r.nr); setId(r.id || id || null); setZu(r.zu ?? "");
       return r.nr;
     } else {
       const headers = {
@@ -915,7 +918,7 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
         body: JSON.stringify(payload),
       }).then(res => res.json());
       if (!r?.ok) throw new Error(r?.error || "Speichern fehlgeschlagen");
-      setNr(r.nr); setId(r.id || null);
+      setNr(r.nr); setId(r.id || null); setZu(r.zu ?? "");
       return r.nr;
     }
   };
@@ -937,7 +940,7 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
       const nrSaved = await saveCore();
       if (nrSaved) {
         showToast("success", `Gespeichert (NR ${nrSaved}) – neuer Eintrag`);
-        setForm(initialForm()); setErrors({}); setNr(null); setId(null);
+        setForm(initialForm()); setErrors({}); setNr(null); setId(null); setZu("");
         setTimeout(() => infoTypInfoRef.current?.focus(), 0); // Erstfokus nach Neu
       }
     } catch (e) {
@@ -1049,9 +1052,15 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
           <div className="col-span-9 px-6 py-4 border-b-2">
             <div className="text-3xl font-extrabold tracking-wide">MELDUNG/INFORMATION</div>
           </div>
-          <div className="col-span-3 border-l-2">
-            <div className="px-2 py-1 text-[10px] text-gray-600 border-b-2">PROTOKOLL-NR</div>
-            <div className="px-2 py-1.5 text-center text-xl font-semibold">{nr ?? "—"}</div>
+          <div className="col-span-3 border-l-2 flex flex-col">
+            <div className="border-b-2">
+              <div className="px-2 py-1 text-[10px] text-gray-600 border-b-2">PROTOKOLL-NR</div>
+              <div className="px-2 py-1.5 text-center text-xl font-semibold">{nr ?? "—"}</div>
+            </div>
+            <div>
+              <div className="px-2 py-1 text-[10px] text-gray-600 border-b-2">ZU</div>
+              <div className="px-2 py-1.5 text-center text-xl font-semibold min-h-[2.5rem]">{zu || ""}</div>
+            </div>
           </div>
 
           {/* Datum/Uhrzeit + Typ (6/3/3) */}

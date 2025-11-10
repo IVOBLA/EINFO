@@ -84,6 +84,10 @@ const collectActorRoles = (req) => {
   add(resolveActorRole(req));
   return roles;
 };
+const normalizeZu = (value) => {
+  if (value == null) return "";
+  return String(value).trim();
+};
 const sanitizeConfirmation = (input, { existing, identity, actorRoles }) => {
   const existingNorm = normalizeConfirmation(existing);
   const existingRole = existingNorm.confirmed ? canonicalRoleId(existingNorm.byRole) || existingNorm.byRole || null : null;
@@ -383,6 +387,11 @@ function migrateMeta(arr) {
       it.printCount = historyPrintSum;
       changed = true;
     }
+    const normalizedZu = normalizeZu(it.zu);
+    if (it.zu !== normalizedZu) {
+      it.zu = normalizedZu;
+      changed = true;
+    }
     if (typeof it.createdBy === "undefined") {
       const creatorFromHistory = it.history.find?.(h => h?.action === "create" && h?.by)?.by;
       it.createdBy = creatorFromHistory || it.lastBy || null;
@@ -639,6 +648,7 @@ router.post("/", express.json(), async (req, res) => {
       printCount: 0,
       history: []
     };
+    payload.zu = normalizeZu(req.body?.zu);
     if (allowTaskOverride) {
       payload.meta = { ...(payload.meta || {}), createdVia: "task-board" };
     }
@@ -716,7 +726,7 @@ try {
 } catch (err) {
   console.warn("[protocol→tasks POST]", err?.message || err);
 }
-	res.json({ ok: true, nr, id: payload.id });
+        res.json({ ok: true, nr, id: payload.id, zu: payload.zu });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
@@ -751,6 +761,9 @@ router.put("/:nr", express.json(), async (req, res) => {
       });
     }
 
+    const normalizedExistingZu = normalizeZu(existing.zu);
+    if (existing.zu !== normalizedExistingZu) existing.zu = normalizedExistingZu;
+
     const next = {
       ...existing,
       ...(req.body || {}),
@@ -758,6 +771,7 @@ router.put("/:nr", express.json(), async (req, res) => {
       id: existing.id,
       history: existing.history || []
     };
+    next.zu = normalizedExistingZu;
 
     try {
       next.otherRecipientConfirmation = sanitizeConfirmation(req.body?.otherRecipientConfirmation, {
@@ -798,7 +812,7 @@ router.put("/:nr", express.json(), async (req, res) => {
         };
         activeLocks.set(nr, lock);
       }
-      return res.json({ ok: true, nr, id: existing.id, unchanged: true });
+      return res.json({ ok: true, nr, id: existing.id, zu: normalizedExistingZu, unchanged: true });
     }
     let newHistoryEntry = null;
     if (changes.length) {
@@ -899,7 +913,7 @@ router.put("/:nr", express.json(), async (req, res) => {
      }
    }
  } catch (e) { console.warn("[protocol->tasks PUT]", e?.message || e); }
-    res.json({ ok: true, nr, id: next.id });
+    res.json({ ok: true, nr, id: next.id, zu: next.zu });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }

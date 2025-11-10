@@ -235,9 +235,11 @@ function sheetHtml(item, recipient, nr) {
   .sheet { border: 2px solid #111; border-radius: 10px; padding: 10px; }
   .header { display:grid; grid-template-columns: 9fr 3fr; }
   .title { font-weight: 800; font-size: 22px; letter-spacing:.5px; padding:12px; }
-  .nrbox { border-left: 2px solid #111; }
-  .nrbox .lbl { font-size: 12px; color:#555; border-bottom:2px solid #111; padding:6px 10px; }
-  .nrbox .val { font-size: 26px; text-align:center; padding:14px 10px; font-weight:800; min-height: 30px; }
+  .nrbox { border-left: 2px solid #111; display:flex; flex-direction:column; }
+  .nrbox-section { border-bottom:2px solid #111; }
+  .nrbox-section:last-child { border-bottom:none; }
+  .nrbox .lbl { font-size: 12px; color:#555; padding:6px 10px 0; }
+  .nrbox .val { font-size: 26px; text-align:center; padding:10px; font-weight:800; min-height: 30px; }
 
   /* Grids */
   .row3 { display: grid; grid-template-columns: 6fr 4fr 3fr; column-gap: 8px; } /* 3-spaltig */
@@ -278,8 +280,14 @@ function sheetHtml(item, recipient, nr) {
   <div class="header">
     <div class="title">MELDUNG/INFORMATION</div>
     <div class="nrbox">
-      <div class="lbl">PROTOKOLL-NR</div>
-      <div class="val">${esc(displayNr || "")}</div>
+      <div class="nrbox-section">
+        <div class="lbl">PROTOKOLL-NR</div>
+        <div class="val">${esc(displayNr || "")}</div>
+      </div>
+      <div class="nrbox-section">
+        <div class="lbl">ZU</div>
+        <div class="val">${esc(fmt(item?.zu))}</div>
+      </div>
     </div>
   </div>
 
