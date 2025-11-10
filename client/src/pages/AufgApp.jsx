@@ -704,7 +704,12 @@ export default function AufgApp() {
     try {
       sessionStorage.setItem(PROTOCOL_PREFILL_STORAGE_KEY, JSON.stringify(payload));
     } catch {}
-    window.location.hash = "/protokoll/neu";
+    const basePath = typeof window?.location?.pathname === "string" ? window.location.pathname : "";
+    if (basePath.startsWith("/protokoll")) {
+      window.location.hash = "/protokoll/neu";
+    } else {
+      window.location.assign("/protokoll#/protokoll/neu");
+    }
   }, []);
   // ---- Pfeil „Weiter→“ → jetzt dedizierter Status-Endpunkt
   const advance = useCallback((item) => {
