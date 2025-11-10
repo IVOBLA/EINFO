@@ -80,6 +80,7 @@ function esc(s) {
 }
 function yes(b) { return b ? "☑" : "☐"; }
 const fmt = (s) => String(s ?? "");
+const sanitizeZu = (value) => (typeof value === "string" ? value.trim() : "");
 const parseAnvon = (raw) => {
   const s = String(raw || "").trim();
   if (/^an\s*:/i.test(s)) return { dir: "an",  name: s.replace(/^an\s*:/i, "").trim() };
@@ -156,6 +157,7 @@ async function recordPrint(nr, recipients, pages, fileName, by, latestSnapshotFr
       id: crypto.randomUUID?.() || Math.random().toString(36).slice(2),
       history,
     };
+    it.zu = sanitizeZu(it.zu);
     it.printCount = sumPrintHistory(it.history);
     entry.after = stripHistoryForSnapshot(it);
     csvItem = it;
@@ -166,6 +168,7 @@ async function recordPrint(nr, recipients, pages, fileName, by, latestSnapshotFr
     const latest = latestSnapshotFromClient && typeof latestSnapshotFromClient === "object" ? latestSnapshotFromClient : {};
     const baseHistory = Array.isArray(ex.history) ? [...ex.history] : [];
     const merged = { ...ex, ...latest, nr: ex.nr, id: ex.id };
+    merged.zu = sanitizeZu(merged.zu);
     merged.history = baseHistory;
     const entry = {
       ts: Date.now(),
@@ -199,6 +202,7 @@ function sheetHtml(item, recipient, nr) {
   const ergehtSet = new Set(Array.isArray(item?.ergehtAn) ? item.ergehtAn : []);
   const EA = ["EL","LtStb","S1","S2","S3","S4","S5","S6"];
   const displayNr = !nr || nr === "blank" ? "" : nr;
+  const displayZu = nr === "blank" ? "" : sanitizeZu(item?.zu);
   const confirm = item?.otherRecipientConfirmation && typeof item.otherRecipientConfirmation === "object"
     ? item.otherRecipientConfirmation
     : null;
@@ -235,9 +239,12 @@ function sheetHtml(item, recipient, nr) {
   .sheet { border: 2px solid #111; border-radius: 10px; padding: 10px; }
   .header { display:grid; grid-template-columns: 9fr 3fr; }
   .title { font-weight: 800; font-size: 22px; letter-spacing:.5px; padding:12px; }
-  .nrbox { border-left: 2px solid #111; }
+  .nrbox { border-left: 2px solid #111; display:flex; flex-direction:column; }
+  .nrbox .section { border-bottom: 2px solid #111; }
+  .nrbox .section:last-child { border-bottom:none; }
   .nrbox .lbl { font-size: 12px; color:#555; border-bottom:2px solid #111; padding:6px 10px; }
   .nrbox .val { font-size: 26px; text-align:center; padding:14px 10px; font-weight:800; min-height: 30px; }
+  .nrbox .val-zu { font-size: 22px; }
 
   /* Grids */
   .row3 { display: grid; grid-template-columns: 6fr 4fr 3fr; column-gap: 8px; } /* 3-spaltig */
@@ -278,8 +285,14 @@ function sheetHtml(item, recipient, nr) {
   <div class="header">
     <div class="title">MELDUNG/INFORMATION</div>
     <div class="nrbox">
-      <div class="lbl">PROTOKOLL-NR</div>
-      <div class="val">${esc(displayNr || "")}</div>
+      <div class="section">
+        <div class="lbl">PROTOKOLL-NR</div>
+        <div class="val">${esc(displayNr || "")}</div>
+      </div>
+      <div class="section">
+        <div class="lbl">ZU</div>
+        <div class="val val-zu">${esc(displayZu || "")}</div>
+      </div>
     </div>
   </div>
 

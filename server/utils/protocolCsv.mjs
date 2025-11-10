@@ -3,7 +3,7 @@ import fs from "fs";
 const CSV_BOM = "\uFEFF";
 
 export const CSV_HEADER = [
-  "ZEITPUNKT","AKTION","NR","DRUCK","DATUM","ZEIT","BENUTZER","EING","AUSG","KANAL",
+  "ZEITPUNKT","AKTION","PROTOKOLL-NR","ZU","DRUCK","DATUM","ZEIT","BENUTZER","EING","AUSG","KANAL",
   "AN/VON","INFORMATION","RUECKMELDUNG1","RUECKMELDUNG2","TYP",
   "ERGEHT_AN","ERGAENZUNG",
   "M1","V1","X1","M2","V2","X2","M3","V3","X3","M4","V4","X4","M5","V5","X5","BESTÄTIGT_DURCH",
@@ -48,6 +48,7 @@ export function toCsvRow(item, meta = {}) {
  }).format(new Date(timestamp || Date.now())),
     action,
     item.nr,
+    item.zu ?? "",
     Number(item?.printCount) > 0 ? "x" : "",
 
     item.datum ?? "",

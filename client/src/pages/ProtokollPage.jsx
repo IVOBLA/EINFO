@@ -174,6 +174,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
   });
   const isEditMode = Number.isFinite(Number(nr)) && Number(nr) > 0;
   const [loading, setLoading] = useState(isEditMode);
+  const [zu, setZu] = useState("");
   const [lockStatus, setLockStatus] = useState(() => (isEditMode ? "pending" : "not-needed"));
   const [lockError, setLockError] = useState(null);
   const lockRefreshTimerRef = useRef(null);
@@ -558,6 +559,7 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
             }),
           });
           setErrors({});
+          setZu(typeof it.zu === "string" ? it.zu : "");
           setId(it.id || null);
           setTimeout(() => infoTypInfoRef.current?.focus(), 0); // Erstfokus nach Laden
           if (seenStorageKey) {
@@ -726,6 +728,7 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
         infoTyp: "__blank__",
         uebermittlungsart: { kanalNr: "", ein: false, aus: false },
         anvon: "",
+        zu: "",
         information: "",
         rueckmeldung1: "",
         rueckmeldung2: "",
@@ -815,6 +818,8 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
       };
     });
 
+    snapshot.zu = typeof zu === "string" ? zu : "";
+
     snapshot.datum = String(snapshot.datum || "").trim();
     snapshot.zeit = String(snapshot.zeit || "").trim();
     snapshot.infoTyp = String(snapshot.infoTyp || "").trim();
@@ -870,6 +875,7 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
     // Payload
     const payload = {
       ...snapshot,
+      zu: snapshot.zu,
       uebermittlungsart: {
         kanalNr: (snapshot.uebermittlungsart.kanalNr || "").trim(),
         ein: snapshot.uebermittlungsart.richtung === "ein",
@@ -901,7 +907,7 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
         body: JSON.stringify(payload),
       }).then(res => res.json());
       if (!r?.ok) throw new Error(r?.error || "Speichern fehlgeschlagen");
-      setNr(r.nr); setId(r.id || id || null);
+      setNr(r.nr); setId(r.id || id || null); setZu(typeof r.zu === "string" ? r.zu : zu);
       return r.nr;
     } else {
       const headers = {
@@ -915,7 +921,7 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
         body: JSON.stringify(payload),
       }).then(res => res.json());
       if (!r?.ok) throw new Error(r?.error || "Speichern fehlgeschlagen");
-      setNr(r.nr); setId(r.id || null);
+      setNr(r.nr); setId(r.id || null); setZu(typeof r.zu === "string" ? r.zu : zu);
       return r.nr;
     }
   };
@@ -937,7 +943,7 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
       const nrSaved = await saveCore();
       if (nrSaved) {
         showToast("success", `Gespeichert (NR ${nrSaved}) – neuer Eintrag`);
-        setForm(initialForm()); setErrors({}); setNr(null); setId(null);
+        setForm(initialForm()); setErrors({}); setNr(null); setId(null); setZu("");
         setTimeout(() => infoTypInfoRef.current?.focus(), 0); // Erstfokus nach Neu
       }
     } catch (e) {
@@ -971,7 +977,9 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
       <div className="prot-actionbar sticky top-0 z-30 -mx-2 md:mx-0 px-2 md:px-0">
         <div className="bg-white/95 backdrop-blur border-b rounded-t-xl px-3 py-2 flex items-center justify-between shadow-sm">
           <div className="text-sm font-semibold">
-            {isEditMode ? `Protokoll – Bearbeiten (NR ${nr ?? "—"})` : "Protokoll – Neuer Eintrag"}
+            {isEditMode
+              ? `Protokoll – Bearbeiten (NR ${nr ?? "—"}${zu ? ` · ZU ${zu}` : ""})`
+              : "Protokoll – Neuer Eintrag"}
           </div>
           <div className="flex gap-2">
             <button type="button" onClick={handleCancel} className="px-3 py-1.5 rounded-md border" title="Maske schließen und zur Übersicht wechseln (ESC)">Abbrechen</button>
@@ -1050,8 +1058,14 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
             <div className="text-3xl font-extrabold tracking-wide">MELDUNG/INFORMATION</div>
           </div>
           <div className="col-span-3 border-l-2">
-            <div className="px-2 py-1 text-[10px] text-gray-600 border-b-2">PROTOKOLL-NR</div>
-            <div className="px-2 py-1.5 text-center text-xl font-semibold">{nr ?? "—"}</div>
+            <div className="border-b-2">
+              <div className="px-2 py-1 text-[10px] text-gray-600 border-b-2">PROTOKOLL-NR</div>
+              <div className="px-2 py-1.5 text-center text-xl font-semibold">{nr ?? "—"}</div>
+            </div>
+            <div>
+              <div className="px-2 py-1 text-[10px] text-gray-600 border-b-2">ZU</div>
+              <div className="px-2 py-1.5 text-center text-lg font-semibold">{zu ? zu : "—"}</div>
+            </div>
           </div>
 
           {/* Datum/Uhrzeit + Typ (6/3/3) */}
