@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import DatePicker, { registerLocale } from "react-datepicker";
 import de from "date-fns/locale/de";
 import "react-datepicker/dist/react-datepicker.css";
@@ -15,6 +15,67 @@ const formatDueAt = (value) => {
   });
 };
 
+const normalizeProtocolId = (value) => {
+  if (value == null) return "";
+  const raw = String(value).trim();
+  if (!raw) return "";
+  if (/^\d+$/.test(raw)) {
+    const normalized = String(Number(raw));
+    return normalized === "0" ? "0" : normalized;
+  }
+  return raw;
+};
+
+const normalizeProtocolIds = (values) => {
+  const out = [];
+  const seen = new Set();
+  for (const value of Array.isArray(values) ? values : []) {
+    const id = normalizeProtocolId(value);
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    out.push(id);
+  }
+  return out;
+};
+
+const sanitizeProtocolDetail = (entry) => {
+  if (!entry) return null;
+  const nr = normalizeProtocolId(entry?.nr ?? entry?.id ?? entry?.value);
+  if (!nr) return null;
+  const detail = { nr };
+  const assign = (key, aliases = []) => {
+    const sources = [entry[key], ...aliases.map((alias) => entry[alias])];
+    for (const source of sources) {
+      if (source == null) continue;
+      const text = String(source).trim();
+      if (text) {
+        detail[key] = text;
+        return;
+      }
+    }
+  };
+  assign("title", ["label"]);
+  assign("information", ["desc", "beschreibung", "content"]);
+  assign("infoTyp");
+  assign("datum");
+  assign("zeit");
+  assign("anvon");
+  return detail;
+};
+
+const formatProtocolLabel = (detail) => {
+  if (!detail) return "Meldung";
+  const nr = detail.nr ? `#${detail.nr}` : "Meldung";
+  const parts = [nr];
+  if (detail.infoTyp) parts.push(detail.infoTyp);
+  if (detail.anvon) parts.push(detail.anvon);
+  const text = detail.title || detail.information;
+  if (text) parts.push(text);
+  const when = [detail.datum, detail.zeit].filter(Boolean).join(" ");
+  if (when) parts.push(when);
+  return parts.join(" — ");
+};
+
 export default function AufgInfoModal({
   open,
   item,
@@ -23,6 +84,8 @@ export default function AufgInfoModal({
   canEdit,
   incidentOptions = [],
   incidentLookup,
+  protocolOptions = [],
+  protocolLookup,
   onCreateProtocol,
 }) {
   const it = item || null;
@@ -34,6 +97,7 @@ export default function AufgInfoModal({
     desc: "",
     dueAt: null,
     relatedIncidentId: "",
+    linkedProtocolNrs: [],
   });
 
   const incidentMap = useMemo(() => {
@@ -57,6 +121,9 @@ export default function AufgInfoModal({
       desc: it?.desc || "",
       dueAt: it?.dueAt ? new Date(it.dueAt) : null,
       relatedIncidentId: it?.relatedIncidentId ? String(it.relatedIncidentId) : "",
+      linkedProtocolNrs: normalizeProtocolIds(
+        it?.linkedProtocolNrs ?? (Array.isArray(it?.linkedProtocols) ? it.linkedProtocols.map((entry) => entry?.nr) : [])
+      ),
     });
   }, [open, it?.id]);
   useEffect(() => {
@@ -67,6 +134,91 @@ export default function AufgInfoModal({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open, onClose]);
+
+  const normalizedFormProtocols = useMemo(
+    () => normalizeProtocolIds(form.linkedProtocolNrs),
+    [form.linkedProtocolNrs]
+  );
+
+  const normalizedItemProtocols = useMemo(
+    () =>
+      normalizeProtocolIds(
+        it?.linkedProtocolNrs ?? (Array.isArray(it?.linkedProtocols) ? it.linkedProtocols.map((entry) => entry?.nr) : [])
+      ),
+    [it?.linkedProtocolNrs, it?.linkedProtocols]
+  );
+
+  const existingLinkedMap = useMemo(() => {
+    const map = new Map();
+    if (Array.isArray(it?.linkedProtocols)) {
+      for (const entry of it.linkedProtocols) {
+        const detail = sanitizeProtocolDetail(entry);
+        if (!detail) continue;
+        map.set(detail.nr, detail);
+      }
+    }
+    return map;
+  }, [it?.linkedProtocols]);
+
+  const availableProtocolOptions = useMemo(() => {
+    const arr = Array.isArray(protocolOptions) ? protocolOptions : [];
+    const seen = new Set();
+    const list = [];
+    for (const entry of arr) {
+      const detail = sanitizeProtocolDetail(entry);
+      if (!detail || seen.has(detail.nr)) continue;
+      seen.add(detail.nr);
+      list.push({
+        value: detail.nr,
+        label: formatProtocolLabel(detail),
+        detail,
+      });
+    }
+    list.sort((a, b) => {
+      const aNum = Number(a.value);
+      const bNum = Number(b.value);
+      if (Number.isFinite(aNum) && Number.isFinite(bNum)) return bNum - aNum;
+      return String(b.value).localeCompare(String(a.value), "de", { numeric: true });
+    });
+    return list;
+  }, [protocolOptions]);
+
+  const selectedProtocolDetails = useMemo(() => {
+    return normalizedFormProtocols.map((id) => {
+      const fromLookup = protocolLookup && typeof protocolLookup.get === "function" ? protocolLookup.get(id) : null;
+      return sanitizeProtocolDetail(fromLookup) || existingLinkedMap.get(id) || { nr: id };
+    });
+  }, [normalizedFormProtocols, protocolLookup, existingLinkedMap]);
+
+  const availableProtocolIds = useMemo(
+    () => new Set(availableProtocolOptions.map((opt) => opt.value)),
+    [availableProtocolOptions]
+  );
+
+  const missingProtocols = useMemo(() => {
+    return normalizedFormProtocols
+      .filter((id) => !availableProtocolIds.has(id))
+      .map((id) => existingLinkedMap.get(id) || { nr: id });
+  }, [normalizedFormProtocols, availableProtocolIds, existingLinkedMap]);
+
+  const protocolsChanged = useMemo(() => {
+    if (!it) return normalizedFormProtocols.length > 0;
+    if (normalizedFormProtocols.length !== normalizedItemProtocols.length) return true;
+    const a = [...normalizedFormProtocols].sort();
+    const b = [...normalizedItemProtocols].sort();
+    return a.some((value, idx) => value !== b[idx]);
+  }, [it, normalizedFormProtocols, normalizedItemProtocols]);
+
+  const toggleProtocolSelection = useCallback((nr) => {
+    const id = normalizeProtocolId(nr);
+    if (!id) return;
+    setForm((prev) => {
+      const current = new Set(normalizeProtocolIds(prev.linkedProtocolNrs));
+      if (current.has(id)) current.delete(id);
+      else current.add(id);
+      return { ...prev, linkedProtocolNrs: [...current] };
+    });
+  }, []);
 
   const changed = useMemo(() => {
     if (!it) return false;
@@ -80,9 +232,10 @@ export default function AufgInfoModal({
       (form.desc ?? "") !== (it.desc ?? "") ||
       currentIncidentId !== originalIncidentId ||
       ((form.dueAt ? form.dueAt.toISOString() : null) ?? null) !==
-        ((it.dueAt ? new Date(it.dueAt).toISOString() : null) ?? null)
+        ((it.dueAt ? new Date(it.dueAt).toISOString() : null) ?? null) ||
+      protocolsChanged
     );
-  }, [form, it]);
+  }, [form, it, protocolsChanged]);
 
   const handleSave = async () => {
     if (!canEdit || !it) return;
@@ -95,7 +248,7 @@ export default function AufgInfoModal({
       title: form.title?.trim() || "",
       type: form.type?.trim() || "",
       responsible: form.responsible?.trim() || "",
-desc: form.desc?.trim() || "",
+      desc: form.desc?.trim() || "",
       dueAt: form.dueAt ? form.dueAt.toISOString() : null,
     };
     const incidentId = form.relatedIncidentId ? String(form.relatedIncidentId) : "";
@@ -106,6 +259,35 @@ desc: form.desc?.trim() || "",
     } else {
       payload.relatedIncidentId = null;
       payload.incidentTitle = null;
+    }
+    const selectedIds = normalizedFormProtocols;
+    payload.linkedProtocolNrs = selectedIds;
+    if (selectedIds.length) {
+      const details = [];
+      for (const id of selectedIds) {
+        const lookupEntry = protocolLookup && typeof protocolLookup.get === "function" ? protocolLookup.get(id) : null;
+        const sourceDetail =
+          sanitizeProtocolDetail(lookupEntry) ||
+          existingLinkedMap.get(id) ||
+          { nr: id };
+        const detail = { nr: sourceDetail.nr };
+        const assign = (key) => {
+          const value = sourceDetail[key];
+          if (value == null) return;
+          const text = String(value).trim();
+          if (text) detail[key] = text;
+        };
+        assign("title");
+        assign("information");
+        assign("infoTyp");
+        assign("datum");
+        assign("zeit");
+        assign("anvon");
+        details.push(detail);
+      }
+      payload.linkedProtocols = details;
+    } else {
+      payload.linkedProtocols = [];
     }
     await onSave?.(payload);
     setEdit(false);
@@ -247,6 +429,34 @@ desc: form.desc?.trim() || "",
               </div>
             ) : null}
             <div>
+              <div className="text-xs text-gray-600">Verknüpfte Meldungen</div>
+              {selectedProtocolDetails.length ? (
+                <ul className="mt-1 space-y-1">
+                  {selectedProtocolDetails.map((detail) => {
+                    const nr = detail.nr;
+                    const label = formatProtocolLabel(detail);
+                    return (
+                      <li key={nr}>
+                        <button
+                          type="button"
+                          className="text-blue-700 hover:underline"
+                          onClick={() => {
+                            if (!nr) return;
+                            window.location.assign(`/protokoll#/protokoll/edit/${nr}`);
+                          }}
+                          title={nr ? `Meldung #${nr} öffnen` : "Meldung öffnen"}
+                        >
+                          {label}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <div className="text-sm">—</div>
+              )}
+            </div>
+            <div>
               <div className="text-xs text-gray-600">Notizen</div>
               <div className="whitespace-pre-wrap break-words">{it.desc || "—"}</div>
             </div>
@@ -305,6 +515,58 @@ desc: form.desc?.trim() || "",
                     );
                   })}
                 </select>
+              </label>
+              <label className="block col-span-2">
+                <span className="text-xs text-gray-600">Verknüpfte Meldungen</span>
+                <div className="mt-1 flex flex-col gap-2">
+                  <div className="max-h-48 overflow-y-auto border rounded divide-y">
+                    {availableProtocolOptions.length ? (
+                      availableProtocolOptions.map((opt) => {
+                        const checked = normalizedFormProtocols.includes(opt.value);
+                        return (
+                          <label
+                            key={opt.value}
+                            className="flex items-start gap-2 px-2 py-2 text-sm hover:bg-gray-50"
+                          >
+                            <input
+                              type="checkbox"
+                              className="mt-1"
+                              checked={checked}
+                              onChange={() => toggleProtocolSelection(opt.value)}
+                            />
+                            <span>{opt.label}</span>
+                          </label>
+                        );
+                      })
+                    ) : (
+                      <div className="px-2 py-2 text-sm text-gray-500">
+                        Keine Meldungen verfügbar.
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-[11px] text-gray-500">
+                    Meldungen, bei denen diese Rolle als „ergeht an“ eingetragen ist.
+                  </div>
+                  {missingProtocols.length ? (
+                    <div className="rounded border border-amber-300 bg-amber-50 px-2 py-2 text-xs text-amber-800">
+                      <div className="font-semibold mb-1">Bereits verknüpft (nicht mehr in der Auswahl)</div>
+                      <ul className="space-y-1">
+                        {missingProtocols.map((detail) => (
+                          <li key={detail.nr} className="flex items-start justify-between gap-2">
+                            <span>{formatProtocolLabel(detail)}</span>
+                            <button
+                              type="button"
+                              className="text-red-600 hover:underline"
+                              onClick={() => toggleProtocolSelection(detail.nr)}
+                            >
+                              Entfernen
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </div>
               </label>
             </div>
             <label className="block">
