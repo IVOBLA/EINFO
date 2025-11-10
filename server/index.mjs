@@ -149,6 +149,35 @@ async function loginOnce() {
   return true;
 }
 
+async function ensureLoggedIn() {
+  const already = await checkLogin().catch(() => false);
+  if (already) return true;
+
+  console.error(`[WARN] ${nowIso()} – Session/Login ungültig. Versuche Neu-Anmeldung…`);
+
+  const MAX_RETRIES = Number(process.env.FF_LOGIN_MAX_RETRIES || 3);
+  const RETRY_DELAY_MS = Number(process.env.FF_LOGIN_RETRY_DELAY_MS || 5000);
+
+  for (let attempt = 1; attempt <= MAX_RETRIES || MAX_RETRIES === 0; attempt += 1) {
+    const ok = await loginOnce().catch(e => {
+      console.error(`[ERROR] ${nowIso()} – Login-Ausnahme (Versuch ${attempt}): ${e?.message || String(e)}`);
+      return false;
+    });
+    if (ok) {
+      console.error(`[INFO] ${nowIso()} – Neu-Anmeldung erfolgreich (Versuch ${attempt}).`);
+      return true;
+    }
+
+    if (MAX_RETRIES !== 0 && attempt >= MAX_RETRIES) break;
+
+    console.error(`[WARN] ${nowIso()} – Neu-Anmeldung fehlgeschlagen (Versuch ${attempt}). Wiederhole in ${RETRY_DELAY_MS} ms…`);
+    await sleep(RETRY_DELAY_MS);
+  }
+
+  console.error(`[ERROR] ${nowIso()} – Neu-Anmeldung dauerhaft fehlgeschlagen.`);
+  return false;
+}
+
 // ---------- Daten holen ----------
 async function fetchListOnce() {
   const url = `${LIST_PATH}${LIST_EXTRA || ""}`;
@@ -187,10 +216,10 @@ let stopRequested = false;
 async function loop() {
   while (!stopRequested) {
     try {
-      const stillOk = await checkLogin();
+      const stillOk = await ensureLoggedIn();
       if (!stillOk) {
-        console.error(`[WARN] ${nowIso()} – Session/Login verloren. Beende…`);
-        process.exit(EXIT_SESSION_LOST);
+        await sleep(POLL_MS);
+        continue;
       }
 
 
@@ -254,7 +283,7 @@ process.on("unhandledRejection", (err) => {
   console.error(`[BOOT] ${nowIso()} – starting fetcher`);
   console.error(`[BOOT] OUT_FILE=${OUT_FILE} POLL_MS=${POLL_MS} DEBUG=${DEBUG ? "1" : "0"} TIMEOUT_MIN=${TIMEOUT_MIN}`);
 
-  const ok = await loginOnce().catch(e => {
+  const ok = await ensureLoggedIn().catch(e => {
     console.error("[ERROR] Login exception:", e?.message || String(e));
     return false;
   });
