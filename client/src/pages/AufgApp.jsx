@@ -28,6 +28,8 @@ const INCIDENT_STATUS_KEYS = ["neu", "in-bearbeitung", "erledigt"];
 const FALLBACK_DUE_OFFSET_MINUTES = getFallbackDueOffsetMinutes();
 const PRIMARY_ROLE_SWITCH_IDS = ["LTSTB", "LTSTBSTV"];
 const FALLBACK_SWITCH_ROLE_ID = "S3";
+const PROTOCOL_PREFILL_STORAGE_KEY = "prot_prefill_from_task";
+const PROTOCOL_PREFILL_SOURCE = "task-card";
 
 const normalizeDefaultDueOffset = (value) => ensureValidDueOffset(value);
 
@@ -78,6 +80,18 @@ const norm = (s) =>
     .toLowerCase()
     .replace(/\s+/g, " ")
     .trim();
+
+const buildProtocolDescription = (item) => {
+  if (!item) return "";
+  const parts = [];
+  const title = String(item.title ?? "").trim();
+  const desc = String(item.desc ?? "").trim();
+  const responsible = String(item.responsible ?? "").trim();
+  if (title) parts.push(title);
+  if (desc) parts.push(desc);
+  if (responsible) parts.push(`Verantwortlich: ${responsible}`);
+  return parts.join("\n\n").trim();
+};
 
 function getCurrentUser() {
   try {
@@ -509,6 +523,20 @@ export default function AufgApp() {
     const found = items.find((x) => x.id === item.id);
     setActiveItem(found || item);
   }, [items]);
+  const handleCreateProtocol = useCallback((item) => {
+    if (!item) return;
+    const payload = {
+      source: PROTOCOL_PREFILL_SOURCE,
+      description: buildProtocolDescription(item),
+      title: String(item?.title ?? "").trim() || null,
+      taskId: item?.id ?? null,
+      createdAt: item?.createdAt ?? null,
+    };
+    try {
+      sessionStorage.setItem(PROTOCOL_PREFILL_STORAGE_KEY, JSON.stringify(payload));
+    } catch {}
+    window.location.hash = "/protokoll/neu";
+  }, []);
   // ---- Pfeil „Weiter→“ → jetzt dedizierter Status-Endpunkt
   const advance = useCallback((item) => {
      if (!allowEdit) return;     // read-only blocken
@@ -680,6 +708,7 @@ export default function AufgApp() {
                   onShowInfo={handleShowInfo}
                   isNew={freshIds.has(String(it.id))}
                   incidentLookup={incidentIndex.map}
+                  onCreateProtocol={handleCreateProtocol}
                 />
               ))}
             </AufgDroppableColumn>
@@ -701,6 +730,7 @@ export default function AufgApp() {
                   onShowInfo={handleShowInfo}
                   isNew={freshIds.has(String(it.id))}
                   incidentLookup={incidentIndex.map}
+                  onCreateProtocol={handleCreateProtocol}
                 />
               ))}
             </AufgDroppableColumn>
@@ -722,6 +752,7 @@ export default function AufgApp() {
                   onShowInfo={handleShowInfo}
                   isNew={freshIds.has(String(it.id))}
                   incidentLookup={incidentIndex.map}
+                  onCreateProtocol={handleCreateProtocol}
                 />
               ))}
             </AufgDroppableColumn>

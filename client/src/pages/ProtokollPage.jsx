@@ -39,6 +39,10 @@ const LS_KEYS = {
   verantwortlich: "prot_sugg_ver",
 };
 
+const TASK_PREFILL_STORAGE_KEY = "prot_prefill_from_task";
+const TASK_PREFILL_SOURCE = "task-card";
+const PROTOCOL_TASK_OVERRIDE_HEADER = "X-Protocol-Task-Override";
+
 
 
 
@@ -121,6 +125,8 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
 
   const { user } = useUserAuth() || {};
   const [creatingTask, setCreatingTask] = useState(false);
+  const [taskOverrideActive, setTaskOverrideActive] = useState(false);
+  const [taskPrefill, setTaskPrefill] = useState(null);
   const { roles: onlineRoles } = useOnlineRoles();
   const ltStbOnline = useMemo(
     () => onlineRoles.some((roleId) => roleId === "LTSTB" || roleId === "LTSTBSTV"),
@@ -200,6 +206,39 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
   };
 
   useEffect(() => {
+    if (mode !== "create" || taskOverrideActive) return;
+    let raw = null;
+    try {
+      raw = sessionStorage.getItem(TASK_PREFILL_STORAGE_KEY);
+    } catch {
+      raw = null;
+    }
+    if (!raw) return;
+    try {
+      sessionStorage.removeItem(TASK_PREFILL_STORAGE_KEY);
+    } catch {}
+    let data = null;
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      data = null;
+    }
+    if (!data || data?.source !== TASK_PREFILL_SOURCE) return;
+    const desc = String(data?.description ?? "").trim();
+    const infoTypPrefill = String(data?.infoTyp ?? "").trim();
+    setTaskPrefill(data);
+    setTaskOverrideActive(true);
+    setForm((prev) => {
+      const next = structuredClone(prev);
+      if (desc) next.information = desc;
+      if (infoTypPrefill) next.infoTyp = infoTypPrefill;
+      return next;
+    });
+    setTimeout(() => informationRef.current?.focus(), 0);
+    showToast?.("info", "Meldungsformular aus Aufgabe geöffnet – Angaben prüfen und ergänzen.");
+  }, [mode, taskOverrideActive]);
+
+  useEffect(() => {
     if (isEditMode && canEdit) {
       setLockStatus("pending");
       setLockError(null);
@@ -230,6 +269,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
   // ---- Formular-State + Helper ----------------------------------------------
   const [form, setForm] = useState(initialForm());
   const hasEditLock = !isEditMode || lockStatus === "acquired";
+  const effectiveCanEdit = canEdit || taskOverrideActive;
   const clearError = (key) => {
     if (!key) return;
     setErrors((prev) => {
@@ -245,7 +285,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
       const prevConfirm = prev?.otherRecipientConfirmation || defaultConfirmation();
       const prevRoleUpper = String(prevConfirm.byRole || "").toUpperCase();
       const confirmed = !!prevConfirm.confirmed;
-      if (!canEdit || !hasEditLock || (confirmed && !confirmRoleSet.has(prevRoleUpper))) return prev;
+      if (!effectiveCanEdit || !hasEditLock || (confirmed && !confirmRoleSet.has(prevRoleUpper))) return prev;
       const next = structuredClone(prev);
       let ref = next;
       for (let i = 0; i < parts.length - 1; i++) ref = ref[parts[i]];
@@ -277,7 +317,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
   const lockedByOtherUser = isEditMode && lockStatus === "blocked";
   const isS3 = hasRole("S3", user);
 const s3BlockedByLtStb = isS3 && ltStbOnline;
-  const canModify = canEdit && hasEditLock && !lockedByOtherRole && !s3BlockedByLtStb;
+  const canModify = effectiveCanEdit && hasEditLock && !lockedByOtherRole && !s3BlockedByLtStb;
   const lockInfoText = lockedByOtherRole && confirmationDetails
     ? `Bestätigt durch ${confirmationDetails.roleLabel}${confirmationDetails.by ? ` (${confirmationDetails.by})` : ""}${confirmationDetails.whenText ? ` am ${confirmationDetails.whenText}` : ""}`
     : null;
@@ -864,9 +904,13 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
       setNr(r.nr); setId(r.id || id || null);
       return r.nr;
     } else {
+      const headers = {
+        "Content-Type": "application/json",
+        ...(taskOverrideActive ? { [PROTOCOL_TASK_OVERRIDE_HEADER]: "1" } : {}),
+      };
       const r = await fetch("/api/protocol", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         credentials: "include",
         body: JSON.stringify(payload),
       }).then(res => res.json());
@@ -957,6 +1001,12 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
           </div>
         </div>
       </div>
+
+      {taskPrefill && (
+        <div className="mx-2 md:mx-0 mt-3 px-3 py-2 rounded border border-sky-300 bg-sky-50 text-sky-900 text-sm">
+          Meldung aus Aufgabe vorbereitet{taskPrefill?.title ? `: ${taskPrefill.title}` : ""}.
+        </div>
+      )}
 
       {lockedByOtherUser && lockBlockedInfoText && (
         <div className="mx-2 md:mx-0 mt-3 px-3 py-2 rounded border border-amber-300 bg-amber-50 text-amber-900 text-sm">

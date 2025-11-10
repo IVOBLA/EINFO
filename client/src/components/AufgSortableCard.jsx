@@ -10,7 +10,8 @@ export default function AufgSortableCard({
   disableAdvance,
   isNew,
   incidentLookup,
-}) { 
+  onCreateProtocol,
+}) {
   const it = item || {}; // Falls item nicht vorhanden ist, wird es als leeres Objekt gesetzt.
   if (!it) return null; 
 
@@ -137,17 +138,30 @@ const [dueState, setDueState] = useState("none"); // none | soon | overdue
 
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-semibold leading-tight">{it.title || "Ohne Titel"}</h3>
-          <button
-            className={`text-xs px-2 py-1 rounded ${disableAdvance ? "bg-gray-200 text-gray-500" : "bg-emerald-600 text-white hover:bg-emerald-700"}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (!disableAdvance) onAdvance?.(it);
-            }}
-            disabled={disableAdvance}
-            title="Status weiter"
-          >
-            ➜
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              className="text-xs px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700"
+              onClick={(e) => {
+                e.stopPropagation();
+                onCreateProtocol?.(it);
+              }}
+              title="Meldung aus Aufgabe erstellen"
+              aria-label="Meldung aus Aufgabe erstellen"
+            >
+              ✎
+            </button>
+            <button
+              className={`text-xs px-2 py-1 rounded ${disableAdvance ? "bg-gray-200 text-gray-500" : "bg-emerald-600 text-white hover:bg-emerald-700"}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (!disableAdvance) onAdvance?.(it);
+              }}
+              disabled={disableAdvance}
+              title="Status weiter"
+            >
+              ➜
+            </button>
+          </div>
         </div>
 
         {/* Typ + Verantwortlich */}
