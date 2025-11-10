@@ -43,6 +43,24 @@ const TASK_PREFILL_STORAGE_KEY = "prot_prefill_from_task";
 const TASK_PREFILL_SOURCE = "task-card";
 const PROTOCOL_TASK_OVERRIDE_HEADER = "X-Protocol-Task-Override";
 
+const TASK_PREFILL_QUERY_PARAM = "prefillToken";
+
+function readTaskPrefillToken() {
+  if (typeof window === "undefined") return null;
+  try {
+    const hash = window.location.hash || "";
+    const queryIndex = hash.indexOf("?");
+    if (queryIndex === -1) return null;
+    const params = new URLSearchParams(hash.slice(queryIndex + 1));
+    const token = params.get(TASK_PREFILL_QUERY_PARAM) || params.get("prefill");
+    if (!token) return null;
+    const trimmed = token.trim();
+    return trimmed ? trimmed : null;
+  } catch {
+    return null;
+  }
+}
+
 
 
 
@@ -174,6 +192,9 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
   const [creatingTask, setCreatingTask] = useState(false);
   const [taskOverrideActive, setTaskOverrideActive] = useState(false);
   const [taskPrefill, setTaskPrefill] = useState(null);
+  const [taskPrefillToken] = useState(() => readTaskPrefillToken());
+  const taskPrefillStorageKey = taskPrefillToken ? `${TASK_PREFILL_STORAGE_KEY}:${taskPrefillToken}` : TASK_PREFILL_STORAGE_KEY;
+  const taskPrefillNewTab = !!taskPrefillToken;
   const { roles: onlineRoles } = useOnlineRoles();
   const ltStbOnline = useMemo(
     () => onlineRoles.some((roleId) => roleId === "LTSTB" || roleId === "LTSTBSTV"),
@@ -256,14 +277,27 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
   useEffect(() => {
     if (mode !== "create" || taskOverrideActive) return;
     let raw = null;
-    try {
-      raw = sessionStorage.getItem(TASK_PREFILL_STORAGE_KEY);
-    } catch {
-      raw = null;
+    if (taskPrefillToken) {
+      try {
+        raw = localStorage.getItem(taskPrefillStorageKey);
+      } catch {
+        raw = null;
+      }
+    }
+    if (!raw) {
+      try {
+        raw = sessionStorage.getItem(taskPrefillStorageKey);
+      } catch {
+        raw = null;
+      }
     }
     if (!raw) return;
     try {
-      sessionStorage.removeItem(TASK_PREFILL_STORAGE_KEY);
+      if (taskPrefillToken) {
+        localStorage.removeItem(taskPrefillStorageKey);
+      } else {
+        sessionStorage.removeItem(taskPrefillStorageKey);
+      }
     } catch {}
     let data = null;
     try {
@@ -291,7 +325,20 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
     if (originZu) setZu(originZu);
     setTimeout(() => informationRef.current?.focus(), 0);
     showToast?.("info", "Meldungsformular aus Aufgabe geöffnet – Angaben prüfen und ergänzen.");
-  }, [mode, taskOverrideActive, userRoleLabel]);
+  }, [mode, taskOverrideActive, userRoleLabel, taskPrefillToken, taskPrefillStorageKey]);
+
+  useEffect(() => {
+    if (!taskPrefillToken) return;
+    try {
+      const url = new URL(window.location.href);
+      const currentHash = url.hash || "";
+      const idx = currentHash.indexOf("?");
+      if (idx >= 0) {
+        url.hash = currentHash.slice(0, idx);
+        window.history.replaceState(null, "", url.toString());
+      }
+    } catch {}
+  }, [taskPrefillToken]);
 
   useEffect(() => {
     if (isEditMode && canEdit) {
@@ -808,6 +855,19 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
     }
   };
 
+  const navigateToOverview = () => {
+    if (taskPrefillNewTab) {
+      window.close();
+      setTimeout(() => {
+        if (!window.closed) {
+          window.location.hash = "/protokoll";
+        }
+      }, 150);
+    } else {
+      window.location.hash = "/protokoll";
+    }
+  };
+
   const handleCancel = () => {
     try {
       const maybePromise = lockReleaseRef.current?.();
@@ -815,7 +875,7 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
         maybePromise.catch(() => {});
       }
     } catch {}
-    window.location.hash = "/protokoll";
+    navigateToOverview();
   };
 
   // ---- Speichern (FormData + State-Merge) ----
@@ -982,16 +1042,21 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
 
   const handleSaveClose = async () => {
     if (!canModify) { showModificationDenied(); return; }
-        if (saving) return;
+    if (saving) return;
     setSaving(true);
-    try { const nrSaved = await saveCore(); if (nrSaved) window.location.hash = "/protokoll"; }
-    catch (e) { showToast("error", "Fehler beim Speichern: " + e.message, 4000); }
-    finally { setSaving(false); }
+    try {
+      const nrSaved = await saveCore();
+      if (nrSaved) navigateToOverview();
+    } catch (e) {
+      showToast("error", "Fehler beim Speichern: " + e.message, 4000);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSaveNew = async () => {
     if (!canModify) { showModificationDenied(); return; }
-        if (saving) return;
+    if (saving) return;
     setSaving(true);
     try {
       const nrSaved = await saveCore();
