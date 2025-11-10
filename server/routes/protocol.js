@@ -174,6 +174,9 @@ const CSV_FILE   = path.join(DATA_DIR, "protocol.csv");
 const JSON_FILE  = path.join(DATA_DIR, "protocol.json");
 const ROLES_FILE = path.join(DATA_DIR, "user", "User_roles.json");
 const PROTOCOL_APP_ID = "protokoll";
+const AUFGABEN_APP_ID = "aufgabenboard";
+const TASK_OVERRIDE_HEADER = "x-protocol-task-override";
+const TRUE_HEADER_VALUES = new Set(["1", "true", "yes", "on"]);
 
 User_initStore(DATA_DIR);
 
@@ -222,7 +225,7 @@ async function loadRolesVAny() {
   }
 }
 
-async function userHasProtocolEditPermission(req) {
+async function userHasAppEditPermission(req, appId) {
   const actorRoles = collectActorRoles(req);
   if (!actorRoles.size) return false;
   const roles = await loadRolesVAny();
@@ -234,10 +237,27 @@ async function userHasProtocolEditPermission(req) {
   for (const roleId of actorRoles) {
     const role = roleMap.get(roleId);
     if (!role) continue;
-    const level = role.apps?.[PROTOCOL_APP_ID];
-    if (level === "edit") return true;
+    const level = role.apps?.[appId];
+    if (typeof level !== "string") continue;
+    if (level.toLowerCase() === "edit") return true;
   }
   return false;
+}
+
+async function userHasProtocolEditPermission(req) {
+  return userHasAppEditPermission(req, PROTOCOL_APP_ID);
+}
+
+async function userHasAufgabenboardEditPermission(req) {
+  return userHasAppEditPermission(req, AUFGABEN_APP_ID);
+}
+
+function hasTaskOverrideRequest(req) {
+  const headerValue = req?.get?.(TASK_OVERRIDE_HEADER) ?? req?.headers?.[TASK_OVERRIDE_HEADER];
+  if (headerValue == null) return false;
+  const value = Array.isArray(headerValue) ? headerValue[0] : headerValue;
+  if (typeof value !== "string") return false;
+  return TRUE_HEADER_VALUES.has(value.trim().toLowerCase());
 }
 
 const LOCK_TTL_MS = 5 * 60 * 1000; // 5 Minuten
@@ -606,7 +626,9 @@ router.post("/", express.json(), async (req, res) => {
     if (!identity.userId) {
       return res.status(401).json({ ok: false, error: "UNAUTHORIZED" });
     }
-    if (!(await userHasProtocolEditPermission(req))) {
+    const hasProtocolPermission = await userHasProtocolEditPermission(req);
+    const allowTaskOverride = hasTaskOverrideRequest(req) && await userHasAufgabenboardEditPermission(req);
+    if (!hasProtocolPermission && !allowTaskOverride) {
       return res.status(403).json({ ok: false, error: "EDIT_FORBIDDEN" });
     }
     const actorRoles = collectActorRoles(req);
@@ -617,6 +639,9 @@ router.post("/", express.json(), async (req, res) => {
       printCount: 0,
       history: []
     };
+    if (allowTaskOverride) {
+      payload.meta = { ...(payload.meta || {}), createdVia: "task-board" };
+    }
     try {
       payload.otherRecipientConfirmation = sanitizeConfirmation(req.body?.otherRecipientConfirmation, {
         existing: null,
