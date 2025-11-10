@@ -322,6 +322,7 @@ const rows = useMemo(
           <thead className="bg-gray-50 sticky top-0 z-10">
             <tr className="[&>th]:px-2 [&>th]:py-2 [&>th]:text-left [&>th]:font-semibold border-b">
               <th style={{ width: 70 }} className="text-center" title="Druckanzahl">NR</th>
+              <th style={{ width: 70 }} className="text-center">ZU</th>
               <th style={{ width: 60 }}>Druck</th>
               <th style={{ width: 110 }}>Datum</th>
               <th style={{ width: 80 }}>Zeit</th>
@@ -444,6 +445,7 @@ const rows = useMemo(
                       </span>
                     )}
                   </td>
+                  <td className="align-middle text-center font-semibold">{r.zu ? r.zu : "—"}</td>
                   <td className="font-semibold">{printCount}</td>
                   <td>{r.datum}</td>
                   <td>{r.zeit}</td>
@@ -457,7 +459,7 @@ const rows = useMemo(
             })}
             {!rows.length && (
               <tr>
-                <td colSpan={9} className="p-4 text-gray-500 italic">— keine Einträge —</td>
+                <td colSpan={10} className="p-4 text-gray-500 italic">— keine Einträge —</td>
               </tr>
             )}
           </tbody>

@@ -30,6 +30,7 @@ const canonicalRoleId = (value) => {
 };
 
 const normalizeRoleValue = (value) => (typeof value === "string" ? value.trim() : "");
+const sanitizeZu = (value) => (typeof value === "string" ? value.trim() : "");
 const resolveActorRole = (req) => {
   const direct = normalizeRoleValue(req?.user?.role);
   if (direct) return direct;
@@ -395,6 +396,11 @@ function migrateMeta(arr) {
       it.otherRecipientConfirmation = normalizedConfirm;
       changed = true;
     }
+    const normalizedZu = sanitizeZu(it.zu);
+    if (it.zu !== normalizedZu) {
+      it.zu = normalizedZu;
+      changed = true;
+    }
   }
   return changed;
 }
@@ -639,6 +645,7 @@ router.post("/", express.json(), async (req, res) => {
       printCount: 0,
       history: []
     };
+    payload.zu = sanitizeZu(payload.zu);
     if (allowTaskOverride) {
       payload.meta = { ...(payload.meta || {}), createdVia: "task-board" };
     }
@@ -716,7 +723,7 @@ try {
 } catch (err) {
   console.warn("[protocol→tasks POST]", err?.message || err);
 }
-	res.json({ ok: true, nr, id: payload.id });
+        res.json({ ok: true, nr, id: payload.id, zu: payload.zu ?? "" });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
@@ -758,6 +765,7 @@ router.put("/:nr", express.json(), async (req, res) => {
       id: existing.id,
       history: existing.history || []
     };
+    next.zu = sanitizeZu(next.zu ?? existing.zu);
 
     try {
       next.otherRecipientConfirmation = sanitizeConfirmation(req.body?.otherRecipientConfirmation, {
@@ -899,7 +907,7 @@ router.put("/:nr", express.json(), async (req, res) => {
      }
    }
  } catch (e) { console.warn("[protocol->tasks PUT]", e?.message || e); }
-    res.json({ ok: true, nr, id: next.id });
+    res.json({ ok: true, nr, id: next.id, zu: next.zu ?? "" });
   } catch (e) {
     res.status(500).json({ ok: false, error: e.message });
   }
