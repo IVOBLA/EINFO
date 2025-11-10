@@ -47,6 +47,41 @@ const PROTOCOL_TASK_OVERRIDE_HEADER = "X-Protocol-Task-Override";
 
 
 
+function resolveUserRoleLabel(user) {
+  if (!user) return "";
+  const collect = [];
+  const pushValue = (value) => {
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (trimmed) collect.push(trimmed);
+    }
+  };
+  const role = user.role;
+  if (role && typeof role === "object") {
+    pushValue(role.displayName);
+    pushValue(role.label);
+    pushValue(role.name);
+    pushValue(role.id);
+  } else {
+    pushValue(role);
+  }
+  if (Array.isArray(user.roles)) {
+    for (const entry of user.roles) {
+      if (entry && typeof entry === "object") {
+        pushValue(entry.displayName);
+        pushValue(entry.label);
+        pushValue(entry.name);
+        pushValue(entry.id);
+      } else {
+        pushValue(entry);
+      }
+    }
+  }
+  if (!collect.length) return "";
+  return collect[0];
+}
+
+
 
 
 // 2) Maßnahme → Aufgabe anlegen (mit Herkunft & optional Ziel-Rolle)
@@ -135,6 +170,7 @@ const initialForm = () => ({
 export default function ProtokollPage({ mode = "create", editNr = null }) {
 
   const { user } = useUserAuth() || {};
+  const userRoleLabel = useMemo(() => resolveUserRoleLabel(user), [user]);
   const [creatingTask, setCreatingTask] = useState(false);
   const [taskOverrideActive, setTaskOverrideActive] = useState(false);
   const [taskPrefill, setTaskPrefill] = useState(null);
@@ -244,13 +280,18 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
       const next = structuredClone(prev);
       if (desc) next.information = desc;
       if (infoTypPrefill) next.infoTyp = infoTypPrefill;
+      next.anvon = next.anvon || { richtung: "", name: "" };
+      next.anvon.richtung = "von";
+      if (userRoleLabel) {
+        next.anvon.name = userRoleLabel;
+      }
       return next;
     });
     const originZu = normalizeProtocolNr(data?.originProtocolNr);
     if (originZu) setZu(originZu);
     setTimeout(() => informationRef.current?.focus(), 0);
     showToast?.("info", "Meldungsformular aus Aufgabe geöffnet – Angaben prüfen und ergänzen.");
-  }, [mode, taskOverrideActive]);
+  }, [mode, taskOverrideActive, userRoleLabel]);
 
   useEffect(() => {
     if (isEditMode && canEdit) {
@@ -1071,13 +1112,15 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
             <div className="text-3xl font-extrabold tracking-wide">MELDUNG/INFORMATION</div>
           </div>
           <div className="col-span-3 border-l-2">
-            <div className="border-b-2">
-              <div className="px-2 py-1 text-[10px] text-gray-600 border-b-2">PROTOKOLL-NR</div>
-              <div className="px-2 py-1.5 text-center text-xl font-semibold">{nr ?? "—"}</div>
-            </div>
-            <div>
-              <div className="px-2 py-1 text-[10px] text-gray-600 border-b-2">ZU</div>
-              <div className="px-2 py-1.5 text-center text-lg font-semibold">{zu ? zu : "—"}</div>
+            <div className="grid grid-cols-2">
+              <div className="border-b-2">
+                <div className="px-2 py-1 text-[10px] text-gray-600 border-b-2">PROTOKOLL-NR</div>
+                <div className="px-2 py-1.5 text-center text-xl font-bold">{nr ?? "—"}</div>
+              </div>
+              <div className="border-l-2 border-b-2">
+                <div className="px-2 py-1 text-[10px] text-gray-600 border-b-2">ZU</div>
+                <div className="px-2 py-1.5 text-center text-lg font-normal">{zu ? zu : "—"}</div>
+              </div>
             </div>
           </div>
 
