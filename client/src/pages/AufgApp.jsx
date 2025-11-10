@@ -694,12 +694,14 @@ export default function AufgApp() {
   }, [items]);
   const handleCreateProtocol = useCallback((item) => {
     if (!item) return;
+    const normalizedOriginNr = normalizeProtocolId(item?.originProtocolNr);
     const payload = {
       source: PROTOCOL_PREFILL_SOURCE,
       description: buildProtocolDescription(item),
       title: String(item?.title ?? "").trim() || null,
       taskId: item?.id ?? null,
       createdAt: item?.createdAt ?? null,
+      originProtocolNr: normalizedOriginNr || null,
     };
     try {
       sessionStorage.setItem(PROTOCOL_PREFILL_STORAGE_KEY, JSON.stringify(payload));
