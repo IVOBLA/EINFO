@@ -779,6 +779,7 @@ export default function AufgApp() {
           canEdit={allowEdit}
           incidentOptions={incidentIndex.options}
           incidentLookup={incidentIndex.map}
+          onCreateProtocol={handleCreateProtocol}
         />
       ) : null}
     </div>
