@@ -703,14 +703,30 @@ export default function AufgApp() {
       createdAt: item?.createdAt ?? null,
       originProtocolNr: normalizedOriginNr || null,
     };
-    try {
-      sessionStorage.setItem(PROTOCOL_PREFILL_STORAGE_KEY, JSON.stringify(payload));
-    } catch {}
-    const basePath = typeof window?.location?.pathname === "string" ? window.location.pathname : "";
-    if (basePath.startsWith("/protokoll")) {
-      window.location.hash = "/protokoll/neu";
-    } else {
-      window.location.assign("/protokoll#/protokoll/neu");
+
+    const openInNewTab = () => {
+      const token = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+      const storageKey = `${PROTOCOL_PREFILL_STORAGE_KEY}:${token}`;
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(payload));
+      } catch {}
+      const targetUrl = `/protokoll#/protokoll/neu?prefillToken=${encodeURIComponent(token)}`;
+      const win = window.open(targetUrl, "_blank", "noopener,noreferrer");
+      if (win) return true;
+      try { localStorage.removeItem(storageKey); } catch {}
+      return false;
+    };
+
+    if (!openInNewTab()) {
+      try {
+        sessionStorage.setItem(PROTOCOL_PREFILL_STORAGE_KEY, JSON.stringify(payload));
+      } catch {}
+      const basePath = typeof window?.location?.pathname === "string" ? window.location.pathname : "";
+      if (basePath.startsWith("/protokoll")) {
+        window.location.hash = "/protokoll/neu";
+      } else {
+        window.location.assign("/protokoll#/protokoll/neu");
+      }
     }
   }, []);
   // ---- Pfeil „Weiter→“ → jetzt dedizierter Status-Endpunkt
