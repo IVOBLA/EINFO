@@ -23,6 +23,7 @@ export default function AufgInfoModal({
   canEdit,
   incidentOptions = [],
   incidentLookup,
+  onCreateProtocol,
 }) {
   const it = item || null;
   const [edit, setEdit] = useState(false);
@@ -152,6 +153,19 @@ desc: form.desc?.trim() || "",
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold">Aufgabe</h2>
           <div className="flex items-center gap-2">
+            {onCreateProtocol ? (
+              <button
+                type="button"
+                onClick={() => {
+                  onCreateProtocol(it);
+                  onClose?.();
+                }}
+                className="px-3 py-1.5 rounded bg-blue-600 hover:bg-blue-700 text-white"
+                title="Meldung aus Aufgabe erstellen"
+              >
+                Meldung
+              </button>
+            ) : null}
             {canEdit ? (
               !edit ? (
                 <button
@@ -181,12 +195,12 @@ desc: form.desc?.trim() || "",
             <button
               onClick={onClose}
               className="text-gray-500 hover:text-gray-700"
-              title="Schließen"
-            >
-              ✕
-            </button>
+                title="Schließen"
+              >
+                ✕
+              </button>
+            </div>
           </div>
-        </div>
 
         {!edit ? (
           <div className="grid grid-cols-1 gap-3">
