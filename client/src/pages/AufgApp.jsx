@@ -33,6 +33,61 @@ const PROTOCOL_PREFILL_SOURCE = "task-card";
 
 const normalizeDefaultDueOffset = (value) => ensureValidDueOffset(value);
 
+const normalizeProtocolId = (value) => {
+  if (value == null) return "";
+  const raw = String(value).trim();
+  if (!raw) return "";
+  if (/^\d+$/.test(raw)) {
+    const normalized = String(Number(raw));
+    return normalized === "0" ? "0" : normalized;
+  }
+  return raw;
+};
+
+const normalizeProtocolIds = (values) => {
+  const out = [];
+  const seen = new Set();
+  for (const value of Array.isArray(values) ? values : []) {
+    const id = normalizeProtocolId(value);
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    out.push(id);
+  }
+  return out;
+};
+
+const sanitizeProtocolEntry = (entry) => {
+  if (!entry) return null;
+  const nr = normalizeProtocolId(entry.nr ?? entry.id ?? entry.value);
+  if (!nr) return null;
+  const detail = { nr };
+  const assign = (key, sourceKey) => {
+    const val = entry[key] ?? (sourceKey ? entry[sourceKey] : undefined);
+    if (val == null) return;
+    const text = String(val).trim();
+    if (text) detail[key] = text;
+  };
+  assign("title");
+  assign("information");
+  assign("infoTyp");
+  assign("datum");
+  assign("zeit");
+  assign("anvon");
+  return detail;
+};
+
+const sanitizeProtocolEntries = (entries) => {
+  const out = [];
+  const seen = new Set();
+  for (const entry of Array.isArray(entries) ? entries : []) {
+    const detail = sanitizeProtocolEntry(entry);
+    if (!detail || seen.has(detail.nr)) continue;
+    seen.add(detail.nr);
+    out.push(detail);
+  }
+  return out;
+};
+
 const createEmptyIncidentIndex = () => ({ options: [], map: new Map() });
 
 function buildIncidentIndex(board) {
@@ -133,6 +188,7 @@ function nextStatus(s) {
 export default function AufgApp() {
   const [items, setItems] = useState([]);
   const [incidentIndex, setIncidentIndex] = useState(() => createEmptyIncidentIndex());
+  const [protocolOptions, setProtocolOptions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("");
@@ -170,6 +226,44 @@ export default function AufgApp() {
   const prevIdsRef = useRef(new Set());
   const myCreatedIdsRef = useRef(new Set());
 
+  const mapTaskItem = useCallback((src) => {
+    if (!src) return null;
+    const statusInput = src.status;
+    const status = [STATUS.NEW, STATUS.IN_PROGRESS, STATUS.DONE].includes(statusInput)
+      ? statusInput
+      : (() => {
+          const str = typeof statusInput === "string" ? statusInput.toLowerCase() : "";
+          if (str.startsWith("in")) return STATUS.IN_PROGRESS;
+          if (str.startsWith("erled")) return STATUS.DONE;
+          return STATUS.NEW;
+        })();
+    const linkedProtocols = sanitizeProtocolEntries(src.linkedProtocols ?? src.meta?.linkedProtocols ?? []);
+    const linkedProtocolNrs = normalizeProtocolIds(
+      src.linkedProtocolNrs ?? src.meta?.linkedProtocolNrs ?? linkedProtocols.map((entry) => entry.nr)
+    );
+    const incidentId = src.relatedIncidentId != null && src.relatedIncidentId !== ""
+      ? String(src.relatedIncidentId)
+      : null;
+    return {
+      id: src.id ?? src._id ?? src.key ?? uuid(),
+      clientId: src.clientId ?? null,
+      title: src.title ?? src.name ?? "Aufgabe",
+      type: src.type ?? src.category ?? "",
+      status,
+      responsible: src.responsible ?? src.verantwortlich ?? "",
+      desc: src.desc ?? src.beschreibung ?? "",
+      dueAt: src.dueAt ?? src.due_at ?? src.deadline ?? src.frist ?? null,
+      createdAt: src.createdAt ?? null,
+      updatedAt: src.updatedAt ?? null,
+      meta: src.meta ?? {},
+      originProtocolNr: src.originProtocolNr ?? null,
+      relatedIncidentId: incidentId,
+      incidentTitle: src.incidentTitle ?? null,
+      linkedProtocolNrs,
+      linkedProtocols,
+    };
+  }, []);
+
   const loadIncidents = useCallback(async (signal = null) => {
     if (signal?.aborted) return;
     try {
@@ -181,6 +275,58 @@ export default function AufgApp() {
       // Bei Fehler Index beibehalten – Board ist optional für Aufgabenverwaltung
     }
   }, []);
+
+  const loadProtocols = useCallback(async (signal = null) => {
+    if (!roleId) {
+      setProtocolOptions([]);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/aufgaben/protocols${roleQuery(roleId)}`, {
+        cache: "no-store",
+        headers: { ...roleHeaders(roleId) },
+        signal,
+      });
+      if (!res.ok) {
+        if (res.status === 403) {
+          notifyForbidden();
+          setProtocolOptions([]);
+          return;
+        }
+        throw new Error(`HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      if (signal?.aborted) return;
+      const rawItems = Array.isArray(data?.items) ? data.items : [];
+      const seen = new Set();
+      const normalized = [];
+      for (const entry of rawItems) {
+        const detail = sanitizeProtocolEntry(entry) || {};
+        const nr = detail.nr || normalizeProtocolId(entry?.nr ?? entry?.id ?? entry?.value);
+        if (!nr || seen.has(nr)) continue;
+        seen.add(nr);
+        normalized.push({
+          nr,
+          title: detail.title ?? entry?.title ?? null,
+          infoTyp: detail.infoTyp ?? entry?.infoTyp ?? null,
+          datum: detail.datum ?? entry?.datum ?? null,
+          zeit: detail.zeit ?? entry?.zeit ?? null,
+          anvon: detail.anvon ?? entry?.anvon ?? null,
+          information: detail.information ?? entry?.information ?? null,
+        });
+      }
+      normalized.sort((a, b) => {
+        const aNum = Number(a.nr);
+        const bNum = Number(b.nr);
+        if (Number.isFinite(aNum) && Number.isFinite(bNum)) return bNum - aNum;
+        return String(b.nr).localeCompare(String(a.nr), "de", { numeric: true });
+      });
+      setProtocolOptions(normalized);
+    } catch (err) {
+      if (signal?.aborted || err?.name === "AbortError") return;
+      setProtocolOptions([]);
+    }
+  }, [roleId]);
 
   // Rollen-Policy einmal laden und Edit-Flag setzen
   useEffect(() => {
@@ -258,7 +404,7 @@ export default function AufgApp() {
 
 
 
-  useEffect(() => {
+ useEffect(() => {
     const controller = new AbortController();
     void loadIncidents(controller.signal);
     const timer = setInterval(() => { void loadIncidents(controller.signal); }, 30_000);
@@ -267,6 +413,23 @@ export default function AufgApp() {
       clearInterval(timer);
     };
   }, [loadIncidents]);
+
+  useEffect(() => {
+    if (!roleId) {
+      setProtocolOptions([]);
+      return;
+    }
+    const controller = new AbortController();
+    void loadProtocols(controller.signal);
+    return () => controller.abort();
+  }, [roleId, loadProtocols]);
+
+  useEffect(() => {
+    if (!activeItem) return;
+    const controller = new AbortController();
+    void loadProtocols(controller.signal);
+    return () => controller.abort();
+  }, [activeItem?.id, loadProtocols]);
 
   // DnD
   const [draggingItem, setDraggingItem] = useState(null);
@@ -292,23 +455,9 @@ export default function AufgApp() {
       }
       const data = await res.json();
       const arr = Array.isArray(data?.items) ? data.items : [];
-      const mapped = arr.map(x => ({
-        id: x.id ?? x._id ?? x.key ?? uuid(),
-        title: x.title ?? x.name ?? "",
-        type: x.type ?? x.category ?? "",
-        status: [STATUS.NEW, STATUS.IN_PROGRESS, STATUS.DONE].includes(x.status) ? x.status : STATUS.NEW,
-        responsible: x.responsible ?? x.verantwortlich ?? "",
-        desc: x.desc ?? x.beschreibung ?? "",
-        dueAt: x.dueAt ?? x.due_at ?? x.deadline ?? x.frist ?? null,
-        createdAt: x.createdAt ?? null,
-        updatedAt: x.updatedAt ?? null,
-        meta: x.meta ?? {},
-        originProtocolNr: x.originProtocolNr ?? null,
-        relatedIncidentId: x.relatedIncidentId != null && x.relatedIncidentId !== ""
-          ? String(x.relatedIncidentId)
-          : null,
-        incidentTitle: x.incidentTitle ?? null,
-      }));
+      const mapped = arr
+        .map((x) => mapTaskItem(x))
+        .filter((item) => item);
       setItems(mapped);
 
       try {
@@ -359,21 +508,30 @@ export default function AufgApp() {
       throw new Error(`HTTP ${res.status}`);
     }
     const j = await res.json();
-    return j.item || patch;
-  }, [roleId]);
+    if (j?.item) return mapTaskItem(j.item);
+    return null;
+  }, [roleId, mapTaskItem]);
 
   const saveItemDetails = useCallback(async (patch) => {
     try {
       const updated = await updateItemOnServer(patch);
-      setItems((prev) =>
-        prev.map((x) => (x.id === updated.id ? { ...x, ...updated } : x))
-      );
-      setActiveItem((prev) => (prev && prev.id === updated.id ? { ...prev, ...updated } : prev));
+      let normalizedResult = updated;
+      setItems((prev) => {
+        const existing = prev.find((x) => x.id === patch.id);
+        const nextItem = normalizedResult || mapTaskItem({ ...(existing || {}), ...patch });
+        if (!nextItem) return prev;
+        normalizedResult = nextItem;
+        return prev.map((x) => (x.id === nextItem.id ? nextItem : x));
+      });
+      setActiveItem((prev) => {
+        if (!prev || prev.id !== patch.id) return prev;
+        return normalizedResult || prev;
+      });
     } catch (e) {
       setError(String(e?.message || e));
       throw e;
     }
-  }, [updateItemOnServer]);
+  }, [updateItemOnServer, mapTaskItem]);
 
   // ---- Persist-Helper: Reorder (DnD) & Status (Pfeil)
   async function persistReorder({ id, toStatus, beforeId }) {
@@ -434,13 +592,24 @@ export default function AufgApp() {
       throw new Error(`HTTP ${res.status}`);
     }
     const json = await res.json();
-    const saved = json?.item || body;
-    if (saved?.id) myCreatedIdsRef.current.add(String(saved.id));
-    return json?.item || body;
+    const rawItem = json?.item || body;
+    const normalized = mapTaskItem(rawItem);
+    if (normalized?.id) myCreatedIdsRef.current.add(String(normalized.id));
+    return normalized;
   }
 
   // ---- Filter + Spalten (wie _old)
- const filtered = useMemo(() => {
+  const protocolLookup = useMemo(() => {
+    const map = new Map();
+    for (const entry of protocolOptions) {
+      const nr = normalizeProtocolId(entry?.nr ?? entry?.id ?? entry?.value);
+      if (!nr) continue;
+      map.set(nr, { ...entry, nr });
+    }
+    return map;
+  }, [protocolOptions]);
+
+  const filtered = useMemo(() => {
     const q = norm(filter);
     const incidentFilter = filterEinsatz ? String(filterEinsatz) : "";
     return items.filter((x) => {
@@ -664,7 +833,7 @@ export default function AufgApp() {
                 onAdded={async (created) => {
                   try {
                     const saved = await createItemOnServer(created); // Speichert das neue Element
-                    setItems((prev) => [saved, ...prev]); // Fügt das neue Element zur Liste hinzu
+                    if (saved) setItems((prev) => [saved, ...prev]); // Fügt das neue Element zur Liste hinzu
                   } catch (e) {
                     setError(String(e?.message || e)); // Fehlerbehandlung
                   }
@@ -779,6 +948,8 @@ export default function AufgApp() {
           canEdit={allowEdit}
           incidentOptions={incidentIndex.options}
           incidentLookup={incidentIndex.map}
+          protocolOptions={protocolOptions}
+          protocolLookup={protocolLookup}
           onCreateProtocol={handleCreateProtocol}
         />
       ) : null}

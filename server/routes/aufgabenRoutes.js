@@ -18,11 +18,24 @@ import {
 
 const router = express.Router();
 
+const trimRoleLabel = (value) => String(value ?? "").trim();
+const canonicalRoleId = (value) => {
+  const raw = trimRoleLabel(value);
+  if (!raw) return "";
+  const match = raw.match(/\b(LTSTBSTV|LTSTB|EL|S[1-6])\b/i);
+  if (match) return match[1].toUpperCase();
+  const collapsed = raw.replace(/\s+/g, "").toUpperCase();
+  if (/^S[1-6]$/.test(collapsed)) return collapsed;
+  if (collapsed === "EL" || collapsed === "LTSTB" || collapsed === "LTSTBSTV") return collapsed;
+  return "";
+};
+
 // ========== Pfade / Dateien ==========
 const AUFG_PREFIX = "Aufg";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.resolve(__dirname, "..", "data");   // => <repo>/server/data
 const ROLES_FILE = path.join(DATA_DIR, "user", "User_roles.json");
+const PROTOCOL_FILE = path.join(DATA_DIR, "protocol.json");
 
 // Helper-Funktionen für Log und Board speichern, siehe vorherige vollständige Implementierung
 
@@ -37,6 +50,60 @@ function normalizeIncidentId(v) {
   if (v == null) return null;
   const s = String(v).trim();
   return s ? s : null;
+}
+
+function normalizeProtocolId(value) {
+  if (value == null) return "";
+  const raw = String(value).trim();
+  if (!raw) return "";
+  if (/^\d+$/.test(raw)) {
+    const normalized = String(Number(raw));
+    return normalized === "0" ? "0" : normalized;
+  }
+  return raw;
+}
+
+function normalizeProtocolIdList(values, fallback = []) {
+  const out = [];
+  const seen = new Set();
+  const source = Array.isArray(values) ? values : fallback;
+  for (const value of source) {
+    const id = normalizeProtocolId(value);
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    out.push(id);
+  }
+  return out;
+}
+
+function normalizeProtocolDetails(entries) {
+  const out = [];
+  const seen = new Set();
+  for (const entry of Array.isArray(entries) ? entries : []) {
+    const id = normalizeProtocolId(entry?.nr ?? entry?.id ?? entry?.value);
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    const detail = { nr: id };
+    const assign = (key, aliases = []) => {
+      const sources = [entry[key], ...aliases.map((alias) => entry[alias])];
+      for (const source of sources) {
+        if (source == null) continue;
+        const text = String(source).trim();
+        if (text) {
+          detail[key] = text;
+          return;
+        }
+      }
+    };
+    assign("title", ["label"]);
+    assign("information", ["desc", "beschreibung", "content"]);
+    assign("infoTyp");
+    assign("datum");
+    assign("zeit");
+    assign("anvon");
+    out.push(detail);
+  }
+  return out;
 }
 
 async function syncProtocolDoneIfNeeded(item, req) {
@@ -79,6 +146,11 @@ function normalizeItem(x) {
     x.actor ??
     null;
   const createdBy = typeof rawCreatedBy === "string" ? rawCreatedBy.trim() : "";
+  const linkedProtocols = normalizeProtocolDetails(x.linkedProtocols ?? x.meta?.linkedProtocols ?? []);
+  const linkedProtocolNrs = normalizeProtocolIdList(
+    x.linkedProtocolNrs ?? x.meta?.linkedProtocolNrs ?? [],
+    linkedProtocols.map((entry) => entry.nr)
+  );
 
   return {
     id: x.id ?? x._id ?? x.key ?? `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -102,6 +174,8 @@ function normalizeItem(x) {
       const s = String(v).trim();
       return s || null;
     })(),
+    linkedProtocolNrs,
+    linkedProtocols,
   };
 }
 
@@ -109,6 +183,86 @@ function normalizeItem(x) {
 router.get("/config", (req, res) => {
   const role = targetRoleOrSend(req, res); if (!role) return;
   res.json({ defaultDueOffsetMinutes: getDefaultDueOffsetMinutes() });
+});
+
+router.get("/protocols", async (req, res) => {
+  const role = targetRoleOrSend(req, res); if (!role) return;
+  try {
+    await ensureDir();
+    let raw;
+    try {
+      raw = await fsp.readFile(PROTOCOL_FILE, "utf8");
+    } catch (err) {
+      if (err && err.code === "ENOENT") {
+        res.json({ items: [] });
+        return;
+      }
+      throw err;
+    }
+    let list = [];
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        list = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.items) ? parsed.items : [];
+      } catch {
+        list = [];
+      }
+    }
+    const roleCandidates = (() => {
+      const candidates = new Set();
+      const base = normRole(role);
+      if (base) candidates.add(base);
+      const canonical = canonicalRoleId(role);
+      if (canonical) candidates.add(canonical);
+      if (candidates.has("LTSTBSTV")) candidates.add("LTSTB");
+      if (candidates.has("LTSTB")) candidates.add("LTSTBSTV");
+      return candidates;
+    })();
+    if (!roleCandidates.size) { res.json({ items: [] }); return; }
+    const seen = new Set();
+    const items = [];
+    for (const entry of list) {
+      if (!entry) continue;
+      const recipients = Array.isArray(entry?.ergehtAn) ? entry.ergehtAn : [];
+      const matches = recipients.some((recipient) => {
+        const normalized = normRole(recipient);
+        if (normalized && roleCandidates.has(normalized)) return true;
+        const canonical = canonicalRoleId(recipient);
+        return canonical && roleCandidates.has(canonical);
+      });
+      if (!matches) continue;
+      const detailSource = {
+        nr: entry?.nr ?? entry?.NR ?? entry?.id ?? entry?.ID,
+        title: entry?.title ?? entry?.betreff ?? null,
+        information: entry?.information ?? entry?.beschreibung ?? entry?.text ?? null,
+        infoTyp: entry?.infoTyp ?? entry?.TYP ?? entry?.type ?? null,
+        datum: entry?.datum ?? entry?.DATUM ?? null,
+        zeit: entry?.zeit ?? entry?.ZEIT ?? null,
+        anvon: entry?.anvon ?? entry?.ANVON ?? entry?.anVon ?? null,
+      };
+      const detail = normalizeProtocolDetails([detailSource])[0];
+      if (!detail?.nr || seen.has(detail.nr)) continue;
+      seen.add(detail.nr);
+      items.push({
+        nr: detail.nr,
+        title: detail.title ?? null,
+        information: detail.information ?? null,
+        infoTyp: detail.infoTyp ?? null,
+        datum: detail.datum ?? null,
+        zeit: detail.zeit ?? null,
+        anvon: detail.anvon ?? null,
+      });
+    }
+    items.sort((a, b) => {
+      const aNum = Number(a.nr);
+      const bNum = Number(b.nr);
+      if (Number.isFinite(aNum) && Number.isFinite(bNum)) return bNum - aNum;
+      return String(b.nr).localeCompare(String(a.nr), "de", { numeric: true });
+    });
+    res.json({ items });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 const STATUSES = ["Neu", "In Bearbeitung", "Erledigt"];
@@ -315,6 +469,22 @@ router.post("/:id/edit", express.json(), async (req, res) => {
 
     const prev = normalizeItem(items[idx]);
     const body = req.body || {};
+    const hasLinkedUpdate =
+      Object.prototype.hasOwnProperty.call(body, "linkedProtocolNrs") ||
+      Object.prototype.hasOwnProperty.call(body, "linkedProtocols");
+    let nextLinkedNrs = prev.linkedProtocolNrs;
+    let nextLinkedDetails = prev.linkedProtocols;
+    if (hasLinkedUpdate) {
+      const incomingDetails = normalizeProtocolDetails(body.linkedProtocols ?? []);
+      const incomingIds = normalizeProtocolIdList(
+        body.linkedProtocolNrs ?? [],
+        incomingDetails.map((entry) => entry.nr)
+      );
+      const detailMap = new Map(incomingDetails.map((entry) => [entry.nr, entry]));
+      const prevMap = new Map((prev.linkedProtocols || []).map((entry) => [entry.nr, entry]));
+      nextLinkedNrs = incomingIds;
+      nextLinkedDetails = incomingIds.map((id) => detailMap.get(id) || prevMap.get(id) || { nr: id });
+    }
     const next = {
       ...prev,
       title: typeof body.title === "string" ? body.title.trim() : prev.title,
@@ -322,7 +492,7 @@ router.post("/:id/edit", express.json(), async (req, res) => {
       responsible: typeof body.responsible === "string" ? body.responsible.trim() : prev.responsible,
       desc: typeof body.desc === "string" ? body.desc : prev.desc,
       dueAt: Object.prototype.hasOwnProperty.call(body, "dueAt") ? normalizeDueAt(body.dueAt) : prev.dueAt,
-	   relatedIncidentId: Object.prototype.hasOwnProperty.call(body, "relatedIncidentId")
+       relatedIncidentId: Object.prototype.hasOwnProperty.call(body, "relatedIncidentId")
         ? normalizeIncidentId(body.relatedIncidentId)
         : prev.relatedIncidentId,
       incidentTitle: Object.prototype.hasOwnProperty.call(body, "incidentTitle")
@@ -333,6 +503,8 @@ router.post("/:id/edit", express.json(), async (req, res) => {
             return s || null;
           })()
         : prev.incidentTitle,
+      linkedProtocolNrs: nextLinkedNrs,
+      linkedProtocols: nextLinkedDetails,
       updatedAt: Date.now(),
     };
     board.items[idx] = next;
