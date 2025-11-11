@@ -14,7 +14,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
 // Gemeinsamer Daten-Root (wie in protocol.js)
-const DATA_ROOT = process.env.KANBAN_DATA_DIR || path.join(__dirname, "data");
+// Immer absolut auflösen, damit auch relative ENV-Pfade (z. B. "../data") korrekt funktionieren.
+const DATA_ROOT = path.resolve(process.env.KANBAN_DATA_DIR || path.join(__dirname, "data"));
 // PDFs hierhin speichern:
 const PDF_DIR   = path.join(DATA_ROOT, "prints");
 await fs.mkdir(PDF_DIR, { recursive: true });
@@ -535,26 +536,47 @@ router.post("/blank/print", express.json(), async (req, res) => {
   }
 });
 
+function resolvePdfFile(rawName) {
+  const safeName = path.basename(String(rawName || ""));
+  return {
+    safeName,
+    filePath: path.join(PDF_DIR, safeName),
+  };
+}
+
+function sendPdf(res, name) {
+  const { safeName, filePath } = resolvePdfFile(name);
+  if (!fss.existsSync(filePath)) {
+    res.status(404).end();
+    return;
+  }
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", `inline; filename="${safeName}"`);
+  res.sendFile(filePath, (err) => {
+    if (!err) return;
+    console.error("[print-file] error while sending", safeName, err);
+    if (err.code === "ENOENT") {
+      if (!res.headersSent) res.status(404).end();
+      return;
+    }
+    if (!res.headersSent) res.status(500).end();
+  });
+}
+
 router.get("/:nr/print/file/:file", async (req, res) => {
   try {
-    const f = path.join(PDF_DIR, req.params.file);
-    if (!fss.existsSync(f)) return res.status(404).end();
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `inline; filename="${path.basename(f)}"`);
-    res.sendFile(f);
-  } catch {
+    sendPdf(res, req.params.file);
+  } catch (e) {
+    console.error("[print-file] unexpected error", e);
     res.status(500).end();
   }
 });
 
 router.get("/blank/print/file/:file", async (req, res) => {
   try {
-    const f = path.join(PDF_DIR, req.params.file);
-    if (!fss.existsSync(f)) return res.status(404).end();
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `inline; filename="${path.basename(f)}"`);
-    res.sendFile(f);
-  } catch {
+    sendPdf(res, req.params.file);
+  } catch (e) {
+    console.error("[print-file-blank] unexpected error", e);
     res.status(500).end();
   }
 });
