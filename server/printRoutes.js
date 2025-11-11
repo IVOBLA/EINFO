@@ -126,6 +126,7 @@ function esc(s) {
 function yes(b) { return b ? "☑" : "☐"; }
 const fmt = (s) => String(s ?? "");
 const sanitizeZu = (value) => (typeof value === "string" ? value.trim() : "");
+const sanitizeRecipient = (value) => (typeof value === "string" ? value.trim() : "");
 const parseAnvon = (raw) => {
   const s = String(raw || "").trim();
   if (/^an\s*:/i.test(s)) return { dir: "an",  name: s.replace(/^an\s*:/i, "").trim() };
@@ -248,6 +249,11 @@ function sheetHtml(item, recipient, nr) {
   const EA = ["EL","LtStb","S1","S2","S3","S4","S5","S6"];
   const displayNr = !nr || nr === "blank" ? "" : nr;
   const displayZu = nr === "blank" ? "" : sanitizeZu(item?.zu);
+  const recipientLabel = sanitizeRecipient(recipient);
+  const normalizedRecipient = canonicalRoleId(recipientLabel);
+  const extraRecipient = sanitizeRecipient(item?.ergehtAnText);
+  const displayOtherRecipient = extraRecipient
+    || (!normalizedRecipient || !INTERNAL_RECIPIENT_IDS.has(normalizedRecipient) ? recipientLabel : "");
   const confirm = item?.otherRecipientConfirmation && typeof item.otherRecipientConfirmation === "object"
     ? item.otherRecipientConfirmation
     : null;
@@ -414,7 +420,7 @@ function sheetHtml(item, recipient, nr) {
       </div>
       <div class="ea-right">
         <span style="color:#555">sonst. Empf.:</span>
-        <span class="input ea-input">${esc(item?.ergehtAnText || recipient || "")}</span>
+        <span class="input ea-input">${esc(displayOtherRecipient)}</span>
       </div>
     </div>
   </div>
