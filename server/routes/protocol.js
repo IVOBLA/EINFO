@@ -693,7 +693,17 @@ router.post("/", express.json(), async (req, res) => {
     };
     payload.zu = sanitizeZu(payload.zu);
     if (allowTaskOverride) {
-      payload.meta = { ...(payload.meta || {}), createdVia: "task-board" };
+      const actorRole = resolveActorRole(req);
+      const normalizedActorRole = canonicalRoleId(actorRole);
+      const fallbackRole = (() => {
+        const values = [...actorRoles];
+        return values.length ? canonicalRoleId(values[0]) : null;
+      })();
+      payload.meta = {
+        ...(payload.meta || {}),
+        createdVia: "task-board",
+        createdByRole: normalizedActorRole || fallbackRole || payload.meta?.createdByRole || null,
+      };
     }
     try {
       payload.otherRecipientConfirmation = sanitizeConfirmation(req.body?.otherRecipientConfirmation, {

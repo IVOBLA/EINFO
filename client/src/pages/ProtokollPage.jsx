@@ -198,11 +198,43 @@ export default function ProtokollPage({
   const [creatingTask, setCreatingTask] = useState(false);
   const [taskOverrideActive, setTaskOverrideActive] = useState(false);
   const [taskPrefill, setTaskPrefill] = useState(null);
+  const [createdViaTask, setCreatedViaTask] = useState(false);
+  const [taskCreatedByRole, setTaskCreatedByRole] = useState(null);
   const [taskPrefillToken] = useState(() => (taskPrefillPayload ? null : readTaskPrefillToken()));
   const taskPrefillStorageKey = taskPrefillToken ? `${TASK_PREFILL_STORAGE_KEY}:${taskPrefillToken}` : TASK_PREFILL_STORAGE_KEY;
   const taskPrefillNewTab = !!taskPrefillToken;
   const closeAfterSave = typeof onRequestClose === "function";
   const { roles: onlineRoles } = useOnlineRoles();
+  const userRoleIds = useMemo(() => {
+    const ids = new Set();
+    const add = (value) => {
+      const id = normRoleId(value);
+      if (id) ids.add(id);
+    };
+    if (user) {
+      const direct = user.role;
+      if (direct && typeof direct === "object") {
+        add(direct.id);
+        add(direct.name);
+        add(direct.label);
+      } else {
+        add(direct);
+      }
+      if (Array.isArray(user.roles)) {
+        for (const entry of user.roles) {
+          if (!entry) continue;
+          if (typeof entry === "string") add(entry);
+          else if (typeof entry === "object") {
+            add(entry.id);
+            add(entry.role);
+            add(entry.name);
+            add(entry.label);
+          }
+        }
+      }
+    }
+    return ids;
+  }, [user]);
   const ltStbOnline = useMemo(
     () => onlineRoles.some((roleId) => roleId === "LTSTB" || roleId === "LTSTBSTV"),
     [onlineRoles]
@@ -282,7 +314,13 @@ export default function ProtokollPage({
   };
 
   useEffect(() => {
-    if (mode !== "create" || taskOverrideActive) return;
+    if (mode !== "create" || taskOverrideActive) {
+      if (mode !== "create" && !taskOverrideActive) {
+        setCreatedViaTask(false);
+        setTaskCreatedByRole(null);
+      }
+      return;
+    }
     let data = null;
     if (taskPrefillPayload) {
       data = taskPrefillPayload;
@@ -321,6 +359,13 @@ export default function ProtokollPage({
     const infoTypPrefill = String(data?.infoTyp ?? "").trim();
     setTaskPrefill(data);
     setTaskOverrideActive(true);
+    setCreatedViaTask(true);
+    const roleFromUser = (() => {
+      const first = userRoleIds.values().next();
+      if (!first.done && first.value) return first.value;
+      return normRoleId(userRoleLabel);
+    })();
+    setTaskCreatedByRole(roleFromUser || null);
     setForm((prev) => {
       const next = structuredClone(prev);
       if (desc) next.information = desc;
@@ -336,7 +381,7 @@ export default function ProtokollPage({
     if (originZu) setZu(originZu);
     setTimeout(() => informationRef.current?.focus(), 0);
     showToast?.("info", "Meldungsformular aus Aufgabe geöffnet – Angaben prüfen und ergänzen.");
-  }, [mode, taskOverrideActive, userRoleLabel, taskPrefillToken, taskPrefillStorageKey, taskPrefillPayload]);
+  }, [mode, taskOverrideActive, userRoleLabel, userRoleIds, taskPrefillToken, taskPrefillStorageKey, taskPrefillPayload]);
 
   useEffect(() => {
     if (!taskPrefillToken) return;
@@ -429,8 +474,13 @@ export default function ProtokollPage({
   const lockedByOtherRole = entryConfirmed && !confirmRoleSet.has(confirmationRoleUpper);
   const lockedByOtherUser = isEditMode && lockStatus === "blocked";
   const isS3 = hasRole("S3", user);
-const s3BlockedByLtStb = isS3 && ltStbOnline;
+  const s3BlockedByLtStb = isS3 && ltStbOnline;
   const canModify = effectiveCanEdit && hasEditLock && !lockedByOtherRole && !s3BlockedByLtStb;
+  const canPrintAsTaskCreator = useMemo(() => {
+    if (!createdViaTask) return false;
+    if (!taskCreatedByRole) return false;
+    return userRoleIds.has(taskCreatedByRole);
+  }, [createdViaTask, taskCreatedByRole, userRoleIds]);
   const lockInfoText = lockedByOtherRole && confirmationDetails
     ? `Bestätigt durch ${confirmationDetails.roleLabel}${confirmationDetails.by ? ` (${confirmationDetails.by})` : ""}${confirmationDetails.whenText ? ` am ${confirmationDetails.whenText}` : ""}`
     : null;
@@ -673,6 +723,13 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
           setErrors({});
           setZu(typeof it.zu === "string" ? it.zu : "");
           setId(it.id || null);
+          const meta = it.meta || {};
+          const viaTask = meta?.createdVia === "task-board";
+          setCreatedViaTask(!!viaTask);
+          const creatorRole = normRoleId(
+            meta?.createdByRole || meta?.creatorRole || meta?.createdBy || meta?.taskCreatorRole
+          );
+          setTaskCreatedByRole(creatorRole || null);
           setTimeout(() => infoTypInfoRef.current?.focus(), 0); // Erstfokus nach Laden
           if (seenStorageKey) {
             const changeInfo = getLastChangeInfo(it);
@@ -780,8 +837,11 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
   };
 
   const handlePrint = async () => {
-    if (!canEdit) { showToast?.("error", "Keine Berechtigung zum Drucken/Speichern"); return; }
-        if (printing) return;
+    if (printing) return;
+    if (!canEdit && !canPrintAsTaskCreator) {
+      showToast?.("error", "Keine Berechtigung zum Drucken/Speichern");
+      return;
+    }
     setPrintingKind("data");
     const recipients = buildRecipients();
     if (!recipients.length) {
@@ -793,7 +853,10 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
     try {
       // 1) Speichern → NR sicherstellen
       const nrSaved = await saveCore();
-      if (!nrSaved) return;
+      if (!nrSaved) {
+        showToast?.("error", "Drucken benötigt einen gespeicherten Eintrag.");
+        return;
+      }
       setNr(nrSaved);
 
       // 2) Datensatz holen
