@@ -14,6 +14,7 @@ import AufgDroppableColumn from "../components/AufgDroppableColumn.jsx";
 import AufgAddModal from "../components/AufgAddModal.jsx";
 import AufgInfoModal from "../components/AufgInfoModal.jsx";
 import AufgSortableCard from "../components/AufgSortableCard.jsx";
+import TaskProtocolModal from "../components/TaskProtocolModal.jsx";
 import { initRolePolicy, canEditApp, getAllRoles, hasRole } from "../auth/roleUtils.js";
 import { playGong } from "../sound"; // gleicher Sound wie im Einsatz-Kanban
 import { fetchBoard } from "../api.js";
@@ -28,7 +29,6 @@ const INCIDENT_STATUS_KEYS = ["neu", "in-bearbeitung", "erledigt"];
 const FALLBACK_DUE_OFFSET_MINUTES = getFallbackDueOffsetMinutes();
 const PRIMARY_ROLE_SWITCH_IDS = ["LTSTB", "LTSTBSTV"];
 const FALLBACK_SWITCH_ROLE_ID = "S3";
-const PROTOCOL_PREFILL_STORAGE_KEY = "prot_prefill_from_task";
 const PROTOCOL_PREFILL_SOURCE = "task-card";
 
 const normalizeDefaultDueOffset = (value) => ensureValidDueOffset(value);
@@ -194,6 +194,8 @@ export default function AufgApp() {
   const [filter, setFilter] = useState("");
   const [filterEinsatz, setFilterEinsatz] = useState("");
   const [addOpen, setAddOpen] = useState(false);  // Popup initial auf false setzen
+  const [protocolModalOpen, setProtocolModalOpen] = useState(false);
+  const [protocolPrefillPayload, setProtocolPrefillPayload] = useState(null);
   const [activeItem, setActiveItem] = useState(null);
   const [allowEdit, setAllowEdit] = useState(false);
   const [aufgabenConfig, setAufgabenConfig] = useState(() => ({
@@ -703,31 +705,8 @@ export default function AufgApp() {
       createdAt: item?.createdAt ?? null,
       originProtocolNr: normalizedOriginNr || null,
     };
-
-    const openInNewTab = () => {
-      const token = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
-      const storageKey = `${PROTOCOL_PREFILL_STORAGE_KEY}:${token}`;
-      try {
-        localStorage.setItem(storageKey, JSON.stringify(payload));
-      } catch {}
-      const targetUrl = `/protokoll#/protokoll/neu?prefillToken=${encodeURIComponent(token)}`;
-      const win = window.open(targetUrl, "_blank", "noopener,noreferrer");
-      if (win) return true;
-      try { localStorage.removeItem(storageKey); } catch {}
-      return false;
-    };
-
-    if (!openInNewTab()) {
-      try {
-        sessionStorage.setItem(PROTOCOL_PREFILL_STORAGE_KEY, JSON.stringify(payload));
-      } catch {}
-      const basePath = typeof window?.location?.pathname === "string" ? window.location.pathname : "";
-      if (basePath.startsWith("/protokoll")) {
-        window.location.hash = "/protokoll/neu";
-      } else {
-        window.location.assign("/protokoll#/protokoll/neu");
-      }
-    }
+    setProtocolPrefillPayload(payload);
+    setProtocolModalOpen(true);
   }, []);
   // ---- Pfeil „Weiter→“ → jetzt dedizierter Status-Endpunkt
   const advance = useCallback((item) => {
@@ -976,6 +955,14 @@ export default function AufgApp() {
           onCreateProtocol={handleCreateProtocol}
         />
       ) : null}
+      <TaskProtocolModal
+        open={protocolModalOpen}
+        payload={protocolPrefillPayload}
+        onClose={() => {
+          setProtocolModalOpen(false);
+          setProtocolPrefillPayload(null);
+        }}
+      />
     </div>
   );
 }

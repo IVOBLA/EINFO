@@ -185,16 +185,23 @@ const initialForm = () => ({
   })),
 });
 
-export default function ProtokollPage({ mode = "create", editNr = null }) {
+export default function ProtokollPage({
+  mode = "create",
+  editNr = null,
+  taskPrefillPayload = null,
+  onRequestClose = null,
+  onSaved = null,
+}) {
 
   const { user } = useUserAuth() || {};
   const userRoleLabel = useMemo(() => resolveUserRoleLabel(user), [user]);
   const [creatingTask, setCreatingTask] = useState(false);
   const [taskOverrideActive, setTaskOverrideActive] = useState(false);
   const [taskPrefill, setTaskPrefill] = useState(null);
-  const [taskPrefillToken] = useState(() => readTaskPrefillToken());
+  const [taskPrefillToken] = useState(() => (taskPrefillPayload ? null : readTaskPrefillToken()));
   const taskPrefillStorageKey = taskPrefillToken ? `${TASK_PREFILL_STORAGE_KEY}:${taskPrefillToken}` : TASK_PREFILL_STORAGE_KEY;
   const taskPrefillNewTab = !!taskPrefillToken;
+  const closeAfterSave = typeof onRequestClose === "function";
   const { roles: onlineRoles } = useOnlineRoles();
   const ltStbOnline = useMemo(
     () => onlineRoles.some((roleId) => roleId === "LTSTB" || roleId === "LTSTBSTV"),
@@ -276,34 +283,38 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
 
   useEffect(() => {
     if (mode !== "create" || taskOverrideActive) return;
-    let raw = null;
-    if (taskPrefillToken) {
-      try {
-        raw = localStorage.getItem(taskPrefillStorageKey);
-      } catch {
-        raw = null;
-      }
-    }
-    if (!raw) {
-      try {
-        raw = sessionStorage.getItem(taskPrefillStorageKey);
-      } catch {
-        raw = null;
-      }
-    }
-    if (!raw) return;
-    try {
-      if (taskPrefillToken) {
-        localStorage.removeItem(taskPrefillStorageKey);
-      } else {
-        sessionStorage.removeItem(taskPrefillStorageKey);
-      }
-    } catch {}
     let data = null;
-    try {
-      data = JSON.parse(raw);
-    } catch {
-      data = null;
+    if (taskPrefillPayload) {
+      data = taskPrefillPayload;
+    } else {
+      let raw = null;
+      if (taskPrefillToken) {
+        try {
+          raw = localStorage.getItem(taskPrefillStorageKey);
+        } catch {
+          raw = null;
+        }
+      }
+      if (!raw) {
+        try {
+          raw = sessionStorage.getItem(taskPrefillStorageKey);
+        } catch {
+          raw = null;
+        }
+      }
+      if (!raw) return;
+      try {
+        if (taskPrefillToken) {
+          localStorage.removeItem(taskPrefillStorageKey);
+        } else {
+          sessionStorage.removeItem(taskPrefillStorageKey);
+        }
+      } catch {}
+      try {
+        data = JSON.parse(raw);
+      } catch {
+        data = null;
+      }
     }
     if (!data || data?.source !== TASK_PREFILL_SOURCE) return;
     const desc = String(data?.description ?? "").trim();
@@ -325,7 +336,7 @@ export default function ProtokollPage({ mode = "create", editNr = null }) {
     if (originZu) setZu(originZu);
     setTimeout(() => informationRef.current?.focus(), 0);
     showToast?.("info", "Meldungsformular aus Aufgabe geöffnet – Angaben prüfen und ergänzen.");
-  }, [mode, taskOverrideActive, userRoleLabel, taskPrefillToken, taskPrefillStorageKey]);
+  }, [mode, taskOverrideActive, userRoleLabel, taskPrefillToken, taskPrefillStorageKey, taskPrefillPayload]);
 
   useEffect(() => {
     if (!taskPrefillToken) return;
@@ -856,6 +867,10 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
   };
 
   const navigateToOverview = () => {
+    if (typeof onRequestClose === "function") {
+      onRequestClose();
+      return;
+    }
     if (taskPrefillNewTab) {
       window.close();
       setTimeout(() => {
@@ -865,6 +880,15 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
       }, 150);
     } else {
       window.location.hash = "/protokoll";
+    }
+  };
+
+  const emitSaved = (nrSaved) => {
+    if (!nrSaved) return;
+    if (typeof onSaved === "function") {
+      try {
+        onSaved(nrSaved);
+      } catch {}
     }
   };
 
@@ -1046,7 +1070,10 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
     setSaving(true);
     try {
       const nrSaved = await saveCore();
-      if (nrSaved) navigateToOverview();
+      if (nrSaved) {
+        emitSaved(nrSaved);
+        navigateToOverview();
+      }
     } catch (e) {
       showToast("error", "Fehler beim Speichern: " + e.message, 4000);
     } finally {
@@ -1061,9 +1088,14 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
     try {
       const nrSaved = await saveCore();
       if (nrSaved) {
-        showToast("success", `Gespeichert (NR ${nrSaved}) – neuer Eintrag`);
-        setForm(initialForm()); setErrors({}); setNr(null); setId(null); setZu("");
-        setTimeout(() => infoTypInfoRef.current?.focus(), 0); // Erstfokus nach Neu
+        if (closeAfterSave) {
+          emitSaved(nrSaved);
+          navigateToOverview();
+        } else {
+          showToast("success", `Gespeichert (NR ${nrSaved}) – neuer Eintrag`);
+          setForm(initialForm()); setErrors({}); setNr(null); setId(null); setZu("");
+          setTimeout(() => infoTypInfoRef.current?.focus(), 0); // Erstfokus nach Neu
+        }
       }
     } catch (e) {
       showToast("error", "Fehler beim Speichern: " + e.message, 4000);
