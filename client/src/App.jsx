@@ -67,6 +67,39 @@ const unlocked = true;
 const DEFAULT_AREA_COLOR = "#2563eb";
 const INITIAL_PULSE_SUPPRESS_MS = 20_000;
 
+function parseDurationToMs(value) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const colonMatch = trimmed.match(/^(\d+):(\d{1,2})$/);
+  if (colonMatch) {
+    const hours = Number(colonMatch[1]);
+    const minutes = Number(colonMatch[2]);
+    if (Number.isFinite(hours) && Number.isFinite(minutes)) {
+      return (hours * 60 + minutes) * 60_000;
+    }
+  }
+  const normalized = trimmed.replace(",", ".").toLowerCase();
+  const match = normalized.match(/^([0-9]+(?:\.[0-9]+)?)([a-zäöü]*)$/);
+  if (!match) return null;
+  const amount = Number(match[1]);
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+  const unit = match[2];
+  if (!unit || unit === "m" || unit === "min" || unit === "mins" || unit === "minute" || unit === "minuten") {
+    return amount * 60_000;
+  }
+  if (unit === "h" || unit === "st" || unit === "std" || unit === "stunde" || unit === "stunden") {
+    return amount * 3_600_000;
+  }
+  if (unit === "s" || unit === "sek" || unit === "sekunde" || unit === "sekunden") {
+    return amount * 1_000;
+  }
+  if (unit === "d" || unit === "tag" || unit === "tage" || unit === "day" || unit === "days") {
+    return amount * 86_400_000;
+  }
+  return null;
+}
+
 function getGroupVisualClasses({ available, alerted, assigned }) {
   if (!available) {
     return {
@@ -110,6 +143,219 @@ const readOnly = !canEdit;
   const [types, setTypes] = useState([]);
   const [groupAvailability, setGroupAvailability] = useState(new Map());
   const [groupAlerted, setGroupAlerted] = useState(new Map());
+  const vehicleAvailabilityTimersRef = useRef(new Map());
+  const vehicleUnavailableUntilRef = useRef(new Map());
+  const groupAvailabilityTimersRef = useRef(new Map());
+  const groupUnavailableUntilRef = useRef(new Map());
+
+  const askDuration = useCallback((label) => {
+    if (typeof window === "undefined") {
+      return { cancelled: true };
+    }
+    const message = `Bitte Dauer der Nicht-Verfügbarkeit für ${label} angeben (z.\u202fB. 30, 2h oder 1:30). Leer lassen für unbegrenzt.`;
+    const input = window.prompt(message, "");
+    if (input === null) {
+      return { cancelled: true };
+    }
+    const trimmed = input.trim();
+    if (!trimmed) {
+      return { cancelled: false, untilMs: null, untilIso: null };
+    }
+    const durationMs = parseDurationToMs(trimmed);
+    if (!Number.isFinite(durationMs) || durationMs <= 0) {
+      window.alert("Ungültige Dauer. Bitte z.\u202fB. 30, 2h oder 1:30 eingeben.");
+      return { cancelled: true };
+    }
+    const untilMs = Date.now() + durationMs;
+    return { cancelled: false, untilMs, untilIso: new Date(untilMs).toISOString() };
+  }, []);
+
+  const refreshVehicles = useCallback(async () => {
+    try {
+      const next = await fetchVehicles();
+      setVehicles(next);
+    } catch (error) {
+      console.error(error);
+    }
+  }, [setVehicles]);
+
+  const scheduleVehicleAutoEnable = useCallback(
+    (idStr, untilIso) => {
+      if (!idStr || !untilIso) return;
+      const untilMs = Date.parse(untilIso);
+      if (!Number.isFinite(untilMs)) return;
+      const timers = vehicleAvailabilityTimersRef.current;
+      const existing = timers.get(idStr);
+      if (existing && existing.untilIso === untilIso) {
+        return;
+      }
+      if (existing) {
+        clearTimeout(existing.timeout);
+        timers.delete(idStr);
+      }
+      const delay = untilMs - Date.now();
+      const run = async () => {
+        vehicleAvailabilityTimersRef.current.delete(idStr);
+        vehicleUnavailableUntilRef.current.delete(idStr);
+        try {
+          await updateVehicleAvailability(idStr, true);
+        } catch (error) {
+          console.error(error);
+        }
+        await refreshVehicles();
+      };
+      if (delay <= 0) {
+        run();
+        return;
+      }
+      const timeout = setTimeout(run, delay);
+      timers.set(idStr, { timeout, untilIso });
+    },
+    [refreshVehicles]
+  );
+
+  const scheduleGroupAutoEnable = useCallback(
+    (groupName, untilIso) => {
+      if (!groupName || !untilIso) return;
+      const untilMs = Date.parse(untilIso);
+      if (!Number.isFinite(untilMs)) return;
+      const timers = groupAvailabilityTimersRef.current;
+      const existing = timers.get(groupName);
+      if (existing && existing.untilIso === untilIso) {
+        return;
+      }
+      if (existing) {
+        clearTimeout(existing.timeout);
+        timers.delete(groupName);
+      }
+      const delay = untilMs - Date.now();
+      const run = async () => {
+        groupAvailabilityTimersRef.current.delete(groupName);
+        groupUnavailableUntilRef.current.delete(groupName);
+        try {
+          await updateGroupAvailability(groupName, true);
+        } catch (error) {
+          console.error(error);
+        }
+        await refreshVehicles();
+        setGroupAvailability((prev) => {
+          const next = new Map(prev);
+          next.set(groupName, true);
+          return next;
+        });
+      };
+      if (delay <= 0) {
+        run();
+        return;
+      }
+      const timeout = setTimeout(run, delay);
+      timers.set(groupName, { timeout, untilIso });
+    },
+    [refreshVehicles, setGroupAvailability]
+  );
+
+  useEffect(() => {
+    const timers = vehicleAvailabilityTimersRef.current;
+    const seen = new Set();
+    for (const vehicle of vehicles) {
+      if (!vehicle) continue;
+      const idStr = String(vehicle.id ?? "").trim();
+      if (!idStr) continue;
+      seen.add(idStr);
+      const effectiveAvailable = (vehicle.available !== false) && (vehicle.groupAvailable !== false);
+      const rawUntil = vehicle.unavailableUntil || vehicleUnavailableUntilRef.current.get(idStr) || null;
+      const parsed = rawUntil ? Date.parse(rawUntil) : NaN;
+      const normalized = Number.isFinite(parsed) ? new Date(parsed).toISOString() : null;
+      const groupName = String(vehicle.ort ?? "").trim();
+      const groupAvailable = groupAvailability.has(groupName)
+        ? groupAvailability.get(groupName)
+        : true;
+      if (groupAvailable === false) {
+        if (normalized) {
+          vehicleUnavailableUntilRef.current.set(idStr, normalized);
+        } else {
+          vehicleUnavailableUntilRef.current.delete(idStr);
+        }
+        const entry = timers.get(idStr);
+        if (entry) {
+          clearTimeout(entry.timeout);
+          timers.delete(idStr);
+        }
+        continue;
+      }
+      if (effectiveAvailable || !normalized) {
+        const entry = timers.get(idStr);
+        if (entry) {
+          clearTimeout(entry.timeout);
+          timers.delete(idStr);
+        }
+        vehicleUnavailableUntilRef.current.delete(idStr);
+        continue;
+      }
+      vehicleUnavailableUntilRef.current.set(idStr, normalized);
+      scheduleVehicleAutoEnable(idStr, normalized);
+    }
+    for (const [id, entry] of Array.from(timers.entries())) {
+      if (!seen.has(id)) {
+        clearTimeout(entry.timeout);
+        timers.delete(id);
+        vehicleUnavailableUntilRef.current.delete(id);
+      }
+    }
+  }, [vehicles, groupAvailability, scheduleVehicleAutoEnable]);
+
+  useEffect(() => {
+    const timers = groupAvailabilityTimersRef.current;
+    const seen = new Set();
+    for (const [name, available] of groupAvailability.entries()) {
+      const groupName = String(name || "").trim();
+      if (!groupName) continue;
+      seen.add(groupName);
+      if (available !== false) {
+        const entry = timers.get(groupName);
+        if (entry) {
+          clearTimeout(entry.timeout);
+          timers.delete(groupName);
+        }
+        groupUnavailableUntilRef.current.delete(groupName);
+        continue;
+      }
+      const rawUntil = groupUnavailableUntilRef.current.get(groupName) || null;
+      const parsed = rawUntil ? Date.parse(rawUntil) : NaN;
+      if (!Number.isFinite(parsed)) {
+        const entry = timers.get(groupName);
+        if (entry) {
+          clearTimeout(entry.timeout);
+          timers.delete(groupName);
+        }
+        groupUnavailableUntilRef.current.delete(groupName);
+        continue;
+      }
+      const normalized = new Date(parsed).toISOString();
+      groupUnavailableUntilRef.current.set(groupName, normalized);
+      scheduleGroupAutoEnable(groupName, normalized);
+    }
+    for (const [name, entry] of Array.from(timers.entries())) {
+      if (!seen.has(name)) {
+        clearTimeout(entry.timeout);
+        timers.delete(name);
+        groupUnavailableUntilRef.current.delete(name);
+      }
+    }
+  }, [groupAvailability, scheduleGroupAutoEnable]);
+
+  useEffect(() => () => {
+    for (const { timeout } of vehicleAvailabilityTimersRef.current.values()) {
+      clearTimeout(timeout);
+    }
+    vehicleAvailabilityTimersRef.current.clear();
+    vehicleUnavailableUntilRef.current.clear();
+    for (const { timeout } of groupAvailabilityTimersRef.current.values()) {
+      clearTimeout(timeout);
+    }
+    groupAvailabilityTimersRef.current.clear();
+    groupUnavailableUntilRef.current.clear();
+  }, []);
 
   const syncGroupAvailabilityFromVehicles = useCallback((list) => {
     if (!Array.isArray(list)) return;
@@ -135,7 +381,30 @@ const readOnly = !canEdit;
 
   const applyGroupAvailabilityResponse = useCallback((payload) => {
     const entries = Object.entries(payload?.availability || {});
-    setGroupAvailability(new Map(entries.map(([name, value]) => [name, value !== false])));
+    const availabilityPairs = [];
+    const untilMap = new Map();
+    for (const [name, value] of entries) {
+      const isUnavailable =
+        value === false ||
+        (value && typeof value === "object" && value.available === false);
+      const available = !isUnavailable;
+      let untilIso = null;
+      if (!available) {
+        const rawUntil = value && typeof value === "object" ? value.until : null;
+        if (typeof rawUntil === "string" && rawUntil.trim()) {
+          const parsed = Date.parse(rawUntil);
+          if (!Number.isNaN(parsed) && parsed > Date.now()) {
+            untilIso = new Date(parsed).toISOString();
+          }
+        }
+      }
+      availabilityPairs.push([name, available]);
+      if (!available && untilIso) {
+        untilMap.set(name, untilIso);
+      }
+    }
+    groupUnavailableUntilRef.current = untilMap;
+    setGroupAvailability(new Map(availabilityPairs));
   }, []);
   const applyGroupAlertedResponse = useCallback((payload) => {
     const entries = Object.entries(payload?.alerted || {});
@@ -737,15 +1006,85 @@ try {
     const target = nextAvailable === true;
     const prevValue = vehicle.available !== false;
     if (prevValue === target) return;
+
+    let untilIso = null;
+    if (!target) {
+      const label = typeof vehicle.label === "string" && vehicle.label.trim()
+        ? `Einheit ${vehicle.label.trim()}`
+        : "die Einheit";
+      const result = askDuration(label);
+      if (result.cancelled) {
+        return;
+      }
+      untilIso = result.untilIso;
+    }
+
+    const prevUntilIso = vehicleUnavailableUntilRef.current.get(idStr) || null;
+    const existingTimer = vehicleAvailabilityTimersRef.current.get(idStr);
+    if (existingTimer) {
+      clearTimeout(existingTimer.timeout);
+      vehicleAvailabilityTimersRef.current.delete(idStr);
+    }
+
+    if (target) {
+      vehicleUnavailableUntilRef.current.delete(idStr);
+    } else if (untilIso) {
+      vehicleUnavailableUntilRef.current.set(idStr, untilIso);
+    } else {
+      vehicleUnavailableUntilRef.current.delete(idStr);
+    }
+
     setVehicles((prev) =>
-      prev.map((item) => (String(item?.id ?? "") === idStr ? { ...item, available: target } : item))
+      prev.map((item) =>
+        String(item?.id ?? "") === idStr
+          ? { ...item, available: target, unavailableUntil: untilIso || null }
+          : item
+      )
     );
     try {
-      await updateVehicleAvailability(idStr, target);
+      const response = await updateVehicleAvailability(idStr, target, untilIso);
+      if (target) {
+        vehicleUnavailableUntilRef.current.delete(idStr);
+        setVehicles((prev) =>
+          prev.map((item) =>
+            String(item?.id ?? "") === idStr ? { ...item, unavailableUntil: null } : item
+          )
+        );
+        return;
+      }
+      const rawServerUntil = response && typeof response.until === "string" ? response.until : null;
+      const parsed = rawServerUntil ? Date.parse(rawServerUntil) : NaN;
+      if (Number.isFinite(parsed) && parsed > Date.now()) {
+        const normalized = new Date(parsed).toISOString();
+        vehicleUnavailableUntilRef.current.set(idStr, normalized);
+        setVehicles((prev) =>
+          prev.map((item) =>
+            String(item?.id ?? "") === idStr ? { ...item, unavailableUntil: normalized } : item
+          )
+        );
+        scheduleVehicleAutoEnable(idStr, normalized);
+      } else {
+        vehicleUnavailableUntilRef.current.delete(idStr);
+        setVehicles((prev) =>
+          prev.map((item) =>
+            String(item?.id ?? "") === idStr ? { ...item, unavailableUntil: null } : item
+          )
+        );
+      }
     } catch (error) {
       console.error(error);
+      if (prevUntilIso) {
+        vehicleUnavailableUntilRef.current.set(idStr, prevUntilIso);
+        scheduleVehicleAutoEnable(idStr, prevUntilIso);
+      } else {
+        vehicleUnavailableUntilRef.current.delete(idStr);
+      }
       setVehicles((prev) =>
-        prev.map((item) => (String(item?.id ?? "") === idStr ? { ...item, available: prevValue } : item))
+        prev.map((item) =>
+          String(item?.id ?? "") === idStr
+            ? { ...item, available: prevValue, unavailableUntil: prevUntilIso || null }
+            : item
+        )
       );
       alert(error?.message || "Verfügbarkeit der Einheit konnte nicht gespeichert werden.");
     }
@@ -762,48 +1101,155 @@ try {
       if (String(item?.ort ?? "") === groupName) {
         const idStr = String(item?.id ?? "");
         if (idStr) {
-          prevVehicleAvailability.set(idStr, item?.available !== false);
+          prevVehicleAvailability.set(idStr, {
+            available: item?.available !== false,
+            unavailableUntil:
+              typeof item?.unavailableUntil === "string" && item.unavailableUntil.trim()
+                ? item.unavailableUntil
+                : null,
+          });
         }
       }
     }
     if (prevValue === target) return;
+
+    let untilIso = null;
+    if (!target) {
+      const result = askDuration(`Gruppe ${groupName}`);
+      if (result.cancelled) {
+        return;
+      }
+      untilIso = result.untilIso;
+    }
+
+    const prevGroupUntil = groupUnavailableUntilRef.current.get(groupName) || null;
+    const existingTimer = groupAvailabilityTimersRef.current.get(groupName);
+    if (existingTimer) {
+      clearTimeout(existingTimer.timeout);
+      groupAvailabilityTimersRef.current.delete(groupName);
+    }
+
+    if (target) {
+      groupUnavailableUntilRef.current.delete(groupName);
+      for (const [idStr, prevEntry] of prevVehicleAvailability.entries()) {
+        const prevUntil = prevEntry?.unavailableUntil || null;
+        if (prevUntil) {
+          vehicleUnavailableUntilRef.current.set(idStr, prevUntil);
+        } else {
+          vehicleUnavailableUntilRef.current.delete(idStr);
+        }
+      }
+    } else {
+      if (untilIso) {
+        groupUnavailableUntilRef.current.set(groupName, untilIso);
+      } else {
+        groupUnavailableUntilRef.current.delete(groupName);
+      }
+      for (const idStr of prevVehicleAvailability.keys()) {
+        if (untilIso) {
+          vehicleUnavailableUntilRef.current.set(idStr, untilIso);
+        } else {
+          vehicleUnavailableUntilRef.current.delete(idStr);
+        }
+      }
+    }
+
     setGroupAvailability((prev) => {
       const next = new Map(prev);
       next.set(groupName, target);
       return next;
     });
+
     setVehicles((prev) =>
-      prev.map((item) =>
-        String(item?.ort ?? "") === groupName
-          ? {
-              ...item,
-              groupAvailable: target,
-              available: target,
-            }
-          : item
-      )
+      prev.map((item) => {
+        if (String(item?.ort ?? "") !== groupName) return item;
+        const idStr = String(item?.id ?? "");
+        if (!idStr) return item;
+        if (target) {
+          const prevEntry = prevVehicleAvailability.get(idStr);
+          const prevAvailable = prevEntry?.available ?? true;
+          const prevUntil = prevEntry?.unavailableUntil || null;
+          return {
+            ...item,
+            groupAvailable: true,
+            available: prevAvailable,
+            unavailableUntil: prevUntil,
+          };
+        }
+        return {
+          ...item,
+          groupAvailable: false,
+          available: false,
+          unavailableUntil: untilIso || null,
+        };
+      })
     );
+
     try {
-      await updateGroupAvailability(groupName, target);
+      const response = await updateGroupAvailability(groupName, target, untilIso);
+      if (target) {
+        groupUnavailableUntilRef.current.delete(groupName);
+        return;
+      }
+      const rawServerUntil = response && typeof response.until === "string" ? response.until : null;
+      const parsed = rawServerUntil ? Date.parse(rawServerUntil) : NaN;
+      if (Number.isFinite(parsed) && parsed > Date.now()) {
+        const normalized = new Date(parsed).toISOString();
+        groupUnavailableUntilRef.current.set(groupName, normalized);
+        for (const idStr of prevVehicleAvailability.keys()) {
+          vehicleUnavailableUntilRef.current.set(idStr, normalized);
+        }
+        setVehicles((prev) =>
+          prev.map((item) =>
+            String(item?.ort ?? "") === groupName
+              ? { ...item, unavailableUntil: normalized, groupAvailable: false, available: false }
+              : item
+          )
+        );
+        scheduleGroupAutoEnable(groupName, normalized);
+      } else {
+        groupUnavailableUntilRef.current.delete(groupName);
+        setVehicles((prev) =>
+          prev.map((item) =>
+            String(item?.ort ?? "") === groupName
+              ? { ...item, unavailableUntil: null, groupAvailable: false, available: false }
+              : item
+          )
+        );
+      }
     } catch (error) {
       console.error(error);
+      if (prevGroupUntil) {
+        groupUnavailableUntilRef.current.set(groupName, prevGroupUntil);
+        scheduleGroupAutoEnable(groupName, prevGroupUntil);
+      } else {
+        groupUnavailableUntilRef.current.delete(groupName);
+      }
       setGroupAvailability((prev) => {
         const next = new Map(prev);
         next.set(groupName, prevValue);
         return next;
       });
       setVehicles((prev) =>
-        prev.map((item) =>
-          String(item?.ort ?? "") === groupName
-            ? {
-                ...item,
-                groupAvailable: prevValue,
-                available: prevVehicleAvailability.has(String(item?.id ?? ""))
-                  ? prevVehicleAvailability.get(String(item?.id ?? ""))
-                  : item?.available !== false,
-              }
-            : item
-        )
+        prev.map((item) => {
+          if (String(item?.ort ?? "") !== groupName) return item;
+          const idStr = String(item?.id ?? "");
+          if (!idStr) return item;
+          const prevEntry = prevVehicleAvailability.get(idStr);
+          const prevAvailable = prevEntry?.available ?? true;
+          const prevUntil = prevEntry?.unavailableUntil || null;
+          if (prevUntil) {
+            vehicleUnavailableUntilRef.current.set(idStr, prevUntil);
+          } else {
+            vehicleUnavailableUntilRef.current.delete(idStr);
+          }
+          return {
+            ...item,
+            groupAvailable: prevValue,
+            available: prevValue ? prevAvailable : false,
+            unavailableUntil: prevValue ? prevUntil : null,
+          };
+        })
       );
       alert(error?.message || "Verfügbarkeit der Gruppe konnte nicht gespeichert werden.");
     }
