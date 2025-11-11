@@ -8,6 +8,7 @@ import {
   resolveSeenStorageKey,
   updateSeenEntry,
 } from "../utils/protokollSeen.js";
+import { requiresOtherRecipientConfirmation } from "../utils/protocolRecipients.js";
 
 const ERGEHT_OPTIONS = ["EL", "LtStb", "S1", "S2", "S3", "S4", "S5", "S6"];
 
@@ -879,6 +880,11 @@ export default function ProtokollPage({
       );
       const item = rItem?.item;
       if (!item) throw new Error("Datensatz für Druck nicht gefunden");
+
+      if (requiresOtherRecipientConfirmation(item) && !item?.otherRecipientConfirmation?.confirmed) {
+        showToast?.("error", "Ausgehende Meldungen an externe Empfänger müssen zuerst bestätigt werden.");
+        return;
+      }
 
       showToast?.("info", "PDF wird serverseitig erzeugt …");
 

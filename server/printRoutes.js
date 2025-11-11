@@ -45,6 +45,9 @@ const DEFAULT_CONFIRM_TEXT = (() => {
 
 const PRINT_HISTORY_ACTION = "print";
 
+const INTERNAL_RECIPIENT_IDS = new Set(["EL", "LTSTB", "LTSTBSTV", "S1", "S2", "S3", "S4", "S5", "S6"]);
+const TRUTHY_PATTERN = /^(1|true|ja|yes|on)$/i;
+
 function canonicalRoleId(raw) {
   return String(raw ?? "").trim().toUpperCase();
 }
@@ -70,6 +73,48 @@ function formatConfirmTimestamp(value) {
   const d = new Date(value);
   if (!Number.isNaN(d.valueOf())) return d.toLocaleString("de-DE");
   return "";
+}
+
+function truthyFlag(value) {
+  if (value === true) return true;
+  if (value === false) return false;
+  if (typeof value === "number") return !Number.isNaN(value) && value !== 0;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return false;
+    return TRUTHY_PATTERN.test(trimmed);
+  }
+  return false;
+}
+
+function isOutgoingProtocolEntry(item) {
+  if (!item || typeof item !== "object") return false;
+  const u = item.uebermittlungsart || {};
+  if (truthyFlag(u.aus)) return true;
+  const direction = typeof u.richtung === "string" ? u.richtung : item.richtung;
+  if (typeof direction === "string" && /aus/i.test(direction)) return true;
+  return false;
+}
+
+function hasExternalRecipients(item) {
+  if (!item || typeof item !== "object") return false;
+  const recipients = Array.isArray(item.ergehtAn) ? item.ergehtAn : [];
+  for (const raw of recipients) {
+    const value = typeof raw === "string" ? raw.trim() : String(raw ?? "").trim();
+    if (!value) continue;
+    const id = canonicalRoleId(value);
+    if (!INTERNAL_RECIPIENT_IDS.has(id)) {
+      return true;
+    }
+  }
+  const extra = typeof item.ergehtAnText === "string" ? item.ergehtAnText.trim() : "";
+  if (extra) return true;
+  return false;
+}
+
+function requiresOtherRecipientConfirmation(item) {
+  if (!isOutgoingProtocolEntry(item)) return false;
+  return hasExternalRecipients(item);
 }
 
 // ---------- Helpers ----------
@@ -437,11 +482,22 @@ router.post("/:nr/print", express.json(), async (req, res) => {
       return res.status(400).json({ ok:false, error:"Datensatz fehlt (data)" });
     }
 
-    const { fileName, pageCount } = await renderBundlePdf(item, recipients, nr);
+    const allEntries = await readAll();
+    const storedItem = allEntries.find((entry) => Number(entry?.nr) === Number(nr));
+    const effectiveItem = storedItem || item;
+
+    if (requiresOtherRecipientConfirmation(effectiveItem) && !effectiveItem?.otherRecipientConfirmation?.confirmed) {
+      return res.status(409).json({
+        ok: false,
+        error: "Ausgehende Meldungen an externe Empfänger müssen vor dem Drucken bestätigt werden.",
+      });
+    }
+
+    const { fileName, pageCount } = await renderBundlePdf(effectiveItem, recipients, nr);
     const displayName = typeof req?.user?.displayName === "string" ? req.user.displayName.trim() : "";
     const username = typeof req?.user?.username === "string" ? req.user.username.trim() : "";
     const actor = resolveUserName(req) || displayName || username || req.ip || "";
-    await recordPrint(nr, recipients, pageCount, fileName, actor, item);
+    await recordPrint(nr, recipients, pageCount, fileName, actor, effectiveItem);
 
     res.json({
       ok: true,

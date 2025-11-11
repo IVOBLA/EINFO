@@ -8,6 +8,7 @@ import {
   resolveSeenStorageKey,
   updateSeenEntry,
 } from "../utils/protokollSeen.js";
+import { requiresOtherRecipientConfirmation } from "../utils/protocolRecipients.js";
 
 const TOKEN_SEPARATOR = "||";
 const DONE_TOKEN_PREFIX = "done:";
@@ -352,6 +353,8 @@ const rows = useMemo(
               const confirmation = r?.otherRecipientConfirmation || {};
               const confirmedRole = String(confirmation?.byRole || "").toUpperCase();
               const confirmedByLtStbOrS3 = !!confirmation?.confirmed && (confirmedRole === "LTSTB" || confirmedRole === "S3");
+              const requiresConfirmation = requiresOtherRecipientConfirmation(r);
+              const awaitingConfirmation = requiresConfirmation && !confirmation?.confirmed;
               const changeInfo = getLastChangeInfo(r);
               const entryToken = changeInfo.token;
               const entryKey = String(r?.nr ?? "");
@@ -401,6 +404,9 @@ const rows = useMemo(
               if (openTasks) {
                 printTitleParts.push("Offene Aufgaben vorhanden");
               }
+              if (awaitingConfirmation) {
+                printTitleParts.push("Bestätigung ausstehend");
+              }
               if (confirmation?.confirmed) {
                 const label = confirmedRole || "Bestätigt";
                 printTitleParts.push(`Bestätigt durch ${label}`);
@@ -413,13 +419,18 @@ const rows = useMemo(
                 ? "border-red-500 text-red-600"
                 : "border-emerald-500 text-emerald-600";
               // auch ohne Kreis rot färben, wenn offene Aufgaben existieren
-              const printPlainTextClass = openTasks ? "text-red-600" : "";
+              const printPlainTextClass = awaitingConfirmation
+                ? "text-gray-400"
+                : openTasks
+                  ? "text-red-600"
+                  : "";
               const hasCompletedTasks = relevantMeasures.some((m) => !!m?.done);
               const rowClasses = [
                 "border-b align-top cursor-pointer",
                 isHighlighted
                   ? "bg-yellow-50 hover:bg-yellow-100"
-				  : "hover:bg-gray-50",          
+                  : "hover:bg-gray-50",
+                awaitingConfirmation ? "text-gray-400 [&>td]:text-gray-400" : "",
               ].join(" ");
               return (
                 <tr
