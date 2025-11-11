@@ -824,13 +824,18 @@ export default function ProtokollPage({
     return base;
   }
 
-  const startPdfPrint = (fileUrl) => {
+  const startPdfPrint = async (fileUrl) => {
     if (typeof window === "undefined") return;
 
-    const src = `${fileUrl}#toolbar=0&navpanes=0&scrollbar=0`;
+    const viewerParams = "toolbar=0&navpanes=0&scrollbar=0";
+    const appendViewerParams = (base) => {
+      if (!base) return base;
+      return base.includes("#") ? `${base}&${viewerParams}` : `${base}#${viewerParams}`;
+    };
 
     const fallbackToNewTab = () => {
-      const w = window.open(src, "_blank", "noopener,noreferrer");
+      const target = appendViewerParams(new URL(fileUrl, window.location.href).href);
+      const w = window.open(target, "_blank", "noopener,noreferrer");
       if (w) {
         try {
           w.focus();
@@ -840,6 +845,20 @@ export default function ProtokollPage({
         showToast?.("error", "PDF konnte nicht automatisch geöffnet werden. Bitte Pop-up-Blocker prüfen.");
       }
     };
+
+    let objectUrl = null;
+    let printableSrc = null;
+
+    try {
+      const response = await fetch(fileUrl, { credentials: "include" });
+      if (!response?.ok) throw new Error("PDF konnte nicht geladen werden");
+      const blob = await response.blob();
+      objectUrl = URL.createObjectURL(blob);
+      printableSrc = appendViewerParams(objectUrl);
+    } catch (err) {
+      fallbackToNewTab();
+      return;
+    }
 
     if (printFrameRef.current) {
       try {
@@ -859,10 +878,17 @@ export default function ProtokollPage({
       try {
         iframe.removeEventListener("load", onIframeLoad);
       } catch {}
+      try {
+        iframe.removeEventListener("error", onIframeError);
+      } catch {}
       setTimeout(() => {
         try { iframe.remove(); } catch {}
         if (printFrameRef.current === iframe) {
           printFrameRef.current = null;
+        }
+        if (objectUrl) {
+          try { URL.revokeObjectURL(objectUrl); } catch {}
+          objectUrl = null;
         }
       }, 0);
     };
@@ -887,10 +913,16 @@ export default function ProtokollPage({
       }, 100);
     };
 
+    const onIframeError = () => {
+      cleanup();
+      fallbackToNewTab();
+    };
+
     iframe.addEventListener("load", onIframeLoad, { once: true });
+    iframe.addEventListener("error", onIframeError, { once: true });
     document.body.appendChild(iframe);
     printFrameRef.current = iframe;
-    iframe.src = src;
+    iframe.src = printableSrc;
   };
 
   const handlePrint = async () => {
@@ -941,7 +973,7 @@ export default function ProtokollPage({
       if (!r?.ok || !r?.fileUrl) throw new Error(r?.error || "PDF-Erzeugung fehlgeschlagen");
 
       // 4) PDF laden und einmal drucken
-      startPdfPrint(r.fileUrl);
+      await startPdfPrint(r.fileUrl);
 
       const pages = Number(r?.pages) || recipients.length;
       showToast?.("success", `Druck gestartet (${pages} Seite${pages > 1 ? "n" : ""})`);
@@ -980,7 +1012,7 @@ export default function ProtokollPage({
         body: JSON.stringify({ recipients: [""], data: blankItem }),
       }).then((res) => res.json());
       if (!r?.ok || !r?.fileUrl) throw new Error(r?.error || "PDF-Erzeugung fehlgeschlagen");
-      startPdfPrint(r.fileUrl);
+      await startPdfPrint(r.fileUrl);
       const pages = Number(r?.pages) || 1;
       showToast?.("success", `Leeres Formular – Druck gestartet (${pages} Seite${pages > 1 ? "n" : ""})`);
     } catch (e) {
