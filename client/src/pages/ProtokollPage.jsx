@@ -816,6 +816,49 @@ export default function ProtokollPage({
   const [printing, setPrinting] = useState(false);
   const [printingKind, setPrintingKind] = useState(null);
   const printFrameRef = useRef(null);
+  const printPopupRef = useRef(null);
+
+  const closePrintPopup = (popup) => {
+    if (!popup) return;
+    try {
+      popup.close?.();
+    } catch {}
+    if (printPopupRef.current === popup) {
+      printPopupRef.current = null;
+    }
+  };
+
+  const openPrintPopup = () => {
+    if (typeof window === "undefined") return null;
+
+    let existing = null;
+    try {
+      existing = printPopupRef.current;
+      if (existing && !existing.closed) {
+        return existing;
+      }
+    } catch {
+      existing = null;
+    }
+    printPopupRef.current = null;
+    let popup = null;
+    try {
+      popup = window.open("", "_blank", "noopener,noreferrer");
+    } catch {
+      popup = null;
+    }
+    if (popup) {
+      printPopupRef.current = popup;
+      try {
+        popup.document.open();
+        popup.document.write(
+          "<!doctype html><html><head><title>Druck wird vorbereitet …</title></head><body style=\"font-family: system-ui, sans-serif; margin: 2rem; font-size: 16px;\">PDF wird vorbereitet …</body></html>"
+        );
+        popup.document.close();
+      } catch {}
+    }
+    return popup;
+  };
 
   function buildRecipients() {
     const base = Array.isArray(form?.ergehtAn) ? [...form.ergehtAn] : [];
@@ -824,30 +867,130 @@ export default function ProtokollPage({
     return base;
   }
 
-  const startPdfPrint = (fileUrl) => {
+  const startPdfPrint = (fileUrl, popupWindow) => {
+    if (typeof window === "undefined") return;
+
     const src = `${fileUrl}#toolbar=0&navpanes=0&scrollbar=0`;
-    let iframe = printFrameRef.current;
-    if (!iframe) {
-      iframe = document.createElement("iframe");
-      iframe.style.position = "fixed";
-      iframe.style.width = "0";
-      iframe.style.height = "0";
-      iframe.style.border = "0";
-      iframe.style.visibility = "hidden";
-      document.body.appendChild(iframe);
-      printFrameRef.current = iframe;
-    }
-    iframe.onload = () => {
-      try {
-        setTimeout(() => {
-          iframe.contentWindow?.focus();
-          iframe.contentWindow?.print();
-        }, 100);
-      } catch {
-        const w = window.open(src, "_blank", "noopener,noreferrer");
-        w?.focus();
+    const activePopup = popupWindow && !popupWindow.closed ? popupWindow : null;
+
+    const fallbackToNewTab = () => {
+      if (activePopup) closePrintPopup(activePopup);
+      const w = window.open(src, "_blank", "noopener,noreferrer");
+      if (w) {
+        try {
+          w.focus();
+          showToast?.("info", "PDF in neuem Tab geöffnet – bitte manuell drucken.");
+        } catch {}
+      } else {
+        showToast?.("error", "PDF konnte nicht automatisch geöffnet werden. Bitte Pop-up-Blocker prüfen.");
       }
     };
+
+    if (activePopup) {
+      let closeTimer = null;
+      const ensureCleanup = () => {
+        if (closeTimer) {
+          clearTimeout(closeTimer);
+          closeTimer = null;
+        }
+        closePrintPopup(activePopup);
+      };
+      const fallbackWithCleanup = () => {
+        if (closeTimer) {
+          clearTimeout(closeTimer);
+          closeTimer = null;
+        }
+        fallbackToNewTab();
+      };
+      const onPopupAfterPrint = () => {
+        try {
+          activePopup.removeEventListener("afterprint", onPopupAfterPrint);
+        } catch {}
+        ensureCleanup();
+      };
+      const onPopupLoad = () => {
+        try {
+          activePopup.removeEventListener("load", onPopupLoad);
+        } catch {}
+        try {
+          activePopup.focus?.();
+          const maybePromise = activePopup.print?.();
+          if (maybePromise && typeof maybePromise.then === "function") {
+            maybePromise.catch(() => fallbackWithCleanup());
+          }
+        } catch {
+          fallbackWithCleanup();
+          return;
+        }
+        try {
+          activePopup.addEventListener("afterprint", onPopupAfterPrint, { once: true });
+        } catch {
+          activePopup.addEventListener("afterprint", onPopupAfterPrint);
+        }
+        closeTimer = setTimeout(() => {
+          ensureCleanup();
+        }, 120000);
+      };
+      try {
+        activePopup.addEventListener("load", onPopupLoad, { once: true });
+      } catch {
+        activePopup.addEventListener("load", onPopupLoad);
+      }
+      try {
+        activePopup.location.replace(src);
+      } catch {
+        activePopup.location.href = src;
+      }
+      return;
+    }
+
+    if (printFrameRef.current) {
+      try {
+        printFrameRef.current.remove();
+      } catch {}
+      printFrameRef.current = null;
+    }
+
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    iframe.style.visibility = "hidden";
+
+    const cleanup = () => {
+      try {
+        iframe.removeEventListener("load", onIframeLoad);
+      } catch {}
+      setTimeout(() => {
+        try { iframe.remove(); } catch {}
+        if (printFrameRef.current === iframe) {
+          printFrameRef.current = null;
+        }
+      }, 0);
+    };
+
+    const onIframeLoad = () => {
+      cleanup();
+      try {
+        const frameWindow = iframe.contentWindow;
+        if (frameWindow) {
+          frameWindow.focus?.();
+          const maybePromise = frameWindow.print?.();
+          if (maybePromise && typeof maybePromise.then === "function") {
+            maybePromise.catch(() => fallbackToNewTab());
+          }
+        } else {
+          fallbackToNewTab();
+        }
+      } catch {
+        fallbackToNewTab();
+      }
+    };
+
+    iframe.addEventListener("load", onIframeLoad, { once: true });
+    document.body.appendChild(iframe);
+    printFrameRef.current = iframe;
     iframe.src = src;
   };
 
@@ -864,11 +1007,15 @@ export default function ProtokollPage({
       return;
     }
 
+    let popupWindow = null;
     setPrinting(true);
     try {
+      popupWindow = openPrintPopup();
       // 1) Speichern → NR sicherstellen
       const nrSaved = await saveCore();
       if (!nrSaved) {
+        closePrintPopup(popupWindow);
+        popupWindow = null;
         showToast?.("error", "Drucken benötigt einen gespeicherten Eintrag.");
         return;
       }
@@ -899,11 +1046,14 @@ export default function ProtokollPage({
       if (!r?.ok || !r?.fileUrl) throw new Error(r?.error || "PDF-Erzeugung fehlgeschlagen");
 
       // 4) PDF laden und einmal drucken
-      startPdfPrint(r.fileUrl);
+      startPdfPrint(r.fileUrl, popupWindow);
+      popupWindow = null;
 
       const pages = Number(r?.pages) || recipients.length;
       showToast?.("success", `Druck gestartet (${pages} Seite${pages > 1 ? "n" : ""})`);
     } catch (e) {
+      closePrintPopup(popupWindow);
+      popupWindow = null;
       showToast?.("error", `Drucken fehlgeschlagen: ${e.message || e}`);
     } finally {
       setPrintingKind(null);
@@ -914,9 +1064,11 @@ export default function ProtokollPage({
   const handlePrintBlank = async () => {
     if (!isAdmin) return;
     if (printing) return;
+    let popupWindow = null;
     setPrinting(true);
     setPrintingKind("blank");
     try {
+      popupWindow = openPrintPopup();
       const blankItem = {
         datum: "",
         zeit: "",
@@ -938,10 +1090,13 @@ export default function ProtokollPage({
         body: JSON.stringify({ recipients: [""], data: blankItem }),
       }).then((res) => res.json());
       if (!r?.ok || !r?.fileUrl) throw new Error(r?.error || "PDF-Erzeugung fehlgeschlagen");
-      startPdfPrint(r.fileUrl);
+      startPdfPrint(r.fileUrl, popupWindow);
+      popupWindow = null;
       const pages = Number(r?.pages) || 1;
       showToast?.("success", `Leeres Formular – Druck gestartet (${pages} Seite${pages > 1 ? "n" : ""})`);
     } catch (e) {
+      closePrintPopup(popupWindow);
+      popupWindow = null;
       showToast?.("error", `Leeres Formular konnte nicht gedruckt werden: ${e.message || e}`);
     } finally {
       setPrintingKind(null);
