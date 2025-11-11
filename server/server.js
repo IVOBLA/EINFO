@@ -226,10 +226,96 @@ async function writeOverrides(next){
   invalidateVehiclesCache();
 }
 
-async function readVehicleAvailability(){ return await readJson(VEH_AVAILABILITY_FILE, {}); }
+function parseAvailabilityTimestamp(raw) {
+  if (raw === null || typeof raw === "undefined") return null;
+  if (typeof raw === "number" && Number.isFinite(raw)) return raw;
+  if (typeof raw === "string") {
+    const trimmed = raw.trim();
+    if (!trimmed) return null;
+    const asNumber = Number(trimmed);
+    if (Number.isFinite(asNumber)) return asNumber;
+    const parsed = Date.parse(trimmed);
+    if (!Number.isNaN(parsed)) return parsed;
+  }
+  return null;
+}
+
+function sanitizeAvailabilityValue(value) {
+  if (value === false) {
+    return { unavailable: true, untilMs: null };
+  }
+  if (value && typeof value === "object") {
+    const flag = value.available;
+    const unavailable = flag === undefined || flag === null ? true : flag === false;
+    if (!unavailable) {
+      return { unavailable: false, untilMs: null };
+    }
+    const untilMs = parseAvailabilityTimestamp(value.until ?? value.untilMs ?? value.untilTimestamp);
+    return { unavailable: true, untilMs };
+  }
+  return { unavailable: false, untilMs: null };
+}
+
+function normalizeAvailabilityMap(map = {}) {
+  const cleaned = {};
+  const now = Date.now();
+  let changed = false;
+
+  for (const [key, value] of Object.entries(map || {})) {
+    const { unavailable, untilMs } = sanitizeAvailabilityValue(value);
+    if (!unavailable) {
+      if (value !== undefined) changed = true;
+      continue;
+    }
+    if (Number.isFinite(untilMs) && untilMs <= now) {
+      changed = true;
+      continue;
+    }
+    if (Number.isFinite(untilMs)) {
+      const iso = new Date(untilMs).toISOString();
+      const prevUntilMs =
+        value && typeof value === "object"
+          ? parseAvailabilityTimestamp(value.until ?? value.untilMs ?? value.untilTimestamp)
+          : null;
+      const prevIso = Number.isFinite(prevUntilMs) ? new Date(prevUntilMs).toISOString() : null;
+      if (value && typeof value === "object" && value.available === false && prevIso === iso) {
+        cleaned[key] = value;
+      } else {
+        cleaned[key] = { available: false, until: iso };
+        if (!value || typeof value !== "object" || value.available !== false || prevIso !== iso) {
+          changed = true;
+        }
+      }
+    } else {
+      cleaned[key] = false;
+      if (value !== false) changed = true;
+    }
+  }
+
+  return { map: cleaned, changed };
+}
+
+function getAvailabilityInfo(map, key) {
+  const raw = map ? map[key] : undefined;
+  const { unavailable, untilMs } = sanitizeAvailabilityValue(raw);
+  const untilIso = Number.isFinite(untilMs) ? new Date(untilMs).toISOString() : null;
+  return { unavailable, untilIso };
+}
+
+async function readVehicleAvailability(){
+  const raw = await readJson(VEH_AVAILABILITY_FILE, {});
+  const { map, changed } = normalizeAvailabilityMap(raw);
+  if (changed) await writeJson(VEH_AVAILABILITY_FILE, map);
+  return map;
+}
 async function writeVehicleAvailability(next){ await writeJson(VEH_AVAILABILITY_FILE, next); }
 
-async function readGroupAvailability(){ return await readJson(GROUP_AVAILABILITY_FILE, {}); }
+async function readGroupAvailability(){
+  const raw = await readJson(GROUP_AVAILABILITY_FILE, {});
+  const { map, changed } = normalizeAvailabilityMap(raw);
+  if (changed) await writeJson(GROUP_AVAILABILITY_FILE, map);
+  return map;
+}
 async function writeGroupAvailability(next){ await writeJson(GROUP_AVAILABILITY_FILE, next); }
 
 async function readGroupAlerted(){ return await readJson(GROUP_ALERTED_FILE, {}); }
@@ -759,13 +845,28 @@ async function getAllVehicles(){
     if (!veh) return veh;
     const idStr = String(veh.id ?? "");
     const ortStr = String(veh.ort ?? "");
-    const vehicleAvailable = Object.prototype.hasOwnProperty.call(availability || {}, idStr)
-      ? availability[idStr] !== false
-      : true;
-    const groupAvailable = Object.prototype.hasOwnProperty.call(groupAvailability || {}, ortStr)
-      ? groupAvailability[ortStr] !== false
-      : true;
-    return { ...veh, available: vehicleAvailable && groupAvailable, groupAvailable };
+    const vehicleInfo = getAvailabilityInfo(availability || {}, idStr);
+    const groupInfo = getAvailabilityInfo(groupAvailability || {}, ortStr);
+    const vehicleAvailable = !vehicleInfo.unavailable;
+    const groupAvailable = !groupInfo.unavailable;
+    const combinedAvailable = vehicleAvailable && groupAvailable;
+    let unavailableUntil = null;
+    if (!combinedAvailable) {
+      const candidates = [];
+      if (vehicleInfo.untilIso) candidates.push(vehicleInfo.untilIso);
+      if (groupInfo.untilIso) candidates.push(groupInfo.untilIso);
+      if (candidates.length > 0) {
+        unavailableUntil = candidates.reduce((latest, candidate) => {
+          if (!latest) return candidate;
+          const latestMs = Date.parse(latest);
+          const candidateMs = Date.parse(candidate);
+          if (!Number.isFinite(latestMs)) return candidate;
+          if (!Number.isFinite(candidateMs)) return latest;
+          return candidateMs > latestMs ? candidate : latest;
+        }, null);
+      }
+    }
+    return { ...veh, available: combinedAvailable, groupAvailable, unavailableUntil };
   });
 }
 const vehiclesByIdMap = list => new Map(list.map(v=>[v.id,v]));
@@ -926,18 +1027,40 @@ app.patch("/api/vehicles/:id/availability", async (req,res)=>{
   const exists = all.find(v=>String(v?.id||"")===id);
   if(!exists) return res.status(404).json({ ok:false, error:"vehicle not found" });
   const available = req.body?.available !== false;
+  let untilIso = null;
+  if (!available) {
+    const untilMs = parseAvailabilityTimestamp(
+      req.body?.until ?? req.body?.untilMs ?? req.body?.untilTimestamp
+    );
+    if (Number.isFinite(untilMs) && untilMs > Date.now()) {
+      untilIso = new Date(untilMs).toISOString();
+    }
+  }
   const map = await readVehicleAvailability().catch(() => ({}));
-  if(available) delete map[id]; else map[id] = false;
+  if (available) delete map[id];
+  else if (untilIso) map[id] = { available: false, until: untilIso };
+  else map[id] = false;
   await writeVehicleAvailability(map);
-  res.json({ ok:true, id, available });
+  res.json({ ok:true, id, available, until: untilIso });
 });
 
 app.patch("/api/groups/:name/availability", async (req,res)=>{
   const name = String(req.params?.name || "").trim();
   if(!name) return res.status(400).json({ ok:false, error:"group name erforderlich" });
   const available = req.body?.available !== false;
+  let untilIso = null;
+  if (!available) {
+    const untilMs = parseAvailabilityTimestamp(
+      req.body?.until ?? req.body?.untilMs ?? req.body?.untilTimestamp
+    );
+    if (Number.isFinite(untilMs) && untilMs > Date.now()) {
+      untilIso = new Date(untilMs).toISOString();
+    }
+  }
   const map = await readGroupAvailability().catch(() => ({}));
-  if(available) delete map[name]; else map[name] = false;
+  if (available) delete map[name];
+  else if (untilIso) map[name] = { available: false, until: untilIso };
+  else map[name] = false;
   await writeGroupAvailability(map);
 
   const vehicleAvailability = await readVehicleAvailability().catch(() => ({}));
@@ -949,11 +1072,12 @@ app.patch("/api/groups/:name/availability", async (req,res)=>{
     const idStr = String(vehicle.id ?? "");
     if (!idStr) continue;
     if (available) delete vehicleAvailability[idStr];
+    else if (untilIso) vehicleAvailability[idStr] = { available: false, until: untilIso };
     else vehicleAvailability[idStr] = false;
   }
   await writeVehicleAvailability(vehicleAvailability);
 
-  res.json({ ok:true, name, available });
+  res.json({ ok:true, name, available, until: untilIso });
 });
 
 // ---- Karten anlegen (mit Koordinaten) ----

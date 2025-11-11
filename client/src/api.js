@@ -50,11 +50,19 @@ export async function fetchBoard(){ return j("GET","/api/board"); }
 export async function fetchVehicles(){ return j("GET","/api/vehicles"); }
 export async function fetchGroupAvailability(){ return j("GET", "/api/groups/availability"); }
 export async function fetchGroupAlerted(){ return j("GET", "/api/groups/alerted"); }
-export async function updateVehicleAvailability(id, available){
-  return j("PATCH", `/api/vehicles/${encodeURIComponent(id)}/availability`, { available });
+export async function updateVehicleAvailability(id, available, until){
+  const body = { available };
+  if (available === false && typeof until !== "undefined" && until !== null && String(until).trim() !== "") {
+    body.until = until;
+  }
+  return j("PATCH", `/api/vehicles/${encodeURIComponent(id)}/availability`, body);
 }
-export async function updateGroupAvailability(name, available){
-  return j("PATCH", `/api/groups/${encodeURIComponent(name)}/availability`, { available });
+export async function updateGroupAvailability(name, available, until){
+  const body = { available };
+  if (available === false && typeof until !== "undefined" && until !== null && String(until).trim() !== "") {
+    body.until = until;
+  }
+  return j("PATCH", `/api/groups/${encodeURIComponent(name)}/availability`, body);
 }
 export async function fetchTypes(){ try{ return await j("GET","/api/types"); }catch{ return []; } }
 
