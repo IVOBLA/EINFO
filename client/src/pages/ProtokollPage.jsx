@@ -860,106 +860,33 @@ export default function ProtokollPage({
     return base;
   }
 
-  const startPdfPrint = async (fileUrl) => {
-    if (typeof window === "undefined") return;
-
-    const viewerParams = "toolbar=0&navpanes=0&scrollbar=0";
-    const appendViewerParams = (base) => {
-      if (!base) return base;
-      return base.includes("#") ? `${base}&${viewerParams}` : `${base}#${viewerParams}`;
-    };
-
-    const fallbackToNewTab = () => {
-      const target = appendViewerParams(new URL(fileUrl, window.location.href).href);
-      const w = window.open(target, "_blank", "noopener,noreferrer");
-      if (w) {
-        try {
-          w.focus();
-          showToast?.("info", "PDF in neuem Tab geöffnet – bitte manuell drucken.");
-        } catch {}
-      } else {
-        showToast?.("error", "PDF konnte nicht automatisch geöffnet werden. Bitte Pop-up-Blocker prüfen.");
-      }
-    };
-
-    let objectUrl = null;
-    let printableSrc = null;
-
-    try {
-      const response = await fetch(fileUrl, { credentials: "include" });
-      if (!response?.ok) throw new Error("PDF konnte nicht geladen werden");
-      const blob = await response.blob();
-      objectUrl = URL.createObjectURL(blob);
-      printableSrc = appendViewerParams(objectUrl);
-    } catch (err) {
-      fallbackToNewTab();
-      return;
-    }
-
-    if (printFrameRef.current) {
-      try {
-        printFrameRef.current.remove();
-      } catch {}
-      printFrameRef.current = null;
-    }
-
-    const iframe = document.createElement("iframe");
+// NEU in ProtokollPage_neu.jsx (alte Logik aus ProtokollPage.jsx)
+const startPdfPrint = (fileUrl) => {
+  const src = `${fileUrl}#toolbar=0&navpanes=0&scrollbar=0`;
+  let iframe = printFrameRef.current;
+  if (!iframe) {
+    iframe = document.createElement("iframe");
     iframe.style.position = "fixed";
     iframe.style.width = "0";
     iframe.style.height = "0";
     iframe.style.border = "0";
     iframe.style.visibility = "hidden";
-
-    const cleanup = () => {
-      try {
-        iframe.removeEventListener("load", onIframeLoad);
-      } catch {}
-      try {
-        iframe.removeEventListener("error", onIframeError);
-      } catch {}
-      setTimeout(() => {
-        try { iframe.remove(); } catch {}
-        if (printFrameRef.current === iframe) {
-          printFrameRef.current = null;
-        }
-        if (objectUrl) {
-          try { URL.revokeObjectURL(objectUrl); } catch {}
-          objectUrl = null;
-        }
-      }, 0);
-    };
-
-    const onIframeLoad = () => {
-      cleanup();
-      setTimeout(() => {
-        try {
-          const frameWindow = iframe.contentWindow;
-          if (frameWindow) {
-            frameWindow.focus?.();
-            const maybePromise = frameWindow.print?.();
-            if (maybePromise && typeof maybePromise.then === "function") {
-              maybePromise.catch(() => fallbackToNewTab());
-            }
-          } else {
-            fallbackToNewTab();
-          }
-        } catch {
-          fallbackToNewTab();
-        }
-      }, 100);
-    };
-
-    const onIframeError = () => {
-      cleanup();
-      fallbackToNewTab();
-    };
-
-    iframe.addEventListener("load", onIframeLoad, { once: true });
-    iframe.addEventListener("error", onIframeError, { once: true });
     document.body.appendChild(iframe);
     printFrameRef.current = iframe;
-    iframe.src = printableSrc;
+  }
+  iframe.onload = () => {
+    try {
+      setTimeout(() => {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      }, 100);
+    } catch {
+      const w = window.open(src, "_blank", "noopener,noreferrer");
+      w?.focus();
+    }
   };
+  iframe.src = src;
+};
 
   const handlePrint = async () => {
     if (printing) return;
