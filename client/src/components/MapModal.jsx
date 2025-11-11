@@ -269,7 +269,12 @@ export function MapModal({ context, address, onClose }) {
         const angleByIncident = new Map(); // incidentId -> angle
 
         // AdvancedMarkerElement?
-        const Advanced = window.google?.maps?.marker?.AdvancedMarkerElement;
+        const AdvancedCtor = window.google?.maps?.marker?.AdvancedMarkerElement;
+        const Advanced =
+          typeof AdvancedCtor === "function" &&
+          typeof AdvancedCtor?.prototype?.addListener === "function"
+            ? AdvancedCtor
+            : null;
 
         // Hilfsfunktion: Icon-URL je Status bestimmen
         const resolveIconUrl = (isAssigned, gpsPos, assignedIncidentId) => {
@@ -285,7 +290,7 @@ export function MapModal({ context, address, onClose }) {
         // Hilfsfunktion: Fahrzeug-Marker erzeugen (AdvancedMarker oder klassisch)
         const placeVehicleMarker = (position, isAssigned, title, gpsPos, assignedIncidentId, vid) => {
           const iconUrl = resolveIconUrl(isAssigned, gpsPos, assignedIncidentId);
-		   const canDrag = !gpsPos; // ohne GPS darf manuell verschoben werden (manuelle Pos zählt als "kein GPS")
+          const canDrag = !gpsPos; // ohne GPS darf manuell verschoben werden (manuelle Pos zählt als "kein GPS")
           if (Advanced) {
             const img = document.createElement("img");
             img.src = iconUrl;
@@ -299,23 +304,27 @@ export function MapModal({ context, address, onClose }) {
               content: img,
               title,
             });
-	    if (canDrag) {
-      try { marker.draggable = true; } catch {}
-      // Persistiert via /api/vehicles/:id/position → server/data/vehicles-overrides.json
-      marker.addListener("dragend", async (ev) => {
-        const p = ev?.latLng || marker.position;
-        const lat = typeof p.lat === "function" ? p.lat() : p.lat;
-        const lng = typeof p.lng === "function" ? p.lng() : p.lng;
-        try {
-          await setVehiclePosition(vid, lat, lng, assignedIncidentId, "manual");
-        } catch (e) {
-          // bei Fehler zurückspringen
-          marker.__setPosition(position);
-          console.error("setVehiclePosition failed:", e);
-          alert("Position konnte nicht gespeichert werden.");
-        }
-      });
-    }		
+            if (canDrag) {
+              try {
+                marker.draggable = true;
+              } catch {}
+              if (typeof marker.addListener === "function") {
+                // Persistiert via /api/vehicles/:id/position → server/data/vehicles-overrides.json
+                marker.addListener("dragend", async (ev) => {
+                  const p = ev?.latLng || marker.position;
+                  const lat = typeof p.lat === "function" ? p.lat() : p.lat;
+                  const lng = typeof p.lng === "function" ? p.lng() : p.lng;
+                  try {
+                    await setVehiclePosition(vid, lat, lng, assignedIncidentId, "manual");
+                  } catch (e) {
+                    // bei Fehler zurückspringen
+                    marker.__setPosition(position);
+                    console.error("setVehiclePosition failed:", e);
+                    alert("Position konnte nicht gespeichert werden.");
+                  }
+                });
+              }
+            }
             // Kompatibles Interface für späteres Update:
             marker.__setPosition = (pos) => { marker.position = pos; };
             marker.__setIcon = (assigned, gps, incId) => {
@@ -331,28 +340,28 @@ export function MapModal({ context, address, onClose }) {
               position,
               map,
               title,
-			  draggable: canDrag,
+              draggable: canDrag,
               icon: {
                 url: iconUrl,
                 scaledSize: new window.google.maps.Size(ICON_SIZE, ICON_SIZE),
                 anchor: new window.google.maps.Point(ICON_SIZE / 2, ICON_SIZE / 2),
               },
             });
-			    if (canDrag) {
-      // Persistiert via /api/vehicles/:id/position → server/data/vehicles-overrides.json
-      marker.addListener("dragend", async (ev) => {
-        const p = ev?.latLng || marker.getPosition();
-        const lat = typeof p.lat === "function" ? p.lat() : p.lat;
-        const lng = typeof p.lng === "function" ? p.lng() : p.lng;
-        try {
-          await setVehiclePosition(vid, lat, lng, assignedIncidentId, "manual");
-        } catch (e) {
-         marker.__setPosition(position); // revert
-          console.error("setVehiclePosition failed:", e);
-          alert("Position konnte nicht gespeichert werden.");
-        }
-     });
-    }
+            if (canDrag) {
+              // Persistiert via /api/vehicles/:id/position → server/data/vehicles-overrides.json
+              marker.addListener("dragend", async (ev) => {
+                const p = ev?.latLng || marker.getPosition();
+                const lat = typeof p.lat === "function" ? p.lat() : p.lat;
+                const lng = typeof p.lng === "function" ? p.lng() : p.lng;
+                try {
+                  await setVehiclePosition(vid, lat, lng, assignedIncidentId, "manual");
+                } catch (e) {
+                  marker.__setPosition(position); // revert
+                  console.error("setVehiclePosition failed:", e);
+                  alert("Position konnte nicht gespeichert werden.");
+                }
+              });
+            }
             marker.__setPosition = (pos) => marker.setPosition(pos);
             marker.__setIcon = (assigned, gps, incId) =>
               marker.setIcon({
