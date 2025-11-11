@@ -486,21 +486,56 @@ export default function ProtokollPage({
         return { roleLabel, roleDisplay, by, whenText };
       })()
     : null;
+  const isMeldestelle = useMemo(() => {
+    const targets = ["MS", "MELDESTELLE"];
+    for (const id of targets) {
+      if (userRoleIds.has(id)) return true;
+    }
+    return false;
+  }, [userRoleIds]);
+  const requiresConfirmationForForm = useMemo(() => {
+    const u = form?.uebermittlungsart || {};
+    const payload = {
+      ...form,
+      uebermittlungsart: {
+        ...u,
+        aus: u.aus || u.richtung === "aus",
+        ein: u.ein || u.richtung === "ein",
+      },
+    };
+    return requiresOtherRecipientConfirmation(payload);
+  }, [form]);
+  const awaitingOtherRecipientConfirmation = requiresConfirmationForForm && !entryConfirmed;
   const lockedByOtherRole = entryConfirmed && !confirmRoleSet.has(confirmationRoleUpper);
   const lockedByOtherUser = isEditMode && lockStatus === "blocked";
   const isS3 = hasRole("S3", user);
   const s3BlockedByLtStb = isS3 && ltStbOnline;
-  const canModify = effectiveCanEdit && hasEditLock && !lockedByOtherRole && !s3BlockedByLtStb;
+  const meldestelleAwaitingConfirmationLock =
+    isEditMode && isMeldestelle && awaitingOtherRecipientConfirmation;
+  const canModify =
+    effectiveCanEdit &&
+    hasEditLock &&
+    !lockedByOtherRole &&
+    !s3BlockedByLtStb &&
+    !meldestelleAwaitingConfirmationLock;
   const canPrintAsTaskCreator = useMemo(() => {
     if (!createdViaTask) return false;
     if (!taskCreatedByRole) return false;
     return userRoleIds.has(taskCreatedByRole);
   }, [createdViaTask, taskCreatedByRole, userRoleIds]);
+  const printDisabled =
+    printing || (meldestelleAwaitingConfirmationLock && !canPrintAsTaskCreator);
+  const printDisabledReason = meldestelleAwaitingConfirmationLock
+    ? "Ausgehende Meldungen an externe Empfänger müssen zuerst bestätigt werden."
+    : "Formular drucken – Anzahl gemäß 'ergeht an' + 'Sonstiger Empfänger'";
   const lockInfoText = lockedByOtherRole && confirmationDetails
     ? `Bestätigt durch ${confirmationDetails.roleLabel}${confirmationDetails.by ? ` (${confirmationDetails.by})` : ""}${confirmationDetails.whenText ? ` am ${confirmationDetails.whenText}` : ""}`
     : null;
   const lockBlockedInfoText = lockedByOtherUser
     ? `Gerade in Bearbeitung durch ${lockError?.lockedBy || lockError?.lock?.lockedBy || "Unbekannt"}`
+    : null;
+  const awaitingConfirmationInfoText = meldestelleAwaitingConfirmationLock
+    ? "Ausgehende Meldungen an externe Empfänger müssen zuerst bestätigt werden. Änderungen und Druck sind bis dahin gesperrt."
     : null;
   const confirmationDisplayLines = confirmationDetails
     ? [
@@ -1275,9 +1310,9 @@ export default function ProtokollPage({
             <button
               type="button"
               onClick={handlePrint}
-              disabled={printing}
+              disabled={printDisabled}
               className="px-3 py-1.5 rounded-md border bg-white hover:bg-gray-50 disabled:opacity-60"
-              title="Formular drucken – Anzahl gemäß 'ergeht an' + 'Sonstiger Empfänger'"
+              title={printDisabledReason}
             >
               {printing && printingKind === "data" ? "Drucken…" : "Drucken"}
             </button>
@@ -1305,6 +1340,12 @@ export default function ProtokollPage({
       {lockedByOtherUser && lockBlockedInfoText && (
         <div className="mx-2 md:mx-0 mt-3 px-3 py-2 rounded border border-amber-300 bg-amber-50 text-amber-900 text-sm">
           {lockBlockedInfoText} – Änderungen sind derzeit gesperrt.
+        </div>
+      )}
+
+      {awaitingConfirmationInfoText && (
+        <div className="mx-2 md:mx-0 mt-3 px-3 py-2 rounded border border-amber-300 bg-amber-50 text-amber-900 text-sm">
+          {awaitingConfirmationInfoText}
         </div>
       )}
 
@@ -1338,7 +1379,8 @@ export default function ProtokollPage({
 
       {/* Formular */}
       <form ref={formRef} onKeyDown={onFormKeyDown} onSubmit={onSubmit} className="bg-white border-2 rounded-b-xl overflow-hidden shadow">
-        <div className="grid grid-cols-12">
+        <fieldset disabled={!canModify} className="contents">
+          <div className="grid grid-cols-12">
           {/* Kopf */}
           <div className="col-span-9 px-6 py-4 border-b-2">
             <div className="text-3xl font-extrabold tracking-wide">MELDUNG/INFORMATION</div>
@@ -1696,10 +1738,11 @@ export default function ProtokollPage({
               )}
             </div>
           </div>
-        </div>
+          </div>
 
-        {/* Unsichtbarer Submit (Enter) */}
-        <button type="submit" className="hidden">submit</button>
+          {/* Unsichtbarer Submit (Enter) */}
+          <button type="submit" className="hidden">submit</button>
+        </fieldset>
       </form>
     </div>
   );
