@@ -263,7 +263,20 @@ async function userHasAppEditPermission(req, appId) {
 }
 
 async function userHasProtocolEditPermission(req) {
-  return userHasAppEditPermission(req, PROTOCOL_APP_ID);
+  if (await userHasAppEditPermission(req, PROTOCOL_APP_ID)) {
+    return true;
+  }
+
+  // Fallback: Ist kein LtStb/LtStbStv online, darf S3 bearbeiten
+  const actorRoles = collectActorRoles(req);
+  if (!actorRoles.has("S3")) return false;
+
+  const ltStbAvailable = User_isAnyRoleOnline(
+    ["LTSTB", "LTSTBSTV"],
+    { activeWithinMs: USER_ONLINE_ROLE_ACTIVE_LIMIT_MS }
+  );
+
+  return !ltStbAvailable;
 }
 
 async function userHasAufgabenboardEditPermission(req) {
