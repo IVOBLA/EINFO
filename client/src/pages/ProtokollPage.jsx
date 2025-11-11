@@ -1064,9 +1064,18 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
     }
   };
 
+  const confirmBeforeSave = () => {
+    try {
+      return window.confirm("Sind sie sicher?");
+    } catch {
+      return true;
+    }
+  };
+
   const handleSaveClose = async () => {
     if (!canModify) { showModificationDenied(); return; }
     if (saving) return;
+    if (!confirmBeforeSave()) return;
     setSaving(true);
     try {
       const nrSaved = await saveCore();
@@ -1084,6 +1093,7 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
   const handleSaveNew = async () => {
     if (!canModify) { showModificationDenied(); return; }
     if (saving) return;
+    if (!confirmBeforeSave()) return;
     setSaving(true);
     try {
       const nrSaved = await saveCore();
