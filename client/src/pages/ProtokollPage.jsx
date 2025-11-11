@@ -1066,7 +1066,7 @@ const s3BlockedByLtStb = isS3 && ltStbOnline;
 
   const confirmBeforeSave = () => {
     try {
-      return window.confirm("Sind sie sicher?");
+      return window.confirm("Sind sie sicher? Änderungen sind nur durch die Meldestelle oder den Leiter des Stabes möglich!");
     } catch {
       return true;
     }
