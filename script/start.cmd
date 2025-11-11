@@ -1,5 +1,5 @@
 @echo off
-setlocal EnableExtensions
+setlocal EnableExtensions EnableDelayedExpansion
 
 REM === immer ins Projekt-Root wechseln, egal von wo gestartet ===
 cd /d "%~dp0\.."  || exit /b 1
@@ -7,6 +7,32 @@ echo [start] Projekt-Root: %cd%
 
 REM === Logs-Ordner sicherstellen ===
 if not exist "logs" mkdir "logs"
+
+REM === Optionales Wissens-Ingest (RAG) ===
+set "KANBAN_REQUIRE_INGEST=%KANBAN_REQUIRE_INGEST%"
+set "INGEST_LOG=logs\ingest.log"
+if exist "%INGEST_LOG%" del "%INGEST_LOG%" >nul 2>&1
+
+if exist "knowledge" (
+  echo [start] Fuehre Wissens-Ingest aus ^(Log: %INGEST_LOG%^) ...
+  call npm run ingest --if-present > "%INGEST_LOG%" 2>&1
+  set "INGEST_RC=!ERRORLEVEL!"
+  if exist "%INGEST_LOG%" type "%INGEST_LOG%"
+  if not defined KANBAN_REQUIRE_INGEST set "KANBAN_REQUIRE_INGEST=0"
+  if not "!INGEST_RC!"=="0" (
+    if /I "!KANBAN_REQUIRE_INGEST!"=="1" (
+      echo [start][ERR] Wissens-Ingest fehlgeschlagen ^(Code=!INGEST_RC!^) – Abbruch, da KANBAN_REQUIRE_INGEST=1.
+      goto :error
+    ) else (
+      echo [start][WARN] Wissens-Ingest fehlgeschlagen ^(Code=!INGEST_RC!^). Fahre ohne RAG fort.
+      call :clearErrorLevel
+    )
+  ) else (
+    echo [start] Wissens-Ingest erfolgreich.
+  )
+) else (
+  echo [start] Wissens-Ingest uebersprungen ^(Ordner 'knowledge' fehlt^).
+)
 
 REM === Abhängigkeiten installieren (immer 'call npm ...') ===
 echo [start] Install (workspaces) ...
@@ -62,6 +88,9 @@ REM === einfache Warte-Schleife, damit das Fenster offen bleibt ===
 :wait
 ping -n 3600 127.0.0.1 >nul
 goto :wait
+
+:clearErrorLevel
+exit /b 0
 
 :error
 echo [start][ERR] Code=%errorlevel%
