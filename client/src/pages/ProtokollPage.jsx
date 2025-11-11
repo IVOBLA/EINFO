@@ -384,6 +384,20 @@ export default function ProtokollPage({
   }, [mode, taskOverrideActive, userRoleLabel, userRoleIds, taskPrefillToken, taskPrefillStorageKey, taskPrefillPayload]);
 
   useEffect(() => {
+    if (!createdViaTask) return;
+    const roleFromUser = (() => {
+      const first = userRoleIds.values().next();
+      if (!first.done && first.value) return first.value;
+      return normRoleId(userRoleLabel);
+    })();
+    const normalizedRole = roleFromUser || null;
+    setTaskCreatedByRole((prev) => {
+      if (prev === normalizedRole) return prev;
+      return normalizedRole;
+    });
+  }, [createdViaTask, userRoleIds, userRoleLabel]);
+
+  useEffect(() => {
     if (!taskPrefillToken) return;
     try {
       const url = new URL(window.location.href);
