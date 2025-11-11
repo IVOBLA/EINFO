@@ -523,11 +523,6 @@ export default function ProtokollPage({
     if (!taskCreatedByRole) return false;
     return userRoleIds.has(taskCreatedByRole);
   }, [createdViaTask, taskCreatedByRole, userRoleIds]);
-  const printDisabled =
-    printing || (meldestelleAwaitingConfirmationLock && !canPrintAsTaskCreator);
-  const printDisabledReason = meldestelleAwaitingConfirmationLock
-    ? "Ausgehende Meldungen an externe Empfänger müssen zuerst bestätigt werden."
-    : "Formular drucken – Anzahl gemäß 'ergeht an' + 'Sonstiger Empfänger'";
   const lockInfoText = lockedByOtherRole && confirmationDetails
     ? `Bestätigt durch ${confirmationDetails.roleLabel}${confirmationDetails.by ? ` (${confirmationDetails.by})` : ""}${confirmationDetails.whenText ? ` am ${confirmationDetails.whenText}` : ""}`
     : null;
@@ -851,6 +846,12 @@ export default function ProtokollPage({
   const [printing, setPrinting] = useState(false);
   const [printingKind, setPrintingKind] = useState(null);
   const printFrameRef = useRef(null);
+
+  const printDisabled =
+    printing || (meldestelleAwaitingConfirmationLock && !canPrintAsTaskCreator);
+  const printDisabledReason = meldestelleAwaitingConfirmationLock
+    ? "Ausgehende Meldungen an externe Empfänger müssen zuerst bestätigt werden."
+    : "Formular drucken – Anzahl gemäß 'ergeht an' + 'Sonstiger Empfänger'";
 
   function buildRecipients() {
     const base = Array.isArray(form?.ergehtAn) ? [...form.ergehtAn] : [];
