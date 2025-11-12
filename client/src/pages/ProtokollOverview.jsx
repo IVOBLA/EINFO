@@ -322,8 +322,8 @@ const rows = useMemo(
         <table className="min-w-[1100px] w-full text-sm">
           <thead className="bg-gray-50 sticky top-0 z-10">
             <tr className="[&>th]:px-2 [&>th]:py-2 [&>th]:text-left [&>th]:font-semibold border-b">
-              <th style={{ width: 70 }} className="text-center" title="Druckanzahl">NR</th>
-              <th style={{ width: 70 }} className="text-center">ZU</th>
+              <th style={{ width: 60 }} className="text-center" title="Aufgabenstatus">✓</th>
+              <th style={{ width: 90 }} className="text-center" title="Druckanzahl">NR/ZU</th>
               <th style={{ width: 60 }}>Druck</th>
               <th style={{ width: 110 }}>Datum</th>
               <th style={{ width: 80 }}>Zeit</th>
@@ -424,7 +424,8 @@ const rows = useMemo(
                 : openTasks
                   ? "text-red-600"
                   : "";
-              const hasCompletedTasks = relevantMeasures.some((m) => !!m?.done);
+              const hasRelevantTasks = relevantMeasures.length > 0;
+              const allTasksDone = hasRelevantTasks && !openTasks;
               const rowClasses = [
                 "border-b align-top cursor-pointer",
                 isHighlighted
@@ -441,22 +442,35 @@ const rows = useMemo(
                   aria-label={hoverTitle}
                 >
                   <td className="align-middle text-center">
+                    {allTasksDone ? (
+                      <span
+                        className="inline-flex items-center justify-center text-emerald-600 text-lg font-semibold"
+                        title="Alle Aufgaben erledigt"
+                        aria-label="Alle Aufgaben erledigt"
+                      >
+                        ✓
+                      </span>
+                    ) : null}
+                  </td>
+                  <td className="align-middle text-center font-semibold">
                     {showPrintCircle ? (
                       <span
-                        className={`inline-flex items-center justify-center w-8 h-8 rounded-full border-2 text-sm font-semibold ${printCircleClass}`}
+                        className={`inline-flex items-center justify-center px-3 h-8 rounded-full border-2 text-sm font-semibold ${printCircleClass}`}
                         title={printTitle}
                         aria-label={printTitle}
                       >
-                        {r.nr}
+                        {`${r.nr ?? "—"}/${r.zu ? r.zu : "—"}`}
                       </span>
                     ) : (
-                      <span className={`inline-block min-w-[2ch] text-sm font-semibold ${printPlainTextClass}`} title={printTitle} aria-label={printTitle}>
-
-                        {r.nr}
+                      <span
+                        className={`inline-block text-sm font-semibold ${printPlainTextClass}`}
+                        title={printTitle}
+                        aria-label={printTitle}
+                      >
+                        {`${r.nr ?? "—"}/${r.zu ? r.zu : "—"}`}
                       </span>
                     )}
                   </td>
-                  <td className="align-middle text-center font-semibold">{r.zu ? r.zu : "—"}</td>
                   <td className="font-semibold">{printCount}</td>
                   <td>{r.datum}</td>
                   <td>{r.zeit}</td>
