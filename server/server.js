@@ -10,6 +10,7 @@ import protocolRouter from "./routes/protocol.js";
 import attachPrintRoutes from "./printRoutes.js";
 import aufgabenRoutes from "./routes/aufgabenRoutes.js";
 import userRolesRouter from "./routes/userRoles.js";
+import createMailRouter from "./routes/mail.js";
 import { appendCsvRow } from "./auditLog.mjs";
 
 // 🔐 Neues User-Management
@@ -812,6 +813,8 @@ app.use((req,res,next)=>{
   if (!req.user) return res.status(401).json({ ok:false, error:"UNAUTHORIZED" });
   next();
 });
+
+app.use("/api/mail", createMailRouter());
 
 // ===================================================================
 // =                         BOARD & VEHICLES                        =
