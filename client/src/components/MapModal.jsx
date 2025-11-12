@@ -70,13 +70,35 @@ const norm = (s) => String(s || "").trim().toLowerCase();
 
 async function loadMergedVehicles() {
   try {
-   const r = await fetch("/api/vehicles", { cache: "no-store", credentials: "include" });
-   if (!r.ok) return [];
-   const data = await r.json();
-   return Array.isArray(data) ? data : [];
+    const r = await fetch("/api/vehicles", { cache: "no-store", credentials: "include" });
+    if (!r.ok) return [];
+    const data = await r.json();
+    return Array.isArray(data) ? data : [];
   } catch {
     return [];
   }
+}
+
+function mergeVehiclesForMap(contextVehiclesById, mergedVehicles) {
+  const result = new Map();
+
+  if (Array.isArray(mergedVehicles)) {
+    for (const entry of mergedVehicles) {
+      if (!entry || entry.id == null) continue;
+      result.set(String(entry.id), { ...entry });
+    }
+  }
+
+  if (contextVehiclesById && typeof contextVehiclesById === "object") {
+    for (const value of Object.values(contextVehiclesById)) {
+      if (!value || value.id == null) continue;
+      const key = String(value.id);
+      const merged = result.get(key) || {};
+      result.set(key, { ...merged, ...value });
+    }
+  }
+
+  return [...result.values()];
 }
 
 async function loadGpsList() {
@@ -293,7 +315,7 @@ export function MapModal({ context, address, onClose }) {
         );
 
         // 9b) Fahrzeuge: nur anzeigen wenn assigned, im GPS oder mit manueller Position
-        const vehiclesArray = Object.values(context.vehiclesById || {});
+        const vehiclesArray = mergeVehiclesForMap(context.vehiclesById, mergedVehicles);
         const baseRadiusM = 10; // Ring-Abstand (fix)
         const stepDeg = 50; // Winkel-Schritt
         const angleByIncident = new Map(); // incidentId -> angle
@@ -504,7 +526,7 @@ export function MapModal({ context, address, onClose }) {
    }
  }
 
-          const vehiclesNow = Object.values(context.vehiclesById || {});
+          const vehiclesNow = mergeVehiclesForMap(context.vehiclesById, merged);
 
           // Neu verteilen: Nicht-GPS Fahrzeuge pro Incident deterministisch anwinkeln
           const nonGpsByIncident = new Map(); // incidentId -> vehicleIds[]
