@@ -39,7 +39,16 @@ async function renderIncidentPdf(html, outPath) {
 
   try {
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "load" });
+    // Größeren Viewport setzen – wichtig für korrekten Layout/Print
+    await page.setViewport({ width: 1024, height: 1400, deviceScaleFactor: 2 });
+    // Erst DOM aufbauen lassen …
+    await page.setContent(html, { waitUntil: ["domcontentloaded"] });
+    // … dann auf Netzwerk-Leerlauf warten (Bilder/Webfonts nachladen)
+    try {
+      await page.waitForNetworkIdle({ idleTime: 500, timeout: 5000 });
+    } catch (_) {
+      // tolerieren, PDF wird dennoch erzeugt
+    }
     await page.pdf({
       path: outPath,
       format: "A4",
