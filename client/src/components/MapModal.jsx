@@ -1,5 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { setVehiclePosition, resetVehiclePosition } from "../api";
+import { setVehiclePosition } from "../api";
+
+ const getAssignedVehicles = (card) => {
+   if (Array.isArray(card?.assignedVehicles)) return card.assignedVehicles;
+   if (Array.isArray(card?.assigned_vehicle_ids)) return card.assigned_vehicle_ids;
+   return [];
+ };
 
 /* ---------------- Geo Utils ---------------- */
 function haversineKm(a, b) {
@@ -61,22 +67,13 @@ async function geocode(address) {
 
 const norm = (s) => String(s || "").trim().toLowerCase();
 
-const gatherAssignedVehicleIds = (card) => {
-  if (!card) return [];
-  const ids = [];
-  if (Array.isArray(card?.assignedVehicles)) ids.push(...card.assignedVehicles);
-  if (Array.isArray(card?.assigned_vehicle_ids)) ids.push(...card.assigned_vehicle_ids);
-  return Array.from(new Set(ids.map((id) => String(id))));
-};
-
-const CENTER_CIRCLE_KEY = "__center__";
-
 
 async function loadMergedVehicles() {
   try {
-    const r = await fetch("/api/vehicles", { cache: "no-store", credentials: "include" });
-    if (!r.ok) return [];
-    return r.json();
+   const r = await fetch("/api/vehicles", { cache: "no-store", credentials: "include" });
+   if (!r.ok) return [];
+   const data = await r.json();
+   return Array.isArray(data) ? data : [];
   } catch {
     return [];
   }
@@ -250,6 +247,10 @@ export function MapModal({ context, address, onClose }) {
             if (geo) incidentPositions.set(incKey, { lat: geo.lat, lng: geo.lng });
           }
         }
+		        // Fallback: aktueller Einsatz hat immer einen Mittelpunkt (z. B. wenn Geocode fehlt)
+        if (contextCardId && center) {
+          incidentPositions.set(contextCardId, center);
+        }
 
         // 6) Weitere Einsätze (blau)
         for (const inc of incidents) {
@@ -262,11 +263,11 @@ export function MapModal({ context, address, onClose }) {
 
         // 7) Zuweisungen ermitteln (Neu & In Bearbeitung)
         const assignedById = new Map(); // vehicleId -> incidentId
-        for (const c of incidents) {
-          for (const vid of gatherAssignedVehicleIds(c)) {
-            assignedById.set(vid, String(c.id));
-          }
-        }
+ for (const c of incidents) {
+   for (const vid of getAssignedVehicles(c)) {
+     assignedById.set(String(vid), String(c.id));
+   }
+ }
 
         // 8) GPS laden & indizieren
         const gpsList = await loadGpsList(); // /api/gps → [{ realname, lat, lng }, ...]
@@ -332,7 +333,6 @@ export function MapModal({ context, address, onClose }) {
               content: img,
               title,
             });
-            marker.__lastPosition = position;
             if (canDrag) {
               try {
                 marker.draggable = true;
@@ -355,24 +355,14 @@ export function MapModal({ context, address, onClose }) {
               }
             }
             // Kompatibles Interface für späteres Update:
-            marker.__setPosition = (pos) => {
-              marker.position = pos;
-              marker.__lastPosition = pos;
-            };
+            marker.__setPosition = (pos) => { marker.position = pos; };
             marker.__setIcon = (assigned, gps, incId) => {
               img.src = resolveIconUrl(assigned, gps, incId);
             };
-            const handleMouseOver = () => {
-              if (typeof marker.__hoverHandler === "function") {
-                marker.__hoverHandler();
-              }
+            marker.__onOver = (open) => {
+              img.addEventListener("mouseover", open);
+              img.addEventListener("mouseout", () => iw.close());
             };
-            marker.__hoverHandler = null;
-            marker.__setHoverHandler = (fn) => {
-              marker.__hoverHandler = fn;
-            };
-            img.addEventListener("mouseover", handleMouseOver);
-            img.addEventListener("mouseout", () => iw.close());
             return marker;
           } else {
             const marker = new window.google.maps.Marker({
@@ -401,56 +391,35 @@ export function MapModal({ context, address, onClose }) {
                 }
               });
             }
-            marker.__lastPosition = position;
-            marker.__setPosition = (pos) => {
-              marker.setPosition(pos);
-              marker.__lastPosition = pos;
-            };
+            marker.__setPosition = (pos) => marker.setPosition(pos);
             marker.__setIcon = (assigned, gps, incId) =>
               marker.setIcon({
                 url: resolveIconUrl(assigned, gps, incId),
                 scaledSize: new window.google.maps.Size(ICON_SIZE, ICON_SIZE),
                 anchor: new window.google.maps.Point(ICON_SIZE / 2, ICON_SIZE / 2),
               });
-            const handleMouseOver = () => {
-              if (typeof marker.__hoverHandler === "function") {
-                marker.__hoverHandler();
-              }
+            marker.__onOver = (open) => {
+              marker.addListener("mouseover", open);
+              marker.addListener("mouseout", () => iw.close());
             };
-            marker.__hoverHandler = null;
-            marker.__setHoverHandler = (fn) => {
-              marker.__hoverHandler = fn;
-            };
-            marker.addListener("mouseover", handleMouseOver);
-            marker.addListener("mouseout", () => iw.close());
             return marker;
           }
         };
 
-        const updateMarkerHover = (marker, vehicle, assignedIncidentId) => {
-          const assignedCard =
-            assignedIncidentId && incidents.find((c) => String(c.id) === assignedIncidentId);
-          const assignedInfo = assignedCard ? `<br/><i>zugeordnet: ${assignedCard.content}</i>` : "";
-          marker.__setHoverHandler(() => {
-            const ort = vehicle?.ort || "";
-            iw.setContent(
-              `<div style="min-width:220px"><b>${vehicle.label || vehicle.id}</b>${
-                ort ? `<br/>${ort}` : ""
-              }${assignedInfo}</div>`
-            );
-            const anchor = Advanced ? undefined : marker;
-            const position = marker.__lastPosition || center;
-            iw.open({ map, anchor, position, shouldFocus: false });
-          });
-        };
-
         for (const v of vehiclesArray) {
           const vid = String(v.id);
-          const key = norm(`${v?.label || ""} ${v?.ort || ""}`);
-          const gps = gpsByName.get(key);
+ const k1 = norm(`${v?.label || ""} ${v?.ort || ""}`);
+ const k2 = norm(v?.label || "");
+ const k3 = norm(v?.ort || "");
+ const gps = gpsByName.get(k1) || gpsByName.get(k2) || gpsByName.get(k3);
           const assignedIncident = assignedById.get(vid);
 
+          // Sichtbarkeitsregel:
+          // - Zeige, wenn assigned (egal ob GPS vorhanden)
+          // - Zeige, wenn nicht assigned, aber im GPS (grau)
+          // - Zeige, wenn manuelle Koordinaten existieren
           const hasManualOverride = manualPosById.has(vid);
+          if (!assignedIncident && !gps && !hasManualOverride) continue;
 
           let pos = null;
           let gpsPos = null;
@@ -460,23 +429,35 @@ export function MapModal({ context, address, onClose }) {
             pos = gpsPos;
           } else if (hasManualOverride) {
             pos = manualPosById.get(vid); // ← manuelle Override-Position
-          } else {
-            const hasIncidentPos = assignedIncident && incidentPositions.has(assignedIncident);
-            const circleKey = hasIncidentPos ? assignedIncident : CENTER_CIRCLE_KEY;
-            const basePos = hasIncidentPos ? incidentPositions.get(assignedIncident) : center;
-            if (basePos) {
-              const old = angleByIncident.get(circleKey) || 0;
-              const next = (old + stepDeg) % 360;
-              angleByIncident.set(circleKey, next);
-              pos = offsetLatLng(basePos, baseRadiusM, next);
-            }
+ } else if (assignedIncident) {
+            // Ring um den zugeordneten Einsatz (mit Fallback auf "center" für aktuellen Einsatz)
+            const centerPos =
+              incidentPositions.get(assignedIncident) ||
+             (contextCardId === assignedIncident ? center : null);
+            const old = angleByIncident.get(assignedIncident) || 0;
+            const next = (old + stepDeg) % 360;
+            angleByIncident.set(assignedIncident, next);
+            if (centerPos) pos = offsetLatLng(centerPos, baseRadiusM, next);
           }
-          if (!pos) pos = center;
           if (!pos) continue;
 
           const isAssigned = !!assignedIncident;
           const marker = placeVehicleMarker(pos, isAssigned, v.label || v.id, gpsPos, assignedIncident, vid);
-          updateMarkerHover(marker, v, assignedIncident);
+
+          // Hover: Name + Ort + optional „zugeordnet: <Einsatz>“
+          const assignedCard =
+            assignedIncident && incidents.find((c) => String(c.id) === assignedIncident);
+          const assignedInfo = assignedCard ? `<br/><i>zugeordnet: ${assignedCard.content}</i>` : "";
+
+          marker.__onOver(() => {
+            const ort = v?.ort || "";
+            iw.setContent(
+              `<div style="min-width:220px"><b>${v.label || v.id}</b>${ort ? `<br/>${ort}` : ""}${assignedInfo}</div>`
+            );
+            // AdvancedMarkerElement öffnet InfoWindow an position:
+            const anchor = Advanced ? undefined : marker;
+            iw.open({ map, anchor, position: pos, shouldFocus: false });
+          });
 
           vehicleMarkers.set(vid, marker);
         }
@@ -512,93 +493,129 @@ export function MapModal({ context, address, onClose }) {
           ]) {
             const cardIdStr = card?.id != null ? String(card.id) : null;
             if (!cardIdStr) continue;
-            for (const vid of gatherAssignedVehicleIds(card)) {
-              assignedNow.set(vid, cardIdStr);
+            for (const vid of getAssignedVehicles(card)) {
+              assignedNow.set(String(vid), cardIdStr);
             }
           }
-          if (contextCardId) {
-            for (const vid of gatherAssignedVehicleIds(context.card)) {
-              assignedNow.set(vid, contextCardId);
-            }
-          }
+ if (contextCardId) {
+   for (const vid of getAssignedVehicles(context.card)) {
+     assignedNow.set(String(vid), contextCardId);
+   }
+ }
 
           const vehiclesNow = Object.values(context.vehiclesById || {});
 
           // Neu verteilen: Nicht-GPS Fahrzeuge pro Incident deterministisch anwinkeln
-          const nonGpsByKey = new Map(); // circleKey -> vehicleIds[]
+          const nonGpsByIncident = new Map(); // incidentId -> vehicleIds[]
           for (const v of vehiclesNow) {
             const vid = String(v.id);
             const assignedIncident = assignedNow.get(vid);
             const key = norm(`${v?.label || ""} ${v?.ort || ""}`);
-            const hasGps = !!idx.get(key);
-            const hasManual = manualPosById.has(vid);
-            if (hasGps || hasManual) continue;
-            const hasIncidentPos = assignedIncident && incidentPositions.has(assignedIncident);
-            const circleKey = hasIncidentPos ? `inc:${assignedIncident}` : CENTER_CIRCLE_KEY;
-            const arr = nonGpsByKey.get(circleKey) || [];
-            arr.push(vid);
-            nonGpsByKey.set(circleKey, arr);
+            if (assignedIncident && !idx.get(key) && !manualPosById.has(vid)) {
+              const arr = nonGpsByIncident.get(assignedIncident) || [];
+              arr.push(vid);
+              nonGpsByIncident.set(assignedIncident, arr);
+            }
           }
-          for (const arr of nonGpsByKey.values()) {
+          // Sortieren für stabile Winkel (nach vid)
+          for (const [incId, arr] of nonGpsByIncident.entries()) {
             arr.sort();
           }
 
           const baseRadiusM = 10;
           const stepDeg = 50;
 
-          const seenVehicleIds = new Set();
           for (const v of vehiclesNow) {
             const vid = String(v.id);
-            seenVehicleIds.add(vid);
-            const marker = vehicleMarkers.get(vid);
 
-            const key = norm(`${v?.label || ""} ${v?.ort || ""}`);
-            const gps = idx.get(key);
+
+ const k1 = norm(`${v?.label || ""} ${v?.ort || ""}`);
+ const k2 = norm(v?.label || "");
+ const k3 = norm(v?.ort || "");
+ const gps = idx.get(k1) || idx.get(k2) || idx.get(k3);
             const assignedIncident = assignedNow.get(vid);
             let gpsPos = null;
-            let markerInstance = marker;
-            const hasManual = manualPosById.has(vid);
+			
+			            const hasManual = manualPosById.has(vid);
 
-            if (!markerInstance) {
-              // vorläufige Position, wird unten bestimmt
-              markerInstance = placeVehicleMarker(center || map.getCenter(), !!assignedIncident, v.label || v.id, null, assignedIncident, vid);
-              vehicleMarkers.set(vid, markerInstance);
+            // Sichtbarkeitsregel analog initial:
+            const shouldBeVisible = !!assignedIncident || !!gps || !!hasManual;
+
+            // Falls sichtbar, aber noch kein Marker existiert → jetzt anlegen
+            let marker = vehicleMarkers.get(vid);
+            if (!marker && shouldBeVisible) {
+              let pos = null;
+              if (gps) {
+                gpsPos = { lat: Number(gps.lat), lng: Number(gps.lng) };
+                pos = gpsPos;
+              } else if (hasManual) {
+                pos = manualPosById.get(vid);
+              } else if (assignedIncident) {
+                const centerPos =
+                  incidentPositions.get(assignedIncident) ||
+                  (contextCardId === assignedIncident ? center : null);
+                if (centerPos) {
+                  const arr = nonGpsByIncident.get(assignedIncident) || [];
+                  const idxIn = arr.indexOf(vid);
+                  const angle = ((idxIn + 1) * stepDeg) % 360;
+                  pos = offsetLatLng(centerPos, baseRadiusM, angle);
+                }
+              }
+              if (pos) {
+                marker = placeVehicleMarker(
+                  pos,
+                  !!assignedIncident,
+                  v.label || v.id,
+                  gpsPos,
+                 assignedIncident,
+                  vid
+                );
+                vehicleMarkers.set(vid, marker);
+              }
             }
+
+            // Wenn weiterhin kein Marker → überspringen
+            if (!marker) continue;
 
             // Position
             if (gps) {
               gpsPos = { lat: Number(gps.lat), lng: Number(gps.lng) };
-              markerInstance.__setPosition(gpsPos);
-            } else if (hasManual) {
-              markerInstance.__setPosition(manualPosById.get(vid)); // ← Override beibehalten
-            } else {
-              const hasIncidentPos = assignedIncident && incidentPositions.has(assignedIncident);
-              const circleKey = hasIncidentPos ? `inc:${assignedIncident}` : CENTER_CIRCLE_KEY;
-              const arr = nonGpsByKey.get(circleKey) || [];
-              const idxIn = arr.indexOf(vid);
-              const basePos = hasIncidentPos
-                ? incidentPositions.get(assignedIncident)
-                : center;
-              if (basePos && idxIn >= 0) {
+              marker.__setPosition(gpsPos);
+            } else if (manualPosById.has(vid)) {
+              marker.__setPosition(manualPosById.get(vid));   // ← Override beibehalten
+            } else if (assignedIncident) {
+              const centerPos =
+                incidentPositions.get(assignedIncident) ||
+                (contextCardId === assignedIncident ? center : null);
+              if (centerPos) {
+                const arr = nonGpsByIncident.get(assignedIncident) || [];
+                const idxIn = arr.indexOf(vid);
                 const angle = ((idxIn + 1) * stepDeg) % 360;
-                markerInstance.__setPosition(offsetLatLng(basePos, baseRadiusM, angle));
-              } else if (center) {
-                markerInstance.__setPosition(center);
+                marker.__setPosition(offsetLatLng(centerPos, baseRadiusM, angle));
+              } else {
+                // kein brauchbarer Mittelpunkt → Marker entfernen
+                const m = vehicleMarkers.get(vid);
+                if (m) {
+                  if (m.setMap) m.setMap(null);
+                  else if (m.map) m.map = null;
+                  vehicleMarkers.delete(vid);
+                }
+                continue;
               }
+            } else {
+              // weder GPS noch zugeordnet → nicht zeigen
+              const m = vehicleMarkers.get(vid);
+              if (m) {
+                if (m.setMap) m.setMap(null);
+                else if (m.map) m.map = null;
+                vehicleMarkers.delete(vid);
+              }
+              continue;
             }
 
             // Icon (rot, grau, drive.gif wenn >100 m)
             const isAssigned = !!assignedIncident;
-            markerInstance.__setIcon(isAssigned, gpsPos, assignedIncident);
-            updateMarkerHover(markerInstance, v, assignedIncident);
-          }
-
-          // Marker entfernen, wenn Fahrzeug nicht mehr existiert
-          for (const [vid, markerInstance] of vehicleMarkers.entries()) {
-            if (seenVehicleIds.has(vid)) continue;
-            if (markerInstance.setMap) markerInstance.setMap(null);
-            else if (markerInstance.map) markerInstance.map = null;
-            vehicleMarkers.delete(vid);
+            marker.__setIcon(isAssigned, gpsPos, assignedIncident);
           }
         }, 5000);
       } catch (e) {
@@ -613,7 +630,11 @@ export function MapModal({ context, address, onClose }) {
     return () => {
       cancelled = true;
       if (gpsPollTimer) clearInterval(gpsPollTimer);
-      vehicleMarkers.clear();
+for (const m of vehicleMarkers.values()) {
+   if (m?.setMap) m.setMap(null);
+   else if (m) m.map = null;
+ }
+ vehicleMarkers.clear();
       // map/iw → GC
     };
   }, [mapsAvailable, context, centerFromCard]);
