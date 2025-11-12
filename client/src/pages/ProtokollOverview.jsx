@@ -425,7 +425,10 @@ const rows = useMemo(
                   ? "text-red-600"
                   : "";
               const hasRelevantTasks = relevantMeasures.length > 0;
-              const allTasksDone = hasRelevantTasks && !openTasks;
+              const measuresCompleted = !openTasks;
+              const isConfirmed = !!confirmation?.confirmed;
+              const shouldShowGreenCheck = isConfirmed && measuresCompleted;
+              const shouldShowBlackCheck = !isConfirmed && !hasRelevantTasks;
               const rowClasses = [
                 "border-b align-top cursor-pointer",
                 isHighlighted
@@ -442,34 +445,48 @@ const rows = useMemo(
                   aria-label={hoverTitle}
                 >
                   <td className="align-middle text-center">
-                    {allTasksDone ? (
+                    {shouldShowGreenCheck ? (
                       <span
                         className="inline-flex items-center justify-center text-emerald-600 text-lg font-semibold"
-                        title="Alle Aufgaben erledigt"
-                        aria-label="Alle Aufgaben erledigt"
+                        title="Bestätigt und alle Maßnahmen erledigt"
+                        aria-label="Bestätigt und alle Maßnahmen erledigt"
+                      >
+                        ✓
+                      </span>
+                    ) : shouldShowBlackCheck ? (
+                      <span
+                        className="inline-flex items-center justify-center text-lg font-semibold text-gray-900"
+                        title="Nicht bestätigt – keine Maßnahmen notwendig"
+                        aria-label="Nicht bestätigt – keine Maßnahmen notwendig"
                       >
                         ✓
                       </span>
                     ) : null}
                   </td>
                   <td className="align-middle text-center font-semibold">
-                    {showPrintCircle ? (
-                      <span
-                        className={`inline-flex items-center justify-center px-3 h-8 rounded-full border-2 text-sm font-semibold ${printCircleClass}`}
-                        title={printTitle}
-                        aria-label={printTitle}
-                      >
-                        {`${r.nr ?? "—"}/${r.zu ? r.zu : "—"}`}
-                      </span>
-                    ) : (
-                      <span
-                        className={`inline-block text-sm font-semibold ${printPlainTextClass}`}
-                        title={printTitle}
-                        aria-label={printTitle}
-                      >
-                        {`${r.nr ?? "—"}/${r.zu ? r.zu : "—"}`}
-                      </span>
-                    )}
+                    {(() => {
+                      const nrLabel = r.nr ?? "—";
+                      const hasZu = r.zu !== null && r.zu !== undefined && String(r.zu).trim() !== "";
+                      const zuLabel = hasZu ? String(r.zu) : "";
+                      const display = hasZu ? `${nrLabel}/${zuLabel}` : `${nrLabel}`;
+                      return showPrintCircle ? (
+                        <span
+                          className={`inline-flex items-center justify-center px-3 h-8 rounded-full border-2 text-sm font-semibold ${printCircleClass}`}
+                          title={printTitle}
+                          aria-label={printTitle}
+                        >
+                          {display}
+                        </span>
+                      ) : (
+                        <span
+                          className={`inline-block text-sm font-semibold ${printPlainTextClass}`}
+                          title={printTitle}
+                          aria-label={printTitle}
+                        >
+                          {display}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="font-semibold">{printCount}</td>
                   <td>{r.datum}</td>
