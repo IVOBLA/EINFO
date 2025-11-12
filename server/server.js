@@ -8,6 +8,7 @@ import { fileURLToPath } from "url";
 import PDFDocument from "pdfkit";
 import protocolRouter from "./routes/protocol.js";
 import attachPrintRoutes from "./printRoutes.js";
+import attachIncidentPrintRoutes from "./routes/incidentPrintRoutes.js";
 import aufgabenRoutes from "./routes/aufgabenRoutes.js";
 import userRolesRouter from "./routes/userRoles.js";
 import createMailRouter from "./routes/mail.js";
@@ -117,6 +118,7 @@ let autoNextAt         = null;   // ms – nächster geplanter Auto-Import
 // ----------------- Helpers -----------------
 async function ensureDir(p){ await fs.mkdir(p,{ recursive:true }); }
 attachPrintRoutes(app, "/api/protocol");
+attachIncidentPrintRoutes(app, "/api/incidents");
 
 function areaLabel(card = {}, board = null) {
   if (!card) return "";

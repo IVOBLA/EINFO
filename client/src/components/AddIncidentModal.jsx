@@ -155,6 +155,7 @@ export default function AddIncidentModal({ onClose, onCreate, types, areaOptions
         areaColor: isArea ? areaColor : undefined,
         areaLabel: !isArea && selectedArea ? selectedArea.label : undefined,
         coordinates: coords,
+        incidentId: finalTitle || cleanType || undefined,
       });
     } catch (e) {
       const message = e?.message || e || "Unbekannter Fehler";

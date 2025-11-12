@@ -185,6 +185,39 @@ function openIncidentPrintPopup(html) {
   }
 }
 
+async function saveIncidentPrintPdf(incidentId, html) {
+  const cleanId = typeof incidentId === "string" ? incidentId.trim() : "";
+  if (!cleanId || typeof html !== "string" || !html) return;
+  if (typeof fetch !== "function") return;
+
+  try {
+    const res = await fetch(`/api/incidents/${encodeURIComponent(cleanId)}/print`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ html }),
+    });
+
+    if (!res.ok) {
+      let message = "";
+      try {
+        const data = await res.json();
+        if (data && typeof data.error === "string" && data.error.trim()) {
+          message = data.error.trim();
+        }
+      } catch {
+        // ignore json parse errors
+      }
+      if (!message) {
+        message = `HTTP ${res.status} ${res.statusText}`;
+      }
+      throw new Error(message);
+    }
+  } catch (err) {
+    console.error("[incident-print] Speichern fehlgeschlagen", err);
+  }
+}
+
 function buildIncidentPrintHtml({
   title,
   type,
@@ -336,6 +369,7 @@ export async function openIncidentPrintWindow({
   areaColor,
   areaLabel,
   coordinates = null,
+  incidentId,
 }) {
   const cleanTitle = (title || "").trim();
   const cleanType = (type || "").trim();
@@ -420,6 +454,11 @@ export async function openIncidentPrintWindow({
       notesSection,
       autoPrint: false,
     });
+
+    const targetIncidentId = typeof incidentId === "string" ? incidentId.trim() : "";
+    if (targetIncidentId) {
+      await saveIncidentPrintPdf(targetIncidentId, htmlBase);
+    }
 
     try {
       await printHtmlViaFrame(htmlBase);
