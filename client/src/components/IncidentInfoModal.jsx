@@ -1,8 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { normalizeLatLng, openIncidentPrintWindow } from "../utils/incidentPrint";
 const DEFAULT_AREA_COLOR = "#2563eb";
-const isManualHumanId = (value) => /^([MB])-/.test(String(value || ""));
-
 function formatAreaLabel(card = {}) {
   const idPart = card?.humanId ? String(card.humanId) : "";
   const titlePart = card?.content ? String(card.content) : "";
@@ -37,13 +35,9 @@ export default function IncidentInfoModal({
 }) {
   if (!open) return null;
 
-  const isManual = useMemo(
-    () => isManualHumanId(info?.humanId),
-    [info?.humanId]
-  );
   const isEditableCard = useMemo(
-    () => isManual || !!info?.isArea,
-    [isManual, info?.isArea]
+    () => info?.isEditable !== false,
+    [info?.isEditable]
   );
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
