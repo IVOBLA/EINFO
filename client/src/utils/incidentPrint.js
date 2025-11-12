@@ -111,20 +111,47 @@ async function printHtmlViaFrame(html) {
         };
         win.addEventListener("afterprint", handleAfterPrint, { once: true });
 
-        setTimeout(() => {
-          try {
-            win.focus();
-            win.print();
-          } catch (err) {
-            win.removeEventListener("afterprint", handleAfterPrint);
-            fail(err);
-          }
-        }, 120);
+        const waitForMapReady = () =>
+          new Promise((resolve) => {
+            const start = Date.now();
+            const poll = () => {
+              if (settled) {
+                resolve();
+                return;
+              }
+              try {
+                if (win.__incidentMapReady) {
+                  resolve();
+                  return;
+                }
+              } catch (err) {
+                // ignore access errors (cross-origin, etc.)
+              }
+              if (Date.now() - start >= 4000) {
+                resolve();
+                return;
+              }
+              setTimeout(poll, 120);
+            };
+            poll();
+          });
+
+        waitForMapReady().then(() => {
+          setTimeout(() => {
+            try {
+              win.focus();
+              win.print();
+            } catch (err) {
+              win.removeEventListener("afterprint", handleAfterPrint);
+              fail(err);
+            }
+          }, 120);
+        });
 
         // Fallback: auch ohne afterprint nach einigen Sekunden aufräumen
         setTimeout(() => {
           if (!settled) finish();
-        }, 4000);
+        }, 7000);
       } catch (err) {
         fail(err);
       }
@@ -168,16 +195,84 @@ function buildIncidentPrintHtml({
   notesSection,
   autoPrint,
 }) {
-  const scriptBlock = autoPrint
+  const readinessScript = `
+            <script>
+              window.__incidentMapReady = false;
+              const setupMapWatcher = () => {
+                const markReady = () => {
+                  window.__incidentMapReady = true;
+                  try {
+                    document.body?.setAttribute('data-map-ready', '1');
+                  } catch (e) {
+                    // ignore DOM access errors
+                  }
+                };
+
+                const frame = document.querySelector('.map-frame iframe');
+                if (!frame) {
+                  markReady();
+                  return;
+                }
+
+                let finished = false;
+                const finish = () => {
+                  if (finished) return;
+                  finished = true;
+                  markReady();
+                };
+
+                const safeFinish = () => {
+                  try { finish(); } catch (err) { markReady(); }
+                };
+
+                try {
+                  frame.addEventListener('load', safeFinish, { once: true });
+                  frame.addEventListener('error', safeFinish, { once: true });
+                } catch (err) {
+                  markReady();
+                  return;
+                }
+
+                try {
+                  const doc = frame.contentDocument;
+                  if (doc && doc.readyState === 'complete') {
+                    safeFinish();
+                    return;
+                  }
+                } catch (err) {
+                  // accessing contentDocument can throw for cross-origin iframes
+                }
+
+                setTimeout(safeFinish, 2500);
+              };
+
+              if (document.readyState === 'complete') {
+                setupMapWatcher();
+              } else {
+                window.addEventListener('load', setupMapWatcher, { once: true });
+              }
+            </script>
+          `;
+
+  const autoPrintScript = autoPrint
     ? `
             <script>
               window.addEventListener('load', () => {
-                setTimeout(() => { try { window.print(); } catch (e) {} }, 600);
+                const attemptPrint = () => {
+                  if (window.__incidentMapReady) {
+                    setTimeout(() => { try { window.print(); } catch (e) {} }, 600);
+                    return;
+                  }
+                  setTimeout(attemptPrint, 150);
+                };
+                attemptPrint();
               });
               window.addEventListener('afterprint', () => { try { window.close(); } catch (e) {} });
             </script>
           `
     : "";
+
+  const scriptBlock = `${readinessScript}${autoPrintScript}`;
 
   return `<!DOCTYPE html>
         <html lang="de">
@@ -221,7 +316,7 @@ function buildIncidentPrintHtml({
               <section class="map-section">
                 <h2>Einsatzkarte</h2>
                 <div class="map-frame">
-                  <iframe src="${mapSrc}" title="Einsatzkarte" loading="lazy"></iframe>
+                  <iframe src="${mapSrc}" title="Einsatzkarte"></iframe>
                 </div>
               </section>
               ${notesSection}
