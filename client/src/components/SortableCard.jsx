@@ -11,8 +11,6 @@ const ensureAreaHumanId = (value) => {
   return `B${raw}`;
 };
 
-const isManualHumanId = (value) => /^([MB])-/.test(String(value || ""));
-
 export function SortableCard(props) {
   const {
     card, colId, vehiclesById, pillWidthPx = 160,
@@ -147,8 +145,7 @@ useEffect(() => () => {
     }
   };
 
- const isManual = isManualHumanId(card?.humanId);
-  const isEditableCard = isManual || !!card?.isArea;
+  const isEditableCard = card?.isEditable !== false;
   const displayHumanId = useMemo(() => {
     if (!card?.humanId) return "";
     if (card?.isArea) return ensureAreaHumanId(card.humanId);
