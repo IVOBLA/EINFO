@@ -198,6 +198,18 @@ export default function AddIncidentModal({ onClose, onCreate, types, areaOptions
         if (formatted) locationLabel = formatted;
       }
 
+      printWindow = window.open("", "_blank", "noopener=yes,noreferrer=yes");
+      if (!printWindow) {
+        alert("Pop-up zum Drucken konnte nicht geöffnet werden. Bitte Pop-up-Blocker prüfen.");
+        return;
+      }
+
+      try {
+        printWindow.document.open();
+        printWindow.document.write(`<!DOCTYPE html><html lang="de"><head><title>Druck wird vorbereitet…</title></head><body><p style="font-family: sans-serif; padding: 16px;">Druck wird vorbereitet…</p></body></html>`);
+        printWindow.document.close();
+      } catch {}
+
       if (!coords && locationLabel) {
         const geo = await geocodeAddress(locationLabel);
         if (geo) {
@@ -213,12 +225,6 @@ export default function AddIncidentModal({ onClose, onCreate, types, areaOptions
       const mapLink = coords
         ? `https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`
         : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
-
-      printWindow = window.open("", "_blank", "noopener=yes,noreferrer=yes");
-      if (!printWindow) {
-        alert("Pop-up zum Drucken konnte nicht geöffnet werden. Bitte Pop-up-Blocker prüfen.");
-        return;
-      }
 
       const now = new Date();
       const timestamp = now.toLocaleString("de-DE");
