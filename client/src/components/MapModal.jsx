@@ -142,6 +142,8 @@ export function MapModal({ context, address, onClose }) {
     const vehicleMarkers = new Map(); // key: vid -> marker/advancedMarker
     let gpsPollTimer = null;
 
+    const contextCardId = context?.card?.id != null ? String(context.card.id) : null;
+
     const run = async () => {
       try {
         setBusy(true);
@@ -208,26 +210,42 @@ export function MapModal({ context, address, onClose }) {
         );
 
         // 5) Einsätze (Nur Neu & In Bearbeitung)
-        const incidents = [
-          ...(context?.board?.columns?.["neu"]?.items || []),
-          ...(context?.board?.columns?.["in-bearbeitung"]?.items || []),
-        ];
+        const incidents = [];
+        const incidentSeen = new Set();
+
+        const pushIncident = (inc) => {
+          if (!inc || inc.id == null) return;
+          const key = String(inc.id);
+          if (incidentSeen.has(key)) return;
+          incidentSeen.add(key);
+          incidents.push(inc);
+        };
+
+        for (const inc of context?.board?.columns?.["neu"]?.items || []) {
+          pushIncident(inc);
+        }
+        for (const inc of context?.board?.columns?.["in-bearbeitung"]?.items || []) {
+          pushIncident(inc);
+        }
+        if (contextCardId) pushIncident(context?.card);
 
         // Positionen der Einsätze (Koords / Geocode)
         const incidentPositions = new Map();
         for (const inc of incidents) {
+          const incKey = String(inc.id);
           if (Number.isFinite(inc.latitude) && Number.isFinite(inc.longitude)) {
-            incidentPositions.set(inc.id, { lat: Number(inc.latitude), lng: Number(inc.longitude) });
+            incidentPositions.set(incKey, { lat: Number(inc.latitude), lng: Number(inc.longitude) });
           } else if (inc.ort) {
             const geo = await geocode(inc.ort);
-            if (geo) incidentPositions.set(inc.id, { lat: geo.lat, lng: geo.lng });
+            if (geo) incidentPositions.set(incKey, { lat: geo.lat, lng: geo.lng });
           }
         }
 
         // 6) Weitere Einsätze (blau)
         for (const inc of incidents) {
-          if (inc.id === context.card.id) continue;
-          const pos = incidentPositions.get(inc.id);
+          const incKey = String(inc.id);
+          if (contextCardId && incKey === contextCardId) continue;
+          const pos = incidentPositions.get(incKey);
           if (!pos) continue;
           addPin(pos, "#1e63d1", inc.content || "Einsatz", buildIncidentHtml(inc), { hover: true });
         }
@@ -236,7 +254,7 @@ export function MapModal({ context, address, onClose }) {
         const assignedById = new Map(); // vehicleId -> incidentId
         for (const c of incidents) {
           for (const vid of c.assignedVehicles || []) {
-            assignedById.set(String(vid), c.id);
+            assignedById.set(String(vid), String(c.id));
           }
         }
 
@@ -413,7 +431,7 @@ export function MapModal({ context, address, onClose }) {
 
           // Hover: Name + Ort + optional „zugeordnet: <Einsatz>“
           const assignedCard =
-            assignedIncident && incidents.find((c) => c.id === assignedIncident);
+            assignedIncident && incidents.find((c) => String(c.id) === assignedIncident);
           const assignedInfo = assignedCard ? `<br/><i>zugeordnet: ${assignedCard.content}</i>` : "";
 
           marker.__onOver(() => {
@@ -454,12 +472,19 @@ export function MapModal({ context, address, onClose }) {
 
           // Zuweisungen neu lesen
           const assignedNow = new Map();
-          for (const col of [
+          for (const card of [
             ...(context?.board?.columns?.["neu"]?.items || []),
             ...(context?.board?.columns?.["in-bearbeitung"]?.items || []),
           ]) {
-            for (const vid of col.assignedVehicles || []) {
-              assignedNow.set(String(vid), col.id);
+            const cardIdStr = card?.id != null ? String(card.id) : null;
+            if (!cardIdStr) continue;
+            for (const vid of card.assignedVehicles || []) {
+              assignedNow.set(String(vid), cardIdStr);
+            }
+          }
+          if (contextCardId) {
+            for (const vid of context.card.assignedVehicles || []) {
+              assignedNow.set(String(vid), contextCardId);
             }
           }
 
