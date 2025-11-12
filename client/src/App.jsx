@@ -1671,6 +1671,7 @@ const createIncident = async ({
     areaColor,
     coordinates = null,
     location = "",
+    description = "",
   }) => {
     const finalAreaId = isArea ? null : (areaCardId ? String(areaCardId) : null);
     const payload = {
@@ -1687,6 +1688,10 @@ const createIncident = async ({
     const locationLabel = typeof location === "string" ? location.trim() : "";
     if (locationLabel) {
       payload.location = locationLabel;
+    }
+    const noteText = typeof description === "string" ? description.trim() : "";
+    if (noteText) {
+      payload.description = noteText;
     }
     const r = await createCard(title, "neu", 0, ort, typ, payload);
         suppressSoundUntilRef.current = Date.now()// + 15000;

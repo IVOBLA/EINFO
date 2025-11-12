@@ -14,9 +14,10 @@ function initForm(info = {}) {
     title: info?.content || "",
     typ: info?.typ || info?.type || "",
     ort: info?.additionalAddressInfo || info?.ort || "",
+    description: info?.description || "",
     isArea: !!info?.isArea,
     areaCardId: info?.isArea ? "" : info?.areaCardId || "",
-	areaColor: info?.isArea
+    areaColor: info?.isArea
       ? info?.areaColor || DEFAULT_AREA_COLOR
       : info?.areaColor || "",
   };
@@ -33,16 +34,16 @@ export default function IncidentInfoModal({
   forceEdit = false,
   types = [],
 }) {
-	 if (!open) return null;
-	
- const isManual = useMemo(
+  if (!open) return null;
+
+  const isManual = useMemo(
     () => isManualHumanId(info?.humanId),
     [info?.humanId]
   );
   const isEditableCard = useMemo(
     () => isManual || !!info?.isArea,
     [isManual, info?.isArea]
-);
+  );
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [form, setForm] = useState(() => initForm(info));
@@ -128,9 +129,10 @@ export default function IncidentInfoModal({
         title: nextTitle,
         typ: (form.typ || "").trim(),
         ort: (form.ort || "").trim(),
+        description: (form.description || "").trim(),
         isArea: !!form.isArea,
         areaCardId: form.isArea ? null : form.areaCardId || null,
-		 areaColor: form.isArea ? form.areaColor || DEFAULT_AREA_COLOR : undefined,
+        areaColor: form.isArea ? form.areaColor || DEFAULT_AREA_COLOR : undefined,
       });
       setEditing(false);
     } catch (err) {
@@ -163,7 +165,7 @@ export default function IncidentInfoModal({
             />
           </label>
 
-<label className="text-sm font-medium text-gray-700">
+          <label className="text-sm font-medium text-gray-700">
             Typ
             <input
               className="mt-1 w-full border rounded px-2 py-1"
@@ -189,7 +191,17 @@ export default function IncidentInfoModal({
             />
           </label>
 
- <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          <label className="text-sm font-medium text-gray-700">
+            Notiz
+            <textarea
+              className="mt-1 w-full border rounded px-2 py-1 resize-y min-h-[90px]"
+              value={form.description}
+              onChange={(e) => setForm((prev) => ({ ...prev, description: e.target.value }))}
+              disabled={busy}
+            />
+          </label>
+
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <label className="inline-flex items-center gap-2 text-sm">
               <input
                 type="checkbox"
@@ -307,7 +319,7 @@ type="button"
               <Row label="Einsatz ID" value={info.humanId} />
               <Row label="Alarmzeit" value={alarmzeit} />
               <Row label="Alarmiert" value={info.alerted} />
-              <Row label="Beschreibung" value={info.description} />
+              <Row label="Notiz" value={info.description} />
               <Row label="Adresse" value={info.additionalAddressInfo || info.ort} />
               <Row label="Location" value={locationCombined} />
               <Row
