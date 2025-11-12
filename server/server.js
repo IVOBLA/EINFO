@@ -2227,7 +2227,13 @@ async function triggerOnce(_req,res){
     const cfg = await readAutoCfg();
     const status = ffStatus();
 
-    if (!cfg.demoMode && !status.running && !status.starting && !status.stopping) {
+    const shouldEnsureFetcherLogin =
+      !cfg.demoMode && (
+        // Auto-Import deaktiviert → Fetcher läuft nicht dauerhaft, also vor dem Import neu anmelden
+        !cfg.enabled || (!status.running && !status.starting && !status.stopping)
+      );
+
+    if (shouldEnsureFetcherLogin) {
       const creds = await User_getGlobalFetcher();
       if (!creds?.creds?.username || !creds?.creds?.password) {
         return res.status(400).json({ ok:false, error:"Keine globalen Fetcher-Zugangsdaten hinterlegt" });
