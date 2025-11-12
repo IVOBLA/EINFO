@@ -48,6 +48,7 @@ export default function AddIncidentModal({ onClose, onCreate, types, areaOptions
   const [isArea, setIsArea] = useState(false);
   const [areaCardId, setAreaCardId] = useState("");
   const [areaColor, setAreaColor] = useState(DEFAULT_AREA_COLOR);
+  const [notes, setNotes] = useState("");
 
   // ⬇️ Fokus auf Typ-Dropdown
   const typRef = useRef(null);
@@ -110,30 +111,34 @@ export default function AddIncidentModal({ onClose, onCreate, types, areaOptions
         }
       }
 
-      await onCreate({
-        title: finalTitle,
-        ort: (ortQuery || "").trim(),
-        typ: (typ || "").trim(),
-        isArea,
-        areaCardId: isArea ? null : areaCardId || null,
-        areaColor: isArea ? areaColor : undefined,
-        coordinates: coords,
-        location: locationLabel,
-      });
-      setTitle("");
-      setOrtQuery("");
-      setTyp("");
-      setIsArea(false);
-      setAreaCardId("");
-      setAreaColor(DEFAULT_AREA_COLOR);
-      placeDetailsRef.current = null;
-      resetSession();
-      clearPredictions();
-      onClose?.();
-    } finally {
-      setBusy(false);
-    }
-  };
+        const cleanNotes = (notes || "").trim();
+
+        await onCreate({
+          title: finalTitle,
+          ort: (ortQuery || "").trim(),
+          typ: (typ || "").trim(),
+          isArea,
+          areaCardId: isArea ? null : areaCardId || null,
+          areaColor: isArea ? areaColor : undefined,
+          coordinates: coords,
+          location: locationLabel,
+          description: cleanNotes,
+        });
+        setTitle("");
+        setOrtQuery("");
+        setTyp("");
+        setIsArea(false);
+        setAreaCardId("");
+        setAreaColor(DEFAULT_AREA_COLOR);
+        setNotes("");
+        placeDetailsRef.current = null;
+        resetSession();
+        clearPredictions();
+        onClose?.();
+      } finally {
+        setBusy(false);
+      }
+    };
 
   const pickOrtPrediction = async (p) => {
     try {
@@ -161,7 +166,7 @@ export default function AddIncidentModal({ onClose, onCreate, types, areaOptions
         <h3 className="text-lg font-semibold">Einsatz anlegen</h3>
 
         {/* ⬇️ Reihenfolge: Typ → Titel → Ort */}
-<div className="grid grid-cols-1 gap-2">
+        <div className="grid grid-cols-1 gap-2">
           {/* Typ */}
           <select
             ref={typRef}
@@ -217,9 +222,20 @@ export default function AddIncidentModal({ onClose, onCreate, types, areaOptions
                 ))}
               </ul>
             )}
-</div>
+          </div>
 
-  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+          {/* Notiz */}
+          <label className="text-sm font-medium text-gray-700">
+            Notiz
+            <textarea
+              className="mt-1 w-full border rounded px-2 py-1 resize-y min-h-[90px]"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              disabled={busy}
+            />
+          </label>
+
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <label className="inline-flex items-center gap-2 text-sm">
               <input
                 type="checkbox"

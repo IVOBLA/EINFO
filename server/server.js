@@ -1140,7 +1140,7 @@ const nextHumanIdNumber = nextHumanNumber(board);
     latitude: Number.isFinite(+latIn) ? +latIn : null,
     longitude: Number.isFinite(+lngIn) ? +lngIn : null,
     location: String(location || ""),
-    description: String(description || ""),
+    description: String(description || "").trim(),
     timestamp: timestamp ? new Date(timestamp).toISOString() : null,
 	isArea: isAreaBool,
     areaCardId: null,
@@ -1464,6 +1464,15 @@ app.patch("/api/cards/:id", async (req, res) => {
     if (nextTyp !== (ref.card.typ || "")) {
       notes.push(`Typ: ${ref.card.typ || ""}→${nextTyp}`);
       ref.card.typ = nextTyp;
+      changed = true;
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(updates, "description")) {
+    const nextDescription = String(updates.description || "").trim();
+    if (nextDescription !== (ref.card.description || "")) {
+      notes.push("Notiz geändert");
+      ref.card.description = nextDescription;
       changed = true;
     }
   }
