@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { normalizeLatLng, openIncidentPrintWindow } from "../utils/incidentPrint";
 const DEFAULT_AREA_COLOR = "#2563eb";
 const isManualHumanId = (value) => /^([MB])-/.test(String(value || ""));
 
@@ -46,6 +47,7 @@ export default function IncidentInfoModal({
   );
   const [editing, setEditing] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [printing, setPrinting] = useState(false);
   const [form, setForm] = useState(() => initForm(info));
   const [error, setError] = useState("");
 
@@ -109,6 +111,41 @@ export default function IncidentInfoModal({
     setForm(initForm(info));
     setError("");
     setEditing(false);
+  };
+
+  const handlePrint = async () => {
+    if (printing) return;
+
+    const title = info?.content || "";
+    const type = info?.typ || info?.type || "";
+    const locationLabel = info?.location || info?.additionalAddressInfo || info?.ort || "";
+    const notes = info?.description || "";
+    const coords = normalizeLatLng({
+      lat: info?.latitude ?? info?.lat,
+      lng: info?.longitude ?? info?.lng,
+    });
+    const areaLabelForPrint = !info?.isArea && areaDisplayLabel && areaDisplayLabel !== "—"
+      ? areaDisplayLabel
+      : "";
+
+    setPrinting(true);
+    try {
+      await openIncidentPrintWindow({
+        title,
+        type,
+        locationLabel,
+        notes,
+        isArea: !!info?.isArea,
+        areaColor: info?.isArea ? info?.areaColor || DEFAULT_AREA_COLOR : undefined,
+        areaLabel: areaLabelForPrint || undefined,
+        coordinates: coords,
+      });
+    } catch (err) {
+      const msg = err?.message || err || "Drucken fehlgeschlagen.";
+      alert(typeof msg === "string" ? msg : String(msg));
+    } finally {
+      setPrinting(false);
+    }
   };
 
   const handleSave = async (e) => {
@@ -296,6 +333,14 @@ type="button"
                 Bearbeiten
               </button>
             )}
+            <button
+              type="button"
+              className="px-3 py-1.5 rounded border bg-white text-sm hover:bg-gray-50 disabled:opacity-60"
+              onClick={handlePrint}
+              disabled={printing}
+            >
+              {printing ? "Drucken…" : "Drucken"}
+            </button>
             <button
               className="h-8 w-8 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center"
               onClick={close}
