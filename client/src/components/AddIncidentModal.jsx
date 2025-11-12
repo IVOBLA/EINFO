@@ -40,6 +40,19 @@ async function geocodeAddress(address) {
   });
 }
 
+function escapeHtml(str) {
+  return String(str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function formatMultiline(str) {
+  return escapeHtml(str).replace(/\r?\n/g, "<br />");
+}
+
 export default function AddIncidentModal({ onClose, onCreate, types, areaOptions = [] }) {
   const DEFAULT_AREA_COLOR = "#2563eb";
   const [title, setTitle] = useState("");
@@ -49,6 +62,7 @@ export default function AddIncidentModal({ onClose, onCreate, types, areaOptions
   const [areaCardId, setAreaCardId] = useState("");
   const [areaColor, setAreaColor] = useState(DEFAULT_AREA_COLOR);
   const [notes, setNotes] = useState("");
+  const [printing, setPrinting] = useState(false);
 
   // ⬇️ Fokus auf Typ-Dropdown
   const typRef = useRef(null);
@@ -111,34 +125,34 @@ export default function AddIncidentModal({ onClose, onCreate, types, areaOptions
         }
       }
 
-        const cleanNotes = (notes || "").trim();
+      const cleanNotes = (notes || "").trim();
 
-        await onCreate({
-          title: finalTitle,
-          ort: (ortQuery || "").trim(),
-          typ: (typ || "").trim(),
-          isArea,
-          areaCardId: isArea ? null : areaCardId || null,
-          areaColor: isArea ? areaColor : undefined,
-          coordinates: coords,
-          location: locationLabel,
-          description: cleanNotes,
-        });
-        setTitle("");
-        setOrtQuery("");
-        setTyp("");
-        setIsArea(false);
-        setAreaCardId("");
-        setAreaColor(DEFAULT_AREA_COLOR);
-        setNotes("");
-        placeDetailsRef.current = null;
-        resetSession();
-        clearPredictions();
-        onClose?.();
-      } finally {
-        setBusy(false);
-      }
-    };
+      await onCreate({
+        title: finalTitle,
+        ort: (ortQuery || "").trim(),
+        typ: (typ || "").trim(),
+        isArea,
+        areaCardId: isArea ? null : areaCardId || null,
+        areaColor: isArea ? areaColor : undefined,
+        coordinates: coords,
+        location: locationLabel,
+        description: cleanNotes,
+      });
+      setTitle("");
+      setOrtQuery("");
+      setTyp("");
+      setIsArea(false);
+      setAreaCardId("");
+      setAreaColor(DEFAULT_AREA_COLOR);
+      setNotes("");
+      placeDetailsRef.current = null;
+      resetSession();
+      clearPredictions();
+      onClose?.();
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const pickOrtPrediction = async (p) => {
     try {
@@ -157,6 +171,174 @@ export default function AddIncidentModal({ onClose, onCreate, types, areaOptions
     } finally {
       resetSession();
       clearPredictions();
+    }
+  };
+
+  const handlePrint = async () => {
+    if (printing) return;
+
+    const cleanType = (typ || "").replace(/^T\d+\s*,?\s*/i, "").trim();
+    const finalTitle = (title || cleanType).trim();
+    const enteredOrt = (ortQuery || "").trim();
+    const cleanNotes = (notes || "").trim();
+    const selectedArea = areaOptions.find((opt) => String(opt.id) === String(areaCardId));
+
+    let printWindow = null;
+    try {
+      setPrinting(true);
+
+      let coords = null;
+      let locationLabel = enteredOrt;
+
+      const stored = placeDetailsRef.current;
+      if (stored) {
+        const extracted = normalizeLatLng(stored.geometry?.location);
+        if (extracted) coords = extracted;
+        const formatted = stored.formatted_address || stored.name || "";
+        if (formatted) locationLabel = formatted;
+      }
+
+      if (!coords && locationLabel) {
+        const geo = await geocodeAddress(locationLabel);
+        if (geo) {
+          coords = { lat: geo.lat, lng: geo.lng };
+          if (geo.formatted) locationLabel = geo.formatted;
+        }
+      }
+
+      const mapQuery = coords
+        ? `${coords.lat},${coords.lng}`
+        : locationLabel || finalTitle || cleanType || "Österreich";
+      const mapSrc = `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed&hl=de&z=15`;
+      const mapLink = coords
+        ? `https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`
+        : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapQuery)}`;
+
+      printWindow = window.open("", "_blank", "noopener=yes,noreferrer=yes");
+      if (!printWindow) {
+        alert("Pop-up zum Drucken konnte nicht geöffnet werden. Bitte Pop-up-Blocker prüfen.");
+        return;
+      }
+
+      const now = new Date();
+      const timestamp = now.toLocaleString("de-DE");
+
+      const infoRows = [
+        { label: "Titel", value: finalTitle || cleanType || "—" },
+        { label: "Typ", value: cleanType || "—" },
+        { label: "Ort", value: locationLabel || "—" },
+        { label: "Stand", value: timestamp },
+      ];
+
+      if (isArea) {
+        infoRows.push({ label: "Abschnitt", value: "Ja" });
+        infoRows.push({
+          label: "Abschnittsfarbe",
+          value: `<span class="color-chip" style="background:${escapeHtml(areaColor || "#2563eb")}"></span>${escapeHtml(
+            areaColor || "#2563eb"
+          )}`,
+          raw: true,
+        });
+      } else if (selectedArea) {
+        infoRows.push({ label: "Abschnitt", value: selectedArea.label });
+      }
+
+      if (mapLink) {
+        const safeLink = escapeHtml(mapLink);
+        infoRows.push({
+          label: "Google Maps",
+          value: `<a href="${safeLink}" target="_blank" rel="noreferrer">${safeLink}</a>`,
+          raw: true,
+        });
+      }
+
+      const infoRowsHtml = infoRows
+        .map(
+          (row) => `
+            <div class="row">
+              <div class="label">${escapeHtml(row.label)}</div>
+              <div class="value">${row.raw ? row.value : escapeHtml(row.value)}</div>
+            </div>
+          `
+        )
+        .join("");
+
+      const notesSection = cleanNotes
+        ? `
+            <section class="notes">
+              <h2>Notizen</h2>
+              <div>${formatMultiline(cleanNotes)}</div>
+            </section>
+          `
+        : "";
+
+      const html = `<!DOCTYPE html>
+        <html lang="de">
+          <head>
+            <meta charSet="utf-8" />
+            <title>Einsatzdruck – ${escapeHtml(finalTitle || cleanType || "Neuer Einsatz")}</title>
+            <style>
+              * { box-sizing: border-box; font-family: "Inter", "Helvetica Neue", Arial, sans-serif; color: #0f172a; }
+              body { margin: 0; padding: 0; background: #e2e8f0; }
+              .sheet { max-width: 190mm; margin: 18px auto; background: white; border-radius: 16px; padding: 22px 26px; box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18); }
+              header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+              header h1 { margin: 0; font-size: 20px; }
+              header span { font-size: 12px; color: #475569; }
+              section { margin-top: 20px; }
+              .info { display: flex; flex-direction: column; gap: 10px; }
+              .row { display: flex; gap: 14px; }
+              .label { width: 120px; font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.04em; color: #475569; }
+              .value { flex: 1; font-size: 14px; line-height: 1.4; }
+              .color-chip { display: inline-block; width: 14px; height: 14px; border-radius: 4px; margin-right: 6px; vertical-align: middle; border: 1px solid rgba(15, 23, 42, 0.2); }
+              .map-section h2, .notes h2 { font-size: 16px; margin: 0 0 10px; }
+              .map-frame { width: 100%; aspect-ratio: 4 / 3; border-radius: 14px; overflow: hidden; border: 1px solid #cbd5f5; background: #f8fafc; }
+              .map-frame iframe { width: 100%; height: 100%; border: 0; }
+              .notes div { font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
+              footer { margin-top: 24px; font-size: 11px; color: #64748b; text-align: right; }
+              @media print {
+                body { background: white; }
+                .sheet { box-shadow: none; margin: 0; max-width: unset; width: 100%; border-radius: 0; }
+                @page { size: A4; margin: 12mm; }
+              }
+            </style>
+            <script>
+              window.addEventListener('load', () => {
+                setTimeout(() => { try { window.print(); } catch (e) {} }, 600);
+              });
+              window.addEventListener('afterprint', () => { try { window.close(); } catch (e) {} });
+            </script>
+          </head>
+          <body>
+            <div class="sheet">
+              <header>
+                <h1>Einsatzinformation</h1>
+                <span>Druck erstellt am ${escapeHtml(timestamp)}</span>
+              </header>
+              <section class="info">
+                ${infoRowsHtml}
+              </section>
+              <section class="map-section">
+                <h2>Einsatzkarte</h2>
+                <div class="map-frame">
+                  <iframe src="${mapSrc}" title="Einsatzkarte" loading="lazy"></iframe>
+                </div>
+              </section>
+              ${notesSection}
+              <footer>Einsatzstellen-Übersicht</footer>
+            </div>
+          </body>
+        </html>`;
+
+      printWindow.document.open();
+      printWindow.document.write(html);
+      printWindow.document.close();
+    } catch (e) {
+      if (printWindow && !printWindow.closed) {
+        try { printWindow.close(); } catch {}
+      }
+      alert(`Drucken fehlgeschlagen: ${e?.message || e || "Unbekannter Fehler"}`);
+    } finally {
+      setPrinting(false);
     }
   };
 
@@ -274,6 +456,18 @@ export default function AddIncidentModal({ onClose, onCreate, types, areaOptions
           {!isArea && areaOptions.length === 0 && (
             <p className="text-xs text-gray-500">Noch keine Abschnitte vorhanden.</p>
           )}
+        </div>
+
+        <div className="flex items-center justify-between gap-2 pt-1">
+          <span className="text-xs text-gray-500">Informationen und Karte auf A4 drucken</span>
+          <button
+            type="button"
+            onClick={handlePrint}
+            className="px-3 py-1 rounded border bg-white hover:bg-gray-50 text-sm disabled:opacity-60"
+            disabled={busy || printing}
+          >
+            {printing ? "Drucken…" : "Drucken"}
+          </button>
         </div>
 
 
