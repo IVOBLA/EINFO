@@ -79,6 +79,18 @@ async function loadMergedVehicles() {
   }
 }
 
+async function loadBoardData() {
+  try {
+    const res = await fetch("/api/board", { cache: "no-store", credentials: "include" });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data && typeof data === "object") return data;
+  } catch (error) {
+    console.error("Board fetch failed:", error);
+  }
+  return null;
+}
+
 function mergeVehiclesForMap(contextVehiclesById, mergedVehicles) {
   const result = new Map();
 
@@ -172,11 +184,20 @@ export function MapModal({ context, address, onClose }) {
     let gpsPollTimer = null;
 
     const contextCardId = context?.card?.id != null ? String(context.card.id) : null;
+    let boardSnapshot = context?.board;
 
     const run = async () => {
       try {
         setBusy(true);
         setError("");
+
+        if (!boardSnapshot || typeof boardSnapshot !== "object" || !boardSnapshot.columns) {
+          const fetchedBoard = await loadBoardData();
+          if (cancelled) return;
+          if (fetchedBoard && typeof fetchedBoard === "object") {
+            boardSnapshot = fetchedBoard;
+          }
+        }
 
         // 1) Zentrum (Koords oder Geocode)
         let center = centerFromCard;
@@ -251,10 +272,13 @@ export function MapModal({ context, address, onClose }) {
           incidents.push(inc);
         };
 
-        for (const inc of context?.board?.columns?.["neu"]?.items || []) {
+        const boardSource = boardSnapshot || context?.board;
+        const boardColumns = boardSource?.columns || {};
+
+        for (const inc of boardColumns?.["neu"]?.items || []) {
           pushIncident(inc);
         }
-        for (const inc of context?.board?.columns?.["in-bearbeitung"]?.items || []) {
+        for (const inc of boardColumns?.["in-bearbeitung"]?.items || []) {
           pushIncident(inc);
         }
         if (contextCardId) pushIncident(context?.card);
@@ -493,14 +517,27 @@ export function MapModal({ context, address, onClose }) {
         gpsPollTimer = setInterval(async () => {
           const list = await loadGpsList();
           const merged = await loadMergedVehicles();
+
+          if (!boardSnapshot || typeof boardSnapshot !== "object" || !boardSnapshot.columns) {
+            const refreshedBoard = await loadBoardData();
+            if (cancelled) return;
+            if (refreshedBoard && typeof refreshedBoard === "object") {
+              boardSnapshot = refreshedBoard;
+            }
+          }
+
+          const boardSourceNow = boardSnapshot || context?.board;
+
           const manualPosById = new Map(
-           merged
-              .filter(v =>
-                v && v.source !== "gps" &&
-                Number.isFinite(v.latitude) &&
-                Number.isFinite(v.longitude)
+            merged
+              .filter(
+                (v) =>
+                  v &&
+                  v.source !== "gps" &&
+                  Number.isFinite(v.latitude) &&
+                  Number.isFinite(v.longitude)
               )
-              .map(v => [String(v.id), { lat: Number(v.latitude), lng: Number(v.longitude) }])
+              .map((v) => [String(v.id), { lat: Number(v.latitude), lng: Number(v.longitude) }])
           );
           const idx = new Map(
             list
@@ -510,21 +547,22 @@ export function MapModal({ context, address, onClose }) {
 
           // Zuweisungen neu lesen
           const assignedNow = new Map();
-          for (const card of [
-            ...(context?.board?.columns?.["neu"]?.items || []),
-            ...(context?.board?.columns?.["in-bearbeitung"]?.items || []),
-          ]) {
+          const assignedCards = [
+            ...(boardSourceNow?.columns?.["neu"]?.items || []),
+            ...(boardSourceNow?.columns?.["in-bearbeitung"]?.items || []),
+          ];
+          for (const card of assignedCards) {
             const cardIdStr = card?.id != null ? String(card.id) : null;
             if (!cardIdStr) continue;
             for (const vid of getAssignedVehicles(card)) {
               assignedNow.set(String(vid), cardIdStr);
             }
           }
- if (contextCardId) {
-   for (const vid of getAssignedVehicles(context.card)) {
-     assignedNow.set(String(vid), contextCardId);
-   }
- }
+          if (contextCardId) {
+            for (const vid of getAssignedVehicles(context.card)) {
+              assignedNow.set(String(vid), contextCardId);
+            }
+          }
 
           const vehiclesNow = mergeVehiclesForMap(context.vehiclesById, merged);
 
