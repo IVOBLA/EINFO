@@ -164,8 +164,9 @@ export function MapModal({ context, address, onClose }) {
           if (geo) center = { lat: geo.lat, lng: geo.lng };
         }
         if (!center) {
-          setError("Konnte Einsatz-Position nicht bestimmen.");
-          return;
+          // Fallback: neutrales Zentrum, damit Marker + Ring-Layout funktionieren
+          center = { lat: 46.7227, lng: 14.0952 };
+          setError("Einsatz-Position unbekannt – zeige Karte mit Default-Zentrum.");
         }
 
         // 2) Map & InfoWindow
