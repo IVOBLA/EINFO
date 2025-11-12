@@ -121,6 +121,9 @@ export default function IncidentInfoModal({
     const areaLabelForPrint = !info?.isArea && areaDisplayLabel && areaDisplayLabel !== "—"
       ? areaDisplayLabel
       : "";
+    const incidentIdForPrint = [info?.humanId, info?.content, info?.id]
+      .map((v) => (v != null ? String(v).trim() : ""))
+      .find((v) => v);
 
     setPrinting(true);
     try {
@@ -133,6 +136,7 @@ export default function IncidentInfoModal({
         areaColor: info?.isArea ? info?.areaColor || DEFAULT_AREA_COLOR : undefined,
         areaLabel: areaLabelForPrint || undefined,
         coordinates: coords,
+        incidentId: incidentIdForPrint,
       });
     } catch (err) {
       const msg = err?.message || err || "Drucken fehlgeschlagen.";
