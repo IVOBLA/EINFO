@@ -236,6 +236,112 @@ function buildIncidentPrintHtml({
 // Öffentliche API
 // ------------------------------
 
+export async function prepareIncidentPrintDocument({
+  title = "",
+  type = "",
+  locationLabel = "",
+  notes = "",
+  isArea = false,
+  areaColor,
+  areaLabel,
+  coordinates = null,
+}) {
+  const now = new Date();
+  const timestamp = now.toLocaleString("de-AT", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  const cleanTitle = (title || "").trim();
+  const cleanType = (type || "").trim();
+  let location = (locationLabel || "").trim();
+
+  let coords = normalizeLatLng(coordinates);
+  try {
+    if (!coords && location) {
+      const geo = await geocodeAddress(location);
+      if (geo) {
+        coords = { lat: geo.lat, lng: geo.lng };
+        if (geo.formatted) location = geo.formatted;
+      }
+    }
+  } catch {
+    // Geocode-Fehler ignorieren, wir verwenden dann die Adresse im iFrame/StaticMap
+  }
+
+  const mapQuery = coords
+    ? `${coords.lat},${coords.lng}`
+    : location || cleanTitle || cleanType || "Österreich";
+  const mapSrc = `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed&hl=de&z=15`;
+
+  let staticMapUrl = buildStaticMapUrl({
+    lat: coords?.lat,
+    lng: coords?.lng,
+    address: location || cleanTitle || cleanType || "Österreich",
+    // Wichtig: denselben Key verwenden wie Places (App.jsx/usePlacesAutocomplete)
+    apiKey: getGmapsKeyFromDom(),
+  });
+  if (!staticMapUrl) {
+    const txt = encodeURIComponent("Keine Karte verfügbar");
+    staticMapUrl = `https://placehold.co/800x400?text=${txt}`;
+  }
+
+  const infoRowsHtml = [
+    ["Einsatz", cleanTitle || cleanType || "—"],
+    ["Art", cleanType || "—"],
+    ["Ort", location || "—"],
+    ...(isArea
+      ? [[
+          "Bereich",
+          `${escapeHtml(areaLabel || "Bereich")} ${
+            areaColor ? `<span class="color-chip" style="background:${escapeHtml(areaColor)}"></span>` : ""
+          }`,
+        ]]
+      : []),
+  ]
+    .map(
+      ([label, value]) => `
+      <div class="row">
+        <div class="label">${escapeHtml(label)}</div>
+        <div class="value">${typeof value === "string" ? value : value ?? "—"}</div>
+      </div>`
+    )
+    .join("");
+
+  const notesSection = notes
+    ? `<section class="notes"><h2>Hinweise</h2><div>${escapeHtml(notes)}</div></section>`
+    : "";
+
+  const html = buildIncidentPrintHtml({
+    title: cleanTitle,
+    type: cleanType,
+    location,
+    timestamp,
+    infoRowsHtml,
+    mapSrc,
+    staticMapUrl,
+    notesSection,
+    autoPrint: false,
+  });
+
+  return {
+    html,
+    title: cleanTitle,
+    type: cleanType,
+    location,
+    timestamp,
+    mapSrc,
+    staticMapUrl,
+    notes,
+    isArea: !!isArea,
+    infoRowsHtml,
+    notesSection,
+  };
+}
+
 /**
  * Öffnet/Erzeugt die Druckansicht. Optional: automatischer Druck im Popup-Fallback.
  * Erwartet Felder:
@@ -254,80 +360,27 @@ export async function openIncidentPrintWindow({
   coordinates = null,
   incidentId,
 }) {
-  // 1) Zeitstempel
-  const now = new Date();
-  const timestamp = now.toLocaleString("de-AT", {
-    year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit",
+  const payload = await prepareIncidentPrintDocument({
+    title,
+    type,
+    locationLabel,
+    notes,
+    isArea,
+    areaColor,
+    areaLabel,
+    coordinates,
   });
-
-  // 2) Felder aufbereiten
-  const cleanTitle = (title || "").trim();
-  const cleanType = (type || "").trim();
-  let location = (locationLabel || "").trim();
-
-  // 3) Koordinaten ermitteln (direkt oder via Geocoder)
-  let coords = normalizeLatLng(coordinates);
-  try {
-    if (!coords && location) {
-      const geo = await geocodeAddress(location);
-      if (geo) {
-        coords = { lat: geo.lat, lng: geo.lng };
-        if (geo.formatted) location = geo.formatted;
-      }
-    }
-  } catch {
-    // Geocode-Fehler ignorieren, wir verwenden dann die Adresse im iFrame/StaticMap
-  }
-
-  // 4) Karten-URLs
-  const mapQuery = coords ? `${coords.lat},${coords.lng}` : (location || cleanTitle || cleanType || "Österreich");
-  const mapSrc = `https://www.google.com/maps?q=${encodeURIComponent(mapQuery)}&output=embed&hl=de&z=15`;
-  let staticMapUrl = "";
-  staticMapUrl = buildStaticMapUrl({
-    lat: coords?.lat,
-    lng: coords?.lng,
-    address: location || cleanTitle || cleanType || "Österreich",
-    // Wichtig: denselben Key verwenden wie Places (App.jsx/usePlacesAutocomplete)
-    apiKey: getGmapsKeyFromDom(),
-  });
-  // Falls weiterhin leer (keine Koordinaten): dezenter Platzhalter statt „kaputtem Bild“
-  if (!staticMapUrl) {
-    const txt = encodeURIComponent("Keine Karte verfügbar");
-    // 800x400 Platzhalter
-    staticMapUrl = `https://placehold.co/800x400?text=${txt}`;
-  }
-
-  // 5) Info-Zeilen (einfaches Raster)
-  const infoRowsHtml = [
-    ["Einsatz", cleanTitle || cleanType || "—"],
-    ["Art", cleanType || "—"],
-    ["Ort", location || "—"],
-    ...(isArea ? [["Bereich", `${escapeHtml(areaLabel || "Bereich")} ${areaColor ? `<span class="color-chip" style="background:${escapeHtml(areaColor)}"></span>` : ""}`]] : []),
-  ]
-    .map(([label, value]) => `
-      <div class="row">
-        <div class="label">${escapeHtml(label)}</div>
-        <div class="value">${typeof value === "string" ? value : (value ?? "—")}</div>
-      </div>`)
-    .join("");
-
-  const notesSection = notes
-    ? `<section class="notes"><h2>Hinweise</h2><div>${escapeHtml(notes)}</div></section>`
-    : "";
-
-  // 6) HTML erzeugen (ohne Auto-Print)
-  const htmlBase = buildIncidentPrintHtml({
+  const {
+    html: htmlBase,
     title: cleanTitle,
     type: cleanType,
     location,
     timestamp,
-    infoRowsHtml,
     mapSrc,
     staticMapUrl,
+    infoRowsHtml,
     notesSection,
-    autoPrint: false,
-  });
+  } = payload;
 
   // 7) Versuch: In verstecktem iFrame anzeigen (für „Speichern“/„Drucken“ im selben Tab)
   try {
@@ -404,6 +457,7 @@ export async function openIncidentPrintWindow({
 
 // Optional: Default-Export für bequemen Import
 export default {
+  prepareIncidentPrintDocument,
   openIncidentPrintWindow,
   buildIncidentPrintHtml,
   buildStaticMapUrl,

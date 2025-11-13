@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { setVehiclePosition } from "../api";
+import { prepareIncidentPrintDocument } from "../utils/incidentPrint";
 
  const getAssignedVehicles = (card) => {
    if (Array.isArray(card?.assignedVehicles)) return card.assignedVehicles;
@@ -66,6 +67,16 @@ async function geocode(address) {
 }
 
 const norm = (s) => String(s || "").trim().toLowerCase();
+
+
+const sanitizeIncidentId = (value) => {
+  if (value == null) return "";
+  const trimmed = String(value).trim();
+  if (!trimmed) return "";
+  const normalized = trimmed.normalize("NFKD").replace(/[\u0300-\u036f]/g, "");
+  const safe = normalized.replace(/[^a-zA-Z0-9_.-]+/g, "-").replace(/-+/g, "-");
+  return safe.replace(/^-+/, "").replace(/-+$/, "");
+};
 
 
 async function loadMergedVehicles() {
@@ -165,6 +176,8 @@ export function MapModal({ context, address, onClose }) {
   const mapRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [mailBusy, setMailBusy] = useState(false);
+  const [mailFeedback, setMailFeedback] = useState(null);
 
   const centerFromCard = useMemo(() => {
     const c = context?.card;
@@ -174,6 +187,104 @@ export function MapModal({ context, address, onClose }) {
     }
     return null;
   }, [context]);
+
+  useEffect(() => {
+    setMailFeedback(null);
+    setMailBusy(false);
+  }, [context]);
+
+  const handleSendMail = async () => {
+    if (mailBusy) return;
+    const card = context?.card;
+    if (!card) {
+      setMailFeedback({ type: "error", message: "Kein Einsatz ausgewählt." });
+      return;
+    }
+
+    const recipientInput = window.prompt("Bitte E-Mail-Adresse für den Versand eingeben:");
+    if (recipientInput == null) return;
+    const recipient = recipientInput.trim();
+    if (!recipient) {
+      setMailFeedback({ type: "error", message: "Keine E-Mail-Adresse angegeben." });
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(recipient)) {
+      setMailFeedback({ type: "error", message: "E-Mail-Adresse ist ungültig." });
+      return;
+    }
+
+    setMailBusy(true);
+    setMailFeedback(null);
+
+    try {
+      const title = card?.content || "";
+      const type = card?.typ || card?.type || "";
+      const locationLabel = card?.additionalAddressInfo || card?.ort || "";
+      const notes = card?.description || "";
+      const coordinates = {
+        lat: card?.latitude ?? card?.lat ?? null,
+        lng: card?.longitude ?? card?.lng ?? null,
+      };
+      const incidentIdForPrint = [card?.humanId, card?.content, card?.id]
+        .map((v) => (v != null ? String(v).trim() : ""))
+        .find((v) => v);
+
+      const payload = await prepareIncidentPrintDocument({
+        title,
+        type,
+        locationLabel,
+        notes,
+        coordinates,
+        isArea: !!card?.isArea,
+        areaColor: card?.areaColor,
+        areaLabel: card?.areaLabel || card?.areaCardLabel,
+      });
+
+      const incidentIdClean = sanitizeIncidentId(incidentIdForPrint) || "einsatz";
+      const subjectBase = payload.title || payload.type || incidentIdForPrint || incidentIdClean;
+      const subject = subjectBase ? `Einsatzkarte ${subjectBase}` : "Einsatzkarte";
+
+      const detailLines = [];
+      if (payload.title) detailLines.push(`Einsatz: ${payload.title}`);
+      if (payload.location) detailLines.push(`Ort: ${payload.location}`);
+      detailLines.push(`Gesendet: ${payload.timestamp}`);
+      const textBody = `Im Anhang finden Sie die aktuelle Einsatzkarte.\n\n${detailLines.join("\n")}`.trim();
+
+      const htmlDetails = [
+        payload.title ? `<li><strong>Einsatz:</strong> ${payload.title}</li>` : "",
+        payload.location ? `<li><strong>Ort:</strong> ${payload.location}</li>` : "",
+        `<li><strong>Gesendet:</strong> ${payload.timestamp}</li>`,
+      ]
+        .filter(Boolean)
+        .join("");
+      const htmlBody = `<p>Im Anhang finden Sie die aktuelle Einsatzkarte.</p><ul>${htmlDetails}</ul>`;
+
+      const response = await fetch(`/api/incidents/${encodeURIComponent(incidentIdClean)}/mail`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          html: payload.html,
+          to: recipient,
+          subject,
+          textBody,
+          htmlBody,
+        }),
+      });
+      const result = await response.json().catch(() => null);
+      if (!response.ok || !result?.ok) {
+        const detail = result?.detail || result?.error || response.statusText || "Versand fehlgeschlagen.";
+        throw new Error(detail);
+      }
+      setMailFeedback({ type: "success", message: "E-Mail wurde versendet." });
+    } catch (err) {
+      const msg = err?.message || "E-Mail-Versand fehlgeschlagen.";
+      setMailFeedback({ type: "error", message: msg });
+    } finally {
+      setMailBusy(false);
+    }
+  };
 
   useEffect(() => {
     if (!mapsAvailable || !context?.card || !mapRef.current) return;
@@ -748,12 +859,21 @@ for (const m of vehicleMarkers.values()) {
           <h4 className="font-semibold text-sm">
             Karte: {context?.card?.content || "Einsatz"} · weitere Einsätze (Neu & In Bearbeitung)
           </h4>
-          <button
-            className="px-2 py-1 rounded-md bg-gray-200 hover:bg-gray-300 text-sm"
-            onClick={onClose}
-          >
-            Schließen
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              className="px-2 py-1 rounded-md bg-blue-500 text-white hover:bg-blue-600 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+              onClick={handleSendMail}
+              disabled={mailBusy || !context?.card}
+            >
+              {mailBusy ? "Sende…" : "Mail senden"}
+            </button>
+            <button
+              className="px-2 py-1 rounded-md bg-gray-200 hover:bg-gray-300 text-sm"
+              onClick={onClose}
+            >
+              Schließen
+            </button>
+          </div>
         </div>
         <div ref={mapRef} className="w-full h-full rounded-lg border" />
         {busy && (
@@ -766,6 +886,15 @@ for (const m of vehicleMarkers.values()) {
         {!!error && (
           <div className="absolute bottom-3 left-3 px-2 py-1 rounded bg-red-600 text-white text-xs shadow">
             {error}
+          </div>
+        )}
+        {mailFeedback && (
+          <div
+            className={`absolute bottom-3 right-3 px-2 py-1 rounded text-white text-xs shadow ${
+              mailFeedback.type === "error" ? "bg-red-600" : "bg-emerald-600"
+            }`}
+          >
+            {mailFeedback.message}
           </div>
         )}
       </div>

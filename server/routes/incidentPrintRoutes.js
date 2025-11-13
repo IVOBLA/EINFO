@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import puppeteer from "puppeteer";
 import { User_authMiddleware } from "../User_auth.mjs";
+import { isMailConfigured, sendMail } from "../utils/mailClient.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -51,12 +52,13 @@ async function renderIncidentPdf(html, outPath) {
     } catch (_) {
       // tolerieren, PDF wird dennoch erzeugt
     }
-    await page.pdf({
-      path: outPath,
+    const pdfBuffer = await page.pdf({
+      path: outPath || undefined,
       format: "A4",
       printBackground: true,
       margin: { top: "10mm", right: "10mm", bottom: "10mm", left: "10mm" },
     });
+    return pdfBuffer;
   } finally {
     await browser.close();
   }
@@ -86,6 +88,75 @@ router.post(
     } catch (err) {
       console.error("[incident-print] Fehler beim Speichern", err);
       res.status(500).json({ ok: false, error: err?.message || String(err) });
+    }
+  },
+);
+
+router.post(
+  "/:incidentId/mail",
+  express.json({ limit: BODY_LIMIT }),
+  async (req, res) => {
+    if (!isMailConfigured()) {
+      return res.status(503).json({ ok: false, error: "mail_not_configured" });
+    }
+
+    try {
+      const incidentIdParam = sanitizeIncidentId(req.params.incidentId || req.body?.incidentId);
+      if (!incidentIdParam) {
+        return res.status(400).json({ ok: false, error: "incident_id_missing" });
+      }
+
+      const html = typeof req.body?.html === "string" ? req.body.html : "";
+      if (!html.trim()) {
+        return res.status(400).json({ ok: false, error: "print_html_missing" });
+      }
+
+      const toRaw = req.body?.to;
+      const ccRaw = req.body?.cc;
+      const bccRaw = req.body?.bcc;
+      const recipients = [];
+      if (Array.isArray(toRaw)) recipients.push(...toRaw);
+      else if (toRaw) recipients.push(toRaw);
+      const cc = Array.isArray(ccRaw) ? ccRaw : ccRaw ? [ccRaw] : [];
+      const bcc = Array.isArray(bccRaw) ? bccRaw : bccRaw ? [bccRaw] : [];
+      if (!recipients.length && !cc.length && !bcc.length) {
+        return res.status(400).json({ ok: false, error: "mail_missing_recipient" });
+      }
+
+      const pdfBuffer = await renderIncidentPdf(html, null);
+      const filename = `${incidentIdParam}.pdf`;
+
+      const subjectRaw = typeof req.body?.subject === "string" ? req.body.subject.trim() : "";
+      const textBodyRaw = typeof req.body?.textBody === "string" ? req.body.textBody : "";
+      const htmlBodyRaw = typeof req.body?.htmlBody === "string" ? req.body.htmlBody : "";
+      const subject = subjectRaw || `Einsatzkarte ${incidentIdParam}`;
+      const textBody = textBodyRaw.trim()
+        ? textBodyRaw
+        : `Im Anhang finden Sie die Einsatzkarte ${incidentIdParam}.`;
+      const htmlBody = htmlBodyRaw.trim()
+        ? htmlBodyRaw
+        : `<p>Im Anhang finden Sie die Einsatzkarte <strong>${incidentIdParam}</strong>.</p>`;
+
+      const mailResult = await sendMail({
+        to: recipients,
+        cc,
+        bcc,
+        subject,
+        text: textBody,
+        html: htmlBody,
+        attachments: [
+          {
+            filename,
+            content: pdfBuffer,
+            contentType: "application/pdf",
+          },
+        ],
+      });
+
+      res.json({ ok: true, messageId: mailResult.messageId, accepted: mailResult.accepted, rejected: mailResult.rejected });
+    } catch (err) {
+      console.error("[incident-print] mail send failed", err);
+      res.status(500).json({ ok: false, error: "mail_send_failed", detail: err?.message || String(err) });
     }
   },
 );
