@@ -1,12 +1,19 @@
 import { forbiddenError } from "../../forbidden.js";
+import { buildApiUrl, createNetworkError } from "./http.js";
 
 export async function User_api(path, method="GET", body){
-  const res = await fetch(`/api/user${path}`, {
-    method,
-    headers: body ? { "Content-Type":"application/json" } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-    credentials: "include"
-  });
+  const url = buildApiUrl(`/api/user${path}`);
+  let res;
+  try {
+    res = await fetch(url, {
+      method,
+      headers: body ? { "Content-Type":"application/json" } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+      credentials: "include"
+    });
+  } catch (error) {
+    throw createNetworkError(error);
+  }
   if(!res.ok){
     if (res.status === 403) throw forbiddenError();
     let txt; try{ txt = await res.json(); }catch{ txt = {error:res.statusText}; }
