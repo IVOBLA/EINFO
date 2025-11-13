@@ -23,7 +23,8 @@
 	"puppeteer": "^24.15.0",
     "qs": "^6.13.0",
     "tough-cookie": "^4.1.3",
-	"archiver": "^7.0.0"
+	"archiver": "^7.0.0",
+	"pdf-to-printer": "^7.0.0"
   },
   "optionalDependencies": {
     "win-ca": "^3.6.2"
