@@ -229,6 +229,55 @@ async function writeOverrides(next){
   invalidateVehiclesCache();
 }
 
+function collectAssignedVehicleIds(board){
+  const assigned = new Set();
+  if (!board || typeof board !== "object") return assigned;
+  const columns = board.columns && typeof board.columns === "object" ? board.columns : {};
+  for (const col of Object.values(columns)) {
+    const items = Array.isArray(col?.items) ? col.items : [];
+    for (const card of items) {
+      const vehicles = Array.isArray(card?.assignedVehicles) ? card.assignedVehicles : [];
+      for (const id of vehicles) {
+        if (id === null || id === undefined) continue;
+        const key = String(id);
+        if (key) assigned.add(key);
+      }
+    }
+  }
+  return assigned;
+}
+
+async function cleanupVehicleOverrides({ board = null, candidateIds = null } = {}){
+  const overrides = await readOverrides();
+  const keys = Object.keys(overrides || {});
+  if (keys.length === 0) return;
+
+  const candidates = candidateIds ? new Set(Array.from(candidateIds, (id) => String(id))) : null;
+  let refBoard = board;
+  if (!refBoard) {
+    try {
+      refBoard = await ensureBoard();
+    } catch {
+      refBoard = null;
+    }
+  }
+  const assigned = collectAssignedVehicleIds(refBoard);
+
+  let changed = false;
+  for (const key of keys) {
+    const idStr = String(key);
+    if (candidates && !candidates.has(idStr)) continue;
+    if (!assigned.has(idStr)) {
+      delete overrides[key];
+      changed = true;
+    }
+  }
+
+  if (changed) {
+    await writeOverrides(overrides);
+  }
+}
+
 function parseAvailabilityTimestamp(raw) {
   if (raw === null || typeof raw === "undefined") return null;
   if (typeof raw === "number" && Number.isFinite(raw)) return raw;
@@ -837,6 +886,7 @@ async function loadBoardFresh() {
   const raw = await readJson(BOARD_FILE, null);
   const board = normalizeBoardStructure(raw ?? createEmptyBoard());
   const { changed: idsChanged } = await normalizeBoardVehicleRefs(board);
+  await cleanupVehicleOverrides({ board });
   if (!raw || idsChanged) {
     await saveBoard(board);
   } else {
@@ -1293,6 +1343,7 @@ app.post("/api/cards/:id/move", async (req,res)=>{
 
   let clonesToRemove = null;
   let groupsToResolve = null;
+  let overridesToCleanup = null;
   if(to==="erledigt"){
     const allVehicles = await getAllVehicles();
     const vmap=vehiclesByIdMap(allVehicles);
@@ -1334,6 +1385,7 @@ app.post("/api/cards/:id/move", async (req,res)=>{
     }
     card.assignedVehicles=[];
     clonesToRemove = new Set(removedIds);
+    overridesToCleanup = new Set(removedIds);
 
     const resolveNames = new Set();
     for (const token of collectAlertedTokens(card?.alerted)) {
@@ -1357,6 +1409,14 @@ app.post("/api/cards/:id/move", async (req,res)=>{
   }
   dst.splice(Math.max(0,Math.min(Number(toIndex)||0,dst.length)),0,card);
   await saveBoard(board);
+
+  if (overridesToCleanup && overridesToCleanup.size) {
+    try {
+      await cleanupVehicleOverrides({ board, candidateIds: overridesToCleanup });
+    } catch (error) {
+      await appendError("vehicle:cleanup-overrides", error);
+    }
+  }
 
   if (clonesToRemove) {
     try {
