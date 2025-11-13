@@ -4,7 +4,8 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 import { execFile } from "child_process";
-import { print as winPrint } from "pdf-to-printer";
+import printer from "pdf-to-printer";
+const { print: winPrint } = printer;
 
 /**
  * Erzeugt einen Router, der PDFs direkt am Server auf den Standarddrucker schickt.
