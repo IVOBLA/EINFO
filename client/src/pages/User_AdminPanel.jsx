@@ -47,6 +47,9 @@ export default function User_AdminPanel() {
   const [fetcherInfo, setFetcherInfo] = useState({ has:false, updatedAt:null });
   const [autoConfig, setAutoConfig]   = useState({ enabled:false, intervalSec:30, demoMode:false });
   const [savingAutoConfig, setSavingAutoConfig] = useState(false);
+  const [autoPrintConfig, setAutoPrintConfig] = useState({ enabled:false, intervalMinutes:10, lastRunAt:null });
+  const [autoPrintDraft, setAutoPrintDraft] = useState({ enabled:false, intervalMinutes:"10" });
+  const [savingAutoPrintConfig, setSavingAutoPrintConfig] = useState(false);
 
   // ---- capabilities ↔ apps Konvertierung ----
   const parseCapToken = (t) => {
@@ -146,6 +149,26 @@ export default function User_AdminPanel() {
             enabled: !!cfg.enabled,
             intervalSec: Number(cfg.intervalSec) || 30,
             demoMode: !!cfg.demoMode,
+          });
+        }
+      } catch (_) {/* optional */}
+      try {
+        const autoPrintRes = await fetch("/api/protocol/auto-print-config", { credentials: "include", cache: "no-store" });
+        if (autoPrintRes.ok) {
+          const cfg = await autoPrintRes.json().catch(() => ({}));
+          const intervalMinutes = Number(cfg.intervalMinutes);
+          const sanitizedInterval = Number.isFinite(intervalMinutes) && intervalMinutes > 0 ? Math.floor(intervalMinutes) : 10;
+          const lastRunAt = Number(cfg.lastRunAt);
+          const sanitizedLastRun = Number.isFinite(lastRunAt) && lastRunAt > 0 ? lastRunAt : null;
+          const sanitized = {
+            enabled: !!cfg.enabled,
+            intervalMinutes: sanitizedInterval,
+            lastRunAt: sanitizedLastRun,
+          };
+          setAutoPrintConfig(sanitized);
+          setAutoPrintDraft({
+            enabled: sanitized.enabled,
+            intervalMinutes: String(sanitized.intervalMinutes || ""),
           });
         }
       } catch (_) {/* optional */}
@@ -333,7 +356,55 @@ export default function User_AdminPanel() {
     }
   }
 
+  async function onSaveAutoPrintConfig() {
+    if (savingAutoPrintConfig) return;
+    const parsedMinutes = Number.parseInt(autoPrintDraft.intervalMinutes, 10);
+    if (!Number.isFinite(parsedMinutes) || parsedMinutes <= 0) {
+      setErr("Intervall für den Auto-Druck muss eine Zahl ≥ 1 sein.");
+      return;
+    }
+    const intervalMinutes = Math.max(1, parsedMinutes);
+    setErr("");
+    setMsg("");
+    setSavingAutoPrintConfig(true);
+    try {
+      const res = await fetch("/api/protocol/auto-print-config", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          enabled: !!autoPrintDraft.enabled,
+          intervalMinutes,
+        }),
+      });
+      const js = await res.json().catch(() => ({}));
+      if (!res.ok || js?.error) throw new Error(js?.error || "Speichern fehlgeschlagen");
+      const interval = Number(js.intervalMinutes);
+      const sanitizedInterval = Number.isFinite(interval) && interval > 0 ? Math.floor(interval) : intervalMinutes;
+      const lastRunAt = Number(js.lastRunAt);
+      const sanitized = {
+        enabled: !!js.enabled,
+        intervalMinutes: sanitizedInterval,
+        lastRunAt: Number.isFinite(lastRunAt) && lastRunAt > 0 ? lastRunAt : null,
+      };
+      setAutoPrintConfig(sanitized);
+      setAutoPrintDraft({
+        enabled: sanitized.enabled,
+        intervalMinutes: String(sanitized.intervalMinutes || ""),
+      });
+      setMsg("Auto-Druck Einstellungen gespeichert.");
+    } catch (ex) {
+      setErr(ex.message || "Speichern fehlgeschlagen");
+    } finally {
+      setSavingAutoPrintConfig(false);
+    }
+  }
+
   // ---- Render ----
+  const autoPrintLastRunLabel = autoPrintConfig.lastRunAt
+    ? new Date(autoPrintConfig.lastRunAt).toLocaleString("de-AT", { hour12: false })
+    : null;
+
   return (
     <div className="p-4 space-y-6">
       <CornerHelpLogout />
@@ -606,6 +677,53 @@ export default function User_AdminPanel() {
           </label>
           <div className="text-xs text-gray-500">
             Bei aktivem Demomodus wird der Fetcher für manuelle und automatische Importe nicht aufgerufen.
+          </div>
+        </div>
+      </details>
+
+      {/* 5b) Auto-Druck */}
+      <details className="border rounded p-3" open>
+        <summary className="cursor-pointer font-medium">Auto-Druck (Protokoll)</summary>
+        <div className="mt-3 space-y-3 text-sm">
+          <label className="inline-flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={!!autoPrintDraft.enabled}
+              onChange={(e) => setAutoPrintDraft((prev) => ({ ...prev, enabled: e.target.checked }))}
+              disabled={locked || savingAutoPrintConfig}
+            />
+            Automatischen Druck aktivieren
+          </label>
+          <div className="flex items-center gap-3">
+            <label htmlFor="autoPrintInterval" className="text-sm text-gray-700">
+              Intervall (Minuten)
+            </label>
+            <input
+              id="autoPrintInterval"
+              type="number"
+              min={1}
+              className="border px-2 py-1 rounded w-24"
+              value={autoPrintDraft.intervalMinutes}
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^0-9]/g, "");
+                setAutoPrintDraft((prev) => ({ ...prev, intervalMinutes: value }));
+              }}
+              disabled={locked || savingAutoPrintConfig}
+            />
+          </div>
+          <div className="flex items-center gap-3 text-xs text-gray-500">
+            <span>Letzter Lauf:</span>
+            <span>{autoPrintLastRunLabel || "—"}</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              className="border rounded px-3 py-1"
+              onClick={onSaveAutoPrintConfig}
+              disabled={locked || savingAutoPrintConfig}
+            >
+              Einstellungen speichern
+            </button>
           </div>
         </div>
       </details>
