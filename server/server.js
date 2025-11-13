@@ -946,6 +946,27 @@ app.use("/api/user", User_createRouter({
   secureCookies: SECURE_COOKIES
 }));
 
+const INTERNAL_AUTO_PRINT_HEADER = "x-internal-auto-print";
+
+function isLoopbackAddress(address) {
+  if (!address) return false;
+  if (address === "127.0.0.1" || address === "::1") return true;
+  if (address.startsWith("::ffff:")) {
+    const stripped = address.slice("::ffff:".length);
+    return stripped === "127.0.0.1";
+  }
+  return false;
+}
+
+function isInternalAutoPrintRequest(req) {
+  const raw = req?.headers?.[INTERNAL_AUTO_PRINT_HEADER];
+  if (!raw) return false;
+  const value = Array.isArray(raw) ? raw[0] : raw;
+  if (String(value).trim() !== "1") return false;
+  const remote = req?.socket?.remoteAddress;
+  return isLoopbackAddress(remote);
+}
+
 // ===================================================================
 // =                         LOG: DOWNLOAD                           =
 // ===================================================================
@@ -978,6 +999,7 @@ app.use((req,res,next)=>{
   if (!req.path?.startsWith("/api")) return next();
   if (req.path.startsWith("/api/user/")) return next();
   if (req.path === "/api/activity/status") return next();
+  if (req.path.startsWith("/api/print/server") && isInternalAutoPrintRequest(req)) return next();
   if (!req.user) return res.status(401).json({ ok:false, error:"UNAUTHORIZED" });
   next();
 });
@@ -2325,7 +2347,10 @@ async function sendAutoPrintToPrinter(fileName){
   const url = `http://127.0.0.1:${PORT}/api/print/server`;
   const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-internal-auto-print": "1",
+    },
     body: JSON.stringify({ file: fileName, scope: "protokoll" }),
   });
   if (!res.ok){
