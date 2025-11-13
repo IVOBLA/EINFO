@@ -16,11 +16,19 @@ const __dirname  = path.dirname(__filename);
 // Gemeinsamer Daten-Root (wie in protocol.js)
 // Immer absolut auflösen, damit auch relative ENV-Pfade (z. B. "../data") korrekt funktionieren.
 const DATA_ROOT = path.resolve(process.env.KANBAN_DATA_DIR || path.join(__dirname, "data"));
-// PDFs hierhin speichern (konfigurierbar, Standard: lokaler Datenordner)
-const PDF_DIR = path.resolve(
+// Ablageorte für Protokoll-PDFs (konfigurierbar über .env)
+const MELDUNG_PDF_DIR = path.resolve(
   process.env.KANBAN_MELDUNG_PRINT_DIR || path.join(DATA_ROOT, "prints", "meldung"),
 );
-await fs.mkdir(PDF_DIR, { recursive: true });
+const LEGACY_PDF_DIR = path.resolve(
+  process.env.KANBAN_PRINT_OUTPUT_DIR || path.join(DATA_ROOT, "print-output"),
+);
+const SERVER_PRINT_PDF_DIR = MELDUNG_PDF_DIR;
+
+const ALL_PDF_DIRS = Array.from(new Set([MELDUNG_PDF_DIR, LEGACY_PDF_DIR]));
+for (const dir of ALL_PDF_DIRS) {
+  await fs.mkdir(dir, { recursive: true });
+}
 
 // Protokoll-Daten (JSON) für Autosave/History
 const JSON_FILE = path.join(DATA_ROOT, "protocol.json");
@@ -449,14 +457,14 @@ function sheetHtml(item, recipient, nr) {
 }
 
 // ---------- Render ----------
-async function renderBundlePdf(item, recipients, nr) {
+async function renderBundlePdf(item, recipients, nr, { outputDir = MELDUNG_PDF_DIR } = {}) {
   const list = [...recipients];
   const extraCopies = nr === "blank" ? 0 : EXTRA_COPIES;
   for (let i = 0; i < extraCopies; i++) list.push(EXTRA_COPY_LABEL);
 
   const pagesHtml = list.map(r => sheetHtml(item, r, nr)).join('<div class="pb"></div>');
   const outName = `protokoll_${nr ?? "neu"}_${Date.now()}.pdf`;
-  const outPath = path.join(PDF_DIR, outName);
+  const outPath = path.join(outputDir, outName);
 
   const browser = await puppeteer.launch({
     headless: "new",
@@ -502,7 +510,11 @@ router.post("/:nr/print", express.json(), async (req, res) => {
       });
     }
 
-    const { fileName, pageCount } = await renderBundlePdf(effectiveItem, recipients, nr);
+    const scopeRaw = typeof req.body?.scope === "string" ? req.body.scope.trim().toLowerCase() : "";
+    const serverPrintRequested =
+      truthyFlag(req.body?.serverPrint) || scopeRaw === "server" || scopeRaw === "protocol" || scopeRaw === "meldung";
+    const targetDir = serverPrintRequested ? SERVER_PRINT_PDF_DIR : MELDUNG_PDF_DIR;
+    const { fileName, pageCount } = await renderBundlePdf(effectiveItem, recipients, nr, { outputDir: targetDir });
     const displayName = typeof req?.user?.displayName === "string" ? req.user.displayName.trim() : "";
     const username = typeof req?.user?.username === "string" ? req.user.username.trim() : "";
     const actor = resolveUserName(req) || displayName || username || req.ip || "";
@@ -525,7 +537,7 @@ router.post("/blank/print", express.json(), async (req, res) => {
     const incoming = Array.isArray(req.body?.recipients) ? req.body.recipients : [];
     const recipients = incoming.length ? incoming.map((r) => String(r ?? "")) : [""];
     const item = req.body?.data && typeof req.body.data === "object" ? req.body.data : {};
-    const { fileName, pageCount } = await renderBundlePdf(item, recipients, "blank");
+    const { fileName, pageCount } = await renderBundlePdf(item, recipients, "blank", { outputDir: MELDUNG_PDF_DIR });
     res.json({
       ok: true,
       file: fileName,
@@ -538,17 +550,19 @@ router.post("/blank/print", express.json(), async (req, res) => {
   }
 });
 
-function resolvePdfFile(rawName) {
+function resolveCandidatePaths(rawName) {
   const safeName = path.basename(String(rawName || ""));
+  const candidateDirs = ALL_PDF_DIRS.length ? ALL_PDF_DIRS : [MELDUNG_PDF_DIR];
   return {
     safeName,
-    filePath: path.join(PDF_DIR, safeName),
+    candidates: candidateDirs.map((dir) => path.join(dir, safeName)),
   };
 }
 
 function sendPdf(res, name) {
-  const { safeName, filePath } = resolvePdfFile(name);
-  if (!fss.existsSync(filePath)) {
+  const { safeName, candidates } = resolveCandidatePaths(name);
+  const filePath = candidates.find((candidate) => fss.existsSync(candidate));
+  if (!filePath) {
     res.status(404).end();
     return;
   }
