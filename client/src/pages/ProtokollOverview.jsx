@@ -29,6 +29,12 @@ function normalizeNameValue(value) {
   }
 }
 
+function short200NoBreak(s) {
+  if (!s) return "";
+  const t = s.replace(/\s+/g, " ").trim(); // linefeeds + doppelte Spaces entfernen
+  return t.length > 200 ? t.slice(0, 200) + "…" : t;
+}
+
 function collectNameVariants(value) {
   const variants = new Set();
   if (value == null) return variants;
@@ -322,19 +328,19 @@ const rows = useMemo(
         <table className="min-w-[1100px] w-full text-sm">
           <thead className="bg-gray-50 sticky top-0 z-10">
             <tr className="[&>th]:px-2 [&>th]:py-2 [&>th]:text-left [&>th]:font-semibold border-b">
-              <th style={{ width: 60 }} className="text-center" title="Aufgabenstatus">✓</th>
-              <th style={{ width: 90 }} className="text-center" title="Druckanzahl">NR/ZU</th>
-              <th style={{ width: 60 }}>Druck</th>
-              <th style={{ width: 110 }}>Datum</th>
-              <th style={{ width: 80 }}>Zeit</th>
-              <th style={{ width: 120 }}>Kanal</th>
-              <th style={{ width: 110 }}>Richtung</th>
-              <th style={{ width: 160 }}>An/Von</th>
+              <th className="text-center whitespace-nowrap w-1">✓</th>
+              <th className="text-center whitespace-nowrap w-1">NR.</th>
+              <th className="whitespace-nowrap w-1">Druck</th>
+              <th className="whitespace-nowrap w-1">Datum</th>
+              <th className="whitespace-nowrap w-1">Zeit</th>
+              <th className="whitespace-nowrap w-1">Kanal</th>
+              <th className="whitespace-nowrap w-1">Richtung</th>
+              <th className="whitespace-nowrap w-1">An/Von</th>
               <th>Information</th>
-              <th style={{ width: 260 }}>Meldungstyp</th>
+             <th className="whitespace-nowrap w-1">Meldungstyp</th>
             </tr>
           </thead>
-          <tbody className="[&>tr>td]:px-2 [&>tr>td]:py-2">
+          <tbody className="[&>tr>td]:px-2 [&>tr>td]:py-2 [&>tr>td]:align-middle">
             {rows.map((r) => {
               const u = r?.uebermittlungsart || {};
               const kanal = u.kanal ?? u.kanalNr ?? u.art ?? "";
@@ -428,9 +434,9 @@ const rows = useMemo(
               const measuresCompleted = !openTasks;
               const isConfirmed = !!confirmation?.confirmed;
               const shouldShowGreenCheck = isConfirmed && measuresCompleted;
-              const shouldShowBlackCheck = !isConfirmed && !hasRelevantTasks;
+              //const shouldShowBlackCheck = !isConfirmed && !hasRelevantTasks;
               const rowClasses = [
-                "border-b align-top cursor-pointer",
+                "border-b  cursor-pointer",
                 isHighlighted
                   ? "bg-yellow-50 hover:bg-yellow-100"
                   : "hover:bg-gray-50",
@@ -445,25 +451,16 @@ const rows = useMemo(
                   aria-label={hoverTitle}
                 >
                   <td className="align-middle text-center">
-                    {shouldShowGreenCheck ? (
-                      <span
-                        className="inline-flex items-center justify-center text-emerald-600 text-lg font-semibold"
-                        title="Bestätigt und alle Maßnahmen erledigt"
-                        aria-label="Bestätigt und alle Maßnahmen erledigt"
-                      >
-                        ✓
-                      </span>
-                    ) : shouldShowBlackCheck ? (
-                      <span
-                        className="inline-flex items-center justify-center text-lg font-semibold text-gray-900"
-                        title="Nicht bestätigt – keine Maßnahmen notwendig"
-                        aria-label="Nicht bestätigt – keine Maßnahmen notwendig"
-                      >
-                        ✓
-                      </span>
-                    ) : null}
+  {shouldShowGreenCheck ? (
+     <span
+        className="inline-flex items-center justify-center text-emerald-600 text-lg font-semibold"
+        title="Bestätigt und alle Maßnahmen erledigt"
+     >
+        ✓
+     </span>
+  ) : null}
                   </td>
-                  <td className="align-middle text-center font-semibold">
+                  <td className="align-middle text-center font-semibold whitespace-nowrap">
                     {(() => {
                       const nrLabel = r.nr ?? "—";
                       const hasZu = r.zu !== null && r.zu !== undefined && String(r.zu).trim() !== "";
@@ -488,14 +485,14 @@ const rows = useMemo(
                       );
                     })()}
                   </td>
-                  <td className="font-semibold">{printCount}</td>
-                  <td>{r.datum}</td>
-                  <td>{r.zeit}</td>
-                  <td title={kanal}>{kanal}</td>
-                  <td title={richtung}>{richtung}</td>
-                  <td>{r.anvon}</td>
-                  <td className="whitespace-pre-wrap">{short30(r.information)}</td>
-                  <td className="whitespace-pre-wrap">{r.infoTyp || "—"}</td>
+ <td className="font-semibold whitespace-nowrap">{printCount}</td>
+ <td className="whitespace-nowrap">{r.datum}</td>
+ <td className="whitespace-nowrap">{r.zeit}</td>
+ <td className="whitespace-nowrap" title={kanal}>{kanal}</td>
+ <td className="whitespace-nowrap" title={richtung}>{richtung}</td>
+ <td className="whitespace-nowrap">{r.anvon}</td>
+ <td className="whitespace-pre-wrap">{short200NoBreak(r.information)}</td>
+ <td className="whitespace-nowrap">{r.infoTyp || "—"}</td>
                 </tr>
               );
             })}
