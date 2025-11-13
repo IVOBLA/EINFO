@@ -2080,6 +2080,26 @@ function parseAutoPrintTimestamp(value){
   return null;
 }
 
+function parseAutoPrintEnabled(value){
+  if (value === true) return true;
+  if (value === false || value === null || value === undefined) return false;
+  if (typeof value === "string"){
+    const normalized = value.trim().toLowerCase();
+    if (!normalized) return false;
+    if (["1","true","yes","ja","on","an"].includes(normalized)) return true;
+    if (["0","false","no","nein","off","aus"].includes(normalized)) return false;
+    return Boolean(normalized);
+  }
+  if (typeof value === "number"){
+    if (!Number.isFinite(value)) return false;
+    return value !== 0;
+  }
+  if (typeof value === "bigint"){
+    return value !== 0n;
+  }
+  return Boolean(value);
+}
+
 async function readAutoPrintCfg(){
   const raw = await readJson(AUTO_PRINT_CFG_FILE, AUTO_PRINT_DEFAULT);
   const minutesRaw = Number(raw?.intervalMinutes);
@@ -2088,7 +2108,7 @@ async function readAutoPrintCfg(){
     : AUTO_PRINT_DEFAULT.intervalMinutes;
   const lastRunAt = parseAutoPrintTimestamp(raw?.lastRunAt);
   return {
-    enabled: !!raw?.enabled,
+    enabled: parseAutoPrintEnabled(raw?.enabled),
     intervalMinutes,
     lastRunAt: lastRunAt ?? null,
   };
@@ -2102,7 +2122,7 @@ async function writeAutoPrintCfg(next = {}){
     ? Math.floor(minutesRaw)
     : current.intervalMinutes;
   const sanitized = {
-    enabled: !!merged.enabled,
+    enabled: parseAutoPrintEnabled(merged.enabled),
     intervalMinutes: Math.max(AUTO_PRINT_MIN_INTERVAL_MINUTES, intervalMinutes),
     lastRunAt: (() => {
       const ts = parseAutoPrintTimestamp(merged.lastRunAt);
@@ -2748,7 +2768,7 @@ app.post("/api/protocol/auto-print-config", async (req, res) => {
   try {
     const body = req.body || {};
     const update = {};
-    if (body.enabled !== undefined) update.enabled = !!body.enabled;
+    if (body.enabled !== undefined) update.enabled = parseAutoPrintEnabled(body.enabled);
     if (body.intervalMinutes !== undefined) {
       const minutes = Number(body.intervalMinutes);
       if (!Number.isFinite(minutes) || minutes < AUTO_PRINT_MIN_INTERVAL_MINUTES) {
