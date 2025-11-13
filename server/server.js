@@ -6,6 +6,7 @@ import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import PDFDocument from "pdfkit";
+import puppeteer from "puppeteer";
 import protocolRouter from "./routes/protocol.js";
 import attachPrintRoutes from "./printRoutes.js";
 import attachIncidentPrintRoutes from "./routes/incidentPrintRoutes.js";
@@ -47,6 +48,9 @@ const ERROR_LOG   = path.join(DATA_DIR, "Log.txt");
 const GROUPS_FILE = path.join(DATA_DIR, "group_locations.json");
 const GROUP_AVAILABILITY_FILE = path.join(DATA_DIR, "group-availability.json");
 const GROUP_ALERTED_FILE = path.join(DATA_DIR, "conf", "group-alerted.json");
+const PROTOCOL_JSON_FILE = path.join(DATA_DIR, "protocol.json");
+const AUTO_PRINT_CFG_FILE = path.join(DATA_DIR, "conf", "auto-print.json");
+const AUTO_PRINT_OUTPUT_DIR = path.join(DATA_DIR, "print-output");
 
 const DEFAULT_BOARD_COLUMNS = {
   neu: "Neu",
@@ -110,11 +114,15 @@ const AUTO_CFG_FILE         = path.join(DATA_DIR, "conf","auto-import.json");
 const AUTO_DEFAULT_FILENAME = "list_filtered.json";
 const AUTO_DEFAULT          = { enabled:false, intervalSec:30, filename:AUTO_DEFAULT_FILENAME, demoMode:false };
 const AUTO_IMPORT_USER      = "EinsatzInfo";
+const AUTO_PRINT_DEFAULT    = { enabled:false, intervalMinutes:10, lastRunAt:null };
+const AUTO_PRINT_MIN_INTERVAL_MINUTES = 1;
 
 // Merker für Import-Status
 let importLastLoadedAt = null;   // ms
 let importLastFile     = null;   // string
 let autoNextAt         = null;   // ms – nächster geplanter Auto-Import
+let autoPrintTimer     = null;
+let autoPrintRunning   = false;
 
 // ----------------- Helpers -----------------
 async function ensureDir(p){ await fs.mkdir(p,{ recursive:true }); }
@@ -2049,6 +2057,339 @@ async function writeAutoCfg(next){
   return sanitized;
 }
 
+// ===================================================================
+// =                   AUTO-DRUCK (PROTOKOLL)                        =
+// ===================================================================
+function parseAutoPrintTimestamp(value){
+  if (value === null || value === undefined) return null;
+  if (value instanceof Date){
+    const ms = value.valueOf();
+    return Number.isFinite(ms) ? ms : null;
+  }
+  if (typeof value === "number"){
+    return Number.isFinite(value) ? value : null;
+  }
+  if (typeof value === "string"){
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const numeric = Number(trimmed);
+    if (Number.isFinite(numeric)) return numeric;
+    const parsed = Date.parse(trimmed);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+async function readAutoPrintCfg(){
+  const raw = await readJson(AUTO_PRINT_CFG_FILE, AUTO_PRINT_DEFAULT);
+  const minutesRaw = Number(raw?.intervalMinutes);
+  const intervalMinutes = Number.isFinite(minutesRaw) && minutesRaw >= AUTO_PRINT_MIN_INTERVAL_MINUTES
+    ? Math.floor(minutesRaw)
+    : AUTO_PRINT_DEFAULT.intervalMinutes;
+  const lastRunAt = parseAutoPrintTimestamp(raw?.lastRunAt);
+  return {
+    enabled: !!raw?.enabled,
+    intervalMinutes,
+    lastRunAt: lastRunAt ?? null,
+  };
+}
+
+async function writeAutoPrintCfg(next = {}){
+  const current = await readAutoPrintCfg();
+  const merged = { ...current, ...next };
+  const minutesRaw = Number(merged.intervalMinutes);
+  const intervalMinutes = Number.isFinite(minutesRaw) && minutesRaw >= AUTO_PRINT_MIN_INTERVAL_MINUTES
+    ? Math.floor(minutesRaw)
+    : current.intervalMinutes;
+  const sanitized = {
+    enabled: !!merged.enabled,
+    intervalMinutes: Math.max(AUTO_PRINT_MIN_INTERVAL_MINUTES, intervalMinutes),
+    lastRunAt: (() => {
+      const ts = parseAutoPrintTimestamp(merged.lastRunAt);
+      return ts ?? null;
+    })(),
+  };
+  await writeJson(AUTO_PRINT_CFG_FILE, sanitized);
+  return sanitized;
+}
+
+function clearAutoPrintTimer(){
+  if (autoPrintTimer){
+    clearInterval(autoPrintTimer);
+    autoPrintTimer = null;
+  }
+}
+
+const autoPrintNumberFormat = new Intl.NumberFormat("de-AT");
+
+function escapeHtml(value){
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function formatAutoPrintDate(ts){
+  if (!Number.isFinite(ts)) return "—";
+  try {
+    return new Date(ts).toLocaleString("de-AT", { hour12: false });
+  } catch {
+    return new Date(ts).toISOString();
+  }
+}
+
+function formatAutoPrintRange(since, until){
+  const fromLabel = Number.isFinite(since) ? formatAutoPrintDate(since) : "unbekannt";
+  const toLabel = Number.isFinite(until) ? formatAutoPrintDate(until) : "unbekannt";
+  return `${fromLabel} – ${toLabel}`;
+}
+
+function normalizeProtocolDirection(item){
+  const u = item?.uebermittlungsart || {};
+  const directions = [];
+  if (u.ein) directions.push("Eingang");
+  if (u.aus) directions.push("Ausgang");
+  const alt = typeof item?.richtung === "string" ? item.richtung : "";
+  if (!directions.length && alt) directions.push(String(alt));
+  return directions.filter(Boolean).join(" / ");
+}
+
+function normalizeProtocolChannel(item){
+  const u = item?.uebermittlungsart || {};
+  const values = [u.kanal ?? u.kanalNr ?? u.art ?? item?.kanal];
+  const first = values.find((v) => typeof v === "string" && v.trim());
+  return first ? String(first).trim() : "";
+}
+
+function normalizeNrLabel(item){
+  const nr = item?.nr ?? "";
+  const zuRaw = item?.zu;
+  const zu = typeof zuRaw === "string" ? zuRaw.trim() : (zuRaw ?? "");
+  const nrLabel = nr === null || nr === undefined ? "" : String(nr);
+  if (zu) return `${nrLabel}/${zu}`;
+  return nrLabel || "—";
+}
+
+function shortInformation(value){
+  if (value == null) return "";
+  const safe = String(value).replace(/\r\n/g, "\n");
+  return escapeHtml(safe).replace(/\n/g, "<br/>");
+}
+
+function getProtocolCreatedAt(item){
+  if (!item || typeof item !== "object") return null;
+  const history = Array.isArray(item.history) ? item.history : [];
+  for (const entry of history){
+    if (entry?.action !== "create") continue;
+    const ts = parseAutoPrintTimestamp(entry?.ts ?? entry?.at ?? entry?.time);
+    if (ts !== null) return ts;
+  }
+  if (history.length){
+    const ts = parseAutoPrintTimestamp(history[0]?.ts ?? history[0]?.at ?? history[0]?.time);
+    if (ts !== null) return ts;
+  }
+  const candidates = [
+    item?.createdAt,
+    item?.created,
+    item?.timestamp,
+    item?.ts,
+    item?.meta?.createdAt,
+  ];
+  for (const cand of candidates){
+    const ts = parseAutoPrintTimestamp(cand);
+    if (ts !== null) return ts;
+  }
+  return null;
+}
+
+function buildAutoPrintTableHtml(entries, { since, until }){
+  const header = formatAutoPrintRange(since, until);
+  const generatedLabel = formatAutoPrintDate(until);
+  const rowsHtml = entries.map((item) => {
+    const createdAt = getProtocolCreatedAt(item);
+    const info = shortInformation(item?.information || item?.beschreibung || "");
+    const kanal = escapeHtml(normalizeProtocolChannel(item));
+    const richtung = escapeHtml(normalizeProtocolDirection(item));
+    const anvon = escapeHtml(String(item?.anvon ?? ""));
+    const datum = escapeHtml(String(item?.datum ?? ""));
+    const zeit = escapeHtml(String(item?.zeit ?? ""));
+    const infoTyp = escapeHtml(String(item?.infoTyp ?? "—"));
+    const nrLabel = escapeHtml(normalizeNrLabel(item));
+    const printCount = Number.isFinite(Number(item?.printCount))
+      ? Number(item.printCount)
+      : 0;
+    const createdLabel = formatAutoPrintDate(createdAt);
+    return `<tr>
+      <td class="cell nowrap">${nrLabel}</td>
+      <td class="cell text-right">${autoPrintNumberFormat.format(printCount)}</td>
+      <td class="cell nowrap">${datum}</td>
+      <td class="cell nowrap">${zeit}</td>
+      <td class="cell nowrap">${kanal}</td>
+      <td class="cell nowrap">${richtung}</td>
+      <td class="cell nowrap">${anvon}</td>
+      <td class="cell info">${info || ""}</td>
+      <td class="cell nowrap">${infoTyp}</td>
+      <td class="cell nowrap">${escapeHtml(createdLabel)}</td>
+    </tr>`;
+  }).join("\n");
+  const emptyRow = `<tr><td class="cell" colspan="10">Keine neuen Einträge im ausgewählten Zeitraum.</td></tr>`;
+  return `<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8"/>
+  <title>Protokolle – Auto-Druck</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 16px; color: #0f172a; }
+    h1 { font-size: 20px; margin-bottom: 4px; }
+    .meta { font-size: 12px; color: #475569; margin-bottom: 16px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th { background: #e2e8f0; text-align: left; padding: 6px 8px; border-bottom: 1px solid #cbd5f5; }
+    td { padding: 6px 8px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+    .cell { border-bottom: 1px solid #e2e8f0; }
+    .nowrap { white-space: nowrap; }
+    .text-right { text-align: right; }
+    .info { white-space: pre-wrap; word-break: break-word; }
+    tbody tr:nth-child(even) { background: #f8fafc; }
+  </style>
+</head>
+<body>
+  <h1>Protokolle – Auto-Druck</h1>
+  <div class="meta">Zeitraum: ${escapeHtml(header)}<br/>Generiert: ${escapeHtml(generatedLabel)}</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Nr.</th>
+        <th style="text-align:right">Drucke</th>
+        <th>Datum</th>
+        <th>Zeit</th>
+        <th>Kanal</th>
+        <th>Richtung</th>
+        <th>An/Von</th>
+        <th>Information</th>
+        <th>Meldungstyp</th>
+        <th>Erstellt</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rowsHtml || emptyRow}
+    </tbody>
+  </table>
+</body>
+</html>`;
+}
+
+async function renderAutoPrintPdf(entries, { since, until }){
+  await ensureDir(AUTO_PRINT_OUTPUT_DIR);
+  const html = buildAutoPrintTableHtml(entries, { since, until });
+  const timestamp = tsFile();
+  const fileName = `auto-protokolle-${timestamp}.pdf`;
+  const filePath = path.join(AUTO_PRINT_OUTPUT_DIR, fileName);
+  const browser = await puppeteer.launch({
+    headless: "new",
+    args: ["--no-sandbox", "--font-render-hinting=none"],
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+  });
+  try {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1240, height: 1754, deviceScaleFactor: 2 });
+    await page.setContent(html, { waitUntil: ["domcontentloaded"] });
+    try { await page.waitForNetworkIdle({ idleTime: 300, timeout: 2000 }); } catch {}
+    await page.pdf({
+      path: filePath,
+      format: "A4",
+      printBackground: true,
+      margin: { top: "12mm", right: "12mm", bottom: "12mm", left: "12mm" },
+    });
+  } finally {
+    await browser.close();
+  }
+  return { fileName, filePath };
+}
+
+async function sendAutoPrintToPrinter(fileName){
+  const url = `http://127.0.0.1:${PORT}/api/print/server`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ file: fileName }),
+  });
+  if (!res.ok){
+    const text = await res.text().catch(() => "");
+    const err = new Error(text || `Serverdruck fehlgeschlagen (${res.status})`);
+    err.status = res.status;
+    throw err;
+  }
+  try {
+    return await res.json();
+  } catch {
+    return { ok: true };
+  }
+}
+
+async function runAutoPrintCycle(){
+  if (autoPrintRunning) return;
+  autoPrintRunning = true;
+  try {
+    const cfg = await readAutoPrintCfg();
+    if (!cfg.enabled) return;
+    const intervalMinutes = Math.max(cfg.intervalMinutes, AUTO_PRINT_MIN_INTERVAL_MINUTES);
+    const intervalMs = intervalMinutes * 60_000;
+    const now = Date.now();
+    let since = Number.isFinite(cfg.lastRunAt) ? cfg.lastRunAt : now - intervalMs;
+    if (!Number.isFinite(since) || since > now) since = now - intervalMs;
+    const all = await readJson(PROTOCOL_JSON_FILE, []);
+    const list = Array.isArray(all) ? all.slice() : [];
+    const relevant = list
+      .map((item) => ({ item, createdAt: getProtocolCreatedAt(item) }))
+      .filter(({ createdAt }) => Number.isFinite(createdAt) && createdAt > since && createdAt <= now)
+      .sort((a, b) => {
+        if (a.createdAt !== b.createdAt) return a.createdAt - b.createdAt;
+        const nrA = Number(a.item?.nr);
+        const nrB = Number(b.item?.nr);
+        if (Number.isFinite(nrA) && Number.isFinite(nrB)) return nrA - nrB;
+        return 0;
+      })
+      .map(({ item }) => item);
+    if (!relevant.length){
+      await writeAutoPrintCfg({ lastRunAt: now });
+      return;
+    }
+    const { fileName } = await renderAutoPrintPdf(relevant, { since, until: now });
+    try {
+      await sendAutoPrintToPrinter(fileName);
+    } catch (err) {
+      await appendError("auto-print/print", err, { file: fileName });
+      throw err;
+    }
+    await writeAutoPrintCfg({ lastRunAt: now });
+  } finally {
+    autoPrintRunning = false;
+  }
+}
+
+async function startAutoPrintTimer({ immediate = false } = {}){
+  clearAutoPrintTimer();
+  try {
+    const cfg = await readAutoPrintCfg();
+    if (!cfg.enabled) return;
+    const intervalMinutes = Math.max(cfg.intervalMinutes, AUTO_PRINT_MIN_INTERVAL_MINUTES);
+    const intervalMs = intervalMinutes * 60_000;
+    const runner = async () => {
+      try {
+        await runAutoPrintCycle();
+      } catch (err) {
+        await appendError("auto-print/run", err);
+      }
+    };
+    autoPrintTimer = setInterval(runner, intervalMs);
+    autoPrintTimer.unref?.();
+    if (immediate) await runner();
+  } catch (err) {
+    await appendError("auto-print/start", err);
+  }
+}
+
 function normalizeGroupNameForAlert(value) {
   if (typeof value !== "string") return "";
   const cleaned = value
@@ -2390,6 +2731,49 @@ app.post("/api/import/auto-config", async (req,res)=>{
   }
 });
 
+app.get("/api/protocol/auto-print-config", async (req, res) => {
+  const role = typeof req?.user?.role === "string" ? req.user.role.trim() : "";
+  if (role !== "Admin") {
+    return res.status(403).json({ ok:false, error:"FORBIDDEN" });
+  }
+  const cfg = await readAutoPrintCfg();
+  res.json(cfg);
+});
+
+app.post("/api/protocol/auto-print-config", async (req, res) => {
+  const role = typeof req?.user?.role === "string" ? req.user.role.trim() : "";
+  if (role !== "Admin") {
+    return res.status(403).json({ ok:false, error:"FORBIDDEN" });
+  }
+  try {
+    const body = req.body || {};
+    const update = {};
+    if (body.enabled !== undefined) update.enabled = !!body.enabled;
+    if (body.intervalMinutes !== undefined) {
+      const minutes = Number(body.intervalMinutes);
+      if (!Number.isFinite(minutes) || minutes < AUTO_PRINT_MIN_INTERVAL_MINUTES) {
+        return res.status(400).json({
+          ok: false,
+          error: `Intervall muss mindestens ${AUTO_PRINT_MIN_INTERVAL_MINUTES} Minute betragen.`,
+        });
+      }
+      update.intervalMinutes = Math.floor(minutes);
+    }
+    const before = await readAutoPrintCfg();
+    if (update.enabled === true && !before.enabled) {
+      update.lastRunAt = Date.now();
+    } else if (update.enabled === false) {
+      update.lastRunAt = null;
+    }
+    const next = await writeAutoPrintCfg(update);
+    await startAutoPrintTimer();
+    res.json(next);
+  } catch (err) {
+    await appendError("auto-print/config", err);
+    res.status(400).json({ ok:false, error: err?.message || "Speichern fehlgeschlagen" });
+  }
+});
+
 async function triggerOnce(_req,res){
   try{
     const cfg = await readAutoCfg();
@@ -2600,6 +2984,7 @@ app.listen(PORT, async ()=>{
   try { await ffStop(); } catch {}
   markActivity("startup:autoimport-disabled");
   console.log("[auto-import] beim Start automatisch deaktiviert");
+  await startAutoPrintTimer();
 });
 
 // Routen aus Aufgaben-Board
