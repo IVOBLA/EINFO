@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useUserAuth } from "../components/User_AuthProvider.jsx";
+import { buildAppUrl, resolveAppBaseUrl } from "../utils/http.js";
 
 const LOGIN_TARGETS = [
   { key: "aufgaben", label: "Aufgaben", path: "/aufgaben" },
@@ -9,36 +10,16 @@ const LOGIN_TARGETS = [
   { key: "status", label: "Status", path: "/status" }
 ];
 
-const ENV_LOGIN_BASE_URL = import.meta.env.VITE_LOGIN_BASE_URL;
-
-const sanitizeBaseUrl = (value) => {
-  const str = String(value || "").trim();
-  return str.replace(/\/+$/, "");
-};
-
 const buildTargetUrl = (baseUrl, path) => {
   if (!path) return baseUrl;
-  if (/^https?:/i.test(path)) return path;
-  return `${baseUrl}${path}`;
-};
-
-const resolveLoginBaseUrl = () => {
-  if (typeof window !== "undefined") {
-    const runtimeBase = window.__APP_LOGIN_BASE_URL__ ?? window.__APP_BASE_URL__;
-    if (runtimeBase) return sanitizeBaseUrl(runtimeBase);
-  }
-  if (ENV_LOGIN_BASE_URL) return sanitizeBaseUrl(ENV_LOGIN_BASE_URL);
-  if (typeof window !== "undefined") {
-    return sanitizeBaseUrl(`${window.location.protocol}//${window.location.host}`);
-  }
-  return "";
+  return buildAppUrl(path, baseUrl);
 };
 
 export default function User_LoginPage(){
   const { login } = useUserAuth();
   const [u,setU]=useState(""), [p,setP]=useState(""), [e,setE]=useState("");
   const [loadingKey, setLoadingKey] = useState(null);
-  const baseUrl = useMemo(() => resolveLoginBaseUrl(), []);
+  const baseUrl = useMemo(() => resolveAppBaseUrl(), []);
   const targets = useMemo(() => {
     const usableBase = baseUrl || "";
     return LOGIN_TARGETS.map((entry) => ({

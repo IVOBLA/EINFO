@@ -1,13 +1,19 @@
-const BASE = "";
+import { buildApiUrl, createNetworkError } from "./utils/http.js";
 
 async function j(method, url, body){
-  const res = await fetch(BASE+url,{
-    method,
-    headers:{ "Content-Type":"application/json" },
-    body: body===undefined?undefined:JSON.stringify(body),
-    cache:"no-store",
-     credentials:"include",      // sendet Cookies in jedem Fall mit
-  });
+  const targetUrl = buildApiUrl(url);
+  let res;
+  try {
+    res = await fetch(targetUrl,{
+      method,
+      headers:{ "Content-Type":"application/json" },
+      body: body===undefined?undefined:JSON.stringify(body),
+      cache:"no-store",
+       credentials:"include",      // sendet Cookies in jedem Fall mit
+    });
+  } catch (error) {
+    throw createNetworkError(error);
+  }
   if(!res.ok){ throw new Error(`HTTP ${res.status} ${await res.text().catch(()=>res.statusText)}`); }
   const ct = res.headers.get("content-type")||"";
   return ct.includes("application/json") ? res.json() : res.text();
@@ -15,12 +21,18 @@ async function j(method, url, body){
 
 // 🔐 Master-Unlock
 export async function unlock(master) {
-  const res = await fetch("/api/ff/unlock", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "include",           // Cookie setzen/mitnehmen
-    body: JSON.stringify({ master }),
-  });
+  const url = buildApiUrl("/api/ff/unlock");
+  let res;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",           // Cookie setzen/mitnehmen
+      body: JSON.stringify({ master }),
+    });
+  } catch (error) {
+    throw createNetworkError(error);
+  }
 
   // Optional: Fehlermeldung nach vorne durchreichen
   if (!res.ok) {
@@ -37,7 +49,8 @@ export async function unlock(master) {
 // Prüfen, ob Session aktiv
 export async function checkUnlocked() {
   try {
-    const res = await fetch("/api/ff/status", { credentials: "include", cache: "no-store" });
+    const url = buildApiUrl("/api/ff/status");
+    const res = await fetch(url, { credentials: "include", cache: "no-store" });
     if (!res.ok) return false;
     const j = await res.json().catch(() => null);
     return !!(j && j.unlocked === true);  // Streng nur boolean unlocked
@@ -77,7 +90,12 @@ export async function fetchAufgabenBoard(roleId = "", { signal } = {}) {
   };
   if (signal) init.signal = signal;
 
-  const res = await fetch(`/api/aufgaben${qs}`, init);
+  let res;
+  try {
+    res = await fetch(buildApiUrl(`/api/aufgaben${qs}`), init);
+  } catch (error) {
+    throw createNetworkError(error);
+  }
   if (!res.ok) {
     throw new Error(`HTTP ${res.status} ${res.statusText}`);
   }
@@ -143,14 +161,19 @@ export async function setAutoImportConfig({enabled,intervalSec}){
 }
 
 // ---- PDF URL helper ----
-export function pdfExportUrl(){ return "/api/export/pdf"; }
+export function pdfExportUrl(){ return buildApiUrl("/api/export/pdf"); }
 
 // ---- NEU: Umkreissuche (Near)
 export async function fetchNearby(cardId, radiusKm){
   const base = `cardId=${encodeURIComponent(cardId)}`;
   const has = Number.isFinite(Number(radiusKm)) && Number(radiusKm) > 0;
   const qs = has ? `${base}&radiusKm=${encodeURIComponent(radiusKm)}` : base;
-  const r = await fetch(`/api/nearby?${qs}`, { credentials:"include", cache:"no-store" });
+  let r;
+  try {
+    r = await fetch(buildApiUrl(`/api/nearby?${qs}`), { credentials:"include", cache:"no-store" });
+  } catch (error) {
+    throw createNetworkError(error);
+  }
   let data = null;
   try {
     data = await r.json();
