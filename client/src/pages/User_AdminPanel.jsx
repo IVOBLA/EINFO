@@ -47,8 +47,8 @@ export default function User_AdminPanel() {
   const [fetcherInfo, setFetcherInfo] = useState({ has:false, updatedAt:null });
   const [autoConfig, setAutoConfig]   = useState({ enabled:false, intervalSec:30, demoMode:false });
   const [savingAutoConfig, setSavingAutoConfig] = useState(false);
-  const [autoPrintConfig, setAutoPrintConfig] = useState({ enabled:false, intervalMinutes:10, lastRunAt:null });
-  const [autoPrintDraft, setAutoPrintDraft] = useState({ enabled:false, intervalMinutes:"10" });
+  const [autoPrintConfig, setAutoPrintConfig] = useState({ enabled:false, intervalMinutes:10, lastRunAt:null, entryScope:"interval" });
+  const [autoPrintDraft, setAutoPrintDraft] = useState({ enabled:false, intervalMinutes:"10", entryScope:"interval" });
   const [savingAutoPrintConfig, setSavingAutoPrintConfig] = useState(false);
 
   // ---- capabilities ↔ apps Konvertierung ----
@@ -160,15 +160,19 @@ export default function User_AdminPanel() {
           const sanitizedInterval = Number.isFinite(intervalMinutes) && intervalMinutes > 0 ? Math.floor(intervalMinutes) : 10;
           const lastRunAt = Number(cfg.lastRunAt);
           const sanitizedLastRun = Number.isFinite(lastRunAt) && lastRunAt > 0 ? lastRunAt : null;
+          const scopeRaw = typeof cfg.entryScope === "string" ? cfg.entryScope : "interval";
+          const normalizedScope = scopeRaw === "all" ? "all" : "interval";
           const sanitized = {
             enabled: !!cfg.enabled,
             intervalMinutes: sanitizedInterval,
             lastRunAt: sanitizedLastRun,
+            entryScope: normalizedScope,
           };
           setAutoPrintConfig(sanitized);
           setAutoPrintDraft({
             enabled: sanitized.enabled,
             intervalMinutes: String(sanitized.intervalMinutes || ""),
+            entryScope: sanitized.entryScope,
           });
         }
       } catch (_) {/* optional */}
@@ -375,6 +379,7 @@ export default function User_AdminPanel() {
         body: JSON.stringify({
           enabled: !!autoPrintDraft.enabled,
           intervalMinutes,
+          entryScope: autoPrintDraft.entryScope === "all" ? "all" : "interval",
         }),
       });
       const js = await res.json().catch(() => ({}));
@@ -386,11 +391,13 @@ export default function User_AdminPanel() {
         enabled: !!js.enabled,
         intervalMinutes: sanitizedInterval,
         lastRunAt: Number.isFinite(lastRunAt) && lastRunAt > 0 ? lastRunAt : null,
+        entryScope: js.entryScope === "all" ? "all" : "interval",
       };
       setAutoPrintConfig(sanitized);
       setAutoPrintDraft({
         enabled: sanitized.enabled,
         intervalMinutes: String(sanitized.intervalMinutes || ""),
+        entryScope: sanitized.entryScope,
       });
       setMsg("Auto-Druck Einstellungen gespeichert.");
     } catch (ex) {
@@ -710,6 +717,29 @@ export default function User_AdminPanel() {
               }}
               disabled={locked || savingAutoPrintConfig}
             />
+          </div>
+          <div className="flex items-center gap-3">
+            <label htmlFor="autoPrintScope" className="text-sm text-gray-700">
+              Umfang
+            </label>
+            <select
+              id="autoPrintScope"
+              className="border px-2 py-1 rounded w-64"
+              value={autoPrintDraft.entryScope}
+              onChange={(e) => {
+                const value = e.target.value === "all" ? "all" : "interval";
+                setAutoPrintDraft((prev) => ({ ...prev, entryScope: value }));
+              }}
+              disabled={locked || savingAutoPrintConfig}
+            >
+              <option value="interval">Nur Meldungen im Intervall</option>
+              <option value="all">Alle Meldungen</option>
+            </select>
+          </div>
+          <div className="text-xs text-gray-500">
+            {autoPrintDraft.entryScope === "all"
+              ? "Es werden alle vorhandenen Protokollmeldungen gedruckt."
+              : "Es werden nur Meldungen gedruckt, die seit dem letzten Lauf erfasst wurden."}
           </div>
           <div className="flex items-center gap-3 text-xs text-gray-500">
             <span>Letzter Lauf:</span>
