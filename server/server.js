@@ -15,6 +15,7 @@ import userRolesRouter from "./routes/userRoles.js";
 import createMailRouter from "./routes/mail.js";
 import { appendCsvRow } from "./auditLog.mjs";
 import createServerPrintRoutes from "./routes/serverPrintRoutes.js";
+import { getProtocolCreatedAt, parseAutoPrintTimestamp } from "./utils/autoPrintHelpers.js";
 
 // 🔐 Neues User-Management
 import { User_authMiddleware, User_createRouter, User_requireAuth } from "./User_auth.mjs";
@@ -2062,26 +2063,6 @@ async function writeAutoCfg(next){
 // ===================================================================
 // =                   AUTO-DRUCK (PROTOKOLL)                        =
 // ===================================================================
-function parseAutoPrintTimestamp(value){
-  if (value === null || value === undefined) return null;
-  if (value instanceof Date){
-    const ms = value.valueOf();
-    return Number.isFinite(ms) ? ms : null;
-  }
-  if (typeof value === "number"){
-    return Number.isFinite(value) ? value : null;
-  }
-  if (typeof value === "string"){
-    const trimmed = value.trim();
-    if (!trimmed) return null;
-    const numeric = Number(trimmed);
-    if (Number.isFinite(numeric)) return numeric;
-    const parsed = Date.parse(trimmed);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-  return null;
-}
-
 function parseAutoPrintEnabled(value){
   if (value === true) return true;
   if (value === false || value === null || value === undefined) return false;
@@ -2238,32 +2219,6 @@ function formatAutoPrintInformation(value){
     .replace(/\r/g, "\n")
     .replace(/\n/g, "    ");
   return escapeHtml(safe);
-}
-
-function getProtocolCreatedAt(item){
-  if (!item || typeof item !== "object") return null;
-  const history = Array.isArray(item.history) ? item.history : [];
-  for (const entry of history){
-    if (entry?.action !== "create") continue;
-    const ts = parseAutoPrintTimestamp(entry?.ts ?? entry?.at ?? entry?.time);
-    if (ts !== null) return ts;
-  }
-  if (history.length){
-    const ts = parseAutoPrintTimestamp(history[0]?.ts ?? history[0]?.at ?? history[0]?.time);
-    if (ts !== null) return ts;
-  }
-  const candidates = [
-    item?.createdAt,
-    item?.created,
-    item?.timestamp,
-    item?.ts,
-    item?.meta?.createdAt,
-  ];
-  for (const cand of candidates){
-    const ts = parseAutoPrintTimestamp(cand);
-    if (ts !== null) return ts;
-  }
-  return null;
 }
 
 function buildAutoPrintTableHtml(entries, { since, until, scope }){
