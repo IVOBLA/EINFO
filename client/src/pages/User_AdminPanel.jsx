@@ -32,6 +32,16 @@ const put   = (p, b) => api("PUT", p, b);
 const patch = (p, b) => api("PATCH", p, b);
 const del   = (p)    => api("DELETE", p);
 
+const normalizeAutoPrintScope = (value) => {
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (["all", "alle", "alles", "gesamt", "voll"].includes(normalized)) return "all";
+    if (["interval", "intervall", "window", "range", "zeitraum"].includes(normalized)) return "interval";
+  }
+  if (value === true) return "all";
+  return "interval";
+};
+
 export default function User_AdminPanel() {
   const { user } = useUserAuth();
 
@@ -47,7 +57,7 @@ export default function User_AdminPanel() {
   const [fetcherInfo, setFetcherInfo] = useState({ has:false, updatedAt:null });
   const [autoConfig, setAutoConfig]   = useState({ enabled:false, intervalSec:30, demoMode:false });
   const [savingAutoConfig, setSavingAutoConfig] = useState(false);
-  const [autoPrintConfig, setAutoPrintConfig] = useState({ enabled:false, intervalMinutes:10, lastRunAt:null, entryScope:"interval" });
+  const [autoPrintConfig, setAutoPrintConfig] = useState({ enabled:false, intervalMinutes:10, lastRunAt:null, entryScope:"interval", scope:"interval" });
   const [autoPrintDraft, setAutoPrintDraft] = useState({ enabled:false, intervalMinutes:"10", entryScope:"interval" });
   const [savingAutoPrintConfig, setSavingAutoPrintConfig] = useState(false);
 
@@ -160,13 +170,18 @@ export default function User_AdminPanel() {
           const sanitizedInterval = Number.isFinite(intervalMinutes) && intervalMinutes > 0 ? Math.floor(intervalMinutes) : 10;
           const lastRunAt = Number(cfg.lastRunAt);
           const sanitizedLastRun = Number.isFinite(lastRunAt) && lastRunAt > 0 ? lastRunAt : null;
-          const scopeRaw = typeof cfg.entryScope === "string" ? cfg.entryScope : "interval";
-          const normalizedScope = scopeRaw === "all" ? "all" : "interval";
+          const scopeRaw = typeof cfg.entryScope === "string"
+            ? cfg.entryScope
+            : (typeof cfg.scope === "string"
+              ? cfg.scope
+              : (typeof cfg.mode === "string" ? cfg.mode : null));
+          const normalizedScope = normalizeAutoPrintScope(scopeRaw);
           const sanitized = {
             enabled: !!cfg.enabled,
             intervalMinutes: sanitizedInterval,
             lastRunAt: sanitizedLastRun,
             entryScope: normalizedScope,
+            scope: normalizedScope,
           };
           setAutoPrintConfig(sanitized);
           setAutoPrintDraft({
@@ -368,6 +383,7 @@ export default function User_AdminPanel() {
       return;
     }
     const intervalMinutes = Math.max(1, parsedMinutes);
+    const entryScope = normalizeAutoPrintScope(autoPrintDraft.entryScope);
     setErr("");
     setMsg("");
     setSavingAutoPrintConfig(true);
@@ -379,7 +395,8 @@ export default function User_AdminPanel() {
         body: JSON.stringify({
           enabled: !!autoPrintDraft.enabled,
           intervalMinutes,
-          entryScope: autoPrintDraft.entryScope === "all" ? "all" : "interval",
+          entryScope,
+          scope: entryScope,
         }),
       });
       const js = await res.json().catch(() => ({}));
@@ -387,11 +404,13 @@ export default function User_AdminPanel() {
       const interval = Number(js.intervalMinutes);
       const sanitizedInterval = Number.isFinite(interval) && interval > 0 ? Math.floor(interval) : intervalMinutes;
       const lastRunAt = Number(js.lastRunAt);
+      const savedScope = normalizeAutoPrintScope(js.entryScope ?? js.scope ?? js.mode);
       const sanitized = {
         enabled: !!js.enabled,
         intervalMinutes: sanitizedInterval,
         lastRunAt: Number.isFinite(lastRunAt) && lastRunAt > 0 ? lastRunAt : null,
-        entryScope: js.entryScope === "all" ? "all" : "interval",
+        entryScope: savedScope,
+        scope: savedScope,
       };
       setAutoPrintConfig(sanitized);
       setAutoPrintDraft({
@@ -727,7 +746,7 @@ export default function User_AdminPanel() {
               className="border px-2 py-1 rounded w-64"
               value={autoPrintDraft.entryScope}
               onChange={(e) => {
-                const value = e.target.value === "all" ? "all" : "interval";
+                const value = normalizeAutoPrintScope(e.target.value);
                 setAutoPrintDraft((prev) => ({ ...prev, entryScope: value }));
               }}
               disabled={locked || savingAutoPrintConfig}
