@@ -13,6 +13,7 @@ import aufgabenRoutes from "./routes/aufgabenRoutes.js";
 import userRolesRouter from "./routes/userRoles.js";
 import createMailRouter from "./routes/mail.js";
 import { appendCsvRow } from "./auditLog.mjs";
+import createServerPrintRoutes from "./routes/serverPrintRoutes.js";
 
 // 🔐 Neues User-Management
 import { User_authMiddleware, User_createRouter, User_requireAuth } from "./User_auth.mjs";
@@ -910,6 +911,9 @@ function haversineKm(a, b) {
 }
 
 // ----------------- Middlewares -----------------
+
+
+
 app.use(compression({
    filter: (req, res) => {
      // Admin-ZIP-Routen niemals komprimieren
@@ -968,6 +972,9 @@ app.use((req,res,next)=>{
 });
 
 app.use("/api/mail", createMailRouter());
+
+
+app.use("/api/print/server", createServerPrintRoutes({ baseDir: DATA_DIR }));
 
 // ===================================================================
 // =                         BOARD & VEHICLES                        =
