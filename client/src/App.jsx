@@ -51,6 +51,9 @@ import {
   updateGroupAvailability,
 } from "./api";
 
+
+import { loadGmapsPlacesIfNeeded, getPlacesKey } from "./utils/places";
+
 const TICKER_ROLE_ID = "S2";
 const TICKER_REFRESH_INTERVAL_MS = 30_000;
 const TICKER_PREFIX = " - *** - NEUE LAGEMELDUNG: ";
@@ -466,6 +469,21 @@ useEffect(() => {
       pulseTimerRef.current = null;
     }
   }, []);
+
+
+  // Google Maps / Places einmalig beim Start laden,
+  // damit MapModal sofort die Fahrzeuge anzeigen kann
+  useEffect(() => {
+    (async () => {
+      try {
+        await loadGmapsPlacesIfNeeded(getPlacesKey());
+      } catch {
+        // Fehler ignorieren – MapModal fällt dann auf iframe-Fallback zurück
+      }
+    })();
+  }, []);
+
+
 
   useEffect(() => {
     if (areaFilter) return;
