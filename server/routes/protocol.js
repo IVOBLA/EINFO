@@ -586,7 +586,7 @@ router.get("/", async (_req, res) => {
   }
 });
 
-router.post("/:nr/lock", async (req, res) => {
+router.post("/:nr(\\d+)/lock", async (req, res) => {
   try {
     const nr = Number(req.params.nr);
     if (!Number.isFinite(nr) || nr <= 0) {
@@ -635,7 +635,7 @@ router.post("/:nr/lock", async (req, res) => {
   }
 });
 
-router.delete("/:nr/lock", async (req, res) => {
+router.delete("/:nr(\\d+)/lock", async (req, res) => {
   try {
     const nr = Number(req.params.nr);
     if (!Number.isFinite(nr) || nr <= 0) {
@@ -670,7 +670,7 @@ router.delete("/:nr/lock", async (req, res) => {
 });
 
 // Detail
-router.get("/:nr", async (req, res) => {
+router.get("/:nr(\\d+)", async (req, res) => {
   try {
     const nr  = Number(req.params.nr);
     const all = await readAllJson();
@@ -799,7 +799,7 @@ try {
 });
 
 // Update
-router.put("/:nr", express.json(), async (req, res) => {
+router.put("/:nr(\\d+)", express.json(), async (req, res) => {
   try {
     const nr  = Number(req.params.nr);
     const all = await readAllJson();
