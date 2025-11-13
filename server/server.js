@@ -732,11 +732,112 @@ function normalizeBoardStructure(inputBoard) {
   return board;
 }
 
+async function normalizeBoardVehicleRefs(board) {
+  if (!board || typeof board !== "object") {
+    return { board, changed: false };
+  }
+
+  const { base, extra } = await getVehiclesData();
+  const vehicles = [...(Array.isArray(base) ? base : []), ...(Array.isArray(extra) ? extra : [])];
+
+  const knownIds = new Set();
+  const labelToIds = new Map();
+
+  for (const veh of vehicles) {
+    if (!veh) continue;
+    const idStr = String(veh.id ?? "").trim();
+    if (!idStr) continue;
+    knownIds.add(idStr);
+    const labelKey = normalizeLabel(veh.label);
+    if (labelKey) {
+      if (!labelToIds.has(labelKey)) labelToIds.set(labelKey, new Set());
+      labelToIds.get(labelKey).add(idStr);
+    }
+  }
+
+  const resolveVehicleId = (value) => {
+    const raw = String(value ?? "").trim();
+    if (!raw) return null;
+    if (knownIds.has(raw)) return raw;
+    const labelKey = normalizeLabel(raw);
+    if (labelKey && labelToIds.has(labelKey)) {
+      const hits = Array.from(labelToIds.get(labelKey)).sort();
+      if (hits.length > 0) return hits[0];
+    }
+    return raw;
+  };
+
+  const normalizeIdList = (list) => {
+    const arr = Array.isArray(list) ? list : [];
+    const next = [];
+    const seen = new Set();
+    let localChanged = false;
+    for (const entry of arr) {
+      const resolved = resolveVehicleId(entry);
+      if (!resolved) {
+        if (entry != null && String(entry).trim() !== "") localChanged = true;
+        continue;
+      }
+      const key = String(resolved);
+      if (seen.has(key)) {
+        if (String(entry) !== key) localChanged = true;
+        continue;
+      }
+      seen.add(key);
+      next.push(key);
+      if (String(entry) !== key) localChanged = true;
+    }
+    if (next.length !== arr.length) localChanged = true;
+    return { list: next, changed: localChanged };
+  };
+
+  const normalizeLabelMap = (map) => {
+    if (!map || typeof map !== "object" || Array.isArray(map)) {
+      return { map, changed: false };
+    }
+    const next = {};
+    let localChanged = false;
+    for (const [rawKey, value] of Object.entries(map)) {
+      const resolved = resolveVehicleId(rawKey);
+      const key = resolved ? String(resolved) : String(rawKey);
+      if (!(key in next)) next[key] = value;
+      if (key !== rawKey) localChanged = true;
+    }
+    return { map: next, changed: localChanged };
+  };
+
+  let changed = false;
+  for (const col of Object.values(board.columns || {})) {
+    const items = Array.isArray(col?.items) ? col.items : [];
+    for (const card of items) {
+      if (!card || typeof card !== "object") continue;
+      const assigned = normalizeIdList(card.assignedVehicles);
+      if (assigned.changed) {
+        card.assignedVehicles = assigned.list;
+        changed = true;
+      }
+      const ever = normalizeIdList(card.everVehicles);
+      if (ever.changed) {
+        card.everVehicles = ever.list;
+        changed = true;
+      }
+      const labelMap = normalizeLabelMap(card.everVehicleLabels);
+      if (labelMap.changed) {
+        card.everVehicleLabels = labelMap.map;
+        changed = true;
+      }
+    }
+  }
+
+  return { board, changed };
+}
+
 async function loadBoardFresh() {
   await ensureDir(DATA_DIR);
   const raw = await readJson(BOARD_FILE, null);
   const board = normalizeBoardStructure(raw ?? createEmptyBoard());
-  if (!raw) {
+  const { changed: idsChanged } = await normalizeBoardVehicleRefs(board);
+  if (!raw || idsChanged) {
     await saveBoard(board);
   } else {
     updateBoardCache(board);
