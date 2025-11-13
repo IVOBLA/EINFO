@@ -99,6 +99,55 @@ function normalizeHeaders(headers) {
   return entries;
 }
 
+function chunkString(str, size = 76) {
+  const chunks = [];
+  for (let i = 0; i < str.length; i += size) {
+    chunks.push(str.slice(i, i + size));
+  }
+  return chunks.join("\r\n");
+}
+
+function normalizeAttachments(attachments) {
+  if (!Array.isArray(attachments) || attachments.length === 0) return [];
+  const normalized = [];
+  for (const entry of attachments) {
+    if (!entry) continue;
+    const filenameRaw = entry.filename != null ? String(entry.filename) : "attachment";
+    const filename = filenameRaw.trim() || "attachment";
+    let content = entry.content;
+    let base64 = "";
+
+    if (content == null) continue;
+    if (Buffer.isBuffer(content)) {
+      base64 = content.toString("base64");
+    } else if (content instanceof Uint8Array || ArrayBuffer.isView(content)) {
+      base64 = Buffer.from(content).toString("base64");
+    } else if (typeof content === "string") {
+      const encoding = (entry.encoding || "utf8").toLowerCase();
+      if (encoding === "base64") base64 = content.replace(/\s+/g, "");
+      else base64 = Buffer.from(content, encoding).toString("base64");
+    } else if (content && typeof content === "object" && content.type === "Buffer" && Array.isArray(content.data)) {
+      base64 = Buffer.from(content.data).toString("base64");
+    } else {
+      continue;
+    }
+
+    const chunked = chunkString(base64);
+    const contentType = entry.contentType ? String(entry.contentType).trim() : "application/octet-stream";
+    const disposition = entry.inline ? "inline" : "attachment";
+    const contentId = entry.cid ? String(entry.cid).trim() : null;
+
+    normalized.push({
+      filename,
+      content: chunked,
+      contentType: contentType || "application/octet-stream",
+      disposition,
+      contentId,
+    });
+  }
+  return normalized;
+}
+
 export function getMailConfig() {
   const portFallback = process.env.MAIL_PORT ? null : 25;
   const port = toInt(process.env.MAIL_PORT, portFallback);
@@ -251,7 +300,7 @@ function normalizeBody(text) {
   return normalized + (raw.endsWith("\n") ? "" : "\r\n");
 }
 
-function buildMessage({ from, to, cc, bcc, subject, text, html, replyTo, headers, clientId }) {
+function buildMessage({ from, to, cc, bcc, subject, text, html, replyTo, headers, clientId, attachments }) {
   const date = new Date().toUTCString();
   const messageId = `<${Date.now().toString(16)}.${Math.random().toString(16).slice(2)}@${sanitizeDomain(clientId)}>`;
 
@@ -273,8 +322,67 @@ function buildMessage({ from, to, cc, bcc, subject, text, html, replyTo, headers
     }
   }
 
+  const attachmentsNormalized =
+    Array.isArray(attachments) &&
+    attachments.length > 0 &&
+    attachments.every((att) => att && typeof att.content === "string" && att.contentType)
+      ? attachments
+      : normalizeAttachments(attachments);
+
   let bodyPayload = "";
-  if (text && html) {
+  if (attachmentsNormalized.length) {
+    const boundaryMixed = `----=_EINFO_MIXED_${Date.now().toString(16)}_${Math.random().toString(16).slice(2)}`;
+    headerLines.push("MIME-Version: 1.0");
+    headerLines.push(`Content-Type: multipart/mixed; boundary=\"${boundaryMixed}\"`);
+    const parts = [];
+
+    if (text && html) {
+      const boundaryAlt = `----=_EINFO_ALT_${Date.now().toString(16)}_${Math.random().toString(16).slice(2)}`;
+      parts.push(`--${boundaryMixed}`);
+      parts.push(`Content-Type: multipart/alternative; boundary=\"${boundaryAlt}\"`);
+      parts.push("");
+      parts.push(`--${boundaryAlt}`);
+      parts.push("Content-Type: text/plain; charset=utf-8");
+      parts.push("Content-Transfer-Encoding: 8bit");
+      parts.push("");
+      parts.push(text);
+      parts.push(`--${boundaryAlt}`);
+      parts.push("Content-Type: text/html; charset=utf-8");
+      parts.push("Content-Transfer-Encoding: 8bit");
+      parts.push("");
+      parts.push(html);
+      parts.push(`--${boundaryAlt}--`);
+      parts.push("");
+    } else if (html || text) {
+      parts.push(`--${boundaryMixed}`);
+      parts.push(`Content-Type: ${html ? "text/html" : "text/plain"}; charset=utf-8`);
+      parts.push("Content-Transfer-Encoding: 8bit");
+      parts.push("");
+      parts.push(html || text || "");
+      parts.push("");
+    } else {
+      parts.push(`--${boundaryMixed}`);
+      parts.push("Content-Type: text/plain; charset=utf-8");
+      parts.push("Content-Transfer-Encoding: 8bit");
+      parts.push("");
+      parts.push("");
+      parts.push("");
+    }
+
+    for (const att of attachmentsNormalized) {
+      parts.push(`--${boundaryMixed}`);
+      parts.push(`Content-Type: ${att.contentType}`);
+      if (att.contentId) parts.push(`Content-ID: <${att.contentId}>`);
+      parts.push("Content-Transfer-Encoding: base64");
+      parts.push(`Content-Disposition: ${att.disposition}; filename=\"${encodeHeaderValue(att.filename)}\"`);
+      parts.push("");
+      parts.push(att.content);
+      parts.push("");
+    }
+
+    parts.push(`--${boundaryMixed}--`);
+    bodyPayload = parts.join("\r\n");
+  } else if (text && html) {
     const boundary = `----=_EINFO_${Date.now().toString(16)}_${Math.random().toString(16).slice(2)}`;
     headerLines.push("MIME-Version: 1.0");
     headerLines.push(`Content-Type: multipart/alternative; boundary=\"${boundary}\"`);
@@ -332,7 +440,9 @@ export async function sendMail(options = {}) {
   const replyTo = parseAddress(options.replyTo ?? cfg.replyTo);
   const headers = normalizeHeaders(options.headers);
 
-  if (!options.text && !options.html) {
+  const attachmentsNormalized = normalizeAttachments(options.attachments);
+
+  if (!options.text && !options.html && attachmentsNormalized.length === 0) {
     throw new Error("Es wird ein Text- oder HTML-Inhalt benötigt");
   }
 
@@ -347,6 +457,7 @@ export async function sendMail(options = {}) {
     replyTo,
     headers,
     clientId: cfg.clientId,
+    attachments: attachmentsNormalized.length ? attachmentsNormalized : options.attachments,
   });
 
   let socket = await connectSocket(cfg);
