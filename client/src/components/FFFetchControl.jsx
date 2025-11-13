@@ -1,5 +1,27 @@
 import React, { useEffect, useRef, useState } from "react";
 
+const DEFAULT_STATUS_POLL_INTERVAL_MS = 3_000;
+const DEFAULT_ACTIVITY_POLL_INTERVAL_MS = 1_000;
+
+function sanitizeInterval(value, fallback) {
+  const num = Number(value);
+  if (Number.isFinite(num) && num > 0) {
+    const rounded = Math.floor(num);
+    return rounded > 0 ? rounded : fallback;
+  }
+  return fallback;
+}
+
+const ENV_STATUS_POLL_INTERVAL_MS = sanitizeInterval(
+  import.meta.env?.VITE_STATUS_POLL_INTERVAL_MS,
+  DEFAULT_STATUS_POLL_INTERVAL_MS,
+);
+
+const ENV_ACTIVITY_POLL_INTERVAL_MS = sanitizeInterval(
+  import.meta.env?.VITE_ACTIVITY_POLL_INTERVAL_MS,
+  DEFAULT_ACTIVITY_POLL_INTERVAL_MS,
+);
+
 export default function FFFetchControl({ autoEnabled, remaining, disabled = false }) {
   // Laufzustand + globale Creds
   const [running, setRunning] = useState(false);
@@ -24,6 +46,8 @@ export default function FFFetchControl({ autoEnabled, remaining, disabled = fals
   const [enabled, setEnabled] = useState(false);
   const [intervalSec, setIntervalSec] = useState(30);
   const [secondsLeft, setSecondsLeft] = useState(null);
+  const [statusPollIntervalMs, setStatusPollIntervalMs] = useState(ENV_STATUS_POLL_INTERVAL_MS);
+  const [activityPollIntervalMs, setActivityPollIntervalMs] = useState(ENV_ACTIVITY_POLL_INTERVAL_MS);
 
   // Einmaliges Prompting-Merkmal (nur noch als Logik-Überbleibsel)
   const didCheckOnce = useRef(false);
@@ -46,6 +70,8 @@ export default function FFFetchControl({ autoEnabled, remaining, disabled = fals
       setHasCreds(!!c.has);
       setEnabled(!!cfg.enabled);
       setIntervalSec(Number(cfg.intervalSec || 30));
+      setStatusPollIntervalMs((prev) => sanitizeInterval(cfg.statusPollIntervalMs, prev));
+      setActivityPollIntervalMs((prev) => sanitizeInterval(cfg.activityPollIntervalMs, prev));
 
       if (!didCheckOnce.current) {
         didCheckOnce.current = true;
@@ -57,14 +83,15 @@ export default function FFFetchControl({ autoEnabled, remaining, disabled = fals
   };
 
   useEffect(() => {
-    readStatusAndCreds();
-    const t = setInterval(readStatusAndCreds, 3000);
-    return () => clearInterval(t);
-  }, []);
+    void readStatusAndCreds();
+    const interval = setInterval(() => {
+      void readStatusAndCreds();
+    }, statusPollIntervalMs);
+    return () => clearInterval(interval);
+  }, [statusPollIntervalMs]);
 
   // --- Aktivität/Auto-Stop + letzte Importzeit sekündlich -----------
   useEffect(() => {
-    let t;
     const poll = async () => {
       try {
         const r = await fetch("/api/activity/status", { credentials: "include", cache: "no-store" });
@@ -91,10 +118,12 @@ export default function FFFetchControl({ autoEnabled, remaining, disabled = fals
         }
       } catch {}
     };
-    poll();
-    t = setInterval(poll, 1000);
-    return () => clearInterval(t);
-  }, []);
+    void poll();
+    const timer = setInterval(() => {
+      void poll();
+    }, activityPollIntervalMs);
+    return () => clearInterval(timer);
+  }, [activityPollIntervalMs]);
 
   // --- Countdown "in Xs" --------------------------------------------
   useEffect(() => {

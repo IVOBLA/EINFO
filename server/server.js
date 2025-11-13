@@ -66,6 +66,17 @@ const BOARD_CACHE_MAX_AGE_MS = (() => {
   return Number.isFinite(raw) && raw >= 0 ? raw : 5_000;
 })();
 
+function parseUiPollInterval(name, fallback) {
+  const raw = process.env[name];
+  if (raw === undefined || raw === null || raw === "") return fallback;
+  const parsed = Number(raw);
+  if (Number.isFinite(parsed) && parsed > 0) return Math.floor(parsed);
+  return fallback;
+}
+
+const UI_STATUS_POLL_INTERVAL_MS = parseUiPollInterval("UI_STATUS_POLL_INTERVAL_MS", 3_000);
+const UI_ACTIVITY_POLL_INTERVAL_MS = parseUiPollInterval("UI_ACTIVITY_POLL_INTERVAL_MS", 1_000);
+
 let boardCacheValue = null;
 let boardCacheExpiresAt = 0;
 let boardCachePromise = null;
@@ -2066,10 +2077,12 @@ async function readAutoCfg(){
   cfg.intervalSec= Number.isFinite(+cfg.intervalSec)&&+cfg.intervalSec>0 ? +cfg.intervalSec : AUTO_DEFAULT.intervalSec;
   cfg.enabled    = !!cfg.enabled;
   cfg.demoMode   = !!cfg.demoMode;
+  cfg.statusPollIntervalMs   = UI_STATUS_POLL_INTERVAL_MS;
+  cfg.activityPollIntervalMs = UI_ACTIVITY_POLL_INTERVAL_MS;
   return cfg;
 }
 async function writeAutoCfg(next){
-  const keep=await readAutoCfg();
+  const { statusPollIntervalMs, activityPollIntervalMs, ...keep } = await readAutoCfg();
   const merged={ ...keep, ...next };
   const sanitized={
     ...merged,
@@ -2079,7 +2092,11 @@ async function writeAutoCfg(next){
     demoMode: !!merged.demoMode,
   };
   await writeJson(AUTO_CFG_FILE,sanitized);
-  return sanitized;
+  return {
+    ...sanitized,
+    statusPollIntervalMs: UI_STATUS_POLL_INTERVAL_MS,
+    activityPollIntervalMs: UI_ACTIVITY_POLL_INTERVAL_MS,
+  };
 }
 
 // ===================================================================
