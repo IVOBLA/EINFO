@@ -1185,6 +1185,7 @@ const startPdfPrint = (fileUrl) => {
   };
 
   const confirmBeforeSave = () => {
+    if (!createdViaTask) return true;
     try {
       return window.confirm("Sind sie sicher? Änderungen sind nur durch die Meldestelle oder den Leiter des Stabes möglich!");
     } catch {
