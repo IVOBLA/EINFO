@@ -50,7 +50,9 @@ const GROUP_AVAILABILITY_FILE = path.join(DATA_DIR, "group-availability.json");
 const GROUP_ALERTED_FILE = path.join(DATA_DIR, "conf", "group-alerted.json");
 const PROTOCOL_JSON_FILE = path.join(DATA_DIR, "protocol.json");
 const AUTO_PRINT_CFG_FILE = path.join(DATA_DIR, "conf", "auto-print.json");
-const AUTO_PRINT_OUTPUT_DIR = path.join(DATA_DIR, "print-output");
+const AUTO_PRINT_OUTPUT_DIR = path.resolve(
+  process.env.KANBAN_PROTOKOLL_PRINT_DIR || path.join(DATA_DIR, "prints", "protokoll"),
+);
 
 const DEFAULT_BOARD_COLUMNS = {
   neu: "Neu",
@@ -2332,7 +2334,7 @@ async function sendAutoPrintToPrinter(fileName){
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ file: fileName }),
+    body: JSON.stringify({ file: fileName, scope: "protokoll" }),
   });
   if (!res.ok){
     const text = await res.text().catch(() => "");

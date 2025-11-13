@@ -21,9 +21,36 @@ export default function createServerPrintRoutes({ baseDir, printSubDir = "print-
   const router = Router();
 
   // Basisverzeichnis, in dem die druckbaren PDFs liegen
-  const PRINT_BASE_DIR =
-    process.env.PRINT_BASE_DIR ||
-    (baseDir ? path.join(baseDir, printSubDir) : process.cwd());
+  const ROOT_BASE_DIR = baseDir ? path.resolve(baseDir) : process.cwd();
+  const DEFAULT_PRINT_DIR = path.resolve(
+    process.env.PRINT_BASE_DIR || path.join(ROOT_BASE_DIR, printSubDir),
+  );
+  const MELDUNG_PRINT_DIR = path.resolve(
+    process.env.KANBAN_MELDUNG_PRINT_DIR || path.join(ROOT_BASE_DIR, "prints", "meldung"),
+  );
+  const PROTOKOLL_PRINT_DIR = path.resolve(
+    process.env.KANBAN_PROTOKOLL_PRINT_DIR || path.join(ROOT_BASE_DIR, "prints", "protokoll"),
+  );
+
+  const SCOPE_DIRS = new Map([
+    ["default", DEFAULT_PRINT_DIR],
+    ["legacy", DEFAULT_PRINT_DIR],
+    ["meldung", MELDUNG_PRINT_DIR],
+    ["server", MELDUNG_PRINT_DIR],
+    ["protocol", PROTOKOLL_PRINT_DIR],
+    ["protokoll", PROTOKOLL_PRINT_DIR],
+    ["auto", PROTOKOLL_PRINT_DIR],
+  ]);
+
+  function resolveScope(rawScope) {
+    if (typeof rawScope === "string") {
+      const key = rawScope.trim().toLowerCase();
+      if (SCOPE_DIRS.has(key)) {
+        return { key, dir: SCOPE_DIRS.get(key) };
+      }
+    }
+    return { key: "default", dir: SCOPE_DIRS.get("default") };
+  }
 
   /**
    * Sicherheits-Helper: liegt "child" innerhalb von "parent"?
@@ -54,19 +81,21 @@ export default function createServerPrintRoutes({ baseDir, printSubDir = "print-
           .json({ ok: false, error: "Nur PDF-Dateien können gedruckt werden" });
       }
 
-      // Absoluten Pfad bauen und auf PRINT_BASE_DIR einschränken
-      const absPath = path.resolve(PRINT_BASE_DIR, file);
+      const { key: scopeKey, dir: scopeDir } = resolveScope(req.body?.scope);
 
-      if (!isPathInside(PRINT_BASE_DIR, absPath)) {
+      // Absoluten Pfad bauen und auf scopeDir einschränken
+      const absPath = path.resolve(scopeDir, file);
+
+      if (!isPathInside(scopeDir, absPath)) {
         return res
           .status(400)
-          .json({ ok: false, error: "Pfad ist nicht erlaubt", baseDir: PRINT_BASE_DIR });
+          .json({ ok: false, error: "Pfad ist nicht erlaubt", baseDir: scopeDir, scope: scopeKey });
       }
 
       if (!fs.existsSync(absPath)) {
         return res
           .status(404)
-          .json({ ok: false, error: "Datei nicht gefunden", path: absPath });
+          .json({ ok: false, error: "Datei nicht gefunden", path: absPath, scope: scopeKey });
       }
 
       const platform = os.platform();
@@ -79,6 +108,7 @@ export default function createServerPrintRoutes({ baseDir, printSubDir = "print-
           ok: true,
           message: "Druck an Standarddrucker unter Windows gesendet",
           file,
+          scope: scopeKey,
         });
       }
 
@@ -100,6 +130,7 @@ export default function createServerPrintRoutes({ baseDir, printSubDir = "print-
         ok: true,
         message: "Druck an Standarddrucker (lp) gesendet",
         file,
+        scope: scopeKey,
       });
     } catch (err) {
       return next(err); // zentrale Fehler-Middleware in server.js kümmert sich ums Logging
@@ -110,7 +141,7 @@ export default function createServerPrintRoutes({ baseDir, printSubDir = "print-
   router.get("/info", (_req, res) => {
     res.json({
       ok: true,
-      baseDir: PRINT_BASE_DIR,
+      scopes: Object.fromEntries(SCOPE_DIRS.entries()),
       platform: os.platform(),
     });
   });
