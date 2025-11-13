@@ -116,7 +116,7 @@ const AUTO_CFG_FILE         = path.join(DATA_DIR, "conf","auto-import.json");
 const AUTO_DEFAULT_FILENAME = "list_filtered.json";
 const AUTO_DEFAULT          = { enabled:false, intervalSec:30, filename:AUTO_DEFAULT_FILENAME, demoMode:false };
 const AUTO_IMPORT_USER      = "EinsatzInfo";
-const AUTO_PRINT_DEFAULT    = { enabled:false, intervalMinutes:10, lastRunAt:null, entryScope:"interval" };
+const AUTO_PRINT_DEFAULT    = { enabled:false, intervalMinutes:10, lastRunAt:null, entryScope:"interval", scope:"interval" };
 const AUTO_PRINT_MIN_INTERVAL_MINUTES = 1;
 
 // Merker für Import-Status
@@ -2138,11 +2138,13 @@ async function readAutoPrintCfg(){
     ? Math.floor(minutesRaw)
     : AUTO_PRINT_DEFAULT.intervalMinutes;
   const lastRunAt = parseAutoPrintTimestamp(raw?.lastRunAt);
+  const entryScope = parseAutoPrintScope(raw?.entryScope ?? raw?.scope ?? raw?.mode);
   return {
     enabled: parseAutoPrintEnabled(raw?.enabled),
     intervalMinutes,
     lastRunAt: lastRunAt ?? null,
-    entryScope: parseAutoPrintScope(raw?.entryScope ?? raw?.scope ?? raw?.mode),
+    entryScope,
+    scope: entryScope,
   };
 }
 
@@ -2162,6 +2164,7 @@ async function writeAutoPrintCfg(next = {}){
     })(),
     entryScope: parseAutoPrintScope(merged.entryScope ?? merged.scope ?? merged.mode ?? current.entryScope),
   };
+  sanitized.scope = sanitized.entryScope;
   await writeJson(AUTO_PRINT_CFG_FILE, sanitized);
   return sanitized;
 }
