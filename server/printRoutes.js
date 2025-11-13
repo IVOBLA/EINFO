@@ -16,8 +16,10 @@ const __dirname  = path.dirname(__filename);
 // Gemeinsamer Daten-Root (wie in protocol.js)
 // Immer absolut auflösen, damit auch relative ENV-Pfade (z. B. "../data") korrekt funktionieren.
 const DATA_ROOT = path.resolve(process.env.KANBAN_DATA_DIR || path.join(__dirname, "data"));
-// PDFs hierhin speichern:
-const PDF_DIR   = path.resolve("\\\\server\\data\\prints\\meldung");
+// PDFs hierhin speichern (konfigurierbar, Standard: lokaler Datenordner)
+const PDF_DIR = path.resolve(
+  process.env.KANBAN_MELDUNG_PRINT_DIR || path.join(DATA_ROOT, "prints", "meldung"),
+);
 await fs.mkdir(PDF_DIR, { recursive: true });
 
 // Protokoll-Daten (JSON) für Autosave/History
