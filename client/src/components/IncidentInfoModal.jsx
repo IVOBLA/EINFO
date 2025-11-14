@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { useIncidentMail } from "../hooks/useIncidentMail";
 import { normalizeLatLng, openIncidentPrintWindow } from "../utils/incidentPrint";
 const DEFAULT_AREA_COLOR = "#2563eb";
 function formatAreaLabel(card = {}) {
@@ -44,6 +45,7 @@ export default function IncidentInfoModal({
   const [printing, setPrinting] = useState(false);
   const [form, setForm] = useState(() => initForm(info));
   const [error, setError] = useState("");
+  const { mailBusy, mailFeedback, sendMail, resetMailFeedback } = useIncidentMail();
 
   const alarmzeit = info.timestamp
     ? new Date(info.timestamp).toLocaleString("de-AT", { hour12: false })
@@ -85,6 +87,10 @@ export default function IncidentInfoModal({
       setEditing(false);
     }
   }, [info, forceEdit, canEdit, isEditableCard, open]);
+
+  useEffect(() => {
+    resetMailFeedback();
+  }, [info?.id, open, resetMailFeedback]);
 
   const close = () => {
     if (busy) return;
@@ -322,6 +328,14 @@ type="button"
         <div className="flex items-center justify-between mb-3 gap-2">
           <h2 className="text-lg md:text-xl font-bold">Einsatz-Info</h2>
           <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="px-3 py-1.5 rounded border bg-white text-sm hover:bg-gray-50 disabled:opacity-60"
+              onClick={() => sendMail(info)}
+              disabled={mailBusy || !info}
+            >
+              {mailBusy ? "Sende…" : "Mail senden"}
+            </button>
             {canEdit && isEditableCard  && !editing && (
               <button
                 type="button"
@@ -351,6 +365,18 @@ type="button"
             </button>
           </div>
         </div>
+
+        {mailFeedback && (
+          <div
+            className={`mb-3 rounded border px-3 py-2 text-sm ${
+              mailFeedback.type === "error"
+                ? "border-red-200 bg-red-50 text-red-700"
+                : "border-emerald-200 bg-emerald-50 text-emerald-700"
+            }`}
+          >
+            {mailFeedback.message}
+          </div>
+        )}
 
         {editing ? (
           renderEditForm()
