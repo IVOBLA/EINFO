@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import DatePicker, { registerLocale } from "react-datepicker";
 import de from "date-fns/locale/de";
 import "react-datepicker/dist/react-datepicker.css";
@@ -101,6 +101,7 @@ export default function AufgInfoModal({
     relatedIncidentId: "",
     linkedProtocolNrs: [],
   });
+  const lastInitializedItemIdRef = useRef(null);
 
   const incidentMap = useMemo(() => {
     if (incidentLookup && typeof incidentLookup.get === "function") return incidentLookup;
@@ -114,7 +115,15 @@ export default function AufgInfoModal({
   }, [incidentLookup]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      lastInitializedItemIdRef.current = null;
+      return;
+    }
+    const currentId = it?.id ?? null;
+    if (edit && lastInitializedItemIdRef.current === currentId) {
+      return;
+    }
+    lastInitializedItemIdRef.current = currentId;
     setEdit(false);
     const initialLinked = normalizeProtocolIds(
       it?.linkedProtocolNrs ?? (Array.isArray(it?.linkedProtocols) ? it.linkedProtocols.map((entry) => entry?.nr) : [])
@@ -131,7 +140,7 @@ export default function AufgInfoModal({
       relatedIncidentId: it?.relatedIncidentId ? String(it.relatedIncidentId) : "",
       linkedProtocolNrs: withOrigin,
     });
-  }, [open, it?.id, originProtocolId, it?.linkedProtocolNrs, it?.linkedProtocols]);
+  }, [open, it?.id, originProtocolId, it?.linkedProtocolNrs, it?.linkedProtocols, edit]);
   useEffect(() => {
     if (!open) return undefined;
     const onKeyDown = (ev) => {
