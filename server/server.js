@@ -16,6 +16,7 @@ import createMailRouter from "./routes/mail.js";
 import { appendCsvRow } from "./auditLog.mjs";
 import createServerPrintRoutes from "./routes/serverPrintRoutes.js";
 import { getProtocolCreatedAt, parseAutoPrintTimestamp } from "./utils/autoPrintHelpers.js";
+import { getLogDirCandidates } from "./utils/logDirectories.mjs";
 
 // 🔐 Neues User-Management
 import { User_authMiddleware, User_createRouter, User_requireAuth } from "./User_auth.mjs";
@@ -45,7 +46,14 @@ const GPS_FILE    = path.join(DATA_DIR, "vehicles_gps.json");
 const TYPES_FILE  = path.join(DATA_DIR, "conf","types.json");
 const LOG_FILE    = path.join(DATA_DIR, "Lage_log.csv");
 const ARCHIVE_DIR = path.join(DATA_DIR, "archive");
-const ERROR_LOG   = path.join(DATA_DIR, "Log.txt");
+const ERROR_LOG_FILE_NAME = "Log.txt";
+const errorLogDirCandidates = dedupeDirs([
+  ...getLogDirCandidates(),
+  path.join(DATA_DIR, "logs"),
+  DATA_DIR,
+]);
+let activeErrorLogDir = null;
+let lastErrorLogKey = null;
 const GROUPS_FILE = path.join(DATA_DIR, "group_locations.json");
 const GROUP_AVAILABILITY_FILE = path.join(DATA_DIR, "group-availability.json");
 const GROUP_ALERTED_FILE = path.join(DATA_DIR, "conf", "group-alerted.json");
@@ -140,6 +148,19 @@ let autoPrintRunning   = false;
 
 // ----------------- Helpers -----------------
 async function ensureDir(p){ await fs.mkdir(p,{ recursive:true }); }
+
+function dedupeDirs(dirs) {
+  const seen = new Set();
+  const out = [];
+  for (const dir of dirs) {
+    if (!dir) continue;
+    const normalized = path.resolve(dir);
+    if (seen.has(normalized)) continue;
+    seen.add(normalized);
+    out.push(normalized);
+  }
+  return out;
+}
 attachPrintRoutes(app, "/api/protocol");
 attachIncidentPrintRoutes(app, "/api/incidents");
 
@@ -650,16 +671,37 @@ function nextHumanNumber(board){
 
 // ---- Fehler-Logging ----
 async function appendError(where, err, extra){
-  try{
-    await ensureDir(path.dirname(ERROR_LOG));
-    const ts = tsHuman();
-    const msg = (err && err.stack) ? String(err.stack) : String(err?.message || err || "-");
-    const extraStr = extra ? " " + JSON.stringify(extra) : "";
-    const line = `[${ts}] [${where}] ${msg}${extraStr}\n`;
-    await fs.appendFile(ERROR_LOG, line, "utf8");
-  }catch(e){
-    console.error("[LOG.txt] write failed:", e);
+  const ts = tsHuman();
+  const msg = (err && err.stack) ? String(err.stack) : String(err?.message || err || "-");
+  const extraStr = extra ? " " + JSON.stringify(extra) : "";
+  const line = `[${ts}] [${where}] ${msg}${extraStr}`;
+
+  const firstChoice = activeErrorLogDir ? [activeErrorLogDir] : [];
+  const candidates = [...firstChoice, ...errorLogDirCandidates.filter((dir) => dir !== activeErrorLogDir)];
+
+  for (const dir of candidates) {
+    try {
+      await ensureDir(dir);
+      await fs.appendFile(path.join(dir, ERROR_LOG_FILE_NAME), `${line}\n`, "utf8");
+      activeErrorLogDir = dir;
+      lastErrorLogKey = null;
+      return;
+    } catch (error) {
+      const message = error && typeof error === "object" && "message" in error
+        ? error.message
+        : String(error);
+      const errorKey = `${dir}:${message}`;
+      if (lastErrorLogKey !== errorKey) {
+        console.error(`[Log.txt] write failed: ${message} (${dir})`);
+        lastErrorLogKey = errorKey;
+      }
+      if (activeErrorLogDir === dir) {
+        activeErrorLogDir = null;
+      }
+    }
   }
+
+  console.error(`[Log.txt] ${line}`);
 }
 
 // Für CSV-Log
