@@ -6,24 +6,45 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const SERVER_ROOT = path.resolve(__dirname, "..");
+
+function resolveDataPath(rawValue) {
+  if (typeof rawValue !== "string") return null;
+  const trimmed = rawValue.trim();
+  if (!trimmed) return null;
+
+  if (path.isAbsolute(trimmed)) {
+    return path.normalize(trimmed);
+  }
+
+  if (trimmed.startsWith("~/")) {
+    const home = process.env.HOME || process.env.USERPROFILE;
+    if (home) {
+      return path.resolve(home, trimmed.slice(2));
+    }
+  }
+
+  return path.resolve(SERVER_ROOT, trimmed);
+}
+
 const DEFAULT_DATA_ROOT = (() => {
-  const dataDir = process.env.DATA_DIR;
-  if (typeof dataDir === "string" && dataDir.trim()) {
-    return path.resolve(dataDir);
+  const dataDir = resolveDataPath(process.env.DATA_DIR);
+  if (dataDir) {
+    return dataDir;
   }
 
-  const legacyDir = process.env.KANBAN_DATA_DIR;
-  if (typeof legacyDir === "string" && legacyDir.trim()) {
-    return path.resolve(legacyDir);
+  const legacyDir = resolveDataPath(process.env.KANBAN_DATA_DIR);
+  if (legacyDir) {
+    return legacyDir;
   }
 
-  return path.resolve(__dirname, "..", "data");
+  return path.resolve(SERVER_ROOT, "data");
 })();
 
 function resolveConfiguredDir(envName, fallbackRelative) {
-  const raw = process.env[envName];
-  if (typeof raw === "string" && raw.trim()) {
-    return path.resolve(raw);
+  const raw = resolveDataPath(process.env[envName]);
+  if (raw) {
+    return raw;
   }
   if (!fallbackRelative) {
     return DEFAULT_DATA_ROOT;
