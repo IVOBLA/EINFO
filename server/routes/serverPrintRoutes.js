@@ -6,9 +6,9 @@ import os from "os";
 import { execFile } from "child_process";
 import printer from "pdf-to-printer";
 import {
-  LEGACY_PDF_DIR,
   MELDUNG_PDF_DIR,
   PROTOKOLL_PDF_DIR,
+  SERVER_PRINT_PDF_DIR,
   ensurePdfDirectories,
 } from "../utils/pdfPaths.mjs";
 const { print: winPrint } = printer;
@@ -20,7 +20,7 @@ const { print: winPrint } = printer;
  *   { "file": "mein_protokoll.pdf" }
  *
  * Die Datei wird relativ zum Standardverzeichnis gesucht:
- *   - process.env.KANBAN_PRINT_OUTPUT_DIR (oder DATA_DIR/print-output)
+ *   - process.env.KANBAN_PRINT_OUTPUT_DIR
  *   - falls nicht gesetzt: process.env.PRINT_BASE_DIR
  *   - ansonsten <baseDir>/print-output (baseDir kommt aus server.js = DATA_DIR)
  */
@@ -31,16 +31,14 @@ export default function createServerPrintRoutes({ baseDir, printSubDir = "print-
   const ROOT_BASE_DIR = baseDir ? path.resolve(baseDir) : process.cwd();
   const MELDUNG_PRINT_DIR = MELDUNG_PDF_DIR;
   const PROTOKOLL_PRINT_DIR = PROTOKOLL_PDF_DIR;
-
-  const legacyFallbackDir = path.resolve(
+  const FALLBACK_PRINT_DIR = path.resolve(
     process.env.PRINT_BASE_DIR || path.join(ROOT_BASE_DIR, printSubDir),
   );
 
-  const DEFAULT_PRINT_DIR = process.env.KANBAN_PRINT_OUTPUT_DIR
-    ? LEGACY_PDF_DIR
-    : process.env.KANBAN_DATA_DIR
-      ? LEGACY_PDF_DIR
-      : legacyFallbackDir;
+  const configuredPrintDir = process.env.KANBAN_PRINT_OUTPUT_DIR;
+  const hasConfiguredPrintDir = typeof configuredPrintDir === "string" && configuredPrintDir.trim();
+
+  const DEFAULT_PRINT_DIR = hasConfiguredPrintDir ? SERVER_PRINT_PDF_DIR : FALLBACK_PRINT_DIR;
 
   ensurePdfDirectories(DEFAULT_PRINT_DIR, MELDUNG_PRINT_DIR, PROTOKOLL_PRINT_DIR).catch((err) => {
     console.error("[server-print] failed to ensure PDF directories", err);
@@ -48,7 +46,7 @@ export default function createServerPrintRoutes({ baseDir, printSubDir = "print-
 
   const SCOPE_DIRS = new Map([
     ["default", DEFAULT_PRINT_DIR],
-    ["legacy", DEFAULT_PRINT_DIR],
+    ["print", DEFAULT_PRINT_DIR],
     ["meldung", MELDUNG_PRINT_DIR],
     ["server", MELDUNG_PRINT_DIR],
     ["protocol", PROTOKOLL_PRINT_DIR],
@@ -56,8 +54,8 @@ export default function createServerPrintRoutes({ baseDir, printSubDir = "print-
     ["auto", PROTOKOLL_PRINT_DIR],
   ]);
 
-  if (legacyFallbackDir !== DEFAULT_PRINT_DIR) {
-    SCOPE_DIRS.set("legacy-fallback", legacyFallbackDir);
+  if (FALLBACK_PRINT_DIR !== DEFAULT_PRINT_DIR) {
+    SCOPE_DIRS.set("print-base", FALLBACK_PRINT_DIR);
   }
 
   function resolveScope(rawScope) {
