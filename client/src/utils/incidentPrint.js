@@ -36,6 +36,18 @@ export function normalizeLatLng(v) {
     return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
   }
   if (typeof v === "object" && v) {
+    if (typeof v.lat === "function" && typeof v.lng === "function") {
+      const lat = Number(v.lat());
+      const lng = Number(v.lng());
+      if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+    }
+    if (typeof v.toJSON === "function") {
+      const json = v.toJSON();
+      if (json && json !== v) {
+        const normalized = normalizeLatLng(json);
+        if (normalized) return normalized;
+      }
+    }
     const lat = Number(v.lat ?? v.latitude);
     const lng = Number(v.lng ?? v.longitude);
     if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
