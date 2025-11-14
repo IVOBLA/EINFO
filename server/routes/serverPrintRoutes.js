@@ -19,22 +19,26 @@ const { print: winPrint } = printer;
  * Erwartet POST /api/print/server mit Body:
  *   { "file": "mein_protokoll.pdf" }
  *
- * Die Datei wird relativ zu PRINT_BASE_DIR gesucht:
- *   - process.env.PRINT_BASE_DIR ODER
- *   - <baseDir>/print-output (baseDir kommt aus server.js = DATA_DIR)
+ * Die Datei wird relativ zum Standardverzeichnis gesucht:
+ *   - process.env.KANBAN_PRINT_OUTPUT_DIR (oder DATA_DIR/print-output)
+ *   - falls nicht gesetzt: process.env.PRINT_BASE_DIR
+ *   - ansonsten <baseDir>/print-output (baseDir kommt aus server.js = DATA_DIR)
  */
 export default function createServerPrintRoutes({ baseDir, printSubDir = "print-output" } = {}) {
   const router = Router();
 
   // Basisverzeichnis, in dem die druckbaren PDFs liegen
   const ROOT_BASE_DIR = baseDir ? path.resolve(baseDir) : process.cwd();
-  const DEFAULT_PRINT_DIR = LEGACY_PDF_DIR;
   const MELDUNG_PRINT_DIR = MELDUNG_PDF_DIR;
   const PROTOKOLL_PRINT_DIR = PROTOKOLL_PDF_DIR;
 
   const legacyFallbackDir = path.resolve(
     process.env.PRINT_BASE_DIR || path.join(ROOT_BASE_DIR, printSubDir),
   );
+
+  const DEFAULT_PRINT_DIR = process.env.KANBAN_PRINT_OUTPUT_DIR
+    ? LEGACY_PDF_DIR
+    : legacyFallbackDir;
 
   ensurePdfDirectories(DEFAULT_PRINT_DIR, MELDUNG_PRINT_DIR, PROTOKOLL_PRINT_DIR).catch((err) => {
     console.error("[server-print] failed to ensure PDF directories", err);
