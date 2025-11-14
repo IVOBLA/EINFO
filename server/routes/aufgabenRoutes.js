@@ -1,7 +1,6 @@
 import express from "express";
 import fsp from "fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { appendCsvRow, resolveUserName } from "../auditLog.mjs";
 import {
   User_isAnyRoleOnline,
@@ -9,6 +8,7 @@ import {
 } from "../User_auth.mjs";
 import { markResponsibleDone } from "./protocolMarkDone.mjs";
 import { getDefaultDueOffsetMinutes } from "../utils/defaultDueOffset.mjs";
+import { DATA_ROOT } from "../utils/pdfPaths.mjs";
 import {
   AUFG_HEADERS,
   buildAufgabenLog,
@@ -32,8 +32,7 @@ const canonicalRoleId = (value) => {
 
 // ========== Pfade / Dateien ==========
 const AUFG_PREFIX = "Aufg";
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = path.resolve(__dirname, "..", "data");   // => <repo>/server/data
+const DATA_DIR = DATA_ROOT;   // => <repo>/server/data oder konfigurierter Pfad
 const ROLES_FILE = path.join(DATA_DIR, "user", "User_roles.json");
 const PROTOCOL_FILE = path.join(DATA_DIR, "protocol.json");
 

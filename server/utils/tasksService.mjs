@@ -1,16 +1,14 @@
 // server/utils/tasksService.mjs
 import fsp from "fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { appendCsvRow } from "../auditLog.mjs";
 import { getDefaultDueOffsetMinutes } from "./defaultDueOffset.mjs";
 import { AUFG_HEADERS, buildAufgabenLog, ensureAufgabenLogFile } from "./aufgabenLog.mjs";
+import { DATA_ROOT } from "./pdfPaths.mjs";
 
 
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname  = path.dirname(__filename);
-const DATA_DIR   = path.resolve(__dirname, "..", "data"); // => <repo>/server/data
+const DATA_DIR   = DATA_ROOT; // => <repo>/server/data oder konfigurierter Pfad
 const AUFG_PREFIX = "Aufg";
 const DEFAULT_DUE_OFFSET_MINUTES = getDefaultDueOffsetMinutes();
 

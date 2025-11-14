@@ -1,11 +1,9 @@
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
 import { appendHistoryEntriesToCsv } from "../utils/protocolCsv.mjs";
+import { DATA_ROOT } from "../utils/pdfPaths.mjs";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname  = path.dirname(__filename);
-const DATA_DIR   = path.resolve(__dirname, "..", "data");
+const DATA_DIR   = DATA_ROOT;
 const JSON_FILE  = path.join(DATA_DIR, "protocol.json");
 const CSV_FILE   = path.join(DATA_DIR, "protocol.csv");
 

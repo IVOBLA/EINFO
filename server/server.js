@@ -17,6 +17,7 @@ import { appendCsvRow } from "./auditLog.mjs";
 import createServerPrintRoutes from "./routes/serverPrintRoutes.js";
 import { getProtocolCreatedAt, parseAutoPrintTimestamp } from "./utils/autoPrintHelpers.js";
 import { getLogDirCandidates } from "./utils/logDirectories.mjs";
+import { DATA_ROOT } from "./utils/pdfPaths.mjs";
 
 // 🔐 Neues User-Management
 import { User_authMiddleware, User_createRouter, User_requireAuth } from "./User_auth.mjs";
@@ -33,7 +34,7 @@ const PORT = process.env.PORT || 4040;
 const SECURE_COOKIES = process.env.KANBAN_COOKIE_SECURE === "1";
 
 const ROOT      = path.join(__dirname);
-const DATA_DIR  = path.join(ROOT, "data");
+const DATA_DIR  = DATA_ROOT;
 const DIST_DIR  = path.join(ROOT, "dist");
 const PUBLIC_DIR = path.join(ROOT, "public");
 const VEH_OVERRIDES = path.join(DATA_DIR, "vehicles-overrides.json");
