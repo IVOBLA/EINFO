@@ -129,13 +129,28 @@ export default function createServerPrintRoutes({ baseDir, printSubDir = "print-
       }
 
       // ---------------- Linux / macOS ----------------
-      // lp nutzt den Standarddrucker, wenn kein -d angegeben ist
+      const printCommand = process.env.KANBAN_PRINT_COMMAND || "lp";
+
+      // lp (oder alternativer Befehl) nutzt den Standarddrucker, wenn kein -d angegeben ist
       await new Promise((resolve, reject) => {
-        execFile("lp", [absPath], (err, stdout, stderr) => {
+        execFile(printCommand, [absPath], (err, stdout, stderr) => {
           if (err) {
-            const error = new Error("lp-Aufruf fehlgeschlagen");
+            if (err.code === "ENOENT") {
+              const error = new Error(
+                `Druckbefehl '${printCommand}' wurde nicht gefunden. Bitte CUPS installieren ` +
+                  "oder die Umgebungsvariable KANBAN_PRINT_COMMAND auf einen gültigen Pfad setzen.",
+              );
+              error.code = "PRINT_COMMAND_NOT_FOUND";
+              error.printCommand = printCommand;
+              return reject(error);
+            }
+
+            const error = new Error(`${printCommand}-Aufruf fehlgeschlagen`);
+            error.code = "PRINT_COMMAND_FAILED";
             error.stdout = stdout?.toString();
             error.stderr = stderr?.toString();
+            error.printCommand = printCommand;
+            error.cause = err;
             return reject(error);
           }
           resolve(stdout?.toString());
@@ -144,7 +159,7 @@ export default function createServerPrintRoutes({ baseDir, printSubDir = "print-
 
       return res.json({
         ok: true,
-        message: "Druck an Standarddrucker (lp) gesendet",
+        message: `Druck an Standarddrucker (${printCommand}) gesendet`,
         file,
         scope: scopeKey,
       });
