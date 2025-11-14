@@ -5,9 +5,19 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const DEFAULT_DATA_ROOT = path.resolve(
-  process.env.KANBAN_DATA_DIR || path.join(__dirname, "..", "data"),
-);
+const DEFAULT_DATA_ROOT = (() => {
+  const dataDir = process.env.DATA_DIR;
+  if (typeof dataDir === "string" && dataDir.trim()) {
+    return path.resolve(dataDir);
+  }
+
+  const legacyDir = process.env.KANBAN_DATA_DIR;
+  if (typeof legacyDir === "string" && legacyDir.trim()) {
+    return path.resolve(legacyDir);
+  }
+
+  return path.resolve(__dirname, "..", "data");
+})();
 
 function resolveConfiguredDir(envName, fallbackRelative) {
   const raw = process.env[envName];
