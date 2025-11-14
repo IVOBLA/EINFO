@@ -38,7 +38,9 @@ export default function createServerPrintRoutes({ baseDir, printSubDir = "print-
 
   const DEFAULT_PRINT_DIR = process.env.KANBAN_PRINT_OUTPUT_DIR
     ? LEGACY_PDF_DIR
-    : legacyFallbackDir;
+    : process.env.KANBAN_DATA_DIR
+      ? LEGACY_PDF_DIR
+      : legacyFallbackDir;
 
   ensurePdfDirectories(DEFAULT_PRINT_DIR, MELDUNG_PRINT_DIR, PROTOKOLL_PRINT_DIR).catch((err) => {
     console.error("[server-print] failed to ensure PDF directories", err);
