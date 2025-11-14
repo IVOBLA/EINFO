@@ -1,21 +1,16 @@
 import express from "express";
-import fs from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import puppeteer from "puppeteer";
 import { User_authMiddleware } from "../User_auth.mjs";
 import { isMailConfigured, sendMail } from "../utils/mailClient.mjs";
+import { EINSATZ_PDF_DIR, ensurePdfDirectories } from "../utils/pdfPaths.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const DATA_ROOT = path.resolve(
-  process.env.KANBAN_DATA_DIR || path.join(__dirname, "..", "data"),
-);
-const INCIDENT_PDF_DIR = path.resolve(
-  process.env.KANBAN_EINSATZ_PRINT_DIR || path.join(DATA_ROOT, "prints", "einsatz"),
-);
-await fs.mkdir(INCIDENT_PDF_DIR, { recursive: true });
+const INCIDENT_PDF_DIR = EINSATZ_PDF_DIR;
+await ensurePdfDirectories(INCIDENT_PDF_DIR);
 
 const SECURE_COOKIES = process.env.KANBAN_COOKIE_SECURE === "1";
 const router = express.Router();

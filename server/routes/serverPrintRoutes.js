@@ -5,6 +5,12 @@ import path from "path";
 import os from "os";
 import { execFile } from "child_process";
 import printer from "pdf-to-printer";
+import {
+  LEGACY_PDF_DIR,
+  MELDUNG_PDF_DIR,
+  PROTOKOLL_PDF_DIR,
+  ensurePdfDirectories,
+} from "../utils/pdfPaths.mjs";
 const { print: winPrint } = printer;
 
 /**
@@ -22,15 +28,17 @@ export default function createServerPrintRoutes({ baseDir, printSubDir = "print-
 
   // Basisverzeichnis, in dem die druckbaren PDFs liegen
   const ROOT_BASE_DIR = baseDir ? path.resolve(baseDir) : process.cwd();
-  const DEFAULT_PRINT_DIR = path.resolve(
+  const DEFAULT_PRINT_DIR = LEGACY_PDF_DIR;
+  const MELDUNG_PRINT_DIR = MELDUNG_PDF_DIR;
+  const PROTOKOLL_PRINT_DIR = PROTOKOLL_PDF_DIR;
+
+  const legacyFallbackDir = path.resolve(
     process.env.PRINT_BASE_DIR || path.join(ROOT_BASE_DIR, printSubDir),
   );
-  const MELDUNG_PRINT_DIR = path.resolve(
-    process.env.KANBAN_MELDUNG_PRINT_DIR || path.join(ROOT_BASE_DIR, "prints", "meldung"),
-  );
-  const PROTOKOLL_PRINT_DIR = path.resolve(
-    process.env.KANBAN_PROTOKOLL_PRINT_DIR || path.join(ROOT_BASE_DIR, "prints", "protokoll"),
-  );
+
+  ensurePdfDirectories(DEFAULT_PRINT_DIR, MELDUNG_PRINT_DIR, PROTOKOLL_PRINT_DIR).catch((err) => {
+    console.error("[server-print] failed to ensure PDF directories", err);
+  });
 
   const SCOPE_DIRS = new Map([
     ["default", DEFAULT_PRINT_DIR],
@@ -41,6 +49,10 @@ export default function createServerPrintRoutes({ baseDir, printSubDir = "print-
     ["protokoll", PROTOKOLL_PRINT_DIR],
     ["auto", PROTOKOLL_PRINT_DIR],
   ]);
+
+  if (legacyFallbackDir !== DEFAULT_PRINT_DIR) {
+    SCOPE_DIRS.set("legacy-fallback", legacyFallbackDir);
+  }
 
   function resolveScope(rawScope) {
     if (typeof rawScope === "string") {

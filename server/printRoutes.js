@@ -9,26 +9,19 @@ import { appendHistoryEntriesToCsv } from "./utils/protocolCsv.mjs";
 import { resolveUserName } from "./auditLog.mjs";
 import { invalidateProtocolCache } from "./routes/protocol.js";
 import { User_authMiddleware } from "./User_auth.mjs";
+import {
+  DATA_ROOT,
+  MELDUNG_PDF_DIR,
+  ALL_PROTOCOL_PDF_DIRS,
+  ensurePdfDirectories,
+} from "./utils/pdfPaths.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
-// Gemeinsamer Daten-Root (wie in protocol.js)
-// Immer absolut auflösen, damit auch relative ENV-Pfade (z. B. "../data") korrekt funktionieren.
-const DATA_ROOT = path.resolve(process.env.KANBAN_DATA_DIR || path.join(__dirname, "data"));
-// Ablageorte für Protokoll-PDFs (konfigurierbar über .env)
-const MELDUNG_PDF_DIR = path.resolve(
-  process.env.KANBAN_MELDUNG_PRINT_DIR || path.join(DATA_ROOT, "prints", "meldung"),
-);
-const LEGACY_PDF_DIR = path.resolve(
-  process.env.KANBAN_PRINT_OUTPUT_DIR || path.join(DATA_ROOT, "print-output"),
-);
 const SERVER_PRINT_PDF_DIR = MELDUNG_PDF_DIR;
 
-const ALL_PDF_DIRS = Array.from(new Set([MELDUNG_PDF_DIR, LEGACY_PDF_DIR]));
-for (const dir of ALL_PDF_DIRS) {
-  await fs.mkdir(dir, { recursive: true });
-}
+await ensurePdfDirectories(ALL_PROTOCOL_PDF_DIRS);
 
 // Protokoll-Daten (JSON) für Autosave/History
 const JSON_FILE = path.join(DATA_ROOT, "protocol.json");
@@ -466,6 +459,8 @@ async function renderBundlePdf(item, recipients, nr, { outputDir = MELDUNG_PDF_D
   const outName = `protokoll_${nr ?? "neu"}_${Date.now()}.pdf`;
   const outPath = path.join(outputDir, outName);
 
+  await fs.mkdir(outputDir, { recursive: true });
+
   const browser = await puppeteer.launch({
     headless: "new",
     args: ["--no-sandbox", "--font-render-hinting=none"],
@@ -552,7 +547,7 @@ router.post("/blank/print", express.json(), async (req, res) => {
 
 function resolveCandidatePaths(rawName) {
   const safeName = path.basename(String(rawName || ""));
-  const candidateDirs = ALL_PDF_DIRS.length ? ALL_PDF_DIRS : [MELDUNG_PDF_DIR];
+  const candidateDirs = ALL_PROTOCOL_PDF_DIRS.length ? ALL_PROTOCOL_PDF_DIRS : [MELDUNG_PDF_DIR];
   return {
     safeName,
     candidates: candidateDirs.map((dir) => path.join(dir, safeName)),
