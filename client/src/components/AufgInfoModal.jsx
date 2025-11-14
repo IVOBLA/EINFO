@@ -89,6 +89,8 @@ export default function AufgInfoModal({
   onCreateProtocol,
 }) {
   const it = item || null;
+  const originProtocolId = useMemo(() => normalizeProtocolId(it?.originProtocolNr), [it?.originProtocolNr]);
+  const isAutoFromProtocol = Boolean(originProtocolId);
   const [edit, setEdit] = useState(false);
   const [form, setForm] = useState({
     title: "",
@@ -114,6 +116,12 @@ export default function AufgInfoModal({
   useEffect(() => {
     if (!open) return;
     setEdit(false);
+    const initialLinked = normalizeProtocolIds(
+      it?.linkedProtocolNrs ?? (Array.isArray(it?.linkedProtocols) ? it.linkedProtocols.map((entry) => entry?.nr) : [])
+    );
+    const withOrigin = originProtocolId && !initialLinked.includes(originProtocolId)
+      ? [...initialLinked, originProtocolId]
+      : initialLinked;
     setForm({
       title: it?.title || "",
       type: it?.type || "",
@@ -121,11 +129,9 @@ export default function AufgInfoModal({
       desc: it?.desc || "",
       dueAt: it?.dueAt ? new Date(it.dueAt) : null,
       relatedIncidentId: it?.relatedIncidentId ? String(it.relatedIncidentId) : "",
-      linkedProtocolNrs: normalizeProtocolIds(
-        it?.linkedProtocolNrs ?? (Array.isArray(it?.linkedProtocols) ? it.linkedProtocols.map((entry) => entry?.nr) : [])
-      ),
+      linkedProtocolNrs: withOrigin,
     });
-  }, [open, it?.id]);
+  }, [open, it?.id, originProtocolId, it?.linkedProtocolNrs, it?.linkedProtocols]);
   useEffect(() => {
     if (!open) return undefined;
     const onKeyDown = (ev) => {
@@ -135,17 +141,21 @@ export default function AufgInfoModal({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open, onClose]);
 
-  const normalizedFormProtocols = useMemo(
-    () => normalizeProtocolIds(form.linkedProtocolNrs),
-    [form.linkedProtocolNrs]
-  );
+  const normalizedFormProtocols = useMemo(() => {
+    const current = normalizeProtocolIds(form.linkedProtocolNrs);
+    if (originProtocolId && !current.includes(originProtocolId)) current.push(originProtocolId);
+    return current;
+  }, [form.linkedProtocolNrs, originProtocolId]);
 
   const normalizedItemProtocols = useMemo(
-    () =>
-      normalizeProtocolIds(
+    () => {
+      const current = normalizeProtocolIds(
         it?.linkedProtocolNrs ?? (Array.isArray(it?.linkedProtocols) ? it.linkedProtocols.map((entry) => entry?.nr) : [])
-      ),
-    [it?.linkedProtocolNrs, it?.linkedProtocols]
+      );
+      if (originProtocolId && !current.includes(originProtocolId)) current.push(originProtocolId);
+      return current;
+    },
+    [it?.linkedProtocolNrs, it?.linkedProtocols, originProtocolId]
   );
 
   const existingLinkedMap = useMemo(() => {
@@ -518,55 +528,85 @@ export default function AufgInfoModal({
               </label>
               <label className="block col-span-2">
                 <span className="text-xs text-gray-600">Verknüpfte Meldungen</span>
-                <div className="mt-1 flex flex-col gap-2">
-                  <div className="max-h-48 overflow-y-auto border rounded divide-y">
-                    {availableProtocolOptions.length ? (
-                      availableProtocolOptions.map((opt) => {
-                        const checked = normalizedFormProtocols.includes(opt.value);
-                        return (
-                          <label
-                            key={opt.value}
-                            className="flex items-start gap-2 px-2 py-2 text-sm hover:bg-gray-50"
-                          >
-                            <input
-                              type="checkbox"
-                              className="mt-1"
-                              checked={checked}
-                              onChange={() => toggleProtocolSelection(opt.value)}
-                            />
-                            <span>{opt.label}</span>
-                          </label>
-                        );
-                      })
+                {isAutoFromProtocol ? (
+                  <div className="mt-1">
+                    {selectedProtocolDetails.length ? (
+                      <ul className="space-y-1">
+                        {selectedProtocolDetails.map((detail) => {
+                          const nr = detail.nr;
+                          const label = formatProtocolLabel(detail);
+                          return (
+                            <li key={nr}>
+                              <button
+                                type="button"
+                                className="text-blue-700 hover:underline"
+                                onClick={() => {
+                                  if (!nr) return;
+                                  window.location.assign(`/protokoll#/protokoll/edit/${nr}`);
+                                }}
+                                title={nr ? `Meldung #${nr} öffnen` : "Meldung öffnen"}
+                              >
+                                {label}
+                              </button>
+                            </li>
+                          );
+                        })}
+                      </ul>
                     ) : (
-                      <div className="px-2 py-2 text-sm text-gray-500">
-                        Keine Meldungen verfügbar.
-                      </div>
+                      <div className="text-sm">—</div>
                     )}
                   </div>
-                  <div className="text-[11px] text-gray-500">
-                    Meldungen, bei denen diese Rolle als „ergeht an“ eingetragen ist.
-                  </div>
-                  {missingProtocols.length ? (
-                    <div className="rounded border border-amber-300 bg-amber-50 px-2 py-2 text-xs text-amber-800">
-                      <div className="font-semibold mb-1">Bereits verknüpft (nicht mehr in der Auswahl)</div>
-                      <ul className="space-y-1">
-                        {missingProtocols.map((detail) => (
-                          <li key={detail.nr} className="flex items-start justify-between gap-2">
-                            <span>{formatProtocolLabel(detail)}</span>
-                            <button
-                              type="button"
-                              className="text-red-600 hover:underline"
-                              onClick={() => toggleProtocolSelection(detail.nr)}
+                ) : (
+                  <div className="mt-1 flex flex-col gap-2">
+                    <div className="max-h-48 overflow-y-auto border rounded divide-y">
+                      {availableProtocolOptions.length ? (
+                        availableProtocolOptions.map((opt) => {
+                          const checked = normalizedFormProtocols.includes(opt.value);
+                          return (
+                            <label
+                              key={opt.value}
+                              className="flex items-start gap-2 px-2 py-2 text-sm hover:bg-gray-50"
                             >
-                              Entfernen
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
+                              <input
+                                type="checkbox"
+                                className="mt-1"
+                                checked={checked}
+                                onChange={() => toggleProtocolSelection(opt.value)}
+                              />
+                              <span>{opt.label}</span>
+                            </label>
+                          );
+                        })
+                      ) : (
+                        <div className="px-2 py-2 text-sm text-gray-500">
+                          Keine Meldungen verfügbar.
+                        </div>
+                      )}
                     </div>
-                  ) : null}
-                </div>
+                    <div className="text-[11px] text-gray-500">
+                      Meldungen, bei denen diese Rolle als „ergeht an“ eingetragen ist.
+                    </div>
+                    {missingProtocols.length ? (
+                      <div className="rounded border border-amber-300 bg-amber-50 px-2 py-2 text-xs text-amber-800">
+                        <div className="font-semibold mb-1">Bereits verknüpft (nicht mehr in der Auswahl)</div>
+                        <ul className="space-y-1">
+                          {missingProtocols.map((detail) => (
+                            <li key={detail.nr} className="flex items-start justify-between gap-2">
+                              <span>{formatProtocolLabel(detail)}</span>
+                              <button
+                                type="button"
+                                className="text-red-600 hover:underline"
+                                onClick={() => toggleProtocolSelection(detail.nr)}
+                              >
+                                Entfernen
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+                  </div>
+                )}
               </label>
             </div>
             <label className="block">
