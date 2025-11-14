@@ -2,7 +2,6 @@
 import fs from "fs";
 import fsp from "fs/promises";
 import path from "path";
-import { fileURLToPath } from "url";
 import express from "express";
 import { randomUUID } from "crypto";
 import { resolveUserName } from "../auditLog.mjs";
@@ -15,6 +14,7 @@ import {
 import { User_initStore } from "../User_store.mjs";
 import { ensureTaskForRole } from "../utils/tasksService.mjs";
 import { CSV_HEADER, ensureCsvStructure, appendHistoryEntriesToCsv } from "../utils/protocolCsv.mjs";
+import { DATA_ROOT } from "../utils/pdfPaths.mjs";
 
 const isLage = v => /^(lage|lagemeldung)$/i.test(String(v || ""));
 const infoText = x => String(x?.information ?? x?.INFORMATION ?? x?.beschreibung ?? x?.text ?? x?.ERGAENZUNG ?? "").trim();
@@ -182,12 +182,8 @@ const rolesOf = x => {
   return [...set].filter(Boolean);
 };
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname  = path.dirname(__filename);
-
-// ► Datenpfad: standardmäßig ../data (also server/data), nicht routes/data
-const SERVER_DIR = path.resolve(__dirname, "..");
-const DATA_DIR   = path.resolve(SERVER_DIR, "data");   // => <repo>/server/data
+// ► Datenpfad aus zentraler Konfiguration (z.B. via DATA_DIR)
+const DATA_DIR   = DATA_ROOT;   // => <repo>/server/data oder konfigurierter Pfad
 const CSV_FILE   = path.join(DATA_DIR, "protocol.csv");
 const JSON_FILE  = path.join(DATA_DIR, "protocol.json");
 const ROLES_FILE = path.join(DATA_DIR, "user", "User_roles.json");
