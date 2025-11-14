@@ -12,14 +12,13 @@ import { User_authMiddleware } from "./User_auth.mjs";
 import {
   DATA_ROOT,
   MELDUNG_PDF_DIR,
+  SERVER_PRINT_PDF_DIR,
   ALL_PROTOCOL_PDF_DIRS,
   ensurePdfDirectories,
 } from "./utils/pdfPaths.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
-
-const SERVER_PRINT_PDF_DIR = MELDUNG_PDF_DIR;
 
 await ensurePdfDirectories(ALL_PROTOCOL_PDF_DIRS);
 

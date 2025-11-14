@@ -20,14 +20,26 @@ function resolveConfiguredDir(envName, fallbackRelative) {
   return path.resolve(DEFAULT_DATA_ROOT, fallbackRelative);
 }
 
+function resolveServerPrintDir() {
+  const explicit = process.env.KANBAN_PRINT_OUTPUT_DIR;
+  if (typeof explicit === "string" && explicit.trim()) {
+    return path.resolve(explicit);
+  }
+  const printBase = process.env.PRINT_BASE_DIR;
+  if (typeof printBase === "string" && printBase.trim()) {
+    return path.resolve(printBase);
+  }
+  return path.resolve(DEFAULT_DATA_ROOT, "print-output");
+}
+
 export const DATA_ROOT = DEFAULT_DATA_ROOT;
 export const MELDUNG_PDF_DIR = resolveConfiguredDir("KANBAN_MELDUNG_PRINT_DIR", "prints/meldung");
-export const LEGACY_PDF_DIR = resolveConfiguredDir("KANBAN_PRINT_OUTPUT_DIR", "print-output");
+export const SERVER_PRINT_PDF_DIR = resolveServerPrintDir();
 export const PROTOKOLL_PDF_DIR = resolveConfiguredDir("KANBAN_PROTOKOLL_PRINT_DIR", "prints/protokoll");
 export const EINSATZ_PDF_DIR = resolveConfiguredDir("KANBAN_EINSATZ_PRINT_DIR", "prints/einsatz");
 
 export const ALL_PROTOCOL_PDF_DIRS = Array.from(
-  new Set([MELDUNG_PDF_DIR, LEGACY_PDF_DIR, PROTOKOLL_PDF_DIR].filter(Boolean)),
+  new Set([MELDUNG_PDF_DIR, SERVER_PRINT_PDF_DIR, PROTOKOLL_PDF_DIR].filter(Boolean)),
 );
 
 export async function ensurePdfDirectories(...dirs) {
