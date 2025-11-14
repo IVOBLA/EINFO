@@ -2,6 +2,7 @@
 import fs from "fs";
 import fsp from "fs/promises";
 import path from "path";
+import { fileURLToPath } from "url";
 import axios from "axios";
 import { CookieJar } from "tough-cookie";
 import { wrapper } from "axios-cookiejar-support";
@@ -9,8 +10,17 @@ import { wrapper } from "axios-cookiejar-support";
 // ---------- Konfiguration ----------
 const BASE = "https://feuerwehr.einsatz.or.at";
 
-const OUT_FILE = process.env.FF_OUT_FILE || path.resolve("./data/list_filtered.json");
-const GPS_OUT_FILE = process.env.FF_GPS_OUT_FILE || path.resolve("./data/vehicles_gps.json");
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const resolvePath = (value, fallbackRelative) => {
+  if (value) {
+    return path.isAbsolute(value) ? value : path.resolve(__dirname, value);
+  }
+  return path.resolve(__dirname, fallbackRelative);
+};
+
+const OUT_FILE = resolvePath(process.env.FF_OUT_FILE, "data/list_filtered.json");
+const GPS_OUT_FILE = resolvePath(process.env.FF_GPS_OUT_FILE, "data/vehicles_gps.json");
 const POLL_MS  = Number(process.env.FF_POLL_INTERVAL_MS || 60000);
 const DEBUG    = String(process.env.FF_DEBUG || "0") === "1";
 
