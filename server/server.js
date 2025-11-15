@@ -70,21 +70,26 @@ const DEFAULT_BOARD_COLUMNS = {
   erledigt: "Erledigt",
 };
 
-const BOARD_CACHE_MAX_AGE_MS = (() => {
-  const raw = Number(process.env.BOARD_CACHE_MAX_AGE_MS);
-  return Number.isFinite(raw) && raw >= 0 ? raw : 5_000;
-})();
-
-function parseUiPollInterval(name, fallback) {
+function parseIntervalEnv(name, fallback, { min = 1, allowZero = false } = {}) {
   const raw = process.env[name];
   if (raw === undefined || raw === null || raw === "") return fallback;
   const parsed = Number(raw);
-  if (Number.isFinite(parsed) && parsed > 0) return Math.floor(parsed);
-  return fallback;
+  if (!Number.isFinite(parsed)) return fallback;
+  const normalized = Math.floor(parsed);
+  const baseMin = allowZero ? 0 : 1;
+  const effectiveMin = Math.max(baseMin, min ?? baseMin);
+  if (normalized < effectiveMin) return fallback;
+  return normalized;
 }
 
-const UI_STATUS_POLL_INTERVAL_MS = parseUiPollInterval("UI_STATUS_POLL_INTERVAL_MS", 3_000);
-const UI_ACTIVITY_POLL_INTERVAL_MS = parseUiPollInterval("UI_ACTIVITY_POLL_INTERVAL_MS", 1_000);
+const BOARD_CACHE_MAX_AGE_MS = parseIntervalEnv("BOARD_CACHE_MAX_AGE_MS", 5_000, { min: 0, allowZero: true });
+const UI_STATUS_POLL_INTERVAL_MS = parseIntervalEnv("UI_STATUS_POLL_INTERVAL_MS", 3_000);
+const UI_ACTIVITY_POLL_INTERVAL_MS = parseIntervalEnv("UI_ACTIVITY_POLL_INTERVAL_MS", 1_000);
+const VEHICLE_CACHE_TTL_MS = parseIntervalEnv("VEHICLE_CACHE_TTL_MS", 10_000, { min: 0, allowZero: true });
+const AUTO_IMPORT_DEFAULT_INTERVAL_SEC = parseIntervalEnv("AUTO_IMPORT_DEFAULT_INTERVAL_SEC", 30);
+const AUTO_PRINT_DEFAULT_INTERVAL_MINUTES = parseIntervalEnv("AUTO_PRINT_DEFAULT_INTERVAL_MINUTES", 10);
+const AUTO_PRINT_MIN_INTERVAL_MINUTES = parseIntervalEnv("AUTO_PRINT_MIN_INTERVAL_MINUTES", 1);
+const FF_ACTIVITY_SWEEP_INTERVAL_MS = parseIntervalEnv("FF_ACTIVITY_SWEEP_INTERVAL_MS", 60_000);
 
 let boardCacheValue = null;
 let boardCacheExpiresAt = 0;
@@ -114,7 +119,6 @@ async function saveBoard(board) {
   updateBoardCache(board);
 }
 
-const VEHICLE_CACHE_TTL_MS = 10_000;
 let vehiclesCacheValue = null;
 let vehiclesCacheExpiresAt = 0;
 let vehiclesCachePromise = null;
@@ -135,10 +139,18 @@ const EINSATZ_HEADERS = [
 // ==== Auto-Import ====
 const AUTO_CFG_FILE         = path.join(DATA_DIR, "conf","auto-import.json");
 const AUTO_DEFAULT_FILENAME = "list_filtered.json";
-const AUTO_DEFAULT          = { enabled:false, intervalSec:30, filename:AUTO_DEFAULT_FILENAME, demoMode:false };
+const AUTO_DEFAULT          = { enabled:false, intervalSec:AUTO_IMPORT_DEFAULT_INTERVAL_SEC, filename:AUTO_DEFAULT_FILENAME, demoMode:false };
 const AUTO_IMPORT_USER      = "EinsatzInfo";
-const AUTO_PRINT_DEFAULT    = { enabled:false, intervalMinutes:10, lastRunAt:null, entryScope:"interval", scope:"interval" };
-const AUTO_PRINT_MIN_INTERVAL_MINUTES = 1;
+const AUTO_PRINT_DEFAULT    = { enabled:false, intervalMinutes:AUTO_PRINT_DEFAULT_INTERVAL_MINUTES, lastRunAt:null, entryScope:"interval", scope:"interval" };
+
+function resolveAutoIntervalSeconds(value) {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) && numeric > 0 ? Math.floor(numeric) : AUTO_DEFAULT.intervalSec;
+}
+
+function resolveAutoIntervalMs(value) {
+  return resolveAutoIntervalSeconds(value) * 1_000;
+}
 
 // Merker für Import-Status
 let importLastLoadedAt = null;   // ms
@@ -250,7 +262,7 @@ setInterval(async () => {
   }catch(e){
     await appendError("auto-stop", e);
   }
-}, 60_000);
+}, FF_ACTIVITY_SWEEP_INTERVAL_MS);
 
 async function writeFileAtomic(file, data, enc="utf8"){
   await ensureDir(path.dirname(file));
@@ -2784,11 +2796,11 @@ async function startAutoTimer(){
   clearAutoTimer();
   const cfg=await readAutoCfg();
   if(!cfg.enabled) return;
-  autoNextAt = Date.now() + (cfg.intervalSec||30)*1000;
+  autoNextAt = Date.now() + resolveAutoIntervalMs(cfg.intervalSec);
   autoTimer=setInterval(async ()=>{
     try{
       const r=await importFromFileOnce(cfg.filename);
-      autoNextAt = Date.now() + (cfg.intervalSec||30)*1000;
+      autoNextAt = Date.now() + resolveAutoIntervalMs(cfg.intervalSec);
       if(!r.ok){
         console.warn("[auto-import] Fehler:", r.error);
         await appendError("auto-import", new Error(r.error));
@@ -2797,7 +2809,7 @@ async function startAutoTimer(){
       console.warn("[auto-import] Exception:", e?.message||e);
       await appendError("auto-import/exception", e);
     }
-  }, (cfg.intervalSec||30)*1000);
+  }, resolveAutoIntervalMs(cfg.intervalSec));
 }
 
 app.get("/api/import/auto-config",  async (_req,res)=>{ res.json(await readAutoCfg()); });
@@ -2819,7 +2831,7 @@ app.post("/api/import/auto-config", async (req,res)=>{
         try{ if (ffStatus().running) await ffStop(); }catch{}
       }else{
         try{
-          const pollMs = (next.intervalSec||30)*1000;
+          const pollMs = resolveAutoIntervalMs(next.intervalSec);
           if (ffStatus().running) await ffStop();
 
           const it = await User_getGlobalFetcher(); // <— GLOBAL
@@ -2906,7 +2918,7 @@ async function triggerOnce(_req,res){
       }
 
       try {
-        const pollMs = (cfg.intervalSec || 30) * 1000;
+        const pollMs = resolveAutoIntervalMs(cfg.intervalSec);
         await ffRunOnce({
           username: creds.creds.username,
           password: creds.creds.password,
@@ -2973,7 +2985,7 @@ app.post("/api/ff/start", async (_req,res)=>{
     const st = await ffStart({
       username: it.creds.username,
       password: it.creds.password,
-      pollIntervalMs: (cfg.intervalSec||30)*1000
+      pollIntervalMs: resolveAutoIntervalMs(cfg.intervalSec)
     });
     markActivity("ff/start");
     importLastLoadedAt = null;
