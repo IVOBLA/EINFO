@@ -1,0 +1,28 @@
+
+[Unit]
+Description=Kanban Server (Node.js)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/bfkdo/kanban
+Environment=NODE_ENV=production
+Environment=PORT=4000
+EnvironmentFile=/home/bfkdo/kanban/server/dot.env
+Environment=DATA_DIR=/home/bfkdo/kanban/server/data
+ExecStart=/usr/bin/node server/server.js
+Restart=on-failure
+RestartSec=5
+User=bfkdo
+Group=bfkdo
+AmbientCapabilities=
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target
+
+
+
+
+
+
