@@ -450,6 +450,7 @@ const route = hash.replace(/^#/, "");
   const suppressSoundUntilRef = useRef(0);      // bis wann kein Ton
   const suppressPulseIdsRef  = useRef(new Set()); // IDs, für die kein Pulse erlaubt ist
   const initialPulseSuppressUntilRef = useRef(0); // Start-Sperre nach Laden
+  const lastPulseTriggerRef = useRef(0);        // Zeitpunkt des letzten fremden Neu-Pulses
 
 
 
@@ -920,6 +921,7 @@ function updatePulseForNewBoard({ oldIds, newBoard, pulseMs = 8000 }) {
     }
 
     setNewlyImportedIds(eligible);
+    lastPulseTriggerRef.current = now;
     setPulseUntilMs(now + pulseMs);
 
     if (areaFilter) {
@@ -934,14 +936,23 @@ function updatePulseForNewBoard({ oldIds, newBoard, pulseMs = 8000 }) {
       }
     }
 
-    // 🔊 Ton nur, wenn Pulse aktiv ist UND kein eigenes Sperrfenster
-    if (now >= suppressSoundUntilRef.current) {
-      try { playGong(); } catch {}
-    }
   }
 
   prevIdsRef.current = newIds;
 }
+
+useEffect(() => {
+  if (!newlyImportedIds.size) return;
+  const triggeredAt = lastPulseTriggerRef.current;
+  if (!triggeredAt) return;
+  if (Date.now() < suppressSoundUntilRef.current) return;
+
+  let raf = requestAnimationFrame(() => {
+    try { playGong(); } catch {}
+  });
+
+  return () => cancelAnimationFrame(raf);
+}, [newlyImportedIds]);
 
   // Sofort-Import
   const [importBusy, setImportBusy] = useState(false);
