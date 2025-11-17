@@ -156,6 +156,24 @@ function decodeBase64Body(body, charset) {
   }
 }
 
+function looksLikeBase64(body = "") {
+  const cleaned = body.replace(/\s+/g, "");
+  if (cleaned.length < 16 || cleaned.length % 4 !== 0) return false;
+  return /^[A-Za-z0-9+/]+=*$/.test(cleaned);
+}
+
+function decodeIfBase64Text(body = "", charset = "utf8") {
+  if (!looksLikeBase64(body)) return body;
+  try {
+    const decoded = decodeBase64Body(body, charset);
+    const printable = decoded.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]+/g, "").trim();
+    if (!printable) return body;
+    return decoded.trim() || body;
+  } catch {
+    return body;
+  }
+}
+
 function decodeQuotedPrintable(body, charset) {
   try {
     const withoutSoftBreaks = body.replace(/=\r?\n/g, "");
@@ -204,18 +222,22 @@ function extractBody({ headers, rawBody }) {
       .map(parseMailPart);
 
     const plain = parsedParts.find((p) => String(p.headers["content-type"] || "").toLowerCase().includes("text/plain") && p.body);
-    if (plain?.body) return plain.body.trim();
+    if (plain?.body) return decodeIfBase64Text(plain.body.trim(), extractCharset(plain.headers["content-type"]));
 
     const html = parsedParts.find((p) => String(p.headers["content-type"] || "").toLowerCase().includes("text/html") && p.body);
-    if (html?.body) return stripHtmlTags(html.body).trim();
+    if (html?.body) return decodeIfBase64Text(stripHtmlTags(html.body).trim(), extractCharset(html.headers["content-type"]));
   }
 
   const charset = extractCharset(contentType);
   const encoding = String(headers["content-transfer-encoding"] || "").toLowerCase();
-  if (encoding === "base64") return decodeBase64Body(rawBody, charset).trim();
-  if (encoding === "quoted-printable") return decodeQuotedPrintable(rawBody, charset).trim();
+  let decoded = null;
 
-  return rawBody.trim();
+  if (encoding === "base64") decoded = decodeBase64Body(rawBody, charset).trim();
+  else if (encoding === "quoted-printable") decoded = decodeQuotedPrintable(rawBody, charset).trim();
+  else decoded = rawBody.trim();
+
+  return decodeIfBase64Text(decoded, charset);
+
 }
 
 export function parseRawMail(raw, { id = null, file = null } = {}) {
