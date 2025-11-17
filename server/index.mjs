@@ -6,7 +6,6 @@ import { fileURLToPath } from "url";
 import axios from "axios";
 import { CookieJar } from "tough-cookie";
 import { wrapper } from "axios-cookiejar-support";
-import { generateWeatherFileIfWarning } from "./utils/weatherWarning.mjs";
 
 // ---------- Konfiguration ----------
 const BASE = "https://feuerwehr.einsatz.or.at";
@@ -237,13 +236,6 @@ async function loop() {
       // 1) /list → Einsätze (unverändert)
       const data = await fetchListOnce();
       await writeFileAtomic(OUT_FILE, JSON.stringify(data, null, 2), "utf8");
-
-      // 1b) Wetterwarnung-Export
-      try {
-        await generateWeatherFileIfWarning({ incidents: data });
-      } catch (e) {
-        console.error(`[ERROR] ${nowIso()} – Wetterwarnung-Export fehlgeschlagen: ${e.message}`);
-      }
 
       // 2) /status/gps → Live-Fahrzeugpositionen (NEU)
       try {

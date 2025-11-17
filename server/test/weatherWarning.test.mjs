@@ -1,121 +1,63 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, writeFile, readFile, rm, stat } from "node:fs/promises";
+import { mkdtemp, writeFile, readFile, rm, stat } from "node:fs/promises";
 import path from "node:path";
 import { tmpdir } from "node:os";
 import test from "node:test";
 
-import { generateWeatherFileIfWarning } from "../utils/weatherWarning.mjs";
-import { collectWarningDatesFromMails } from "../utils/weatherWarning.mjs";
+import { appendWeatherIncidentFromBoardEntry, collectWarningDatesFromMails } from "../utils/weatherWarning.mjs";
 
 const isoKey = (date) => date.toISOString().slice(0, 10);
 
-function formatDottedDate(date) {
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const year = date.getFullYear();
-  return `${day}.${month}.${year}`;
-}
-
-test("schreibt Wetterwarnungs-Daten und erzeugt Datei bei aktueller Warnung", async (t) => {
+test("legt einen Wetter-Eintrag bei aktueller Warnung und Kategorie an", async (t) => {
   const tempDir = await mkdtemp(path.join(tmpdir(), "weather-warning-"));
   t.after(async () => rm(tempDir, { recursive: true, force: true }));
 
-  const mailDir = path.join(tempDir, "mail");
   const outFile = path.join(tempDir, "weather-incidents.txt");
   const warningDateFile = path.join(tempDir, "warning-dates.txt");
   const categoryFile = path.join(tempDir, "categories.json");
+  const today = new Date();
 
-  await mkdir(mailDir, { recursive: true });
+  await writeFile(warningDateFile, isoKey(today), "utf8");
   await writeFile(categoryFile, JSON.stringify(["Sturm"]), "utf8");
 
-  const today = new Date();
-  const allowedFrom = ["wetter@example.com"];
-  const mailContent = `From: Tauernwetter <wetter@example.com>\nDate: ${today.toUTCString()}\n\nWarnung für:\n${formatDottedDate(today)}\n`;
-  await writeFile(path.join(mailDir, "mail1.eml"), mailContent, "utf8");
+  const entry = { id: "a1", createdAt: today.toISOString(), description: "Heftiger Sturm im Ortsgebiet" };
 
-  const incidents = [
-    { ort: "Testdorf", kategorie: "Sturm" },
-    { ort: "Anders", kategorie: "Anderes" },
-  ];
-
-  await generateWeatherFileIfWarning({
-    incidents,
+  const result = await appendWeatherIncidentFromBoardEntry(entry, {
     categoryFile,
     outFile,
-    mailDir,
     warningDateFile,
-    allowedFrom,
+    now: today,
   });
 
-  const dateContent = await readFile(warningDateFile, "utf8");
-  assert.ok(dateContent.includes(isoKey(today)), "Datumsdatei enthält aktuelles Datum");
+  assert.equal(result.appended, true);
 
   const incidentsContent = await readFile(outFile, "utf8");
-  assert.ok(incidentsContent.includes("Testdorf"));
-  assert.ok(!incidentsContent.includes("Anders"));
+  assert.ok(incidentsContent.includes(isoKey(today)));
+  assert.ok(incidentsContent.toLowerCase().includes("sturm"));
 });
 
-test("entfernt Ausgabe aber aktualisiert Datumsfile ohne Warnung heute", async (t) => {
+test("legt keinen Eintrag ohne aktuelle Warnung an", async (t) => {
   const tempDir = await mkdtemp(path.join(tmpdir(), "weather-warning-"));
   t.after(async () => rm(tempDir, { recursive: true, force: true }));
 
-  const mailDir = path.join(tempDir, "mail");
-  const outFile = path.join(tempDir, "weather-incidents.txt");
-  const warningDateFile = path.join(tempDir, "warning-dates.txt");
-
-  await mkdir(mailDir, { recursive: true });
-
-  const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  const allowedFrom = ["wetter@example.com"];
-  const mailContent = `From: Tauernwetter <wetter@example.com>\n\nWarnung für:\n${formatDottedDate(tomorrow)}\n`;
-  await writeFile(path.join(mailDir, "mail2.eml"), mailContent, "utf8");
-
-  await writeFile(outFile, "alte daten", "utf8");
-
-  await generateWeatherFileIfWarning({
-    incidents: [],
-    categoryFile: path.join(tempDir, "categories.json"),
-    outFile,
-    mailDir,
-    warningDateFile,
-    allowedFrom,
-  });
-
-  const dateContent = await readFile(warningDateFile, "utf8");
-  assert.ok(dateContent.includes(isoKey(tomorrow)), "Datumsdatei enthält zukünftige Warnung");
-
-  await assert.rejects(stat(outFile), { code: "ENOENT" });
-});
-
-test("nutzt MAIL_ALLOWED_FROM zur Filterung von Warnmails", async (t) => {
-  const tempDir = await mkdtemp(path.join(tmpdir(), "weather-warning-"));
-  t.after(async () => rm(tempDir, { recursive: true, force: true }));
-
-  const mailDir = path.join(tempDir, "mail");
   const outFile = path.join(tempDir, "weather-incidents.txt");
   const warningDateFile = path.join(tempDir, "warning-dates.txt");
   const categoryFile = path.join(tempDir, "categories.json");
-
-  await mkdir(mailDir, { recursive: true });
-  await writeFile(categoryFile, "[]", "utf8");
-
   const today = new Date();
-  const mailContent = `From: Unbekannt <spam@example.com>\nDate: ${today.toUTCString()}\n\nWarnug für:\n${formatDottedDate(today)}\n`;
-  await writeFile(path.join(mailDir, "mail3.eml"), mailContent, "utf8");
 
-  await writeFile(outFile, "alte daten", "utf8");
+  await writeFile(warningDateFile, "2020-01-01", "utf8");
+  await writeFile(categoryFile, JSON.stringify(["Sturm"]), "utf8");
 
-  await generateWeatherFileIfWarning({
-    incidents: [],
+  const entry = { id: "a2", createdAt: today.toISOString(), typ: "Sturm" };
+
+  const result = await appendWeatherIncidentFromBoardEntry(entry, {
     categoryFile,
     outFile,
-    mailDir,
     warningDateFile,
-    allowedFrom: ["alarm@example.com"],
+    now: today,
   });
 
-  const dateContent = await readFile(warningDateFile, "utf8");
-  assert.ok(!dateContent.includes(isoKey(today)), "Datumsdatei enthält keine ungefilterten Warnungen");
+  assert.equal(result.appended, false);
   await assert.rejects(stat(outFile), { code: "ENOENT" });
 });
 
@@ -135,62 +77,23 @@ test("extrahiert mehrere Warn-Daten aus 'Warnung für:' Zeile", () => {
   assert.ok(dates.includes("2024-06-07"), "Datum mit vierstelligem Jahr wird erkannt");
 });
 
-test("ergänzt weather-incidents.txt um Board-Einträge für Warn-Daten", async (t) => {
+test("fügt keine Duplikate hinzu", async (t) => {
   const tempDir = await mkdtemp(path.join(tmpdir(), "weather-warning-"));
   t.after(async () => rm(tempDir, { recursive: true, force: true }));
 
   const outFile = path.join(tempDir, "weather-incidents.txt");
-  const warningDateFile = path.join(tempDir, "weather-warning-dates.txt");
+  const warningDateFile = path.join(tempDir, "warning-dates.txt");
   const categoryFile = path.join(tempDir, "categories.json");
-  const boardFile = path.join(tempDir, "Board.json");
-  const todayKey = isoKey(new Date());
+  const today = new Date();
 
+  await writeFile(warningDateFile, isoKey(today), "utf8");
   await writeFile(categoryFile, JSON.stringify(["Sturm"]), "utf8");
-  await writeFile(
-    boardFile,
-    JSON.stringify({
-      items: [
-        { id: "a1", createdAt: new Date().toISOString(), description: "Sturm über Land" },
-        { id: "a2", createdAt: new Date().toISOString(), typ: "Sturm" },
-      ],
-    }),
-    "utf8",
-  );
 
-  await writeFile(outFile, "Bestehender Eintrag – Sturm\n", "utf8");
+  const entry = { id: "a3", createdAt: today.toISOString(), content: "Sturmwarnung für Süden" };
 
-  await generateWeatherFileIfWarning({
-    incidents: [],
-    categoryFile,
-    outFile,
-    warningDateFile,
-    warningDates: [todayKey],
-    boardFile,
-  });
+  await appendWeatherIncidentFromBoardEntry(entry, { categoryFile, outFile, warningDateFile, now: today });
+  await appendWeatherIncidentFromBoardEntry(entry, { categoryFile, outFile, warningDateFile, now: today });
 
-  const linesAfterFirstRun = (await readFile(outFile, "utf8"))
-    .split(/\r?\n/)
-    .filter(Boolean);
-
-  assert.ok(linesAfterFirstRun.some((line) => line.includes("a1")), "Board-Eintrag wird übernommen");
-  const countAfterFirstRun = linesAfterFirstRun.length;
-
-  await generateWeatherFileIfWarning({
-    incidents: [],
-    categoryFile,
-    outFile,
-    warningDateFile,
-    warningDates: [todayKey],
-    boardFile,
-  });
-
-  const linesAfterSecondRun = (await readFile(outFile, "utf8"))
-    .split(/\r?\n/)
-    .filter(Boolean);
-
-  assert.equal(
-    linesAfterSecondRun.length,
-    countAfterFirstRun,
-    "Board-Einträge werden nicht doppelt hinzugefügt",
-  );
+  const lines = (await readFile(outFile, "utf8")).split(/\r?\n/).filter(Boolean);
+  assert.equal(lines.length, 1);
 });
