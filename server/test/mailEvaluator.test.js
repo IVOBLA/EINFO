@@ -33,6 +33,41 @@ test("parseRawMail extrahiert Header und Body", () => {
   assert.ok(parsed.date);
 });
 
+test("parseRawMail dekodiert Base64-Text aus Multipart-Mails", () => {
+  const plainText = "Dies ist der Klartext.";
+  const encoded = Buffer.from(plainText, "utf8").toString("base64");
+  const raw = [
+    "Subject: Base64-Mail",
+    "From: Demo <demo@example.com>",
+    "Content-Type: multipart/alternative; boundary=XYZ123",
+    "",
+    "--XYZ123",
+    "Content-Type: text/plain; charset=\"utf-8\"",
+    "Content-Transfer-Encoding: base64",
+    "",
+    encoded,
+    "--XYZ123--",
+  ].join("\n");
+
+  const parsed = parseRawMail(raw, { id: "mail2" });
+  assert.equal(parsed.body, plainText);
+  assert.equal(parsed.text, plainText);
+});
+
+test("parseRawMail dekodiert quoted-printable mit Charset", () => {
+  const raw = [
+    "Subject: Grüße",
+    "From: Demo <demo@example.com>",
+    "Content-Type: text/plain; charset=ISO-8859-1",
+    "Content-Transfer-Encoding: quoted-printable",
+    "",
+    "Gr=FC=DFe aus dem Test",
+  ].join("\n");
+
+  const parsed = parseRawMail(raw, { id: "mail3" });
+  assert.equal(parsed.body, "Grüße aus dem Test");
+});
+
 test("evaluateMail markiert passende Regeln", () => {
   const mail = {
     subject: "Unwetterwarnung",
