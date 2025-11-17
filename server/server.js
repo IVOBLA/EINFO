@@ -24,6 +24,7 @@ import {
   collectWarningDatesFromMails,
   generateWeatherFileIfWarning,
 } from "./utils/weatherWarning.mjs";
+import { appendHistoryEntriesToCsv } from "./utils/protocolCsv.mjs";
 
 // 🔐 Neues User-Management
 import { User_authMiddleware, User_createRouter, User_requireAuth } from "./User_auth.mjs";
@@ -65,6 +66,7 @@ const GROUPS_FILE = path.join(DATA_DIR, "group_locations.json");
 const GROUP_AVAILABILITY_FILE = path.join(DATA_DIR, "group-availability.json");
 const GROUP_ALERTED_FILE = path.join(DATA_DIR, "conf", "group-alerted.json");
 const PROTOCOL_JSON_FILE = path.join(DATA_DIR, "protocol.json");
+const PROTOCOL_CSV_FILE = path.join(DATA_DIR, "protocol.csv");
 const AUTO_PRINT_CFG_FILE = path.join(DATA_DIR, "conf", "auto-print.json");
 const AUTO_PRINT_OUTPUT_DIR = path.resolve(
   process.env.KANBAN_PROTOKOLL_PRINT_DIR || path.join(DATA_DIR, "prints", "protokoll"),
@@ -233,6 +235,36 @@ async function pollMailInboxOnce() {
 
 // === Mail → Protokoll-Eintrag ===============================================
 
+function snapshotForHistory(src) {
+  const seen = new WeakSet();
+  const clone = (v) => {
+    if (v && typeof v === "object") {
+      if (seen.has(v)) return undefined;
+      seen.add(v);
+      if (Array.isArray(v)) return v.map(clone);
+      const o = {};
+      for (const [k, val] of Object.entries(v)) {
+        if (k === "history") continue;
+        o[k] = clone(val);
+      }
+      return o;
+    }
+    return v;
+  };
+  return clone(src);
+}
+
+function senderAddress(mail) {
+  const from = mail?.from;
+  if (!from) return "";
+  if (typeof from?.address === "string") return from.address.trim();
+  if (Array.isArray(from) && typeof from[0]?.address === "string") return from[0].address.trim();
+  if (Array.isArray(from?.value) && typeof from.value[0]?.address === "string") return from.value[0].address.trim();
+  if (typeof from === "string") return from.trim();
+  if (typeof from?.text === "string") return from.text.trim();
+  return "";
+}
+
 async function appendProtocolEntryFromMail(mail) {
   // Aktuelle Protokoll-Liste laden
   const list = await readJson(PROTOCOL_JSON_FILE, []);
@@ -254,20 +286,13 @@ async function appendProtocolEntryFromMail(mail) {
         ) + 1
       : 1;
 
-  // Text aus Betreff + Body
+  // Text aus Body (Fallback: Betreff) und Absender-Adresse
   const subject = (mail.subject || "").trim();
-  const body = (mail.text || "").trim();
-  const information = [subject, body].filter(Boolean).join("\n\n").slice(0, 2000);
-
-  // Absender für Anzeige
-  let fromLabel = "";
-  if (mail.from?.text) {
-    fromLabel = mail.from.text;
-  } else if (Array.isArray(mail.from) && mail.from[0]?.address) {
-    fromLabel = mail.from[0].address;
-  } else if (mail.from?.address) {
-    fromLabel = mail.from.address;
-  }
+  const body = (mail.text || mail.body || "").trim();
+  const information = (body || subject).slice(0, 2000);
+  const fromAddress = senderAddress(mail);
+  const anvon = fromAddress ? `Von ${fromAddress}` : "Mail-Eingang";
+  const actorLabel = "MAIL-AUTO";
 
   const entry = {
     id: crypto.randomUUID(),
@@ -277,7 +302,7 @@ async function appendProtocolEntryFromMail(mail) {
     zeit,
 
     infoTyp: "Lagemeldung",           // oder „Information“ – nach Wunsch anpassbar
-    anVon: fromLabel || "Mail-Eingang",
+    anvon,
     uebermittlungsart: {
       kanalNr: "MAIL",
       kanal: "Mail",
@@ -288,15 +313,18 @@ async function appendProtocolEntryFromMail(mail) {
 
     information,
 
-    ergehtAn: [],                     // kann der Stab später manuell ergänzen
+    ergehtAn: ["LtStb", "S2"],
+    verantwortliche: ["S2"],
     bemerkung: "",
     vermerk: "",
 
     // Basis-Metadaten – ähnlich wie beim normalen Protokoll
     erstelltAm: iso,
-    erstelltVon: "MAIL-AUTO",
+    erstelltVon: actorLabel,
     geaendertAm: iso,
-    geaendertVon: "MAIL-AUTO",
+    geaendertVon: actorLabel,
+    createdBy: actorLabel,
+    lastBy: actorLabel,
 
     printCount: 0,
     history: [],
@@ -309,13 +337,23 @@ async function appendProtocolEntryFromMail(mail) {
     },
   };
 
+  const historyEntry = {
+    ts: Date.now(),
+    action: "create",
+    by: actorLabel,
+    after: snapshotForHistory(entry),
+  };
+
+  entry.history.push(historyEntry);
   list.push(entry);
   await writeJson(PROTOCOL_JSON_FILE, list);
+
+  appendHistoryEntriesToCsv(entry, [historyEntry], PROTOCOL_CSV_FILE);
 
   console.log("[mail-poll] Protokolleintrag aus Mail erzeugt", {
     id: entry.id,
     nr: entry.nr,
-    from: fromLabel,
+    from: fromAddress,
     subject,
   });
 }
