@@ -274,7 +274,11 @@ async function fetchImapMessages({
     const mails = [];
 
     for (const uid of sorted) {
-      const msg = await client.fetchOne(uid, { source: true, envelope: true, internalDate: true, uid: true });
+      const msg = await client.fetchOne(
+        uid,
+        { source: true, envelope: true, internalDate: true },
+        { uid: true }
+      );
       if (!msg?.source) continue;
       const raw = msg.source instanceof Buffer ? msg.source.toString("utf8") : String(msg.source);
       mails.push({
