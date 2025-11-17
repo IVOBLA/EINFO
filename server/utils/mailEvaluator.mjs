@@ -79,6 +79,7 @@ function toBool(value, fallback = false) {
 
 const DEFAULT_INBOX_DIR = resolvePath(process.env.MAIL_INBOX_DIR, path.join(DATA_DIR, "mail", "inbox"));
 const DEFAULT_ALLOWED_FROM = normalizeAllowedFrom(process.env.MAIL_ALLOWED_FROM);
+const DEFAULT_DELETE_AFTER_READ = toBool(process.env.MAIL_DELETE_AFTER_READ, true);
 const DEFAULT_IMAP_CONFIG = {
   host: process.env.MAIL_IMAP_HOST || process.env.MAIL_HOST || "",
   port: Number(process.env.MAIL_IMAP_PORT) || 993,
@@ -101,6 +102,7 @@ export function getMailInboxConfig() {
   return {
     inboxDir: DEFAULT_INBOX_DIR,
     allowedFrom: DEFAULT_ALLOWED_FROM,
+    deleteAfterRead: DEFAULT_DELETE_AFTER_READ,
     imap: DEFAULT_IMAP_CONFIG,
     pop3: DEFAULT_POP3_CONFIG,
   };
@@ -408,7 +410,7 @@ export async function readAndEvaluateInbox({
   mailDir = DEFAULT_INBOX_DIR,
   limit = 50,
   rules = null,
-  deleteAfterRead = false,
+  deleteAfterRead = DEFAULT_DELETE_AFTER_READ,
   allowedFrom = DEFAULT_ALLOWED_FROM,
   useImap = null,
   usePop3 = null,
