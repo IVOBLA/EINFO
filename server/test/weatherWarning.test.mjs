@@ -28,7 +28,8 @@ test("schreibt Wetterwarnungs-Daten und erzeugt Datei bei aktueller Warnung", as
   await writeFile(categoryFile, JSON.stringify(["Sturm"]), "utf8");
 
   const today = new Date();
-  const mailContent = `From: Tauernwetter\nDate: ${today.toUTCString()}\n\nWarnung für:\n${formatDottedDate(today)}\n`;
+  const allowedFrom = ["wetter@example.com"];
+  const mailContent = `From: Tauernwetter <wetter@example.com>\nDate: ${today.toUTCString()}\n\nWarnung für:\n${formatDottedDate(today)}\n`;
   await writeFile(path.join(mailDir, "mail1.eml"), mailContent, "utf8");
 
   const incidents = [
@@ -42,6 +43,7 @@ test("schreibt Wetterwarnungs-Daten und erzeugt Datei bei aktueller Warnung", as
     outFile,
     mailDir,
     warningDateFile,
+    allowedFrom,
   });
 
   const dateContent = await readFile(warningDateFile, "utf8");
@@ -63,7 +65,8 @@ test("entfernt Ausgabe aber aktualisiert Datumsfile ohne Warnung heute", async (
   await mkdir(mailDir, { recursive: true });
 
   const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000);
-  const mailContent = `From: Tauernwetter\n\nWarnung für:\n${formatDottedDate(tomorrow)}\n`;
+  const allowedFrom = ["wetter@example.com"];
+  const mailContent = `From: Tauernwetter <wetter@example.com>\n\nWarnung für:\n${formatDottedDate(tomorrow)}\n`;
   await writeFile(path.join(mailDir, "mail2.eml"), mailContent, "utf8");
 
   await writeFile(outFile, "alte daten", "utf8");
@@ -74,6 +77,7 @@ test("entfernt Ausgabe aber aktualisiert Datumsfile ohne Warnung heute", async (
     outFile,
     mailDir,
     warningDateFile,
+    allowedFrom,
   });
 
   const dateContent = await readFile(warningDateFile, "utf8");
