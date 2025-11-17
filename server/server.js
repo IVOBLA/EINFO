@@ -13,6 +13,7 @@ import attachIncidentPrintRoutes from "./routes/incidentPrintRoutes.js";
 import aufgabenRoutes from "./routes/aufgabenRoutes.js";
 import userRolesRouter from "./routes/userRoles.js";
 import createMailRouter from "./routes/mail.js";
+import createMailInboxRouter from "./routes/mailInbox.js";
 import { appendCsvRow } from "./auditLog.mjs";
 import createServerPrintRoutes from "./routes/serverPrintRoutes.js";
 import { getProtocolCreatedAt, parseAutoPrintTimestamp } from "./utils/autoPrintHelpers.js";
@@ -1070,6 +1071,7 @@ app.use((req,res,next)=>{
   next();
 });
 
+app.use("/api/mail/inbox", createMailInboxRouter());
 app.use("/api/mail", createMailRouter());
 
 
