@@ -1,6 +1,9 @@
 import fsp from "node:fs/promises";
+import net from "node:net";
+import tls from "node:tls";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+
 
 import { logMailEvent } from "./mailLogger.mjs";
 
@@ -66,16 +69,51 @@ function extractNormalizedAddresses(value) {
   return [...addresses];
 }
 
+function toBool(value, fallback = false) {
+  if (value == null || value === "") return fallback;
+  const normalized = String(value).trim().toLowerCase();
+  if (["1", "true", "yes", "y", "on"].includes(normalized)) return true;
+  if (["0", "false", "no", "n", "off"].includes(normalized)) return false;
+  return fallback;
+}
+
 const DEFAULT_INBOX_DIR = resolvePath(process.env.MAIL_INBOX_DIR, path.join(DATA_DIR, "mail", "inbox"));
 const DEFAULT_RULE_FILE = resolvePath(process.env.MAIL_RULE_FILE, path.join(DATA_DIR, "conf", "mail-rules.json"));
 const DEFAULT_ALLOWED_FROM = normalizeAllowedFrom(process.env.MAIL_ALLOWED_FROM);
+const DEFAULT_IMAP_CONFIG = {
+  host: process.env.MAIL_IMAP_HOST || process.env.MAIL_HOST || "",
+  port: Number(process.env.MAIL_IMAP_PORT) || 993,
+  secure: toBool(process.env.MAIL_IMAP_SECURE, true),
+  mailbox: process.env.MAIL_IMAP_MAILBOX || "INBOX",
+  user: process.env.MAIL_IMAP_USER || process.env.MAIL_USER || "",
+  pass: process.env.MAIL_IMAP_PASSWORD || process.env.MAIL_PASSWORD || "",
+  rejectUnauthorized: toBool(process.env.MAIL_IMAP_TLS_REJECT_UNAUTHORIZED, true),
+};
+const DEFAULT_POP3_CONFIG = {
+  host: process.env.MAIL_POP3_HOST || process.env.MAIL_HOST || "",
+  port: Number(process.env.MAIL_POP3_PORT) || 995,
+  secure: toBool(process.env.MAIL_POP3_SECURE, true),
+  user: process.env.MAIL_POP3_USER || process.env.MAIL_USER || "",
+  pass: process.env.MAIL_POP3_PASSWORD || process.env.MAIL_PASSWORD || "",
+  rejectUnauthorized: toBool(process.env.MAIL_POP3_TLS_REJECT_UNAUTHORIZED, true),
+};
 
 export function getMailInboxConfig() {
   return {
     inboxDir: DEFAULT_INBOX_DIR,
     ruleFile: DEFAULT_RULE_FILE,
     allowedFrom: DEFAULT_ALLOWED_FROM,
+    imap: DEFAULT_IMAP_CONFIG,
+    pop3: DEFAULT_POP3_CONFIG,
   };
+}
+
+function hasImapConfig(imapConfig = DEFAULT_IMAP_CONFIG) {
+  return Boolean(imapConfig?.host && imapConfig?.user && imapConfig?.pass);
+}
+
+function hasPop3Config(pop3Config = DEFAULT_POP3_CONFIG) {
+  return Boolean(pop3Config?.host && pop3Config?.user && pop3Config?.pass);
 }
 
 function parseMailDate(value) {
@@ -134,6 +172,201 @@ export async function listInboxFiles(mailDir = DEFAULT_INBOX_DIR) {
   return entries
     .filter((e) => e.isFile())
     .map((e) => path.join(mailDir, e.name));
+}
+
+function createPop3Reader(socket) {
+  let buffer = "";
+  let closed = false;
+  const waiters = [];
+
+  function tryResolve() {
+    for (let i = 0; i < waiters.length; i += 1) {
+      const waiter = waiters[i];
+      if (waiter.type === "line") {
+        const idx = buffer.indexOf("\r\n");
+        if (idx === -1) continue;
+        waiters.splice(i, 1);
+        const line = buffer.slice(0, idx);
+        buffer = buffer.slice(idx + 2);
+        waiter.resolve(line);
+        i -= 1;
+        continue;
+      }
+
+      const marker = "\r\n.\r\n";
+      const idx = buffer.indexOf(marker);
+      if (idx === -1) continue;
+      waiters.splice(i, 1);
+      const content = buffer.slice(0, idx);
+      buffer = buffer.slice(idx + marker.length);
+      waiter.resolve(content);
+      i -= 1;
+    }
+  }
+
+  function onData(chunk) {
+    buffer += chunk.toString("utf8");
+    tryResolve();
+  }
+
+  function rejectAll(err) {
+    if (closed) return;
+    closed = true;
+    socket.off("data", onData);
+    const reason = err || new Error("POP3-Verbindung beendet");
+    while (waiters.length) {
+      const waiter = waiters.shift();
+      waiter.reject(reason);
+    }
+  }
+
+  socket.on("data", onData);
+  socket.once("error", (err) => rejectAll(err));
+  socket.once("close", () => rejectAll());
+  socket.once("end", () => rejectAll());
+
+  function readLine() {
+    return new Promise((resolve, reject) => {
+      waiters.push({ type: "line", resolve, reject });
+      tryResolve();
+    });
+  }
+
+  function readMultiline() {
+    return new Promise((resolve, reject) => {
+      waiters.push({ type: "multi", resolve, reject });
+      tryResolve();
+    });
+  }
+
+  return { readLine, readMultiline };
+}
+
+async function fetchImapMessages({
+  imapConfig = DEFAULT_IMAP_CONFIG,
+  limit = 50,
+  deleteAfterRead = false,
+} = {}) {
+  if (!hasImapConfig(imapConfig)) {
+    throw new Error("IMAP-Konfiguration unvollständig – Host, Benutzer und Passwort sind erforderlich.");
+  }
+
+  let ImapFlow;
+  try {
+    ({ ImapFlow } = await import("imapflow"));
+  } catch (err) {
+    const reason = err?.message || err;
+    throw new Error(`IMAP-Modul \"imapflow\" konnte nicht geladen werden: ${reason}`);
+  }
+  const client = new ImapFlow({
+    host: imapConfig.host,
+    port: imapConfig.port,
+    secure: Boolean(imapConfig.secure),
+    auth: { user: imapConfig.user, pass: imapConfig.pass },
+    tls: { rejectUnauthorized: imapConfig.rejectUnauthorized !== false },
+    logger: false,
+  });
+
+  await client.connect();
+  let lock = null;
+  try {
+    lock = await client.getMailboxLock(imapConfig.mailbox || "INBOX");
+    const uids = await client.search({}, { uid: true });
+    const sorted = [...uids].sort((a, b) => b - a).slice(0, Math.max(1, Number(limit) || 1));
+    const mails = [];
+
+    for (const uid of sorted) {
+      const msg = await client.fetchOne(uid, { source: true, envelope: true, internalDate: true });
+      if (!msg?.source) continue;
+      const raw = msg.source instanceof Buffer ? msg.source.toString("utf8") : String(msg.source);
+      mails.push({
+        uid,
+        raw,
+        id: msg?.envelope?.messageId || String(uid),
+        receivedAt: msg?.internalDate ? msg.internalDate.getTime() : null,
+      });
+
+      if (deleteAfterRead) await client.messageDelete(uid);
+      else await client.messageFlagsAdd(uid, ["\\Seen"]);
+    }
+
+    return { mails, total: uids.length };
+  } finally {
+    lock?.release();
+    await client.logout().catch(() => {});
+  }
+}
+
+async function fetchPop3Messages({
+  pop3Config = DEFAULT_POP3_CONFIG,
+  limit = 50,
+  deleteAfterRead = false,
+} = {}) {
+  if (!hasPop3Config(pop3Config)) {
+    throw new Error("POP3-Konfiguration unvollständig – Host, Benutzer und Passwort sind erforderlich.");
+  }
+
+  const maxLimit = Math.max(1, Number(limit) || 1);
+  const rejectUnauthorized = pop3Config.rejectUnauthorized !== false;
+  const socket = pop3Config.secure
+    ? tls.connect({
+        host: pop3Config.host,
+        port: pop3Config.port,
+        rejectUnauthorized,
+        servername: pop3Config.host,
+      })
+    : net.createConnection({ host: pop3Config.host, port: pop3Config.port });
+
+  socket.setEncoding("utf8");
+  socket.setTimeout(15000, () => socket.destroy(new Error("POP3-Timeout")));
+
+  const reader = createPop3Reader(socket);
+
+  const expectOk = async (linePromise, step) => {
+    const line = await linePromise;
+    if (!line?.startsWith("+OK")) {
+      throw new Error(`POP3-Fehler bei ${step}: ${line || "keine Antwort"}`);
+    }
+    return line;
+  };
+
+  const send = (cmd, { multi = false } = {}) => {
+    socket.write(`${cmd}\r\n`);
+    return multi ? reader.readMultiline() : reader.readLine();
+  };
+
+  try {
+    await expectOk(reader.readLine(), "Verbindung");
+    await expectOk(send(`USER ${pop3Config.user}`), "USER");
+    await expectOk(send(`PASS ${pop3Config.pass}`), "PASS");
+
+    const stat = await expectOk(send("STAT"), "STAT");
+    const [, totalStr] = stat.split(" ");
+    const total = Math.max(0, Number(totalStr) || 0);
+
+    const listRaw = await expectOk(send("LIST", { multi: true }), "LIST");
+    const entries = listRaw
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => /^(\d+)\s+/.test(line))
+      .map((line) => Number(line.split(/\s+/)[0]))
+      .filter((id) => Number.isInteger(id) && id > 0)
+      .sort((a, b) => a - b);
+
+    const selectedIds = entries.slice(-maxLimit);
+    const mails = [];
+
+    for (const id of selectedIds) {
+      const raw = await expectOk(send(`RETR ${id}`, { multi: true }), `RETR ${id}`);
+      mails.push({ id: String(id), raw, uid: id, receivedAt: null });
+      if (deleteAfterRead) await expectOk(send(`DELE ${id}`), `DELE ${id}`);
+    }
+
+    await send("QUIT").catch(() => {});
+    return { mails, total };
+  } finally {
+    socket.destroy();
+  }
 }
 
 function normalizePatterns(patterns) {
@@ -215,8 +448,15 @@ export async function readAndEvaluateInbox({
   rules = null,
   deleteAfterRead = false,
   allowedFrom = DEFAULT_ALLOWED_FROM,
+  useImap = null,
+  usePop3 = null,
+  imapConfig = DEFAULT_IMAP_CONFIG,
+  pop3Config = DEFAULT_POP3_CONFIG,
 } = {}) {
   const allowedFromNormalized = normalizeAllowedFrom(allowedFrom);
+  const imapEnabled = useImap ?? hasImapConfig(imapConfig);
+  const pop3Enabled = usePop3 ?? (!imapEnabled && hasPop3Config(pop3Config));
+  const mode = imapEnabled ? "imap" : pop3Enabled ? "pop3" : "filesystem";
   try {
     await logMailEvent("Starte Inbox-Auswertung", {
       mailDir,
@@ -224,27 +464,91 @@ export async function readAndEvaluateInbox({
       deleteAfterRead,
       customRules: Array.isArray(rules),
       allowedFrom: allowedFromNormalized,
+      mode,
+      mailbox: imapEnabled ? imapConfig.mailbox || "INBOX" : undefined,
+      imapHost: imapEnabled ? imapConfig.host : undefined,
+      pop3Host: pop3Enabled ? pop3Config.host : undefined,
     });
 
-    const files = await listInboxFiles(mailDir).catch((err) => {
-      const error = new Error(`Mail-Verzeichnis nicht lesbar: ${err?.message || err}`);
-      error.code = err?.code;
-      throw error;
-    });
+    let entries = [];
+    if (imapEnabled) {
+      const { mails, total } = await fetchImapMessages({ imapConfig, limit, deleteAfterRead });
 
-    const sortedFiles = files
-      .map((file) => ({ file, name: path.basename(file) }))
-      .sort((a, b) => a.name.localeCompare(b.name))
-      .reverse()
-      .slice(0, Math.max(1, Number(limit) || 1));
+      await logMailEvent("Anmeldung am Mailserver erfolgreich", {
+        mailbox: imapConfig.mailbox || "INBOX",
+        imapHost: imapConfig.host,
+      });
+
+      await logMailEvent("Inbox gelesen", {
+        mailbox: imapConfig.mailbox || "INBOX",
+        imapHost: imapConfig.host,
+        total,
+        limited: mails.length,
+        limit,
+      });
+
+      entries = mails.map((mail) => ({
+        id: mail.id || String(mail.uid),
+        file: null,
+        raw: mail.raw,
+      }));
+    } else if (pop3Enabled) {
+      const { mails, total } = await fetchPop3Messages({ pop3Config, limit, deleteAfterRead });
+
+      await logMailEvent("Anmeldung am Mailserver erfolgreich", {
+        pop3Host: pop3Config.host,
+      });
+
+      await logMailEvent("Inbox gelesen", {
+        pop3Host: pop3Config.host,
+        total,
+        limited: mails.length,
+        limit,
+      });
+
+      entries = mails.map((mail) => ({
+        id: mail.id || String(mail.uid),
+        file: null,
+        raw: mail.raw,
+      }));
+    } else {
+      const files = await listInboxFiles(mailDir).catch((err) => {
+        const error = new Error(`Mail-Verzeichnis nicht lesbar: ${err?.message || err}`);
+        error.code = err?.code;
+        throw error;
+      });
+
+      await logMailEvent("Anmeldung am Mailserver erfolgreich", { mailDir });
+
+      const sortedFiles = files
+        .map((file) => ({ file, name: path.basename(file) }))
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .reverse()
+        .slice(0, Math.max(1, Number(limit) || 1));
+
+      await logMailEvent("Inbox gelesen", {
+        mailDir,
+        total: files.length,
+        limited: sortedFiles.length,
+        limit,
+      });
+
+      entries = sortedFiles.map((entry) => ({
+        id: entry.name,
+        file: entry.file,
+        raw: null,
+      }));
+    }
 
     const activeRules = Array.isArray(rules) ? rules : await loadRules();
     const mails = [];
+    const skippedMails = [];
+    const failedMails = [];
 
-    for (const entry of sortedFiles) {
+    for (const entry of entries) {
       let mailEntry;
       try {
-        const mail = await readMailFile(entry.file);
+        const mail = entry.raw ? parseRawMail(entry.raw, { id: entry.id }) : await readMailFile(entry.file);
         const senders = extractNormalizedAddresses(mail.from);
         const senderAllowed =
           allowedFromNormalized.length === 0 ||
@@ -252,7 +556,7 @@ export async function readAndEvaluateInbox({
 
         if (!senderAllowed) {
           const filteredEntry = { ...mail, evaluation: { score: 0, matches: [] }, filtered: true };
-          if (deleteAfterRead) {
+          if (deleteAfterRead && entry.file) {
             try {
               await fsp.unlink(entry.file);
               filteredEntry.deleted = true;
@@ -272,6 +576,13 @@ export async function readAndEvaluateInbox({
             error: filteredEntry.deleteError,
           });
 
+          skippedMails.push({
+            id: filteredEntry.id,
+            file: filteredEntry.file,
+            reason: "absender_not_allowed",
+            deleteError: filteredEntry.deleteError,
+          });
+
           continue;
         }
 
@@ -279,14 +590,16 @@ export async function readAndEvaluateInbox({
         mailEntry = { ...mail, evaluation };
       } catch (err) {
         mailEntry = {
-          id: entry.name,
+          id: entry.id || entry.name,
           file: entry.file,
           error: err?.message || String(err),
           evaluation: { score: 0, matches: [] },
         };
+
+        failedMails.push({ id: mailEntry.id, file: mailEntry.file, reason: mailEntry.error });
       }
 
-      if (deleteAfterRead) {
+      if (!imapEnabled && !pop3Enabled && deleteAfterRead) {
         try {
           await fsp.unlink(entry.file);
           mailEntry.deleted = true;
@@ -312,7 +625,15 @@ export async function readAndEvaluateInbox({
       mailDir,
       processed: mails.length,
       withErrors: mails.filter((m) => m.error).length,
+      skipped: skippedMails.length,
+      failed: failedMails.length,
+      skippedDetails: skippedMails,
+      failedDetails: failedMails,
       deleteAfterRead,
+      mode,
+      mailbox: imapEnabled ? imapConfig.mailbox || "INBOX" : undefined,
+      imapHost: imapEnabled ? imapConfig.host : undefined,
+      pop3Host: pop3Enabled ? pop3Config.host : undefined,
     });
 
     return { mails, rules: activeRules };
