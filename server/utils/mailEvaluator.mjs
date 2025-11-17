@@ -39,6 +39,33 @@ function normalizeAllowedFrom(value) {
   return result;
 }
 
+function extractNormalizedAddresses(value) {
+  if (!value) return [];
+
+  const withoutComments = String(value).replace(/\([^()]*\)/g, " ");
+  const candidates = withoutComments.split(/[,;]/);
+  const addresses = new Set();
+
+  for (const candidate of candidates) {
+    const matches = candidate.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi);
+
+    if (matches?.length) {
+      for (const email of matches) {
+        const normalized = normalizeAddress(email);
+        if (normalized) addresses.add(normalized);
+      }
+      continue;
+    }
+
+    const normalized = normalizeAddress(candidate);
+    if (normalized && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
+      addresses.add(normalized);
+    }
+  }
+
+  return [...addresses];
+}
+
 const DEFAULT_INBOX_DIR = resolvePath(process.env.MAIL_INBOX_DIR, path.join(DATA_DIR, "mail", "inbox"));
 const DEFAULT_RULE_FILE = resolvePath(process.env.MAIL_RULE_FILE, path.join(DATA_DIR, "conf", "mail-rules.json"));
 const DEFAULT_ALLOWED_FROM = normalizeAllowedFrom(process.env.MAIL_ALLOWED_FROM);
@@ -218,12 +245,10 @@ export async function readAndEvaluateInbox({
       let mailEntry;
       try {
         const mail = await readMailFile(entry.file);
-        const sender = normalizeAddress(mail.from);
-        const rawFrom = String(mail.from || "").toLowerCase();
+        const senders = extractNormalizedAddresses(mail.from);
         const senderAllowed =
           allowedFromNormalized.length === 0 ||
-          (sender && allowedFromNormalized.includes(sender)) ||
-          allowedFromNormalized.some((allowed) => rawFrom.includes(allowed));
+          senders.some((sender) => allowedFromNormalized.includes(sender));
 
         if (!senderAllowed) {
           const filteredEntry = { ...mail, evaluation: { score: 0, matches: [] }, filtered: true };

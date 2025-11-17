@@ -121,3 +121,32 @@ test("readAndEvaluateInbox erkennt erlaubte Absender auch ohne sauberes From-Hea
   assert.equal(result.mails[0].from, "Leitstelle leitstelle@example.com (Alarmierung)");
   assert.equal(result.mails[0].evaluation.score, 1);
 });
+
+test("readAndEvaluateInbox blockiert nur scheinbar erlaubte Absender", async () => {
+  await ensureTempMailDir();
+
+  const commentSpoofFile = path.join(TEMP_DIR, "20240101-0005.eml");
+  const subaddressSpoofFile = path.join(TEMP_DIR, "20240101-0006.eml");
+
+  await fsp.writeFile(commentSpoofFile, [
+    "Subject: Alarm",
+    "From: Angreifer <bad@evil.com> (leitstelle@example.com)",
+    "",
+    "Einsatzalarm",
+  ].join("\n"), "utf8");
+
+  await fsp.writeFile(subaddressSpoofFile, [
+    "Subject: Alarm",
+    "From: leitstelle@example.com.attacker@evil.com",
+    "",
+    "Einsatzalarm",
+  ].join("\n"), "utf8");
+
+  const result = await readAndEvaluateInbox({
+    mailDir: TEMP_DIR,
+    rules: [{ name: "Alarm", patterns: [/alarm/i], fields: ["subject"], weight: 1 }],
+    allowedFrom: ["leitstelle@example.com"],
+  });
+
+  assert.equal(result.mails.length, 0);
+});
