@@ -274,7 +274,7 @@ async function fetchImapMessages({
     const mails = [];
 
     for (const uid of sorted) {
-      const msg = await client.fetchOne(uid, { source: true, envelope: true, internalDate: true });
+      const msg = await client.fetchOne(uid, { source: true, envelope: true, internalDate: true, uid: true });
       if (!msg?.source) continue;
       const raw = msg.source instanceof Buffer ? msg.source.toString("utf8") : String(msg.source);
       mails.push({
@@ -284,8 +284,8 @@ async function fetchImapMessages({
         receivedAt: msg?.internalDate ? msg.internalDate.getTime() : null,
       });
 
-      if (deleteAfterRead) await client.messageDelete(uid);
-      else await client.messageFlagsAdd(uid, ["\\Seen"]);
+      if (deleteAfterRead) await client.messageDelete(uid, { uid: true });
+      else await client.messageFlagsAdd(uid, ["\\Seen"], { uid: true });
     }
 
     return { mails, total: uids.length };
