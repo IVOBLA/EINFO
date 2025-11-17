@@ -15,9 +15,9 @@ export default function createMailInboxRouter() {
     const cfg = getMailInboxConfig();
     try {
       await readAndEvaluateInbox({ mailDir: cfg.inboxDir, limit: 1 });
-      res.status(200).json({ ok: true, configured: true, inboxDir: cfg.inboxDir, ruleFile: cfg.ruleFile });
+      res.status(200).json({ ok: true, configured: true, inboxDir: cfg.inboxDir });
     } catch (err) {
-      res.status(500).json({ ok: false, configured: false, inboxDir: cfg.inboxDir, ruleFile: cfg.ruleFile, error: err?.message || String(err) });
+      res.status(500).json({ ok: false, configured: false, inboxDir: cfg.inboxDir, error: err?.message || String(err) });
     }
   });
 
