@@ -501,10 +501,21 @@ export async function sendMail(options = {}) {
     subject: options.subject || "",
   });
 
-  let socket = await connectSocket(cfg);
   const accepted = [];
   const rejected = [];
+  let socket;
+  let connectionEstablished = false;
   try {
+    socket = await connectSocket(cfg);
+    connectionEstablished = true;
+
+    await logMailEvent("Verbindung zum Mailserver hergestellt", {
+      host: cfg.host,
+      port: cfg.port,
+      secure: cfg.secure,
+      starttls: cfg.starttls,
+    });
+
     let response = await readSmtpResponse(socket);
     if (response.code !== 220) {
       const err = new Error(`SMTP begrüsst mit ${response.code}`);
@@ -616,12 +627,23 @@ export async function sendMail(options = {}) {
     if (socket && !socket.destroyed) {
       try { socket.destroy(); } catch {}
     }
+    if (!connectionEstablished) {
+      await logMailEvent("Verbindung zum Mailserver fehlgeschlagen", {
+        host: cfg.host,
+        port: cfg.port,
+        secure: cfg.secure,
+        starttls: cfg.starttls,
+        error: error?.message || String(error),
+      });
+    }
+
     await logMailEvent("Mailversand fehlgeschlagen", {
       error: error?.message || String(error),
       response: error?.response?.message,
       code: error?.response?.code,
       accepted,
       rejected,
+      connectionEstablished,
     });
     throw error;
   }
