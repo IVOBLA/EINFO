@@ -186,6 +186,17 @@ const initialForm = () => ({
   })),
 });
 
+function defaultMeasureResponsible(metaOrFlag, index) {
+  const createdVia = (() => {
+    if (metaOrFlag === true) return "weather-mail";
+    if (metaOrFlag === false || metaOrFlag == null) return null;
+    if (typeof metaOrFlag === "object") return metaOrFlag?.createdVia || null;
+    return null;
+  })();
+  if (createdVia === "weather-mail") return index === 0 ? "S2" : "";
+  return "S2";
+}
+
 export default function ProtokollPage({
   mode = "create",
   editNr = null,
@@ -200,6 +211,7 @@ export default function ProtokollPage({
   const [taskOverrideActive, setTaskOverrideActive] = useState(false);
   const [taskPrefill, setTaskPrefill] = useState(null);
   const [createdViaTask, setCreatedViaTask] = useState(false);
+  const [createdViaWeatherMail, setCreatedViaWeatherMail] = useState(false);
   const [taskCreatedByRole, setTaskCreatedByRole] = useState(null);
   const [taskPrefillToken] = useState(() => (taskPrefillPayload ? null : readTaskPrefillToken()));
   const taskPrefillStorageKey = taskPrefillToken ? `${TASK_PREFILL_STORAGE_KEY}:${taskPrefillToken}` : TASK_PREFILL_STORAGE_KEY;
@@ -762,7 +774,13 @@ export default function ProtokollPage({
             lagebericht: it.lagebericht || "",
             massnahmen: Array.from({ length: 5 }, (_, i) => {
               const m = it.massnahmen?.[i] || {};
-              return { massnahme: m.massnahme || "", verantwortlich: m.verantwortlich || "S2", done: !!m.done };
+              const defaultResponsible = defaultMeasureResponsible(it.meta, i);
+              const responsible = m.verantwortlich ?? defaultResponsible;
+              return {
+                massnahme: m.massnahme || "",
+                verantwortlich: responsible == null ? "" : responsible,
+                done: !!m.done,
+              };
             }),
           });
           setErrors({});
@@ -771,6 +789,7 @@ export default function ProtokollPage({
           const meta = it.meta || {};
           const viaTask = meta?.createdVia === "task-board";
           setCreatedViaTask(!!viaTask);
+          setCreatedViaWeatherMail(meta?.createdVia === "weather-mail");
           const creatorRole = normRoleId(
             meta?.createdByRole || meta?.creatorRole || meta?.createdBy || meta?.taskCreatorRole
           );
@@ -1069,9 +1088,13 @@ const startPdfPrint = (fileUrl) => {
     // Maßnahmen
     snapshot.massnahmen = snapshot.massnahmen.map((m, i) => {
       const domDone = fd ? fd.get(`m_done_${i}`) !== null : m.done;
+      const domMassnahme = fd?.get(`m_massnahme_${i}`);
+      const domResponsible = fd?.get(`m_verantwortlich_${i}`);
+      const defaultResponsible = defaultMeasureResponsible(createdViaWeatherMail, i);
+      const responsible = domResponsible ?? m.verantwortlich ?? defaultResponsible ?? "";
       return {
-        massnahme:      (fd?.get(`m_massnahme_${i}`)      || m.massnahme      || "").toString(),
-        verantwortlich: (fd?.get(`m_verantwortlich_${i}`) || m.verantwortlich || "S2").toString(),
+        massnahme:      (domMassnahme   ?? m.massnahme   ?? "").toString(),
+        verantwortlich: responsible == null ? "" : responsible.toString(),
         done: !!domDone,
       };
     });

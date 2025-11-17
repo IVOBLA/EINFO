@@ -336,7 +336,19 @@ async function appendProtocolEntryFromMail(mail) {
       byRole: null,
       at: null,
     },
+
+    meta: {
+      createdVia: isWeatherMail ? "weather-mail" : "mail",
+    },
   };
+
+  if (isWeatherMail) {
+    entry.massnahmen = Array.from({ length: 5 }, (_, idx) => ({
+      massnahme: "",
+      verantwortlich: idx === 0 ? "S2" : "",
+      done: false,
+    }));
+  }
 
   const historyEntry = {
     ts: Date.now(),
