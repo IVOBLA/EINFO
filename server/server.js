@@ -22,7 +22,7 @@ import { getLogDirCandidates } from "./utils/logDirectories.mjs";
 import { DATA_ROOT } from "./utils/pdfPaths.mjs";
 import {
   collectWarningDatesFromMails,
-  generateWeatherFileIfWarning,
+  appendWeatherIncidentFromBoardEntry,
 } from "./utils/weatherWarning.mjs";
 import { appendHistoryEntriesToCsv } from "./utils/protocolCsv.mjs";
 
@@ -124,6 +124,14 @@ function invalidateBoardCache() {
   boardCachePromise = null;
 }
 
+async function appendWeatherIncidentForCard(entry) {
+  try {
+    await appendWeatherIncidentFromBoardEntry(entry);
+  } catch (err) {
+    console.error("[weather-warning] Fehler beim Aktualisieren von weather-incidents.txt:", err?.message || err);
+  }
+}
+
 async function saveBoard(board) {
   await writeJson(BOARD_FILE, board);
   updateBoardCache(board);
@@ -218,15 +226,6 @@ async function pollMailInboxOnce() {
       }
     }
 
-    // 2) Optional: Wetterwarnungs-Datei aus den gleichen Mails erzeugen
-    const warningDates = collectWarningDatesFromMails(relevant);
-    const weatherFileCreated = await generateWeatherFileIfWarning({ warningDates });
-
-    if (weatherFileCreated) {
-      console.log("[mail-poll] Wetterwarnung erkannt, Wetterdatei erzeugt");
-    } else {
-      console.log("[mail-poll] Keine neue Wetterwarnung erzeugt");
-    }
   } catch (err) {
     console.error("[mail-poll] Fehler beim Lesen des Postfachs", err);
   }
@@ -1609,12 +1608,12 @@ const nextHumanIdNumber = nextHumanNumber(board);
 	 areaColor: null,
   };
  
- if(!card.isArea && areaIdStr){
+  if (!card.isArea && areaIdStr) {
     const area = findCardById(board, areaIdStr);
-    if(area?.isArea) card.areaCardId = String(area.id);
+    if (area?.isArea) card.areaCardId = String(area.id);
   }
 
-if (card.isArea) {
+  if (card.isArea) {
     card.areaColor = normalizeAreaColor(requestedAreaColor || DEFAULT_AREA_COLOR, DEFAULT_AREA_COLOR);
   } else if (card.areaCardId) {
     const area = findCardById(board, card.areaCardId);
@@ -1623,7 +1622,8 @@ if (card.isArea) {
   const arr = board.columns[key].items;
   arr.splice(Math.max(0, Math.min(Number(toIndex) || 0, arr.length)), 0, card);
   await saveBoard(board);
-await appendCsvRow(
+  await appendWeatherIncidentForCard(card);
+  await appendCsvRow(
     LOG_FILE, EINSATZ_HEADERS,
     buildEinsatzLog({ action:"Einsatz erstellt", card, from:board.columns[key].name, note:card.ort || "", board }),
     req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
@@ -2951,13 +2951,14 @@ async function importFromFileOnce(filename=AUTO_DEFAULT_FILENAME){
         const card={ id:uid(), content:m.content||"(ohne Titel)", createdAt:now, statusSince:now,
           assignedVehicles:[], everVehicles:[], everPersonnel:0,
           ort:m.ort, typ:m.typ, externalId:m.externalId, alerted:m.alerted,
-		   humanId: importHumanId,
+                   humanId: importHumanId,
           latitude:m.latitude, longitude:m.longitude,
           location: m.location || "",
           timestamp: m.timestamp || null,
           description: m.description || ""
         };
         board.columns["neu"].items.unshift(card);
+        await appendWeatherIncidentForCard(card);
         created++;
         const logUser = AUTO_IMPORT_USER;
         const logRow = buildEinsatzLog({

@@ -12,6 +12,11 @@ const DEFAULT_OUTPUT_FILE = path.join(DATA_DIR, "weather-incidents.txt");
 const DEFAULT_MAIL_DIR = path.join(DATA_DIR, "mail", "taernwetter");
 const DEFAULT_WARNING_DATE_FILE = path.join(DATA_DIR, "weather-warning-dates.txt");
 const DEFAULT_BOARD_FILE = path.join(DATA_DIR, "board.json");
+const DEFAULT_BOARD_WARN_OPTIONS = {
+  categoryFile: process.env.WEATHER_CATEGORY_FILE || DEFAULT_CATEGORY_FILE,
+  outFile: process.env.WEATHER_OUTPUT_FILE || DEFAULT_OUTPUT_FILE,
+  warningDateFile: process.env.WEATHER_WARNING_DATE_FILE || DEFAULT_WARNING_DATE_FILE,
+};
 
 function todayKey(date = new Date()) {
   return date.toISOString().slice(0, 10);
@@ -334,6 +339,40 @@ async function collectBoardIncidentLines({ boardFile, warningDates, categories }
   }
 
   return lines;
+}
+
+async function hasCurrentWarningDate(warningDateFile, dateKey = todayKey()) {
+  const warningDates = await readWarningDateFile(warningDateFile);
+  const dateSet = new Set(warningDates);
+  return dateSet.has(dateKey);
+}
+
+export async function appendWeatherIncidentFromBoardEntry(
+  entry,
+  {
+    categoryFile = DEFAULT_BOARD_WARN_OPTIONS.categoryFile,
+    outFile = DEFAULT_BOARD_WARN_OPTIONS.outFile,
+    warningDateFile = DEFAULT_BOARD_WARN_OPTIONS.warningDateFile,
+    now = new Date(),
+  } = {},
+) {
+  if (!entry) return { appended: false, reason: "entry-missing" };
+
+  const dateKey = todayKey(now);
+  const warningToday = await hasCurrentWarningDate(warningDateFile, dateKey);
+  if (!warningToday) return { appended: false, reason: "no-warning-today" };
+
+  const categories = await loadCategories(categoryFile);
+  const category = findCategoryInBoardEntry(entry, categories);
+  if (!category) return { appended: false, reason: "no-category-match" };
+
+  const line = formatBoardLine({ entry, category, dateKey });
+  const existing = await readLines(outFile);
+  if (existing.includes(line)) return { appended: false, reason: "duplicate" };
+
+  await fsp.mkdir(path.dirname(outFile), { recursive: true });
+  await fsp.writeFile(outFile, [...existing, line].join("\n"), "utf8");
+  return { appended: true, line };
 }
 
 async function writeWarningDatesFile({ warningDates, outFile }) {
