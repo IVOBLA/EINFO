@@ -69,7 +69,40 @@ function extractWarningDates(content) {
   return parsed;
 }
 
-async function collectWarningDates({ mailDir, senderPattern }) {
+function normalizeAddress(value) {
+  if (!value) return null;
+  const str = String(value).trim();
+  if (!str) return null;
+  const match = str.match(/<([^<>]+)>/);
+  const address = match ? match[1] : str;
+  const normalized = address.trim().toLowerCase();
+  return normalized || null;
+}
+
+function normalizeAllowedFrom(value) {
+  if (!value) return [];
+  const source = Array.isArray(value) ? value : String(value).split(/[\n,;]+/);
+  const seen = new Set();
+  const result = [];
+
+  for (const entry of source) {
+    const normalized = normalizeAddress(entry);
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    result.push(normalized);
+  }
+
+  return result;
+}
+
+function isAllowedSender(headerLine, allowedFrom) {
+  if (!allowedFrom?.length) return true;
+  const normalized = normalizeAddress(headerLine?.split(":", 2)?.[1] ?? headerLine);
+  if (!normalized) return false;
+  return allowedFrom.includes(normalized);
+}
+
+async function collectWarningDates({ mailDir, allowedFrom }) {
   const dates = new Set();
   try {
     const entries = await fsp.readdir(mailDir, { withFileTypes: true });
@@ -77,7 +110,7 @@ async function collectWarningDates({ mailDir, senderPattern }) {
     for (const file of files) {
       const content = await fsp.readFile(file, "utf8");
       const fromMatch = content.match(/^from:\s*(.+)$/gim);
-      if (!fromMatch || !fromMatch.some((line) => senderPattern.test(line))) continue;
+      if (!fromMatch || !fromMatch.some((line) => isAllowedSender(line, allowedFrom))) continue;
 
       const bodyDates = extractWarningDates(content);
       const dateMatch = content.match(/^date:\s*(.+)$/gim);
@@ -200,10 +233,10 @@ export async function generateWeatherFileIfWarning({
   categoryFile = process.env.WEATHER_CATEGORY_FILE || DEFAULT_CATEGORY_FILE,
   outFile = process.env.WEATHER_OUTPUT_FILE || DEFAULT_OUTPUT_FILE,
   mailDir = process.env.WEATHER_MAIL_DIR || DEFAULT_MAIL_DIR,
-  senderPattern = /ta(?:uern|ern)wetter/i,
+  allowedFrom = normalizeAllowedFrom(process.env.MAIL_ALLOWED_FROM),
   warningDateFile = process.env.WEATHER_WARNING_DATE_FILE || DEFAULT_WARNING_DATE_FILE,
 } = {}) {
-  const warningDates = await collectWarningDates({ mailDir, senderPattern });
+  const warningDates = await collectWarningDates({ mailDir, allowedFrom });
   const hasWarning = warningDates.includes(todayKey());
 
   try {
