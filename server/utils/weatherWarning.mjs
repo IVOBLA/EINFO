@@ -78,18 +78,42 @@ function extractLocation(incident) {
   return found ? String(found).trim() : "";
 }
 
-function extractCategory(incident) {
-  if (!incident || typeof incident !== "object") return "";
-  const candidates = [
+function collectTextCandidates(value) {
+  if (value == null) return [];
+  if (Array.isArray(value)) {
+    return value.flatMap(collectTextCandidates);
+  }
+
+  if (typeof value === "object") {
+    const nestedKeys = ["name", "description", "desc", "text", "title", "label", "value"];
+    const nestedValues = nestedKeys.map((key) => value[key]);
+    return collectTextCandidates(nestedValues);
+  }
+
+  const text = String(value).trim();
+  return text ? [text] : [];
+}
+
+function extractCategories(incident) {
+  if (!incident || typeof incident !== "object") return [];
+
+  const rawCandidates = [
     incident.kategorie,
     incident.category,
     incident.kat,
     incident.type,
     incident.typ,
     incident.einsatzart,
+    incident.description,
   ];
-  const found = candidates.find((v) => v != null && String(v).trim());
-  return found ? String(found).trim() : "";
+
+  const collected = rawCandidates.flatMap(collectTextCandidates);
+
+  const unique = [];
+  for (const entry of collected) {
+    if (!unique.includes(entry)) unique.push(entry);
+  }
+  return unique;
 }
 
 async function readIncidents(file, fallback = []) {
@@ -111,9 +135,11 @@ async function writeWeatherIncidents({
   const rows = [];
   const allowed = categories && categories.size ? categories : null;
   for (const incident of incidents) {
-    const category = extractCategory(incident);
+    const incidentCategories = extractCategories(incident);
+    const category = allowed
+      ? incidentCategories.find((cat) => allowed.has(normalizeCategory(cat)))
+      : incidentCategories[0];
     if (!category) continue;
-    if (allowed && !allowed.has(normalizeCategory(category))) continue;
 
     const location = extractLocation(incident);
     if (!location) continue;
