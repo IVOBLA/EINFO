@@ -183,20 +183,140 @@ function dedupeDirs(dirs) {
 let mailInboxPollTimer = null;
 
 async function pollMailInboxOnce() {
-  const cfg = getMailInboxConfig();
   try {
-    const result = await readAndEvaluateInbox({
-      mailDir: cfg.inboxDir,
-      limit: MAIL_INBOX_POLL_LIMIT,
-      deleteAfterRead: true,
-    });
-    if (result?.mails?.length) {
-      console.log(`[mail-poll] ${result.mails.length} Mail(s) gelesen und gelöscht (${cfg.inboxDir})`);
+    const cfg = getMailInboxConfig();
+    const limit = cfg.limit ?? MAIL_INBOX_POLL_LIMIT;
+
+    const { mails } = await readAndEvaluateInbox({ ...cfg, limit });
+
+    // ALLE Mails von MAIL_ALLOWED_FROM sind bereits mit score=1 bewertet
+    const relevant = mails.filter((m) => (m.evaluation?.score ?? 0) > 0);
+
+    if (!relevant.length) {
+      console.log("[mail-poll] Keine relevanten Mails gefunden");
+      return;
+    }
+
+    const ids = relevant.map((m) => m.id).join(", ");
+    console.log(`[mail-poll] Relevante Mails gefunden: ${ids}`);
+
+    // 1) Für jede relevante Mail einen Protokolleintrag erzeugen
+    for (const mail of relevant) {
+      try {
+        await appendProtocolEntryFromMail(mail);
+      } catch (err) {
+        console.error("[mail-poll] Fehler beim Erzeugen des Protokolleintrags", {
+          id: mail.id,
+          error: err?.message || String(err),
+        });
+      }
+    }
+
+    // 2) Optional: Wetterwarnungs-Datei aus den gleichen Mails erzeugen
+    const warningDates = collectWarningDates(relevant);
+    const weatherFileCreated = await generateWeatherFileIfWarning(warningDates);
+
+    if (weatherFileCreated) {
+      console.log("[mail-poll] Wetterwarnung erkannt, Wetterdatei erzeugt");
+    } else {
+      console.log("[mail-poll] Keine neue Wetterwarnung erzeugt");
     }
   } catch (err) {
     console.error("[mail-poll] Fehler beim Lesen des Postfachs", err);
   }
 }
+
+
+// === Mail → Protokoll-Eintrag ===============================================
+
+async function appendProtocolEntryFromMail(mail) {
+  // Aktuelle Protokoll-Liste laden
+  const list = await readJson(PROTOCOL_JSON_FILE, []);
+
+  // Datum/Zeit aus Mail (Fallback: jetzt)
+  const mailDate = mail.date ? new Date(mail.date) : new Date();
+  const iso = mailDate.toISOString();
+  const datum = iso.slice(0, 10);   // YYYY-MM-DD
+  const zeit = iso.slice(11, 16);   // HH:MM
+
+  // Nächste laufende Nummer ermitteln
+  const nextNr =
+    list.length > 0
+      ? Math.max(
+          ...list.map((p) => {
+            const n = Number(p.nr || p.NR || 0);
+            return Number.isFinite(n) ? n : 0;
+          }),
+        ) + 1
+      : 1;
+
+  // Text aus Betreff + Body
+  const subject = (mail.subject || "").trim();
+  const body = (mail.text || "").trim();
+  const information = [subject, body].filter(Boolean).join("\n\n").slice(0, 2000);
+
+  // Absender für Anzeige
+  let fromLabel = "";
+  if (mail.from?.text) {
+    fromLabel = mail.from.text;
+  } else if (Array.isArray(mail.from) && mail.from[0]?.address) {
+    fromLabel = mail.from[0].address;
+  } else if (mail.from?.address) {
+    fromLabel = mail.from.address;
+  }
+
+  const entry = {
+    id: crypto.randomUUID(),
+    nr: String(nextNr),
+
+    datum,
+    zeit,
+
+    infoTyp: "Lagemeldung",           // oder „Information“ – nach Wunsch anpassbar
+    anVon: fromLabel || "Mail-Eingang",
+    uebermittlungsart: {
+      kanalNr: "MAIL",
+      kanal: "Mail",
+      art: "eingehend",
+      ein: true,
+      aus: false,
+    },
+
+    information,
+
+    ergehtAn: [],                     // kann der Stab später manuell ergänzen
+    bemerkung: "",
+    vermerk: "",
+
+    // Basis-Metadaten – ähnlich wie beim normalen Protokoll
+    erstelltAm: iso,
+    erstelltVon: "MAIL-AUTO",
+    geaendertAm: iso,
+    geaendertVon: "MAIL-AUTO",
+
+    printCount: 0,
+    history: [],
+
+    otherRecipientConfirmation: {
+      confirmed: false,
+      by: null,
+      byRole: null,
+      at: null,
+    },
+  };
+
+  list.push(entry);
+  await writeJson(PROTOCOL_JSON_FILE, list);
+
+  console.log("[mail-poll] Protokolleintrag aus Mail erzeugt", {
+    id: entry.id,
+    nr: entry.nr,
+    from: fromLabel,
+    subject,
+  });
+}
+
+
 
 function startMailInboxPolling() {
   if (mailInboxPollTimer || MAIL_INBOX_POLL_INTERVAL_SEC === null) return;
