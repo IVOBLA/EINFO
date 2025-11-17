@@ -14,6 +14,7 @@ import aufgabenRoutes from "./routes/aufgabenRoutes.js";
 import userRolesRouter from "./routes/userRoles.js";
 import createMailRouter from "./routes/mail.js";
 import createMailInboxRouter from "./routes/mailInbox.js";
+import { getMailInboxConfig, readAndEvaluateInbox } from "./utils/mailEvaluator.mjs";
 import { appendCsvRow } from "./auditLog.mjs";
 import createServerPrintRoutes from "./routes/serverPrintRoutes.js";
 import { getProtocolCreatedAt, parseAutoPrintTimestamp } from "./utils/autoPrintHelpers.js";
@@ -91,6 +92,8 @@ const AUTO_IMPORT_DEFAULT_INTERVAL_SEC = parseIntervalEnv("AUTO_IMPORT_DEFAULT_I
 const AUTO_PRINT_DEFAULT_INTERVAL_MINUTES = parseIntervalEnv("AUTO_PRINT_DEFAULT_INTERVAL_MINUTES", 10);
 const AUTO_PRINT_MIN_INTERVAL_MINUTES = parseIntervalEnv("AUTO_PRINT_MIN_INTERVAL_MINUTES", 1);
 const FF_ACTIVITY_SWEEP_INTERVAL_MS = parseIntervalEnv("FF_ACTIVITY_SWEEP_INTERVAL_MS", 60_000);
+const MAIL_INBOX_POLL_INTERVAL_SEC = parseIntervalEnv("MAIL_INBOX_POLL_INTERVAL_SEC", null);
+const MAIL_INBOX_POLL_LIMIT = parseIntervalEnv("MAIL_INBOX_POLL_LIMIT", 50);
 
 let boardCacheValue = null;
 let boardCacheExpiresAt = 0;
@@ -175,6 +178,37 @@ function dedupeDirs(dirs) {
   }
   return out;
 }
+
+// === Mail-Inbox Polling =====================================================
+let mailInboxPollTimer = null;
+
+async function pollMailInboxOnce() {
+  const cfg = getMailInboxConfig();
+  try {
+    const result = await readAndEvaluateInbox({
+      mailDir: cfg.inboxDir,
+      limit: MAIL_INBOX_POLL_LIMIT,
+      deleteAfterRead: true,
+    });
+    if (result?.mails?.length) {
+      console.log(`[mail-poll] ${result.mails.length} Mail(s) gelesen und gelöscht (${cfg.inboxDir})`);
+    }
+  } catch (err) {
+    console.error("[mail-poll] Fehler beim Lesen des Postfachs", err);
+  }
+}
+
+function startMailInboxPolling() {
+  if (mailInboxPollTimer || MAIL_INBOX_POLL_INTERVAL_SEC === null) return;
+  const intervalMs = MAIL_INBOX_POLL_INTERVAL_SEC * 1_000;
+  console.log(
+    `[mail-poll] Zyklisches Lesen aktiviert (${MAIL_INBOX_POLL_INTERVAL_SEC}s Intervall, Limit ${MAIL_INBOX_POLL_LIMIT})`,
+  );
+  pollMailInboxOnce();
+  mailInboxPollTimer = setInterval(pollMailInboxOnce, intervalMs);
+}
+
+startMailInboxPolling();
 attachPrintRoutes(app, "/api/protocol");
 attachIncidentPrintRoutes(app, "/api/incidents");
 

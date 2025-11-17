@@ -156,6 +156,7 @@ export async function readAndEvaluateInbox({
   mailDir = DEFAULT_INBOX_DIR,
   limit = 50,
   rules = null,
+  deleteAfterRead = false,
 } = {}) {
   const files = await listInboxFiles(mailDir).catch((err) => {
     const error = new Error(`Mail-Verzeichnis nicht lesbar: ${err?.message || err}`);
@@ -173,18 +174,31 @@ export async function readAndEvaluateInbox({
   const mails = [];
 
   for (const entry of sortedFiles) {
+    let mailEntry;
     try {
       const mail = await readMailFile(entry.file);
       const evaluation = evaluateMail(mail, activeRules);
-      mails.push({ ...mail, evaluation });
+      mailEntry = { ...mail, evaluation };
     } catch (err) {
-      mails.push({
+      mailEntry = {
         id: entry.name,
         file: entry.file,
         error: err?.message || String(err),
         evaluation: { score: 0, matches: [] },
-      });
+      };
     }
+
+    if (deleteAfterRead) {
+      try {
+        await fsp.unlink(entry.file);
+        mailEntry.deleted = true;
+      } catch (deleteErr) {
+        mailEntry.deleted = false;
+        mailEntry.deleteError = deleteErr?.message || String(deleteErr);
+      }
+    }
+
+    mails.push(mailEntry);
   }
 
   return { mails, rules: activeRules };
