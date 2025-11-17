@@ -219,8 +219,11 @@ export async function readAndEvaluateInbox({
       try {
         const mail = await readMailFile(entry.file);
         const sender = normalizeAddress(mail.from);
+        const rawFrom = String(mail.from || "").toLowerCase();
         const senderAllowed =
-          allowedFromNormalized.length === 0 || (sender && allowedFromNormalized.includes(sender));
+          allowedFromNormalized.length === 0 ||
+          (sender && allowedFromNormalized.includes(sender)) ||
+          allowedFromNormalized.some((allowed) => rawFrom.includes(allowed));
 
         if (!senderAllowed) {
           const filteredEntry = { ...mail, evaluation: { score: 0, matches: [] }, filtered: true };
