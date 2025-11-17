@@ -56,7 +56,7 @@ function parseDateKey(raw) {
 }
 
 function extractWarningDates(content) {
-  if (!content || !/warnug\s*f\u00fcr/i.test(content)) return [];
+  if (!content || !/warnung\s*f\u00fcr/i.test(content)) return [];
   const normalized = content.replace(/\r\n/g, "\n");
   const matches = normalized.match(/\b\d{1,2}\.\d{1,2}\.\d{2,4}\b/g) || [];
   const parsed = [];
