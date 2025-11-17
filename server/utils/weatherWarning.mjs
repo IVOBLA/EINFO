@@ -10,6 +10,7 @@ const DEFAULT_INCIDENT_FILE = path.join(DATA_DIR, "list_filtered.json");
 const DEFAULT_CATEGORY_FILE = path.join(DATA_DIR, "conf", "weather-categories.json");
 const DEFAULT_OUTPUT_FILE = path.join(DATA_DIR, "weather-incidents.txt");
 const DEFAULT_MAIL_DIR = path.join(DATA_DIR, "mail", "taernwetter");
+const DEFAULT_WARNING_DATE_FILE = path.join(DATA_DIR, "weather-warning-dates.txt");
 
 function todayKey(date = new Date()) {
   return date.toISOString().slice(0, 10);
@@ -42,7 +43,34 @@ function parseHeaderDate(headerValue) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-async function hasWeatherMailToday({ mailDir, senderPattern }) {
+function parseDateKey(raw) {
+  const match = String(raw || "").match(/^(\d{1,2})\.(\d{1,2})\.(\d{2,4})$/);
+  if (!match) return null;
+
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = Number(match[3]);
+  const fullYear = year < 100 ? 2000 + year : year;
+  const parsed = new Date(Date.UTC(fullYear, month - 1, day));
+  return Number.isNaN(parsed.getTime()) ? null : todayKey(parsed);
+}
+
+function extractWarningDates(content) {
+  if (!content || !/warnug\s*f\u00fcr/i.test(content)) return [];
+  const normalized = content.replace(/\r\n/g, "\n");
+  const matches = normalized.match(/\b\d{1,2}\.\d{1,2}\.\d{2,4}\b/g) || [];
+  const parsed = [];
+
+  for (const raw of matches) {
+    const key = parseDateKey(raw);
+    if (key && !parsed.includes(key)) parsed.push(key);
+  }
+
+  return parsed;
+}
+
+async function collectWarningDates({ mailDir, senderPattern }) {
+  const dates = new Set();
   try {
     const entries = await fsp.readdir(mailDir, { withFileTypes: true });
     const files = entries.filter((e) => e.isFile()).map((e) => path.join(mailDir, e.name));
@@ -51,15 +79,25 @@ async function hasWeatherMailToday({ mailDir, senderPattern }) {
       const fromMatch = content.match(/^from:\s*(.+)$/gim);
       if (!fromMatch || !fromMatch.some((line) => senderPattern.test(line))) continue;
 
+      const bodyDates = extractWarningDates(content);
       const dateMatch = content.match(/^date:\s*(.+)$/gim);
       const parsedDate = parseHeaderDate(dateMatch?.[0]?.split(":", 2)?.[1]);
-      const mailKey = todayKey(parsedDate || (await fsp.stat(file)).mtime);
-      if (mailKey === todayKey()) return true;
+      const fallbackKey = todayKey(parsedDate || (await fsp.stat(file)).mtime);
+
+      if (bodyDates.length === 0) {
+        dates.add(fallbackKey);
+        continue;
+      }
+
+      for (const dateKey of bodyDates) {
+        dates.add(dateKey);
+      }
     }
   } catch (err) {
     if (err?.code !== "ENOENT") console.error("[weather-warning] Mail-Check fehlgeschlagen:", err?.message || err);
   }
-  return false;
+
+  return Array.from(dates);
 }
 
 function extractLocation(incident) {
@@ -151,15 +189,29 @@ async function writeWeatherIncidents({
   console.log(`[weather-warning] ${rows.length} Einträge nach ${outFile} geschrieben.`);
 }
 
+async function writeWarningDatesFile({ warningDates, outFile }) {
+  await fsp.mkdir(path.dirname(outFile), { recursive: true });
+  await fsp.writeFile(outFile, (warningDates || []).join("\n"), "utf8");
+}
+
 export async function generateWeatherFileIfWarning({
   incidents = null,
   incidentFile = process.env.FF_OUT_FILE || DEFAULT_INCIDENT_FILE,
   categoryFile = process.env.WEATHER_CATEGORY_FILE || DEFAULT_CATEGORY_FILE,
   outFile = process.env.WEATHER_OUTPUT_FILE || DEFAULT_OUTPUT_FILE,
   mailDir = process.env.WEATHER_MAIL_DIR || DEFAULT_MAIL_DIR,
-  senderPattern = /taernwetter/i,
+  senderPattern = /ta(?:uern|ern)wetter/i,
+  warningDateFile = process.env.WEATHER_WARNING_DATE_FILE || DEFAULT_WARNING_DATE_FILE,
 } = {}) {
-  const hasWarning = await hasWeatherMailToday({ mailDir, senderPattern });
+  const warningDates = await collectWarningDates({ mailDir, senderPattern });
+  const hasWarning = warningDates.includes(todayKey());
+
+  try {
+    await writeWarningDatesFile({ warningDates, outFile: warningDateFile });
+  } catch (err) {
+    console.error("[weather-warning] Schreiben der Datumsdatei fehlgeschlagen:", err?.message || err);
+  }
+
   if (!hasWarning) {
     try {
       await fsp.unlink(outFile);
