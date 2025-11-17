@@ -20,6 +20,10 @@ import createServerPrintRoutes from "./routes/serverPrintRoutes.js";
 import { getProtocolCreatedAt, parseAutoPrintTimestamp } from "./utils/autoPrintHelpers.js";
 import { getLogDirCandidates } from "./utils/logDirectories.mjs";
 import { DATA_ROOT } from "./utils/pdfPaths.mjs";
+import {
+  collectWarningDatesFromMails,
+  generateWeatherFileIfWarning,
+} from "./utils/weatherWarning.mjs";
 
 // 🔐 Neues User-Management
 import { User_authMiddleware, User_createRouter, User_requireAuth } from "./User_auth.mjs";
@@ -213,8 +217,8 @@ async function pollMailInboxOnce() {
     }
 
     // 2) Optional: Wetterwarnungs-Datei aus den gleichen Mails erzeugen
-    const warningDates = collectWarningDates(relevant);
-    const weatherFileCreated = await generateWeatherFileIfWarning(warningDates);
+    const warningDates = collectWarningDatesFromMails(relevant);
+    const weatherFileCreated = await generateWeatherFileIfWarning({ warningDates });
 
     if (weatherFileCreated) {
       console.log("[mail-poll] Wetterwarnung erkannt, Wetterdatei erzeugt");

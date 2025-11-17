@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import test from "node:test";
 
 import { generateWeatherFileIfWarning } from "../utils/weatherWarning.mjs";
+import { collectWarningDatesFromMails } from "../utils/weatherWarning.mjs";
 
 const isoKey = (date) => date.toISOString().slice(0, 10);
 
@@ -116,4 +117,20 @@ test("nutzt MAIL_ALLOWED_FROM zur Filterung von Warnmails", async (t) => {
   const dateContent = await readFile(warningDateFile, "utf8");
   assert.ok(!dateContent.includes(isoKey(today)), "Datumsdatei enthält keine ungefilterten Warnungen");
   await assert.rejects(stat(outFile), { code: "ENOENT" });
+});
+
+test("extrahiert mehrere Warn-Daten aus 'Warnung für:' Zeile", () => {
+  const currentYear = new Date().getFullYear();
+  const mails = [
+    {
+      text: "Betreff\nWarnung für: 05.06., 06.06.24, 07.06.2024",
+      date: `${currentYear}-05-31T12:00:00Z`,
+    },
+  ];
+
+  const dates = collectWarningDatesFromMails(mails);
+
+  assert.ok(dates.includes(`${currentYear}-06-05`), "Datum ohne Jahr wird erkannt");
+  assert.ok(dates.includes("2024-06-06"), "Datum mit zweistelligem Jahr wird erkannt");
+  assert.ok(dates.includes("2024-06-07"), "Datum mit vierstelligem Jahr wird erkannt");
 });

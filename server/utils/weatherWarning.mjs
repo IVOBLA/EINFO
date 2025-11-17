@@ -44,12 +44,12 @@ function parseHeaderDate(headerValue) {
 }
 
 function parseDateKey(raw) {
-  const match = String(raw || "").match(/^(\d{1,2})\.(\d{1,2})\.(\d{2,4})$/);
+  const match = String(raw || "").match(/^(\d{1,2})\.(\d{1,2})(?:\.(\d{2,4}))?$/);
   if (!match) return null;
 
   const day = Number(match[1]);
   const month = Number(match[2]);
-  const year = Number(match[3]);
+  const year = match[3] == null ? new Date().getFullYear() : Number(match[3]);
   const fullYear = year < 100 ? 2000 + year : year;
   const parsed = new Date(Date.UTC(fullYear, month - 1, day));
   return Number.isNaN(parsed.getTime()) ? null : todayKey(parsed);
@@ -58,7 +58,7 @@ function parseDateKey(raw) {
 function extractWarningDates(content) {
   if (!content || !/warnung\s*f\u00fcr/i.test(content)) return [];
   const normalized = content.replace(/\r\n/g, "\n");
-  const matches = normalized.match(/\b\d{1,2}\.\d{1,2}\.\d{2,4}\b/g) || [];
+  const matches = normalized.match(/\b\d{1,2}\.\d{1,2}(?:\.\d{2,4})?\b/g) || [];
   const parsed = [];
 
   for (const raw of matches) {
@@ -128,6 +128,28 @@ async function collectWarningDates({ mailDir, allowedFrom }) {
     }
   } catch (err) {
     if (err?.code !== "ENOENT") console.error("[weather-warning] Mail-Check fehlgeschlagen:", err?.message || err);
+  }
+
+  return Array.from(dates);
+}
+
+export function collectWarningDatesFromMails(mails = []) {
+  const dates = new Set();
+
+  for (const mail of mails) {
+    if (!mail) continue;
+
+    const bodyDates = extractWarningDates(mail.body ?? mail.text);
+    const fallbackKey = todayKey(mail.date ? new Date(mail.date) : new Date());
+
+    if (!bodyDates.length) {
+      dates.add(fallbackKey);
+      continue;
+    }
+
+    for (const dateKey of bodyDates) {
+      dates.add(dateKey);
+    }
   }
 
   return Array.from(dates);
@@ -235,8 +257,10 @@ export async function generateWeatherFileIfWarning({
   mailDir = process.env.WEATHER_MAIL_DIR || DEFAULT_MAIL_DIR,
   allowedFrom = normalizeAllowedFrom(process.env.MAIL_ALLOWED_FROM),
   warningDateFile = process.env.WEATHER_WARNING_DATE_FILE || DEFAULT_WARNING_DATE_FILE,
+  warningDates: providedWarningDates = null,
 } = {}) {
-  const warningDates = await collectWarningDates({ mailDir, allowedFrom });
+  const warningDates =
+    providedWarningDates ?? (await collectWarningDates({ mailDir, allowedFrom }));
   const hasWarning = warningDates.includes(todayKey());
 
   try {
