@@ -78,7 +78,6 @@ function toBool(value, fallback = false) {
 }
 
 const DEFAULT_INBOX_DIR = resolvePath(process.env.MAIL_INBOX_DIR, path.join(DATA_DIR, "mail", "inbox"));
-const DEFAULT_RULE_FILE = resolvePath(process.env.MAIL_RULE_FILE, path.join(DATA_DIR, "conf", "mail-rules.json"));
 const DEFAULT_ALLOWED_FROM = normalizeAllowedFrom(process.env.MAIL_ALLOWED_FROM);
 const DEFAULT_IMAP_CONFIG = {
   host: process.env.MAIL_IMAP_HOST || process.env.MAIL_HOST || "",
@@ -101,7 +100,6 @@ const DEFAULT_POP3_CONFIG = {
 export function getMailInboxConfig() {
   return {
     inboxDir: DEFAULT_INBOX_DIR,
-    ruleFile: DEFAULT_RULE_FILE,
     allowedFrom: DEFAULT_ALLOWED_FROM,
     imap: DEFAULT_IMAP_CONFIG,
     pop3: DEFAULT_POP3_CONFIG,
@@ -401,46 +399,6 @@ function normalizeRule(rule) {
   return { name, weight, patterns, fields };
 }
 
-export async function loadRules(ruleFile = DEFAULT_RULE_FILE) {
-  try {
-    const raw = await fsp.readFile(ruleFile, "utf8");
-    const parsed = JSON.parse(raw);
-    const rules = Array.isArray(parsed)
-      ? parsed
-      : Array.isArray(parsed?.rules)
-        ? parsed.rules
-        : [];
-    const normalized = rules.map(normalizeRule).filter(Boolean);
-    return normalized;
-  } catch {
-    return [];
-  }
-}
-
-export function evaluateMail(mail, rules = []) {
-  const matches = [];
-  let score = 0;
-
-  for (const rule of rules) {
-    if (!rule) continue;
-    let matchedRule = false;
-    for (const pattern of rule.patterns) {
-      for (const field of rule.fields) {
-        const content = String(mail?.[field] ?? "");
-        if (!content) continue;
-        if (pattern.test(content)) {
-          matchedRule = true;
-          matches.push({ rule: rule.name, field, pattern: pattern.source });
-          break;
-        }
-      }
-      if (matchedRule) break;
-    }
-    if (matchedRule) score += rule.weight;
-  }
-
-  return { score, matches };
-}
 
 export async function readAndEvaluateInbox({
   mailDir = DEFAULT_INBOX_DIR,
@@ -540,7 +498,7 @@ export async function readAndEvaluateInbox({
       }));
     }
 
-    const activeRules = Array.isArray(rules) ? rules : await loadRules();
+    const activeRules = [];
     const mails = [];
     const skippedMails = [];
     const failedMails = [];
@@ -586,7 +544,22 @@ export async function readAndEvaluateInbox({
           continue;
         }
 
-        const evaluation = evaluateMail(mail, activeRules);
+    let evaluation;
+
+    if (!activeRules.length) {
+      evaluation = {
+        score: 1,
+        matches: [
+          {
+            rule: "default-allowed-from",
+            field: "from",
+            pattern: "*",
+          },
+        ],
+      };
+    } else {
+      evaluation = evaluateMail(mail, activeRules);
+    }
         mailEntry = { ...mail, evaluation };
       } catch (err) {
         mailEntry = {
