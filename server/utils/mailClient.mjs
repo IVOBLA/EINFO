@@ -68,6 +68,25 @@ function parseAddress(value) {
   return null;
 }
 
+function parseAddressList(value) {
+  if (!value) return [];
+  const entries = String(value)
+    .split(/[\n,;]+/)
+    .map((entry) => parseAddress(entry))
+    .filter(Boolean);
+
+  const unique = [];
+  const seen = new Set();
+  for (const entry of entries) {
+    const key = entry.address.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push(entry);
+  }
+
+  return unique;
+}
+
 function collectRecipients(value) {
   if (!value) return [];
   const source = Array.isArray(value) ? value : [value];
@@ -157,6 +176,13 @@ export function getMailConfig() {
   const timeoutMs = Math.max(1000, toInt(process.env.MAIL_TIMEOUT_MS, 15000));
   const rejectUnauthorized = toBool(process.env.MAIL_TLS_REJECT_UNAUTHORIZED, true);
   const clientId = process.env.MAIL_CLIENT_ID || os.hostname() || "localhost";
+  const from = process.env.MAIL_FROM || process.env.MAIL_USER || "";
+  const allowedFrom = parseAddressList(process.env.MAIL_ALLOWED_FROM);
+  const parsedDefaultFrom = parseAddress(from);
+
+  if (!allowedFrom.length && parsedDefaultFrom) {
+    allowedFrom.push(parsedDefaultFrom);
+  }
 
   return {
     host: process.env.MAIL_HOST || "",
@@ -165,7 +191,8 @@ export function getMailConfig() {
     starttls,
     user: process.env.MAIL_USER || process.env.MAIL_USERNAME || "",
     pass: process.env.MAIL_PASSWORD || process.env.MAIL_PASS || "",
-    from: process.env.MAIL_FROM || process.env.MAIL_USER || "",
+    from,
+    allowedFrom,
     replyTo: process.env.MAIL_REPLY_TO || "",
     timeoutMs,
     rejectUnauthorized,
@@ -426,6 +453,11 @@ export async function sendMail(options = {}) {
 
   const from = parseAddress(options.from ?? cfg.from);
   if (!from) {
+    throw new Error("Ungültiger Absender");
+  }
+
+  const allowedFrom = (cfg.allowedFrom || []).map((entry) => entry.address.toLowerCase());
+  if (allowedFrom.length && !allowedFrom.includes(from.address.toLowerCase())) {
     throw new Error("Ungültiger Absender");
   }
 
