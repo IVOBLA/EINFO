@@ -68,3 +68,34 @@ test("readAndEvaluateInbox liest Mails aus dem Postfach", async () => {
   assert.equal(result.mails.length, 1);
   assert.equal(result.mails[0].evaluation.score, 2);
 });
+
+test("readAndEvaluateInbox filtert Absender anhand von allowedFrom", async () => {
+  await ensureTempMailDir();
+
+  const allowedFile = path.join(TEMP_DIR, "20240101-0002.eml");
+  const blockedFile = path.join(TEMP_DIR, "20240101-0003.eml");
+
+  await fsp.writeFile(allowedFile, [
+    "Subject: Alarm",
+    "From: Leitstelle <leitstelle@example.com>",
+    "",
+    "Einsatzalarm",
+  ].join("\n"), "utf8");
+
+  await fsp.writeFile(blockedFile, [
+    "Subject: Info",
+    "From: Unbekannt <spam@example.com>",
+    "",
+    "Test",
+  ].join("\n"), "utf8");
+
+  const result = await readAndEvaluateInbox({
+    mailDir: TEMP_DIR,
+    rules: [{ name: "Alarm", patterns: [/alarm/i], fields: ["subject"], weight: 1 }],
+    allowedFrom: ["leitstelle@example.com"],
+  });
+
+  assert.equal(result.mails.length, 1);
+  assert.equal(result.mails[0].from, "Leitstelle <leitstelle@example.com>");
+  assert.equal(result.mails[0].evaluation.score, 1);
+});

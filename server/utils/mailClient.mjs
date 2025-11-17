@@ -458,11 +458,6 @@ export async function sendMail(options = {}) {
     throw new Error("Ungültiger Absender");
   }
 
-  const allowedFrom = (cfg.allowedFrom || []).map((entry) => entry.address.toLowerCase());
-  if (allowedFrom.length && !allowedFrom.includes(from.address.toLowerCase())) {
-    throw new Error("Ungültiger Absender");
-  }
-
   const to = collectRecipients(options.to);
   const cc = collectRecipients(options.cc);
   const bcc = collectRecipients(options.bcc);
