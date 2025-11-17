@@ -13,13 +13,41 @@ function resolvePath(value, fallback) {
   return path.isAbsolute(value) ? value : path.resolve(__dirname, value);
 }
 
+function normalizeAddress(value) {
+  if (!value) return null;
+  const str = String(value).trim();
+  if (!str) return null;
+  const match = str.match(/<([^<>]+)>/);
+  const address = match ? match[1] : str;
+  const normalized = address.trim().toLowerCase();
+  return normalized || null;
+}
+
+function normalizeAllowedFrom(value) {
+  if (!value) return [];
+  const source = Array.isArray(value) ? value : String(value).split(/[\n,;]+/);
+  const result = [];
+  const seen = new Set();
+
+  for (const entry of source) {
+    const normalized = normalizeAddress(entry);
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    result.push(normalized);
+  }
+
+  return result;
+}
+
 const DEFAULT_INBOX_DIR = resolvePath(process.env.MAIL_INBOX_DIR, path.join(DATA_DIR, "mail", "inbox"));
 const DEFAULT_RULE_FILE = resolvePath(process.env.MAIL_RULE_FILE, path.join(DATA_DIR, "conf", "mail-rules.json"));
+const DEFAULT_ALLOWED_FROM = normalizeAllowedFrom(process.env.MAIL_ALLOWED_FROM);
 
 export function getMailInboxConfig() {
   return {
     inboxDir: DEFAULT_INBOX_DIR,
     ruleFile: DEFAULT_RULE_FILE,
+    allowedFrom: DEFAULT_ALLOWED_FROM,
   };
 }
 
@@ -159,13 +187,16 @@ export async function readAndEvaluateInbox({
   limit = 50,
   rules = null,
   deleteAfterRead = false,
+  allowedFrom = DEFAULT_ALLOWED_FROM,
 } = {}) {
+  const allowedFromNormalized = normalizeAllowedFrom(allowedFrom);
   try {
     await logMailEvent("Starte Inbox-Auswertung", {
       mailDir,
       limit,
       deleteAfterRead,
       customRules: Array.isArray(rules),
+      allowedFrom: allowedFromNormalized,
     });
 
     const files = await listInboxFiles(mailDir).catch((err) => {
@@ -187,6 +218,35 @@ export async function readAndEvaluateInbox({
       let mailEntry;
       try {
         const mail = await readMailFile(entry.file);
+        const sender = normalizeAddress(mail.from);
+        const senderAllowed =
+          allowedFromNormalized.length === 0 || (sender && allowedFromNormalized.includes(sender));
+
+        if (!senderAllowed) {
+          const filteredEntry = { ...mail, evaluation: { score: 0, matches: [] }, filtered: true };
+          if (deleteAfterRead) {
+            try {
+              await fsp.unlink(entry.file);
+              filteredEntry.deleted = true;
+            } catch (deleteErr) {
+              filteredEntry.deleted = false;
+              filteredEntry.deleteError = deleteErr?.message || String(deleteErr);
+            }
+          }
+
+          await logMailEvent("Mail verworfen", {
+            file: filteredEntry.file,
+            id: filteredEntry.id,
+            from: mail.from,
+            reason: "Absender nicht erlaubt",
+            allowedFrom: allowedFromNormalized,
+            deleted: Boolean(filteredEntry.deleted),
+            error: filteredEntry.deleteError,
+          });
+
+          continue;
+        }
+
         const evaluation = evaluateMail(mail, activeRules);
         mailEntry = { ...mail, evaluation };
       } catch (err) {
