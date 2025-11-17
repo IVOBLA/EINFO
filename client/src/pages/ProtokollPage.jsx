@@ -181,7 +181,7 @@ const initialForm = () => ({
   lagebericht: "",
   massnahmen: Array.from({ length: 5 }, () => ({
     massnahme: "",
-    verantwortlich: "",
+    verantwortlich: "S2",
     done: false,
   })),
 });
@@ -762,7 +762,7 @@ export default function ProtokollPage({
             lagebericht: it.lagebericht || "",
             massnahmen: Array.from({ length: 5 }, (_, i) => {
               const m = it.massnahmen?.[i] || {};
-              return { massnahme: m.massnahme || "", verantwortlich: m.verantwortlich || "", done: !!m.done };
+              return { massnahme: m.massnahme || "", verantwortlich: m.verantwortlich || "S2", done: !!m.done };
             }),
           });
           setErrors({});
@@ -1071,7 +1071,7 @@ const startPdfPrint = (fileUrl) => {
       const domDone = fd ? fd.get(`m_done_${i}`) !== null : m.done;
       return {
         massnahme:      (fd?.get(`m_massnahme_${i}`)      || m.massnahme      || "").toString(),
-        verantwortlich: (fd?.get(`m_verantwortlich_${i}`) || m.verantwortlich || "").toString(),
+        verantwortlich: (fd?.get(`m_verantwortlich_${i}`) || m.verantwortlich || "S2").toString(),
         done: !!domDone,
       };
     });

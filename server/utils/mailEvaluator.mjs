@@ -123,9 +123,16 @@ function parseMailDate(value) {
   return Number.isNaN(ts) ? null : ts;
 }
 
-export function parseRawMail(raw, { id = null, file = null } = {}) {
-  const normalized = raw.replace(/\r\n/g, "\n");
-  const [rawHeaders = "", ...bodyParts] = normalized.split(/\n\n/);
+const HTML_TAG_REGEX = /<[^>]*>/g;
+
+function normalizeCharset(charset = "utf8") {
+  const cs = String(charset).toLowerCase();
+  if (cs.includes("utf-8") || cs === "utf8") return "utf8";
+  if (cs.includes("iso-8859-1") || cs.includes("latin1")) return "latin1";
+  return "utf8";
+}
+
+function parseHeaderBlock(rawHeaders = "") {
   const headerLines = rawHeaders.split(/\n/);
   const headers = {};
 
@@ -137,8 +144,86 @@ export function parseRawMail(raw, { id = null, file = null } = {}) {
     const value = match[2] ?? "";
     headers[key] = String(value).trim();
   }
+  return headers;
+}
 
-  const body = bodyParts.join("\n\n").trim();
+function decodeBase64Body(body, charset) {
+  try {
+    const cleaned = body.replace(/\s+/g, "");
+    return Buffer.from(cleaned, "base64").toString(normalizeCharset(charset));
+  } catch {
+    return body;
+  }
+}
+
+function decodeQuotedPrintable(body, charset) {
+  try {
+    const withoutSoftBreaks = body.replace(/=\r?\n/g, "");
+    const bytes = withoutSoftBreaks.replace(/=([A-Fa-f0-9]{2})/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)));
+    return Buffer.from(bytes, "latin1").toString(normalizeCharset(charset));
+  } catch {
+    return body;
+  }
+}
+
+function stripHtmlTags(html) {
+  return html.replace(HTML_TAG_REGEX, " ").replace(/\s+/g, " ");
+}
+
+function extractCharset(contentType = "") {
+  const match = String(contentType).match(/charset\s*=\s*"?([^";\s]+)/i);
+  return match ? match[1] : "utf8";
+}
+
+function escapeRegex(value = "") {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function parseMailPart(partRaw) {
+  const [partHeadersRaw = "", ...partBodyParts] = partRaw.split(/\n\n/);
+  const headers = parseHeaderBlock(partHeadersRaw);
+  const body = partBodyParts.join("\n\n");
+  const encoding = String(headers["content-transfer-encoding"] || "").toLowerCase();
+  const charset = extractCharset(headers["content-type"] || "");
+
+  if (encoding === "base64") return { headers, body: decodeBase64Body(body, charset) };
+  if (encoding === "quoted-printable") return { headers, body: decodeQuotedPrintable(body, charset) };
+  return { headers, body };
+}
+
+function extractBody({ headers, rawBody }) {
+  const contentType = headers["content-type"] || "";
+  const boundaryMatch = String(contentType).match(/boundary="?([^";]+)"?/i);
+
+  if (boundaryMatch) {
+    const boundary = boundaryMatch[1];
+    const parts = rawBody.split(new RegExp(`--${escapeRegex(boundary)}(?:--)?`, "g"));
+    const parsedParts = parts
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .map(parseMailPart);
+
+    const plain = parsedParts.find((p) => String(p.headers["content-type"] || "").toLowerCase().includes("text/plain") && p.body);
+    if (plain?.body) return plain.body.trim();
+
+    const html = parsedParts.find((p) => String(p.headers["content-type"] || "").toLowerCase().includes("text/html") && p.body);
+    if (html?.body) return stripHtmlTags(html.body).trim();
+  }
+
+  const charset = extractCharset(contentType);
+  const encoding = String(headers["content-transfer-encoding"] || "").toLowerCase();
+  if (encoding === "base64") return decodeBase64Body(rawBody, charset).trim();
+  if (encoding === "quoted-printable") return decodeQuotedPrintable(rawBody, charset).trim();
+
+  return rawBody.trim();
+}
+
+export function parseRawMail(raw, { id = null, file = null } = {}) {
+  const normalized = raw.replace(/\r\n/g, "\n");
+  const [rawHeaders = "", ...bodyParts] = normalized.split(/\n\n/);
+  const headers = parseHeaderBlock(rawHeaders);
+  const rawBody = bodyParts.join("\n\n");
+  const body = extractBody({ headers, rawBody });
   const snippet = body.replace(/\s+/g, " ").slice(0, 240);
 
   return {
@@ -150,6 +235,7 @@ export function parseRawMail(raw, { id = null, file = null } = {}) {
     to: headers.to || "",
     date: parseMailDate(headers.date),
     body,
+    text: body,
     snippet,
   };
 }
@@ -406,6 +492,29 @@ function normalizeRule(rule) {
 }
 
 
+export function evaluateMail(mail, rules = []) {
+  const normalizedRules = (Array.isArray(rules) ? rules : []).map(normalizeRule).filter(Boolean);
+  const matches = [];
+  let score = 0;
+
+  for (const rule of normalizedRules) {
+    const matchField = rule.fields.find((field) => {
+      const value = mail?.[field];
+      if (value == null) return false;
+      const str = Array.isArray(value) ? value.join(" ") : String(value);
+      return rule.patterns.some((pattern) => pattern.test(str));
+    });
+
+    if (matchField) {
+      matches.push({ rule: rule.name, field: matchField, weight: rule.weight });
+      score += rule.weight;
+    }
+  }
+
+  return { score, matches };
+}
+
+
 export async function readAndEvaluateInbox({
   mailDir = DEFAULT_INBOX_DIR,
   limit = 50,
@@ -504,7 +613,7 @@ export async function readAndEvaluateInbox({
       }));
     }
 
-    const activeRules = [];
+    const activeRules = Array.isArray(rules) ? rules.map(normalizeRule).filter(Boolean) : [];
     const mails = [];
     const skippedMails = [];
     const failedMails = [];
