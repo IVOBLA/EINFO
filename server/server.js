@@ -294,6 +294,8 @@ async function appendProtocolEntryFromMail(mail) {
   const anvon = fromAddress ? `Von ${fromAddress}` : "Mail-Eingang";
   const actorLabel = "MAIL-AUTO";
 
+  const isWeatherMail = collectWarningDatesFromMails([mail]).length > 0;
+
   const entry = {
     id: crypto.randomUUID(),
     nr: String(nextNr),
@@ -314,7 +316,7 @@ async function appendProtocolEntryFromMail(mail) {
     information,
 
     ergehtAn: ["LtStb", "S2"],
-    verantwortliche: ["S2"],
+    verantwortliche: isWeatherMail ? ["S2"] : [],
     bemerkung: "",
     vermerk: "",
 
