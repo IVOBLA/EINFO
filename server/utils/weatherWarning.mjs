@@ -11,6 +11,7 @@ const DEFAULT_CATEGORY_FILE = path.join(DATA_DIR, "conf", "weather-categories.js
 const DEFAULT_OUTPUT_FILE = path.join(DATA_DIR, "weather-incidents.txt");
 const DEFAULT_MAIL_DIR = path.join(DATA_DIR, "mail", "taernwetter");
 const DEFAULT_WARNING_DATE_FILE = path.join(DATA_DIR, "weather-warning-dates.txt");
+const DEFAULT_BOARD_FILE = path.join(DATA_DIR, "board.json");
 
 function todayKey(date = new Date()) {
   return date.toISOString().slice(0, 10);
@@ -35,6 +36,21 @@ async function loadCategories(file) {
   const entries = await readJsonArray(file, []);
   const set = new Set(entries.map(normalizeCategory).filter(Boolean));
   return set;
+}
+
+async function readLines(file) {
+  try {
+    const raw = await fsp.readFile(file, "utf8");
+    return raw
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+  } catch (err) {
+    if (err?.code !== "ENOENT") {
+      console.error("[weather-warning] Datei konnte nicht gelesen werden:", err?.message || err);
+    }
+    return [];
+  }
 }
 
 function parseHeaderDate(headerValue) {
@@ -209,6 +225,20 @@ function extractCategories(incident) {
   return unique;
 }
 
+function dedupeLines(lines = []) {
+  const seen = new Set();
+  const result = [];
+
+  for (const line of lines) {
+    const normalized = line.trim();
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    result.push(normalized);
+  }
+
+  return result;
+}
+
 async function readIncidents(file, fallback = []) {
   try {
     const raw = await fsp.readFile(file, "utf8");
@@ -220,10 +250,9 @@ async function readIncidents(file, fallback = []) {
   }
 }
 
-async function writeWeatherIncidents({
+async function buildWeatherIncidentLines({
   incidents,
   categories,
-  outFile,
 }) {
   const rows = [];
   const allowed = categories && categories.size ? categories : null;
@@ -239,9 +268,72 @@ async function writeWeatherIncidents({
     rows.push(`${location} – ${category}`);
   }
 
-  await fsp.mkdir(path.dirname(outFile), { recursive: true });
-  await fsp.writeFile(outFile, rows.join("\n"), "utf8");
-  console.log(`[weather-warning] ${rows.length} Einträge nach ${outFile} geschrieben.`);
+  return rows;
+}
+
+async function readWarningDateFile(file) {
+  const existing = await readLines(file);
+  return existing.filter(Boolean);
+}
+
+async function loadBoardIncidents(boardFile) {
+  try {
+    const raw = await fsp.readFile(boardFile, "utf8");
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed;
+    if (Array.isArray(parsed?.items)) return parsed.items;
+  } catch (err) {
+    if (err?.code !== "ENOENT") {
+      console.error("[weather-warning] Board.json konnte nicht gelesen werden:", err?.message || err);
+    }
+  }
+
+  return [];
+}
+
+function dateKeyFromCreatedAt(value) {
+  if (value == null) return null;
+  const date = new Date(typeof value === "string" ? Number(value) || value : value);
+  return Number.isNaN(date.getTime()) ? null : todayKey(date);
+}
+
+function findCategoryInBoardEntry(entry, categories) {
+  if (!categories?.size) return null;
+  const haystacks = [entry?.description, entry?.desc, entry?.content, entry?.typ];
+  for (const hay of haystacks) {
+    const text = normalizeCategory(hay);
+    if (!text) continue;
+    for (const cat of categories) {
+      if (text.includes(cat)) return cat;
+    }
+  }
+  return null;
+}
+
+function formatBoardLine({ entry, category, dateKey }) {
+  const titleCandidates = [entry?.title, entry?.typ, entry?.description, entry?.content];
+  const title = titleCandidates.find((v) => v != null && String(v).trim()) || "Einsatz";
+  const idSuffix = entry?.id ? ` #${entry.id}` : "";
+  return `[${dateKey}] ${String(title).trim()}${idSuffix} – ${category}`;
+}
+
+async function collectBoardIncidentLines({ boardFile, warningDates, categories }) {
+  const dateSet = new Set(warningDates || []);
+  if (!dateSet.size) return [];
+  const incidents = await loadBoardIncidents(boardFile);
+  const lines = [];
+
+  for (const entry of incidents) {
+    const dateKey = dateKeyFromCreatedAt(entry?.createdAt);
+    if (!dateKey || !dateSet.has(dateKey)) continue;
+
+    const category = findCategoryInBoardEntry(entry, categories);
+    if (!category) continue;
+
+    lines.push(formatBoardLine({ entry, category, dateKey }));
+  }
+
+  return lines;
 }
 
 async function writeWarningDatesFile({ warningDates, outFile }) {
@@ -258,10 +350,14 @@ export async function generateWeatherFileIfWarning({
   allowedFrom = normalizeAllowedFrom(process.env.MAIL_ALLOWED_FROM),
   warningDateFile = process.env.WEATHER_WARNING_DATE_FILE || DEFAULT_WARNING_DATE_FILE,
   warningDates: providedWarningDates = null,
+  boardFile = process.env.BOARD_FILE || DEFAULT_BOARD_FILE,
 } = {}) {
-  const warningDates =
+  const warningDatesFromFile = await readWarningDateFile(warningDateFile);
+  const warningDatesFromMails =
     providedWarningDates ?? (await collectWarningDates({ mailDir, allowedFrom }));
-  const hasWarning = warningDates.includes(todayKey());
+  const warningDates = dedupeLines([...warningDatesFromFile, ...warningDatesFromMails]);
+  const warningDateSet = new Set(warningDates);
+  const hasWarning = warningDateSet.has(todayKey());
 
   try {
     await writeWarningDatesFile({ warningDates, outFile: warningDateFile });
@@ -287,9 +383,23 @@ export async function generateWeatherFileIfWarning({
   }
 
   const sourceIncidents = incidents || (await readIncidents(incidentFile, []));
-  await writeWeatherIncidents({
-    incidents: sourceIncidents,
+  const existingLines = await readLines(outFile);
+  const boardLines = await collectBoardIncidentLines({
+    boardFile,
+    warningDates: warningDateSet,
     categories: categorySet,
-    outFile,
   });
+
+  const rows = dedupeLines([
+    ...existingLines,
+    ...(await buildWeatherIncidentLines({
+      incidents: sourceIncidents,
+      categories: categorySet,
+    })),
+    ...boardLines,
+  ]);
+
+  await fsp.mkdir(path.dirname(outFile), { recursive: true });
+  await fsp.writeFile(outFile, rows.join("\n"), "utf8");
+  console.log(`[weather-warning] ${rows.length} Einträge nach ${outFile} geschrieben.`);
 }

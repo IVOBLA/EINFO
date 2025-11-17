@@ -134,3 +134,63 @@ test("extrahiert mehrere Warn-Daten aus 'Warnung für:' Zeile", () => {
   assert.ok(dates.includes("2024-06-06"), "Datum mit zweistelligem Jahr wird erkannt");
   assert.ok(dates.includes("2024-06-07"), "Datum mit vierstelligem Jahr wird erkannt");
 });
+
+test("ergänzt weather-incidents.txt um Board-Einträge für Warn-Daten", async (t) => {
+  const tempDir = await mkdtemp(path.join(tmpdir(), "weather-warning-"));
+  t.after(async () => rm(tempDir, { recursive: true, force: true }));
+
+  const outFile = path.join(tempDir, "weather-incidents.txt");
+  const warningDateFile = path.join(tempDir, "weather-warning-dates.txt");
+  const categoryFile = path.join(tempDir, "categories.json");
+  const boardFile = path.join(tempDir, "Board.json");
+  const todayKey = isoKey(new Date());
+
+  await writeFile(categoryFile, JSON.stringify(["Sturm"]), "utf8");
+  await writeFile(
+    boardFile,
+    JSON.stringify({
+      items: [
+        { id: "a1", createdAt: new Date().toISOString(), description: "Sturm über Land" },
+        { id: "a2", createdAt: new Date().toISOString(), typ: "Sturm" },
+      ],
+    }),
+    "utf8",
+  );
+
+  await writeFile(outFile, "Bestehender Eintrag – Sturm\n", "utf8");
+
+  await generateWeatherFileIfWarning({
+    incidents: [],
+    categoryFile,
+    outFile,
+    warningDateFile,
+    warningDates: [todayKey],
+    boardFile,
+  });
+
+  const linesAfterFirstRun = (await readFile(outFile, "utf8"))
+    .split(/\r?\n/)
+    .filter(Boolean);
+
+  assert.ok(linesAfterFirstRun.some((line) => line.includes("a1")), "Board-Eintrag wird übernommen");
+  const countAfterFirstRun = linesAfterFirstRun.length;
+
+  await generateWeatherFileIfWarning({
+    incidents: [],
+    categoryFile,
+    outFile,
+    warningDateFile,
+    warningDates: [todayKey],
+    boardFile,
+  });
+
+  const linesAfterSecondRun = (await readFile(outFile, "utf8"))
+    .split(/\r?\n/)
+    .filter(Boolean);
+
+  assert.equal(
+    linesAfterSecondRun.length,
+    countAfterFirstRun,
+    "Board-Einträge werden nicht doppelt hinzugefügt",
+  );
+});
