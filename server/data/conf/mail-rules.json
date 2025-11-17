@@ -1,0 +1,20 @@
+[
+  {
+    "name": "Alarm / Einsatz",
+    "patterns": ["alarm", "einsatz", "notruf"],
+    "fields": ["subject", "body"],
+    "weight": 2
+  },
+  {
+    "name": "Warnung / Wetter",
+    "patterns": ["warnung", "unwetter", "wetter"],
+    "fields": ["subject", "body"],
+    "weight": 1
+  },
+  {
+    "name": "Absender Leitstelle",
+    "patterns": ["leitstelle", "leit.zentrale"],
+    "fields": ["from"],
+    "weight": 1
+  }
+]
