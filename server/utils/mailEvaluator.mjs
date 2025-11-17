@@ -2,6 +2,8 @@ import fsp from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { logMailEvent } from "./mailLogger.mjs";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DATA_DIR = path.resolve(__dirname, "../data");
@@ -158,48 +160,79 @@ export async function readAndEvaluateInbox({
   rules = null,
   deleteAfterRead = false,
 } = {}) {
-  const files = await listInboxFiles(mailDir).catch((err) => {
-    const error = new Error(`Mail-Verzeichnis nicht lesbar: ${err?.message || err}`);
-    error.code = err?.code;
-    throw error;
-  });
+  try {
+    await logMailEvent("Starte Inbox-Auswertung", {
+      mailDir,
+      limit,
+      deleteAfterRead,
+      customRules: Array.isArray(rules),
+    });
 
-  const sortedFiles = files
-    .map((file) => ({ file, name: path.basename(file) }))
-    .sort((a, b) => a.name.localeCompare(b.name))
-    .reverse()
-    .slice(0, Math.max(1, Number(limit) || 1));
+    const files = await listInboxFiles(mailDir).catch((err) => {
+      const error = new Error(`Mail-Verzeichnis nicht lesbar: ${err?.message || err}`);
+      error.code = err?.code;
+      throw error;
+    });
 
-  const activeRules = Array.isArray(rules) ? rules : await loadRules();
-  const mails = [];
+    const sortedFiles = files
+      .map((file) => ({ file, name: path.basename(file) }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .reverse()
+      .slice(0, Math.max(1, Number(limit) || 1));
 
-  for (const entry of sortedFiles) {
-    let mailEntry;
-    try {
-      const mail = await readMailFile(entry.file);
-      const evaluation = evaluateMail(mail, activeRules);
-      mailEntry = { ...mail, evaluation };
-    } catch (err) {
-      mailEntry = {
-        id: entry.name,
-        file: entry.file,
-        error: err?.message || String(err),
-        evaluation: { score: 0, matches: [] },
-      };
-    }
+    const activeRules = Array.isArray(rules) ? rules : await loadRules();
+    const mails = [];
 
-    if (deleteAfterRead) {
+    for (const entry of sortedFiles) {
+      let mailEntry;
       try {
-        await fsp.unlink(entry.file);
-        mailEntry.deleted = true;
-      } catch (deleteErr) {
-        mailEntry.deleted = false;
-        mailEntry.deleteError = deleteErr?.message || String(deleteErr);
+        const mail = await readMailFile(entry.file);
+        const evaluation = evaluateMail(mail, activeRules);
+        mailEntry = { ...mail, evaluation };
+      } catch (err) {
+        mailEntry = {
+          id: entry.name,
+          file: entry.file,
+          error: err?.message || String(err),
+          evaluation: { score: 0, matches: [] },
+        };
       }
+
+      if (deleteAfterRead) {
+        try {
+          await fsp.unlink(entry.file);
+          mailEntry.deleted = true;
+        } catch (deleteErr) {
+          mailEntry.deleted = false;
+          mailEntry.deleteError = deleteErr?.message || String(deleteErr);
+        }
+      }
+
+      await logMailEvent("Mail verarbeitet", {
+        file: mailEntry.file,
+        id: mailEntry.id,
+        score: mailEntry.evaluation?.score ?? 0,
+        matches: mailEntry.evaluation?.matches?.length ?? 0,
+        deleted: Boolean(mailEntry.deleted),
+        error: mailEntry.error,
+      });
+
+      mails.push(mailEntry);
     }
 
-    mails.push(mailEntry);
-  }
+    await logMailEvent("Inbox-Auswertung abgeschlossen", {
+      mailDir,
+      processed: mails.length,
+      withErrors: mails.filter((m) => m.error).length,
+      deleteAfterRead,
+    });
 
-  return { mails, rules: activeRules };
+    return { mails, rules: activeRules };
+  } catch (err) {
+    await logMailEvent("Inbox-Auswertung fehlgeschlagen", {
+      mailDir,
+      error: err?.message || String(err),
+    });
+    throw err;
+  }
 }

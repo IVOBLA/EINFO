@@ -2,6 +2,8 @@ import net from "node:net";
 import tls from "node:tls";
 import os from "node:os";
 
+import { logMailEvent } from "./mailLogger.mjs";
+
 const BOOL_TRUE = new Set(["1", "true", "yes", "y", "on"]); 
 const BOOL_FALSE = new Set(["0", "false", "no", "n", "off"]);
 
@@ -492,6 +494,18 @@ export async function sendMail(options = {}) {
     attachments: attachmentsNormalized.length ? attachmentsNormalized : options.attachments,
   });
 
+  await logMailEvent("Starte Mailversand", {
+    host: cfg.host,
+    port: cfg.port,
+    secure: cfg.secure,
+    starttls: cfg.starttls,
+    from: from.address,
+    to: to.map((r) => r.address),
+    cc: cc.map((r) => r.address),
+    bcc: bcc.map((r) => r.address),
+    subject: options.subject || "",
+  });
+
   let socket = await connectSocket(cfg);
   const accepted = [];
   const rejected = [];
@@ -589,6 +603,13 @@ export async function sendMail(options = {}) {
     await writeCommand(socket, "QUIT\r\n");
     socket.end();
 
+    await logMailEvent("Mail erfolgreich versendet", {
+      messageId,
+      accepted,
+      rejected,
+      response: sendResp.message,
+    });
+
     return {
       ok: true,
       messageId,
@@ -600,6 +621,13 @@ export async function sendMail(options = {}) {
     if (socket && !socket.destroyed) {
       try { socket.destroy(); } catch {}
     }
+    await logMailEvent("Mailversand fehlgeschlagen", {
+      error: error?.message || String(error),
+      response: error?.response?.message,
+      code: error?.response?.code,
+      accepted,
+      rejected,
+    });
     throw error;
   }
 }
