@@ -96,7 +96,7 @@ function normalizeAllowedFrom(value) {
 }
 
 function isAllowedSender(headerLine, allowedFrom) {
-  if (!allowedFrom?.length) return true;
+  if (!allowedFrom?.length) return false;
   const normalized = normalizeAddress(headerLine?.split(":", 2)?.[1] ?? headerLine);
   if (!normalized) return false;
   return allowedFrom.includes(normalized);
