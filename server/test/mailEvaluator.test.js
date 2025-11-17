@@ -99,3 +99,25 @@ test("readAndEvaluateInbox filtert Absender anhand von allowedFrom", async () =>
   assert.equal(result.mails[0].from, "Leitstelle <leitstelle@example.com>");
   assert.equal(result.mails[0].evaluation.score, 1);
 });
+
+test("readAndEvaluateInbox erkennt erlaubte Absender auch ohne sauberes From-Header-Parsing", async () => {
+  await ensureTempMailDir();
+
+  const noisyHeaderFile = path.join(TEMP_DIR, "20240101-0004.eml");
+  await fsp.writeFile(noisyHeaderFile, [
+    "Subject: Alarm",
+    "From: Leitstelle leitstelle@example.com (Alarmierung)",
+    "",
+    "Einsatzalarm",
+  ].join("\n"), "utf8");
+
+  const result = await readAndEvaluateInbox({
+    mailDir: TEMP_DIR,
+    rules: [{ name: "Alarm", patterns: [/alarm/i], fields: ["subject"], weight: 1 }],
+    allowedFrom: ["leitstelle@example.com"],
+  });
+
+  assert.equal(result.mails.length, 1);
+  assert.equal(result.mails[0].from, "Leitstelle leitstelle@example.com (Alarmierung)");
+  assert.equal(result.mails[0].evaluation.score, 1);
+});
