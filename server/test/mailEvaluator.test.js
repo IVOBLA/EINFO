@@ -68,6 +68,20 @@ test("parseRawMail dekodiert quoted-printable mit Charset", () => {
   assert.equal(parsed.body, "Grüße aus dem Test");
 });
 
+test("parseRawMail dekodiert verdächtige Base64-Bodies ohne Encoding-Header", () => {
+  const plainText = "Lesbarer Inhalt ohne Encoding-Header.";
+  const encoded = Buffer.from(plainText, "utf8").toString("base64");
+  const raw = [
+    "Subject: Fehlender Header",
+    "From: Demo <demo@example.com>",
+    "", // kein Content-Transfer-Encoding gesetzt
+    encoded,
+  ].join("\n");
+
+  const parsed = parseRawMail(raw, { id: "mail3b" });
+  assert.equal(parsed.body, plainText);
+});
+
 test("evaluateMail markiert passende Regeln", () => {
   const mail = {
     subject: "Unwetterwarnung",
