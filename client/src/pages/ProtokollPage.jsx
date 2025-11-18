@@ -181,7 +181,7 @@ const initialForm = () => ({
   lagebericht: "",
   massnahmen: Array.from({ length: 5 }, () => ({
     massnahme: "",
-    verantwortlich: "S2",
+    verantwortlich: "",
     done: false,
   })),
 });
