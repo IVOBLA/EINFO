@@ -23,7 +23,9 @@ import { DATA_ROOT } from "./utils/pdfPaths.mjs";
 import {
   collectWarningDatesFromMails,
   appendWeatherIncidentFromBoardEntry,
+  generateWeatherFileIfWarning,
 } from "./utils/weatherWarning.mjs";
+
 import { appendHistoryEntriesToCsv } from "./utils/protocolCsv.mjs";
 import { ensureTaskForRole } from "./utils/tasksService.mjs";
 
@@ -56,6 +58,7 @@ const TYPES_FILE  = path.join(DATA_DIR, "conf","types.json");
 const LOG_FILE    = path.join(DATA_DIR, "Lage_log.csv");
 const ARCHIVE_DIR = path.join(DATA_DIR, "archive");
 const ERROR_LOG_FILE_NAME = "Log.txt";
+const MAIL_ARCHIVE_DIR = path.join(DATA_DIR, "mail");
 const errorLogDirCandidates = dedupeDirs([
   ...getLogDirCandidates(),
   path.join(DATA_DIR, "logs"),
@@ -194,6 +197,60 @@ function dedupeDirs(dirs) {
   return out;
 }
 
+function buildEmlFilename(mail) {
+  const date = mail.date ? new Date(mail.date) : new Date();
+  const stamp = date.toISOString().replace(/[:.]/g, "-");
+  const safeSubject = (mail.subject || "mail")
+    .toLowerCase()
+    .replace(/[^a-z0-9\-_.]+/g, "-")
+    .replace(/-+/g, "-")
+    .slice(0, 80);
+  const base = safeSubject || "mail";
+  return `${stamp}_${base}.eml`;
+}
+
+async function archiveRelevantMail(mail) {
+  try {
+    await ensureDir(MAIL_ARCHIVE_DIR);
+
+    const filename = buildEmlFilename(mail);
+    const fullPath = path.join(MAIL_ARCHIVE_DIR, filename);
+
+    const from = mail.from || "";
+    const to = Array.isArray(mail.to) ? mail.to.join(", ") : (mail.to || "");
+    const date = mail.date
+      ? new Date(mail.date).toUTCString()
+      : new Date().toUTCString();
+    const subject = mail.subject || "";
+    const body = (mail.body || mail.text || "").replace(/\r\n/g, "\n");
+
+    const content = [
+      `From: ${from}`,
+      `To: ${to}`,
+      `Subject: ${subject}`,
+      `Date: ${date}`,
+      "Content-Type: text/plain; charset=utf-8",
+      "",
+      body,
+      "",
+    ].join("\r\n");
+
+    await fs.writeFile(fullPath, content, "utf8");
+
+    console.log("[mail-archive] .eml gespeichert", {
+      id: mail.id,
+      file: fullPath,
+    });
+  } catch (err) {
+    console.error("[mail-archive] Fehler beim Speichern der Mail", {
+      id: mail.id,
+      error: err?.message || String(err),
+    });
+  }
+}
+
+
+
 // === Mail-Inbox Polling =====================================================
 let mailInboxPollTimer = null;
 
@@ -215,7 +272,12 @@ async function pollMailInboxOnce() {
     const ids = relevant.map((m) => m.id).join(", ");
     console.log(`[mail-poll] Relevante Mails gefunden: ${ids}`);
 
-    // 1) Für jede relevante Mail einen Protokolleintrag erzeugen
+    // 1) Alle relevanten Mails als .eml unter DATA_DIR/mail archivieren
+    for (const mail of relevant) {
+      await archiveRelevantMail(mail);
+    }
+
+    // 2) Für jede relevante Mail einen Protokolleintrag erzeugen
     for (const mail of relevant) {
       try {
         await appendProtocolEntryFromMail(mail);
@@ -227,6 +289,17 @@ async function pollMailInboxOnce() {
       }
     }
 
+    // 3) Wetterwarnungs-Dateien anhand der gleichen Mails erzeugen
+    try {
+      const warningDates = collectWarningDatesFromMails(relevant);
+      await generateWeatherFileIfWarning({ warningDates });
+      console.log("[mail-poll] Wetterwarnungs-Dateien aktualisiert");
+    } catch (err) {
+      console.error(
+        "[mail-poll] Fehler beim Aktualisieren der Wetterwarnungs-Dateien",
+        err?.message || err
+      );
+    }
   } catch (err) {
     console.error("[mail-poll] Fehler beim Lesen des Postfachs", err);
   }
