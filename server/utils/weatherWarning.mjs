@@ -1,6 +1,7 @@
 import fsp from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { generateFeldkirchenSvg } from "./generateFeldkirchenSvg.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -429,7 +430,7 @@ export async function generateWeatherFileIfWarning({
     categories: categorySet,
   });
 
-  const rows = dedupeLines([
+   const rows = dedupeLines([
     ...existingLines,
     ...(await buildWeatherIncidentLines({
       incidents: sourceIncidents,
@@ -441,4 +442,15 @@ export async function generateWeatherFileIfWarning({
   await fsp.mkdir(path.dirname(outFile), { recursive: true });
   await fsp.writeFile(outFile, rows.join("\n"), "utf8");
   console.log(`[weather-warning] ${rows.length} Einträge nach ${outFile} geschrieben.`);
+
+  // Nach jeder Aktualisierung der Wetter-Einsatzliste:
+  // SVG-Übersicht für Bezirk Feldkirchen neu erzeugen
+  try {
+    await generateFeldkirchenSvg();
+  } catch (err) {
+    console.error(
+      "[weather-warning] Erzeugen der Feldkirchen-SVG fehlgeschlagen:",
+      err?.message || err
+    );
+  }
 }
