@@ -133,19 +133,35 @@ function normalizeCharset(charset = "utf8") {
 }
 
 function parseHeaderBlock(rawHeaders = "") {
-  const headerLines = rawHeaders.split(/\n/);
+  const lines = String(rawHeaders || "").split(/\n/);
   const headers = {};
+  let currentKey = null;
 
-  for (const line of headerLines) {
+  for (const rawLine of lines) {
+    if (!rawLine) continue;
+    const line = String(rawLine);
+
+    // Fortsetzung einer vorherigen Header-Zeile (Header-Folding)
+    if (/^\s/.test(line) && currentKey) {
+      headers[currentKey] = `${headers[currentKey]} ${line.trim()}`.trim();
+      continue;
+    }
+
     const match = line.match(/^([^:]+):\s*(.*)$/);
     if (!match) continue;
+
     const key = match[1].trim().toLowerCase();
     if (!key) continue;
+
     const value = match[2] ?? "";
     headers[key] = String(value).trim();
+    currentKey = key;
   }
+
   return headers;
 }
+
+
 
 function decodeBase64Body(body, charset) {
   try {
@@ -211,34 +227,94 @@ function parseMailPart(partRaw) {
 
 function extractBody({ headers, rawBody }) {
   const contentType = headers["content-type"] || "";
-  const boundaryMatch = String(contentType).match(/boundary="?([^";]+)"?/i);
 
+  // 1) Boundary zuerst aus Content-Type-Parameter holen …
+  let boundary = null;
+  const boundaryMatch = String(contentType).match(/boundary="?([^";\s]+)"?/i);
   if (boundaryMatch) {
-    const boundary = boundaryMatch[1];
-    const parts = rawBody.split(new RegExp(`--${escapeRegex(boundary)}(?:--)?`, "g"));
-    const parsedParts = parts
+    boundary = boundaryMatch[1];
+  }
+
+  // 2) … und falls dort nicht vorhanden, auf ein eigenes "boundary"-Header
+  //    (z.B. Boundary="1__4EBB07D6DFA1C22E...") zurückfallen.
+  if (!boundary && headers.boundary) {
+    boundary = String(headers.boundary).trim().replace(/^"+|"+$/g, "");
+  }
+
+  // Hilfsfunktion: aus einer Liste von Parts den sinnvollsten Text extrahieren
+  function extractFromParts(parts) {
+    if (!Array.isArray(parts) || parts.length === 0) return "";
+
+    // a) Direkt einen text/plain-Teil nehmen, falls vorhanden
+    const plain = parts.find((p) =>
+      String(p.headers["content-type"] || "")
+        .toLowerCase()
+        .includes("text/plain") && p.body
+    );
+    if (plain?.body) {
+      return decodeIfBase64Text(
+        plain.body.trim(),
+        extractCharset(plain.headers["content-type"])
+      );
+    }
+
+    // b) Fallback: text/html → Tags entfernen
+    const html = parts.find((p) =>
+      String(p.headers["content-type"] || "")
+        .toLowerCase()
+        .includes("text/html") && p.body
+    );
+    if (html?.body) {
+      const text = stripHtmlTags(html.body).trim();
+      return decodeIfBase64Text(
+        text,
+        extractCharset(html.headers["content-type"])
+      );
+    }
+
+    // c) Rekursiv durch multipart/*-Teile gehen
+    for (const part of parts) {
+      const ct = String(part.headers["content-type"] || "").toLowerCase();
+      if (ct.startsWith("multipart/") && part.body) {
+        const nested = extractBody({
+          headers: part.headers,
+          rawBody: part.body,
+        });
+        if (nested) return nested;
+      }
+    }
+
+    return "";
+  }
+
+  // Multipart-Handling
+  if (boundary) {
+    const parts = rawBody
+      .split(new RegExp(`--${escapeRegex(boundary)}(?:--)?`, "g"))
       .map((part) => part.trim())
       .filter(Boolean)
       .map(parseMailPart);
 
-    const plain = parsedParts.find((p) => String(p.headers["content-type"] || "").toLowerCase().includes("text/plain") && p.body);
-    if (plain?.body) return decodeIfBase64Text(plain.body.trim(), extractCharset(plain.headers["content-type"]));
-
-    const html = parsedParts.find((p) => String(p.headers["content-type"] || "").toLowerCase().includes("text/html") && p.body);
-    if (html?.body) return decodeIfBase64Text(stripHtmlTags(html.body).trim(), extractCharset(html.headers["content-type"]));
+    const extracted = extractFromParts(parts);
+    if (extracted) return extracted;
   }
 
+  // Kein Multipart / nichts Sinnvolles gefunden → "normale" Dekodierung
   const charset = extractCharset(contentType);
   const encoding = String(headers["content-transfer-encoding"] || "").toLowerCase();
-  let decoded = null;
+  let decoded;
 
-  if (encoding === "base64") decoded = decodeBase64Body(rawBody, charset).trim();
-  else if (encoding === "quoted-printable") decoded = decodeQuotedPrintable(rawBody, charset).trim();
-  else decoded = rawBody.trim();
+  if (encoding === "base64") {
+    decoded = decodeBase64Body(rawBody, charset).trim();
+  } else if (encoding === "quoted-printable") {
+    decoded = decodeQuotedPrintable(rawBody, charset).trim();
+  } else {
+    decoded = rawBody.trim();
+  }
 
   return decodeIfBase64Text(decoded, charset);
-
 }
+
 
 export function parseRawMail(raw, { id = null, file = null } = {}) {
   const normalized = raw.replace(/\r\n/g, "\n");
