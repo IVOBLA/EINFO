@@ -359,20 +359,35 @@ export async function appendWeatherIncidentFromBoardEntry(
 ) {
   if (!entry) return { appended: false, reason: "entry-missing" };
 
+  // 1) gibt es heute überhaupt eine Warnung?
   const dateKey = todayKey(now);
   const warningToday = await hasCurrentWarningDate(warningDateFile, dateKey);
   if (!warningToday) return { appended: false, reason: "no-warning-today" };
 
+  // 2) Kategorien laden und im Board-Eintrag suchen
   const categories = await loadCategories(categoryFile);
   const category = findCategoryInBoardEntry(entry, categories);
   if (!category) return { appended: false, reason: "no-category-match" };
 
+  // 3) Zeile für weather-incidents.txt vorbereiten
   const line = formatBoardLine({ entry, category, dateKey });
   const existing = await readLines(outFile);
   if (existing.includes(line)) return { appended: false, reason: "duplicate" };
 
+  // 4) Neue Zeile anhängen → jetzt gibt es DEFINITIV einen Eintrag in weather-incidents.txt
   await fsp.mkdir(path.dirname(outFile), { recursive: true });
   await fsp.writeFile(outFile, [...existing, line].join("\n"), "utf8");
+
+  // 5) Karte neu erzeugen (nur wenn wirklich etwas angehängt wurde)
+  try {
+    await generateFeldkirchenSvg();
+  } catch (err) {
+    console.error(
+      "[weather-warning] SVG-Karte konnte nicht aktualisiert werden:",
+      err?.message || err,
+    );
+  }
+
   return { appended: true, line };
 }
 
