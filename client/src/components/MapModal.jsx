@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { setVehiclePosition } from "../api";
+import { setVehiclePosition, updateCard } from "../api";
 
  const getAssignedVehicles = (card) => {
    if (Array.isArray(card?.assignedVehicles)) return card.assignedVehicles;
@@ -163,6 +163,7 @@ export function MapModal({ context, address, onClose }) {
   const mapsAvailable = !!window.google?.maps;
 
   const mapRef = useRef(null);
+  const persistedGeocodeRef = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -178,6 +179,8 @@ export function MapModal({ context, address, onClose }) {
   useEffect(() => {
     if (!mapsAvailable || !context?.card || !mapRef.current) return;
 
+    persistedGeocodeRef.current = false;
+
     let cancelled = false;
     let map, iw;
     const vehicleMarkers = new Map(); // key: vid -> marker/advancedMarker
@@ -185,6 +188,22 @@ export function MapModal({ context, address, onClose }) {
 
     const contextCardId = context?.card?.id != null ? String(context.card.id) : null;
     let boardSnapshot = context?.board;
+
+    const persistGeocodeResult = async (coords, formattedAddress) => {
+      if (!contextCardId || persistedGeocodeRef.current) return;
+      if (!Number.isFinite(coords?.lat) || !Number.isFinite(coords?.lng)) return;
+      try {
+        const payload = { latitude: coords.lat, longitude: coords.lng };
+        if (formattedAddress && !context?.card?.location) {
+          payload.location = formattedAddress;
+        }
+        await updateCard(contextCardId, payload);
+        persistedGeocodeRef.current = true;
+      } catch (e) {
+        // Bei Fehler erneut versuchen, sobald MapModal neu geöffnet wird
+        console.error("Geocoding-Persistierung fehlgeschlagen:", e);
+      }
+    };
 
     const run = async () => {
       try {
@@ -204,7 +223,10 @@ export function MapModal({ context, address, onClose }) {
         if (!center) {
           const geo = await geocode(context.card.ort);
           if (cancelled) return;
-          if (geo) center = { lat: geo.lat, lng: geo.lng };
+          if (geo) {
+            center = { lat: geo.lat, lng: geo.lng };
+            persistGeocodeResult(center, geo.formatted);
+          }
         }
         if (!center) {
           // Fallback: neutrales Zentrum, damit Marker + Ring-Layout funktionieren
