@@ -1,8 +1,8 @@
 // server/utils/generateFeldkirchenSvg.mjs
 // Zeichnet Einsätze aus board.json als Punkte auf eine statische
-// Bezirkskarte Feldkirchen (PNG) und speichert ein SVG:
+// Bezirkskarte Feldkirchen (PNG, Google-Maps-Screenshot) und speichert ein SVG:
 //
-//   - Hintergrund: server/data/conf/feldkirchen_base.png
+//   - Hintergrund: server/data/conf/feldkirchen_base.png  (798x665 px)
 //   - Punkte: Einsätze aus board.json
 //       * nur, wenn ID in weather-incidents.txt vorkommt (#<id>)
 //       * nur letzte 24h
@@ -25,17 +25,16 @@ const BASE_MAP_FILE = path.join(DATA_DIR, "conf", "feldkirchen_base.png");
 const OUT_DIR = path.join(DATA_DIR, "prints", "uebersicht");
 const OUT_FILE = path.join(OUT_DIR, "feldkirchen.svg");
 
-// Größe der Hintergrundgrafik (in Pixeln) – an deine PNG anpassen!
-const MAP_WIDTH = 500;
-const MAP_HEIGHT = 460;
+// Größe des verwendeten Screenshots (dein Google-Maps-Bild)
+const MAP_WIDTH = 798;
+const MAP_HEIGHT = 665;
 
-// Grobe Lat/Lon-Bounds des Bezirks Feldkirchen (WGS84).
-// Diese definieren die Georeferenzierung der Grafik.
+// Exakte Bounding Box des Screenshots (von dir vorgegeben)
 const DISTRICT_BOUNDS = {
-  minLat: 46.65,
-  maxLat: 47.0,
-  minLon: 13.9,
-  maxLon: 14.35,
+  minLat: 46.635993,
+  maxLat: 46.943458,
+  minLon: 13.751214,
+  maxLon: 14.299844,
 };
 
 // -----------------------------------------------------
@@ -54,7 +53,7 @@ async function readJson(file, fallback = null) {
 async function readLines(file) {
   try {
     const raw = await fsp.readFile(file, "utf8");
-    return raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    return raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   } catch {
     return [];
   }
@@ -107,8 +106,8 @@ function extractTimestamp(entry) {
     if (!v) continue;
 
     if (typeof v === "number") {
-      if (v > 1e12) return v;          // ms
-      if (v > 1e9) return v * 1000;    // sek → ms
+      if (v > 1e12) return v; // ms
+      if (v > 1e9) return v * 1000; // sek → ms
     }
 
     const d = new Date(v);
@@ -150,7 +149,7 @@ function extractLabel(entry) {
 // -----------------------------------------------------
 
 export async function generateFeldkirchenSvg() {
-  console.log("[svg] Erzeuge Feldkirchen-SVG mit statischer Bezirkskarte …");
+  console.log("[svg] Erzeuge Feldkirchen-SVG mit statischer Google-Maps-Karte …");
 
   const now = Date.now();
   const cutoff = now - 24 * 60 * 60 * 1000; // 24h
@@ -183,17 +182,14 @@ export async function generateFeldkirchenSvg() {
 
   console.log(`[svg] ${points.length} Einsätze für Darstellung ausgewählt.`);
 
-  // 3) statische Bezirkskarte als data:URL laden
+  // 3) Hintergrundbild als data:URL laden
   let baseImageHref = null;
   try {
     const buf = await fsp.readFile(BASE_MAP_FILE);
     const b64 = buf.toString("base64");
     baseImageHref = `data:image/png;base64,${b64}`;
   } catch (err) {
-    console.error(
-      "[svg] Hintergrundkarte konnte nicht gelesen werden:",
-      err?.message || err
-    );
+    console.error("[svg] Hintergrundkarte konnte nicht gelesen werden:", err?.message || err);
   }
 
   // 4) Projektion lat/lon -> Bildkoordinaten anhand DISTRICT_BOUNDS
@@ -229,7 +225,6 @@ export async function generateFeldkirchenSvg() {
       `  <image x="0" y="0" width="${MAP_WIDTH}" height="${MAP_HEIGHT}" href="${baseImageHref}" />`
     );
   } else {
-    // Fallback: einfacher Hintergrund, falls PNG fehlt
     svgParts.push(
       `  <rect x="0" y="0" width="${MAP_WIDTH}" height="${MAP_HEIGHT}" fill="#f9fafb" />`
     );
