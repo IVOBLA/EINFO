@@ -25,6 +25,7 @@ import {
   appendWeatherIncidentFromBoardEntry,
 } from "./utils/weatherWarning.mjs";
 import { appendHistoryEntriesToCsv } from "./utils/protocolCsv.mjs";
+import { ensureTaskForRole } from "./utils/tasksService.mjs";
 
 // 🔐 Neues User-Management
 import { User_authMiddleware, User_createRouter, User_requireAuth } from "./User_auth.mjs";
@@ -253,6 +254,34 @@ function snapshotForHistory(src) {
   return clone(src);
 }
 
+const infoText = (value) =>
+  String(value?.information ?? value?.beschreibung ?? value?.text ?? "").trim();
+
+const titleFromAnVon = (value) =>
+  String(
+    value?.anvon ?? value?.an_von ?? value?.anVon ?? value?.name_stelle ?? value?.nameStelle ?? value?.name ?? "",
+  ).trim() || "An/Von";
+
+const collectResponsibleRoles = (value) => {
+  const set = new Set();
+
+  if (Array.isArray(value?.verantwortliche)) {
+    value.verantwortliche.forEach((role) => {
+      const normalized = typeof role === "string" ? role.trim() : String(role ?? "").trim();
+      if (normalized) set.add(normalized);
+    });
+  }
+
+  for (const measure of value?.massnahmen || []) {
+    const normalized = typeof measure?.verantwortlich === "string"
+      ? measure.verantwortlich.trim()
+      : String(measure?.verantwortlich ?? "").trim();
+    if (normalized) set.add(normalized);
+  }
+
+  return [...set];
+};
+
 function senderAddress(mail) {
   const from = mail?.from;
   if (!from) return "";
@@ -362,6 +391,32 @@ async function appendProtocolEntryFromMail(mail) {
   await writeJson(PROTOCOL_JSON_FILE, list);
 
   appendHistoryEntriesToCsv(entry, [historyEntry], PROTOCOL_CSV_FILE);
+
+  if (isWeatherMail) {
+    try {
+      const roles = collectResponsibleRoles(entry);
+      const desc = infoText(entry);
+      const baseTitle = titleFromAnVon(entry);
+
+      for (const responsible of roles) {
+        await ensureTaskForRole({
+          roleId: responsible,
+          responsibleLabel: responsible,
+          protoNr: entry.nr,
+          actor: actorLabel,
+          actorRole: null,
+          item: {
+            title: baseTitle,
+            type: entry.infoTyp ?? "",
+            desc,
+            meta: { source: "protokoll", protoNr: entry.nr },
+          },
+        });
+      }
+    } catch (err) {
+      console.warn("[mail-poll] Aufgabe aus Wettermail konnte nicht erstellt werden", err?.message || err);
+    }
+  }
 
   console.log("[mail-poll] Protokolleintrag aus Mail erzeugt", {
     id: entry.id,
