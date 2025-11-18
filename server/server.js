@@ -2045,12 +2045,19 @@ app.patch("/api/cards/:id", async (req, res) => {
     typ: ref.card.typ,
     isArea: !!ref.card.isArea,
     areaCardId: ref.card.areaCardId ? String(ref.card.areaCardId) : null,
-	areaColor: ref.card.areaColor || null,
+        areaColor: ref.card.areaColor || null,
   };
   const prevAreaLabel = areaLabel(prevSnapshot, board);
+  const prevLat = Number.isFinite(Number(ref.card.latitude)) ? Number(ref.card.latitude) : null;
+  const prevLng = Number.isFinite(Number(ref.card.longitude)) ? Number(ref.card.longitude) : null;
 
   let changed = false;
   const notes = [];
+
+  const formatCoords = (lat, lng) =>
+    Number.isFinite(lat) && Number.isFinite(lng)
+      ? `${lat.toFixed(5)}, ${lng.toFixed(5)}`
+      : "—";
 
   if (Object.prototype.hasOwnProperty.call(updates, "title")) {
     const nextTitle = String(updates.title || "").trim();
@@ -2087,6 +2094,46 @@ app.patch("/api/cards/:id", async (req, res) => {
       ref.card.description = nextDescription;
       changed = true;
     }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(updates, "location")) {
+    const nextLocation = String(updates.location || "").trim();
+    if (nextLocation !== (ref.card.location || "")) {
+      notes.push(`Adresse: ${(ref.card.location || "—")}→${nextLocation || "—"}`);
+      ref.card.location = nextLocation;
+      changed = true;
+    }
+  }
+
+  const hasLatUpdate =
+    Object.prototype.hasOwnProperty.call(updates, "latitude") ||
+    Object.prototype.hasOwnProperty.call(updates, "lat");
+  const hasLngUpdate =
+    Object.prototype.hasOwnProperty.call(updates, "longitude") ||
+    Object.prototype.hasOwnProperty.call(updates, "lng");
+
+  let coordsChanged = false;
+  if (hasLatUpdate) {
+    const raw = Number(updates.latitude ?? updates.lat);
+    const nextLat = Number.isFinite(raw) ? raw : null;
+    if (nextLat !== (Number.isFinite(ref.card.latitude) ? Number(ref.card.latitude) : null)) {
+      ref.card.latitude = nextLat;
+      coordsChanged = true;
+      changed = true;
+    }
+  }
+  if (hasLngUpdate) {
+    const raw = Number(updates.longitude ?? updates.lng);
+    const nextLng = Number.isFinite(raw) ? raw : null;
+    if (nextLng !== (Number.isFinite(ref.card.longitude) ? Number(ref.card.longitude) : null)) {
+      ref.card.longitude = nextLng;
+      coordsChanged = true;
+      changed = true;
+    }
+  }
+
+  if (coordsChanged) {
+    notes.push(`Koordinaten: ${formatCoords(prevLat, prevLng)}→${formatCoords(ref.card.latitude, ref.card.longitude)}`);
   }
 
   const areaCards = listAreaCards(board).filter((c) => c.id !== ref.card.id);
