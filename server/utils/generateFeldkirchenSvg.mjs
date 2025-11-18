@@ -1,6 +1,13 @@
 // server/utils/generateFeldkirchenSvg.mjs
-// Erzeugt eine reine Punktkarte (SVG) für Einsätze der letzten 24h,
-// die auch in weather-incidents.txt vorkommen.
+// Zeichnet Einsätze aus board.json als Punkte auf eine statische
+// Bezirkskarte Feldkirchen (PNG) und speichert ein SVG:
+//
+//   - Hintergrund: server/data/conf/feldkirchen_base.png
+//   - Punkte: Einsätze aus board.json
+//       * nur, wenn ID in weather-incidents.txt vorkommt (#<id>)
+//       * nur letzte 24h
+//
+// Ergebnis: server/data/prints/uebersicht/feldkirchen.svg
 
 import fsp from "node:fs/promises";
 import path from "node:path";
@@ -11,21 +18,34 @@ const __dirname = path.dirname(__filename);
 
 const DATA_DIR = path.resolve(__dirname, "../data");
 
-const INCIDENT_FILE = path.join(DATA_DIR, "list_filtered.json");
+const BOARD_FILE = path.join(DATA_DIR, "board.json");
 const WEATHER_INCIDENT_FILE = path.join(DATA_DIR, "weather-incidents.txt");
+const BASE_MAP_FILE = path.join(DATA_DIR, "conf", "feldkirchen_base.png");
 
 const OUT_DIR = path.join(DATA_DIR, "prints", "uebersicht");
 const OUT_FILE = path.join(OUT_DIR, "feldkirchen.svg");
 
-// ===========================================================
-// Helpers
-// ===========================================================
+// Größe der Hintergrundgrafik (in Pixeln) – an deine PNG anpassen!
+const MAP_WIDTH = 500;
+const MAP_HEIGHT = 460;
 
-async function readJson(file, fallback = []) {
+// Grobe Lat/Lon-Bounds des Bezirks Feldkirchen (WGS84).
+// Diese definieren die Georeferenzierung der Grafik.
+const DISTRICT_BOUNDS = {
+  minLat: 46.65,
+  maxLat: 47.0,
+  minLon: 13.9,
+  maxLon: 14.35,
+};
+
+// -----------------------------------------------------
+// Helper
+// -----------------------------------------------------
+
+async function readJson(file, fallback = null) {
   try {
     const raw = await fsp.readFile(file, "utf8");
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : fallback;
+    return JSON.parse(raw);
   } catch {
     return fallback;
   }
@@ -34,153 +54,201 @@ async function readJson(file, fallback = []) {
 async function readLines(file) {
   try {
     const raw = await fsp.readFile(file, "utf8");
-    return raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    return raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
   } catch {
     return [];
   }
 }
 
-function extractLocation(incident) {
-  const fields = [
-    "ort", "ortschaft", "einsatzort", "einsatzOrt",
-    "location", "place", "city", "plzOrt"
-  ];
-  for (const f of fields) {
-    if (incident[f] && String(incident[f]).trim()) return String(incident[f]).trim();
+// Board-Items aus board.json holen (Spaltenstruktur berücksichtigen)
+async function readBoardItems(boardFile) {
+  const parsed = await readJson(boardFile, null);
+  if (!parsed || typeof parsed !== "object") return [];
+
+  if (Array.isArray(parsed.items)) return parsed.items;
+
+  const cols = parsed.columns || {};
+  const all = [];
+  for (const colKey of Object.keys(cols)) {
+    const col = cols[colKey];
+    if (Array.isArray(col?.items)) all.push(...col.items);
   }
-  return null;
+  return all;
 }
 
-function extractCoords(incident) {
-  const candidates = [
-    { lat: incident.lat, lon: incident.lng },
-    { lat: incident.lat, lon: incident.lon },
-    { lat: incident.latitude, lon: incident.longitude },
-    { lat: incident.LATITUDE, lon: incident.LONGITUDE },
-  ];
-  for (const c of candidates) {
-    if (Number.isFinite(+c.lat) && Number.isFinite(+c.lon)) {
-      return { lat: +c.lat, lon: +c.lon };
-    }
+// IDs aus weather-incidents.txt extrahieren (Format: ... #<id> – ...)
+async function readWeatherBoardIds(file) {
+  const lines = await readLines(file);
+  const ids = new Set();
+
+  for (const line of lines) {
+    const m = line.match(/#([a-zA-Z0-9_-]+)/);
+    if (m && m[1]) ids.add(m[1]);
   }
-  return null;
+
+  return ids;
 }
 
-function extractTimestamp(incident) {
+function extractTimestamp(entry) {
   const fields = [
-    "timestamp", "time", "dateTime", "datetime",
-    "createdAt", "einsatzbeginn", "einsatzBeginn",
-    "einsatzzeit", "einsatzZeit"
+    "timestamp",
+    "time",
+    "dateTime",
+    "datetime",
+    "createdAt",
+    "einsatzbeginn",
+    "einsatzBeginn",
+    "einsatzzeit",
+    "einsatzZeit",
   ];
 
   for (const f of fields) {
-    const v = incident[f];
+    const v = entry[f];
     if (!v) continue;
 
-    // Zahl → Sekunden oder Millisekunden
     if (typeof v === "number") {
-      if (v > 1e12) return v;      // ms
-      if (v > 1e9) return v * 1000; // s → ms
+      if (v > 1e12) return v;          // ms
+      if (v > 1e9) return v * 1000;    // sek → ms
     }
 
-    // String → Datum
     const d = new Date(v);
-    if (!isNaN(d.getTime())) return d.getTime();
+    if (!Number.isNaN(d.getTime())) return d.getTime();
   }
 
   return null;
 }
 
-// ===========================================================
-// Hauptlogik
-// ===========================================================
+function extractCoords(entry) {
+  const candidates = [
+    { lat: entry.lat, lon: entry.lng },
+    { lat: entry.lat, lon: entry.lon },
+    { lat: entry.latitude, lon: entry.longitude },
+    { lat: entry.LATITUDE, lon: entry.LONGITUDE },
+  ];
+
+  for (const c of candidates) {
+    const lat = Number(c.lat);
+    const lon = Number(c.lon);
+    if (Number.isFinite(lat) && Number.isFinite(lon)) {
+      return { lat, lon };
+    }
+  }
+  return null;
+}
+
+function extractLabel(entry) {
+  return (
+    (entry.content && String(entry.content).trim()) ||
+    (entry.typ && String(entry.typ).trim()) ||
+    (entry.title && String(entry.title).trim()) ||
+    "Einsatz"
+  );
+}
+
+// -----------------------------------------------------
+// Hauptfunktion
+// -----------------------------------------------------
 
 export async function generateFeldkirchenSvg() {
-  console.log("[svg] Erzeuge Punktkarte Feldkirchen …");
+  console.log("[svg] Erzeuge Feldkirchen-SVG mit statischer Bezirkskarte …");
 
   const now = Date.now();
-  const cutoff = now - 24 * 60 * 60 * 1000; // 24h in ms
+  const cutoff = now - 24 * 60 * 60 * 1000; // 24h
 
-  // --- 1) Wetter-Standort-Liste laden
-  const weatherLines = await readLines(WEATHER_INCIDENT_FILE);
-  const weatherLocs = new Set(
-    weatherLines.map((l) => l.split(" – ")[0].trim())
-  );
+  // 1) IDs aus weather-incidents.txt
+  const weatherIds = await readWeatherBoardIds(WEATHER_INCIDENT_FILE);
+  if (!weatherIds.size) {
+    console.warn("[svg] Keine Board-IDs in weather-incidents.txt – es werden keine Punkte gezeichnet.");
+  }
 
-  // --- 2) Einsätze laden
-  const allIncidents = await readJson(INCIDENT_FILE, []);
+  // 2) Board-Einträge
+  const boardItems = await readBoardItems(BOARD_FILE);
+
   const points = [];
+  for (const entry of boardItems) {
+    if (!entry?.id || !weatherIds.has(entry.id)) continue;
 
-  for (const incident of allIncidents) {
-    const loc = extractLocation(incident);
-    if (!loc || !weatherLocs.has(loc)) continue;
-
-    const ts = extractTimestamp(incident);
+    const ts = extractTimestamp(entry);
     if (ts == null || ts < cutoff) continue;
 
-    const coords = extractCoords(incident);
+    const coords = extractCoords(entry);
     if (!coords) continue;
 
     points.push({
       ...coords,
-      location: loc,
-      label: incident.content || incident.title || loc
+      id: entry.id,
+      label: extractLabel(entry),
     });
   }
 
-  // --- 3) Bounds nur aus Punkten bestimmen
-  let minLat = +90, maxLat = -90, minLon = +180, maxLon = -180;
+  console.log(`[svg] ${points.length} Einsätze für Darstellung ausgewählt.`);
 
-  for (const p of points) {
-    if (p.lat < minLat) minLat = p.lat;
-    if (p.lat > maxLat) maxLat = p.lat;
-    if (p.lon < minLon) minLon = p.lon;
-    if (p.lon > maxLon) maxLon = p.lon;
+  // 3) statische Bezirkskarte als data:URL laden
+  let baseImageHref = null;
+  try {
+    const buf = await fsp.readFile(BASE_MAP_FILE);
+    const b64 = buf.toString("base64");
+    baseImageHref = `data:image/png;base64,${b64}`;
+  } catch (err) {
+    console.error(
+      "[svg] Hintergrundkarte konnte nicht gelesen werden:",
+      err?.message || err
+    );
   }
 
-  // Fallback, falls keine Punkte vorhanden sind
-  if (points.length === 0) {
-    minLat = 46.6;
-    maxLat = 47.0;
-    minLon = 13.8;
-    maxLon = 14.3;
-  }
-
-  // --- 4) Projektion
-  const width = 1200;
-  const height = 800;
+  // 4) Projektion lat/lon -> Bildkoordinaten anhand DISTRICT_BOUNDS
+  const { minLat, maxLat, minLon, maxLon } = DISTRICT_BOUNDS;
 
   function project(lon, lat) {
-    const x = ((lon - minLon) / (maxLon - minLon)) * width;
-    const y = ((maxLat - lat) / (maxLat - minLat)) * height;
+    const x = ((lon - minLon) / (maxLon - minLon || 1)) * MAP_WIDTH;
+    const y = ((maxLat - lat) / (maxLat - minLat || 1)) * MAP_HEIGHT;
     return [x, y];
   }
 
-  // --- 5) SVG erzeugen
-  const pointSvg = points.map((p) => {
-    const [x, y] = project(p.lon, p.lat);
-    const t = `${p.location}: ${p.label}`;
-    return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="5" fill="#e11d48" stroke="#111" stroke-width="1">
-  <title>${t}</title>
+  // 5) Punkte-SVG
+  const pointSvg = points
+    .map((p) => {
+      const [x, y] = project(p.lon, p.lat);
+      const title = `${p.id}: ${p.label}`;
+      return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="6" fill="#e11d48" stroke="#111827" stroke-width="1.5">
+  <title>${title}</title>
 </circle>`;
-  }).join("\n");
+    })
+    .join("\n    ");
 
-  const svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"
-     xmlns="http://www.w3.org/2000/svg">
+  // 6) Gesamt-SVG mit Hintergrundbild
+  const svgParts = [];
 
-  <rect x="0" y="0" width="${width}" height="${height}" fill="#f8fafc"/>
+  svgParts.push(`<?xml version="1.0" encoding="UTF-8"?>`);
+  svgParts.push(
+    `<svg width="${MAP_WIDTH}" height="${MAP_HEIGHT}" viewBox="0 0 ${MAP_WIDTH} ${MAP_HEIGHT}" xmlns="http://www.w3.org/2000/svg">`
+  );
 
-  <!-- Einsätze -->
-  ${pointSvg}
+  if (baseImageHref) {
+    svgParts.push(
+      `  <image x="0" y="0" width="${MAP_WIDTH}" height="${MAP_HEIGHT}" href="${baseImageHref}" />`
+    );
+  } else {
+    // Fallback: einfacher Hintergrund, falls PNG fehlt
+    svgParts.push(
+      `  <rect x="0" y="0" width="${MAP_WIDTH}" height="${MAP_HEIGHT}" fill="#f9fafb" />`
+    );
+  }
 
-</svg>`;
+  svgParts.push(`  <g id="einsatzpunkte">`);
+  if (pointSvg) {
+    svgParts.push("    " + pointSvg);
+  }
+  svgParts.push(`  </g>`);
+  svgParts.push(`</svg>`);
 
-  // --- 6) Speichern
+  const svg = svgParts.join("\n");
+
+  // 7) Schreiben
   await fsp.mkdir(OUT_DIR, { recursive: true });
   await fsp.writeFile(OUT_FILE, svg, "utf8");
 
-  console.log("[svg] Punktkarte geschrieben:", OUT_FILE);
+  console.log("[svg] Karte geschrieben:", OUT_FILE);
 }
 
 // CLI-Aufruf
