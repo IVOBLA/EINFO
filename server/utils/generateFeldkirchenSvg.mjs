@@ -1,4 +1,4 @@
-// server/tools/generateFeldkirchenSvg.mjs
+// server/utils/generateFeldkirchenSvg.mjs
 import fsp from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -11,16 +11,15 @@ const INCIDENT_FILE = path.join(DATA_DIR, "list_filtered.json");
 const WEATHER_INCIDENT_FILE = path.join(DATA_DIR, "weather-incidents.txt");
 const BOUNDARY_FILE = path.join(DATA_DIR, "conf", "gemeinden_feldkirchen.geojson");
 const OUT_DIR = path.join(DATA_DIR, "prints", "uebersicht");
-const OUT_FILE = path.join(OUT_DIR, "karte_feldkirchen.svg");
+const OUT_FILE = path.join(OUT_DIR, "feldkirchen.svg");
 
-// --- Helpers -------------------------------------------------------
+// === Helper zum Lesen/Parsen ======================================
 
 async function readJson(file, fallback = null) {
   try {
     const raw = await fsp.readFile(file, "utf8");
     return JSON.parse(raw);
-  } catch (err) {
-    console.error("[svg-map] JSON konnte nicht gelesen werden:", file, err?.message || err);
+  } catch {
     return fallback;
   }
 }
@@ -34,13 +33,23 @@ async function readLines(file) {
       .filter(Boolean);
   } catch (err) {
     if (err?.code !== "ENOENT") {
-      console.error("[svg-map] Datei konnte nicht gelesen werden:", file, err?.message || err);
+      console.error("[feldkirchen-svg] Konnte Datei nicht lesen:", file, err?.message || err);
     }
     return [];
   }
 }
 
-// identisch zur Logik aus weatherWarning.mjs
+function escapeXml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+// === Incident-Helfer ===============================================
+
+// Ort / Gemeinde-Feld aus Incident holen (ähnlich wie in weatherWarning)
 function extractLocation(incident) {
   if (!incident || typeof incident !== "object") return "";
   const candidates = [
@@ -57,7 +66,7 @@ function extractLocation(incident) {
   return found ? String(found).trim() : "";
 }
 
-// versucht verschiedene Feldnamen für Koordinaten
+// Koordinaten holen – tolerant bei Feldnamen
 function getIncidentCoords(incident) {
   if (!incident || typeof incident !== "object") return null;
 
@@ -77,8 +86,47 @@ function getIncidentCoords(incident) {
   return null;
 }
 
-// liest weather-incidents.txt und liefert Set der Orte (links vom " – ")
+// Zeitstempel für "letzte 24 Stunden" ermitteln
+function getIncidentTimestamp(incident) {
+  if (!incident || typeof incident !== "object") return null;
+
+  const candidates = [
+    incident.timestamp,
+    incident.time,
+    incident.dateTime,
+    incident.datetime,
+    incident.createdAt,
+    incident.einsatzbeginn,
+    incident.einsatzBeginn,
+    incident.einsatzzeit,
+    incident.einsatzZeit,
+  ];
+
+  for (const raw of candidates) {
+    if (!raw) continue;
+
+    // Unix ms oder s?
+    if (typeof raw === "number") {
+      const n = Number(raw);
+      if (!Number.isFinite(n)) continue;
+      // Wenn es nach 2000 ist, nehmen wir ms oder s heuristisch
+      if (n > 1e12) return n; // ms
+      if (n > 1e9) return n * 1000; // s
+    }
+
+    const s = String(raw).trim();
+    if (!s) continue;
+
+    const d = new Date(s);
+    const t = d.getTime();
+    if (Number.isFinite(t) && t > 0) return t;
+  }
+
+  return null;
+}
+
 async function readWeatherIncidentLocations() {
+  // Erwartetes Format in weather-incidents.txt: "Ort – Kategorie …"
   const lines = await readLines(WEATHER_INCIDENT_FILE);
   const locs = new Set();
   for (const line of lines) {
@@ -89,25 +137,40 @@ async function readWeatherIncidentLocations() {
   return locs;
 }
 
-// --- Hauptlogik ----------------------------------------------------
+// === Hauptfunktion: SVG erzeugen ===================================
 
-async function main() {
-  console.log("[svg-map] Erzeuge SVG-Karte für Bezirk Feldkirchen …");
+export async function generateFeldkirchenSvg({
+  dataDir = DATA_DIR,
+  incidentFile = INCIDENT_FILE,
+  weatherIncidentFile = WEATHER_INCIDENT_FILE,
+  boundaryFile = BOUNDARY_FILE,
+  outFile = OUT_FILE,
+} = {}) {
+  console.log("[feldkirchen-svg] Erzeuge SVG-Übersicht …");
+
+  const now = Date.now();
+  const cutoff = now - 24 * 60 * 60 * 1000; // letzte 24 Stunden
 
   const [incidentData, boundaries, weatherLocs] = await Promise.all([
-    readJson(INCIDENT_FILE, []),
-    readJson(BOUNDARY_FILE, { type: "FeatureCollection", features: [] }),
+    readJson(incidentFile, []),
+    readJson(boundaryFile, { type: "FeatureCollection", features: [] }),
     readWeatherIncidentLocations(),
   ]);
 
   const incidents = Array.isArray(incidentData) ? incidentData : [];
   const features = Array.isArray(boundaries?.features) ? boundaries.features : [];
 
-  // 1) Einsätze filtern: nur solche, deren Ort in weather-incidents.txt vorkommt
+  // 1) Einsätze filtern:
+  //    - Ort muss in weather-incidents.txt vorkommen
+  //    - Zeitstempel innerhalb der letzten 24 Stunden
+  //    - Koordinaten vorhanden
   const points = [];
   for (const incident of incidents) {
     const loc = extractLocation(incident);
     if (!loc || !weatherLocs.has(loc)) continue;
+
+    const ts = getIncidentTimestamp(incident);
+    if (ts == null || ts < cutoff) continue;
 
     const coords = getIncidentCoords(incident);
     if (!coords) continue;
@@ -116,24 +179,25 @@ async function main() {
       ...coords,
       location: loc,
       label: String(incident.content || incident.title || loc || "Einsatz").trim(),
+      timestamp: ts,
     });
   }
 
   if (!features.length) {
-    console.warn("[svg-map] WARNUNG: Keine Gemeinde-Features im GeoJSON gefunden.");
+    console.warn("[feldkirchen-svg] WARNUNG: Keine Gemeinde-Features im GeoJSON gefunden.");
   }
 
   if (!points.length) {
-    console.warn("[svg-map] HINWEIS: Keine Einsätze mit Koordinaten gefunden, die in weather-incidents.txt vorkommen.");
+    console.warn("[feldkirchen-svg] HINWEIS: Keine passenden Einsätze (letzte 24h + weather-incidents.txt).");
   }
 
-  // 2) Bounding Box über Polygon-Grenzen + Punkte berechnen
+  // 2) Bounding Box über Gemeindegrenzen + Punkte
   let minLat = +90,
     maxLat = -90,
     minLon = +180,
     maxLon = -180;
 
-  function updateBoundsForCoord(lon, lat) {
+  function updateBounds(lon, lat) {
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
     if (lat < minLat) minLat = lat;
     if (lat > maxLat) maxLat = lat;
@@ -141,29 +205,26 @@ async function main() {
     if (lon > maxLon) maxLon = lon;
   }
 
-  // Grenzen aus GeoJSON
   for (const f of features) {
     const geom = f?.geometry;
     if (!geom) continue;
     if (geom.type === "Polygon") {
       for (const ring of geom.coordinates || []) {
-        for (const [lon, lat] of ring) updateBoundsForCoord(lon, lat);
+        for (const [lon, lat] of ring) updateBounds(lon, lat);
       }
     } else if (geom.type === "MultiPolygon") {
       for (const poly of geom.coordinates || []) {
         for (const ring of poly) {
-          for (const [lon, lat] of ring) updateBoundsForCoord(lon, lat);
+          for (const [lon, lat] of ring) updateBounds(lon, lat);
         }
       }
     }
   }
 
-  // Punkte
   for (const p of points) {
-    updateBoundsForCoord(p.lon, p.lat);
+    updateBounds(p.lon, p.lat);
   }
 
-  // Fallback, falls irgendwas leer ist
   if (
     !Number.isFinite(minLat) ||
     !Number.isFinite(maxLat) ||
@@ -172,7 +233,7 @@ async function main() {
     minLat === maxLat ||
     minLon === maxLon
   ) {
-    console.warn("[svg-map] Ungültige Bounds – verwende Dummy-Ausdehnung (14.0/46.7–14.3/46.9).");
+    console.warn("[feldkirchen-svg] Ungültige Bounds – verwende Dummy-Ausdehnung.");
     minLat = 46.7;
     maxLat = 46.9;
     minLon = 14.0;
@@ -214,11 +275,11 @@ async function main() {
     return parts.join(" ");
   }
 
-  // 3) SVG-Elemente für Gemeindegrenzen
   const boundaryPaths = [];
   for (const f of features) {
     const geom = f?.geometry;
     if (!geom) continue;
+
     const name = String(
       f.properties?.name ||
         f.properties?.NAME ||
@@ -231,7 +292,7 @@ async function main() {
       const d = polygonToPath(geom.coordinates);
       if (d) {
         boundaryPaths.push(
-          `<path d="${d}" fill="none" stroke="#666" stroke-width="1" vector-effect="non-scaling-stroke">${
+          `<path d="${d}" fill="none" stroke="#4b5563" stroke-width="1" vector-effect="non-scaling-stroke">${
             name ? `<title>${escapeXml(name)}</title>` : ""
           }</path>`,
         );
@@ -241,7 +302,7 @@ async function main() {
         const d = polygonToPath(poly);
         if (d) {
           boundaryPaths.push(
-            `<path d="${d}" fill="none" stroke="#666" stroke-width="1" vector-effect="non-scaling-stroke">${
+            `<path d="${d}" fill="none" stroke="#4b5563" stroke-width="1" vector-effect="non-scaling-stroke">${
               name ? `<title>${escapeXml(name)}</title>` : ""
             }</path>`,
           );
@@ -250,21 +311,15 @@ async function main() {
     }
   }
 
-  // 4) SVG-Elemente für Punkte (Einsätze)
-  const pointElements = [];
   const pointRadius = 4;
-
-  for (const p of points) {
+  const pointElements = points.map((p) => {
     const [x, y] = project(p.lon, p.lat);
     const title = `${p.location} – ${p.label}`;
-    pointElements.push(
-      `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${pointRadius}" fill="#e11d48" stroke="#111" stroke-width="1">
+    return `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${pointRadius}" fill="#ef4444" stroke="#111827" stroke-width="1">
   <title>${escapeXml(title)}</title>
-</circle>`,
-    );
-  }
+</circle>`;
+  });
 
-  // 5) SVG zusammensetzen
   const svgContent = `<?xml version="1.0" encoding="UTF-8"?>
 <svg
   xmlns="http://www.w3.org/2000/svg"
@@ -273,41 +328,33 @@ async function main() {
   viewBox="0 0 ${width} ${height}"
 >
   <metadata>
-    Bezirk Feldkirchen – Gemeindegrenzen + Einsätze (nur, wenn in weather-incidents.txt enthalten).
-    Koordinatenbezug: WGS84 (EPSG:4326), linear auf SVG-ViewBox abgebildet.
+    Bezirk Feldkirchen – Gemeindegrenzen + Einsätze (nur, wenn in weather-incidents.txt UND letzte 24h).
+    Koordinatenbezug: WGS84 (EPSG:4326), linear auf die SVG-ViewBox abgebildet.
     Bounds: lon=[${minLon}, ${maxLon}], lat=[${minLat}, ${maxLat}].
   </metadata>
 
-  <!-- Hintergrund -->
   <rect x="0" y="0" width="${width}" height="${height}" fill="#f9fafb" />
 
-  <!-- Gemeindegrenzen -->
   <g id="gemeinden">
     ${boundaryPaths.join("\n    ")}
   </g>
 
-  <!-- Einsätze (nur, wenn in weather-incidents.txt) -->
   <g id="einsatzpunkte">
     ${pointElements.join("\n    ")}
   </g>
 </svg>
 `;
 
-  await fsp.mkdir(OUT_DIR, { recursive: true });
-  await fsp.writeFile(OUT_FILE, svgContent, "utf8");
+  await fsp.mkdir(path.dirname(outFile), { recursive: true });
+  await fsp.writeFile(outFile, svgContent, "utf8");
 
-  console.log("[svg-map] SVG-Karte geschrieben nach:", OUT_FILE);
+  console.log("[feldkirchen-svg] SVG geschrieben nach:", outFile);
 }
 
-function escapeXml(str) {
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+// CLI-Nutzung: node server/utils/generateFeldkirchenSvg.mjs
+if (import.meta.url === `file://${__filename}`) {
+  generateFeldkirchenSvg().catch((err) => {
+    console.error("[feldkirchen-svg] Fehler:", err?.message || err);
+    process.exitCode = 1;
+  });
 }
-
-main().catch((err) => {
-  console.error("[svg-map] Fehler beim Erzeugen der SVG-Karte:", err?.message || err);
-  process.exitCode = 1;
-});
