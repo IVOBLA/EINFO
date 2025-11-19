@@ -295,25 +295,26 @@ function sheetHtml(item, recipient, nr) {
 <style>
   @page { size: A4; margin: 6mm; }
   body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin:0; padding:0; font-size:12px; }
-  .sheet { border: 2px solid #111; border-radius: 10px; padding: 8px; }
+  .sheet { border: 2px solid #111; border-radius: 10px; padding: 6px; }
   .header { display:grid; grid-template-columns: 9fr 3fr; }
-  .title { font-weight: 800; font-size: 20px; letter-spacing:.4px; padding:10px; }
+  .title { font-weight: 800; font-size: 20px; letter-spacing:.4px; padding:8px; }
   .nrbox { border-left: 2px solid #111; display:flex; flex-direction:column; }
   .nrbox .section { border-bottom: 2px solid #111; }
   .nrbox .section:last-child { border-bottom:none; }
-  .nrbox .lbl { font-size: 11px; color:#555; border-bottom:2px solid #111; padding:5px 8px; }
-  .nrbox .val { font-size: 22px; text-align:center; padding:10px 8px; font-weight:800; min-height: 26px; }
+  .nrbox .lbl { font-size: 11px; color:#555; border-bottom:2px solid #111; padding:4px 8px; }
+  .nrbox .val { font-size: 22px; text-align:center; padding:8px 8px; font-weight:800; min-height: 26px; }
   .nrbox .val-zu { font-size: 20px; }
 
   /* Grids */
   .row3 { display: grid; grid-template-columns: 6fr 4fr 3fr; column-gap: 6px; }
   .row  { display: grid; grid-template-columns: 1fr 1fr; column-gap: 6px; }
 
-  .cell  { border-top: 2px solid #111; padding: 5px; }
+  .cell  { border-top: 2px solid #111; padding: 4px 5px; }
   .label { font-size: 11px; color: #555; margin-bottom: 3px; }
   .input { border:1px solid #999; border-radius:5px; padding:5px 7px; min-height: 26px; }
 
   .mh160 { min-height: 200px; }
+  .info-field { min-height: 280px; }
   .mh100 { min-height: 36px; }
 
   .tgrid { display:grid; grid-template-columns: 6fr 5fr 1fr; }
@@ -410,7 +411,7 @@ function sheetHtml(item, recipient, nr) {
 
   <div class="cell">
     <div class="label">Information/Auftrag</div>
-    <div class="input mh160 pre">${esc(fmt(item?.information))}</div>
+    <div class="input mh160 info-field pre">${esc(fmt(item?.information))}</div>
   </div>
 
   <!-- Rückmeldung wieder untereinander (volle Breite) -->
