@@ -1209,6 +1209,7 @@ function normalizeBoardStructure(inputBoard) {
       if (!("location" in card)) card.location = "";
       if (!("description" in card)) card.description = "";
       if (!("timestamp" in card)) card.timestamp = null;
+      if (!("updated" in card)) card.updated = null;
       if (!("isArea" in card)) card.isArea = false;
       if (!("areaCardId" in card)) card.areaCardId = null;
       if (!("areaColor" in card)) card.areaColor = null;
@@ -3150,23 +3151,29 @@ function mapIncomingItemToCardFields(item){
   const location   = item?.location ?? "";
   const timestamp  = parseAT(item?.timestamp);
   const description= item?.description ?? "";
-  return { content, ort, alerted, latitude, longitude, externalId, typ:type, location, timestamp, description };
+  const updated    = normalizeUpdatedField(item?.updated);
+  return { content, ort, alerted, latitude, longitude, externalId, typ:type, location, timestamp, description, updated };
 }
 
 function applyIncomingFieldsToCard(target, incoming) {
   if (!target || !incoming) return;
-  if (incoming.content) target.content = incoming.content;
-  if (incoming.ort) target.ort = incoming.ort;
-  if (incoming.typ) target.typ = incoming.typ;
-  if (incoming.alerted) {
-    const mergedAlerted = mergeAlertedValues(target.alerted, incoming.alerted);
-    if (mergedAlerted) target.alerted = mergedAlerted;
+  const incomingUpdated = incoming.updated ?? null;
+  const targetUpdated = target.updated ?? null;
+  const shouldOverwriteCoreFields = incomingUpdated !== targetUpdated;
+
+  if (shouldOverwriteCoreFields) {
+    if (incoming.content !== undefined) target.content = incoming.content;
+    if (incoming.ort !== undefined) target.ort = incoming.ort;
+    if (incoming.typ !== undefined) target.typ = incoming.typ;
+    if (incoming.alerted !== undefined) target.alerted = incoming.alerted;
+    if (incoming.latitude !== undefined) target.latitude = incoming.latitude;
+    if (incoming.longitude !== undefined) target.longitude = incoming.longitude;
+    if (typeof incoming.description === "string") target.description = incoming.description;
   }
-  if (incoming.latitude !== null) target.latitude = incoming.latitude;
-  if (incoming.longitude !== null) target.longitude = incoming.longitude;
+
   if (typeof incoming.location === "string" && incoming.location) target.location = incoming.location;
   if (incoming.timestamp) target.timestamp = incoming.timestamp;
-  if (typeof incoming.description === "string") target.description = incoming.description;
+  if (incomingUpdated !== undefined) target.updated = incomingUpdated;
 }
 
 function parseAT(ts) {
@@ -3177,6 +3184,26 @@ function parseAT(ts) {
   const iso = `${yyyy}-${mm}-${dd}T${HH}:${MM}:${SS}`;
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+function normalizeUpdatedField(value) {
+  if (value === undefined || value === null) return null;
+  if (typeof value === "number" && Number.isFinite(value)) {
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  }
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value.toISOString();
+  }
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const parsedAt = parseAT(trimmed);
+    if (parsedAt) return parsedAt;
+    const d = new Date(trimmed);
+    return Number.isNaN(d.getTime()) ? trimmed : d.toISOString();
+  }
+  return null;
 }
 
 async function importFromFileOnce(filename=AUTO_DEFAULT_FILENAME){
@@ -3234,6 +3261,7 @@ async function importFromFileOnce(filename=AUTO_DEFAULT_FILENAME){
           latitude:m.latitude, longitude:m.longitude,
           location: m.location || "",
           timestamp: m.timestamp || null,
+          updated: m.updated ?? null,
           description: m.description || ""
         };
         board.columns["neu"].items.unshift(card);
