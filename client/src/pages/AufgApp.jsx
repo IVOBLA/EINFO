@@ -175,6 +175,28 @@ function getPrimaryRoleId(user) {
   return null;
 }
 
+function getUserRoleIds(user) {
+  if (!user) return [];
+  const ids = new Set();
+  const add = (value) => {
+    if (!value) return;
+    const normalized = String(value).trim().toUpperCase();
+    if (normalized) ids.add(normalized);
+  };
+  if (typeof user.role === "string") {
+    add(user.role);
+  } else if (user.role && typeof user.role.id === "string") {
+    add(user.role.id);
+  }
+  if (Array.isArray(user.roles)) {
+    for (const entry of user.roles) {
+      if (typeof entry === "string") add(entry);
+      else if (entry && typeof entry.id === "string") add(entry.id);
+    }
+  }
+  return [...ids];
+}
+
 const uuid = () => (crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
 const roleQuery = (roleId) => (roleId ? `?role=${encodeURIComponent(roleId)}` : "");
 const roleHeaders = (roleId) => (roleId ? { "X-Role-Id": roleId } : {});
@@ -205,6 +227,7 @@ export default function AufgApp() {
 
   const user = getCurrentUser();
   const primaryRoleId = useMemo(() => getPrimaryRoleId(user), [user]);
+  const userRoleIds = useMemo(() => getUserRoleIds(user), [user]);
   const [roleId, setRoleId] = useState(() => primaryRoleId || "");
   const roleSelectionManualRef = useRef(false);
   const prevPrimaryRoleRef = useRef(primaryRoleId);
@@ -214,11 +237,13 @@ export default function AufgApp() {
     () => onlineRoles.some((roleId) => roleId === "LTSTB" || roleId === "LTSTBSTV"),
     [onlineRoles]
   );
+  const hasMultipleRoles = userRoleIds.length > 1;
   const canSwitchRoles = useMemo(() => {
+    if (hasMultipleRoles) return true;
     if (PRIMARY_ROLE_SWITCH_IDS.some((id) => hasRole(id, user))) return true;
     if (!ltStbOnline && hasRole(FALLBACK_SWITCH_ROLE_ID, user)) return true;
     return false;
-  }, [user, ltStbOnline]);
+  }, [user, ltStbOnline, hasMultipleRoles]);
   const roleSelectOptions = useMemo(() => {
     if (!roleId) return roleOptions;
     const exists = roleOptions.some((opt) => opt.id === roleId);
