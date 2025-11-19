@@ -314,7 +314,7 @@ function sheetHtml(item, recipient, nr) {
   .input { border:1px solid #999; border-radius:5px; padding:5px 7px; min-height: 26px; }
 
   .mh160 { min-height: 200px; }
-  .info-field { min-height: 160mm; }
+  .info-field { min-height: 100mm; }
   .mh100 { min-height: 36px; }
 
   .tgrid { display:grid; grid-template-columns: 6fr 5fr 1fr; }
