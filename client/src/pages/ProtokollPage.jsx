@@ -174,7 +174,6 @@ const initialForm = () => ({
   infoTyp: "",
   information: "",
   rueckmeldung1: "",
-  rueckmeldung2: "",
   ergehtAn: [],
   ergehtAnText: "",
   otherRecipientConfirmation: defaultConfirmation(),
@@ -756,7 +755,6 @@ export default function ProtokollPage({
             infoTyp: it.infoTyp || "Information",
             information: it.information || "",
             rueckmeldung1: it.rueckmeldung1 || "",
-            rueckmeldung2: it.rueckmeldung2 || "",
             ergehtAn: Array.isArray(it.ergehtAn) ? it.ergehtAn : [],
             ergehtAnText: it.ergehtAnText || "",
             otherRecipientConfirmation: (() => {
@@ -982,7 +980,6 @@ const startPdfPrint = (fileUrl) => {
         zu: "",
         information: "",
         rueckmeldung1: "",
-        rueckmeldung2: "",
         ergehtAn: [],
         ergehtAnText: "",
         massnahmen: Array.from({ length: 5 }, () => ({ massnahme: "", verantwortlich: "", done: false })),
@@ -1064,7 +1061,6 @@ const startPdfPrint = (fileUrl) => {
     // Texte
     snapshot.information   = (fd?.get("information")   || form.information   || "").toString();
     snapshot.rueckmeldung1 = (fd?.get("rueckmeldung1") || form.rueckmeldung1 || "").toString();
-    snapshot.rueckmeldung2 = (fd?.get("rueckmeldung2") || form.rueckmeldung2 || "").toString();
     snapshot.ergehtAnText  = (fd?.get("ergehtAnText")  || form.ergehtAnText  || "").toString();
     const domInfoTyp = fd?.get("infoTyp");
     snapshot.infoTyp       = (domInfoTyp !== null && domInfoTyp !== undefined ? domInfoTyp : (form.infoTyp || "")).toString();
@@ -1555,17 +1551,6 @@ const startPdfPrint = (fileUrl) => {
               title="erste Rückmeldung"
             />
           </div>
-          <div className="col-span-12 border-t-2 p-2">
-            <div className="text-xs text-gray-600 mb-1">Rückmeldung 2</div>
-            <input
-              name="rueckmeldung2"
-              className="border rounded px-2 h-9 w-full"
-              value={form.rueckmeldung2}
-              onChange={(e) => set("rueckmeldung2", e.target.value)}
-              title="zweite Rückmeldung"
-            />
-          </div>
-
           {/* ergeht an */}
           <div className="col-span-12 border-t-2 p-2">
             <div className="text-xs text-gray-600 mb-2">ergeht an:</div>
