@@ -289,7 +289,7 @@ function sheetHtml(item, recipient, nr) {
 <title>Protokoll ${nr}</title>
 <style>
   @page { size: A4; margin: 6mm; }
-  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin:0; padding:0; }
   .sheet { border: 2px solid #111; border-radius: 10px; padding: 10px; }
   .header { display:grid; grid-template-columns: 9fr 3fr; }
   .title { font-weight: 800; font-size: 22px; letter-spacing:.5px; padding:12px; }
@@ -468,6 +468,7 @@ async function renderBundlePdf(item, recipients, nr, { outputDir = MELDUNG_PDF_D
 
   try {
     const page = await browser.newPage();
+    await page.setViewport({ width: 1240, height: 1754, deviceScaleFactor: 2 });
     await page.setContent(pagesHtml, { waitUntil: "load" });
     await page.pdf({
       path: outPath,
