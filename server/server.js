@@ -680,6 +680,23 @@ async function readJson(file, fallback){
   }
 }
 
+async function ensureTypeKnown(value) {
+  const raw = typeof value === "string" ? value.trim() : "";
+  if (!raw) return;
+  try {
+    const current = await readJson(TYPES_FILE, []);
+    const entries = Array.isArray(current)
+      ? current.filter((entry) => typeof entry === "string" && entry.trim())
+      : [];
+    const normalized = raw.toLowerCase();
+    const exists = entries.some((entry) => entry.trim().toLowerCase() === normalized);
+    if (exists) return;
+    await writeJson(TYPES_FILE, [...entries, raw]);
+  } catch (err) {
+    console.warn("[types] konnte types.json nicht aktualisieren:", err?.message || err);
+  }
+}
+
 async function readOverrides(){ return await readJson(VEH_OVERRIDES, {}); }
 async function writeOverrides(next){
   await writeJson(VEH_OVERRIDES, next);
@@ -1824,7 +1841,8 @@ const nextHumanIdNumber = nextHumanNumber(board);
   const arr = board.columns[key].items;
   arr.splice(Math.max(0, Math.min(Number(toIndex) || 0, arr.length)), 0, card);
 
-    await saveBoard(board);
+  await ensureTypeKnown(card.typ);
+  await saveBoard(board);
 
   // Prüfen, ob die Feldkirchen-Wetterkarte neu erzeugt werden muss
   await maybeRegenerateFeldkirchenMapForNewCard(card);
