@@ -3370,14 +3370,10 @@ async function triggerOnce(_req,res){
   try{
     const cfg = await readAutoCfg();
     const status = ffStatus();
+    const fetcherBusy = status.running || status.starting || status.stopping;
+    const shouldTriggerFetcherBeforeImport = !cfg.demoMode && !fetcherBusy;
 
-    const shouldEnsureFetcherLogin =
-      !cfg.demoMode && (
-        // Auto-Import deaktiviert → Fetcher läuft nicht dauerhaft, also vor dem Import neu anmelden
-        !cfg.enabled || (!status.running && !status.starting && !status.stopping)
-      );
-
-    if (shouldEnsureFetcherLogin) {
+    if (shouldTriggerFetcherBeforeImport) {
       const creds = await User_getGlobalFetcher();
       if (!creds?.creds?.username || !creds?.creds?.password) {
         return res.status(400).json({ ok:false, error:"Keine globalen Fetcher-Zugangsdaten hinterlegt" });
@@ -3442,6 +3438,9 @@ app.post("/api/ff/start", async (_req,res)=>{
   try{
     const cfg = await readAutoCfg();
     if (!cfg.enabled) return res.status(403).json({ ok:false, error:"Auto-Import ist deaktiviert" });
+    if (cfg.demoMode) {
+      return res.status(403).json({ ok:false, error:"Demomodus aktiv – Fetcher darf nicht gestartet werden" });
+    }
 
     const it = await User_getGlobalFetcher();
     if (!it?.creds?.username || !it?.creds?.password) {
