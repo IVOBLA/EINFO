@@ -47,7 +47,7 @@ export default function IncidentInfoModal({
   const [error, setError] = useState("");
   const { mailBusy, mailFeedback, sendMail, resetMailFeedback } = useIncidentMail();
 
-  const alarmzeitSource = info?.createdAt || info?.timestamp;
+  const alarmzeitSource = info?.timestamp;
   const alarmzeit = alarmzeitSource
     ? new Date(alarmzeitSource).toLocaleString("de-AT", { hour12: false })
     : "—";
@@ -230,6 +230,16 @@ export default function IncidentInfoModal({
               value={form.ort}
               onChange={(e) => setForm((prev) => ({ ...prev, ort: e.target.value }))}
               disabled={busy}
+            />
+          </label>
+
+          <label className="text-sm font-medium text-gray-700">
+            Alarmzeit
+            <input
+              className="mt-1 w-full border rounded px-2 py-1 bg-gray-100"
+              value={alarmzeit}
+              disabled
+              readOnly
             />
           </label>
 
