@@ -32,7 +32,7 @@ import { appendHistoryEntriesToCsv } from "./utils/protocolCsv.mjs";
 import { ensureTaskForRole } from "./utils/tasksService.mjs";
 
 // 🔐 Neues User-Management
-import { User_authMiddleware, User_createRouter, User_requireAuth } from "./User_auth.mjs";
+import { User_authMiddleware, User_createRouter, User_requireAuth, User_hasRole } from "./User_auth.mjs";
 import { User_update, User_getGlobalFetcher, User_hasGlobalFetcher } from "./User_store.mjs";
 
 // Fetcher Runner
@@ -3321,8 +3321,7 @@ app.post("/api/import/auto-config", async (req,res)=>{
 });
 
 app.get("/api/protocol/auto-print-config", async (req, res) => {
-  const role = typeof req?.user?.role === "string" ? req.user.role.trim() : "";
-  if (role !== "Admin") {
+  if (!User_hasRole(req?.user, "Admin")) {
     return res.status(403).json({ ok:false, error:"FORBIDDEN" });
   }
   const cfg = await readAutoPrintCfg();
@@ -3330,8 +3329,7 @@ app.get("/api/protocol/auto-print-config", async (req, res) => {
 });
 
 app.post("/api/protocol/auto-print-config", async (req, res) => {
-  const role = typeof req?.user?.role === "string" ? req.user.role.trim() : "";
-  if (role !== "Admin") {
+  if (!User_hasRole(req?.user, "Admin")) {
     return res.status(403).json({ ok:false, error:"FORBIDDEN" });
   }
   try {
@@ -3413,7 +3411,7 @@ app.get ("/api/import/trigger",  triggerOnce);
 app.get("/api/ff/status", (req, res) => {
   res.set("Cache-Control", "no-store");
   const s = ffStatus();
-  const user = req.user ? { id:req.user.id, username:req.user.username, role:req.user.role } : null;
+  const user = req.user ? { id:req.user.id, username:req.user.username, role:req.user.role, roles:req.user.roles || [] } : null;
   res.json({ loggedIn: !!req.user, user, ...s });
 });
 

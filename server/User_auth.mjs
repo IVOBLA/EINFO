@@ -169,6 +169,17 @@ function extractRoleIds(userLike) {
   }
   return [...out];
 }
+function userHasRole(userLike, roleId) {
+  const target = normalizeRoleId(roleId);
+  if (!target) return false;
+  if (normalizeRoleId(userLike?.role) === target) return true;
+  if (Array.isArray(userLike?.roles)) {
+    for (const entry of userLike.roles) {
+      if (normalizeRoleId(entry) === target) return true;
+    }
+  }
+  return false;
+}
 
 function syncSessionRoles(session, userLike) {
   if (!session) return;
@@ -221,7 +232,7 @@ export function User_requireAuth(req,res,next){
 }
 export function User_requireAdmin(req,res,next){
   if(!req.user) return res.status(401).json({error:"UNAUTHORIZED"});
-  if(req.user.role!=="Admin") return res.status(403).json({error:"FORBIDDEN"}); next();
+  if(!userHasRole(req.user, "Admin")) return res.status(403).json({error:"FORBIDDEN"}); next();
 }
 
 export function User_createRouter({ dataDir, secureCookies=false }){
@@ -241,7 +252,7 @@ export function User_createRouter({ dataDir, secureCookies=false }){
       const { password, adminUser="admin", adminPass } = req.body||{};
       if(!password || !adminPass) return res.status(400).json({error:"MISSING"});
       await User_setupMaster(password);
-      await User_create({ username:adminUser, password:adminPass, displayName:"Administrator", role:"Admin" });
+      await User_create({ username:adminUser, password:adminPass, displayName:"Administrator", role:"Admin", roles:["Admin"] });
       res.json({ ok:true });
     }catch(e){ res.status(e.message==="MASTER_EXISTS"?409:500).json({error:e.message}); }
   });
@@ -266,18 +277,20 @@ export function User_createRouter({ dataDir, secureCookies=false }){
       id: u.id,
       username: u.username,
       role: u.role,
+      roles: u.roles || [],
       displayName: u.displayName,
       session: sessionExpiryInfo(session, now),
     });
   });
   r.get("/me", (req,res)=>{
     if(!req.user) return res.status(401).json({error:"UNAUTHORIZED"});
-    const { id, username, role, displayName } = req.user;
+    const { id, username, role, roles, displayName } = req.user;
     const session = req.session || getActiveSession(readCookie(req, "User_sid"));
     res.json({
       id,
       username,
       role,
+      roles: Array.isArray(roles) ? roles : [],
       displayName,
       session: sessionExpiryInfo(session),
     });
@@ -308,9 +321,10 @@ export function User_createRouter({ dataDir, secureCookies=false }){
   r.get("/users", requireUnlocked, User_requireAdmin, async (_req,res)=> res.json({ users: await User_list() }));
   r.post("/users", requireUnlocked, User_requireAdmin, async (req,res)=>{
     try{
-      const { username, password, displayName, role } = req.body||{};
-      if(!username || !password || !role) return res.status(400).json({error:"MISSING"});
-      const user = await User_create({ username, password, displayName, role });
+      const { username, password, displayName, role, roles } = req.body||{};
+      if(!username || !password) return res.status(400).json({error:"MISSING"});
+      if(!role && (!Array.isArray(roles) || roles.length===0)) return res.status(400).json({error:"ROLE_REQUIRED"});
+      const user = await User_create({ username, password, displayName, role, roles });
       res.json({ user });
     }catch(e){ res.status(400).json({error:e.message}); }
   });
@@ -386,3 +400,4 @@ export function User_isAnyRoleOnline(roleIds = [], options = {}) {
 }
 
 export const USER_ONLINE_ROLE_ACTIVE_LIMIT_MS = ONLINE_ROLE_ACTIVE_LIMIT_MS;
+export const User_hasRole = userHasRole;
