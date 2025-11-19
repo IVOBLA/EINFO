@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import DatePicker, { registerLocale } from "react-datepicker";
 import de from "date-fns/locale/de";
 import "react-datepicker/dist/react-datepicker.css";
+import CollapsibleNote from "./CollapsibleNote";
 
 registerLocale("de", de);
 
@@ -477,7 +478,7 @@ export default function AufgInfoModal({
             </div>
             <div>
               <div className="text-xs text-gray-600">Notizen</div>
-              <div className="whitespace-pre-wrap break-words">{it.desc || "—"}</div>
+              <CollapsibleNote text={it.desc} />
             </div>
             <div>
               <div className="text-xs text-gray-600">Frist/Kontrollzeitpunkt</div>
