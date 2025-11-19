@@ -20,11 +20,8 @@ import createServerPrintRoutes from "./routes/serverPrintRoutes.js";
 import { getProtocolCreatedAt, parseAutoPrintTimestamp } from "./utils/autoPrintHelpers.js";
 import { getLogDirCandidates } from "./utils/logDirectories.mjs";
 import { DATA_ROOT } from "./utils/pdfPaths.mjs";
-import {
-  collectWarningDatesFromMails,
-  appendWeatherIncidentFromBoardEntry,
-  generateWeatherFileIfWarning,
-} from "./utils/weatherWarning.mjs";
+import { generateWeatherFileIfWarning, collectWarningDates, isWeatherWarningToday } from "./utils/weatherWarning.mjs";
+import { generateFeldkirchenSvg } from "./utils/generateFeldkirchenSvg.mjs";
 
 import { appendHistoryEntriesToCsv } from "./utils/protocolCsv.mjs";
 import { ensureTaskForRole } from "./utils/tasksService.mjs";
@@ -108,6 +105,66 @@ const MAIL_INBOX_POLL_LIMIT = parseIntervalEnv("MAIL_INBOX_POLL_LIMIT", 50);
 let boardCacheValue = null;
 let boardCacheExpiresAt = 0;
 let boardCachePromise = null;
+
+
+const WEATHER_CATEGORY_FILE = path.join(DATA_DIR, "conf", "weather-categories.json");
+
+async function loadWeatherCategories() {
+  try {
+    const raw = await fs.readFile(WEATHER_CATEGORY_FILE, "utf8");
+    const list = JSON.parse(raw);
+    return (Array.isArray(list) ? list : [])
+      .map((v) => String(v).toLowerCase())
+      .filter(Boolean);
+  } catch (err) {
+    console.warn("[weather-map] Wetterkategorien konnten nicht geladen werden:", err?.message || err);
+    return [];
+  }
+}
+
+function cardHasWeatherCategory(card, categories) {
+  if (!card || !categories?.length) return false;
+  const hay = [
+    card.typ,
+    card.description,
+    card.content,
+    card.title,
+  ]
+    .filter(Boolean)
+    .map((s) => String(s).toLowerCase())
+    .join(" ");
+
+  return categories.some((cat) => hay.includes(cat));
+}
+
+async function maybeRegenerateFeldkirchenMapForNewCard(card) {
+  if (!card) return;
+
+  // 1) ist heute überhaupt eine Wetterwarnung aktiv?
+  const warningToday = await isWeatherWarningToday();
+  if (!warningToday) {
+    return;
+  }
+
+  // 2) hat die Karte eine Wetterkategorie?
+  const categories = await loadWeatherCategories();
+  const isWeather = cardHasWeatherCategory(card, categories);
+  if (!isWeather) {
+    return;
+  }
+
+  // 3) Karte neu zeichnen (Wettereinsätze der letzten 24 Stunden)
+  try {
+    console.log("[weather-map] Neuer Wettereinsatz → SVG wird neu erzeugt …");
+    await generateFeldkirchenSvg({ show: "weather", hours: 24 });
+  } catch (err) {
+    console.error(
+      "[weather-map] Fehler beim Erzeugen der Feldkirchen-Karte:",
+      err?.message || err
+    );
+  }
+}
+
 
 const cloneBoard = (value) => {
   if (!value) return value;
@@ -1761,7 +1818,18 @@ const nextHumanIdNumber = nextHumanNumber(board);
   }
   const arr = board.columns[key].items;
   arr.splice(Math.max(0, Math.min(Number(toIndex) || 0, arr.length)), 0, card);
-  await saveBoard(board);
+
+    await saveBoard(board);
+
+  // Prüfen, ob die Feldkirchen-Wetterkarte neu erzeugt werden muss
+  await maybeRegenerateFeldkirchenMapForNewCard(card);
+
+  await appendCsvRow(
+    LOG_FILE, EINSATZ_HEADERS,
+    buildEinsatzLog({ action:"Einsatz erstellt", card, from:board.columns[key].name, note:card.ort || "", board }),
+    req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
+  );
+
   await appendWeatherIncidentForCard(card);
   await appendCsvRow(
     LOG_FILE, EINSATZ_HEADERS,
@@ -3103,6 +3171,7 @@ async function importFromFileOnce(filename=AUTO_DEFAULT_FILENAME){
   const board=await ensureBoard();
   let created=0, updated=0, skipped=0;
   const alertedGroups = new Set();
+  let lastCreatedCard = null; 
 
   try{
     for(const item of arr){
@@ -3147,6 +3216,7 @@ async function importFromFileOnce(filename=AUTO_DEFAULT_FILENAME){
         board.columns["neu"].items.unshift(card);
         await appendWeatherIncidentForCard(card);
         created++;
+		lastCreatedCard = card; 
         const logUser = AUTO_IMPORT_USER;
         const logRow = buildEinsatzLog({
           action: "Einsatz erstellt (Auto-Import)",
@@ -3169,6 +3239,9 @@ async function importFromFileOnce(filename=AUTO_DEFAULT_FILENAME){
 
     await updateGroupAlertedStatuses(alertedGroups);
     await saveBoard(board);
+	    if (lastCreatedCard) {
+      await maybeRegenerateFeldkirchenMapForNewCard(lastCreatedCard);
+    }
     importLastLoadedAt = Date.now();
     importLastFile     = filename;
     return { ok:true, created, updated, skipped, file:filename };
