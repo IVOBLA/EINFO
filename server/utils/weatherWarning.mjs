@@ -1,62 +1,136 @@
 // server/utils/weatherWarning.mjs
-// Verantwortlich NUR für: Wetter-Mails → weather-warning-dates.txt aktualisieren
+// Verantwortlich für Wetterwarnungs-Daten (Datumslogik):
+//  - Datumsangaben aus Mails extrahieren
+//  - weather-warning-dates.txt pflegen
+//  - prüfen, ob heute ein Warn-Datum ist
 
 import fsp from "node:fs/promises";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-export const WARNING_DATE_FILE = path.resolve("server/data/weather-warning-dates.txt");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// Heutiges Datum YYYY-MM-DD
+const DATA_DIR = path.resolve(__dirname, "../data");
+const WARNING_DATE_FILE =
+  process.env.WEATHER_WARNING_DATE_FILE ||
+  path.join(DATA_DIR, "weather-warning-dates.txt");
+
+// Hilfsfunktion: YYYY-MM-DD
 function todayKey(d = new Date()) {
   return d.toISOString().slice(0, 10);
 }
 
-// Datum aus E-Mail-Text extrahieren (TT.MM oder TT.MM.JJJJ)
-function extractWarningDates(content) {
-  if (!content) return [];
-  const matches = content.match(/\b\d{1,2}\.\d{1,2}(?:\.\d{2,4})?\b/g) || [];
-  const unique = new Set();
+// dd.mm[.yy|yyyy] → YYYY-MM-DD oder null
+function parseDateKey(raw) {
+  const match = String(raw || "").match(
+    /^(\d{1,2})\.(\d{1,2})(?:\.(\d{2,4}))?$/
+  );
+  if (!match) return null;
 
-  for (const m of matches) {
-    const [day, month, yearRaw] = m.split(".");
-    const year = yearRaw ? (yearRaw.length === 2 ? 2000 + Number(yearRaw) : Number(yearRaw)) : new Date().getFullYear();
-    unique.add(new Date(Date.UTC(year, Number(month) - 1, Number(day))).toISOString().slice(0, 10));
-  }
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = match[3]
+    ? Number(match[3].length === 2 ? 2000 + Number(match[3]) : match[3])
+    : new Date().getFullYear();
 
-  return [...unique];
+  const d = new Date(Date.UTC(year, month - 1, day));
+  return Number.isNaN(d.getTime()) ? null : todayKey(d);
 }
 
-// Bestehende Datei lesen
-async function readWarningDates() {
+// Datumsangaben aus E-Mail-Text extrahieren
+function extractWarningDatesFromText(content) {
+  if (!content) return [];
+  const normalized = String(content).replace(/\r\n/g, "\n");
+
+  const matches =
+    normalized.match(/\b\d{1,2}\.\d{1,2}(?:\.\d{2,4})?\b/g) || [];
+
+  const out = new Set();
+  for (const m of matches) {
+    const key = parseDateKey(m);
+    if (key) out.add(key);
+  }
+  return [...out];
+}
+
+// Datei lesen/schreiben
+async function readWarningDateFile(file = WARNING_DATE_FILE) {
   try {
-    const raw = await fsp.readFile(WARNING_DATE_FILE, "utf8");
-    return raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-  } catch {
+    const raw = await fsp.readFile(file, "utf8");
+    return raw
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter(Boolean);
+  } catch (err) {
+    if (err?.code !== "ENOENT") {
+      console.error(
+        "[weather-warning] Datei konnte nicht gelesen werden:",
+        err?.message || err
+      );
+    }
     return [];
   }
 }
 
-// Datei schreiben
-async function writeWarningDates(lines) {
-  await fsp.writeFile(WARNING_DATE_FILE, lines.join("\n"), "utf8");
+async function writeWarningDateFile(dates, file = WARNING_DATE_FILE) {
+  const lines = Array.from(new Set(dates || [])).sort();
+  await fsp.mkdir(path.dirname(file), { recursive: true });
+  await fsp.writeFile(file, lines.join("\n"), "utf8");
+  console.log(
+    "[weather-warning] warning-dates aktualisiert:",
+    lines.join(", ")
+  );
 }
 
 // -----------------------------------------------------------------------------
+// EXPORTS
+// -----------------------------------------------------------------------------
 
-// Hauptfunktion: Wird bei jeder neuen Wetter-Mail aufgerufen
-export async function updateWarningDatesFromMail(mailContent) {
-  const existing = new Set(await readWarningDates());
-  const extracted = extractWarningDates(mailContent);
-
-  for (const d of extracted) existing.add(d);
-
-  await writeWarningDates([...existing]);
-
-  console.log("[weather-warning] Aktualisiert:", [...existing]);
+// Wird vom Mail-Poll aufgerufen: bekommt eine Liste von Mails { body|text }
+export function collectWarningDatesFromMails(mails = []) {
+  const set = new Set();
+  for (const mail of mails) {
+    const body = mail?.body ?? mail?.text ?? "";
+    for (const d of extractWarningDatesFromText(body)) {
+      set.add(d);
+    }
+  }
+  return [...set];
 }
 
-// Prüfen, ob heute Wetterwarnung aktiv ist
+// Convenience-Name für server.js (dein server nutzt collectWarningDates(relevant))
+export function collectWarningDates(mails = []) {
+  return collectWarningDatesFromMails(mails);
+}
+
+// server.js ruft generateWeatherFileIfWarning(warningDates) auf.
+// Wir interpretieren das jetzt als: warning-dates.txt pflegen.
+// Rückgabe: true, wenn neue Datumswerte hinzugekommen sind.
+export async function generateWeatherFileIfWarning(warningDates = []) {
+  const existing = await readWarningDateFile();
+  const set = new Set(existing);
+
+  let added = 0;
+  for (const d of warningDates || []) {
+    if (!d) continue;
+    if (!set.has(d)) {
+      set.add(d);
+      added++;
+    }
+  }
+
+  if (!added) {
+    // nichts Neues
+    return false;
+  }
+
+  await writeWarningDateFile([...set]);
+  return true;
+}
+
+// Prüfen, ob HEUTE in warning-dates steht
 export async function isWeatherWarningToday() {
-  const dates = await readWarningDates();
+  const dates = await readWarningDateFile();
   return dates.includes(todayKey());
 }

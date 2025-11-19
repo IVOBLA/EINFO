@@ -1,6 +1,8 @@
 // server/utils/generateFeldkirchenSvg.mjs
-// Erzeugt die SVG-Karte für Bezirk Feldkirchen
-// Filterbar über Optionen: { show, hours }
+// Erzeugt eine SVG-Karte für den Bezirk Feldkirchen mit Punkten aus board.json.
+// Filter über Optionen:
+//   - show: "weather" | "all"
+//   - hours: wie viele Stunden zurück ab jetzt.
 
 import fsp from "node:fs/promises";
 import path from "node:path";
@@ -17,10 +19,11 @@ const BASE_MAP_FILE = path.join(DATA_DIR, "conf", "feldkirchen_base.png");
 const OUT_DIR = path.join(DATA_DIR, "prints", "uebersicht");
 const OUT_FILE = path.join(OUT_DIR, "feldkirchen.svg");
 
-// Hintergrundbildgröße & Bounding Box
+// Größe deines Screenshots
 const MAP_WIDTH = 798;
 const MAP_HEIGHT = 665;
 
+// Bounding Box aus deinem Screenshot
 const BOUNDS = {
   minLat: 46.635993,
   maxLat: 46.943458,
@@ -36,25 +39,19 @@ async function readJson(file, fallback = null) {
   }
 }
 
-async function readLines(file) {
+async function loadCategories() {
   try {
-    return (await fsp.readFile(file, "utf8"))
-      .split(/\r?\n/)
-      .map(s => s.trim())
+    const list = await readJson(CATEGORY_FILE, []);
+    return (Array.isArray(list) ? list : [])
+      .map((v) => String(v).toLowerCase())
       .filter(Boolean);
   } catch {
     return [];
   }
 }
 
-// Wetterkategorien laden
-async function loadCategories() {
-  const list = await readJson(CATEGORY_FILE, []);
-  return list.map(x => String(x).toLowerCase());
-}
-
-// Prüfen, ob Einsatz eine Wetterkategorie enthält
 function entryHasWeatherCategory(entry, categories) {
+  if (!categories?.length) return false;
   const hay = [
     entry.typ,
     entry.description,
@@ -62,25 +59,23 @@ function entryHasWeatherCategory(entry, categories) {
     entry.title,
   ]
     .filter(Boolean)
-    .map(s => String(s).toLowerCase())
+    .map((s) => String(s).toLowerCase())
     .join(" ");
 
-  return categories.some(cat => hay.includes(cat));
+  return categories.some((cat) => hay.includes(cat));
 }
 
-// Timestamp extrahieren
 function extractTime(entry) {
-  const f = ["timestamp", "createdAt", "time", "dateTime"];
-  for (const k of f) {
+  const fields = ["timestamp", "createdAt", "time", "dateTime"];
+  for (const k of fields) {
     const v = entry[k];
     if (!v) continue;
     const d = new Date(v);
-    if (!isNaN(d)) return d.getTime();
+    if (!Number.isNaN(d.getTime())) return d.getTime();
   }
   return null;
 }
 
-// Koordinaten extrahieren
 function extractCoords(entry) {
   const pairs = [
     { lat: entry.lat, lon: entry.lng },
@@ -95,29 +90,46 @@ function extractCoords(entry) {
   return null;
 }
 
-// Projektion:
 function project(lon, lat) {
-  const x = ((lon - BOUNDS.minLon) / (BOUNDS.maxLon - BOUNDS.minLon)) * MAP_WIDTH;
-  const y = ((BOUNDS.maxLat - lat) / (BOUNDS.maxLat - BOUNDS.minLat)) * MAP_HEIGHT;
+  const x =
+    ((lon - BOUNDS.minLon) / (BOUNDS.maxLon - BOUNDS.minLon || 1)) * MAP_WIDTH;
+  const y =
+    ((BOUNDS.maxLat - lat) / (BOUNDS.maxLat - BOUNDS.minLat || 1)) * MAP_HEIGHT;
   return [x, y];
 }
 
+async function readBoardItems() {
+  const board = await readJson(BOARD_FILE, null);
+  if (!board || typeof board !== "object") return [];
+
+  if (Array.isArray(board.items)) return board.items;
+
+  const cols = board.columns || {};
+  const all = [];
+  for (const key of Object.keys(cols)) {
+    const col = cols[key];
+    if (Array.isArray(col?.items)) all.push(...col.items);
+  }
+  return all;
+}
+
+// -----------------------------------------------------------------------------
+// Hauptfunktion
 // -----------------------------------------------------------------------------
 
 export async function generateFeldkirchenSvg(options = {}) {
   const {
-    show = "weather",
+    show = "weather", // "weather" | "all"
     hours = 24,
   } = options;
 
-  const categories = await loadCategories();
-  const board = await readJson(BOARD_FILE, { items: [] });
-  const items = Array.isArray(board.items)
-    ? board.items
-    : Object.values(board.columns || {}).flatMap(c => c.items || []);
-
   const now = Date.now();
-  const cutoff = now - hours * 3600 * 1000;
+  const effectiveHours =
+    Number.isFinite(+hours) && +hours > 0 ? +hours : 24;
+  const cutoff = now - effectiveHours * 60 * 60 * 1000;
+
+  const categories = await loadCategories();
+  const items = await readBoardItems();
 
   const points = [];
 
@@ -129,49 +141,63 @@ export async function generateFeldkirchenSvg(options = {}) {
     if (!coords) continue;
 
     const isWeather = entryHasWeatherCategory(entry, categories);
-
     if (show === "weather" && !isWeather) continue;
 
     points.push({
       ...coords,
-      label: entry.typ || entry.title || "",
       id: entry.id,
+      label: entry.typ || entry.title || entry.content || "Einsatz",
     });
   }
 
-  console.log(`[svg] ${points.length} Punkte → mode=${show}, hours=${hours}`);
+  console.log(
+    `[svg] ${points.length} Punkte → show=${show}, hours=${effectiveHours}`
+  );
 
-  // Hintergrundkartenbild base64 laden
-  let base = null;
+  // Hintergrund-Bitmap laden
+  let baseHref = null;
   try {
     const buf = await fsp.readFile(BASE_MAP_FILE);
-    base = `data:image/png;base64,${buf.toString("base64")}`;
-  } catch {
-    console.warn("[svg] WARNUNG: Hintergrundkarte fehlt!");
+    baseHref = `data:image/png;base64,${buf.toString("base64")}`;
+  } catch (err) {
+    console.warn(
+      "[svg] Hintergrundkarte konnte nicht gelesen werden:",
+      err?.message || err
+    );
   }
 
-  // Punkte bauen
   const circles = points
-    .map(p => {
+    .map((p) => {
       const [x, y] = project(p.lon, p.lat);
-      return `<circle cx="${x}" cy="${y}" r="6" fill="#e11d48" stroke="#111" stroke-width="1.5"><title>${p.id} ${p.label}</title></circle>`;
+      const title = `${p.id || ""} ${p.label}`.trim();
+      return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(
+        1
+      )}" r="6" fill="#e11d48" stroke="#111827" stroke-width="1.5">
+  <title>${title}</title>
+</circle>`;
     })
-    .join("\n");
+    .join("\n  ");
 
-  const svg = `
-<svg width="${MAP_WIDTH}" height="${MAP_HEIGHT}" viewBox="0 0 ${MAP_WIDTH} ${MAP_HEIGHT}"
-     xmlns="http://www.w3.org/2000/svg">
-
-  ${base
-    ? `<image href="${base}" x="0" y="0" width="${MAP_WIDTH}" height="${MAP_HEIGHT}" />`
-    : `<rect x="0" y="0" width="${MAP_WIDTH}" height="${MAP_HEIGHT}" fill="#eee" />`
+  const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg width="${MAP_WIDTH}" height="${MAP_HEIGHT}" viewBox="0 0 ${MAP_WIDTH} ${MAP_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
+  ${
+    baseHref
+      ? `<image href="${baseHref}" x="0" y="0" width="${MAP_WIDTH}" height="${MAP_HEIGHT}" />`
+      : `<rect x="0" y="0" width="${MAP_WIDTH}" height="${MAP_HEIGHT}" fill="#f3f4f6" />`
   }
-
+  <g id="einsatzpunkte">
   ${circles}
+  </g>
 </svg>`;
 
   await fsp.mkdir(OUT_DIR, { recursive: true });
   await fsp.writeFile(OUT_FILE, svg, "utf8");
+  console.log("[svg] Karte geschrieben:", OUT_FILE);
+}
 
-  console.log("[svg] Karte erzeugt:", OUT_FILE);
+// CLI: node utils/generateFeldkirchenSvg.mjs
+if (import.meta.url === `file://${__filename}`) {
+  generateFeldkirchenSvg().catch((err) => {
+    console.error("[svg] Fehler beim Erzeugen der Karte:", err);
+  });
 }
