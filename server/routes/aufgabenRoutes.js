@@ -324,12 +324,36 @@ const normRole = (s) => {
 };
 
 // --- Rollen aus den Headern oder aus der Anfrage ermitteln ---
+function normalizeRoleList(values = []) {
+  const list = [];
+  const add = (value) => {
+    const norm = normRole(value);
+    if (norm && !list.includes(norm)) list.push(norm);
+  };
+  for (const entry of values) {
+    if (!entry) continue;
+    if (typeof entry === "string") add(entry);
+    else if (typeof entry?.id === "string") add(entry.id);
+    else if (typeof entry?.role === "string") add(entry.role);
+  }
+  return list;
+}
+
+function requestedRoleFromReq(req) {
+  return normRole(req.query?.role ?? req.body?.role ?? req.body?.userRole);
+}
+
 function userRoleFromReq(req) {
   const u = req.user || {};
-  const fromUser =
-    (typeof u.role === "string" && normRole(u.role)) ||
-    (u.role && typeof u.role.id === "string" && normRole(u.role.id)) || "";
-  return fromUser || headerRole(req);   // <= Header-Fallback
+  const userRoles = normalizeRoleList([
+    u.role,
+    u?.role?.id,
+    ...(Array.isArray(u.roles) ? u.roles : []),
+  ]);
+  const requested = requestedRoleFromReq(req);
+  if (requested && userRoles.includes(requested)) return requested;
+  if (userRoles.length) return userRoles[0];
+  return requested || headerRole(req);   // <= Header-Fallback
 }
 
 function headerRole(req) {
