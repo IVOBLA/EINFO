@@ -47,8 +47,9 @@ export default function IncidentInfoModal({
   const [error, setError] = useState("");
   const { mailBusy, mailFeedback, sendMail, resetMailFeedback } = useIncidentMail();
 
-  const alarmzeit = info.timestamp
-    ? new Date(info.timestamp).toLocaleString("de-AT", { hour12: false })
+  const alarmzeitSource = info?.createdAt || info?.timestamp;
+  const alarmzeit = alarmzeitSource
+    ? new Date(alarmzeitSource).toLocaleString("de-AT", { hour12: false })
     : "—";
 
   const locationCombined = useMemo(() => {

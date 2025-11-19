@@ -125,8 +125,9 @@ async function loadGpsList() {
 
 function buildIncidentHtml(card) {
   const typ = card?.typ || card?.type || "—";
-  const alarmzeit = card?.timestamp
-    ? new Date(card.timestamp).toLocaleString("de-AT", { hour12: false })
+  const alarmzeitSource = card?.createdAt || card?.timestamp;
+  const alarmzeit = alarmzeitSource
+    ? new Date(alarmzeitSource).toLocaleString("de-AT", { hour12: false })
     : "—";
   const alerted = card?.alerted ?? "—";
   const desc = card?.description ?? "—";
