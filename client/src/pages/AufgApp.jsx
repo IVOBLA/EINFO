@@ -228,6 +228,7 @@ export default function AufgApp() {
   const user = getCurrentUser();
   const primaryRoleId = useMemo(() => getPrimaryRoleId(user), [user]);
   const userRoleIds = useMemo(() => getUserRoleIds(user), [user]);
+  const userRoleIdSet = useMemo(() => new Set(userRoleIds), [userRoleIds]);
   const [roleId, setRoleId] = useState(() => primaryRoleId || "");
   const roleSelectionManualRef = useRef(false);
   const prevPrimaryRoleRef = useRef(primaryRoleId);
@@ -244,11 +245,7 @@ export default function AufgApp() {
     if (!ltStbOnline && hasRole(FALLBACK_SWITCH_ROLE_ID, user)) return true;
     return false;
   }, [user, ltStbOnline, hasMultipleRoles]);
-  const roleSelectOptions = useMemo(() => {
-    if (!roleId) return roleOptions;
-    const exists = roleOptions.some((opt) => opt.id === roleId);
-    return exists ? roleOptions : [...roleOptions, { id: roleId, label: roleId }];
-  }, [roleId, roleOptions]);
+  const roleSelectOptions = roleOptions;
   const [freshIds, setFreshIds] = useState(new Set());
   const prevIdsRef = useRef(new Set());
   const myCreatedIdsRef = useRef(new Set());
@@ -363,7 +360,14 @@ export default function AufgApp() {
       if (!alive) return;
       setAllowEdit(canEditApp("aufgabenboard", user));
       const opts = getAllRoles();
-      const sorted = [...opts].sort((a, b) =>
+      const filtered = (opts || [])
+        .filter((opt) => userRoleIdSet.has(opt.id))
+        .filter((opt) => {
+          const level = String(opt?.apps?.aufgabenboard || "").toLowerCase();
+          return level === "edit" || level === "view";
+        })
+        .map((opt) => ({ id: opt.id, label: opt.label || opt.id }));
+      const sorted = [...filtered].sort((a, b) =>
         String(a?.label || a?.id || "").localeCompare(String(b?.label || b?.id || ""), "de", {
           sensitivity: "base",
         })
@@ -371,7 +375,7 @@ export default function AufgApp() {
       setRoleOptions(sorted);
     })();
     return () => { alive = false; };
-  }, [user]);
+  }, [user, userRoleIdSet]);
 
   useEffect(() => {
     if (prevPrimaryRoleRef.current !== primaryRoleId) {
@@ -384,10 +388,19 @@ export default function AufgApp() {
   }, [primaryRoleId]);
 
   useEffect(() => {
-    if (!roleId && roleOptions.length) {
+    if (!roleOptions.length) {
+      if (roleId) {
+        roleSelectionManualRef.current = false;
+        setRoleId("");
+      }
+      return;
+    }
+    const exists = roleOptions.some((opt) => opt.id === roleId);
+    if (!exists) {
+      roleSelectionManualRef.current = false;
       setRoleId(roleOptions[0].id);
     }
-  }, [roleId, roleOptions]);
+  }, [roleOptions, roleId]);
 
   const handleRoleChange = useCallback((event) => {
     if (!canSwitchRoles) {

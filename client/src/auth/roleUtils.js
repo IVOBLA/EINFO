@@ -106,5 +106,6 @@ export function getAllRoles() {
   return Array.from(ROLE_MAP.entries()).map(([id, role]) => ({
     id,
     label: role?.label || role?.id || id,
+    apps: role?.apps ? { ...role.apps } : {},
   }));
 }
