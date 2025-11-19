@@ -1533,7 +1533,7 @@ const startPdfPrint = (fileUrl) => {
             <textarea
               ref={informationRef}
               name="information"
-              className={`border rounded px-2 py-2 w-full min-h-[360px] md:min-h-[420px] text-[15px] leading-relaxed ${errors.information ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500" : ""}`}
+              className={`border rounded px-2 py-2 w-full min-h-[420px] md:min-h-[520px] text-[15px] leading-relaxed ${errors.information ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500" : ""}`}
               value={form.information}
               onChange={(e) => { clearError("information"); set("information", e.target.value); }}
               title="Sachverhalt / Meldetext"
