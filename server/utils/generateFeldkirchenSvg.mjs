@@ -39,19 +39,32 @@ async function readJson(file, fallback = null) {
   }
 }
 
+function escapeXml(value) {
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
 async function loadCategories() {
   try {
     const list = await readJson(CATEGORY_FILE, []);
     return (Array.isArray(list) ? list : [])
-      .map((v) => String(v).toLowerCase())
-      .filter(Boolean);
+      .map((v) => String(v).trim())
+      .filter(Boolean)
+      .map((label) => ({
+        label,
+        needle: label.toLowerCase(),
+      }));
   } catch {
     return [];
   }
 }
 
-function entryHasWeatherCategory(entry, categories) {
-  if (!categories?.length) return false;
+function getEntryCategory(entry, categories) {
+  if (!categories?.length) return null;
   const hay = [
     entry.typ,
     entry.description,
@@ -62,7 +75,58 @@ function entryHasWeatherCategory(entry, categories) {
     .map((s) => String(s).toLowerCase())
     .join(" ");
 
-  return categories.some((cat) => hay.includes(cat));
+  for (const cat of categories) {
+    if (hay.includes(cat.needle)) return cat.label;
+  }
+  return null;
+}
+
+function buildCategoryColorMap(categories) {
+  const palette = [
+    "#2563eb",
+    "#ea580c",
+    "#10b981",
+    "#facc15",
+    "#8b5cf6",
+    "#ec4899",
+    "#0ea5e9",
+    "#f87171",
+    "#14b8a6",
+    "#f97316",
+  ];
+  const map = new Map();
+  categories.forEach((cat, index) => {
+    map.set(cat.label, palette[index % palette.length]);
+  });
+  return map;
+}
+
+function createLegend(items) {
+  if (!items?.length) return "";
+  const padding = 12;
+  const swatchSize = 12;
+  const lineHeight = 20;
+  const width = 220;
+  const height = padding * 2 + items.length * lineHeight;
+  const x = MAP_WIDTH - width - 16;
+  const y = 16;
+
+  const rows = items
+    .map((item, idx) => {
+      const rowY = y + padding + idx * lineHeight;
+      return `
+    <rect x="${x + padding}" y="${rowY}" width="${swatchSize}" height="${swatchSize}" rx="2" fill="${item.color}" />
+    <text x="${x + padding + swatchSize + 8}" y="${rowY}" font-size="12" fill="#111827" dominant-baseline="hanging">${escapeXml(
+        item.name
+      )}</text>`;
+    })
+    .join("\n");
+
+  return `
+  <g id="legend">
+    <rect x="${x}" y="${y}" width="${width}" height="${height}" fill="#ffffff" fill-opacity="0.9" stroke="#d1d5db" />
+    ${rows}
+  </g>`;
 }
 
 function extractTime(entry) {
@@ -117,6 +181,8 @@ async function readBoardItems() {
 // Hauptfunktion
 // -----------------------------------------------------------------------------
 
+const DEFAULT_POINT_COLOR = "#e11d48";
+
 export async function generateFeldkirchenSvg(options = {}) {
   const {
     show = "weather", // "weather" | "all"
@@ -129,6 +195,7 @@ export async function generateFeldkirchenSvg(options = {}) {
   const cutoff = now - effectiveHours * 60 * 60 * 1000;
 
   const categories = await loadCategories();
+  const categoryColorMap = buildCategoryColorMap(categories);
   const items = await readBoardItems();
 
   const points = [];
@@ -140,13 +207,15 @@ export async function generateFeldkirchenSvg(options = {}) {
     const coords = extractCoords(entry);
     if (!coords) continue;
 
-    const isWeather = entryHasWeatherCategory(entry, categories);
-    if (show === "weather" && !isWeather) continue;
+    const categoryName = getEntryCategory(entry, categories);
+    if (show === "weather" && !categoryName) continue;
 
     points.push({
       ...coords,
       id: entry.id,
       label: entry.typ || entry.title || entry.content || "Einsatz",
+      category: categoryName,
+      color: categoryColorMap.get(categoryName) || DEFAULT_POINT_COLOR,
     });
   }
 
@@ -172,11 +241,21 @@ export async function generateFeldkirchenSvg(options = {}) {
       const title = `${p.id || ""} ${p.label}`.trim();
       return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(
         1
-      )}" r="6" fill="#e11d48" stroke="#111827" stroke-width="1.5">
+      )}" r="6" fill="${p.color}" stroke="#111827" stroke-width="1.5">
   <title>${title}</title>
 </circle>`;
     })
     .join("\n  ");
+
+  const usedCategories = Array.from(
+    new Set(points.map((p) => p.category).filter(Boolean))
+  );
+  const legend = createLegend(
+    usedCategories.map((name) => ({
+      name,
+      color: categoryColorMap.get(name) || DEFAULT_POINT_COLOR,
+    }))
+  );
 
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${MAP_WIDTH}" height="${MAP_HEIGHT}" viewBox="0 0 ${MAP_WIDTH} ${MAP_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
@@ -188,6 +267,7 @@ export async function generateFeldkirchenSvg(options = {}) {
   <g id="einsatzpunkte">
   ${circles}
   </g>
+  ${legend}
 </svg>`;
 
   await fsp.mkdir(OUT_DIR, { recursive: true });
