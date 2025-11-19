@@ -354,7 +354,7 @@ async function pollMailInboxOnce() {
     // 3) Wetterwarnungs-Dateien anhand der gleichen Mails erzeugen
     try {
       const warningDates = collectWarningDatesFromMails(relevant);
-      await generateWeatherFileIfWarning({ warningDates });
+      await generateWeatherFileIfWarning(warningDates);
       console.log("[mail-poll] Wetterwarnungs-Dateien aktualisiert");
     } catch (err) {
       console.error(
