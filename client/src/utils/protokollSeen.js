@@ -21,6 +21,17 @@ export function resolveSeenStorageKey(user) {
     if (userId) parts.push(userId);
     if (username && username !== userId) parts.push(username);
     if (role) parts.push(role.toUpperCase());
+    if (Array.isArray(user.roles)) {
+      for (const entry of user.roles) {
+        const value = typeof entry === "string"
+          ? entry
+          : (entry && typeof entry.id === "string"
+            ? entry.id
+            : (entry && typeof entry.role === "string" ? entry.role : ""));
+        const normalized = normalizeIdentifierPart(value || "");
+        if (normalized) parts.push(normalized.toUpperCase());
+      }
+    }
   }
   if (!parts.length) return null;
   return `${STORAGE_PREFIX}.${parts.join("|")}`;

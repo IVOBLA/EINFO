@@ -10,6 +10,42 @@ let _paths  = null;
 
 export const User_isUnlocked = ()=> !!_master;
 
+function _extractRoleId(value){
+  if (!value) return "";
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "object") {
+    if (typeof value.id === "string") return value.id.trim();
+    if (typeof value.role === "string") return value.role.trim();
+    if (typeof value.label === "string") return value.label.trim();
+  }
+  return "";
+}
+function _normalizeRoleList(input, fallback){
+  const out = [];
+  const add = (raw) => {
+    const id = _extractRoleId(raw);
+    if (id && !out.includes(id)) out.push(id);
+  };
+  if (Array.isArray(input)) input.forEach(add);
+  else if (input !== undefined) add(input);
+  if (Array.isArray(fallback)) fallback.forEach(add);
+  else if (fallback !== undefined) add(fallback);
+  return out;
+}
+function _ensureUserRoles(user, fallback){
+  if (!user) return user;
+  const normalized = _normalizeRoleList(user.roles?.length ? user.roles : undefined, fallback ?? user.role);
+  if (normalized.length){
+    user.roles = normalized;
+    user.role = normalized[0];
+  }else{
+    const single = _extractRoleId(user.role);
+    user.role = single;
+    user.roles = single ? [single] : [];
+  }
+  return user;
+}
+
 // ---------- role helpers (object/legacy) ----------
 function _normalizeRolesIn(objArray){
   if (!Array.isArray(objArray)) return [{ id: "Admin", label: "Administrator", capabilities: ["*"] }];
@@ -46,6 +82,8 @@ async function _loadVault(){
   if(!_master) throw new Error("MASTER_LOCKED");
   const enc = JSON.parse(await fs.readFile(_paths.users,"utf8"));
   const v = User_decryptJSON(enc, _master.key);
+  if (!Array.isArray(v.users)) v.users = [];
+  v.users.forEach((u)=>_ensureUserRoles(u));
   if (!v.globalFetcherCreds) v.globalFetcherCreds = { username:"", password:"" };
   return v;
 }
@@ -55,7 +93,13 @@ async function _saveVault(v){
   await fs.writeFile(_paths.users, JSON.stringify(enc, null, 2));
 }
 async function _loadAuthIndex(){
-  try{ return JSON.parse(await fs.readFile(_paths.authIdx, "utf8")); }
+  try{
+    const idx = JSON.parse(await fs.readFile(_paths.authIdx, "utf8"));
+    if (!idx || typeof idx !== "object") return { v:1, users:[] };
+    if (!Array.isArray(idx.users)) idx.users = [];
+    idx.users.forEach((u)=>_ensureUserRoles(u));
+    return idx;
+  }
   catch{ return { v:1, users:[] }; }
 }
 async function _saveAuthIndex(idx){
@@ -68,7 +112,7 @@ async function _rebuildAuthIndexFromVaultIfEmpty(){
     if(!_master) return; // ohne Master kein Zugriff auf Vault
     const v = await _loadVault();
     const users = (v.users||[]).map(u=>({
-      id:u.id, username:u.username, displayName:u.displayName, role:u.role, pass:u.pass
+      id:u.id, username:u.username, displayName:u.displayName, role:u.role, roles:u.roles||[], pass:u.pass
     }));
     await _saveAuthIndex({ v:1, users });
   }catch{}
@@ -138,7 +182,7 @@ export async function User_setRoles(roles){
 // ---------- Users (im Vault) ----------
 export async function User_list(){
   const v = await _loadVault();
-  return v.users.map(u=>({ id:u.id, username:u.username, displayName:u.displayName, role:u.role, createdAt:u.createdAt, updatedAt:u.updatedAt }));
+  return v.users.map(u=>({ id:u.id, username:u.username, displayName:u.displayName, role:u.role, roles:u.roles||[], createdAt:u.createdAt, updatedAt:u.updatedAt }));
 }
 export async function User_getByName(username){
   const v = await _loadVault();
@@ -148,20 +192,22 @@ export async function User_getById(id){
   const v = await _loadVault();
   return v.users.find(u=>u.id===Number(id))||null;
 }
-export async function User_create({username, password, displayName, role}){
+export async function User_create({username, password, displayName, role, roles}){
   const v = await _loadVault();
   if(v.users.some(u=>u.username.toLowerCase()===String(username).toLowerCase())) throw new Error("USERNAME_EXISTS");
   const pass = await User_hashPassword(password);
-  const user = { id:v.nextId++, username, displayName:displayName||username, role, pass, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() };
+  const normalizedRoles = _normalizeRoleList(Array.isArray(roles) ? roles : undefined, role);
+  if (!normalizedRoles.length) throw new Error("ROLE_REQUIRED");
+  const user = { id:v.nextId++, username, displayName:displayName||username, role: normalizedRoles[0], roles: normalizedRoles, pass, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() };
   v.users.push(user);
   await _saveVault(v);
 
   // Auth-Index spiegeln
   const idx = await _loadAuthIndex();
-  idx.users.push({ id:user.id, username:user.username, displayName:user.displayName, role:user.role, pass:user.pass });
+  idx.users.push({ id:user.id, username:user.username, displayName:user.displayName, role:user.role, roles:user.roles||[], pass:user.pass });
   await _saveAuthIndex(idx);
 
-  return { id:user.id, username:user.username, displayName:user.displayName, role:user.role };
+  return { id:user.id, username:user.username, displayName:user.displayName, role:user.role, roles:user.roles||[] };
 }
 export async function User_update(id, patch){
   const v = await _loadVault();
@@ -169,7 +215,17 @@ export async function User_update(id, patch){
   if(!u) throw new Error("NOT_FOUND");
   if(patch.username) u.username = patch.username;
   if(patch.displayName) u.displayName = patch.displayName;
-  if(patch.role) u.role = patch.role;
+  if(patch.roles!==undefined){
+    const normalizedRoles = _normalizeRoleList(patch.roles, patch.role);
+    if(!normalizedRoles.length) throw new Error("ROLE_REQUIRED");
+    u.roles = normalizedRoles;
+    u.role = normalizedRoles[0];
+  }else if(patch.role){
+    const normalizedRoles = _normalizeRoleList(patch.role);
+    if(!normalizedRoles.length) throw new Error("ROLE_REQUIRED");
+    u.roles = normalizedRoles;
+    u.role = normalizedRoles[0];
+  }
   if(patch.password){ u.pass = await User_hashPassword(patch.password); }
   u.updatedAt = new Date().toISOString();
   await _saveVault(v);
@@ -180,13 +236,14 @@ export async function User_update(id, patch){
   if(iu){
     if(patch.username)    iu.username    = u.username;
     if(patch.displayName) iu.displayName = u.displayName;
-    if(patch.role)        iu.role        = u.role;
     if(patch.password)    iu.pass        = u.pass;
+    iu.role = u.role;
+    iu.roles = u.roles||[];
   }else{
-    idx.users.push({ id:u.id, username:u.username, displayName:u.displayName, role:u.role, pass:u.pass });
+    idx.users.push({ id:u.id, username:u.username, displayName:u.displayName, role:u.role, roles:u.roles||[], pass:u.pass });
   }
   await _saveAuthIndex(idx);
-  return { id:u.id, username:u.username, displayName:u.displayName, role:u.role };
+  return { id:u.id, username:u.username, displayName:u.displayName, role:u.role, roles:u.roles||[] };
 }
 export async function User_remove(id){
   const v = await _loadVault();
@@ -214,13 +271,13 @@ export async function User_authenticateLoose(username, password){
   const iu = idx.users.find(u=>u.username.toLowerCase()===String(username).toLowerCase());
   if(!iu) return null;
   const ok = await User_verifyPassword(password, iu.pass);
-  return ok ? { id:iu.id, username:iu.username, displayName:iu.displayName, role:iu.role } : null;
+  return ok ? { id:iu.id, username:iu.username, displayName:iu.displayName, role:iu.role, roles:iu.roles||[] } : null;
 }
 export async function User_getByIdLoose(id){
   if(_master) return await User_getById(id);
   const idx = await _loadAuthIndex();
   const iu = idx.users.find(u=>u.id===Number(id));
-  return iu ? { id:iu.id, username:iu.username, displayName:iu.displayName, role:iu.role } : null;
+  return iu ? { id:iu.id, username:iu.username, displayName:iu.displayName, role:iu.role, roles:iu.roles||[] } : null;
 }
 
 // ---------- Globale Fetcher-Creds (separate Datei, Master-pflichtig) ----------

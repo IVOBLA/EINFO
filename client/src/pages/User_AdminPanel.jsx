@@ -3,6 +3,27 @@ import { useUserAuth } from "../components/User_AuthProvider.jsx";
 import CornerHelpLogout from "../components/CornerHelpLogout.jsx";
 import { FORBIDDEN_MESSAGE, notifyForbidden } from "../../forbidden.js";
 
+function collectUserRoleIds(u) {
+  const out = [];
+  const add = (value) => {
+    const raw = typeof value === "string"
+      ? value
+      : (value && typeof value.id === "string"
+        ? value.id
+        : (value && typeof value.role === "string"
+          ? value.role
+          : (value && typeof value.label === "string" ? value.label : "")));
+    const trimmed = String(raw || "").trim();
+    if (trimmed && !out.includes(trimmed)) out.push(trimmed);
+  };
+  if (!u) return out;
+  add(u.role);
+  if (Array.isArray(u.roles)) u.roles.forEach(add);
+  return out;
+}
+
+const userHasAdminRole = (u) => collectUserRoleIds(u).some((id) => id.toUpperCase() === "ADMIN");
+
 /** ---------------------------
  *  Kleine Fetch-Helpers
  *  ---------------------------
@@ -201,13 +222,13 @@ export default function User_AdminPanel() {
   useEffect(() => { void refresh(); }, []);
 
   useEffect(() => {
-    if (user && user.role !== "Admin") {
+    if (user && !userHasAdminRole(user)) {
       notifyForbidden();
     }
   }, [user]);
 
   if (!user) return null;
-  if (user.role !== "Admin") {
+  if (!userHasAdminRole(user)) {
     return (
       <div className="p-4 text-red-700">
         <CornerHelpLogout />
@@ -285,13 +306,25 @@ export default function User_AdminPanel() {
     e.preventDefault(); setErr(""); setMsg("");
     const f = e.target;
     try {
+      const selectedRoles = Array.from(f.roles?.selectedOptions || [])
+        .map((opt) => String(opt.value || "").trim())
+        .filter(Boolean);
+      if (!selectedRoles.length) {
+        setErr("Bitte mindestens eine Rolle wählen.");
+        return;
+      }
       await post("/users", {
         username: f.u.value,
         password: f.p.value,
         displayName: f.d.value,
-        role: f.r.value,
+        roles: selectedRoles,
       });
       f.reset();
+      if (f.roles) {
+        Array.from(f.roles.options || []).forEach((opt, idx) => {
+          opt.selected = idx === 0;
+        });
+      }
       setMsg("Benutzer angelegt.");
       await refresh();
     } catch (ex) { setErr(ex.message || "Fehler beim Anlegen"); }
@@ -308,19 +341,24 @@ export default function User_AdminPanel() {
 
   // ---- Benutzer bearbeiten (ergänzt, beibehalten) ----
   const [editId, setEditId] = useState(null);
-  const [editForm, setEditForm] = useState({ displayName: "", role: "", password: "" });
+  const [editForm, setEditForm] = useState({ displayName: "", roles: [], password: "" });
 
   function startEdit(u) {
     setEditId(u.id);
     setEditForm({
       displayName: u.displayName ?? u.username ?? "",
-      role: u.role ?? (roleIds[0] || ""),
+      roles: (() => {
+        const current = collectUserRoleIds(u);
+        if (current.length) return current;
+        if (roleIds.length) return [roleIds[0]];
+        return [];
+      })(),
       password: "",
     });
   }
   function cancelEdit() {
     setEditId(null);
-    setEditForm({ displayName: "", role: "", password: "" });
+    setEditForm({ displayName: "", roles: [], password: "" });
   }
   function changeEdit(key, val) {
     setEditForm((p) => ({ ...p, [key]: val }));
@@ -329,7 +367,13 @@ export default function User_AdminPanel() {
     if (!id) return;
     setErr(""); setMsg(""); setLoading(true);
     try {
-      const payload = { displayName: editForm.displayName, role: editForm.role };
+      const roleSelection = Array.isArray(editForm.roles) ? editForm.roles.filter(Boolean) : [];
+      if (!roleSelection.length) {
+        setErr("Benutzer benötigt mindestens eine Rolle.");
+        setLoading(false);
+        return;
+      }
+      const payload = { displayName: editForm.displayName, roles: roleSelection };
       const pw = (editForm.password || "").trim();
       if (pw) payload.password = pw;
       await patch(`/users/${id}`, payload); // PATCH /api/user/users/:id
@@ -583,15 +627,26 @@ export default function User_AdminPanel() {
         <summary className="cursor-pointer font-medium">Benutzer</summary>
 
         {/* Benutzer anlegen (robustes Rollen-Select) */}
-        <form onSubmit={onCreateUser} className="mt-3 grid grid-cols-5 gap-2 items-center max-w-5xl">
+        <form onSubmit={onCreateUser} className="mt-3 grid grid-cols-5 gap-2 items-start max-w-5xl">
           <input name="u" placeholder="username" className="border px-2 py-1 rounded" disabled={locked} />
           <input name="p" placeholder="passwort" className="border px-2 py-1 rounded" disabled={locked} />
           <input name="d" placeholder="Anzeigename" className="border px-2 py-1 rounded" disabled={locked} />
-          <select name="r" className="border px-2 py-1 rounded" disabled={locked}>
+          <select
+            key={roleIds.join("|")}
+            name="roles"
+            multiple
+            size={Math.min(6, Math.max(roleIds.length || 0, 3))}
+            className="border px-2 py-1 rounded min-h-[6rem]"
+            defaultValue={roleIds.length ? [roleIds[0]] : []}
+            disabled={locked}
+          >
             {roleIds.map((id) => (<option key={id} value={id}>{id}</option>))}
           </select>
           <button className="border rounded px-3 py-1" disabled={locked}>Anlegen</button>
         </form>
+        <div className="text-xs text-gray-500 mt-1">
+          Mehrfachauswahl über Strg (Windows) bzw. ⌘ (macOS) möglich.
+        </div>
 
         {/* Liste inkl. Edit */}
         <div className="mt-4">
@@ -603,7 +658,7 @@ export default function User_AdminPanel() {
                 <tr className="text-left text-gray-500">
                   <th className="px-2">ID</th>
                   <th className="px-2">Benutzername</th>
-                  <th className="px-2">Rolle</th>
+                  <th className="px-2">Rollen</th>
                   <th className="px-2">Anzeigename</th>
                   <th className="px-2 w-40">Aktionen</th>
                 </tr>
@@ -611,6 +666,8 @@ export default function User_AdminPanel() {
               <tbody>
                 {users.map((u) => {
                   const isEditing = editId === u.id;
+                  const userRoleList = collectUserRoleIds(u);
+                  const isAdminUser = userHasAdminRole(u);
                   return (
                     <tr key={u.id} className="bg-white border rounded">
                       <td className="px-2 py-1">{u.id}</td>
@@ -618,14 +675,16 @@ export default function User_AdminPanel() {
                       <td className="px-2 py-1">
                         {isEditing ? (
                           <select
-                            value={editForm.role}
-                            onChange={(e)=>changeEdit("role", e.target.value)}
-                            className="border rounded px-2 py-1"
+                            multiple
+                            size={Math.min(4, Math.max(roleIds.length || 0, 2))}
+                            value={editForm.roles}
+                            onChange={(e)=>changeEdit("roles", Array.from(e.target.selectedOptions || []).map((opt) => String(opt.value || "").trim()).filter(Boolean))}
+                            className="border rounded px-2 py-1 w-full min-h-[4rem]"
                             disabled={locked || loading}
                           >
                             {roleIds.map((id) => (<option key={id} value={id}>{id}</option>))}
                           </select>
-                        ) : (u.role || "—")}
+                        ) : (userRoleList.length ? userRoleList.join(", ") : "—")}
                       </td>
                       <td className="px-2 py-1">
                         {isEditing ? (
@@ -673,8 +732,8 @@ export default function User_AdminPanel() {
                             <button
                               className="px-2 py-1 rounded border border-rose-300 text-rose-700 hover:bg-rose-50"
                               onClick={() => onDeleteUser(u.id, u.username)}
-                              disabled={locked || u.role === "Admin"}
-                              title={u.role === "Admin" ? "Admin kann nicht gelöscht werden" : "Benutzer löschen"}
+                              disabled={locked || isAdminUser}
+                              title={isAdminUser ? "Admin kann nicht gelöscht werden" : "Benutzer löschen"}
                             >Löschen</button>
                           </>
                         )}
