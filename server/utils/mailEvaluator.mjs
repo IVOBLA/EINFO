@@ -80,6 +80,8 @@ function toBool(value, fallback = false) {
 const DEFAULT_INBOX_DIR = resolvePath(process.env.MAIL_INBOX_DIR, path.join(DATA_DIR, "mail", "inbox"));
 const DEFAULT_ALLOWED_FROM = normalizeAllowedFrom(process.env.MAIL_ALLOWED_FROM);
 const DEFAULT_DELETE_AFTER_READ = toBool(process.env.MAIL_DELETE_AFTER_READ, true);
+const DEFAULT_PROCESSED_STATE_FILENAME = ".processed.json";
+const DEFAULT_PROCESSED_STATE_LIMIT = 2000;
 const DEFAULT_IMAP_CONFIG = {
   host: process.env.MAIL_IMAP_HOST || process.env.MAIL_HOST || "",
   port: Number(process.env.MAIL_IMAP_PORT) || 993,
@@ -97,6 +99,64 @@ const DEFAULT_POP3_CONFIG = {
   pass: process.env.MAIL_POP3_PASSWORD || process.env.MAIL_PASSWORD || "",
   rejectUnauthorized: toBool(process.env.MAIL_POP3_TLS_REJECT_UNAUTHORIZED, true),
 };
+
+async function createProcessedMailTracker({
+  stateFile = path.join(DEFAULT_INBOX_DIR, DEFAULT_PROCESSED_STATE_FILENAME),
+  maxEntries = DEFAULT_PROCESSED_STATE_LIMIT,
+} = {}) {
+  const resolvedFile = stateFile;
+  let rawEntries = [];
+  try {
+    const raw = await fsp.readFile(resolvedFile, "utf8");
+    const parsed = JSON.parse(raw);
+    rawEntries = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.entries) ? parsed.entries : [];
+  } catch (err) {
+    if (err?.code === "ENOENT") {
+      rawEntries = [];
+    } else if (err instanceof SyntaxError) {
+      console.warn(
+        `[mail-eval] Verarbeitete-Mails-Datei beschädigt (${resolvedFile}): ${err?.message || err}`
+      );
+      rawEntries = [];
+    } else {
+      throw err;
+    }
+  }
+
+  const entries = new Map();
+  const now = Date.now();
+  for (const item of rawEntries) {
+    if (!item || typeof item.id !== "string") continue;
+    const ts = Number(item.processedAt);
+    entries.set(item.id, Number.isFinite(ts) ? ts : now);
+  }
+
+  let dirty = false;
+  const limit = Math.max(1, Number(maxEntries) || DEFAULT_PROCESSED_STATE_LIMIT);
+
+  return {
+    has(id) {
+      if (!id) return false;
+      return entries.has(String(id));
+    },
+    mark(id) {
+      if (!id) return;
+      entries.set(String(id), Date.now());
+      dirty = true;
+    },
+    async save() {
+      if (!dirty) return;
+      const sorted = [...entries.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, limit)
+        .map(([id, processedAt]) => ({ id, processedAt }));
+      await fsp.mkdir(path.dirname(resolvedFile), { recursive: true });
+      await fsp.writeFile(resolvedFile, JSON.stringify(sorted, null, 2), "utf8");
+      dirty = false;
+    },
+    file: resolvedFile,
+  };
+}
 
 export function getMailInboxConfig() {
   return {
@@ -354,7 +414,7 @@ export async function listInboxFiles(mailDir = DEFAULT_INBOX_DIR) {
     throw err;
   });
   return entries
-    .filter((e) => e.isFile())
+    .filter((e) => e.isFile() && e.name !== DEFAULT_PROCESSED_STATE_FILENAME)
     .map((e) => path.join(mailDir, e.name));
 }
 
@@ -623,11 +683,19 @@ export async function readAndEvaluateInbox({
   usePop3 = null,
   imapConfig = DEFAULT_IMAP_CONFIG,
   pop3Config = DEFAULT_POP3_CONFIG,
+  processedStateFile = null,
+  processedStateLimit = DEFAULT_PROCESSED_STATE_LIMIT,
 } = {}) {
   const allowedFromNormalized = normalizeAllowedFrom(allowedFrom);
   const imapEnabled = useImap ?? hasImapConfig(imapConfig);
   const pop3Enabled = usePop3 ?? (!imapEnabled && hasPop3Config(pop3Config));
   const mode = imapEnabled ? "imap" : pop3Enabled ? "pop3" : "filesystem";
+  const stateFile = processedStateFile || path.join(mailDir ?? DEFAULT_INBOX_DIR, DEFAULT_PROCESSED_STATE_FILENAME);
+  const processedTracker = await createProcessedMailTracker({
+    stateFile,
+    maxEntries: processedStateLimit,
+  });
+
   try {
     await logMailEvent("Starte Inbox-Auswertung", {
       mailDir,
@@ -717,6 +785,18 @@ export async function readAndEvaluateInbox({
     const failedMails = [];
 
     for (const entry of entries) {
+      const identifier = entry.id || entry.file || null;
+
+      if (identifier && processedTracker.has(identifier)) {
+        skippedMails.push({ id: identifier, file: entry.file, reason: "already_processed" });
+        await logMailEvent("Mail übersprungen", {
+          file: entry.file,
+          id: identifier,
+          reason: "Bereits verarbeitet",
+        });
+        continue;
+      }
+
       let mailEntry;
       try {
         const mail = entry.raw ? parseRawMail(entry.raw, { id: entry.id }) : await readMailFile(entry.file);
@@ -727,6 +807,7 @@ export async function readAndEvaluateInbox({
 
         if (!senderAllowed) {
           const filteredEntry = { ...mail, evaluation: { score: 0, matches: [] }, filtered: true };
+          const trackerId = identifier || filteredEntry.id || filteredEntry.file || null;
           if (deleteAfterRead && entry.file) {
             try {
               await fsp.unlink(entry.file);
@@ -754,25 +835,27 @@ export async function readAndEvaluateInbox({
             deleteError: filteredEntry.deleteError,
           });
 
+          if (trackerId) processedTracker.mark(trackerId);
+
           continue;
         }
 
-    let evaluation;
+        let evaluation;
 
-    if (!activeRules.length) {
-      evaluation = {
-        score: 1,
-        matches: [
-          {
-            rule: "default-allowed-from",
-            field: "from",
-            pattern: "*",
-          },
-        ],
-      };
-    } else {
-      evaluation = evaluateMail(mail, activeRules);
-    }
+        if (!activeRules.length) {
+          evaluation = {
+            score: 1,
+            matches: [
+              {
+                rule: "default-allowed-from",
+                field: "from",
+                pattern: "*",
+              },
+            ],
+          };
+        } else {
+          evaluation = evaluateMail(mail, activeRules);
+        }
         mailEntry = { ...mail, evaluation };
       } catch (err) {
         mailEntry = {
@@ -805,6 +888,11 @@ export async function readAndEvaluateInbox({
       });
 
       mails.push(mailEntry);
+
+      if (!mailEntry.error) {
+        const trackerId = identifier || mailEntry.id || mailEntry.file || null;
+        if (trackerId) processedTracker.mark(trackerId);
+      }
     }
 
     await logMailEvent("Inbox-Auswertung abgeschlossen", {
@@ -829,5 +917,14 @@ export async function readAndEvaluateInbox({
       error: err?.message || String(err),
     });
     throw err;
+  } finally {
+    try {
+      await processedTracker.save();
+    } catch (saveErr) {
+      await logMailEvent("Verarbeitete Mails konnten nicht gespeichert werden", {
+        file: processedTracker.file,
+        error: saveErr?.message || String(saveErr),
+      });
+    }
   }
 }

@@ -199,3 +199,43 @@ test("readAndEvaluateInbox blockiert nur scheinbar erlaubte Absender", async () 
 
   assert.equal(result.mails.length, 0);
 });
+
+test("readAndEvaluateInbox markiert verarbeitete Mails und überspringt sie", async () => {
+  await ensureTempMailDir();
+
+  const firstMail = path.join(TEMP_DIR, "20240101-0007.eml");
+  const secondMail = path.join(TEMP_DIR, "20240101-0008.eml");
+
+  await fsp.writeFile(firstMail, [
+    "Subject: Erster Alarm",
+    "From: Leitstelle <leitstelle@example.com>",
+    "",
+    "Alarm 1",
+  ].join("\n"), "utf8");
+
+  await fsp.writeFile(secondMail, [
+    "Subject: Zweiter Alarm",
+    "From: Leitstelle <leitstelle@example.com>",
+    "",
+    "Alarm 2",
+  ].join("\n"), "utf8");
+
+  const baseOptions = {
+    mailDir: TEMP_DIR,
+    deleteAfterRead: false,
+    rules: [{ name: "Alarm", patterns: [/alarm/i], fields: ["subject", "body"], weight: 1 }],
+  };
+
+  const firstRun = await readAndEvaluateInbox(baseOptions);
+  assert.equal(firstRun.mails.length, 2);
+
+  const secondRun = await readAndEvaluateInbox(baseOptions);
+  assert.equal(secondRun.mails.length, 0);
+
+  const trackerFile = path.join(TEMP_DIR, ".processed.json");
+  const trackerRaw = await fsp.readFile(trackerFile, "utf8");
+  const tracker = JSON.parse(trackerRaw);
+  assert.equal(tracker.length, 2);
+  const trackerIds = tracker.map((entry) => entry.id).sort();
+  assert.deepEqual(trackerIds, [path.basename(firstMail), path.basename(secondMail)].sort());
+});
