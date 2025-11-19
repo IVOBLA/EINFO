@@ -20,7 +20,12 @@ import createServerPrintRoutes from "./routes/serverPrintRoutes.js";
 import { getProtocolCreatedAt, parseAutoPrintTimestamp } from "./utils/autoPrintHelpers.js";
 import { getLogDirCandidates } from "./utils/logDirectories.mjs";
 import { DATA_ROOT } from "./utils/pdfPaths.mjs";
-import { generateWeatherFileIfWarning, collectWarningDates, isWeatherWarningToday } from "./utils/weatherWarning.mjs";
+import {
+  generateWeatherFileIfWarning,
+  collectWarningDates,
+  collectWarningDatesFromMails,
+  isWeatherWarningToday,
+} from "./utils/weatherWarning.mjs";
 import { generateFeldkirchenSvg } from "./utils/generateFeldkirchenSvg.mjs";
 
 import { appendHistoryEntriesToCsv } from "./utils/protocolCsv.mjs";
