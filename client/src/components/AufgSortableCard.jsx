@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import CollapsibleNote from "./CollapsibleNote";
 
 export default function AufgSortableCard({
   item,
@@ -171,7 +172,11 @@ const [dueState, setDueState] = useState("none"); // none | soon | overdue
 
         {/* Notiz */}
         {it.desc ? (
-          <p className="mt-2 text-sm whitespace-pre-wrap text-gray-800">{it.desc}</p>
+          <CollapsibleNote
+            text={it.desc}
+            className="mt-2"
+            textClassName="text-sm text-gray-800"
+          />
         ) : null}
 
         {/* Ursprung / Bezug */}
