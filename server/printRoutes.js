@@ -178,8 +178,13 @@ function sumPrintHistory(history) {
 
 // History/Autosave nach dem Druck
 async function recordPrint(nr, recipients, pages, fileName, by, latestSnapshotFromClient) {
+  const nrNumber = Number(nr);
+  const isBlankTemplate = latestSnapshotFromClient?.infoTyp === "__blank__";
+  if (!Number.isFinite(nrNumber) || nrNumber <= 0 || isBlankTemplate) {
+    return { skipped: true };
+  }
   const all = await readAll();
-  const idx = all.findIndex(x => Number(x.nr) === Number(nr));
+  const idx = all.findIndex(x => Number(x.nr) === nrNumber);
   let csvItem = null;
   let csvEntries = [];
   const printCount = normalizePrintCount(pages, Array.isArray(recipients) ? recipients.length : 0);
@@ -202,7 +207,7 @@ async function recordPrint(nr, recipients, pages, fileName, by, latestSnapshotFr
     const history = [...baseHistory, entry];
     const it = {
       ...base,
-      nr: Number(nr),
+      nr: nrNumber,
       id: crypto.randomUUID?.() || Math.random().toString(36).slice(2),
       history,
     };
@@ -289,33 +294,37 @@ function sheetHtml(item, recipient, nr) {
 <title>Protokoll ${nr}</title>
 <style>
   @page { size: A4; margin: 6mm; }
-  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin:0; padding:0; }
-  .sheet { border: 2px solid #111; border-radius: 10px; padding: 10px; }
+  body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin:0; padding:0; font-size:12px; }
+  .sheet { border: 2px solid #111; border-radius: 10px; padding: 8px; }
   .header { display:grid; grid-template-columns: 9fr 3fr; }
-  .title { font-weight: 800; font-size: 22px; letter-spacing:.5px; padding:12px; }
+  .title { font-weight: 800; font-size: 20px; letter-spacing:.4px; padding:10px; }
   .nrbox { border-left: 2px solid #111; display:flex; flex-direction:column; }
   .nrbox .section { border-bottom: 2px solid #111; }
   .nrbox .section:last-child { border-bottom:none; }
-  .nrbox .lbl { font-size: 12px; color:#555; border-bottom:2px solid #111; padding:6px 10px; }
-  .nrbox .val { font-size: 26px; text-align:center; padding:14px 10px; font-weight:800; min-height: 30px; }
-  .nrbox .val-zu { font-size: 22px; }
+  .nrbox .lbl { font-size: 11px; color:#555; border-bottom:2px solid #111; padding:5px 8px; }
+  .nrbox .val { font-size: 22px; text-align:center; padding:10px 8px; font-weight:800; min-height: 26px; }
+  .nrbox .val-zu { font-size: 20px; }
 
   /* Grids */
-  .row3 { display: grid; grid-template-columns: 6fr 4fr 3fr; column-gap: 8px; } /* 3-spaltig */
-  .row  { display: grid; grid-template-columns: 1fr 1fr; column-gap: 8px; }     /* 2-spaltig */
+  .row3 { display: grid; grid-template-columns: 6fr 4fr 3fr; column-gap: 6px; }
+  .row  { display: grid; grid-template-columns: 1fr 1fr; column-gap: 6px; }
 
-  .cell  { border-top: 2px solid #111; padding: 6px; }
-  .label { font-size: 12px; color: #555; margin-bottom: 4px; }
-  .input { border:1px solid #999; border-radius:6px; padding:6px 8px; min-height: 28px; }
+  .cell  { border-top: 2px solid #111; padding: 5px; }
+  .label { font-size: 11px; color: #555; margin-bottom: 3px; }
+  .input { border:1px solid #999; border-radius:5px; padding:5px 7px; min-height: 26px; }
 
-  .mh160 { min-height: 240px; }
-  .mh100 { min-height: 42px; }
+  .mh160 { min-height: 200px; }
+  .mh100 { min-height: 36px; }
 
   .tgrid { display:grid; grid-template-columns: 6fr 5fr 1fr; }
   .tgrid .cell { padding:4px 6px; font-size:12px; line-height:1.3; }
   .thead { background:#f1f5f9; font-weight:600; }
   .thead .cell { font-size:11px; text-transform:uppercase; letter-spacing:.4px; }
   .chk   { text-align:center; display:flex; align-items:center; justify-content:center; }
+  .typ-list { display:flex; flex-direction:column; gap:4px; font-size:11px; line-height:1.2; }
+  .typ-item { display:flex; align-items:center; gap:6px; }
+  .typ-box { font-size:13px; }
+
   .pb    { page-break-after: always; }
 
   .vstack { display:flex; flex-direction:column; gap:6px; }
@@ -326,11 +335,11 @@ function sheetHtml(item, recipient, nr) {
 
   .pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 
-  .ea-row   { display:grid; grid-template-columns: 1fr 300px; column-gap: 8px; align-items:center; }
+  .ea-row   { display:grid; grid-template-columns: 1fr 260px; column-gap: 6px; align-items:center; }
   .ea-left  { display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size: 11px; }
   .ea-left span { display:inline-flex; align-items:center; gap:4px; }
-  .ea-right { display:flex; align-items:center; gap:6px; font-size:11px; }
-  .ea-input { min-width: 200px; width:100%; }
+  .ea-right { display:flex; align-items:center; gap:4px; font-size:11px; }
+  .ea-input { min-width: 180px; width:100%; }
   .ea-confirm { margin-top:8px; font-size:12px; color:#4b5563; font-weight:600; }
   .ea-confirm-text { display:block; }
   .ea-confirm--active { color:#dc2626; }
@@ -362,10 +371,10 @@ function sheetHtml(item, recipient, nr) {
     </div>
     <div>
       <div class="label">Typ</div>
-      <div class="vstack">
-        <div>${yes((item?.infoTyp || "Information") === "Information")} Information</div>
-        <div>${yes((item?.infoTyp || "Information") === "Auftrag")} Auftrag</div>
-		<div>${yes((item?.infoTyp || "Information") === "Lagemeldung")} Lagemeldung</div>
+      <div class="typ-list">
+        <span class="typ-item"><span class="typ-box">${yes((item?.infoTyp || "Information") === "Information")}</span> Information</span>
+        <span class="typ-item"><span class="typ-box">${yes((item?.infoTyp || "Information") === "Auftrag")}</span> Auftrag</span>
+        <span class="typ-item"><span class="typ-box">${yes((item?.infoTyp || "Information") === "Lagemeldung")}</span> Lagemeldung</span>
       </div>
     </div>
   </div>
@@ -408,11 +417,6 @@ function sheetHtml(item, recipient, nr) {
   <div class="cell">
     <div class="label">Rückmeldung 1</div>
     <div class="input mh100 pre">${esc(fmt(item?.rueckmeldung1))}</div>
-  </div>
-
-  <div class="cell">
-    <div class="label">Rückmeldung 2</div>
-    <div class="input mh100 pre">${esc(fmt(item?.rueckmeldung2))}</div>
   </div>
 
   <div class="cell">

@@ -4,7 +4,7 @@ const CSV_BOM = "\uFEFF";
 
 export const CSV_HEADER = [
   "ZEITPUNKT","AKTION","PROTOKOLL-NR","ZU","DRUCK","DATUM","ZEIT","BENUTZER","EING","AUSG","KANAL",
-  "AN/VON","INFORMATION","RUECKMELDUNG1","RUECKMELDUNG2","TYP",
+  "AN/VON","INFORMATION","RUECKMELDUNG1","TYP",
   "ERGEHT_AN","ERGAENZUNG",
   "M1","V1","X1","M2","V2","X2","M3","V3","X3","M4","V4","X4","M5","V5","X5","BESTÄTIGT_DURCH",
   "ID"
@@ -61,7 +61,6 @@ export function toCsvRow(item, meta = {}) {
     item.anvon ?? "",
     item.information ?? "",
     item.rueckmeldung1 ?? "",
-    item.rueckmeldung2 ?? "",
     item.infoTyp ?? "",
 
     ergehtAn,
