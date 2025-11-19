@@ -74,8 +74,8 @@ export default function AufgAddModal({
   if (!portalTarget) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/40">
-      <div className="w-[840px] max-w-[90vw] rounded-2xl bg-white p-4 shadow-2xl">
+    <div className="fixed inset-0 z-[1200] flex min-h-screen items-center justify-center bg-black/40 p-3 overflow-y-auto">
+      <div className="w-[840px] max-w-[90vw] max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-4 shadow-2xl">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold">Aufgabe anlegen</h2>
           <button className="text-gray-500 hover:text-gray-700" onClick={onClose} title="Schließen">✕</button>
@@ -143,7 +143,11 @@ export default function AufgAddModal({
 
           <label className="block">
             <span className="text-xs text-gray-600">Notizen</span>
-            <textarea className="w-full border rounded px-2 py-2 min-h-[120px]" value={desc} onChange={e => setDesc(e.target.value)} />
+            <textarea
+              className="w-full border rounded px-2 py-2 min-h-[120px] max-h-[320px] overflow-y-auto resize-y"
+              value={desc}
+              onChange={e => setDesc(e.target.value)}
+            />
           </label>
 
           <div className="flex items-center justify-end gap-2 pt-2">

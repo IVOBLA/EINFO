@@ -345,11 +345,11 @@ export default function AufgInfoModal({
 
   return (
     <div
-      className="fixed inset-0 z-[1200] flex items-center justify-center bg-black/40"
+      className="fixed inset-0 z-[1200] flex min-h-screen items-start justify-center bg-black/40 p-3 overflow-y-auto"
       onClick={() => onClose?.()}
     >
       <div
-        className="w-[840px] max-w-[90vw] rounded-2xl bg-white p-4 shadow-2xl"
+        className="w-[840px] max-w-[90vw] max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-4 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-3">
@@ -622,7 +622,7 @@ export default function AufgInfoModal({
             <label className="block">
               <span className="text-xs text-gray-600">Notizen</span>
               <textarea
-                className="w-full border rounded px-2 py-2 min-h-[160px]"
+                className="w-full border rounded px-2 py-2 min-h-[160px] max-h-[320px] overflow-y-auto resize-y"
                 value={form.desc}
                 onChange={(e) => setForm((prev) => ({ ...prev, desc: e.target.value }))}
               />
