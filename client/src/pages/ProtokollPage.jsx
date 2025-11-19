@@ -1,5 +1,5 @@
 // client/src/pages/ProtokollPage.jsx
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { initRolePolicy, canEditApp, hasRole } from "../auth/roleUtils";
 import { useUserAuth } from "../components/User_AuthProvider.jsx";
 import useOnlineRoles from "../hooks/useOnlineRoles.js";
@@ -45,9 +45,6 @@ const TASK_PREFILL_SOURCE = "task-card";
 const PROTOCOL_TASK_OVERRIDE_HEADER = "X-Protocol-Task-Override";
 
 const TASK_PREFILL_QUERY_PARAM = "prefillToken";
-const PRINT_MARGIN_MM = 12 * 2; // entspricht @media-print-Margin der Protokollmaske
-const A4_CONTENT_HEIGHT_MM = 297 - PRINT_MARGIN_MM;
-const A4_CONTENT_HEIGHT_PX = Math.round((A4_CONTENT_HEIGHT_MM / 25.4) * 96);
 
 function readTaskPrefillToken() {
   if (typeof window === "undefined") return null;
@@ -308,7 +305,6 @@ export default function ProtokollPage({
   const [saving, setSaving] = useState(false);
   const [id, setId] = useState(null);
   const [errors, setErrors] = useState({});
-  const [infoMaxHeight, setInfoMaxHeight] = useState(null);
   const anvonInputRef = useRef(null);
   const anvonDirAnRef = useRef(null);
   const infoTypInfoRef = useRef(null); // ← Erstfokus „Information“
@@ -319,11 +315,6 @@ export default function ProtokollPage({
   const ergehtAnTextRef = useRef(null);
   const keylockRef = useRef(false);
   const formRef = useRef(null);
-  const sheetRef = useRef(null);
-  const assignFormRef = useCallback((node) => {
-    formRef.current = node;
-    sheetRef.current = node;
-  }, []);
 
   // ---- Toast ----------------------------------------------------------------
   const [toast, setToast] = useState(null);
@@ -333,52 +324,6 @@ export default function ProtokollPage({
     if (toastTimer.current) clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(null), ms);
   };
-
-  const recalcInfoFieldLimit = useCallback(() => {
-    if (typeof window === "undefined") return;
-    const sheetNode = sheetRef.current;
-    const infoNode = informationRef.current;
-    if (!sheetNode || !infoNode) return;
-
-    const otherContentHeight = sheetNode.scrollHeight - infoNode.offsetHeight;
-    const availableHeight = A4_CONTENT_HEIGHT_PX - otherContentHeight;
-    const computed = window.getComputedStyle(infoNode);
-    const minHeightPx = parseFloat(computed.minHeight) || 0;
-    const candidate = Number.isFinite(availableHeight)
-      ? Math.max(minHeightPx, availableHeight)
-      : minHeightPx;
-
-    setInfoMaxHeight((prev) => {
-      if (prev !== null && Math.abs(prev - candidate) < 0.5) return prev;
-      if (!Number.isFinite(candidate)) return prev;
-      return candidate;
-    });
-  }, []);
-
-  useEffect(() => {
-    recalcInfoFieldLimit();
-    if (typeof window === "undefined") return undefined;
-
-    const handleResize = () => recalcInfoFieldLimit();
-    window.addEventListener("resize", handleResize);
-
-    let resizeObserver;
-    const ResizeObs = typeof window.ResizeObserver !== "undefined" ? window.ResizeObserver : undefined;
-    if (ResizeObs) {
-      resizeObserver = new ResizeObs(() => recalcInfoFieldLimit());
-      if (sheetRef.current) resizeObserver.observe(sheetRef.current);
-      if (informationRef.current) resizeObserver.observe(informationRef.current);
-    }
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-      if (resizeObserver) resizeObserver.disconnect();
-    };
-  }, [recalcInfoFieldLimit]);
-
-  useEffect(() => {
-    recalcInfoFieldLimit();
-  }, [form.information, recalcInfoFieldLimit]);
 
   useEffect(() => {
     if (mode !== "create" || taskOverrideActive) {
@@ -1413,7 +1358,7 @@ const startPdfPrint = (fileUrl) => {
       `}</style>
 
       {/* Formular */}
-      <form ref={assignFormRef} onKeyDown={onFormKeyDown} onSubmit={onSubmit} className="bg-white border-2 rounded-b-xl overflow-hidden shadow">
+      <form ref={formRef} onKeyDown={onFormKeyDown} onSubmit={onSubmit} className="bg-white border-2 rounded-b-xl overflow-hidden shadow">
         <fieldset disabled={!canModify} className="contents">
           <div className="grid grid-cols-12">
           {/* Kopf */}
@@ -1588,10 +1533,9 @@ const startPdfPrint = (fileUrl) => {
             <textarea
               ref={informationRef}
               name="information"
-              className={`border rounded px-2 py-2 w-full min-h-[420px] md:min-h-[520px] text-[15px] leading-relaxed resize-y ${errors.information ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500" : ""}`}
-              style={typeof infoMaxHeight === "number" ? { maxHeight: `${infoMaxHeight}px` } : undefined}
+              className={`border rounded px-2 py-2 w-full min-h-[420px] md:min-h-[520px] text-[15px] leading-relaxed ${errors.information ? "border-red-500 focus:border-red-500 focus:ring-1 focus:ring-red-500" : ""}`}
               value={form.information}
-              onChange={(e) => { clearError("information"); set("information", e.target.value); recalcInfoFieldLimit(); }}
+              onChange={(e) => { clearError("information"); set("information", e.target.value); }}
               title="Sachverhalt / Meldetext"
             />
           </div>
