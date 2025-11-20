@@ -76,6 +76,18 @@ const createEmptyMailSchedule = () => ({
   enabled: true,
 });
 
+const createEmptyApiSchedule = () => ({
+  id: null,
+  label: "",
+  url: "",
+  method: "GET",
+  body: "",
+  mode: "interval",
+  intervalMinutes: "60",
+  timeOfDay: "08:00",
+  enabled: true,
+});
+
 export default function User_AdminPanel() {
   const { user } = useUserAuth();
 
@@ -98,6 +110,10 @@ export default function User_AdminPanel() {
   const [mailScheduleDraft, setMailScheduleDraft] = useState(createEmptyMailSchedule());
   const [savingMailSchedule, setSavingMailSchedule] = useState(false);
   const [loadingMailSchedules, setLoadingMailSchedules] = useState(false);
+  const [apiSchedules, setApiSchedules] = useState([]);
+  const [apiScheduleDraft, setApiScheduleDraft] = useState(createEmptyApiSchedule());
+  const [savingApiSchedule, setSavingApiSchedule] = useState(false);
+  const [loadingApiSchedules, setLoadingApiSchedules] = useState(false);
 
   // ---- capabilities ↔ apps Konvertierung ----
   const parseCapToken = (t) => {
@@ -207,6 +223,40 @@ export default function User_AdminPanel() {
     }
   }
 
+  const resetApiScheduleDraft = () => setApiScheduleDraft(createEmptyApiSchedule());
+
+  const startEditApiSchedule = (entry) => {
+    if (!entry) {
+      resetApiScheduleDraft();
+      return;
+    }
+    setApiScheduleDraft({
+      id: entry.id || null,
+      label: entry.label || "",
+      url: entry.url || "",
+      method: entry.method || "GET",
+      body: entry.body || "",
+      mode: entry.mode === "time" ? "time" : "interval",
+      intervalMinutes: String(entry.intervalMinutes ?? ""),
+      timeOfDay: entry.timeOfDay || "08:00",
+      enabled: entry.enabled !== false,
+    });
+  };
+
+  async function loadApiSchedules() {
+    setLoadingApiSchedules(true);
+    try {
+      const res = await fetch("/api/http/schedule", { credentials: "include", cache: "no-store" });
+      const js = await res.json().catch(() => ({}));
+      if (!res.ok || js?.error) throw new Error(js?.error || "Zeitpläne konnten nicht geladen werden.");
+      setApiSchedules(Array.isArray(js.schedules) ? js.schedules : []);
+    } catch (ex) {
+      setErr((prev) => prev || ex.message || "Fehler beim Laden der API-Zeitpläne");
+    } finally {
+      setLoadingApiSchedules(false);
+    }
+  }
+
   // ---- Laden wie gehabt ----
   async function refresh() {
     setLoading(true);
@@ -266,6 +316,7 @@ export default function User_AdminPanel() {
       } catch (_) {/* optional */}
       try {
         await loadMailSchedules();
+        await loadApiSchedules();
       } catch (_) {/* optional */}
     } catch (e) {
       if (e.status === 423) setLocked(true);
@@ -602,6 +653,78 @@ export default function User_AdminPanel() {
     }
   }
 
+  async function onSaveApiSchedule(e) {
+    e.preventDefault();
+    if (savingApiSchedule) return;
+    setErr("");
+    setMsg("");
+    try {
+      setSavingApiSchedule(true);
+      const payload = {
+        label: apiScheduleDraft.label,
+        url: apiScheduleDraft.url,
+        method: apiScheduleDraft.method,
+        body: apiScheduleDraft.body,
+        mode: apiScheduleDraft.mode,
+        intervalMinutes: Number(apiScheduleDraft.intervalMinutes),
+        timeOfDay: apiScheduleDraft.timeOfDay,
+        enabled: !!apiScheduleDraft.enabled,
+      };
+      const editing = !!apiScheduleDraft.id;
+      const res = await fetch(editing ? `/api/http/schedule/${encodeURIComponent(apiScheduleDraft.id)}` : "/api/http/schedule", {
+        method: editing ? "PUT" : "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const js = await res.json().catch(() => ({}));
+      if (!res.ok || js?.error) throw new Error(js?.error || "Speichern fehlgeschlagen");
+      setApiSchedules(Array.isArray(js.schedules) ? js.schedules : []);
+      resetApiScheduleDraft();
+      setMsg(editing ? "API-Zeitplan aktualisiert." : "API-Zeitplan angelegt.");
+    } catch (ex) {
+      setErr(ex.message || "Speichern fehlgeschlagen");
+    } finally {
+      setSavingApiSchedule(false);
+    }
+  }
+
+  async function onDeleteApiSchedule(id) {
+    if (!id) return;
+    setErr("");
+    setMsg("");
+    try {
+      const res = await fetch(`/api/http/schedule/${encodeURIComponent(id)}`, { method: "DELETE", credentials: "include" });
+      const js = await res.json().catch(() => ({}));
+      if (!res.ok || js?.error) throw new Error(js?.error || "Löschen fehlgeschlagen");
+      setApiSchedules(Array.isArray(js.schedules) ? js.schedules : []);
+      if (apiScheduleDraft.id === id) resetApiScheduleDraft();
+      setMsg("API-Zeitplan gelöscht.");
+    } catch (ex) {
+      setErr(ex.message || "Löschen fehlgeschlagen");
+    }
+  }
+
+  async function onResetApiScheduleLastRun(id) {
+    if (!id) return;
+    setErr("");
+    setMsg("");
+    try {
+      const res = await fetch(`/api/http/schedule/${encodeURIComponent(id)}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resetLastRun: true }),
+      });
+      const js = await res.json().catch(() => ({}));
+      if (!res.ok || js?.error) throw new Error(js?.error || "Aktualisierung fehlgeschlagen");
+      setApiSchedules(Array.isArray(js.schedules) ? js.schedules : []);
+      setMsg("Letzter Aufrufzeitpunkt zurückgesetzt.");
+    } catch (ex) {
+      setErr(ex.message || "Aktualisierung fehlgeschlagen");
+    }
+  }
+
   // ---- Render ----
   const autoPrintLastRunLabel = autoPrintConfig.lastRunAt
     ? new Date(autoPrintConfig.lastRunAt).toLocaleString("de-AT", { hour12: false })
@@ -612,6 +735,12 @@ export default function User_AdminPanel() {
     return new Date(ts).toLocaleString("de-AT", { hour12: false });
   };
   const editingMailSchedule = !!mailScheduleDraft.id;
+  const apiScheduleLastRunLabel = (value) => {
+    const ts = Number(value);
+    if (!Number.isFinite(ts) || ts <= 0) return "—";
+    return new Date(ts).toLocaleString("de-AT", { hour12: false });
+  };
+  const editingApiSchedule = !!apiScheduleDraft.id;
 
   return (
     <div className="p-4 space-y-6">
@@ -1162,6 +1291,201 @@ export default function User_AdminPanel() {
                   className="border rounded px-3 py-1"
                   onClick={resetMailScheduleDraft}
                   disabled={savingMailSchedule}
+                >
+                  Neu
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </details>
+
+      {/* 5d) Zeitgesteuerte API-Calls */}
+      <details className="border rounded p-3" open>
+        <summary className="cursor-pointer font-medium">Zeitgesteuerte API-Calls</summary>
+        <div className="mt-3 space-y-3 text-sm">
+          <div className="text-xs text-gray-500">
+            Ruft hinterlegte URLs im gewünschten Rhythmus auf (GET/POST/PUT/PATCH/DELETE). Antwortinhalt wird verworfen, Fehler werden protokolliert.
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm border-separate border-spacing-y-2">
+              <thead>
+                <tr className="text-left text-xs text-gray-500">
+                  <th className="px-2">Titel</th>
+                  <th className="px-2">URL</th>
+                  <th className="px-2">Methode</th>
+                  <th className="px-2">Rhythmus</th>
+                  <th className="px-2">Letzter Aufruf</th>
+                  <th className="px-2">Aktiv</th>
+                  <th className="px-2">Aktionen</th>
+                </tr>
+              </thead>
+              <tbody>
+                {apiSchedules.length === 0 ? (
+                  <tr>
+                    <td className="px-2 py-2 text-gray-500" colSpan={7}>– keine Zeitpläne hinterlegt –</td>
+                  </tr>
+                ) : (
+                  apiSchedules.map((entry) => (
+                    <tr key={entry.id} className="bg-white shadow-sm rounded">
+                      <td className="px-2 py-2 font-medium">{entry.label || "(ohne Titel)"}</td>
+                      <td className="px-2 py-2 break-all">{entry.url}</td>
+                      <td className="px-2 py-2">{entry.method || "GET"}</td>
+                      <td className="px-2 py-2">
+                        {entry.mode === "time"
+                          ? `täglich ${entry.timeOfDay || "–"}`
+                          : `${entry.intervalMinutes || "–"} min`}
+                      </td>
+                      <td className="px-2 py-2 text-xs text-gray-600">{apiScheduleLastRunLabel(entry.lastRunAt)}</td>
+                      <td className="px-2 py-2 text-center">{entry.enabled !== false ? "Ja" : "Nein"}</td>
+                      <td className="px-2 py-2 space-x-2 whitespace-nowrap">
+                        <button
+                          type="button"
+                          className="px-2 py-1 rounded border"
+                          onClick={() => startEditApiSchedule(entry)}
+                          disabled={savingApiSchedule}
+                        >
+                          Bearbeiten
+                        </button>
+                        <button
+                          type="button"
+                          className="px-2 py-1 rounded border"
+                          onClick={() => onResetApiScheduleLastRun(entry.id)}
+                          disabled={savingApiSchedule}
+                        >
+                          Zurücksetzen
+                        </button>
+                        <button
+                          type="button"
+                          className="px-2 py-1 rounded border border-rose-300 text-rose-700 hover:bg-rose-50"
+                          onClick={() => onDeleteApiSchedule(entry.id)}
+                          disabled={savingApiSchedule}
+                        >
+                          Löschen
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+          {loadingApiSchedules && (
+            <div className="text-xs text-gray-500">Lade Zeitpläne …</div>
+          )}
+          <form onSubmit={onSaveApiSchedule} className="grid gap-3 lg:grid-cols-2">
+            <div className="space-y-2">
+              <div className="flex flex-col gap-1">
+                <label className="text-sm text-gray-700">Titel (optional)</label>
+                <input
+                  className="border px-2 py-1 rounded"
+                  value={apiScheduleDraft.label}
+                  onChange={(e) => setApiScheduleDraft((prev) => ({ ...prev, label: e.target.value }))}
+                  disabled={savingApiSchedule}
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-sm text-gray-700">URL</label>
+                <input
+                  className="border px-2 py-1 rounded"
+                  type="url"
+                  required
+                  placeholder="https://example.com/webhook"
+                  value={apiScheduleDraft.url}
+                  onChange={(e) => setApiScheduleDraft((prev) => ({ ...prev, url: e.target.value }))}
+                  disabled={savingApiSchedule}
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-sm text-gray-700">HTTP-Methode</label>
+                <select
+                  className="border px-2 py-1 rounded w-40"
+                  value={apiScheduleDraft.method}
+                  onChange={(e) => setApiScheduleDraft((prev) => ({ ...prev, method: e.target.value }))}
+                  disabled={savingApiSchedule}
+                >
+                  <option value="GET">GET</option>
+                  <option value="POST">POST</option>
+                  <option value="PUT">PUT</option>
+                  <option value="PATCH">PATCH</option>
+                  <option value="DELETE">DELETE</option>
+                </select>
+              </div>
+              {apiScheduleDraft.method && apiScheduleDraft.method !== "GET" && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-700">Request-Body (optional, wird unverändert gesendet)</label>
+                  <textarea
+                    className="border px-2 py-1 rounded min-h-[80px]"
+                    placeholder="z. B. JSON"
+                    value={apiScheduleDraft.body}
+                    onChange={(e) => setApiScheduleDraft((prev) => ({ ...prev, body: e.target.value }))}
+                    disabled={savingApiSchedule}
+                  />
+                </div>
+              )}
+            </div>
+            <div className="space-y-2">
+              <div className="flex flex-col gap-1">
+                <label className="text-sm text-gray-700">Aufrufart</label>
+                <select
+                  className="border px-2 py-1 rounded"
+                  value={apiScheduleDraft.mode}
+                  onChange={(e) => setApiScheduleDraft((prev) => ({ ...prev, mode: e.target.value === "time" ? "time" : "interval" }))}
+                  disabled={savingApiSchedule}
+                >
+                  <option value="interval">Intervall (Minuten)</option>
+                  <option value="time">Uhrzeit (täglich)</option>
+                </select>
+              </div>
+              {apiScheduleDraft.mode === "time" ? (
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-700">Uhrzeit (HH:MM)</label>
+                  <input
+                    className="border px-2 py-1 rounded w-40"
+                    type="time"
+                    value={apiScheduleDraft.timeOfDay}
+                    onChange={(e) => setApiScheduleDraft((prev) => ({ ...prev, timeOfDay: e.target.value }))}
+                    disabled={savingApiSchedule}
+                  />
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-700">Intervall (Minuten)</label>
+                  <input
+                    className="border px-2 py-1 rounded w-32"
+                    type="number"
+                    min={1}
+                    value={apiScheduleDraft.intervalMinutes}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9]/g, "");
+                      setApiScheduleDraft((prev) => ({ ...prev, intervalMinutes: value }));
+                    }}
+                    disabled={savingApiSchedule}
+                  />
+                </div>
+              )}
+              <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={!!apiScheduleDraft.enabled}
+                  onChange={(e) => setApiScheduleDraft((prev) => ({ ...prev, enabled: e.target.checked }))}
+                  disabled={savingApiSchedule}
+                />
+                Aktiv
+              </label>
+              <div className="flex items-center gap-2">
+                <button
+                  type="submit"
+                  className="border rounded px-3 py-1"
+                  disabled={savingApiSchedule}
+                >
+                  {editingApiSchedule ? "Zeitplan speichern" : "Zeitplan anlegen"}
+                </button>
+                <button
+                  type="button"
+                  className="border rounded px-3 py-1"
+                  onClick={resetApiScheduleDraft}
+                  disabled={savingApiSchedule}
                 >
                   Neu
                 </button>

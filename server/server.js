@@ -34,6 +34,11 @@ import {
   sanitizeMailScheduleEntry,
   validateMailScheduleEntry,
 } from "./utils/mailSchedule.mjs";
+import {
+  createApiScheduleRunner,
+  sanitizeApiScheduleEntry,
+  validateApiScheduleEntry,
+} from "./utils/apiSchedule.mjs";
 
 import { appendHistoryEntriesToCsv } from "./utils/protocolCsv.mjs";
 import { ensureTaskForRole } from "./utils/tasksService.mjs";
@@ -69,6 +74,7 @@ const ARCHIVE_DIR = path.join(DATA_DIR, "archive");
 const ERROR_LOG_FILE_NAME = "Log.txt";
 const MAIL_ARCHIVE_DIR = path.join(DATA_DIR, "mail");
 const MAIL_SCHEDULE_FILE = path.join(DATA_DIR, "conf", "mail-schedule.json");
+const API_SCHEDULE_FILE = path.join(DATA_DIR, "conf", "api-schedule.json");
 const errorLogDirCandidates = dedupeDirs([
   ...getLogDirCandidates(),
   path.join(DATA_DIR, "logs"),
@@ -117,6 +123,9 @@ const MAIL_INBOX_POLL_LIMIT = parseIntervalEnv("MAIL_INBOX_POLL_LIMIT", 50);
 const MAIL_SCHEDULE_DEFAULT_INTERVAL_MINUTES = parseIntervalEnv("MAIL_SCHEDULE_DEFAULT_INTERVAL_MINUTES", 60, { min: 1 });
 const MAIL_SCHEDULE_MIN_INTERVAL_MINUTES = parseIntervalEnv("MAIL_SCHEDULE_MIN_INTERVAL_MINUTES", 1, { min: 1 });
 const MAIL_SCHEDULE_SWEEP_INTERVAL_MS = parseIntervalEnv("MAIL_SCHEDULE_SWEEP_INTERVAL_MS", 60_000, { min: 5_000 });
+const API_SCHEDULE_DEFAULT_INTERVAL_MINUTES = parseIntervalEnv("API_SCHEDULE_DEFAULT_INTERVAL_MINUTES", 60, { min: 1 });
+const API_SCHEDULE_MIN_INTERVAL_MINUTES = parseIntervalEnv("API_SCHEDULE_MIN_INTERVAL_MINUTES", 1, { min: 1 });
+const API_SCHEDULE_SWEEP_INTERVAL_MS = parseIntervalEnv("API_SCHEDULE_SWEEP_INTERVAL_MS", 60_000, { min: 5_000 });
 
 let boardCacheValue = null;
 let boardCacheExpiresAt = 0;
@@ -1533,6 +1542,11 @@ const MAIL_SCHEDULE_OPTIONS = {
   minIntervalMinutes: MAIL_SCHEDULE_MIN_INTERVAL_MINUTES,
 };
 
+const API_SCHEDULE_OPTIONS = {
+  defaultIntervalMinutes: API_SCHEDULE_DEFAULT_INTERVAL_MINUTES,
+  minIntervalMinutes: API_SCHEDULE_MIN_INTERVAL_MINUTES,
+};
+
 const mailSchedule = createMailScheduleRunner({
   dataDir: DATA_DIR,
   scheduleFile: MAIL_SCHEDULE_FILE,
@@ -1547,6 +1561,18 @@ const mailSchedule = createMailScheduleRunner({
 });
 
 const { startMailScheduleTimer, clearMailScheduleTimer, readMailSchedule, writeMailSchedule } = mailSchedule;
+
+const apiSchedule = createApiScheduleRunner({
+  scheduleFile: API_SCHEDULE_FILE,
+  defaultIntervalMinutes: API_SCHEDULE_OPTIONS.defaultIntervalMinutes,
+  minIntervalMinutes: API_SCHEDULE_OPTIONS.minIntervalMinutes,
+  sweepIntervalMs: API_SCHEDULE_SWEEP_INTERVAL_MS,
+  appendError,
+  readJson,
+  writeJson,
+});
+
+const { startApiScheduleTimer, clearApiScheduleTimer, readApiSchedule, writeApiSchedule } = apiSchedule;
 
 app.use("/api/mail/inbox", createMailInboxRouter());
 app.use("/api/mail", createMailRouter());
@@ -1629,6 +1655,89 @@ app.delete("/api/mail/schedule/:id", async (req, res) => {
     res.json({ ok:true, schedules });
   } catch (err) {
     await appendError("mail-schedule/delete", err, { id: scheduleId });
+    res.status(400).json({ ok:false, error: err?.message || "Löschen fehlgeschlagen" });
+  }
+});
+
+
+app.get("/api/http/schedule", async (req, res) => {
+  if (!User_hasRole(req?.user, "Admin")) {
+    return res.status(403).json({ ok:false, error:"FORBIDDEN" });
+  }
+  const schedules = await readApiSchedule();
+  res.json({ ok:true, schedules });
+});
+
+app.post("/api/http/schedule", async (req, res) => {
+  if (!User_hasRole(req?.user, "Admin")) {
+    return res.status(403).json({ ok:false, error:"FORBIDDEN" });
+  }
+  try {
+    const base = sanitizeApiScheduleEntry(
+      { ...req.body, id: crypto.randomUUID(), lastRunAt: null },
+      API_SCHEDULE_OPTIONS
+    );
+    const validationError = validateApiScheduleEntry(base, API_SCHEDULE_OPTIONS);
+    if (validationError) {
+      return res.status(400).json({ ok:false, error: validationError });
+    }
+    const current = await readApiSchedule();
+    const schedules = await writeApiSchedule([...current, base]);
+    await startApiScheduleTimer({ immediate: true });
+    res.json({ ok:true, entry: base, schedules });
+  } catch (err) {
+    await appendError("api-schedule/create", err);
+    res.status(400).json({ ok:false, error: err?.message || "Speichern fehlgeschlagen" });
+  }
+});
+
+app.put("/api/http/schedule/:id", async (req, res) => {
+  if (!User_hasRole(req?.user, "Admin")) {
+    return res.status(403).json({ ok:false, error:"FORBIDDEN" });
+  }
+  const scheduleId = String(req.params?.id || "");
+  try {
+    const current = await readApiSchedule();
+    const idx = current.findIndex((entry) => entry.id === scheduleId);
+    if (idx < 0) {
+      return res.status(404).json({ ok:false, error:"NOT_FOUND" });
+    }
+    const merged = { ...current[idx], ...req.body, id: current[idx].id };
+    if (req.body?.resetLastRun) {
+      merged.lastRunAt = null;
+    }
+    const normalized = sanitizeApiScheduleEntry(merged, API_SCHEDULE_OPTIONS);
+    const validationError = validateApiScheduleEntry(normalized, API_SCHEDULE_OPTIONS);
+    if (validationError) {
+      return res.status(400).json({ ok:false, error: validationError });
+    }
+    const next = current.slice();
+    next[idx] = normalized;
+    const schedules = await writeApiSchedule(next);
+    await startApiScheduleTimer({ immediate: true });
+    res.json({ ok:true, entry: normalized, schedules });
+  } catch (err) {
+    await appendError("api-schedule/update", err, { id: scheduleId });
+    res.status(400).json({ ok:false, error: err?.message || "Speichern fehlgeschlagen" });
+  }
+});
+
+app.delete("/api/http/schedule/:id", async (req, res) => {
+  if (!User_hasRole(req?.user, "Admin")) {
+    return res.status(403).json({ ok:false, error:"FORBIDDEN" });
+  }
+  const scheduleId = String(req.params?.id || "");
+  try {
+    const current = await readApiSchedule();
+    const next = current.filter((entry) => entry.id !== scheduleId);
+    if (next.length === current.length) {
+      return res.status(404).json({ ok:false, error:"NOT_FOUND" });
+    }
+    const schedules = await writeApiSchedule(next);
+    await startApiScheduleTimer({ immediate: true });
+    res.json({ ok:true, schedules });
+  } catch (err) {
+    await appendError("api-schedule/delete", err, { id: scheduleId });
     res.status(400).json({ ok:false, error: err?.message || "Löschen fehlgeschlagen" });
   }
 });
@@ -3784,6 +3893,7 @@ app.listen(PORT, async ()=>{
   console.log("[auto-import] beim Start automatisch deaktiviert");
   await startAutoPrintTimer();
   await startMailScheduleTimer({ immediate: true });
+  await startApiScheduleTimer({ immediate: true });
 });
 
 // Routen aus Aufgaben-Board
