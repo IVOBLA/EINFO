@@ -1,0 +1,175 @@
+# Konfiguration und API-Übersicht
+
+Dieses Dokument fasst alle verfügbaren Umgebungsvariablen des Servers sowie die REST-APIs mit kurzen Beispielen zusammen. Alle Pfade beziehen sich auf das Backend (`server`).
+
+## Konfigurationsmöglichkeiten (Environment-Variablen)
+
+### Allgemeiner Serverbetrieb
+- `KANBAN_LOG_DIR` (optional): Ordner für Log-Dateien. Beispiel: `KANBAN_LOG_DIR=./logs`.
+- `PORT`: HTTP-Port des Express-Servers. Beispiel: `PORT=4040`.
+- `KANBAN_COOKIE_SECURE`: `1` erzwingt Secure-Cookies, `0` erlaubt http. Beispiel: `KANBAN_COOKIE_SECURE=0`.
+- `BOARD_CACHE_MAX_AGE_MS`: Cache-Dauer für Board-Daten in Millisekunden. Beispiel: `BOARD_CACHE_MAX_AGE_MS=60000`.
+- `VEHICLE_CACHE_TTL_MS`: Lebensdauer des Fahrzeug-Caches (ms). Beispiel: `VEHICLE_CACHE_TTL_MS=10000`.
+- `DATA_DIR`: Basisverzeichnis für persistente Daten. Beispiel: `DATA_DIR=./data`.
+- `PUBLIC_DIR`: Verzeichnis für statische Dateien. Beispiel: `PUBLIC_DIR=./public`.
+
+### Frontend-Polling
+- `UI_STATUS_POLL_INTERVAL_MS`: Polling-Intervall für `/api/ff/status` und `/api/ff/creds`. Beispiel: `UI_STATUS_POLL_INTERVAL_MS=3000`.
+- `UI_ACTIVITY_POLL_INTERVAL_MS`: Polling-Intervall für `/api/activity/status`. Beispiel: `UI_ACTIVITY_POLL_INTERVAL_MS=1000`.
+
+### Feuerwehr-Feed (Fetcher & Läufer)
+- `FF_OUT_FILE`: Pfad für bereinigten Einsatz-Feed. Beispiel: `FF_OUT_FILE=./data/list_filtered.json`.
+- `FF_GPS_OUT_FILE`: Pfad für GPS-Infos der Fahrzeuge. Beispiel: `FF_GPS_OUT_FILE=./data/vehicles_gps.json`.
+- `FF_POLL_INTERVAL_MS`: Abrufintervall des Einsatz-Feeds (ms). Beispiel: `FF_POLL_INTERVAL_MS=60000`.
+- `FF_ACTIVITY_SWEEP_INTERVAL_MS`: Intervall für Fetcher-Aktivitätsprüfung (ms). Beispiel: `FF_ACTIVITY_SWEEP_INTERVAL_MS=60000`.
+- `FF_DEBUG`: `1` aktiviert detaillierte Logs. Beispiel: `FF_DEBUG=1`.
+- `FF_LIST_PATH`: Pfadanteil des Einsatzendpunkts. Beispiel: `FF_LIST_PATH=/list`.
+- `FF_LIST_EXTRA`: Zusätzliche Query-Parameter. Beispiel: `FF_LIST_EXTRA=` (leer).
+- `FF_LIST_TIMEOUT_MIN`: Minuten bis ein veralteter Feed verworfen wird. Beispiel: `FF_LIST_TIMEOUT_MIN=2880`.
+- `FF_GPS_PATH`: Pfadanteil für GPS-Endpunkt. Beispiel: `FF_GPS_PATH=/status/gps`.
+- `FF_ONCE`: `1` für einmaligen Abruf, `0` für Dauermodus. Beispiel: `FF_ONCE=0`.
+- `FF_CA_FILE`: Zertifikatskette des Datenlieferanten. Beispiel: `FF_CA_FILE=./feuerwehr_fullchain.pem`.
+- `FF_LOCK_FILE`: Lock-Datei gegen parallele Instanzen. Beispiel: `FF_LOCK_FILE=` (leer).
+- `FF_AUTO_STOP_MIN` (optional): Minuten bis zur Auto-Stop-Logik.
+- `FF_USERNAME` / `FF_PASSWORD`: Basic-Auth oder API-Creds. Beispiel: `FF_USERNAME=apiuser` / `FF_PASSWORD=geheim`.
+
+### Umkreissuche
+- `NEARBY_RADIUS_KM`: Standardradius (km). Beispiel: `NEARBY_RADIUS_KM=1`.
+- `NEARBY_RADIUS_MIN_KM`: Minimaler Radius (km). Beispiel: `NEARBY_RADIUS_MIN_KM=0.1`.
+- `NEARBY_RADIUS_MAX_KM`: Maximaler Radius (km). Beispiel: `NEARBY_RADIUS_MAX_KM=50`.
+
+### Auto-Import & Protokoll-Autodruck
+- `AUTO_IMPORT_DEFAULT_INTERVAL_SEC`: Standardintervall für Auto-Import (Sek.). Beispiel: `AUTO_IMPORT_DEFAULT_INTERVAL_SEC=30`.
+- `AUTO_PRINT_DEFAULT_INTERVAL_MINUTES`: Standardintervall für Sammeldruck (Min.). Beispiel: `AUTO_PRINT_DEFAULT_INTERVAL_MINUTES=10`.
+- `AUTO_PRINT_MIN_INTERVAL_MINUTES`: Minimaler Druckintervall (Min.). Beispiel: `AUTO_PRINT_MIN_INTERVAL_MINUTES=1`.
+
+### WMS / Lagekarte
+- `WMS_PORT`: Port des WMS-Dienstes. Beispiel: `WMS_PORT=8090`.
+- `WMS_TITLE`: Titel in Capabilities. Beispiel: `WMS_TITLE="Lagekarte Board WMS"`.
+- `WMS_ABSTRACT`: Beschreibung. Beispiel: `WMS_ABSTRACT="Einsätze & Fahrzeuge wie MapModal"`.
+- `WMS_LABELS`: `1` blendet Labels ein. Beispiel: `WMS_LABELS=1`.
+- `WMS_LABEL_FONT`: Schriftangabe für Labels. Beispiel: `WMS_LABEL_FONT="12px Sans-Serif"`.
+- `WMS_LABEL_COLOR`: Schriftfarbe. Beispiel: `WMS_LABEL_COLOR="#000000"`.
+- `WMS_LABEL_OUTLINE`: Outline-Farbe. Beispiel: `WMS_LABEL_OUTLINE="#ffffff"`.
+- `WMS_LABEL_OUTLINE_W`: Outline-Stärke in Pixeln. Beispiel: `WMS_LABEL_OUTLINE_W=3`.
+- `WMS_LABEL_TRIM`: Maximale Zeichenlänge. Beispiel: `WMS_LABEL_TRIM=28`.
+- `WMS_DEBUG`: `1` aktiviert Debug-Logs. Beispiel: `WMS_DEBUG=0`.
+
+### Kanban & Druck
+- `KANBAN_MELDUNG_PRINT_DIR`: Zielverzeichnis Meldungsdrucke. Beispiel: `KANBAN_MELDUNG_PRINT_DIR=./data/prints/meldung`.
+- `KANBAN_EINSATZ_PRINT_DIR`: Zielverzeichnis Einsatzdrucke. Beispiel: `KANBAN_EINSATZ_PRINT_DIR=./data/prints/einsatz`.
+- `KANBAN_PROTOKOLL_PRINT_DIR`: Ablage für Sammeldrucke. Beispiel: `KANBAN_PROTOKOLL_PRINT_DIR=./data/prints/protokoll`.
+- `PUPPETEER_EXECUTABLE_PATH`: Alternativer Chromium-Pfad. Beispiel: `PUPPETEER_EXECUTABLE_PATH=` (leer).
+
+### Benutzer-Sessions & Online-Status
+- `USER_SESSION_IDLE_TIMEOUT_MIN` / `USER_SESSION_IDLE_TIMEOUT_MINUTES` / `SESSION_IDLE_TIMEOUT_MIN` / `SESSION_IDLE_TIMEOUT_MINUTES`: Timeout in Minuten bis Logout. Beispiel: `USER_SESSION_IDLE_TIMEOUT_MIN=15`.
+- `USER_SESSION_IDLE_TIMEOUT_MS`: Timeout in Millisekunden. Beispiel: `USER_SESSION_IDLE_TIMEOUT_MS=900000`.
+- `USER_SESSION_SWEEP_INTERVAL_MS`: Bereinigungsintervall (ms). Beispiel: `USER_SESSION_SWEEP_INTERVAL_MS=60000`.
+- `USER_ONLINE_ROLE_ACTIVE_MIN` / `USER_ONLINE_ROLE_ACTIVE_MINUTES` / `USER_ONLINE_ACTIVE_MINUTES`: Minuten, in denen eine Rolle als aktiv gilt. Beispiel: `USER_ONLINE_ROLE_ACTIVE_MIN=5`.
+- `USER_ONLINE_ROLE_ACTIVE_MS` / `USER_ONLINE_ACTIVE_MS`: Millisekunden, in denen eine Rolle als aktiv gilt. Beispiel: `USER_ONLINE_ROLE_ACTIVE_MS=300000`.
+- `USER_ONLINE_ROLE_RECENT_MS`: Fenster für „kürzlich aktiv“. Beispiel: `USER_ONLINE_ROLE_RECENT_MS=900000`.
+
+### Aufgaben / Fälligkeiten
+- `DEFAULT_DUE_OFFSET_MINUTES` / `TASK_DEFAULT_DUE_OFFSET_MINUTES` / `AUFG_DEFAULT_DUE_MINUTES`: Standardvorlauf in Minuten für Fälligkeiten. Beispiel: `DEFAULT_DUE_OFFSET_MINUTES=10`.
+
+### Mailversand / SMTP (sowie Muster `server/mail.all-inkl.env.example`)
+- `MAIL_HOST`: SMTP-Host. Beispiel: `MAIL_HOST=smtprelaypool.ispgateway.de`.
+- `MAIL_PORT`: SMTP-Port. Beispiel: `MAIL_PORT=587`.
+- `MAIL_SECURE`: `1` für SMTPS, `0` sonst. Beispiel: `MAIL_SECURE=0`.
+- `MAIL_STARTTLS`: `1` fordert STARTTLS an. Beispiel: `MAIL_STARTTLS=1`.
+- `MAIL_USER`: SMTP-Benutzername (Mailadresse). Beispiel: `MAIL_USER=postfach@deine-domain.de`.
+- `MAIL_PASSWORD`: SMTP-Passwort. Beispiel: `MAIL_PASSWORD=<starkes-passwort>`.
+- `MAIL_FROM`: Absenderadresse. Beispiel: `MAIL_FROM="Feuerwehr Leitstelle <postfach@deine-domain.de>"`.
+- `MAIL_ALLOWED_FROM`: Whitelist erlaubter Absender. Beispiel: `MAIL_ALLOWED_FROM="Feuerwehr Leitstelle <postfach@deine-domain.de>"`.
+- `MAIL_LOG`: `1` aktiviert SMTP-Logging. Beispiel: `MAIL_LOG=1`.
+- `MAIL_DELETE_AFTER_READ`: `1` löscht Mails nach Verarbeitung. Beispiel: `MAIL_DELETE_AFTER_READ=1`.
+- Weitere optionale IMAP/POP3/Reply-To/Timeout/TLS-Variablen siehe Beispiel-Datei.
+
+## API-Katalog mit Beispielen
+
+### Authentifizierung & Benutzerverwaltung (`/api/user`)
+- `POST /api/user/master/setup`: Initialisiert Master-Passwort und legt Admin an.
+  - Beispiel-Request: `{ "password": "supersecret", "adminUser": "admin", "adminPass": "wechselmich" }`
+  - Erfolgsantwort: `{ "ok": true }`
+- `POST /api/user/master/unlock` / `POST /api/user/master/lock`: Master entsperren/sperren.
+- `POST /api/user/login`: Login mit Benutzername/Passwort. Antwort enthält Session-Infos und Rollen.
+- `GET /api/user/me`: Liefert eingeloggten Benutzer und Session-Ablauf.
+- `POST /api/user/logout`: Beendet Session und löscht Cookie.
+- `GET /api/user/online-roles`: Liste aktuell aktiver Rollen.
+- `GET /api/user/roles` / `PUT /api/user/roles`: Rollen lesen/aktualisieren (Admin, entsperrter Master).
+- `GET /api/user/users` / `POST /api/user/users`: Benutzer auflisten bzw. anlegen.
+- `PATCH /api/user/users/:id` / `DELETE /api/user/users/:id`: Benutzer ändern oder löschen.
+- `GET /api/user/fetcher` / `PUT /api/user/fetcher`: Globale Fetcher-Credentials verwalten.
+
+### Rollen-Definition für Apps (`/api/user/roles` über `server/routes/userRoles.js`)
+- `GET /api/user/roles`: Liefert Rollen inkl. App-Rechten (`none|view|edit`).
+- `PUT /api/user/roles`: Aktualisiert Rollenliste; `Admin` wird automatisch gesichert.
+  - Beispiel-Request: `{ "roles": [ { "id": "Admin", "apps": { "einsatzboard": "edit" } }, { "id": "Meldung", "apps": { "protokoll": "view" } } ] }`
+
+### Board & Fahrzeuge
+- `GET /api/board`: Liefert aktuelles Einsatzboard.
+- `GET /api/vehicles`: Alle Fahrzeuge inkl. Overrides.
+- `GET /api/groups/availability` / `GET /api/groups/alerted`: Verfügbarkeits- und Alarmierungsstatus je Gruppe.
+- `GET /api/gps`: GPS-Daten (Roh-JSON).
+- `GET /api/types`: Fahrzeug-Typdefinitionen.
+- `POST /api/vehicles`: Neues Fahrzeug anlegen (optional Clone-Modus). Beispiel: `{ "ort": "FF Musterstadt", "label": "LF 10" }`.
+- `PATCH /api/vehicles/:id/availability`: Verfügbarkeit einer Einheit setzen. Beispiel: `{ "available": false, "until": "2025-02-01T10:00:00Z" }`.
+- `PATCH /api/groups/:name/availability`: Verfügbarkeit einer Gruppe setzen; aktualisiert zugehörige Fahrzeuge.
+- `POST /api/cards`: Neue Einsatzkarte anlegen. Minimales Beispiel: `{ "title": "Brandmeldung", "ort": "FF Musterstadt", "latitude": 48.1, "longitude": 11.6 }`.
+- `POST /api/cards/:id/move`: Karte in andere Spalte verschieben. Beispiel: `{ "toColumn": "in-bearbeitung", "toIndex": 0 }`.
+- `POST /api/cards/:id/assign` / `POST /api/cards/:id/unassign`: Fahrzeuge zuweisen oder entfernen. Beispiel: `{ "vehicleIds": ["F1","F2"] }`.
+- `DELETE /api/vehicles/:id/position`: Löscht gespeicherte Position einer Einheit.
+- `POST /api/reset`: Setzt Board und zugehörige Dateien zurück.
+- `GET /api/nearby`: Umkreissuche nach Einheiten, Query z.B. `?lat=48.1&lng=11.6&radiusKm=2`.
+
+### Aufgabenboard (`/api/aufgaben`)
+- `GET /api/aufgaben/config`: Liefert Standard-Fälligkeits-Offset für die eigene Rolle.
+- `GET /api/aufgaben/protocols`: Protokollauszüge für die Rolle.
+- `GET /api/aufgaben`: Aufgabenliste der Rolle.
+- `POST /api/aufgaben`: Neue Aufgabe erstellen (erfordert Edit-Recht). Beispiel: `{ "title": "Absperren", "type": "Auftrag", "responsible": "Zugführer" }`.
+- `POST /api/aufgaben/:id/edit`: Aufgabe anpassen, inkl. Verknüpfung zu Protokollen.
+- `POST /api/aufgaben/:id/status`: Statuswechsel (z.B. `{ "status": "done" }`).
+- `POST /api/aufgaben/reorder`: Sortierung aktualisieren.
+
+### Protokoll (`/api/protocol`)
+- `GET /api/protocol/csv/file`: CSV-Download.
+- `GET /api/protocol`: Liste aller Protokolleinträge.
+- `POST /api/protocol`: Neuen Eintrag anlegen. Beispiel: `{ "title": "Meldung", "information": "Sturmschaden", "ergehtAn": ["ELW"] }`.
+- `GET /api/protocol/:nr`: Detail zu Nummer.
+- `POST /api/protocol/:nr/lock` / `DELETE /api/protocol/:nr/lock`: Schreibsperre setzen/aufheben.
+- `PUT /api/protocol/:nr`: Eintrag aktualisieren (inkl. Historie & Druckzähler).
+
+### Mail & Druck
+- `GET /api/mail/status`: SMTP-Konfiguration prüfen.
+- `POST /api/mail/send`: Mailversand, Beispiel: `{ "to": "leitstelle@example.com", "subject": "Lage", "text": "Aktuelle Infos" }`.
+- `GET /api/mail/inbox/status`: Inbox-Polling-Status.
+- `GET /api/mail/inbox`: Gelesene Postfach-Dateien abrufen.
+- `GET /api/mail/schedule`: Zeitpläne für Auto-Mails abrufen (Admin).
+- `POST /api/mail/schedule`: Neuen Zeitplan anlegen, Beispiel: `{ "label": "Protokoll PDF", "intervalMinutes": 60, "recipients": ["a@example.com"] }`.
+- `PUT /api/mail/schedule/:id` / `DELETE /api/mail/schedule/:id`: Zeitplan ändern/löschen.
+- `GET /api/http/schedule`: HTTP-Aufruf-Plan abrufen (Admin).
+- `POST /api/http/schedule`: HTTP-Plan anlegen, Beispiel: `{ "label": "Webhook", "url": "https://example.com/hook", "intervalMinutes": 30 }`.
+- `PUT /api/http/schedule/:id` / `DELETE /api/http/schedule/:id`: Plan aktualisieren/löschen.
+- `POST /api/print/server`: Serverseitige Druckjobs einstellen; `GET /api/print/server/info` liefert Status.
+- `POST /api/print/incident/pdf` / `POST /api/print/incident/zip`: Einsatzdruck/ZIP (intern genutzt).
+- `GET /api/export/pdf`: Generiert PDF des Boards.
+
+### Import, Fetcher & Auto-Funktionen
+- `GET /api/import/auto-config` / `POST /api/import/auto-config`: Auto-Import-Einstellungen lesen/speichern.
+- `GET /api/protocol/auto-print-config` / `POST /api/protocol/auto-print-config`: Konfiguration für automatische Protokoll-Drucke.
+- `POST /api/import/trigger` / `GET /api/import/trigger`: Import einmalig auslösen.
+- `GET /api/ff/status`: Status des Fetchers inkl. Auto-Import-Flag.
+- `GET /api/ff/creds` / `POST /api/ff/creds`: Fetcher-Zugangsdaten lesen/setzen.
+- `GET /api/ff/status/details`: Detailstatus des Fetchers.
+- `POST /api/ff/start`: Fetcher starten (optional mit `{ "auto": true }`).
+- `POST /api/ff/stop`: Fetcher stoppen.
+
+### Karten & Statics
+- `GET /api/internal/feldkirchen-map`: Generiert SVG-Karte; Query `?show=weather|all&hours=24`.
+- `GET /api/activity/status`: Öffentliche Statusinformationen (ohne Login).
+- `GET /api/log.csv`: Log-Datei als CSV.
+- `GET /Hilfe.pdf`: Statisches Hilfedokument, wenn vorhanden.
+
+## Hinweise
+- Die meisten `/api`-Routen erfordern eine gültige Session; Ausnahmen sind z.B. `/api/activity/status`, `/api/user/*` für Login/Master und interne Auto-Print-Anfragen.
+- Für Admin-Aufgaben (z.B. Zeitpläne, Benutzerverwaltung) sind entsprechende Rollen notwendig.
