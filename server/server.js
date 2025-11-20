@@ -14,6 +14,7 @@ import aufgabenRoutes from "./routes/aufgabenRoutes.js";
 import userRolesRouter from "./routes/userRoles.js";
 import createMailRouter from "./routes/mail.js";
 import createMailInboxRouter from "./routes/mailInbox.js";
+import { isMailConfigured, sendMail } from "./utils/mailClient.mjs";
 import { getMailInboxConfig, readAndEvaluateInbox } from "./utils/mailEvaluator.mjs";
 import { appendCsvRow } from "./auditLog.mjs";
 import createServerPrintRoutes from "./routes/serverPrintRoutes.js";
@@ -61,6 +62,7 @@ const LOG_FILE    = path.join(DATA_DIR, "Lage_log.csv");
 const ARCHIVE_DIR = path.join(DATA_DIR, "archive");
 const ERROR_LOG_FILE_NAME = "Log.txt";
 const MAIL_ARCHIVE_DIR = path.join(DATA_DIR, "mail");
+const MAIL_SCHEDULE_FILE = path.join(DATA_DIR, "conf", "mail-schedule.json");
 const errorLogDirCandidates = dedupeDirs([
   ...getLogDirCandidates(),
   path.join(DATA_DIR, "logs"),
@@ -106,6 +108,9 @@ const AUTO_PRINT_MIN_INTERVAL_MINUTES = parseIntervalEnv("AUTO_PRINT_MIN_INTERVA
 const FF_ACTIVITY_SWEEP_INTERVAL_MS = parseIntervalEnv("FF_ACTIVITY_SWEEP_INTERVAL_MS", 60_000);
 const MAIL_INBOX_POLL_INTERVAL_SEC = parseIntervalEnv("MAIL_INBOX_POLL_INTERVAL_SEC", null);
 const MAIL_INBOX_POLL_LIMIT = parseIntervalEnv("MAIL_INBOX_POLL_LIMIT", 50);
+const MAIL_SCHEDULE_DEFAULT_INTERVAL_MINUTES = parseIntervalEnv("MAIL_SCHEDULE_DEFAULT_INTERVAL_MINUTES", 60, { min: 1 });
+const MAIL_SCHEDULE_MIN_INTERVAL_MINUTES = parseIntervalEnv("MAIL_SCHEDULE_MIN_INTERVAL_MINUTES", 1, { min: 1 });
+const MAIL_SCHEDULE_SWEEP_INTERVAL_MS = parseIntervalEnv("MAIL_SCHEDULE_SWEEP_INTERVAL_MS", 60_000, { min: 5_000 });
 
 let boardCacheValue = null;
 let boardCacheExpiresAt = 0;
@@ -269,6 +274,8 @@ let importLastFile     = null;   // string
 let autoNextAt         = null;   // ms – nächster geplanter Auto-Import
 let autoPrintTimer     = null;
 let autoPrintRunning   = false;
+let mailScheduleTimer  = null;
+let mailScheduleRunning = false;
 
 // ----------------- Helpers -----------------
 async function ensureDir(p){ await fs.mkdir(p,{ recursive:true }); }
@@ -1517,6 +1524,85 @@ app.use((req,res,next)=>{
 
 app.use("/api/mail/inbox", createMailInboxRouter());
 app.use("/api/mail", createMailRouter());
+
+app.get("/api/mail/schedule", async (req, res) => {
+  if (!User_hasRole(req?.user, "Admin")) {
+    return res.status(403).json({ ok:false, error:"FORBIDDEN" });
+  }
+  const schedules = await readMailSchedule();
+  res.json({ ok:true, schedules });
+});
+
+app.post("/api/mail/schedule", async (req, res) => {
+  if (!User_hasRole(req?.user, "Admin")) {
+    return res.status(403).json({ ok:false, error:"FORBIDDEN" });
+  }
+  try {
+    const base = sanitizeMailScheduleEntry({ ...req.body, id: crypto.randomUUID(), lastSentAt: null });
+    const validationError = validateMailScheduleEntry(base);
+    if (validationError) {
+      return res.status(400).json({ ok:false, error: validationError });
+    }
+    const current = await readMailSchedule();
+    const schedules = await writeMailSchedule([...current, base]);
+    await startMailScheduleTimer({ immediate: true });
+    res.json({ ok:true, entry: base, schedules });
+  } catch (err) {
+    await appendError("mail-schedule/create", err);
+    res.status(400).json({ ok:false, error: err?.message || "Speichern fehlgeschlagen" });
+  }
+});
+
+app.put("/api/mail/schedule/:id", async (req, res) => {
+  if (!User_hasRole(req?.user, "Admin")) {
+    return res.status(403).json({ ok:false, error:"FORBIDDEN" });
+  }
+  const scheduleId = String(req.params?.id || "");
+  try {
+    const current = await readMailSchedule();
+    const idx = current.findIndex((entry) => entry.id === scheduleId);
+    if (idx < 0) {
+      return res.status(404).json({ ok:false, error:"NOT_FOUND" });
+    }
+    const merged = { ...current[idx], ...req.body, id: current[idx].id };
+    if (req.body?.resetLastSent) {
+      merged.lastSentAt = null;
+    }
+    const normalized = sanitizeMailScheduleEntry(merged);
+    const validationError = validateMailScheduleEntry(normalized);
+    if (validationError) {
+      return res.status(400).json({ ok:false, error: validationError });
+    }
+    const next = current.slice();
+    next[idx] = normalized;
+    const schedules = await writeMailSchedule(next);
+    await startMailScheduleTimer({ immediate: true });
+    res.json({ ok:true, entry: normalized, schedules });
+  } catch (err) {
+    await appendError("mail-schedule/update", err, { id: scheduleId });
+    res.status(400).json({ ok:false, error: err?.message || "Speichern fehlgeschlagen" });
+  }
+});
+
+app.delete("/api/mail/schedule/:id", async (req, res) => {
+  if (!User_hasRole(req?.user, "Admin")) {
+    return res.status(403).json({ ok:false, error:"FORBIDDEN" });
+  }
+  const scheduleId = String(req.params?.id || "");
+  try {
+    const current = await readMailSchedule();
+    const next = current.filter((entry) => entry.id !== scheduleId);
+    if (next.length === current.length) {
+      return res.status(404).json({ ok:false, error:"NOT_FOUND" });
+    }
+    const schedules = await writeMailSchedule(next);
+    await startMailScheduleTimer({ immediate: true });
+    res.json({ ok:true, schedules });
+  } catch (err) {
+    await appendError("mail-schedule/delete", err, { id: scheduleId });
+    res.status(400).json({ ok:false, error: err?.message || "Löschen fehlgeschlagen" });
+  }
+});
 
 
 app.use("/api/print/server", createServerPrintRoutes({ baseDir: DATA_DIR }));
@@ -3019,6 +3105,202 @@ async function startAutoPrintTimer({ immediate = false } = {}){
   }
 }
 
+// ==== Zeitgesteuerte Mails ====
+
+const MAIL_MODE_ALIASES = new Map([
+  ["interval", "interval"],
+  ["intervall", "interval"],
+  ["time", "time"],
+  ["clock", "time"],
+  ["uhrzeit", "time"],
+]);
+
+function normalizeMailMode(value){
+  if (typeof value !== "string") return "interval";
+  const normalized = value.trim().toLowerCase();
+  if (MAIL_MODE_ALIASES.has(normalized)) return MAIL_MODE_ALIASES.get(normalized);
+  return "interval";
+}
+
+function normalizeTimeOfDay(value){
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const match = trimmed.match(/^([01]?\d|2[0-3]):([0-5]\d)$/);
+  if (!match) return null;
+  const hh = match[1].padStart(2, "0");
+  const mm = match[2].padStart(2, "0");
+  return `${hh}:${mm}`;
+}
+
+function sanitizeMailScheduleEntry(entry){
+  const mode = normalizeMailMode(entry?.mode);
+  const intervalRaw = Number(entry?.intervalMinutes ?? entry?.interval ?? MAIL_SCHEDULE_DEFAULT_INTERVAL_MINUTES);
+  const intervalMinutes = Number.isFinite(intervalRaw)
+    ? Math.max(MAIL_SCHEDULE_MIN_INTERVAL_MINUTES, Math.floor(intervalRaw))
+    : MAIL_SCHEDULE_DEFAULT_INTERVAL_MINUTES;
+
+  const textRaw = typeof entry?.text === "string"
+    ? entry.text
+    : (typeof entry?.body === "string" ? entry.body : "");
+
+  return {
+    id: typeof entry?.id === "string" && entry.id.trim() ? entry.id.trim() : crypto.randomUUID(),
+    label: typeof entry?.label === "string" ? entry.label.trim() : "",
+    to: typeof entry?.to === "string" ? entry.to.trim() : "",
+    subject: typeof entry?.subject === "string" ? entry.subject.trim() : "",
+    text: typeof textRaw === "string" ? textRaw : "",
+    attachmentPath: typeof entry?.attachmentPath === "string" ? entry.attachmentPath.trim() : "",
+    mode,
+    intervalMinutes,
+    timeOfDay: mode === "time" ? normalizeTimeOfDay(entry?.timeOfDay ?? entry?.time ?? entry?.clock) : null,
+    enabled: entry?.enabled === false ? false : true,
+    lastSentAt: (() => {
+      const ts = Number(entry?.lastSentAt);
+      return Number.isFinite(ts) ? ts : null;
+    })(),
+  };
+}
+
+function validateMailScheduleEntry(entry){
+  if (!entry.to) return "Empfängeradresse fehlt.";
+  if (!entry.subject) return "Betreff fehlt.";
+  if (!String(entry.text || "").trim()) return "Mailtext fehlt.";
+  if (entry.mode === "time" && !entry.timeOfDay) return "Uhrzeit im Format HH:MM benötigt.";
+  if (entry.mode === "interval") {
+    const minutes = Number(entry.intervalMinutes);
+    if (!Number.isFinite(minutes) || minutes < MAIL_SCHEDULE_MIN_INTERVAL_MINUTES) {
+      return `Intervall muss mindestens ${MAIL_SCHEDULE_MIN_INTERVAL_MINUTES} Minute(n) betragen.`;
+    }
+  }
+  return null;
+}
+
+async function readMailSchedule(){
+  const raw = await readJson(MAIL_SCHEDULE_FILE, []);
+  const list = Array.isArray(raw) ? raw : [];
+  const seen = new Set();
+  const normalized = [];
+  for (const entry of list) {
+    const next = sanitizeMailScheduleEntry(entry);
+    if (!next.id || seen.has(next.id)) {
+      next.id = crypto.randomUUID();
+    }
+    seen.add(next.id);
+    normalized.push(next);
+  }
+  return normalized;
+}
+
+async function writeMailSchedule(next = []){
+  const normalized = Array.isArray(next)
+    ? next.map((entry) => sanitizeMailScheduleEntry(entry))
+    : [];
+  await writeJson(MAIL_SCHEDULE_FILE, normalized);
+  return normalized;
+}
+
+function shouldSendMailNow(entry, now = Date.now()){
+  if (!entry?.enabled) return false;
+  if (!entry.to || !entry.subject || !String(entry.text || "").trim()) return false;
+  const normalizedMode = normalizeMailMode(entry.mode);
+  if (normalizedMode === "time") {
+    const timeValue = normalizeTimeOfDay(entry.timeOfDay);
+    if (!timeValue) return false;
+    const [hh, mm] = timeValue.split(":").map((v) => Number(v));
+    const target = new Date(now);
+    target.setHours(hh, mm, 0, 0);
+    const targetMs = target.getTime();
+    const last = Number(entry.lastSentAt);
+    if (now >= targetMs && (!Number.isFinite(last) || last < targetMs)) return true;
+    return false;
+  }
+
+  const intervalMinutes = Number.isFinite(Number(entry.intervalMinutes))
+    ? Math.max(MAIL_SCHEDULE_MIN_INTERVAL_MINUTES, Math.floor(entry.intervalMinutes))
+    : MAIL_SCHEDULE_DEFAULT_INTERVAL_MINUTES;
+  const intervalMs = intervalMinutes * 60_000;
+  const last = Number(entry.lastSentAt);
+  if (!Number.isFinite(last)) return true;
+  return now - last >= intervalMs;
+}
+
+function resolveAttachmentPath(filePath){
+  const cleaned = typeof filePath === "string" ? filePath.trim() : "";
+  if (!cleaned) return null;
+  return path.isAbsolute(cleaned) ? cleaned : path.join(DATA_DIR, cleaned);
+}
+
+async function buildScheduledMailAttachments(entry){
+  const resolved = resolveAttachmentPath(entry?.attachmentPath || "");
+  if (!resolved) return [];
+  const content = await fs.readFile(resolved);
+  const filename = path.basename(resolved) || "Anhang";
+  return [{ filename, content }];
+}
+
+async function sendScheduledMail(entry){
+  const attachments = await buildScheduledMailAttachments(entry);
+  await sendMail({
+    to: entry.to,
+    subject: entry.subject || "Geplante Nachricht",
+    text: entry.text || "",
+    attachments,
+  });
+}
+
+async function runMailScheduleSweep(){
+  if (mailScheduleRunning) return;
+  mailScheduleRunning = true;
+  try {
+    const schedules = await readMailSchedule();
+    if (!schedules.length) return;
+    if (!isMailConfigured()) return;
+    const now = Date.now();
+    let changed = false;
+    const updated = [];
+    for (const entry of schedules) {
+      const normalized = sanitizeMailScheduleEntry(entry);
+      if (shouldSendMailNow(normalized, now)) {
+        try {
+          await sendScheduledMail(normalized);
+          normalized.lastSentAt = now;
+          changed = true;
+        } catch (err) {
+          await appendError("mail-schedule/send", err, { id: normalized.id, to: normalized.to });
+        }
+      }
+      updated.push(normalized);
+    }
+    if (changed) {
+      await writeMailSchedule(updated);
+    }
+  } finally {
+    mailScheduleRunning = false;
+  }
+}
+
+function clearMailScheduleTimer(){
+  if (mailScheduleTimer){
+    clearInterval(mailScheduleTimer);
+    mailScheduleTimer = null;
+  }
+}
+
+async function startMailScheduleTimer({ immediate = false } = {}){
+  clearMailScheduleTimer();
+  const runner = async () => {
+    try {
+      await runMailScheduleSweep();
+    } catch (err) {
+      await appendError("mail-schedule/run", err);
+    }
+  };
+  mailScheduleTimer = setInterval(runner, MAIL_SCHEDULE_SWEEP_INTERVAL_MS);
+  mailScheduleTimer.unref?.();
+  if (immediate) await runner();
+}
+
 function normalizeGroupNameForAlert(value) {
   if (typeof value !== "string") return "";
   const cleaned = value
@@ -3668,6 +3950,7 @@ app.listen(PORT, async ()=>{
   markActivity("startup:autoimport-disabled");
   console.log("[auto-import] beim Start automatisch deaktiviert");
   await startAutoPrintTimer();
+  await startMailScheduleTimer({ immediate: true });
 });
 
 // Routen aus Aufgaben-Board
