@@ -47,6 +47,16 @@ test("shouldSendMailNow respects time-based schedules once per day", () => {
   );
 });
 
+test("sanitizeMailScheduleEntry preserves literal and aliased time modes", () => {
+  const literalTime = buildBaseEntry({ mode: "time", timeOfDay: "7:05" });
+  assert.equal(literalTime.mode, "time");
+  assert.equal(literalTime.timeOfDay, "07:05");
+
+  const aliasTime = buildBaseEntry({ mode: "uhrzeit", time: "9:30" });
+  assert.equal(aliasTime.mode, "time");
+  assert.equal(aliasTime.timeOfDay, "09:30");
+});
+
 test("runMailScheduleSweep sends due mails and persists lastSentAt", async () => {
   let now = Date.UTC(2024, 0, 1, 12, 0, 0);
   let storage = [
