@@ -3,6 +3,8 @@ import path from "path";
 import crypto from "node:crypto";
 
 const MAIL_MODE_ALIASES = new Map([
+  ["time", "time"],
+  ["uhrzeit", "time"],
   ["clock", "time"],
   ["daily", "time"],
   ["daily-at", "time"],
