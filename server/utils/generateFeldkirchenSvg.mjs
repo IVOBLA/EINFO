@@ -17,7 +17,6 @@ const CATEGORY_FILE = path.join(DATA_DIR, "conf", "weather-categories.json");
 const BASE_MAP_FILE = path.join(DATA_DIR, "conf", "feldkirchen_base.png");
 
 const OUT_DIR = path.join(DATA_DIR, "prints", "uebersicht");
-const OUT_FILE = path.join(OUT_DIR, "feldkirchen.svg");
 
 // Größe deines Screenshots
 const MAP_WIDTH = 798;
@@ -99,6 +98,24 @@ function buildCategoryColorMap(categories) {
     map.set(cat.label, palette[index % palette.length]);
   });
   return map;
+}
+
+function sanitizeFilenamePart(value) {
+  return String(value || "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9_-]/gi, "")
+    .toLowerCase();
+}
+
+function buildOutputFile({ show, hours }) {
+  const parts = ["feldkirchen"];
+  const showPart = sanitizeFilenamePart(show || "");
+  if (showPart) parts.push(`show-${showPart}`);
+  if (Number.isFinite(hours) && hours > 0) {
+    parts.push(`${hours}h`);
+  }
+  return `${parts.join("_")}.svg`;
 }
 
 function createLegend(items) {
@@ -193,6 +210,10 @@ export async function generateFeldkirchenSvg(options = {}) {
   const effectiveHours =
     Number.isFinite(+hours) && +hours > 0 ? +hours : 24;
   const cutoff = now - effectiveHours * 60 * 60 * 1000;
+  const outputFile = path.join(
+    OUT_DIR,
+    buildOutputFile({ show, hours: effectiveHours })
+  );
 
   const categories = await loadCategories();
   const categoryColorMap = buildCategoryColorMap(categories);
@@ -271,8 +292,9 @@ export async function generateFeldkirchenSvg(options = {}) {
 </svg>`;
 
   await fsp.mkdir(OUT_DIR, { recursive: true });
-  await fsp.writeFile(OUT_FILE, svg, "utf8");
-  console.log("[svg] Karte geschrieben:", OUT_FILE);
+  await fsp.writeFile(outputFile, svg, "utf8");
+  console.log("[svg] Karte geschrieben:", outputFile);
+  return outputFile;
 }
 
 // CLI: node utils/generateFeldkirchenSvg.mjs
