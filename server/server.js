@@ -1478,6 +1478,7 @@ app.use("/api/user", User_createRouter({
 }));
 
 const INTERNAL_AUTO_PRINT_HEADER = "x-internal-auto-print";
+const FELDKIRCHEN_MAP_PATH = "/api/internal/feldkirchen-map";
 
 function isLoopbackAddress(address) {
   if (!address) return false;
@@ -1531,8 +1532,48 @@ app.use((req,res,next)=>{
   if (req.path.startsWith("/api/user/")) return next();
   if (req.path === "/api/activity/status") return next();
   if (req.path.startsWith("/api/print/server") && isInternalAutoPrintRequest(req)) return next();
+  if (req.path === FELDKIRCHEN_MAP_PATH && isLoopbackAddress(req?.socket?.remoteAddress)) return next();
   if (!req.user) return res.status(401).json({ ok:false, error:"UNAUTHORIZED" });
   next();
+});
+
+function normalizeFeldkirchenShowParam(value) {
+  if (typeof value !== "string") return "weather";
+  const normalized = value.trim().toLowerCase();
+  if (["weather", "all"].includes(normalized)) return normalized;
+  return null;
+}
+
+function normalizePositiveNumber(value, fallback) {
+  const parsed = Number(value);
+  if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  return fallback;
+}
+
+// ===================================================================
+// =           FELDKIRCHEN-KARTE: MANUELLER GET-ENDPUNKT              =
+// ===================================================================
+app.get(FELDKIRCHEN_MAP_PATH, async (req, res) => {
+  const show = normalizeFeldkirchenShowParam(req.query?.show);
+  if (!show) {
+    return res.status(400).json({
+      ok: false,
+      error: 'Parameter "show" muss "weather" oder "all" sein.',
+    });
+  }
+
+  const hours = normalizePositiveNumber(req.query?.hours, 24);
+
+  try {
+    const outputFile = await generateFeldkirchenSvg({ show, hours });
+    res.type("image/svg+xml");
+    return res.sendFile(outputFile);
+  } catch (err) {
+    await appendError("feldkirchen-map", err);
+    res
+      .status(500)
+      .json({ ok: false, error: "Karte konnte nicht erzeugt werden." });
+  }
 });
 
 // ==== Zeitgesteuerte Mails ====
