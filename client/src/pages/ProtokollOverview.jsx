@@ -35,6 +35,109 @@ function short200NoBreak(s) {
   return t.length > 200 ? t.slice(0, 200) + "…" : t;
 }
 
+function describeHistoryPath(path) {
+  const p = String(path || "");
+
+  if (p === "information" || p.startsWith("information.")) return "Information";
+  if (p === "rueckmeldung1" || p.startsWith("rueckmeldung1.")) return "Rückmeldung";
+  if (p === "lagebericht" || p.startsWith("lagebericht.")) return "Lagebericht";
+  if (p.startsWith("otherRecipientConfirmation")) return "Empfängerbestätigung";
+  if (p.startsWith("ergehtAn")) return "Verteiler (ergeht an)";
+  if (p.startsWith("uebermittlungsart")) return "Übermittlungsart";
+  if (p === "datum" || p === "zeit") return "Datum/Zeit";
+  if (p === "zu") return "Zu-Nummer";
+
+  // Maßnahmen inkl. Index hübsch darstellen
+  const m = /^massnahmen\.(\d+)(?:\.(.+))?$/.exec(p);
+  if (m) {
+    const idx = Number(m[1]) + 1;
+    const sub = m[2] || "";
+    if (sub === "text") return `Maßnahme ${idx} Text`;
+    if (sub === "done") return `Maßnahme ${idx} Status`;
+    return `Maßnahme ${idx}${sub ? ` (${sub})` : ""}`;
+  }
+
+  // Fallback: rohen Pfad verwenden
+  return p || "Feld";
+}
+
+function formatChangeValueForTooltip(value) {
+  if (value === null || typeof value === "undefined") return "—";
+
+  if (typeof value === "string") {
+    const t = value.replace(/\s+/g, " ").trim();
+    if (!t) return "—";
+    return t.length > 80 ? t.slice(0, 77) + "…" : t;
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  if (Array.isArray(value)) {
+    const len = value.length;
+    return len === 0 ? "[]" : `[${len} Einträge]`;
+  }
+
+  if (typeof value === "object") {
+    if (typeof value.text === "string") {
+      return formatChangeValueForTooltip(value.text);
+    }
+    if (typeof value.name === "string") {
+      return formatChangeValueForTooltip(value.name);
+    }
+    try {
+      const json = JSON.stringify(value);
+      return json.length > 80 ? json.slice(0, 77) + "…" : json;
+    } catch {
+      return "[Objekt]";
+    }
+  }
+
+  return String(value);
+}
+
+function buildLastUpdateChangeDetails(item) {
+  const history = Array.isArray(item?.history) ? item.history : [];
+  if (!history.length) return null;
+
+  // letzte UPDATE-History finden
+  let entry = null;
+  for (let i = history.length - 1; i >= 0; i--) {
+    const h = history[i];
+    if (h && h.action === "update" && Array.isArray(h.changes)) {
+      entry = h;
+      break;
+    }
+  }
+  if (!entry) return null;
+
+  const changes = Array.isArray(entry.changes) ? entry.changes : [];
+  if (!changes.length) return null;
+
+  const lines = [];
+  for (const ch of changes) {
+    const label = describeHistoryPath(ch.path);
+    const beforeStr = formatChangeValueForTooltip(ch.before);
+    const afterStr = formatChangeValueForTooltip(ch.after);
+    if (beforeStr === afterStr) continue;
+    lines.push(`${label}: ${beforeStr} → ${afterStr}`);
+  }
+
+  if (!lines.length) return null;
+
+  const MAX_LINES = 5;
+  if (lines.length > MAX_LINES) {
+    const visible = lines.slice(0, MAX_LINES);
+    const remaining = lines.length - MAX_LINES;
+    visible.push(`(+${remaining} weitere Änderungen)`);
+    return visible.join("\n");
+  }
+
+  return lines.join("\n");
+}
+
+
 function collectNameVariants(value) {
   const variants = new Set();
   if (value == null) return variants;
@@ -399,10 +502,22 @@ const rows = useMemo(
        return last.replace(/\s*#\d+\s*$/, "").trim() || null;
      })()
    : null;
- const lastActor = lastDoneActor || fallbackActor;
- const hoverTitle = isHighlighted
-   ? `Erstellt/geändert durch ${lastActor}`
-   : `Geändert durch ${lastActor}`;
+
+const lastActor = lastDoneActor || fallbackActor;
+
+// Nur bei markierten (gelben) Einträgen die Detail-Änderungen anhängen
+const changeDetails = isHighlighted ? buildLastUpdateChangeDetails(r) : null;
+
+const hoverBase = isHighlighted
+  ? `Erstellt/geändert durch ${lastActor}`
+  : `Geändert durch ${lastActor}`;
+
+const hoverTitle = changeDetails
+  ? `${hoverBase}\n${changeDetails}`
+  : hoverBase;
+   
+   
+   
               // --- Anzeige-Logik Druckanzeige ---
               const showPrintCircle = !!confirmation?.confirmed; // Kreis nur bei bestätigten Einträgen
               const printTitleParts = [`${printCount}× gedruckt`];
