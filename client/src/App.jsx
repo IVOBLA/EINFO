@@ -451,6 +451,7 @@ const route = hash.replace(/^#/, "");
   const suppressPulseIdsRef  = useRef(new Set()); // IDs, für die kein Pulse erlaubt ist
   const initialPulseSuppressUntilRef = useRef(0); // Start-Sperre nach Laden
   const lastPulseTriggerRef = useRef(0);        // Zeitpunkt des letzten fremden Neu-Pulses
+  const prevBoardRef = useRef(null);            // Merker für letzte Board-Struktur
 
 
 
@@ -529,7 +530,7 @@ const remaining = autoEnabled
       setBoard(b); setVehicles(v); setTypes(Array.isArray(t) ? t : []);
       applyGroupAvailabilityResponse(g);
       applyGroupAlertedResponse(ga);
-      prevIdsRef.current = getAllCardIds(b);
+      rememberBoardSnapshot(b);
       initialPulseSuppressUntilRef.current = Date.now() + INITIAL_PULSE_SUPPRESS_MS;
       try {
         const cfg = await getAutoImportConfig();
@@ -562,12 +563,13 @@ useEffect(() => {
     if (!unlocked) return;
     let timer;
     const period = Math.max(5, Math.min(60, autoEnabled ? 8 : 15));
-const tick = async () => {
+  const tick = async () => {
   try {
     const oldIds = new Set(prevIdsRef.current);
+    const oldBoard = prevBoardRef.current;
     const nb = await fetchBoard();
     setBoard(nb);
-    updatePulseForNewBoard({ oldIds, newBoard: nb, pulseMs: 8000 });
+    updatePulseForNewBoard({ oldIds, oldBoard, newBoard: nb, pulseMs: 8000 });
   } catch {}
   timer = setTimeout(tick, period * 1000);
 };
@@ -771,8 +773,12 @@ useEffect(() => {
   }, [areaFilter, areaLabelById, areaOptions]);
 
   const syncBoardAndInfo = (updatedCard, nextBoard) => {
+    if (updatedCard?.id) {
+      markLocalChange(updatedCard.id);
+    }
     if (nextBoard) {
       setBoard(nextBoard);
+      rememberBoardSnapshot(nextBoard);
       if (updatedCard?.id && infoCard?.id === updatedCard.id) {
         const fresh = getCardById(nextBoard, updatedCard.id);
         setInfoCard(fresh || updatedCard);
@@ -791,6 +797,7 @@ useEffect(() => {
             break;
           }
         }
+        rememberBoardSnapshot(b);
         return b;
       });
       if (infoCard?.id === updatedCard.id) {
@@ -824,6 +831,17 @@ useEffect(() => {
 // Neu-import-Puls
 const [newlyImportedIds, setNewlyImportedIds] = useState(new Set());
 const prevIdsRef = useRef(new Set());  // Merker der zuletzt bekannten Karten-IDs (alle Spalten)
+const rememberBoardSnapshot = (boardLike) => {
+  prevBoardRef.current = boardLike;
+  prevIdsRef.current = getAllCardIds(boardLike);
+};
+
+const markLocalChange = (...cardIds) => {
+  cardIds
+    .map((id) => String(id ?? "").trim())
+    .filter(Boolean)
+    .forEach((id) => suppressPulseIdsRef.current.add(id));
+};
 
 // Nach X Sekunden die Markierungen automatisch löschen (optional)
 useEffect(() => {
@@ -839,6 +857,40 @@ function getAllCardIds(b) {
     for (const c of (b.columns[k].items || [])) out.add(String(c.id));
   }
   return out;
+}
+
+function stableNormalize(value) {
+  if (Array.isArray(value)) return value.map(stableNormalize);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [key, stableNormalize(value[key])])
+    );
+  }
+  return value;
+}
+
+function normalizeCardForDiff(card, { ignoreUpdatedAt = false } = {}) {
+  if (!card || typeof card !== "object") return card;
+  const { columnId, status, updatedAt, column, ...rest } = card;
+  const base = { ...rest };
+  if (!ignoreUpdatedAt && typeof updatedAt !== "undefined") {
+    base.updatedAt = updatedAt;
+  }
+  return stableNormalize(base);
+}
+
+function mapCardsWithColumn(boardData) {
+  const map = new Map();
+  if (!boardData?.columns) return map;
+  for (const [colId, col] of Object.entries(boardData.columns)) {
+    for (const card of col?.items || []) {
+      if (!card || typeof card.id === "undefined" || card.id === null) continue;
+      map.set(String(card.id), { card, columnId: colId });
+    }
+  }
+  return map;
 }
 
 function cardMatchesAreaFilter(card, targetAreaId) {
@@ -893,30 +945,51 @@ const triggerFilterPulse = (durationMs = 8000) => {
   }, durationMs);
 };
 
-function updatePulseForNewBoard({ oldIds, newBoard, pulseMs = 8000 }) {
+function updatePulseForNewBoard({ oldIds, oldBoard, newBoard, pulseMs = 8000 }) {
   const now = Date.now();
+  const previousBoard = oldBoard ?? prevBoardRef.current;
+  const previousIds = oldIds ?? getAllCardIds(previousBoard);
   const newIds = getAllCardIds(newBoard);
   const added = new Set();
-  for (const id of newIds) if (!oldIds.has(id)) added.add(id);
+  for (const id of newIds) if (!previousIds.has(id)) added.add(id);
 
-  // Eigene, gerade angelegte Karten rausfiltern (keine Pulse, kein Ton)
-  const filtered = new Set(
-    [...added].filter(id => !suppressPulseIdsRef.current.has(String(id)))
+  const suppressed = suppressPulseIdsRef.current;
+
+  const filteredAdded = new Set(
+    [...added].filter((id) => !suppressed.has(String(id)))
   );
 
-  // einmalige Nutzung, danach wieder freigeben
-  for (const id of added) suppressPulseIdsRef.current.delete(String(id));
+  const changedIds = new Set();
+  if (previousBoard && newBoard) {
+    const prevMap = mapCardsWithColumn(previousBoard);
+    const nextMap = mapCardsWithColumn(newBoard);
 
-  const neuColumnItems = newBoard?.columns?.["neu"]?.items || [];
-  const neuIdSet = new Set(neuColumnItems.map((card) => String(card?.id)));
-  const eligible = new Set(
-    [...filtered].filter((id) => neuIdSet.has(String(id)))
-  );
+    for (const [id, nextEntry] of nextMap.entries()) {
+      if (!prevMap.has(id)) continue;
+      if (suppressed.has(String(id))) continue;
+      const prevEntry = prevMap.get(id);
+      const prevNorm = normalizeCardForDiff(prevEntry.card);
+      const nextNorm = normalizeCardForDiff(nextEntry.card);
+      const isSame = JSON.stringify(prevNorm) === JSON.stringify(nextNorm);
+      if (isSame) continue;
 
-  // Nur wenn es tatsächlich fremde neue Karten im Status "Neu" gibt (=> Pulse)
+      if (prevEntry.columnId !== nextEntry.columnId) {
+        const prevNoUpdated = normalizeCardForDiff(prevEntry.card, { ignoreUpdatedAt: true });
+        const nextNoUpdated = normalizeCardForDiff(nextEntry.card, { ignoreUpdatedAt: true });
+        const statusOnly = JSON.stringify(prevNoUpdated) === JSON.stringify(nextNoUpdated);
+        if (statusOnly) continue;
+      }
+
+      changedIds.add(id);
+    }
+  }
+
+  const eligible = new Set([...filteredAdded, ...changedIds]);
+
   if (eligible.size > 0) {
     if (now < initialPulseSuppressUntilRef.current) {
-      prevIdsRef.current = newIds;
+      rememberBoardSnapshot(newBoard);
+      suppressed.clear();
       return;
     }
 
@@ -938,7 +1011,8 @@ function updatePulseForNewBoard({ oldIds, newBoard, pulseMs = 8000 }) {
 
   }
 
-  prevIdsRef.current = newIds;
+  rememberBoardSnapshot(newBoard);
+  suppressed.clear();
 }
 
 useEffect(() => {
@@ -961,6 +1035,7 @@ useEffect(() => {
     setImportBusy(true);
 try {
   const oldIds = new Set(prevIdsRef.current);
+  const oldBoard = prevBoardRef.current;
 
   const res = await fetch("/api/import/trigger", { method: "POST", credentials: "include" });
   if (!res.ok) {
@@ -970,7 +1045,7 @@ try {
 
   const newBoard = await fetchBoard();
   setBoard(newBoard);
-  updatePulseForNewBoard({ oldIds, newBoard, pulseMs: 8000 });
+  updatePulseForNewBoard({ oldIds, oldBoard, newBoard, pulseMs: 8000 });
   setSec(0); // (6) Countdown reset
 } catch (e) {
   alert(e.message || "Import fehlgeschlagen.");
@@ -1018,8 +1093,10 @@ try {
         });
         newId = hit?.id;
       }
-      if (assignToCardId && newId) { await assignVehicle(assignToCardId, newId); }
-      setBoard(await fetchBoard());
+      if (assignToCardId && newId) { await assignVehicle(assignToCardId, newId); markLocalChange(assignToCardId); }
+      const nextBoard = await fetchBoard();
+      setBoard(nextBoard);
+      rememberBoardSnapshot(nextBoard);
     } catch (e) {
       alert(e.message || "Clone fehlgeschlagen");
     } finally { setCloneBusy(false); }
@@ -1597,7 +1674,10 @@ useEffect(() => {
           await unassignVehicle(fromCardId, vehicleId);
           try { await resetVehiclePosition(vehicleId); } catch {}
           await assignVehicle(toCardId, vehicleId);
-          setBoard(await fetchBoard());
+          markLocalChange(fromCardId, toCardId);
+          const nextBoard = await fetchBoard();
+          setBoard(nextBoard);
+          rememberBoardSnapshot(nextBoard);
         } catch { alert("Einheit konnte nicht umgehängt werden."); }
       }
       return;
@@ -1607,7 +1687,10 @@ useEffect(() => {
     if (aid.startsWith("veh:") && oid.startsWith("card:")) {
       try {
         await assignVehicle(oid.slice(5), aid.slice(4));
-        setBoard(await fetchBoard());
+        markLocalChange(oid.slice(5));
+        const nextBoard = await fetchBoard();
+        setBoard(nextBoard);
+        rememberBoardSnapshot(nextBoard);
       } catch { alert("Einheit konnte nicht zugewiesen werden."); }
       return;
     }
@@ -1626,6 +1709,7 @@ useEffect(() => {
           }
           try {
             await transitionCard({ cardId, from, to, toIndex: 0 });
+            markLocalChange(cardId);
             if (to === "erledigt") {
               const [nextBoard, nextVehicles] = await Promise.all([
                 fetchBoard(),
@@ -1633,8 +1717,11 @@ useEffect(() => {
               ]);
               setBoard(nextBoard);
               setVehicles(nextVehicles);
+              rememberBoardSnapshot(nextBoard);
             } else {
-              setBoard(await fetchBoard());
+              const nextBoard = await fetchBoard();
+              setBoard(nextBoard);
+              rememberBoardSnapshot(nextBoard);
             }
           } catch { alert("Statuswechsel konnte nicht gespeichert werden."); }
         }
@@ -1649,6 +1736,7 @@ useEffect(() => {
           }
           try {
             await transitionCard({ cardId, from, to, toIndex: 0 });
+            markLocalChange(cardId);
             if (to === "erledigt") {
               const [nextBoard, nextVehicles] = await Promise.all([
                 fetchBoard(),
@@ -1656,8 +1744,11 @@ useEffect(() => {
               ]);
               setBoard(nextBoard);
               setVehicles(nextVehicles);
+              rememberBoardSnapshot(nextBoard);
             } else {
-              setBoard(await fetchBoard());
+              const nextBoard = await fetchBoard();
+              setBoard(nextBoard);
+              rememberBoardSnapshot(nextBoard);
             }
           } catch { alert("Statuswechsel konnte nicht gespeichert werden."); }
         }
@@ -1670,7 +1761,9 @@ useEffect(() => {
     setLoadingReset(true);
     try {
       await resetBoard();
-      setBoard(await fetchBoard());
+      const nextBoard = await fetchBoard();
+      setBoard(nextBoard);
+      rememberBoardSnapshot(nextBoard);
     } catch { alert("Reset fehlgeschlagen."); }
     finally { setLoadingReset(false); }
   };
@@ -1724,11 +1817,12 @@ const createIncident = async ({
     }
     const r = await createCard(title, "neu", 0, ort, typ, payload);
         suppressSoundUntilRef.current = Date.now()// + 15000;
-   if (r?.card?.id != null) suppressPulseIdsRef.current.add(String(r.card.id));
+   if (r?.card?.id != null) markLocalChange(r.card.id);
     setBoard((prev) => {
       if (!prev) return prev;
       const b = structuredClone(prev);
       b.columns["neu"].items.unshift(r.card);
+      rememberBoardSnapshot(b);
       return b;
     });
   };
@@ -2182,8 +2276,10 @@ if (route.startsWith("/protokoll")) {
                             fetchBoard(),
                             fetchVehicles(),
                           ]);
+                          markLocalChange(cardId);
                           setBoard(nextBoard);
                           setVehicles(nextVehicles);
+                          rememberBoardSnapshot(nextBoard);
                         }}
                         onOpenMap={(_) => setMapCtx({
                           address: c.ort, card: c, board: safeBoard, vehiclesById: vehiclesByIdObj,
@@ -2191,7 +2287,10 @@ if (route.startsWith("/protokoll")) {
                         onAdvance={canEdit ? async (card) => {
                         if (id === "neu") {
                           await transitionCard({ cardId: card.id, from: "neu", to: "in-bearbeitung", toIndex: 0 });
-                          setBoard(await fetchBoard());
+                          markLocalChange(card.id);
+                          const nextBoard = await fetchBoard();
+                          setBoard(nextBoard);
+                          rememberBoardSnapshot(nextBoard);
                         } else if (id === "in-bearbeitung") {
                           if (!confirmDoneTransition()) {
                             return;
@@ -2201,8 +2300,10 @@ if (route.startsWith("/protokoll")) {
                             fetchBoard(),
                             fetchVehicles(),
                           ]);
+                          markLocalChange(card.id);
                           setBoard(nextBoard);
                           setVehicles(nextVehicles);
+                          rememberBoardSnapshot(nextBoard);
                         }
                       } : undefined}
                         onEditPersonnelStart={canEdit ? (card, disp) => { setEditing({ cardId: card.id }); setEditingValue(disp); } : undefined}
@@ -2212,7 +2313,10 @@ if (route.startsWith("/protokoll")) {
                         onEditPersonnelSave={canEdit ? async (cardToSave) => {
                           try {
                             await setCardPersonnel(cardToSave.id, editingValue === "" ? null : Number(editingValue));
-                            setBoard(await fetchBoard());
+                            markLocalChange(cardToSave.id);
+                            const nextBoard = await fetchBoard();
+                            setBoard(nextBoard);
+                            rememberBoardSnapshot(nextBoard);
                           } finally { setEditing(null); setEditingValue(""); }
                         } : undefined}
                         onEditPersonnelCancel={canEdit ? () => { setEditing(null); setEditingValue(""); } : undefined}
