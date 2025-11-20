@@ -660,9 +660,13 @@ export default function User_AdminPanel() {
     setMsg("");
     try {
       setSavingApiSchedule(true);
+      const trimmedUrl = (apiScheduleDraft.url || "").trim();
+      if (!trimmedUrl) {
+        throw new Error("Bitte eine URL angeben.");
+      }
       const payload = {
         label: apiScheduleDraft.label,
-        url: apiScheduleDraft.url,
+        url: trimmedUrl,
         method: apiScheduleDraft.method,
         body: apiScheduleDraft.body,
         mode: apiScheduleDraft.mode,
@@ -1388,7 +1392,7 @@ export default function User_AdminPanel() {
                 <label className="text-sm text-gray-700">URL</label>
                 <input
                   className="border px-2 py-1 rounded"
-                  type="url"
+                  type="text"
                   required
                   placeholder="https://example.com/webhook"
                   value={apiScheduleDraft.url}
