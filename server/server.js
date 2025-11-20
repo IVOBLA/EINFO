@@ -219,6 +219,33 @@ const EINSATZ_HEADERS = [
   "Bemerkung",
   "InternID"
 ];
+const AUTO_IMPORT_LOG_OPTIONS = { autoTimestampField: "Zeitpunkt", autoUserField: "Benutzer" };
+
+function columnDisplayName(board, key) {
+  if (!key) return "";
+  return board?.columns?.[key]?.name || DEFAULT_BOARD_COLUMNS[key] || key || "";
+}
+
+async function appendAutoImportCsvLog({ action, card, columnKey, board }) {
+  const logRow = buildEinsatzLog({
+    action,
+    card,
+    from: columnDisplayName(board, columnKey),
+    note: card?.ort || "",
+    board,
+    user: AUTO_IMPORT_USER,
+  });
+
+  if (!logRow.Benutzer) logRow.Benutzer = AUTO_IMPORT_USER;
+
+  await appendCsvRow(
+    LOG_FILE,
+    EINSATZ_HEADERS,
+    logRow,
+    null,
+    AUTO_IMPORT_LOG_OPTIONS,
+  );
+}
 
 // ==== Auto-Import ====
 const AUTO_CFG_FILE         = path.join(DATA_DIR, "conf","auto-import.json");
@@ -3156,7 +3183,18 @@ function mapIncomingItemToCardFields(item){
 }
 
 function applyIncomingFieldsToCard(target, incoming) {
-  if (!target || !incoming) return;
+  if (!target || !incoming) return false;
+
+  let changed = false;
+
+  const assignIfChanged = (key, value) => {
+    if (value === undefined) return;
+    if (target[key] !== value) {
+      target[key] = value;
+      changed = true;
+    }
+  };
+
   const incomingUpdated = incoming.updated ?? null;
   const targetUpdated = target.updated ?? null;
   const hasCoreFieldDiff = [
@@ -3175,18 +3213,20 @@ function applyIncomingFieldsToCard(target, incoming) {
     (incomingUpdated === targetUpdated && hasCoreFieldDiff);
 
   if (shouldOverwriteCoreFields) {
-    if (incoming.content !== undefined) target.content = incoming.content;
-    if (incoming.ort !== undefined) target.ort = incoming.ort;
-    if (incoming.typ !== undefined) target.typ = incoming.typ;
-    if (incoming.alerted !== undefined) target.alerted = incoming.alerted;
-    if (incoming.latitude !== undefined) target.latitude = incoming.latitude;
-    if (incoming.longitude !== undefined) target.longitude = incoming.longitude;
-    if (typeof incoming.description === "string") target.description = incoming.description;
+    assignIfChanged("content", incoming.content);
+    assignIfChanged("ort", incoming.ort);
+    assignIfChanged("typ", incoming.typ);
+    assignIfChanged("alerted", incoming.alerted);
+    assignIfChanged("latitude", incoming.latitude);
+    assignIfChanged("longitude", incoming.longitude);
+    if (typeof incoming.description === "string") assignIfChanged("description", incoming.description);
   }
 
-  if (typeof incoming.location === "string" && incoming.location) target.location = incoming.location;
-  if (incoming.timestamp) target.timestamp = incoming.timestamp;
-  if (incomingUpdated !== undefined) target.updated = incomingUpdated;
+  if (typeof incoming.location === "string" && incoming.location) assignIfChanged("location", incoming.location);
+  if (incoming.timestamp) assignIfChanged("timestamp", incoming.timestamp);
+  if (incomingUpdated !== undefined) assignIfChanged("updated", incomingUpdated);
+
+  return changed;
 }
 
 function parseAT(ts) {
@@ -3256,13 +3296,30 @@ async function importFromFileOnce(filename=AUTO_DEFAULT_FILENAME){
         }
       }
       if(existing){
-        applyIncomingFieldsToCard(existing, m);
-        updated++;
+        const existingChanged = applyIncomingFieldsToCard(existing, m);
+        if (existingChanged) {
+          updated++;
+          await appendAutoImportCsvLog({
+            action: "Einsatz aktualisiert (Auto-Import)",
+            card: existing,
+            columnKey: existingRef?.col,
+            board,
+          });
+        }
       }else{
         const duplicateByCoords = findCardByCoordinates(board, m.latitude, m.longitude, ["neu", "in-bearbeitung"]);
         if (duplicateByCoords) {
-          applyIncomingFieldsToCard(duplicateByCoords, m);
-          updated++;
+          const duplicateRef = findCardRef(board, duplicateByCoords.id);
+          const duplicateChanged = applyIncomingFieldsToCard(duplicateByCoords, m);
+          if (duplicateChanged) {
+            updated++;
+            await appendAutoImportCsvLog({
+              action: "Einsatz aktualisiert (Auto-Import)",
+              card: duplicateByCoords,
+              columnKey: duplicateRef?.col,
+              board,
+            });
+          }
           continue;
         }
         const now=new Date().toISOString();
@@ -3280,24 +3337,13 @@ async function importFromFileOnce(filename=AUTO_DEFAULT_FILENAME){
         board.columns["neu"].items.unshift(card);
         await appendWeatherIncidentForCard(card);
         created++;
-		lastCreatedCard = card; 
-        const logUser = AUTO_IMPORT_USER;
-        const logRow = buildEinsatzLog({
+                lastCreatedCard = card;
+        await appendAutoImportCsvLog({
           action: "Einsatz erstellt (Auto-Import)",
           card,
-          from: "Neu",
-          note: card.ort || "",
+          columnKey: "neu",
           board,
-          user: logUser
         });
-        if (!logRow.Benutzer) logRow.Benutzer = logUser;
-        await appendCsvRow(
-          LOG_FILE,
-          EINSATZ_HEADERS,
-          logRow,
-          null,
-          { autoTimestampField: "Zeitpunkt", autoUserField: "Benutzer" }
-        );
       }
     }
 
