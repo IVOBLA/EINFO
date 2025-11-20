@@ -63,6 +63,19 @@ const normalizeAutoPrintScope = (value) => {
   return "interval";
 };
 
+const createEmptyMailSchedule = () => ({
+  id: null,
+  label: "",
+  to: "",
+  subject: "",
+  text: "",
+  mode: "interval",
+  intervalMinutes: "60",
+  timeOfDay: "08:00",
+  attachmentPath: "",
+  enabled: true,
+});
+
 export default function User_AdminPanel() {
   const { user } = useUserAuth();
 
@@ -81,6 +94,10 @@ export default function User_AdminPanel() {
   const [autoPrintConfig, setAutoPrintConfig] = useState({ enabled:false, intervalMinutes:10, lastRunAt:null, entryScope:"interval", scope:"interval" });
   const [autoPrintDraft, setAutoPrintDraft] = useState({ enabled:false, intervalMinutes:"10", entryScope:"interval" });
   const [savingAutoPrintConfig, setSavingAutoPrintConfig] = useState(false);
+  const [mailSchedules, setMailSchedules] = useState([]);
+  const [mailScheduleDraft, setMailScheduleDraft] = useState(createEmptyMailSchedule());
+  const [savingMailSchedule, setSavingMailSchedule] = useState(false);
+  const [loadingMailSchedules, setLoadingMailSchedules] = useState(false);
 
   // ---- capabilities ↔ apps Konvertierung ----
   const parseCapToken = (t) => {
@@ -155,6 +172,41 @@ export default function User_AdminPanel() {
     });
   };
 
+  const resetMailScheduleDraft = () => setMailScheduleDraft(createEmptyMailSchedule());
+
+  const startEditMailSchedule = (entry) => {
+    if (!entry) {
+      resetMailScheduleDraft();
+      return;
+    }
+    setMailScheduleDraft({
+      id: entry.id || null,
+      label: entry.label || "",
+      to: entry.to || "",
+      subject: entry.subject || "",
+      text: entry.text || "",
+      mode: entry.mode === "time" ? "time" : "interval",
+      intervalMinutes: String(entry.intervalMinutes ?? ""),
+      timeOfDay: entry.timeOfDay || "08:00",
+      attachmentPath: entry.attachmentPath || "",
+      enabled: entry.enabled !== false,
+    });
+  };
+
+  async function loadMailSchedules() {
+    setLoadingMailSchedules(true);
+    try {
+      const res = await fetch("/api/mail/schedule", { credentials: "include", cache: "no-store" });
+      const js = await res.json().catch(() => ({}));
+      if (!res.ok || js?.error) throw new Error(js?.error || "Zeitpläne konnten nicht geladen werden.");
+      setMailSchedules(Array.isArray(js.schedules) ? js.schedules : []);
+    } catch (ex) {
+      setErr((prev) => prev || ex.message || "Fehler beim Laden der Mail-Zeitpläne");
+    } finally {
+      setLoadingMailSchedules(false);
+    }
+  }
+
   // ---- Laden wie gehabt ----
   async function refresh() {
     setLoading(true);
@@ -211,6 +263,9 @@ export default function User_AdminPanel() {
             entryScope: sanitized.entryScope,
           });
         }
+      } catch (_) {/* optional */}
+      try {
+        await loadMailSchedules();
       } catch (_) {/* optional */}
     } catch (e) {
       if (e.status === 423) setLocked(true);
@@ -470,10 +525,93 @@ export default function User_AdminPanel() {
     }
   }
 
+  async function onSaveMailSchedule(e) {
+    e.preventDefault();
+    if (savingMailSchedule) return;
+    const parsedInterval = Number.parseInt(mailScheduleDraft.intervalMinutes, 10);
+    const payload = {
+      label: mailScheduleDraft.label || "",
+      to: mailScheduleDraft.to,
+      subject: mailScheduleDraft.subject,
+      text: mailScheduleDraft.text,
+      mode: mailScheduleDraft.mode === "time" ? "time" : "interval",
+      intervalMinutes: Number.isFinite(parsedInterval) ? parsedInterval : mailScheduleDraft.intervalMinutes,
+      timeOfDay: mailScheduleDraft.timeOfDay,
+      attachmentPath: mailScheduleDraft.attachmentPath,
+      enabled: !!mailScheduleDraft.enabled,
+    };
+    setErr("");
+    setMsg("");
+    setSavingMailSchedule(true);
+    try {
+      const url = mailScheduleDraft.id
+        ? `/api/mail/schedule/${encodeURIComponent(mailScheduleDraft.id)}`
+        : "/api/mail/schedule";
+      const method = mailScheduleDraft.id ? "PUT" : "POST";
+      const res = await fetch(url, {
+        method,
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const js = await res.json().catch(() => ({}));
+      if (!res.ok || js?.error) throw new Error(js?.error || "Speichern fehlgeschlagen");
+      setMailSchedules(Array.isArray(js.schedules) ? js.schedules : []);
+      resetMailScheduleDraft();
+      setMsg(mailScheduleDraft.id ? "Zeitplan aktualisiert." : "Zeitplan angelegt.");
+    } catch (ex) {
+      setErr(ex.message || "Speichern fehlgeschlagen");
+    } finally {
+      setSavingMailSchedule(false);
+    }
+  }
+
+  async function onDeleteMailSchedule(id) {
+    if (!id) return;
+    setErr("");
+    setMsg("");
+    try {
+      const res = await fetch(`/api/mail/schedule/${encodeURIComponent(id)}`, { method: "DELETE", credentials: "include" });
+      const js = await res.json().catch(() => ({}));
+      if (!res.ok || js?.error) throw new Error(js?.error || "Löschen fehlgeschlagen");
+      setMailSchedules(Array.isArray(js.schedules) ? js.schedules : []);
+      if (mailScheduleDraft.id === id) resetMailScheduleDraft();
+      setMsg("Zeitplan gelöscht.");
+    } catch (ex) {
+      setErr(ex.message || "Löschen fehlgeschlagen");
+    }
+  }
+
+  async function onResetMailScheduleLastSent(id) {
+    if (!id) return;
+    setErr("");
+    setMsg("");
+    try {
+      const res = await fetch(`/api/mail/schedule/${encodeURIComponent(id)}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ resetLastSent: true }),
+      });
+      const js = await res.json().catch(() => ({}));
+      if (!res.ok || js?.error) throw new Error(js?.error || "Aktualisierung fehlgeschlagen");
+      setMailSchedules(Array.isArray(js.schedules) ? js.schedules : []);
+      setMsg("Letzter Versandzeitpunkt zurückgesetzt.");
+    } catch (ex) {
+      setErr(ex.message || "Aktualisierung fehlgeschlagen");
+    }
+  }
+
   // ---- Render ----
   const autoPrintLastRunLabel = autoPrintConfig.lastRunAt
     ? new Date(autoPrintConfig.lastRunAt).toLocaleString("de-AT", { hour12: false })
     : null;
+  const mailScheduleLastRunLabel = (value) => {
+    const ts = Number(value);
+    if (!Number.isFinite(ts) || ts <= 0) return "—";
+    return new Date(ts).toLocaleString("de-AT", { hour12: false });
+  };
+  const editingMailSchedule = !!mailScheduleDraft.id;
 
   return (
     <div className="p-4 space-y-6">
@@ -833,6 +971,203 @@ export default function User_AdminPanel() {
               Einstellungen speichern
             </button>
           </div>
+        </div>
+      </details>
+
+      {/* 5c) Zeitgesteuerte Mails */}
+      <details className="border rounded p-3" open>
+        <summary className="cursor-pointer font-medium">Zeitgesteuerter Mailversand</summary>
+        <div className="mt-3 space-y-3 text-sm">
+          <div className="text-xs text-gray-500">
+            Versand an hinterlegte Empfänger mit festem Intervall oder täglicher Uhrzeit. Anhänge werden vom Serverpfad geladen.
+          </div>
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm border-separate border-spacing-y-2">
+              <thead>
+                <tr className="text-left text-xs text-gray-500">
+                  <th className="px-2">Titel / Betreff</th>
+                  <th className="px-2">Empfänger</th>
+                  <th className="px-2">Rhythmus</th>
+                  <th className="px-2">Anhang</th>
+                  <th className="px-2">Letzter Versand</th>
+                  <th className="px-2">Aktiv</th>
+                  <th className="px-2">Aktionen</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mailSchedules.length === 0 ? (
+                  <tr>
+                    <td className="px-2 py-2 text-gray-500" colSpan={7}>– keine Zeitpläne hinterlegt –</td>
+                  </tr>
+                ) : (
+                  mailSchedules.map((entry) => (
+                    <tr key={entry.id} className="bg-white shadow-sm rounded">
+                      <td className="px-2 py-2 font-medium">{entry.label || entry.subject || "(ohne Titel)"}</td>
+                      <td className="px-2 py-2">{entry.to}</td>
+                      <td className="px-2 py-2">
+                        {entry.mode === "time"
+                          ? `täglich ${entry.timeOfDay || "–"}`
+                          : `${entry.intervalMinutes || "–"} min`}
+                      </td>
+                      <td className="px-2 py-2 break-all">{entry.attachmentPath || "—"}</td>
+                      <td className="px-2 py-2 text-xs text-gray-600">{mailScheduleLastRunLabel(entry.lastSentAt)}</td>
+                      <td className="px-2 py-2 text-center">{entry.enabled !== false ? "Ja" : "Nein"}</td>
+                      <td className="px-2 py-2 space-x-2 whitespace-nowrap">
+                        <button
+                          type="button"
+                          className="px-2 py-1 rounded border"
+                          onClick={() => startEditMailSchedule(entry)}
+                          disabled={savingMailSchedule}
+                        >
+                          Bearbeiten
+                        </button>
+                        <button
+                          type="button"
+                          className="px-2 py-1 rounded border"
+                          onClick={() => onResetMailScheduleLastSent(entry.id)}
+                          disabled={savingMailSchedule}
+                        >
+                          Zurücksetzen
+                        </button>
+                        <button
+                          type="button"
+                          className="px-2 py-1 rounded border border-rose-300 text-rose-700 hover:bg-rose-50"
+                          onClick={() => onDeleteMailSchedule(entry.id)}
+                          disabled={savingMailSchedule}
+                        >
+                          Löschen
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+          {loadingMailSchedules && (
+            <div className="text-xs text-gray-500">Lade Zeitpläne …</div>
+          )}
+          <form onSubmit={onSaveMailSchedule} className="grid gap-3 lg:grid-cols-2">
+            <div className="space-y-2">
+              <div className="flex flex-col gap-1">
+                <label className="text-sm text-gray-700">Titel (optional)</label>
+                <input
+                  className="border px-2 py-1 rounded"
+                  value={mailScheduleDraft.label}
+                  onChange={(e) => setMailScheduleDraft((prev) => ({ ...prev, label: e.target.value }))}
+                  disabled={savingMailSchedule}
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-sm text-gray-700">Empfänger</label>
+                <input
+                  className="border px-2 py-1 rounded"
+                  type="email"
+                  required
+                  value={mailScheduleDraft.to}
+                  onChange={(e) => setMailScheduleDraft((prev) => ({ ...prev, to: e.target.value }))}
+                  disabled={savingMailSchedule}
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-sm text-gray-700">Betreff</label>
+                <input
+                  className="border px-2 py-1 rounded"
+                  required
+                  value={mailScheduleDraft.subject}
+                  onChange={(e) => setMailScheduleDraft((prev) => ({ ...prev, subject: e.target.value }))}
+                  disabled={savingMailSchedule}
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-sm text-gray-700">Mailtext</label>
+                <textarea
+                  className="border px-2 py-1 rounded min-h-[120px]"
+                  required
+                  value={mailScheduleDraft.text}
+                  onChange={(e) => setMailScheduleDraft((prev) => ({ ...prev, text: e.target.value }))}
+                  disabled={savingMailSchedule}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex flex-col gap-1">
+                <label className="text-sm text-gray-700">Versandart</label>
+                <select
+                  className="border px-2 py-1 rounded"
+                  value={mailScheduleDraft.mode}
+                  onChange={(e) => setMailScheduleDraft((prev) => ({ ...prev, mode: e.target.value === "time" ? "time" : "interval" }))}
+                  disabled={savingMailSchedule}
+                >
+                  <option value="interval">Intervall (Minuten)</option>
+                  <option value="time">Uhrzeit (täglich)</option>
+                </select>
+              </div>
+              {mailScheduleDraft.mode === "time" ? (
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-700">Uhrzeit (HH:MM)</label>
+                  <input
+                    className="border px-2 py-1 rounded w-40"
+                    type="time"
+                    value={mailScheduleDraft.timeOfDay}
+                    onChange={(e) => setMailScheduleDraft((prev) => ({ ...prev, timeOfDay: e.target.value }))}
+                    disabled={savingMailSchedule}
+                  />
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm text-gray-700">Intervall (Minuten)</label>
+                  <input
+                    className="border px-2 py-1 rounded w-32"
+                    type="number"
+                    min={1}
+                    value={mailScheduleDraft.intervalMinutes}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/[^0-9]/g, "");
+                      setMailScheduleDraft((prev) => ({ ...prev, intervalMinutes: value }));
+                    }}
+                    disabled={savingMailSchedule}
+                  />
+                </div>
+              )}
+              <div className="flex flex-col gap-1">
+                <label className="text-sm text-gray-700">Anhang (Serverpfad)</label>
+                <input
+                  className="border px-2 py-1 rounded"
+                  placeholder="z. B. data/mail/anhang.pdf"
+                  value={mailScheduleDraft.attachmentPath}
+                  onChange={(e) => setMailScheduleDraft((prev) => ({ ...prev, attachmentPath: e.target.value }))}
+                  disabled={savingMailSchedule}
+                />
+              </div>
+              <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                <input
+                  type="checkbox"
+                  checked={!!mailScheduleDraft.enabled}
+                  onChange={(e) => setMailScheduleDraft((prev) => ({ ...prev, enabled: e.target.checked }))}
+                  disabled={savingMailSchedule}
+                />
+                Aktiv
+              </label>
+              <div className="flex items-center gap-2">
+                <button
+                  type="submit"
+                  className="border rounded px-3 py-1"
+                  disabled={savingMailSchedule}
+                >
+                  {editingMailSchedule ? "Zeitplan speichern" : "Zeitplan anlegen"}
+                </button>
+                <button
+                  type="button"
+                  className="border rounded px-3 py-1"
+                  onClick={resetMailScheduleDraft}
+                  disabled={savingMailSchedule}
+                >
+                  Neu
+                </button>
+              </div>
+            </div>
+          </form>
         </div>
       </details>
 
