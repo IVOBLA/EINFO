@@ -3197,20 +3197,9 @@ function applyIncomingFieldsToCard(target, incoming) {
 
   const incomingUpdated = incoming.updated ?? null;
   const targetUpdated = target.updated ?? null;
-  const hasCoreFieldDiff = [
-    "content",
-    "ort",
-    "typ",
-    "alerted",
-    "latitude",
-    "longitude",
-    "description",
-  ].some((key) =>
-    incoming[key] !== undefined ? incoming[key] !== target[key] : false
-  );
+  const hasIncomingUpdated = incomingUpdated !== null;
   const shouldOverwriteCoreFields =
-    incomingUpdated !== targetUpdated ||
-    (incomingUpdated === targetUpdated && hasCoreFieldDiff);
+    hasIncomingUpdated && incomingUpdated !== targetUpdated;
 
   if (shouldOverwriteCoreFields) {
     assignIfChanged("content", incoming.content);
