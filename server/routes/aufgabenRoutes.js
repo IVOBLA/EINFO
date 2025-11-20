@@ -45,6 +45,14 @@ function normalizeDueAt(v) {
   return d.toISOString();
 }
 
+function safeJson(res, statusCode, payload, logLabel = "aufgabenRoutes") {
+  if (res.headersSent) {
+    console.warn(`[${logLabel}] Antwort bereits gesendet, überspringe Fehlerantwort`, payload);
+    return;
+  }
+  res.status(statusCode).json(payload);
+}
+
 function normalizeIncidentId(v) {
   if (v == null) return null;
   const s = String(v).trim();
@@ -251,16 +259,16 @@ router.get("/protocols", async (req, res) => {
         zeit: detail.zeit ?? null,
         anvon: detail.anvon ?? null,
       });
-    }
-    items.sort((a, b) => {
-      const aNum = Number(a.nr);
-      const bNum = Number(b.nr);
-      if (Number.isFinite(aNum) && Number.isFinite(bNum)) return bNum - aNum;
-      return String(b.nr).localeCompare(String(a.nr), "de", { numeric: true });
-    });
-    res.json({ items });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
+  }
+  items.sort((a, b) => {
+    const aNum = Number(a.nr);
+    const bNum = Number(b.nr);
+    if (Number.isFinite(aNum) && Number.isFinite(bNum)) return bNum - aNum;
+    return String(b.nr).localeCompare(String(a.nr), "de", { numeric: true });
+  });
+  res.json({ items });
+} catch (e) {
+    safeJson(res, 500, { error: e.message });
   }
 });
 
@@ -399,7 +407,7 @@ async function requireAufgabenEdit(req, res) {
     }
     return true;
   } catch (e) {
-    res.status(500).json({ error: "roles_read_failed", detail: String(e?.message || e) });
+    safeJson(res, 500, { error: "roles_read_failed", detail: String(e?.message || e) });
     return false;
   }
 }
@@ -433,11 +441,11 @@ function toRoleObj(r) {
 // ========== API-Endpunkte ==========
 router.get("/", async (req,res)=>{
   const role = targetRoleOrSend(req,res); if(!role) return;
-  try { 
-    const board = await loadAufgBoard(role); 
+  try {
+    const board = await loadAufgBoard(role);
     res.json({ items: (board.items || []).map(normalizeItem) });
-  } catch (e) { 
-    res.status(500).json({ error: e.message });
+  } catch (e) {
+    safeJson(res, 500, { error: e.message });
   }
 });
 
@@ -475,7 +483,7 @@ router.post("/", express.json(), async (req,res)=>{
     await appendCsvRow(LOG_FILE, AUFG_HEADERS, buildAufgabenLog({ role, action: "create", item, toStatus: item.status }), req);
     res.json({ ok: true, item });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    safeJson(res, 500, { error: e.message });
   }
 });
 
@@ -557,7 +565,7 @@ router.post("/:id/edit", express.json(), async (req, res) => {
 
     res.json({ ok: true, item: next });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    safeJson(res, 500, { error: e.message });
   }
 });
 
@@ -583,11 +591,11 @@ router.post("/:id/status", express.json(), async (req,res)=>{
     await ensureAufgLogHeader(LOG_FILE);
     await appendCsvRow(LOG_FILE, AUFG_HEADERS, buildAufgabenLog({ role, action: "status", item: next, fromStatus: prev.status, toStatus: status }), req);
 
- await syncProtocolDoneIfNeeded(next, req);
+    await syncProtocolDoneIfNeeded(next, req);
 
     res.json({ ok: true });
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    safeJson(res, 500, { error: e.message });
   }
 });
 
@@ -633,12 +641,12 @@ router.post("/reorder", express.json(), async (req,res)=>{
       req
     );
 
- await syncProtocolDoneIfNeeded(moved, req);
+    await syncProtocolDoneIfNeeded(moved, req);
 
     res.json({ ok : true });
-} catch (e) {
-res.status(500).json({ error: e.message });
-}
+  } catch (e) {
+    safeJson(res, 500, { error: e.message });
+  }
 });
 
 export default router;
