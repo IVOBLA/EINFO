@@ -80,22 +80,23 @@ function getEntryCategory(entry, categories) {
   return null;
 }
 
+const PALETTE = [
+  "#2563eb",
+  "#ea580c",
+  "#10b981",
+  "#facc15",
+  "#8b5cf6",
+  "#ec4899",
+  "#0ea5e9",
+  "#f87171",
+  "#14b8a6",
+  "#f97316",
+];
+
 function buildCategoryColorMap(categories) {
-  const palette = [
-    "#2563eb",
-    "#ea580c",
-    "#10b981",
-    "#facc15",
-    "#8b5cf6",
-    "#ec4899",
-    "#0ea5e9",
-    "#f87171",
-    "#14b8a6",
-    "#f97316",
-  ];
   const map = new Map();
   categories.forEach((cat, index) => {
-    map.set(cat.label, palette[index % palette.length]);
+    map.set(cat.label, PALETTE[index % PALETTE.length]);
   });
   return map;
 }
@@ -217,6 +218,8 @@ export async function generateFeldkirchenSvg(options = {}) {
 
   const categories = await loadCategories();
   const categoryColorMap = buildCategoryColorMap(categories);
+  const colorsByType = new Map();
+  const paletteOffset = categoryColorMap.size;
   const items = await readBoardItems();
 
   const points = [];
@@ -231,12 +234,24 @@ export async function generateFeldkirchenSvg(options = {}) {
     const categoryName = getEntryCategory(entry, categories);
     if (show === "weather" && !categoryName) continue;
 
+    const typeName =
+      categoryName || entry.typ || entry.title || entry.content || "Einsatz";
+    const color = (() => {
+      if (categoryColorMap.has(typeName)) return categoryColorMap.get(typeName);
+      if (colorsByType.has(typeName)) return colorsByType.get(typeName);
+      const nextColor =
+        PALETTE[(paletteOffset + colorsByType.size) % PALETTE.length];
+      colorsByType.set(typeName, nextColor);
+      return nextColor;
+    })();
+
     points.push({
       ...coords,
       id: entry.id,
       label: entry.typ || entry.title || entry.content || "Einsatz",
+      type: typeName,
       category: categoryName,
-      color: categoryColorMap.get(categoryName) || DEFAULT_POINT_COLOR,
+      color,
     });
   }
 
@@ -268,15 +283,12 @@ export async function generateFeldkirchenSvg(options = {}) {
     })
     .join("\n  ");
 
-  const usedCategories = Array.from(
-    new Set(points.map((p) => p.category).filter(Boolean))
-  );
-  const legend = createLegend(
-    usedCategories.map((name) => ({
-      name,
-      color: categoryColorMap.get(name) || DEFAULT_POINT_COLOR,
-    }))
-  );
+  const legendItems = Array.from(
+    new Map(
+      points.map((p) => [p.type, { name: p.type, color: p.color }])
+    ).values()
+  ).sort((a, b) => a.name.localeCompare(b.name));
+  const legend = createLegend(legendItems);
 
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${MAP_WIDTH}" height="${MAP_HEIGHT}" viewBox="0 0 ${MAP_WIDTH} ${MAP_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
