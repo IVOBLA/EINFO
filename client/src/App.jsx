@@ -2246,9 +2246,9 @@ if (route.startsWith("/protokoll")) {
                 bg={bg}
                 title={
                   /* (1) Sticky Header + KPI-Badges */
-                  <span className="column-header flex items-center justify-between">
-                     <span className="font-semibold">{displayTitle}</span>
-                    <span className="flex items-center gap-1.5">
+                  <span className="column-header flex flex-wrap items-center justify-between gap-2">
+                     <span className="font-semibold break-words min-w-0">{displayTitle}</span>
+                    <span className="flex flex-wrap items-center gap-1.5 justify-end w-full sm:w-auto">
                       <span className="kpi-badge" data-variant="incidents">⬛ {totals.incidents}</span>
                       <span className="kpi-badge" data-variant="areas">🗺️ {totals.areas}</span>
                       <span className="kpi-badge" data-variant="units">🚒 {totals.units}</span>
