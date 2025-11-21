@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { initRolePolicy, canEditApp, hasRole } from "../auth/roleUtils";
 import { useUserAuth } from "../components/User_AuthProvider.jsx";
-import useOnlineRoles from "../hooks/useOnlineRoles.js";
 import {
   getLastChangeInfo,
   loadSeenEntries,
@@ -262,16 +260,8 @@ function resolvePrintCount(item) {
 export default function ProtokollOverview({ searchTerm = "" }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [canEdit, setCanEdit] = useState(false);
   const { user } = useUserAuth() || {};
   const userNameVariants = useMemo(() => collectUserNameVariants(user), [user]);
-  const { roles: onlineRoles } = useOnlineRoles();
-  const ltStbOnline = useMemo(
-    () => onlineRoles.some((roleId) => roleId === "LTSTB" || roleId === "LTSTBSTV"),
-    [onlineRoles]
-  );
-  const s3User = hasRole("S3", user);
-  const s3BlockedByLtStb = s3User && ltStbOnline;
   const seenStorageKey = useMemo(() => resolveSeenStorageKey(user), [user]);
   const [seenEntries, setSeenEntries] = useState({});
 
@@ -311,23 +301,6 @@ export default function ProtokollOverview({ searchTerm = "" }) {
     },
     [markEntrySeen]
   );
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        await initRolePolicy();
-        if (cancelled) return;
-        const baseCanEdit = canEditApp("protokoll", user);
-        const s3Fallback = !ltStbOnline && hasRole("S3", user);
-        setCanEdit(baseCanEdit || s3Fallback);
-      } catch {
-        if (cancelled) return;
-        setCanEdit(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [ltStbOnline, user]);
 
   useEffect(() => {
     let cancelled = false;
@@ -426,37 +399,7 @@ export default function ProtokollOverview({ searchTerm = "" }) {
   }, [data, hasSearch, searchNeedle]);
 
   return (
-  <div className="p-3 md:p-4 h-full flex flex-col w-full floating-actions-safe-area">
-    {/* Kopf */}
-    <div className="flex items-center justify-between gap-2 mb-3">
-      <h1 className="text-xl md:text-2xl font-bold">Meldungsübersicht</h1>
-      <div className="flex items-center gap-2">
-        <a
-          href="/api/protocol/csv/file"
-          className="px-3 py-1.5 rounded-md border bg-white"
-          title="protocol.csv herunterladen"
-        >
-          CSV
-        </a>
-        <button
-          onClick={() => {
-            if (!canEdit || s3BlockedByLtStb) return;
-            window.location.hash = "/protokoll/neu";
-          }}
-          className="px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white"
-           title={
-      !canEdit
-        ? "Keine Berechtigung (Meldestelle)"
-        : s3BlockedByLtStb
-          ? "S3 darf nur anlegen, wenn LtStb nicht angemeldet ist"
-          : undefined
-    }
-        >
-          + Eintrag anlegen
-        </button>
-      </div>
-    </div>
-
+    <div className="p-3 md:p-4 h-full flex flex-col w-full floating-actions-safe-area">
     {/* Tabelle */}
     <div className="flex-1 overflow-auto border rounded-lg bg-white">
       {loading ? (
