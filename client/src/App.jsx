@@ -70,6 +70,37 @@ const unlocked = true;
 const DEFAULT_AREA_COLOR = "#2563eb";
 const INITIAL_PULSE_SUPPRESS_MS = 20_000;
 
+const NAV_TARGETS = {
+  einsatz: {
+    key: "einsatz",
+    label: "E",
+    title: "Zur Einsatzübersicht",
+    onClick: () => {
+      window.location.href = "/";
+    },
+  },
+  aufgaben: {
+    key: "aufgaben",
+    label: "A",
+    title: "Zum Aufgaben-Board",
+    onClick: () => {
+      window.location.href = "/aufgaben";
+    },
+  },
+  meldestelle: {
+    key: "meldestelle",
+    label: "M",
+    title: "Zur Meldestelle",
+    onClick: () => {
+      window.location.href = "/#/protokoll";
+    },
+  },
+};
+
+function getNavButtons(currentKey) {
+  return Object.values(NAV_TARGETS).filter((entry) => entry.key !== currentKey);
+}
+
 function parseDurationToMs(value) {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
@@ -1862,6 +1893,7 @@ if (route.startsWith("/protokoll/edit/")) {
         helpTitle="Hilfe – Meldestelle/Protokoll"
         onAdd={() => { window.location.hash = "/protokoll/neu"; }}
         addTitle="Neuen Eintrag anlegen"
+        navButtons={getNavButtons("meldestelle")}
       />
       <header className="flex items-center justify-between p-3 border-b bg-white shadow">
         <h1 className="text-xl font-bold">Meldung – Bearbeiten</h1>
@@ -1888,6 +1920,7 @@ if (route.startsWith("/protokoll/neu")) {
         helpTitle="Hilfe – Meldestelle/Protokoll"
         onAdd={() => { window.location.hash = "/protokoll/neu"; }}
         addTitle="Neuen Eintrag anlegen"
+        navButtons={getNavButtons("meldestelle")}
       />
       <header className="flex items-center justify-between p-3 border-b bg-white shadow">
         <h1 className="text-xl font-bold">Meldung – Eintrag anlegen</h1>
@@ -1914,6 +1947,7 @@ if (route.startsWith("/protokoll")) {
         helpTitle="Hilfe – Meldestelle/Protokoll"
         onAdd={() => { window.location.hash = "/protokoll/neu"; }}
         addTitle="Neuen Eintrag anlegen"
+        navButtons={getNavButtons("meldestelle")}
       />
       <header className="flex items-center justify-between p-3 border-b bg-white shadow">
         <h1 className="text-xl font-bold">Meldestelle</h1>
@@ -1941,6 +1975,7 @@ if (route.startsWith("/protokoll")) {
         helpHref="/Hilfe.pdf"
         onAdd={canEdit ? () => setShowAddModal(true) : undefined}
         addTitle="Einsatz anlegen"
+        navButtons={getNavButtons("einsatz")}
       />
       {!board && (
         <div className="fixed inset-0 z-10 bg-black/10 backdrop-blur-sm flex items-center justify-center">

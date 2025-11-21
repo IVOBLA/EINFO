@@ -30,6 +30,24 @@ const FALLBACK_DUE_OFFSET_MINUTES = getFallbackDueOffsetMinutes();
 const PRIMARY_ROLE_SWITCH_IDS = ["LTSTB", "LTSTBSTV"];
 const FALLBACK_SWITCH_ROLE_ID = "S3";
 const PROTOCOL_PREFILL_SOURCE = "task-card";
+const NAV_BUTTONS = [
+  {
+    key: "einsatz",
+    label: "E",
+    title: "Zur Einsatzübersicht",
+    onClick: () => {
+      window.location.href = "/";
+    },
+  },
+  {
+    key: "meldestelle",
+    label: "M",
+    title: "Zur Meldestelle",
+    onClick: () => {
+      window.location.href = "/#/protokoll";
+    },
+  },
+];
 
 const normalizeDefaultDueOffset = (value) => ensureValidDueOffset(value);
 
@@ -822,6 +840,7 @@ export default function AufgApp() {
         onAdd={handleAddOpen}
         addDisabled={!allowEdit}
         addTitle={allowEdit ? "Aufgabe anlegen" : "Keine Berechtigung"}
+        navButtons={NAV_BUTTONS}
       />
       <header className="mb-4 flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-3 w-full">

@@ -206,6 +206,9 @@ a[href*="karte"]:hover, button[title*="Karte"]:hover{ text-decoration: underline
 .floating-action.help-btn{
   background: #2563eb;
 }
+.floating-action.nav-btn{
+  background: #0ea5e9;
+}
 .floating-action.logoff-btn{
   background: #f43f5e;
 }
