@@ -772,6 +772,7 @@ export default function AufgApp() {
   const handleOpenProtocol = useCallback((nr) => {
     const normalized = normalizeProtocolId(nr);
     if (!normalized) return;
+    setActiveItem(null);
     setProtocolModalMode("edit");
     setProtocolEditNr(normalized);
     setProtocolPrefillPayload(null);
