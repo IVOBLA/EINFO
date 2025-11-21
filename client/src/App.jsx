@@ -1959,7 +1959,7 @@ if (route.startsWith("/protokoll")) {
 
   return (
     <div
-  className="h-screen w-screen bg-gray-100 p-2 md:p-3 overflow-hidden flex flex-col"
+  className="h-screen w-screen bg-gray-100 p-2 md:p-3 overflow-hidden flex flex-col floating-actions-safe-area"
   style={{ fontSize: "var(--ui-scale)" }}
 >
       <CornerHelpLogout
