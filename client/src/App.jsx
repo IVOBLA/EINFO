@@ -1990,7 +1990,69 @@ if (route.startsWith("/protokoll")) {
           </div>
         </div>
 
-        <div className="toolbar flex flex-wrap items-center gap-2">
+        <div className="toolbar flex flex-wrap items-center gap-2 justify-end w-full md:w-auto">
+          <label className="flex flex-wrap items-center gap-2 text-sm text-gray-700" htmlFor="areaFilter">
+            <span className="whitespace-nowrap">Filter Abschnitt</span>
+            <select
+              id="areaFilter"
+              className={`border rounded px-2 py-1 shrink-0 min-w-[150px] transition-colors ${
+                areaFilter
+                  ? `bg-red-800 border-red-900 text-white ${filterPulseActive ? "filter-pulse" : ""}`
+                  : "bg-white border-gray-300 text-gray-900"
+              }`}
+              value={areaFilter}
+              onChange={(e) => setAreaFilter(e.target.value)}
+            >
+              <option value="">Alles Anzeigen</option>
+              {areaOptions.map((opt) => (
+                <option key={opt.id} value={String(opt.id)}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label
+            className="flex items-center gap-2 text-sm text-gray-700 w-full sm:w-auto"
+            htmlFor="boardSearch"
+          >
+            <span className="whitespace-nowrap">Suche</span>
+            <input
+              id="boardSearch"
+              type="search"
+              className="border rounded px-3 py-2 w-full sm:w-56 md:w-64 lg:w-72 max-w-full"
+              placeholder="Suche…"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </label>
+
+          {tickerText && (
+            <div className="flex-1 min-w-[200px] min-h-[2.5rem] max-w-full sm:min-w-[260px]">
+              <div className="ticker-container w-full h-full flex items-center" aria-live="polite">
+                <marquee
+                  className="ticker-content"
+                  key={tickerText}
+                  behavior="scroll"
+                  direction="left"
+                  scrollAmount={6}
+                  onMouseEnter={(event) => {
+                    if (typeof event.target.stop === "function") {
+                      event.target.stop();
+                    }
+                  }}
+                  onMouseLeave={(event) => {
+                    if (typeof event.target.start === "function") {
+                      event.target.start();
+                    }
+                  }}
+                >
+                  <span>{tickerText}</span>
+                </marquee>
+              </div>
+            </div>
+          )}
+
           {/* (6) Countdown / Sync-Chip */}
 
           <button
@@ -2038,73 +2100,6 @@ if (route.startsWith("/protokoll")) {
           )}
         </div>
       </header>
-
-      {/* Filter */}
-      <section className="mb-2 flex flex-wrap items-center gap-2">
-        <label className="flex flex-wrap items-center gap-2 text-sm text-gray-700" htmlFor="areaFilter">
-          <span className="whitespace-nowrap">Filter Abschnitt</span>
-          <select
-            id="areaFilter"
-            className={`border rounded px-2 py-1 shrink-0 min-w-[150px] transition-colors ${
-              areaFilter
-                ? `bg-red-800 border-red-900 text-white ${filterPulseActive ? "filter-pulse" : ""}`
-                : "bg-white border-gray-300 text-gray-900"
-            }`}
-            value={areaFilter}
-            onChange={(e) => setAreaFilter(e.target.value)}
-          >
-            <option value="">Alles Anzeigen</option>
-            {areaOptions.map((opt) => (
-              <option key={opt.id} value={String(opt.id)}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <div className="flex flex-1 flex-wrap items-center gap-2 min-w-[240px]">
-          <label
-            className="flex items-center gap-2 text-sm text-gray-700 flex-1 min-w-[240px] sm:flex-none sm:w-auto"
-            htmlFor="boardSearch"
-          >
-            <span className="whitespace-nowrap">Suche</span>
-            <input
-              id="boardSearch"
-              type="search"
-              className="border rounded px-3 py-2 w-full sm:w-56 md:w-64 lg:w-72 max-w-full"
-              placeholder="Suche…"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </label>
-          <div className="flex-1 min-w-[200px] min-h-[2.5rem] max-w-full sm:min-w-[260px]">
-            {tickerText ? (
-              <div className="ticker-container w-full h-full flex items-center" aria-live="polite">
-                <marquee
-                  className="ticker-content"
-                  key={tickerText}
-                  behavior="scroll"
-                  direction="left"
-                  scrollAmount={6}
-                  onMouseEnter={(event) => {
-                    if (typeof event.target.stop === "function") {
-                      event.target.stop();
-                    }
-                  }}
-                  onMouseLeave={(event) => {
-                    if (typeof event.target.start === "function") {
-                      event.target.start();
-                    }
-                  }}
-                >
-                  <span>{tickerText}</span>
-                </marquee>
-              </div>
-            ) : (
-              <div className="h-full" aria-hidden="true" />
-            )}
-          </div>
-        </div>
-      </section>
 
 <DndContext
   sensors={sensors}
