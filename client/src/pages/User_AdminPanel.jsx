@@ -102,6 +102,7 @@ export default function User_AdminPanel() {
   const [users, setUsers]             = useState([]);
   const [fetcherInfo, setFetcherInfo] = useState({ has:false, updatedAt:null });
   const [autoConfig, setAutoConfig]   = useState({ enabled:false, intervalSec:30, demoMode:false });
+  const [autoConfigDraft, setAutoConfigDraft] = useState({ enabled:false, intervalSec:"30", demoMode:false });
   const [savingAutoConfig, setSavingAutoConfig] = useState(false);
   const [autoPrintConfig, setAutoPrintConfig] = useState({ enabled:false, intervalMinutes:10, lastRunAt:null, entryScope:"interval", scope:"interval" });
   const [autoPrintDraft, setAutoPrintDraft] = useState({ enabled:false, intervalMinutes:"10", entryScope:"interval" });
@@ -278,9 +279,15 @@ export default function User_AdminPanel() {
         const cfgRes = await fetch("/api/import/auto-config", { credentials: "include", cache: "no-store" });
         if (cfgRes.ok) {
           const cfg = await cfgRes.json().catch(() => ({}));
+          const sanitizedInterval = sanitizeIntervalSec(cfg.intervalSec, 30);
           setAutoConfig({
             enabled: !!cfg.enabled,
-            intervalSec: Number(cfg.intervalSec) || 30,
+            intervalSec: sanitizedInterval,
+            demoMode: !!cfg.demoMode,
+          });
+          setAutoConfigDraft({
+            enabled: !!cfg.enabled,
+            intervalSec: String(sanitizedInterval),
             demoMode: !!cfg.demoMode,
           });
         }
@@ -490,44 +497,79 @@ export default function User_AdminPanel() {
       setMsg("Benutzer aktualisiert.");
       await refresh();
       cancelEdit();
-    } catch (ex) {
-      setErr(ex.message || "Aktualisieren fehlgeschlagen");
-    } finally {
-      setLoading(false);
-    }
+  } catch (ex) {
+    setErr(ex.message || "Aktualisieren fehlgeschlagen");
+  } finally {
+    setLoading(false);
+  }
+}
+
+  function sanitizeIntervalSec(value, fallback = 30) {
+    const fallbackValue = Number.isFinite(Number(fallback)) ? Number(fallback) : 30;
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed <= 0) return Math.max(5, Math.min(3600, Math.floor(fallbackValue)));
+    return Math.max(5, Math.min(3600, Math.floor(parsed)));
   }
 
-  async function toggleDemoMode() {
+  function applyAutoConfig(cfg) {
+    const sanitizedInterval = sanitizeIntervalSec(cfg?.intervalSec, autoConfig.intervalSec || 30);
+    const normalized = {
+      enabled: !!cfg?.enabled,
+      intervalSec: sanitizedInterval,
+      demoMode: !!cfg?.demoMode,
+    };
+    setAutoConfig(normalized);
+    setAutoConfigDraft({
+      enabled: normalized.enabled,
+      intervalSec: String(normalized.intervalSec),
+      demoMode: normalized.demoMode,
+    });
+  }
+
+  async function saveAutoConfig(nextConfig, successMessage = "Auto-Import Einstellungen gespeichert.") {
     if (savingAutoConfig) return;
-    const nextValue = !autoConfig.demoMode;
     setErr(""); setMsg(""); setSavingAutoConfig(true);
+    const payload = {
+      enabled: !!nextConfig.enabled,
+      intervalSec: sanitizeIntervalSec(nextConfig.intervalSec, autoConfig.intervalSec || 30),
+      demoMode: !!nextConfig.demoMode,
+    };
     try {
       const res = await fetch("/api/import/auto-config", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          enabled: autoConfig.enabled,
-          intervalSec: autoConfig.intervalSec,
-          demoMode: nextValue,
-        }),
+        body: JSON.stringify(payload),
       });
       const js = await res.json().catch(() => ({}));
       if (!res.ok || js?.error) throw new Error(js?.error || "Speichern fehlgeschlagen");
-      setAutoConfig({
-        enabled: !!js.enabled,
-        intervalSec: Number(js.intervalSec) || autoConfig.intervalSec || 30,
-        demoMode: !!js.demoMode,
+      applyAutoConfig({
+        enabled: js.enabled,
+        intervalSec: js.intervalSec,
+        demoMode: js.demoMode,
       });
-      setMsg(nextValue
-        ? "Demomodus aktiviert. Fetcher wird beim Import nicht gestartet."
-        : "Demomodus deaktiviert. Fetcher startet beim Import wieder.");
+      setMsg(successMessage);
     } catch (ex) {
       setErr(ex.message || "Speichern fehlgeschlagen");
     } finally {
       setSavingAutoConfig(false);
     }
   }
+
+  const toggleDemoMode = async () => {
+    const nextValue = !autoConfigDraft.demoMode;
+    await saveAutoConfig({ ...autoConfigDraft, demoMode: nextValue }, nextValue
+      ? "Demomodus aktiviert. Fetcher wird beim Import nicht gestartet."
+      : "Demomodus deaktiviert. Fetcher startet beim Import wieder.");
+  };
+
+  const toggleAutoImport = async () => {
+    await saveAutoConfig({ ...autoConfigDraft, enabled: !autoConfigDraft.enabled });
+  };
+
+  const saveAutoImportInterval = async () => {
+    await saveAutoConfig(autoConfigDraft);
+  };
 
   async function onSaveAutoPrintConfig() {
     if (savingAutoPrintConfig) return;
@@ -1029,11 +1071,45 @@ export default function User_AdminPanel() {
       {/* 5) Import-Einstellungen */}
       <details className="border rounded p-3" open>
         <summary className="cursor-pointer font-medium">Import-Einstellungen</summary>
-        <div className="mt-3 space-y-2 text-sm">
+        <div className="mt-3 space-y-3 text-sm">
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={!!autoConfigDraft.enabled}
+                onChange={toggleAutoImport}
+                disabled={locked || savingAutoConfig}
+              />
+              Auto-Import aktivieren
+            </label>
+            <label className="flex items-center gap-2">
+              <span>Intervall (Sekunden)</span>
+              <input
+                type="number"
+                min={5}
+                max={3600}
+                className="border px-2 py-1 rounded w-24"
+                value={autoConfigDraft.intervalSec}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9]/g, "");
+                  setAutoConfigDraft((prev) => ({ ...prev, intervalSec: value }));
+                }}
+                disabled={locked || savingAutoConfig}
+              />
+            </label>
+            <button
+              type="button"
+              onClick={saveAutoImportInterval}
+              disabled={locked || savingAutoConfig}
+              className="px-3 py-1 rounded border border-blue-300 text-blue-700 hover:bg-blue-50 disabled:opacity-60"
+            >
+              Speichern
+            </button>
+          </div>
           <label className="inline-flex items-center gap-2">
             <input
               type="checkbox"
-              checked={!!autoConfig.demoMode}
+              checked={!!autoConfigDraft.demoMode}
               onChange={toggleDemoMode}
               disabled={locked || savingAutoConfig}
             />

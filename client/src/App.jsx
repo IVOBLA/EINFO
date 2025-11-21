@@ -40,7 +40,6 @@ import {
   setCardPersonnel,
   pdfExportUrl,
   getAutoImportConfig,
-  setAutoImportConfig,
   fetchNearby,
   fetchAufgabenBoard,
   resetVehiclePosition,
@@ -1801,20 +1800,6 @@ useEffect(() => {
   const onPdf = () => window.open(pdfExportUrl(), "_blank", "noopener,noreferrer");
 
 
-  const toggleAuto = async () => {
-    try {
-      const next = await setAutoImportConfig({ enabled: !autoEnabled, intervalSec: autoInterval });
-      setAutoEnabled(!!next.enabled);
-      setAutoInterval(Number(next.intervalSec) || 30);
-      setSec(0);
-    } catch { alert("Konnte Auto-Import nicht ändern."); }
-  };
-  const changeInterval = async (v) => {
-    const n = Math.max(5, Math.min(3600, Number(v) || 30));
-    setAutoInterval(n);
-    try { await setAutoImportConfig({ enabled: autoEnabled, intervalSec: n }); setSec(0); } catch {}
-  };
-
 const createIncident = async ({
     title,
     ort,
@@ -2024,23 +2009,6 @@ if (route.startsWith("/protokoll")) {
           >
             {importBusy ? "Import…" : "Import"}
           </button>
-
-          <label className="inline-flex items-center gap-2 text-sm px-2 py-1 rounded-md bg-white border">
-            <input type="checkbox" checked={autoEnabled} onChange={toggleAuto} disabled={readOnly} /> Auto-Import
-          </label>
-
-<label className="interval-capsule flex items-center text-sm text-gray-700 bg-gray-50 border border-gray-300 rounded-md overflow-hidden">
-  <span className="pl-3 pr-2 select-none">Intervall&nbsp;(s):</span>
-  <input
-    type="number"
-    min="5"
-    max="3600"
-    value={autoInterval}
-    onChange={(e) => changeInterval(e.target.value)} disabled={readOnly}
-    className="h-9 w-20 bg-white border-0 rounded-none text-center text-gray-800 
-               focus:outline-none focus:ring-0 focus:border-0"
-  />
-</label>
 
           {/* Feuerwehr-Fetcher Control */}
           <FFFetchControl autoEnabled={autoEnabled} remaining={remaining} disabled={readOnly} />
