@@ -468,7 +468,7 @@ export default function AufgInfoModal({
             <div>
               <div className="text-xs text-gray-600">Verknüpfte Meldungen</div>
               {selectedProtocolDetails.length ? (
-                <ul className="mt-1 space-y-1">
+                <ul className="mt-1 space-y-1 max-h-28 overflow-y-auto pr-1">
                   {selectedProtocolDetails.map((detail) => {
                     const nr = detail.nr;
                     const label = formatProtocolLabel(detail);
@@ -558,7 +558,7 @@ export default function AufgInfoModal({
                 {isAutoFromProtocol ? (
                   <div className="mt-1">
                     {selectedProtocolDetails.length ? (
-                      <ul className="space-y-1">
+                      <ul className="space-y-1 max-h-28 overflow-y-auto pr-1">
                         {selectedProtocolDetails.map((detail) => {
                           const nr = detail.nr;
                           const label = formatProtocolLabel(detail, {
