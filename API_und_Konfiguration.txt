@@ -166,6 +166,7 @@ Dieses Dokument fasst alle verfügbaren Umgebungsvariablen des Servers sowie die
 
 ### Karten & Statics
 - `GET /api/internal/feldkirchen-map`: Generiert SVG-Karte; Query `?show=weather|all&hours=24`.
+- `DELETE /api/internal/feldkirchen-map`: Löscht eine zuvor erzeugte SVG. Beispiel: `curl -X DELETE "http://localhost:4040/api/internal/feldkirchen-map?show=weather&hours=24"`.
 - `GET /api/activity/status`: Öffentliche Statusinformationen (ohne Login).
 - `GET /api/log.csv`: Log-Datei als CSV.
 - `GET /Hilfe.pdf`: Statisches Hilfedokument, wenn vorhanden.

@@ -28,7 +28,10 @@ import {
   collectWarningDatesFromMails,
   isWeatherWarningToday,
 } from "./utils/weatherWarning.mjs";
-import { generateFeldkirchenSvg } from "./utils/generateFeldkirchenSvg.mjs";
+import {
+  generateFeldkirchenSvg,
+  deleteFeldkirchenSvg,
+} from "./utils/generateFeldkirchenSvg.mjs";
 import {
   createMailScheduleRunner,
   sanitizeMailScheduleEntry,
@@ -1573,6 +1576,28 @@ app.get(FELDKIRCHEN_MAP_PATH, async (req, res) => {
     res
       .status(500)
       .json({ ok: false, error: "Karte konnte nicht erzeugt werden." });
+  }
+});
+
+app.delete(FELDKIRCHEN_MAP_PATH, async (req, res) => {
+  const show = normalizeFeldkirchenShowParam(req.query?.show);
+  if (!show) {
+    return res.status(400).json({
+      ok: false,
+      error: 'Parameter "show" muss "weather" oder "all" sein.',
+    });
+  }
+
+  const hours = normalizePositiveNumber(req.query?.hours, 24);
+
+  try {
+    const result = await deleteFeldkirchenSvg({ show, hours });
+    return res.json({ ok: true, deleted: result.deleted });
+  } catch (err) {
+    await appendError("feldkirchen-map", err);
+    res
+      .status(500)
+      .json({ ok: false, error: "Karte konnte nicht gelöscht werden." });
   }
 });
 
