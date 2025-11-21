@@ -6,6 +6,8 @@ import CollapsibleNote from "./CollapsibleNote";
 
 registerLocale("de", de);
 
+const PROTOCOL_TEXT_PREVIEW_LENGTH = 100;
+
 const formatDueAt = (value) => {
   if (!value) return "—";
   const date = new Date(value);
@@ -64,14 +66,21 @@ const sanitizeProtocolDetail = (entry) => {
   return detail;
 };
 
-const formatProtocolLabel = (detail) => {
+const formatProtocolLabel = (detail, { maxTextLength } = {}) => {
   if (!detail) return "Meldung";
   const nr = detail.nr ? `#${detail.nr}` : "Meldung";
   const parts = [nr];
   if (detail.infoTyp) parts.push(detail.infoTyp);
   if (detail.anvon) parts.push(detail.anvon);
   const text = detail.title || detail.information;
-  if (text) parts.push(text);
+  if (text) {
+    const normalizedText = String(text);
+    const limitedText =
+      maxTextLength && normalizedText.length > maxTextLength
+        ? `${normalizedText.slice(0, maxTextLength)}…`
+        : normalizedText;
+    parts.push(limitedText);
+  }
   const when = [detail.datum, detail.zeit].filter(Boolean).join(" ");
   if (when) parts.push(when);
   return parts.join(" — ");
@@ -190,7 +199,7 @@ export default function AufgInfoModal({
       seen.add(detail.nr);
       list.push({
         value: detail.nr,
-        label: formatProtocolLabel(detail),
+        label: formatProtocolLabel(detail, { maxTextLength: PROTOCOL_TEXT_PREVIEW_LENGTH }),
         detail,
       });
     }
@@ -544,7 +553,9 @@ export default function AufgInfoModal({
                       <ul className="space-y-1">
                         {selectedProtocolDetails.map((detail) => {
                           const nr = detail.nr;
-                          const label = formatProtocolLabel(detail);
+                          const label = formatProtocolLabel(detail, {
+                            maxTextLength: PROTOCOL_TEXT_PREVIEW_LENGTH,
+                          });
                           return (
                             <li key={nr}>
                               <button
@@ -602,7 +613,11 @@ export default function AufgInfoModal({
                         <ul className="space-y-1">
                           {missingProtocols.map((detail) => (
                             <li key={detail.nr} className="flex items-start justify-between gap-2">
-                              <span>{formatProtocolLabel(detail)}</span>
+                              <span>
+                                {formatProtocolLabel(detail, {
+                                  maxTextLength: PROTOCOL_TEXT_PREVIEW_LENGTH,
+                                })}
+                              </span>
                               <button
                                 type="button"
                                 className="text-red-600 hover:underline"
