@@ -93,3 +93,57 @@ test("runMailScheduleSweep sends due mails and persists lastSentAt", async () =>
   assert.equal(sentMails.length, 2, "should send after interval elapsed");
   assert.equal(storage[0].lastSentAt, now);
 });
+
+test("runMailScheduleSweep skips mails with missing attachments and logs when enabled", async () => {
+  const baseEntry = buildBaseEntry({ id: "attachment", attachmentPath: "missing/report.pdf" });
+  let storage = [baseEntry];
+  const sentMails = [];
+  const logMessages = [];
+
+  const runner = createMailScheduleRunner({
+    dataDir: "/data",
+    scheduleFile: "/data/conf/mail-schedule.json",
+    defaultIntervalMinutes: MAIL_OPTIONS.defaultIntervalMinutes,
+    minIntervalMinutes: MAIL_OPTIONS.minIntervalMinutes,
+    sweepIntervalMs: 1000,
+    sendMail: async (mail) => sentMails.push(mail),
+    isMailConfigured: () => true,
+    appendError: async () => {},
+    readJson: async () => storage,
+    writeJson: async (_file, next) => {
+      storage = next;
+      return next;
+    },
+    nowProvider: () => Date.UTC(2024, 0, 1, 12, 0, 0),
+    logMailEvent: async (message, context) => logMessages.push({ message, context }),
+    isMailLoggingEnabled: true,
+  });
+
+  await runner.runMailScheduleSweep();
+  assert.equal(sentMails.length, 0, "should skip sending when attachment is missing");
+  assert.equal(logMessages.length, 1, "should log a warning when mail logging is enabled");
+  assert.equal(logMessages[0].message, "Geplanter Mail-Anhang fehlt");
+  assert.equal(logMessages[0].context.attachmentPath, "/data/missing/report.pdf");
+
+  const silentRunner = createMailScheduleRunner({
+    dataDir: "/data",
+    scheduleFile: "/data/conf/mail-schedule.json",
+    defaultIntervalMinutes: MAIL_OPTIONS.defaultIntervalMinutes,
+    minIntervalMinutes: MAIL_OPTIONS.minIntervalMinutes,
+    sweepIntervalMs: 1000,
+    sendMail: async (mail) => sentMails.push(mail),
+    isMailConfigured: () => true,
+    appendError: async () => {},
+    readJson: async () => storage,
+    writeJson: async (_file, next) => {
+      storage = next;
+      return next;
+    },
+    nowProvider: () => Date.UTC(2024, 0, 1, 12, 0, 0),
+    logMailEvent: async (message, context) => logMessages.push({ message, context }),
+    isMailLoggingEnabled: false,
+  });
+
+  await silentRunner.runMailScheduleSweep();
+  assert.equal(logMessages.length, 1, "should not log when mail logging is disabled");
+});
