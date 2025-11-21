@@ -220,6 +220,17 @@ a[href*="karte"]:hover, button[title*="Karte"]:hover{ text-decoration: underline
   filter: brightness(.95);
 }
 
+/* Abstand für schwebende Buttons, damit Spalten nicht überdeckt werden */
+.floating-actions-safe-area{
+  padding-right: max(1rem, calc(var(--fab-size) + 24px));
+}
+
+@media (min-width: 768px){
+  .floating-actions-safe-area{
+    padding-right: max(1.5rem, calc(var(--fab-size) + 32px));
+  }
+}
+
 /* Einheitliche Maße in der Kopfzeile */
 header .toolbar > * {
   height: var(--ctl-h);

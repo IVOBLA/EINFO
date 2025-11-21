@@ -848,7 +848,7 @@ export default function AufgApp() {
   }, [getColByItemId, lists, allowEdit, confirmDoneTransition]);
 
   return (
-    <div className="p-4">
+    <div className="p-4 floating-actions-safe-area">
       <CornerHelpLogout
         helpHref="/Hilfe.pdf"
         onAdd={handleAddOpen}
