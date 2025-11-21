@@ -453,6 +453,8 @@ const readOnly = !canEdit;
 
   const [autoEnabled, setAutoEnabled] = useState(false);
   const [autoInterval, setAutoInterval] = useState(30);
+  const [demoMode, setDemoMode] = useState(false);
+  const [importInfo, setImportInfo] = useState({ lastLoadedIso: null, file: "list_filtered.json" });
 
   const [showVehModal, setShowVehModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -566,6 +568,7 @@ const remaining = autoEnabled
         const cfg = await getAutoImportConfig();
         setAutoEnabled(!!cfg.enabled);
         setAutoInterval(Number(cfg.intervalSec) || 30);
+        setDemoMode(!!cfg.demoMode);
       } catch {}
       setSec(0); // (6) Countdown reset nach frischem Fetch
     })();
@@ -1489,10 +1492,13 @@ useEffect(() => {
       if (typeof s?.auto?.enabled === "boolean" && s.auto.enabled !== autoEnabled) {
         setAutoEnabled(!!s.auto.enabled);
       }
+      if (typeof s?.auto?.demoMode === "boolean" && s.auto.demoMode !== demoMode) {
+        setDemoMode(!!s.auto.demoMode);
+      }
     } catch {}
   }, 3000);
   return () => clearInterval(t);
-}, [unlocked, autoEnabled]);
+}, [unlocked, autoEnabled, demoMode]);
 
   function getCardCol(b, id) {
     for (const k of ["neu", "in-bearbeitung", "erledigt"])
@@ -1968,8 +1974,21 @@ if (route.startsWith("/protokoll")) {
         </div>
       )}
 
-      <header className="flex flex-wrap items-center justify-between gap-2 mb-2">
-        <h1 className="text-xl md:text-2xl font-bold">Einsatzstellen-Übersicht-Feuerwehr</h1>
+      <header className="flex flex-wrap items-center justify-between gap-3 mb-2">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-xl md:text-2xl font-bold">Einsatzstellen-Übersicht-Feuerwehr</h1>
+          <div
+            title={`Quelle: ${importInfo.file || "list_filtered.json"}`}
+            className="inline-flex items-center h-9 rounded-full px-3 py-1.5 text-sm border bg-white text-gray-700"
+            style={{ borderColor: "#cbd5e1" }}
+          >
+            <span>
+              Zuletzt geladen: <b>{importInfo.lastLoadedIso
+                ? new Date(importInfo.lastLoadedIso).toLocaleTimeString("de-AT", { hour12: false })
+                : "–"}</b>
+            </span>
+          </div>
+        </div>
 
         <div className="toolbar flex flex-wrap items-center gap-2">
           {/* (6) Countdown / Sync-Chip */}
@@ -1999,15 +2018,24 @@ if (route.startsWith("/protokoll")) {
           </button>
 
           {/* Feuerwehr-Fetcher Control */}
-          <FFFetchControl autoEnabled={autoEnabled} remaining={remaining} disabled={readOnly} />
+          <FFFetchControl
+            autoEnabled={autoEnabled}
+            remaining={remaining}
+            disabled={readOnly}
+            showTimer={false}
+            showLastLoaded={false}
+            onImportInfo={setImportInfo}
+          />
 
-          <button
-            onClick={onReset}
-            disabled={readOnly || loadingReset}
-            className={`px-3 py-1.5 rounded-md text-white ${loadingReset ? "bg-gray-400" : "bg-gray-700 hover:bg-gray-800"}`}
-          >
-            {loadingReset ? "Reset…" : "Reset"}
-          </button>
+          {demoMode && (
+            <button
+              onClick={onReset}
+              disabled={readOnly || loadingReset}
+              className={`px-3 py-1.5 rounded-md text-white ${loadingReset ? "bg-gray-400" : "bg-gray-700 hover:bg-gray-800"}`}
+            >
+              {loadingReset ? "Reset…" : "Reset"}
+            </button>
+          )}
         </div>
       </header>
 

@@ -22,7 +22,14 @@ const ENV_ACTIVITY_POLL_INTERVAL_MS = sanitizeInterval(
   DEFAULT_ACTIVITY_POLL_INTERVAL_MS,
 );
 
-export default function FFFetchControl({ autoEnabled, remaining, disabled = false }) {
+export default function FFFetchControl({
+  autoEnabled,
+  remaining,
+  disabled = false,
+  showTimer = true,
+  showLastLoaded = true,
+  onImportInfo,
+}) {
   // Laufzustand + globale Creds
   const [running, setRunning] = useState(false);
   const [hasCreds, setHasCreds] = useState(false);
@@ -41,6 +48,12 @@ export default function FFFetchControl({ autoEnabled, remaining, disabled = fals
     lastLoadedIso: null,
     file: "list_filtered.json",
   });
+
+  useEffect(() => {
+    if (typeof onImportInfo === "function") {
+      onImportInfo(importInfo);
+    }
+  }, [importInfo, onImportInfo]);
 
   // Auto-Import Config (Countdown)
   const [enabled, setEnabled] = useState(false);
@@ -150,20 +163,22 @@ export default function FFFetchControl({ autoEnabled, remaining, disabled = fals
   return (
     <div className={`flex items-center h-9 gap-2 ${disabled ? "opacity-60 pointer-events-none" : ""}`} style={{ alignItems: "center" }}>
       {/* Countdown-Chip (wie alt) */}
-      <span
-        className={`sync-chip ${effectiveEnabled ? "active" : ""}`}
-        title={effectiveEnabled ? "Auto-Import Countdown" : "Auto-Import ist deaktiviert"}
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: "110px",
-          minWidth: "110px",
-          textAlign: "center",
-        }}
-      >
-        {effectiveEnabled ? `⟳ in ${displaySecondsLeft != null ? displaySecondsLeft : "–"}s` : "⏸ manuell"}
-      </span>
+      {showTimer && (
+        <span
+          className={`sync-chip ${effectiveEnabled ? "active" : ""}`}
+          title={effectiveEnabled ? "Auto-Import Countdown" : "Auto-Import ist deaktiviert"}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "110px",
+            minWidth: "110px",
+            textAlign: "center",
+          }}
+        >
+          {effectiveEnabled ? `⟳ in ${displaySecondsLeft != null ? displaySecondsLeft : "–"}s` : "⏸ manuell"}
+        </span>
+      )}
 
       {/* Hinweis (z. B. keine globalen Creds) */}
       {hint && <span style={{ color: "#dc2626", fontSize: 12, marginLeft: 8 }}>{hint}</span>}
@@ -196,20 +211,22 @@ export default function FFFetchControl({ autoEnabled, remaining, disabled = fals
       )}
 
       {/* Zuletzt geladen */}
-      <div
-        title={`Quelle: ${importInfo.file}`}
-        className="ml-2 inline-flex items-center h-9 rounded-full px-3 py-1.5 text-sm border bg-white text-gray-700"
-        style={{ borderColor: "#cbd5e1" }}
-      >
-        <span>
-          Zuletzt geladen:{" "}
-          <b>
-            {importInfo.lastLoadedIso
-              ? new Date(importInfo.lastLoadedIso).toLocaleTimeString("de-AT", { hour12: false })
-              : "–"}
-          </b>
-        </span>
-      </div>
+      {showLastLoaded && (
+        <div
+          title={`Quelle: ${importInfo.file}`}
+          className="ml-2 inline-flex items-center h-9 rounded-full px-3 py-1.5 text-sm border bg-white text-gray-700"
+          style={{ borderColor: "#cbd5e1" }}
+        >
+          <span>
+            Zuletzt geladen:{" "}
+            <b>
+              {importInfo.lastLoadedIso
+                ? new Date(importInfo.lastLoadedIso).toLocaleTimeString("de-AT", { hour12: false })
+                : "–"}
+            </b>
+          </span>
+        </div>
+      )}
     </div>
   );
 }
