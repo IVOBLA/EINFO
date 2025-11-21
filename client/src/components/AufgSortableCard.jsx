@@ -12,6 +12,7 @@ export default function AufgSortableCard({
   isNew,
   incidentLookup,
   onCreateProtocol,
+  onOpenProtocol,
 }) {
   const it = item || {}; // Falls item nicht vorhanden ist, wird es als leeres Objekt gesetzt.
   if (!it) return null; 
@@ -186,7 +187,7 @@ const [dueState, setDueState] = useState("none"); // none | soon | overdue
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  window.location.assign(`/protokoll#/protokoll/edit/${it.originProtocolNr}`);
+                  onOpenProtocol?.(it.originProtocolNr);
                 }}
                 className="text-blue-700 hover:underline"
                 title={`Meldung #${it.originProtocolNr} öffnen`}
