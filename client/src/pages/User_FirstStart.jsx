@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import CornerHelpLogout from "../components/CornerHelpLogout.jsx";
 import { User_masterSetup, User_masterState } from "../utils/User_auth.js";
 
 export default function User_FirstStart(){
@@ -29,6 +30,11 @@ export default function User_FirstStart(){
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <CornerHelpLogout
+        helpHref="/Hilfe.pdf"
+        onAdd={() => { window.location.href = "/user-login"; }}
+        addTitle="Zur Anmeldung"
+      />
       <div className="bg-white shadow rounded-2xl p-6 w-[520px] space-y-6">
         <h1 className="text-xl font-semibold">Erststart</h1>
         {msg && <div className="text-green-700 text-sm">{msg}</div>}

@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import CornerHelpLogout from "../components/CornerHelpLogout.jsx";
 import { useUserAuth } from "../components/User_AuthProvider.jsx";
 import { buildAppUrl, resolveAppBaseUrl } from "../utils/http.js";
 
@@ -55,6 +56,11 @@ export default function User_LoginPage(){
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <CornerHelpLogout
+        helpHref="/Hilfe.pdf"
+        onAdd={() => { window.location.href = "/"; }}
+        addTitle="Zur Einsatzübersicht"
+      />
       <form onSubmit={onSubmit} className="bg-white shadow rounded-2xl p-6 w-[380px]">
         <h1 className="text-xl font-semibold mb-4">Anmeldung</h1>
         <label className="block mb-2 text-sm">Benutzername</label>

@@ -817,7 +817,12 @@ export default function AufgApp() {
 
   return (
     <div className="p-4">
-      <CornerHelpLogout />
+      <CornerHelpLogout
+        helpHref="/Hilfe.pdf"
+        onAdd={handleAddOpen}
+        addDisabled={!allowEdit}
+        addTitle={allowEdit ? "Aufgabe anlegen" : "Keine Berechtigung"}
+      />
       <header className="mb-4 flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-3 w-full">
           <div className="flex items-center gap-3">
