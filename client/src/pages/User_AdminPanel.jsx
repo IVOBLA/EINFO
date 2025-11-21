@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useUserAuth } from "../components/User_AuthProvider.jsx";
 import CornerHelpLogout from "../components/CornerHelpLogout.jsx";
 import { FORBIDDEN_MESSAGE, notifyForbidden } from "../../forbidden.js";
+import { resetBoard } from "../api.js";
 
 function collectUserRoleIds(u) {
   const out = [];
@@ -104,6 +105,7 @@ export default function User_AdminPanel() {
   const [autoConfig, setAutoConfig]   = useState({ enabled:false, intervalSec:30, demoMode:false });
   const [autoConfigDraft, setAutoConfigDraft] = useState({ enabled:false, intervalSec:"30", demoMode:false });
   const [savingAutoConfig, setSavingAutoConfig] = useState(false);
+  const [resettingBoard, setResettingBoard] = useState(false);
   const [autoPrintConfig, setAutoPrintConfig] = useState({ enabled:false, intervalMinutes:10, lastRunAt:null, entryScope:"interval", scope:"interval" });
   const [autoPrintDraft, setAutoPrintDraft] = useState({ enabled:false, intervalMinutes:"10", entryScope:"interval" });
   const [savingAutoPrintConfig, setSavingAutoPrintConfig] = useState(false);
@@ -376,6 +378,21 @@ export default function User_AdminPanel() {
       setMsg("Master entsperrt.");
       f.reset(); await refresh();
     } catch (ex) { setErr(ex.message || "Master ungültig"); }
+  }
+
+  async function onResetBoard() {
+    if (!confirm("Board wirklich zurücksetzen?")) return;
+    setErr("");
+    setMsg("");
+    setResettingBoard(true);
+    try {
+      await resetBoard();
+      setMsg("Board zurückgesetzt.");
+    } catch (ex) {
+      setErr(ex?.message || "Reset fehlgeschlagen.");
+    } finally {
+      setResettingBoard(false);
+    }
   }
 
   // ---- Rollen speichern (JETZT: Objekte inkl. apps → capabilities) ----
@@ -799,7 +816,17 @@ export default function User_AdminPanel() {
         onAdd={() => { window.location.href = "/"; }}
         addTitle="Zur Einsatzübersicht"
       />
-      <h1 className="text-2xl font-semibold">User Admin</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold">User Admin</h1>
+        <button
+          type="button"
+          onClick={onResetBoard}
+          className="px-3 py-1.5 rounded-md bg-gray-700 hover:bg-gray-800 text-white disabled:opacity-60"
+          disabled={resettingBoard || locked}
+        >
+          {resettingBoard ? "Reset läuft…" : "Reset"}
+        </button>
+      </div>
 
       {(msg || err || locked) && (
         <div className="space-y-1">
