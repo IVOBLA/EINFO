@@ -6,6 +6,7 @@ export default function CornerHelpLogout({
   helpLabel = "i",
   helpTitle = "Hilfe",
   helpClassName = "",
+  navButtons = [],
   onAdd,
   addLabel = "＋",
   addTitle = "Neuen Eintrag anlegen",
@@ -17,6 +18,11 @@ export default function CornerHelpLogout({
 }) {
   const showHelp = Boolean(helpHref);
   const showAdd = typeof onAdd === "function";
+  const visibleNavButtons = Array.isArray(navButtons)
+    ? navButtons.filter((btn) =>
+        btn && btn.label && (typeof btn.onClick === "function" || btn.href)
+      )
+    : [];
   const containerClasses = [
     "fixed",
     "bottom-4",
@@ -53,6 +59,45 @@ export default function CornerHelpLogout({
           <span aria-hidden="true">{addLabel}</span>
         </button>
       )}
+      {visibleNavButtons.map((btn, idx) => {
+        const label = btn.label;
+        const title = btn.title || btn.label;
+        const className = [
+          "pointer-events-auto",
+          "floating-action",
+          "nav-btn",
+          btn.className,
+        ]
+          .filter(Boolean)
+          .join(" ");
+
+        if (btn.href) {
+          return (
+            <a
+              key={btn.key || idx}
+              href={btn.href}
+              title={title}
+              aria-label={title}
+              className={className}
+            >
+              <span aria-hidden="true">{label}</span>
+            </a>
+          );
+        }
+
+        return (
+          <button
+            key={btn.key || idx}
+            type="button"
+            onClick={btn.onClick}
+            title={title}
+            aria-label={title}
+            className={className}
+          >
+            <span aria-hidden="true">{label}</span>
+          </button>
+        );
+      })}
       {children}
       {showHelp && (
         <a

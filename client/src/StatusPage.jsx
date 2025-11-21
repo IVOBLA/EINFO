@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { fetchBoard, fetchVehicles } from "./api";
-import CornerHelpLogout from "./components/CornerHelpLogout.jsx";
 
 /* ---------- kompakte Skalierung (Layout-Feintuning, unabhängig von Schrift) ---------- */
 function useCompactScale() {
@@ -390,11 +389,6 @@ export default function StatusPage() {
   if (!board) {
     return (
       <div className="h-screen w-screen bg-gray-100 p-2 md:p-3 overflow-hidden">
-        <CornerHelpLogout
-          helpHref="/Hilfe.pdf"
-          onAdd={() => { window.location.href = "/"; }}
-          addTitle="Zur Einsatzübersicht"
-        />
         <div className="h-full w-full flex items-center justify-center">Lade…</div>
       </div>
     );
@@ -402,11 +396,6 @@ export default function StatusPage() {
 
   return (
     <div className="h-screen w-screen bg-gray-100 p-2 md:p-3 overflow-hidden">
-      <CornerHelpLogout
-        helpHref="/Hilfe.pdf"
-        onAdd={() => { window.location.href = "/"; }}
-        addTitle="Zur Einsatzübersicht"
-      />
       <div className="h-full w-full flex flex-col gap-2">
         {/* Kopfzeile */}
         <header className="flex items-center justify-between">
