@@ -426,7 +426,7 @@ export default function ProtokollOverview({ searchTerm = "" }) {
   }, [data, hasSearch, searchNeedle]);
 
   return (
-  <div className="p-3 md:p-4 max-w-[1400px] mx-auto h-full flex flex-col">
+  <div className="p-3 md:p-4 h-full flex flex-col w-full floating-actions-safe-area">
     {/* Kopf */}
     <div className="flex items-center justify-between gap-2 mb-3">
       <h1 className="text-xl md:text-2xl font-bold">Meldungsübersicht</h1>
