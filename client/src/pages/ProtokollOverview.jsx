@@ -259,7 +259,7 @@ function resolvePrintCount(item) {
   return Number.isFinite(direct) ? Math.max(0, direct) : 0;
 }
 
-export default function ProtokollOverview() {
+export default function ProtokollOverview({ searchTerm = "" }) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [canEdit, setCanEdit] = useState(false);
@@ -386,10 +386,44 @@ export default function ProtokollOverview() {
     };
   }, []);
 
-const rows = useMemo(
-    () => [...data].sort((a, b) => (Number(b.nr) || 0) - (Number(a.nr) || 0)),
-    [data]
-  );
+  const searchNeedle = useMemo(() => normalizeNameValue(searchTerm), [searchTerm]);
+  const hasSearch = searchNeedle.length > 0;
+
+  const rows = useMemo(() => {
+    const sorted = [...data].sort((a, b) => (Number(b.nr) || 0) - (Number(a.nr) || 0));
+    if (!hasSearch) return sorted;
+
+    const match = (value) => normalizeNameValue(value).includes(searchNeedle);
+
+    return sorted.filter((item) => {
+      const u = item?.uebermittlungsart || {};
+      const directions = []
+        .concat(u.ein ? "Eingang" : [])
+        .concat(u.aus ? "Ausgang" : []);
+
+      const searchableFields = [
+        item?.nr,
+        item?.zu,
+        item?.datum,
+        item?.zeit,
+        item?.anvon,
+        item?.information,
+        item?.infoTyp,
+        u.kanal,
+        u.kanalNr,
+        u.art,
+        directions.join(" / "),
+      ];
+
+      if (Array.isArray(item?.massnahmen)) {
+        for (const m of item.massnahmen) {
+          searchableFields.push(m?.massnahme, m?.verantwortlich);
+        }
+      }
+
+      return searchableFields.some((field) => match(field));
+    });
+  }, [data, hasSearch, searchNeedle]);
 
   return (
   <div className="p-3 md:p-4 max-w-[1400px] mx-auto h-full flex flex-col">

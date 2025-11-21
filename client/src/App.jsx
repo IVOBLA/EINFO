@@ -445,6 +445,7 @@ const readOnly = !canEdit;
   }, []);
   const [areaFilter, setAreaFilter] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [protocolSearch, setProtocolSearch] = useState("");
   const [filterPulseActive, setFilterPulseActive] = useState(false);
   const [mapCtx, setMapCtx] = useState(null);
   const [editing, setEditing] = useState(null);
@@ -1940,17 +1941,25 @@ if (route.startsWith("/protokoll")) {
         addTitle="Neuen Eintrag anlegen"
         navButtons={getNavButtons("meldestelle")}
       />
-      <header className="flex items-center justify-between p-3 border-b bg-white shadow">
+      <header className="flex flex-wrap items-center justify-between gap-3 p-3 border-b bg-white shadow">
         <h1 className="text-xl font-bold">Meldestelle</h1>
-        <button
-          onClick={() => { window.location.hash = "/"; }}
-          className="px-3 py-1.5 rounded-md bg-gray-600 hover:bg-gray-700 text-white"
+        <label
+          className="flex items-center gap-2 text-sm text-gray-700 w-full md:w-auto"
+          htmlFor="protocolSearch"
         >
-          ← Zurück
-        </button>
+          <span className="whitespace-nowrap">Suche</span>
+          <input
+            id="protocolSearch"
+            type="search"
+            className="border rounded px-3 py-1.5 w-full sm:w-56 md:w-64 lg:w-72 max-w-full"
+            placeholder="Suche…"
+            value={protocolSearch}
+            onChange={(e) => setProtocolSearch(e.target.value)}
+          />
+        </label>
       </header>
       <div className="flex-1 overflow-auto p-3">
-        <ProtokollOverview />
+        <ProtokollOverview searchTerm={protocolSearch} />
       </div>
     </div>
   );
