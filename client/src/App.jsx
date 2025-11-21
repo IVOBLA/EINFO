@@ -1999,6 +1999,32 @@ if (route.startsWith("/protokoll")) {
           </div>
         </div>
 
+        {tickerText && (
+          <div className="flex-1 min-w-[200px] min-h-[2.5rem] max-w-full sm:min-w-[260px]">
+            <div className="ticker-container w-full h-full flex items-center" aria-live="polite">
+              <marquee
+                className="ticker-content"
+                key={tickerText}
+                behavior="scroll"
+                direction="left"
+                scrollAmount={6}
+                onMouseEnter={(event) => {
+                  if (typeof event.target.stop === "function") {
+                    event.target.stop();
+                  }
+                }}
+                onMouseLeave={(event) => {
+                  if (typeof event.target.start === "function") {
+                    event.target.start();
+                  }
+                }}
+              >
+                <span>{tickerText}</span>
+              </marquee>
+            </div>
+          </div>
+        )}
+
         <div className="toolbar flex flex-wrap items-center gap-2 justify-end w-full md:w-auto">
           <label className="flex flex-wrap items-center gap-2 text-sm text-gray-700" htmlFor="areaFilter">
             <span className="whitespace-nowrap">Filter Abschnitt</span>
@@ -2031,36 +2057,10 @@ if (route.startsWith("/protokoll")) {
               type="search"
               className="w-full sm:w-64 md:w-72 lg:w-80 max-w-full px-3 py-2 text-sm rounded-xl border"
               placeholder="Suche…"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </label>
-
-          {tickerText && (
-            <div className="flex-1 min-w-[200px] min-h-[2.5rem] max-w-full sm:min-w-[260px]">
-              <div className="ticker-container w-full h-full flex items-center" aria-live="polite">
-                <marquee
-                  className="ticker-content"
-                  key={tickerText}
-                  behavior="scroll"
-                  direction="left"
-                  scrollAmount={6}
-                  onMouseEnter={(event) => {
-                    if (typeof event.target.stop === "function") {
-                      event.target.stop();
-                    }
-                  }}
-                  onMouseLeave={(event) => {
-                    if (typeof event.target.start === "function") {
-                      event.target.start();
-                    }
-                  }}
-                >
-                  <span>{tickerText}</span>
-                </marquee>
-              </div>
-            </div>
-          )}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </label>
 
           {/* (6) Countdown / Sync-Chip */}
 
