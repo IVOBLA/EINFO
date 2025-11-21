@@ -109,6 +109,14 @@ function sanitizeFilenamePart(value) {
     .toLowerCase();
 }
 
+function normalizeOptions(options = {}) {
+  const show = options.show === "all" ? "all" : "weather";
+  const hours = Number.isFinite(+options.hours) && +options.hours > 0
+    ? +options.hours
+    : 24;
+  return { show, hours };
+}
+
 function buildOutputFile({ show, hours }) {
   const parts = ["feldkirchen"];
   const showPart = sanitizeFilenamePart(show || "");
@@ -202,19 +210,11 @@ async function readBoardItems() {
 const DEFAULT_POINT_COLOR = "#e11d48";
 
 export async function generateFeldkirchenSvg(options = {}) {
-  const {
-    show = "weather", // "weather" | "all"
-    hours = 24,
-  } = options;
+  const { show, hours } = normalizeOptions(options);
 
   const now = Date.now();
-  const effectiveHours =
-    Number.isFinite(+hours) && +hours > 0 ? +hours : 24;
-  const cutoff = now - effectiveHours * 60 * 60 * 1000;
-  const outputFile = path.join(
-    OUT_DIR,
-    buildOutputFile({ show, hours: effectiveHours })
-  );
+  const cutoff = now - hours * 60 * 60 * 1000;
+  const outputFile = path.join(OUT_DIR, buildOutputFile({ show, hours }));
 
   const categories = await loadCategories();
   const categoryColorMap = buildCategoryColorMap(categories);
@@ -256,7 +256,7 @@ export async function generateFeldkirchenSvg(options = {}) {
   }
 
   console.log(
-    `[svg] ${points.length} Punkte → show=${show}, hours=${effectiveHours}`
+    `[svg] ${points.length} Punkte → show=${show}, hours=${hours}`
   );
 
   // Hintergrund-Bitmap laden
@@ -307,6 +307,22 @@ export async function generateFeldkirchenSvg(options = {}) {
   await fsp.writeFile(outputFile, svg, "utf8");
   console.log("[svg] Karte geschrieben:", outputFile);
   return outputFile;
+}
+
+export function getFeldkirchenSvgPath(options = {}) {
+  const { show, hours } = normalizeOptions(options);
+  return path.join(OUT_DIR, buildOutputFile({ show, hours }));
+}
+
+export async function deleteFeldkirchenSvg(options = {}) {
+  const outputFile = getFeldkirchenSvgPath(options);
+  try {
+    await fsp.unlink(outputFile);
+    return { deleted: true, file: outputFile };
+  } catch (err) {
+    if (err?.code === "ENOENT") return { deleted: false, file: outputFile };
+    throw err;
+  }
 }
 
 // CLI: node utils/generateFeldkirchenSvg.mjs
