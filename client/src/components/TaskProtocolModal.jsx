@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import ProtokollPage from "../pages/ProtokollPage.jsx";
 
-export default function TaskProtocolModal({ open, payload, onClose }) {
+export default function TaskProtocolModal({ open, mode = "create", editNr = null, payload, onClose }) {
   useEffect(() => {
     if (!open) return undefined;
     const originalOverflow = document.body.style.overflow;
@@ -33,10 +33,11 @@ export default function TaskProtocolModal({ open, payload, onClose }) {
           </button>
           <div className="flex-1 overflow-y-auto pt-10 md:pt-12 px-2 md:px-4 pb-4">
             <ProtokollPage
-              mode="create"
+              mode={mode}
+              editNr={mode === "edit" ? editNr : null}
               onRequestClose={handleClose}
               onSaved={handleClose}
-              taskPrefillPayload={payload}
+              taskPrefillPayload={mode === "create" ? payload : null}
             />
           </div>
         </div>

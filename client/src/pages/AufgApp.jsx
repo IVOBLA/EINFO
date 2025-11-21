@@ -235,6 +235,8 @@ export default function AufgApp() {
   const [filterEinsatz, setFilterEinsatz] = useState("");
   const [addOpen, setAddOpen] = useState(false);  // Popup initial auf false setzen
   const [protocolModalOpen, setProtocolModalOpen] = useState(false);
+  const [protocolModalMode, setProtocolModalMode] = useState("create");
+  const [protocolEditNr, setProtocolEditNr] = useState(null);
   const [protocolPrefillPayload, setProtocolPrefillPayload] = useState(null);
   const [activeItem, setActiveItem] = useState(null);
   const [allowEdit, setAllowEdit] = useState(false);
@@ -761,7 +763,18 @@ export default function AufgApp() {
       createdAt: item?.createdAt ?? null,
       originProtocolNr: normalizedOriginNr || null,
     };
+    setProtocolModalMode("create");
+    setProtocolEditNr(null);
     setProtocolPrefillPayload(payload);
+    setProtocolModalOpen(true);
+  }, []);
+
+  const handleOpenProtocol = useCallback((nr) => {
+    const normalized = normalizeProtocolId(nr);
+    if (!normalized) return;
+    setProtocolModalMode("edit");
+    setProtocolEditNr(normalized);
+    setProtocolPrefillPayload(null);
     setProtocolModalOpen(true);
   }, []);
   // ---- Pfeil „Weiter→“ → jetzt dedizierter Status-Endpunkt
@@ -942,6 +955,7 @@ export default function AufgApp() {
                   isNew={freshIds.has(String(it.id))}
                   incidentLookup={incidentIndex.map}
                   onCreateProtocol={handleCreateProtocol}
+                  onOpenProtocol={handleOpenProtocol}
                 />
               ))}
             </AufgDroppableColumn>
@@ -964,6 +978,7 @@ export default function AufgApp() {
                   isNew={freshIds.has(String(it.id))}
                   incidentLookup={incidentIndex.map}
                   onCreateProtocol={handleCreateProtocol}
+                  onOpenProtocol={handleOpenProtocol}
                 />
               ))}
             </AufgDroppableColumn>
@@ -986,6 +1001,7 @@ export default function AufgApp() {
                   isNew={freshIds.has(String(it.id))}
                   incidentLookup={incidentIndex.map}
                   onCreateProtocol={handleCreateProtocol}
+                  onOpenProtocol={handleOpenProtocol}
                 />
               ))}
             </AufgDroppableColumn>
@@ -1015,13 +1031,18 @@ export default function AufgApp() {
           protocolOptions={protocolOptions}
           protocolLookup={protocolLookup}
           onCreateProtocol={handleCreateProtocol}
+          onOpenProtocol={handleOpenProtocol}
         />
       ) : null}
       <TaskProtocolModal
         open={protocolModalOpen}
+        mode={protocolModalMode}
+        editNr={protocolEditNr}
         payload={protocolPrefillPayload}
         onClose={() => {
           setProtocolModalOpen(false);
+          setProtocolModalMode("create");
+          setProtocolEditNr(null);
           setProtocolPrefillPayload(null);
         }}
       />

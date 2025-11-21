@@ -97,6 +97,7 @@ export default function AufgInfoModal({
   protocolOptions = [],
   protocolLookup,
   onCreateProtocol,
+  onOpenProtocol,
 }) {
   const it = item || null;
   const originProtocolId = useMemo(() => normalizeProtocolId(it?.originProtocolNr), [it?.originProtocolNr]);
@@ -123,6 +124,15 @@ export default function AufgInfoModal({
     }
     return map;
   }, [incidentLookup]);
+
+  const handleOpenProtocol = useCallback(
+    (nr) => {
+      const normalized = normalizeProtocolId(nr);
+      if (!normalized) return;
+      onOpenProtocol?.(normalized);
+    },
+    [onOpenProtocol]
+  );
 
   useEffect(() => {
     if (!open) {
@@ -434,9 +444,7 @@ export default function AufgInfoModal({
                 Ursprung:{" "}
                 <button
                   className="text-blue-700 hover:underline"
-                  onClick={() =>
-                    window.location.assign(`/protokoll#/protokoll/edit/${it.originProtocolNr}`)
-                  }
+                  onClick={() => handleOpenProtocol(it.originProtocolNr)}
                   title={`Meldung #${it.originProtocolNr} öffnen`}
                 >
                   Meldung: {it.originProtocolNr}
@@ -471,7 +479,7 @@ export default function AufgInfoModal({
                           className="text-blue-700 hover:underline"
                           onClick={() => {
                             if (!nr) return;
-                            window.location.assign(`/protokoll#/protokoll/edit/${nr}`);
+                            handleOpenProtocol(nr);
                           }}
                           title={nr ? `Meldung #${nr} öffnen` : "Meldung öffnen"}
                         >
@@ -563,7 +571,7 @@ export default function AufgInfoModal({
                                 className="text-blue-700 hover:underline"
                                 onClick={() => {
                                   if (!nr) return;
-                                  window.location.assign(`/protokoll#/protokoll/edit/${nr}`);
+                                  handleOpenProtocol(nr);
                                 }}
                                 title={nr ? `Meldung #${nr} öffnen` : "Meldung öffnen"}
                               >
