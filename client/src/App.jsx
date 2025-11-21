@@ -1971,37 +1971,25 @@ if (route.startsWith("/protokoll")) {
       <header className="flex flex-wrap items-center justify-between gap-2 mb-2">
         <h1 className="text-xl md:text-2xl font-bold">Einsatzstellen-Übersicht-Feuerwehr</h1>
 
-       <div className="toolbar flex flex-wrap items-center gap-2">
+        <div className="toolbar flex flex-wrap items-center gap-2">
           {/* (6) Countdown / Sync-Chip */}
 
-
-          <button onClick={onPdf} className="px-3 py-1.5 rounded-md bg-purple-600 hover:bg-purple-700 text-white">
+          <button
+            onClick={onPdf}
+            className="px-3 py-1.5 rounded-md bg-purple-600 hover:bg-purple-700 text-white"
+          >
             PDF
           </button>
-		  
-<button
-  onClick={() => window.open("/api/log.csv", "_blank")}
-  className="px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white"
-  title="log.csv herunterladen"
->
-  Log&nbsp;(CSV)
-</button>
 
           <button
-  onClick={() => { window.location.hash = "/protokoll"; }}
-  className="px-3 py-1.5 rounded-md bg-gray-500 hover:bg-gray-600 text-white"
->
-  Meldestelle
-</button>
-<button
-  type="button"
-  onClick={() => { window.location.href = "/aufgaben"; }}
-  className="px-3 py-1.5 rounded-md bg-teal-600 hover:bg-teal-700 text-white"
-  title="Zum Aufgaben-Board"
->
-  Aufgaben
-</button>
-		  <button
+            onClick={() => window.open("/api/log.csv", "_blank")}
+            className="px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white"
+            title="log.csv herunterladen"
+          >
+            Log&nbsp;(CSV)
+          </button>
+
+          <button
             onClick={doManualImport}
             disabled={readOnly || importBusy}
             className="px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-60"
@@ -2012,8 +2000,6 @@ if (route.startsWith("/protokoll")) {
 
           {/* Feuerwehr-Fetcher Control */}
           <FFFetchControl autoEnabled={autoEnabled} remaining={remaining} disabled={readOnly} />
-
-
 
           <button
             onClick={onReset}
