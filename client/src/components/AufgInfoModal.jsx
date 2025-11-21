@@ -74,7 +74,7 @@ const formatProtocolLabel = (detail, { maxTextLength } = {}) => {
   if (detail.anvon) parts.push(detail.anvon);
   const text = detail.title || detail.information;
   if (text) {
-    const normalizedText = String(text);
+    const normalizedText = String(text).replace(/(\r\n|\r|\n)/g, "...");
     const limitedText =
       maxTextLength && normalizedText.length > maxTextLength
         ? `${normalizedText.slice(0, maxTextLength)}…`
@@ -468,10 +468,12 @@ export default function AufgInfoModal({
             <div>
               <div className="text-xs text-gray-600">Verknüpfte Meldungen</div>
               {selectedProtocolDetails.length ? (
-                <ul className="mt-1 space-y-1 max-h-28 overflow-y-auto pr-1">
+                <ul className="mt-1 space-y-1 max-h-20 overflow-y-auto pr-1">
                   {selectedProtocolDetails.map((detail) => {
                     const nr = detail.nr;
-                    const label = formatProtocolLabel(detail);
+                    const label = formatProtocolLabel(detail, {
+                      maxTextLength: PROTOCOL_TEXT_PREVIEW_LENGTH,
+                    });
                     return (
                       <li key={nr}>
                         <button
