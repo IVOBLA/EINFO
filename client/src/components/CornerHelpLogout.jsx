@@ -6,11 +6,17 @@ export default function CornerHelpLogout({
   helpLabel = "i",
   helpTitle = "Hilfe",
   helpClassName = "",
+  onAdd,
+  addLabel = "＋",
+  addTitle = "Neuen Eintrag anlegen",
+  addClassName = "",
+  addDisabled = false,
   className = "",
   logoffClassName = "",
   children,
 }) {
   const showHelp = Boolean(helpHref);
+  const showAdd = typeof onAdd === "function";
   const containerClasses = [
     "fixed",
     "bottom-4",
@@ -28,6 +34,25 @@ export default function CornerHelpLogout({
 
   return (
     <div className={containerClasses}>
+      {showAdd && (
+        <button
+          type="button"
+          onClick={onAdd}
+          disabled={addDisabled}
+          title={addTitle || addLabel}
+          aria-label={addTitle || addLabel}
+          className={[
+            "pointer-events-auto",
+            "floating-action",
+            "fab",
+            addClassName,
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
+          <span aria-hidden="true">{addLabel}</span>
+        </button>
+      )}
       {children}
       {showHelp && (
         <a

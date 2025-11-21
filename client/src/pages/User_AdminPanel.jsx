@@ -337,7 +337,11 @@ export default function User_AdminPanel() {
   if (!userHasAdminRole(user)) {
     return (
       <div className="p-4 text-red-700">
-        <CornerHelpLogout />
+        <CornerHelpLogout
+          helpHref="/Hilfe.pdf"
+          onAdd={() => { window.location.href = "/"; }}
+          addTitle="Zur Einsatzübersicht"
+        />
         {FORBIDDEN_MESSAGE}
       </div>
     );
@@ -748,7 +752,11 @@ export default function User_AdminPanel() {
 
   return (
     <div className="p-4 space-y-6">
-      <CornerHelpLogout />
+      <CornerHelpLogout
+        helpHref="/Hilfe.pdf"
+        onAdd={() => { window.location.href = "/"; }}
+        addTitle="Zur Einsatzübersicht"
+      />
       <h1 className="text-2xl font-semibold">User Admin</h1>
 
       {(msg || err || locked) && (

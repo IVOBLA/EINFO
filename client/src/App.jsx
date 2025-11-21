@@ -1860,6 +1860,8 @@ if (route.startsWith("/protokoll/edit/")) {
       <CornerHelpLogout
         helpHref="/Hilfe_Meldestelle.pdf"
         helpTitle="Hilfe – Meldestelle/Protokoll"
+        onAdd={() => { window.location.hash = "/protokoll/neu"; }}
+        addTitle="Neuen Eintrag anlegen"
       />
       <header className="flex items-center justify-between p-3 border-b bg-white shadow">
         <h1 className="text-xl font-bold">Meldung – Bearbeiten</h1>
@@ -1884,6 +1886,8 @@ if (route.startsWith("/protokoll/neu")) {
       <CornerHelpLogout
         helpHref="/Hilfe_Meldestelle.pdf"
         helpTitle="Hilfe – Meldestelle/Protokoll"
+        onAdd={() => { window.location.hash = "/protokoll/neu"; }}
+        addTitle="Neuen Eintrag anlegen"
       />
       <header className="flex items-center justify-between p-3 border-b bg-white shadow">
         <h1 className="text-xl font-bold">Meldung – Eintrag anlegen</h1>
@@ -1908,6 +1912,8 @@ if (route.startsWith("/protokoll")) {
       <CornerHelpLogout
         helpHref="/Hilfe_Meldestelle.pdf"
         helpTitle="Hilfe – Meldestelle/Protokoll"
+        onAdd={() => { window.location.hash = "/protokoll/neu"; }}
+        addTitle="Neuen Eintrag anlegen"
       />
       <header className="flex items-center justify-between p-3 border-b bg-white shadow">
         <h1 className="text-xl font-bold">Meldestelle</h1>
@@ -1931,19 +1937,11 @@ if (route.startsWith("/protokoll")) {
   className="h-screen w-screen bg-gray-100 p-2 md:p-3 overflow-hidden flex flex-col"
   style={{ fontSize: "var(--ui-scale)" }}
 >
-      <CornerHelpLogout helpHref="/Hilfe.pdf">
-        {canEdit && (
-          <button
-            type="button"
-            className="pointer-events-auto floating-action fab"
-            title="Einsatz anlegen"
-            aria-label="Einsatz anlegen"
-            onClick={() => setShowAddModal(true)}
-          >
-            <span aria-hidden="true">＋</span>
-          </button>
-        )}
-      </CornerHelpLogout>
+      <CornerHelpLogout
+        helpHref="/Hilfe.pdf"
+        onAdd={canEdit ? () => setShowAddModal(true) : undefined}
+        addTitle="Einsatz anlegen"
+      />
       {!board && (
         <div className="fixed inset-0 z-10 bg-black/10 backdrop-blur-sm flex items-center justify-center">
           <div className="px-4 py-2 rounded-lg bg-white shadow">Lade…</div>
