@@ -51,8 +51,8 @@ export default function AufgDroppableColumn({ id, title, count, itemIds, bg = ""
     >
       {/* Sticky Header wie im alten Board */}
       <div className="column-header sticky top-0 z-10">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold">{title}</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold break-words min-w-0">{title}</h2>
           <span className="kpi-badge">{count}</span>
         </div>
       </div>
