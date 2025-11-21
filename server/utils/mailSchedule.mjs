@@ -2,6 +2,8 @@ import fs from "fs/promises";
 import path from "path";
 import crypto from "node:crypto";
 
+import { isMailLoggingEnabled as defaultMailLoggingEnabled, logMailEvent as defaultLogMailEvent } from "./mailLogger.mjs";
+
 const MAIL_MODE_ALIASES = new Map([
   ["time", "time"],
   ["uhrzeit", "time"],
@@ -105,22 +107,44 @@ export function resolveAttachmentPath(dataDir, filePath) {
   return path.isAbsolute(cleaned) ? cleaned : path.join(dataDir, cleaned);
 }
 
-export async function buildScheduledMailAttachments(dataDir, entry) {
+export async function buildScheduledMailAttachments(
+  dataDir,
+  entry,
+  { onMissingAttachment } = {},
+) {
   const resolved = resolveAttachmentPath(dataDir, entry?.attachmentPath || "");
   if (!resolved) return [];
-  const content = await fs.readFile(resolved);
-  const filename = path.basename(resolved) || "Anhang";
-  return [{ filename, content }];
+  try {
+    const content = await fs.readFile(resolved);
+    const filename = path.basename(resolved) || "Anhang";
+    return [{ filename, content }];
+  } catch (error) {
+    if (error?.code === "ENOENT") {
+      await onMissingAttachment?.(resolved);
+      return null;
+    }
+    throw error;
+  }
 }
 
-async function sendScheduledMail(entry, { dataDir, sendMail }) {
-  const attachments = await buildScheduledMailAttachments(dataDir, entry);
+async function sendScheduledMail(entry, { dataDir, sendMail, logMailEvent, isMailLoggingEnabled }) {
+  const attachments = await buildScheduledMailAttachments(dataDir, entry, {
+    onMissingAttachment: async (resolvedPath) => {
+      if (!isMailLoggingEnabled) return;
+      await logMailEvent("Geplanter Mail-Anhang fehlt", {
+        id: entry.id,
+        attachmentPath: resolvedPath,
+      });
+    },
+  });
+  if (attachments === null) return false;
   await sendMail({
     to: entry.to,
     subject: entry.subject || "Geplante Nachricht",
     text: entry.text || "",
     attachments,
   });
+  return true;
 }
 
 export function createMailScheduleRunner({
@@ -130,6 +154,8 @@ export function createMailScheduleRunner({
   minIntervalMinutes,
   sweepIntervalMs,
   sendMail,
+  logMailEvent = defaultLogMailEvent,
+  isMailLoggingEnabled = defaultMailLoggingEnabled,
   isMailConfigured,
   appendError,
   readJson,
@@ -178,9 +204,16 @@ export function createMailScheduleRunner({
         const normalized = sanitize(entry);
         if (shouldSendMailNow(normalized, { now, defaultIntervalMinutes, minIntervalMinutes })) {
           try {
-            await sendScheduledMail(normalized, { dataDir, sendMail });
-            normalized.lastSentAt = now;
-            changed = true;
+            const sent = await sendScheduledMail(normalized, {
+              dataDir,
+              sendMail,
+              logMailEvent,
+              isMailLoggingEnabled,
+            });
+            if (sent) {
+              normalized.lastSentAt = now;
+              changed = true;
+            }
           } catch (err) {
             await appendError("mail-schedule/send", err, { id: normalized.id, to: normalized.to });
           }
