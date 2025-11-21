@@ -21,6 +21,8 @@ import IncidentInfoModal from "./components/IncidentInfoModal";
 import { initSound, playGong } from "./sound";
 import ProtokollOverview from "./pages/ProtokollOverview.jsx";
 import ProtokollPage from "./pages/ProtokollPage.jsx";
+import { useUserAuth } from "./components/User_AuthProvider.jsx";
+import useOnlineRoles from "./hooks/useOnlineRoles.js";
 
 // Start/Stop + Import (Icon & Button)
 import FFFetchControl from "./components/FFFetchControl.jsx";
@@ -446,6 +448,14 @@ const readOnly = !canEdit;
   const [areaFilter, setAreaFilter] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [protocolSearch, setProtocolSearch] = useState("");
+  const { user } = useUserAuth() || {};
+  const { roles: onlineRoles } = useOnlineRoles();
+  const ltStbOnline = useMemo(
+    () => onlineRoles.some((roleId) => roleId === "LTSTB" || roleId === "LTSTBSTV"),
+    [onlineRoles]
+  );
+  const [protocolCanEdit, setProtocolCanEdit] = useState(false);
+  const [protocolS3Blocked, setProtocolS3Blocked] = useState(false);
   const [filterPulseActive, setFilterPulseActive] = useState(false);
   const [mapCtx, setMapCtx] = useState(null);
   const [editing, setEditing] = useState(null);
@@ -466,6 +476,25 @@ const readOnly = !canEdit;
   const onShowInfo = (card) => { setInfoCard(card); setInfoForceEdit(false); setInfoOpen(true); };
   const tickerRequestRef = useRef(null);
   const [tickerMessages, setTickerMessages] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        await initRolePolicy();
+        if (cancelled) return;
+        const baseCanEdit = canEditApp("protokoll", user);
+        const s3Fallback = !ltStbOnline && hasRole("S3", user);
+        setProtocolCanEdit(baseCanEdit || s3Fallback);
+        setProtocolS3Blocked(hasRole("S3", user) && ltStbOnline);
+      } catch {
+        if (cancelled) return;
+        setProtocolCanEdit(false);
+        setProtocolS3Blocked(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [ltStbOnline, user]);
   // --- Mini-Routing über Hash (stabil) ---
 const [hash, setHash] = useState(window.location.hash);
 useEffect(() => {
@@ -1942,21 +1971,53 @@ if (route.startsWith("/protokoll")) {
         navButtons={getNavButtons("meldestelle")}
       />
       <header className="flex flex-wrap items-center justify-between gap-3 p-3 border-b bg-white shadow">
-        <h1 className="text-xl font-bold">Meldestelle</h1>
-        <label
-          className="flex items-center gap-2 text-sm text-gray-700 w-full md:w-auto"
-          htmlFor="protocolSearch"
-        >
-          <span className="whitespace-nowrap">Suche</span>
-          <input
-            id="protocolSearch"
-            type="search"
-            className="border rounded px-3 py-1.5 w-full sm:w-56 md:w-64 lg:w-72 max-w-full"
-            placeholder="Suche…"
-            value={protocolSearch}
-            onChange={(e) => setProtocolSearch(e.target.value)}
-          />
-        </label>
+        <h1 className="text-xl font-bold">Meldungsübersicht</h1>
+        <div className="flex flex-1 flex-wrap items-center justify-end gap-2 min-w-0">
+          <label
+            className="flex items-center gap-2 text-sm text-gray-700 w-full sm:w-auto"
+            htmlFor="protocolSearch"
+          >
+            <span className="whitespace-nowrap">Suche</span>
+            <input
+              id="protocolSearch"
+              type="search"
+              className="border rounded px-3 py-1.5 w-full sm:w-56 md:w-64 lg:w-72 max-w-full"
+              placeholder="Suche…"
+              value={protocolSearch}
+              onChange={(e) => setProtocolSearch(e.target.value)}
+            />
+          </label>
+          <div className="flex items-center gap-2">
+            <a
+              href="/api/protocol/csv/file"
+              className="px-3 py-1.5 rounded-md border bg-white"
+              title="protocol.csv herunterladen"
+            >
+              CSV
+            </a>
+            <button
+              onClick={() => {
+                if (!protocolCanEdit || protocolS3Blocked) return;
+                window.location.hash = "/protokoll/neu";
+              }}
+              disabled={!protocolCanEdit || protocolS3Blocked}
+              className={`px-3 py-1.5 rounded-md text-white ${
+                !protocolCanEdit || protocolS3Blocked
+                  ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                  : "bg-emerald-600 hover:bg-emerald-700"
+              }`}
+              title={
+                !protocolCanEdit
+                  ? "Keine Berechtigung (Meldestelle)"
+                  : protocolS3Blocked
+                    ? "S3 darf nur anlegen, wenn LtStb nicht angemeldet ist"
+                    : undefined
+              }
+            >
+              + Eintrag anlegen
+            </button>
+          </div>
+        </div>
       </header>
       <div className="flex-1 overflow-auto p-3">
         <ProtokollOverview searchTerm={protocolSearch} />
