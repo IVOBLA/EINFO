@@ -2029,7 +2029,7 @@ if (route.startsWith("/protokoll")) {
             <input
               id="boardSearch"
               type="search"
-              className="border rounded px-3 py-2 w-full sm:w-56 md:w-64 lg:w-72 max-w-full"
+              className="w-full sm:w-64 md:w-72 lg:w-80 max-w-full px-3 py-2 text-sm rounded-xl border"
               placeholder="Suche…"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
