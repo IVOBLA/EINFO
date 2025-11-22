@@ -8,7 +8,15 @@
    =========================================================== */
 
 /* === GLOBAL === */
-:root { --row-gap: .5rem; --card-pad: .6rem; }         /* (5) Dichte-Schalter Basis */
+:root {
+  --row-gap: .5rem;
+  --card-pad: .6rem;
+
+  /* Globale Floating-Button-Größe + Sicherheitsrand */
+  --fab-size: calc(56px * 0.7);              /* Basisgröße für runde Buttons */
+  --fab-safe-margin: calc(var(--fab-size) + 1.5rem); /* Abstand Inhalt zu FABs */
+}
+     /* (5) Dichte-Schalter Basis */
 .ui-dense { --row-gap: .35rem; --card-pad: .45rem; }   /* (5) kompakter Modus */
 
 html, body {
@@ -174,7 +182,6 @@ a[href*="karte"]:hover, button[title*="Karte"]:hover{ text-decoration: underline
 
 /* Floating action buttons (Help / Logoff / „+“) */
 .floating-action{
-  --fab-size: calc(56px * 0.7);
   width: var(--fab-size);
   height: var(--fab-size);
   border-radius: 999px;
@@ -188,6 +195,7 @@ a[href*="karte"]:hover, button[title*="Karte"]:hover{ text-decoration: underline
   box-shadow: 0 10px 28px rgba(15,23,42,.18);
   transition: transform .2s ease, box-shadow .2s ease, filter .2s ease;
 }
+
 .floating-action svg{
   width: calc(26px * 0.7);
   height: calc(26px * 0.7);
@@ -220,16 +228,20 @@ a[href*="karte"]:hover, button[title*="Karte"]:hover{ text-decoration: underline
   filter: brightness(.95);
 }
 
-/* Abstand für schwebende Buttons, damit Spalten nicht überdeckt werden */
+/* Abstand für schwebende Buttons, damit Inhalt nicht überdeckt wird */
 .floating-actions-safe-area{
-  padding-right: max(1rem, calc(var(--fab-size) + 24px));
+  padding-right: var(--fab-safe-margin);
+  padding-bottom: var(--fab-safe-margin);
 }
 
-@media (min-width: 768px){
+/* Auf ganz kleinen Screens etwas weniger Abstand */
+@media (max-width: 640px){
   .floating-actions-safe-area{
-    padding-right: max(1.5rem, calc(var(--fab-size) + 32px));
+    padding-right: calc(var(--fab-safe-margin) * 0.8);
+    padding-bottom: calc(var(--fab-safe-margin) * 0.8);
   }
 }
+
 
 /* Einheitliche Maße in der Kopfzeile */
 header .toolbar > * {

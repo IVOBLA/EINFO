@@ -1908,7 +1908,7 @@ if (route.startsWith("/protokoll/edit/")) {
   const nrStr = route.split("/")[3];
   const editNr = Number(nrStr);
   return (
-    <div className="h-screen w-screen bg-gray-100 flex flex-col">
+    <div className="h-screen w-screen bg-gray-100 flex flex-col floating-actions-safe-area">
       <CornerHelpLogout
         helpHref="/Hilfe_Meldestelle.pdf"
         helpTitle="Hilfe – Meldestelle/Protokoll"
@@ -1935,7 +1935,7 @@ if (route.startsWith("/protokoll/edit/")) {
 // Neu: #/protokoll/neu
 if (route.startsWith("/protokoll/neu")) {
   return (
-    <div className="h-screen w-screen bg-gray-100 flex flex-col">
+    <div className="h-screen w-screen bg-gray-100 flex flex-col floating-actions-safe-area">
       <CornerHelpLogout
         helpHref="/Hilfe_Meldestelle.pdf"
         helpTitle="Hilfe – Meldestelle/Protokoll"
@@ -1962,7 +1962,7 @@ if (route.startsWith("/protokoll/neu")) {
 // Übersicht: #/protokoll
 if (route.startsWith("/protokoll")) {
   return (
-    <div className="h-screen w-screen bg-gray-100 flex flex-col">
+    <div className="h-screen w-screen bg-gray-100 flex flex-col floating-actions-safe-area">
       <CornerHelpLogout
         helpHref="/Hilfe_Meldestelle.pdf"
         helpTitle="Hilfe – Meldestelle/Protokoll"
@@ -2176,7 +2176,8 @@ if (route.startsWith("/protokoll")) {
   onDragOver={onDragOver}
   onDragEnd={onDragEnd}
 >
-        <main className="grid grid-cols-1 md:[grid-template-columns:minmax(180px,220px)_repeat(3,minmax(0,1fr))] gap-2 min-h-0 flex-1 overflow-hidden">
+        <main className="grid grid-cols-1 md:[grid-template-columns:minmax(180px,220px)_repeat(3,minmax(0,1fr))] gap-2 min-h-0 flex-1 overflow-hidden pr-[var(--fab-safe-margin)] pb-[var(--fab-safe-margin)]">
+
 
           {/* Einheiten (frei) */}
           <section className="bg-white rounded-xl shadow p-3 h-full flex flex-col min-h-0">
