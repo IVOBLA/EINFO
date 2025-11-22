@@ -398,10 +398,10 @@ export default function ProtokollOverview({ searchTerm = "" }) {
     });
   }, [data, hasSearch, searchNeedle]);
 
-  return (
-    <div className="p-3 md:p-4 h-full flex flex-col w-full floating-actions-safe-area">
+return (
+  <div className="p-3 md:p-4 h-full flex flex-col w-full">
     {/* Tabelle */}
-    <div className="flex-1 overflow-auto border rounded-lg bg-white">
+    <div className="flex-1 min-h-0 overflow-auto border rounded-lg bg-white">
       {loading ? (
         <div className="p-4 text-gray-500">Lade…</div>
       ) : (
