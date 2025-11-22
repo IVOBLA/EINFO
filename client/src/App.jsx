@@ -1973,51 +1973,47 @@ if (route.startsWith("/protokoll")) {
       <header className="flex flex-wrap items-center justify-between gap-3 p-3 border-b bg-white shadow">
         <h1 className="text-xl font-bold">Meldungsübersicht</h1>
         <div className="flex flex-1 flex-wrap items-center justify-end gap-2 min-w-0">
-          <label
-            className="flex items-center gap-2 text-sm text-gray-700 w-full sm:w-auto"
-            htmlFor="protocolSearch"
-          >
-            <span className="whitespace-nowrap">Suche</span>
-            <input
-              id="protocolSearch"
-              type="search"
-              className="border rounded px-3 py-1.5 w-full sm:w-56 md:w-64 lg:w-72 max-w-full"
-              placeholder="Suche…"
-              value={protocolSearch}
-              onChange={(e) => setProtocolSearch(e.target.value)}
-            />
-          </label>
-          <div className="flex items-center gap-2">
-            <a
-              href="/api/protocol/csv/file"
-              className="px-3 py-1.5 rounded-md border bg-white"
-              title="protocol.csv herunterladen"
-            >
-              CSV
-            </a>
-            <button
-              onClick={() => {
-                if (!protocolCanEdit || protocolS3Blocked) return;
-                window.location.hash = "/protokoll/neu";
-              }}
-              disabled={!protocolCanEdit || protocolS3Blocked}
-              className={`px-3 py-1.5 rounded-md text-white ${
-                !protocolCanEdit || protocolS3Blocked
-                  ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                  : "bg-emerald-600 hover:bg-emerald-700"
-              }`}
-              title={
-                !protocolCanEdit
-                  ? "Keine Berechtigung (Meldestelle)"
-                  : protocolS3Blocked
-                    ? "S3 darf nur anlegen, wenn LtStb nicht angemeldet ist"
-                    : undefined
-              }
-            >
-              + Eintrag anlegen
-            </button>
-          </div>
-        </div>
+  <input
+    id="protocolSearch"
+    type="search"
+    className="w-full sm:w-64 md:w-72 lg:w-80 max-w-full px-3 py-2 text-sm rounded-xl border"
+    placeholder="Suche…"
+    value={protocolSearch}
+    onChange={(e) => setProtocolSearch(e.target.value)}
+    aria-label="Suche Meldungen"
+  />
+  <div className="flex items-center gap-2">
+    <a
+      href="/api/protocol/csv/file"
+      className="px-3 py-1.5 rounded-md border bg-white"
+      title="protocol.csv herunterladen"
+    >
+      CSV
+    </a>
+    <button
+      onClick={() => {
+        if (!protocolCanEdit || protocolS3Blocked) return;
+        window.location.hash = "/protokoll/neu";
+      }}
+      disabled={!protocolCanEdit || protocolS3Blocked}
+      className={`px-3 py-1.5 rounded-md text-white ${
+        !protocolCanEdit || protocolS3Blocked
+          ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+          : "bg-emerald-600 hover:bg-emerald-700"
+      }`}
+      title={
+        !protocolCanEdit
+          ? "Keine Berechtigung (Meldestelle)"
+          : protocolS3Blocked
+            ? "S3 darf nur anlegen, wenn LtStb nicht angemeldet ist"
+            : undefined
+      }
+    >
+      + Eintrag anlegen
+    </button>
+  </div>
+</div>
+
       </header>
       <div className="flex-1 overflow-auto p-3">
         <ProtokollOverview searchTerm={protocolSearch} />
@@ -2108,20 +2104,18 @@ if (route.startsWith("/protokoll")) {
             </select>
           </label>
 
-          <label
-            className="flex items-center gap-2 text-sm text-gray-700 w-full sm:w-auto"
-            htmlFor="boardSearch"
-          >
-            <span className="whitespace-nowrap">Suche</span>
+ 
             <input
-              id="boardSearch"
-              type="search"
-              className="w-full sm:w-64 md:w-72 lg:w-80 max-w-full px-3 py-2 text-sm rounded-xl border"
-              placeholder="Suche…"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </label>
+  id="boardSearch"
+  type="search"
+  className="w-full sm:w-64 md:w-72 lg:w-80 max-w-full px-3 py-2 text-sm rounded-xl border"
+  placeholder="Suche…"
+  value={searchTerm}
+  onChange={(e) => setSearchTerm(e.target.value)}
+  aria-label="Suche Einsätze"
+/>
+
+
 
           {/* (6) Countdown / Sync-Chip */}
 
