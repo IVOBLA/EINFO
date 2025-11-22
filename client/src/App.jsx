@@ -1908,7 +1908,8 @@ if (route.startsWith("/protokoll/edit/")) {
   const nrStr = route.split("/")[3];
   const editNr = Number(nrStr);
   return (
-    <div className="h-screen w-screen bg-gray-100 flex flex-col floating-actions-safe-area">
+    <div className="h-screen w-screen bg-gray-100 p-2 md:p-3 overflow-hidden flex flex-col min-h-0 floating-actions-safe-area">
+
       <CornerHelpLogout
         helpHref="/Hilfe_Meldestelle.pdf"
         helpTitle="Hilfe – Meldestelle/Protokoll"
@@ -1925,9 +1926,10 @@ if (route.startsWith("/protokoll/edit/")) {
           Zur Übersicht
         </button>
       </header>
-      <div className="flex-1 overflow-auto p-3">
+      <div className="flex-1 min-h-0 overflow-hidden p-3">
         <ProtokollPage mode="edit" editNr={editNr} />
       </div>
+
     </div>
   );
 }
@@ -1935,7 +1937,7 @@ if (route.startsWith("/protokoll/edit/")) {
 // Neu: #/protokoll/neu
 if (route.startsWith("/protokoll/neu")) {
   return (
-    <div className="h-screen w-screen bg-gray-100 flex flex-col floating-actions-safe-area">
+    <div className="h-screen w-screen bg-gray-100 p-2 md:p-3 overflow-hidden flex flex-col min-h-0 floating-actions-safe-area">
       <CornerHelpLogout
         helpHref="/Hilfe_Meldestelle.pdf"
         helpTitle="Hilfe – Meldestelle/Protokoll"
@@ -1952,7 +1954,7 @@ if (route.startsWith("/protokoll/neu")) {
           Zur Übersicht
         </button>
       </header>
-      <div className="flex-1 overflow-auto p-3">
+      <div className="flex-1 min-h-0 overflow-hidden p-3">
         <ProtokollPage mode="create" />
       </div>
     </div>
@@ -1962,7 +1964,7 @@ if (route.startsWith("/protokoll/neu")) {
 // Übersicht: #/protokoll
 if (route.startsWith("/protokoll")) {
   return (
-    <div className="h-screen w-screen bg-gray-100 flex flex-col floating-actions-safe-area">
+    <div className="h-screen w-screen bg-gray-100 p-2 md:p-3 overflow-hidden flex flex-col min-h-0 floating-actions-safe-area">
       <CornerHelpLogout
         helpHref="/Hilfe_Meldestelle.pdf"
         helpTitle="Hilfe – Meldestelle/Protokoll"
@@ -2015,7 +2017,7 @@ if (route.startsWith("/protokoll")) {
 </div>
 
       </header>
-      <div className="flex-1 overflow-auto p-3">
+      <div className="flex-1 min-h-0 overflow-hidden p-3">
         <ProtokollOverview searchTerm={protocolSearch} />
       </div>
     </div>
@@ -2025,7 +2027,7 @@ if (route.startsWith("/protokoll")) {
 
   return (
     <div
-  className="h-screen w-screen bg-gray-100 p-2 md:p-3 overflow-hidden flex flex-col floating-actions-safe-area"
+  className="h-screen w-screen bg-gray-100 p-2 md:p-3 overflow-hidden flex flex-col min-h-0 floating-actions-safe-area"
   style={{ fontSize: "var(--ui-scale)" }}
 >
       <CornerHelpLogout
