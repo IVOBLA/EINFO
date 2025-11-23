@@ -1,7 +1,7 @@
 // C:\kanban\chatbot\server\llm_client.js
 // Spricht mit dem LLM (Ollama) und loggt alle Prompts/Antworten
+// Nutzt das globale fetch von Node (ab Node 18 verfügbar).
 
-import fetch from "node-fetch";
 import { CONFIG } from "./config.js";
 import { buildSystemPrompt, buildUserPrompt } from "./prompts.js";
 import { retrieveContextChunks } from "./rag_engine.js";
@@ -45,6 +45,7 @@ export async function callLLMWithRAG({ stateBefore, einfoData }) {
     }
   });
 
+  // Hier verwenden wir das globale fetch von Node.js (kein node-fetch mehr nötig)
   const resp = await fetch(`${CONFIG.llmBaseUrl}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
