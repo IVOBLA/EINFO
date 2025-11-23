@@ -1,0 +1,29 @@
+[
+  {
+    "id": "msg-001",
+    "timestamp": "2025-11-23T12:00:00Z",
+    "fromRole": "S2",
+    "type": "Lagemeldung",
+    "einsatzstelleId": null,
+    "kurztext": "Mehrere Gemeinden melden steigende Wasserstände entlang der Tiebel.",
+    "details": "Gemeinden berichten über überlaufende Regenwasserkanäle, erste Keller sind bereits leicht betroffen. Pegelprognosen deuten auf weitere Anstiege in den nächsten Stunden hin."
+  },
+  {
+    "id": "msg-002",
+    "timestamp": "2025-11-23T12:05:00Z",
+    "fromRole": "S3",
+    "type": "Nachforderung",
+    "einsatzstelleId": null,
+    "kurztext": "Anforderung weiterer Pumpen und Sandsäcke aus Bezirkslager.",
+    "details": "Mehrere örtliche Feuerwehren melden ausgeschöpfte Sandsackbestände. Es wird um Koordination durch den Bezirksstab gebeten."
+  },
+  {
+    "id": "msg-003",
+    "timestamp": "2025-11-23T12:10:00Z",
+    "fromRole": "S4",
+    "type": "Rueckfrage",
+    "einsatzstelleId": null,
+    "kurztext": "Rückfrage zu Verpflegung für längere Einsatzdauer.",
+    "details": "Es ist mit einer Einsatzdauer über mindestens 12 Stunden zu rechnen. S4 fragt an, ob der Stab eine zentrale Verpflegung anordnen soll."
+  }
+]

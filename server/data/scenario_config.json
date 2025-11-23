@@ -1,0 +1,13 @@
+{
+  "scenarioId": "hochwasser_feldkirchen_01",
+  "artDesEreignisses": "Hochwasser",
+  "geografischerBereich": "Bezirk Feldkirchen",
+  "zeit": "Nacht",
+  "wetter": "Dauerregen, steigende Pegelstände, Böen bis 60 km/h",
+  "infrastruktur": {
+    "strom": "teilweise ausgefallen (Ortsgebiete in Tallagen)",
+    "internet": "eingeschränkt, zeitweise Ausfälle",
+    "mobilfunk": "lokale Störungen in engen Tälern"
+  },
+  "initialEinsatzstellen": 3
+}
