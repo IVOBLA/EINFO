@@ -1,8 +1,11 @@
+// C:\kanban\chatbot\server\llm_client.js
+// Spricht mit dem LLM (Ollama) und loggt alle Prompts/Antworten
+
 import fetch from "node-fetch";
 import { CONFIG } from "./config.js";
 import { buildSystemPrompt, buildUserPrompt } from "./prompts.js";
 import { retrieveContextChunks } from "./rag_engine.js";
-import { logDebug, logError } from "./logger.js";
+import { logDebug, logError, logLLMExchange } from "./logger.js";
 
 export async function callLLMWithRAG({ stateBefore, einfoData }) {
   const contextChunks = await retrieveContextChunks({ stateBefore, einfoData });
@@ -23,8 +26,23 @@ export async function callLLMWithRAG({ stateBefore, einfoData }) {
     ]
   };
 
+  // LLM-Request im allgemeinen Log
   logDebug("LLM-Request wird gesendet", {
     model: CONFIG.model
+  });
+
+  // LLM-Request zusätzlich vollständig in LLM-Logdatei
+  logLLMExchange({
+    phase: "request",
+    model: CONFIG.model,
+    systemPrompt,
+    userPrompt,
+    rawResponse: null,
+    parsedResponse: null,
+    extra: {
+      from: "callLLMWithRAG",
+      note: "LLM request with system+user prompt"
+    }
   });
 
   const resp = await fetch(`${CONFIG.llmBaseUrl}/api/chat`, {
@@ -40,6 +58,21 @@ export async function callLLMWithRAG({ stateBefore, einfoData }) {
       statusText: resp.statusText,
       body: text
     });
+
+    // LLM-Fehler ebenfalls im LLM-Log vermerken
+    logLLMExchange({
+      phase: "response_error",
+      model: CONFIG.model,
+      systemPrompt,
+      userPrompt,
+      rawResponse: text,
+      parsedResponse: null,
+      extra: {
+        httpStatus: resp.status,
+        httpStatusText: resp.statusText
+      }
+    });
+
     throw new Error(`LLM error: ${resp.status} ${resp.statusText}`);
   }
 
@@ -55,6 +88,21 @@ export async function callLLMWithRAG({ stateBefore, einfoData }) {
   });
 
   const parsed = safeParseJSON(content);
+
+  // Vollständige LLM-Antwort im LLM-Log
+  logLLMExchange({
+    phase: "response",
+    model: CONFIG.model,
+    systemPrompt,
+    userPrompt,
+    rawResponse: content,
+    parsedResponse: parsed,
+    extra: {
+      from: "callLLMWithRAG",
+      note: "Parsed LLM JSON response"
+    }
+  });
+
   return parsed;
 }
 
@@ -72,6 +120,7 @@ function safeParseJSON(text) {
           error: String(e2),
           snippet: match[0].slice(0, 200)
         });
+        // Fehler wird geworfen, damit der Aufrufer es sieht
         throw e2;
       }
     } else {
