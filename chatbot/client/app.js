@@ -4,6 +4,7 @@ const statusEl = document.getElementById("status");
 const chatInput = document.getElementById("chat-input");
 const chatSend = document.getElementById("chat-send");
 const chatLog = document.getElementById("chat-log");
+const BOT_NAME = "Florian";
 
 const btnStart = document.getElementById("btn-start");
 const btnStep = document.getElementById("btn-step");
@@ -106,17 +107,17 @@ chatSend.addEventListener("click", async () => {
     if (!data.ok) {
       if (data.error === "simulation_running") {
         appendChat(
-          "Bot",
+          BOT_NAME,
           "Chat ist nur verfügbar, wenn die Simulation pausiert ist."
         );
       } else {
-        appendChat("Bot", "Fehler: " + (data.error || "unbekannt"));
+        appendChat(BOT_NAME, "Fehler: " + (data.error || "unbekannt"));
       }
       return;
     }
-    appendChat("Bot", data.answer || "(keine Antwort)");
+    appendChat(BOT_NAME, data.answer || "(keine Antwort)");
   } catch (err) {
-    appendChat("Bot", "Fehler beim Senden: " + err);
+    appendChat(BOT_NAME, "Fehler beim Senden: " + err);
   }
 });
 
