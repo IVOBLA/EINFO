@@ -21,46 +21,73 @@ const embeddingsPath = path.join(indexDir, "embeddings.json");
 
 let meta = null;
 let vectors = null; // Array<Array<number>>
+let lastMetaMtimeMs = 0;
+let lastEmbeddingsMtimeMs = 0;
 
 async function ensureLoaded() {
-  if (meta && vectors) return;
-  if (!fs.existsSync(metaPath) || !fs.existsSync(embeddingsPath)) {
+  const metaExists = fs.existsSync(metaPath);
+  const embExists = fs.existsSync(embeddingsPath);
+  if (!metaExists || !embExists) {
     logError("Vector-Index oder Embeddings nicht gefunden", {
       metaPath,
       embeddingsPath
     });
     meta = { dim: CONFIG.rag.dim, chunks: [] };
     vectors = [];
+    lastMetaMtimeMs = 0;
+    lastEmbeddingsMtimeMs = 0;
     return;
   }
 
-  const [rawMeta, rawEmb] = await Promise.all([
-    fsPromises.readFile(metaPath, "utf8"),
-    fsPromises.readFile(embeddingsPath, "utf8")
+  const [metaStat, embStat] = await Promise.all([
+    fsPromises.stat(metaPath),
+    fsPromises.stat(embeddingsPath)
   ]);
 
-  meta = JSON.parse(rawMeta);
-  const embData = JSON.parse(rawEmb);
-
-  if (!Array.isArray(embData.vectors)) {
-    logError("Embeddings-Datei hat kein gültiges Format", null);
-    meta = { dim: CONFIG.rag.dim, chunks: [] };
-    vectors = [];
+  if (
+    meta &&
+    vectors &&
+    lastMetaMtimeMs === metaStat.mtimeMs &&
+    lastEmbeddingsMtimeMs === embStat.mtimeMs
+  ) {
     return;
   }
 
-  vectors = embData.vectors;
-  if (meta.chunks.length !== vectors.length) {
-    logError("Anzahl Chunks != Anzahl Vektoren", {
-      chunks: meta.chunks.length,
-      vectors: vectors.length
-    });
-  }
+  try {
+    const [rawMeta, rawEmb] = await Promise.all([
+      fsPromises.readFile(metaPath, "utf8"),
+      fsPromises.readFile(embeddingsPath, "utf8")
+    ]);
 
-  logDebug("Vector-Index (JS) geladen", {
-    elements: meta.chunks.length,
-    dim: meta.dim
-  });
+    meta = JSON.parse(rawMeta);
+    const embData = JSON.parse(rawEmb);
+
+    if (!Array.isArray(embData.vectors)) {
+      throw new Error("Embeddings-Datei hat kein gültiges Format");
+    }
+
+    vectors = embData.vectors;
+    lastMetaMtimeMs = metaStat.mtimeMs;
+    lastEmbeddingsMtimeMs = embStat.mtimeMs;
+
+    if (meta.chunks.length !== vectors.length) {
+      logError("Anzahl Chunks != Anzahl Vektoren", {
+        chunks: meta.chunks.length,
+        vectors: vectors.length
+      });
+    }
+
+    logDebug("Vector-Index (JS) geladen", {
+      elements: meta.chunks.length,
+      dim: meta.dim
+    });
+  } catch (error) {
+    logError("Fehler beim Laden des Vector-Index", { error: String(error) });
+    meta = { dim: CONFIG.rag.dim, chunks: [] };
+    vectors = [];
+    lastMetaMtimeMs = 0;
+    lastEmbeddingsMtimeMs = 0;
+  }
 }
 
 function cosineSimilarity(a, b) {
@@ -86,7 +113,13 @@ export async function getKnowledgeContextVector(query) {
   await ensureLoaded();
   if (!meta || !vectors || !meta.chunks.length || !vectors.length) return "";
 
-  const qEmb = await embedText(query); // Float32Array
+  let qEmb;
+  try {
+    qEmb = await embedText(query); // Float32Array
+  } catch (error) {
+    logError("Embedding für Query fehlgeschlagen", { error: String(error) });
+    return "";
+  }
   const qArr = Array.from(qEmb);
 
   const sims = [];

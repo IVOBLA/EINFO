@@ -12,8 +12,12 @@ const base = {
   dataDir: "../../server/data",
 
   // Verzeichnisse für Knowledge & Index
- knowledgeDir: "../../knowledge",
-knowledgeIndexDir: "../../knowledge_index",
+  knowledgeDir: "../../knowledge",
+  knowledgeIndexDir: "../../knowledge_index",
+
+  // HTTP/LLM Defaults
+  llmRequestTimeoutMs: Number(process.env.LLM_TIMEOUT_MS || "30000"),
+  embeddingCacheSize: Number(process.env.EMBED_CACHE_SIZE || "100"),
 
 
   // Logging

@@ -24,7 +24,7 @@ function compressBoard(board) {
     timestamp: i.timestamp || null,
     statusSince: i.statusSince || null
   }));
-  return JSON.stringify(compact, null, 2);
+  return JSON.stringify(compact);
 }
 
 // Aufg_board_S2.json: S2-Aufgaben
@@ -41,7 +41,7 @@ function compressAufgaben(aufgaben) {
     relatedIncidentId: a.relatedIncidentId || null,
     incidentTitle: a.incidentTitle || null
   }));
-  return JSON.stringify(compact, null, 2);
+  return JSON.stringify(compact);
 }
 
 // protocol.json: Protokolleinträge
@@ -56,7 +56,7 @@ function compressProtokoll(protokoll) {
     anvon: p.anvon,
     kurzinfo: (p.information || "").slice(0, 120)
   }));
-  return JSON.stringify(compact, null, 2);
+  return JSON.stringify(compact);
 }
 
 export function isSimulationRunning() {
