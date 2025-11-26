@@ -34,7 +34,8 @@ export async function retrieveContextChunks({ stateBefore, einfoData }) {
   if (!idx.docs || idx.docs.length === 0) return [];
 
   const keywords = collectKeywords(stateBefore, einfoData);
-  if (keywords.length === 0) {
+  const uniqueKeywords = [...new Set(keywords.map((k) => k.toLowerCase()))];
+  if (uniqueKeywords.length === 0) {
     return idx.docs.slice(0, 3).map(doc => ({
       id: doc.id,
       path: doc.path,
@@ -46,13 +47,13 @@ export async function retrieveContextChunks({ stateBefore, einfoData }) {
     .map(doc => {
       const textLower = doc.text.toLowerCase();
       let score = 0;
-      for (const kw of keywords) {
+      for (const kw of uniqueKeywords) {
         if (!kw) continue;
-        const k = kw.toLowerCase();
-        let pos = textLower.indexOf(k);
+        if (!textLower.includes(kw)) continue;
+        let pos = textLower.indexOf(kw);
         while (pos !== -1) {
           score += 1;
-          pos = textLower.indexOf(k, pos + k.length);
+          pos = textLower.indexOf(kw, pos + kw.length);
         }
       }
       return { doc, score };

@@ -5,6 +5,16 @@ import { buildSystemPrompt, buildUserPrompt } from "./prompts.js";
 import { logDebug, logError, logLLMExchange } from "./logger.js";
 import { getKnowledgeContextVector } from "./rag/rag_vector.js";
 
+function fetchWithTimeout(url, options, timeoutMs) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeoutMs);
+  const finalOptions = { ...options, signal: controller.signal };
+
+  return fetch(url, finalOptions).finally(() => {
+    clearTimeout(id);
+  });
+}
+
 /** LLM für OPERATIONS (Simulation) */
 export async function callLLMForOps({ llmInput }) {
   const { compressedBoard, compressedAufgaben, compressedProtokoll } = llmInput;
@@ -96,11 +106,21 @@ async function doLLMCall(body, phaseLabel) {
     extra: { phase: phaseLabel }
   });
 
-  const resp = await fetch(`${CONFIG.llmBaseUrl}/api/chat`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
-  });
+  let resp;
+  try {
+    resp = await fetchWithTimeout(
+      `${CONFIG.llmBaseUrl}/api/chat`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      },
+      CONFIG.llmRequestTimeoutMs
+    );
+  } catch (error) {
+    logError("LLM-HTTP-Fehler", { error: String(error), phase: phaseLabel });
+    throw error;
+  }
 
   if (!resp.ok) {
     const t = await resp.text().catch(() => "");

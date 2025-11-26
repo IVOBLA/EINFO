@@ -24,8 +24,13 @@ const clientDir = path.resolve(__dirname, "../client");
 app.use("/gui", express.static(clientDir));
 
 app.post("/api/sim/start", async (req, res) => {
-  await startSimulation();
-  res.json({ ok: true });
+  try {
+    await startSimulation();
+    res.json({ ok: true });
+  } catch (err) {
+    logError("Fehler beim Starten der Simulation", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
 });
 
 app.post("/api/sim/pause", (req, res) => {
@@ -35,8 +40,13 @@ app.post("/api/sim/pause", (req, res) => {
 
 app.post("/api/sim/step", async (req, res) => {
   const options = req.body || {};
-  const result = await stepSimulation(options);
-  res.json(result);
+  try {
+    const result = await stepSimulation(options);
+    res.status(result.ok ? 200 : 500).json(result);
+  } catch (err) {
+    logError("Fehler beim Simulationsschritt-Endpunkt", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
 });
 
 // Chat nur wenn Simulation pausiert
