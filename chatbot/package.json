@@ -1,18 +1,16 @@
 {
   "name": "einfo-chatbot",
   "version": "1.0.0",
-  "description": "Lokaler Feuerwehr-Chatbot für EINFO (Bezirkseinsatzstab-Simulation)",
+  "description": "Lokaler EINFO-Chatbot mit Vector-RAG (pure JS, keine nativen Module)",
   "type": "module",
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
-    "ingest": "node ingest/ingest_all.js"
+    "build-index": "node server/rag/index_builder.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.21.0",
-    "glob": "^10.4.1",
-    "node-fetch": "^3.3.2",
     "pdf-parse": "^1.1.1"
   }
 }
