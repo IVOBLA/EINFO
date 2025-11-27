@@ -166,7 +166,7 @@ async function doLLMCall(body, phaseLabel) {
       userPrompt,
       requestBody,
       responseBody,
-      rawResponse: null,
+      rawResponse: responseBody,
       parsedResponse: null,
       extra: { phase: phaseLabel }
     });
@@ -190,7 +190,7 @@ async function doLLMCall(body, phaseLabel) {
       userPrompt,
       requestBody,
       responseBody,
-      rawResponse: content,
+      rawResponse: responseBody,
       parsedResponse: content,
       extra: { phase: phaseLabel }
     });
@@ -205,7 +205,7 @@ async function doLLMCall(body, phaseLabel) {
     userPrompt,
     requestBody,
     responseBody,
-    rawResponse: content,
+    rawResponse: responseBody,
     parsedResponse: parsed,
     extra: { phase: phaseLabel }
   });
