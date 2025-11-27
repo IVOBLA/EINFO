@@ -99,6 +99,35 @@ function extractTokenFromStreamPayload(payload) {
   return "";
 }
 
+function extractDataText(line) {
+  const trimmed = line.trim();
+  if (!trimmed || trimmed === "[DONE]") return null;
+
+  if (trimmed.startsWith("data:")) return trimmed.slice(5).trim();
+
+  // Ollama liefert standardmäßig newline-getrennte JSON-Objekte ohne SSE-Präfix
+  if (trimmed.startsWith("{") || trimmed.startsWith("[")) return trimmed;
+
+  return trimmed;
+}
+
+function parseStreamBuffer(buffer, processPayload) {
+  const parts = buffer.split("\n");
+  const remainder = parts.pop();
+
+  for (const part of parts) {
+    const payloadText = extractDataText(part);
+    if (!payloadText) continue;
+    try {
+      processPayload(JSON.parse(payloadText));
+    } catch (err) {
+      logError("LLM-Stream-Parsefehler", { error: String(err), line: payloadText });
+    }
+  }
+
+  return remainder;
+}
+
 async function doLLMCall(body, phaseLabel, onToken) {
   const systemPrompt = body.messages[0]?.content || "";
   const userPrompt = body.messages[1]?.content || "";
@@ -168,25 +197,14 @@ async function doLLMCall(body, phaseLabel, onToken) {
     let content = "";
     let rawStream = "";
 
-    const processLine = (line) => {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed === "[DONE]") return;
-
-      const payloadText = trimmed.startsWith("data:")
-        ? trimmed.slice(5).trim()
-        : trimmed;
-      try {
-        const json = JSON.parse(payloadText);
-        const token = extractTokenFromStreamPayload(json);
-        if (token) {
-          content += token;
-          onToken?.(token);
-        }
-        if (json.done && typeof json.response === "string") {
-          content = json.response;
-        }
-      } catch (err) {
-        logError("LLM-Stream-Parsefehler", { error: String(err), line: payloadText });
+    const processPayload = (json) => {
+      const token = extractTokenFromStreamPayload(json);
+      if (token) {
+        content += token;
+        onToken?.(token);
+      }
+      if (json.done && typeof json.response === "string") {
+        content = json.response;
       }
     };
 
@@ -197,15 +215,13 @@ async function doLLMCall(body, phaseLabel, onToken) {
       rawStream += chunk;
       buffer += chunk;
 
-      const parts = buffer.split("\n");
-      buffer = parts.pop();
-      for (const part of parts) processLine(part);
+      buffer = parseStreamBuffer(buffer, processPayload);
     }
 
     const rest = decoder.decode();
     rawStream += rest;
     buffer += rest;
-    if (buffer) processLine(buffer);
+    buffer = parseStreamBuffer(buffer, processPayload);
 
     logLLMExchange({
       phase: "response",
