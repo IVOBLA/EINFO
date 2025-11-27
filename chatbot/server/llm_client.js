@@ -223,6 +223,18 @@ async function doLLMCall(body, phaseLabel, onToken) {
     buffer += rest;
     buffer = parseStreamBuffer(buffer, processPayload);
 
+    const finalPayloadText = extractDataText(buffer);
+    if (finalPayloadText) {
+      try {
+        processPayload(JSON.parse(finalPayloadText));
+      } catch (err) {
+        logError("LLM-Stream-Parsefehler", {
+          error: String(err),
+          line: finalPayloadText
+        });
+      }
+    }
+
     logLLMExchange({
       phase: "response",
       model: body.model,
