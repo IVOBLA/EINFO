@@ -50,7 +50,7 @@ export async function callLLMForOps({ llmInput }) {
 }
 
 /** LLM für QA-Chat */
-export async function callLLMForChat({ question }) {
+export async function callLLMForChat({ question, stream = false, onToken }) {
   const knowledgeContext = await getKnowledgeContextVector(question);
 
   const systemPrompt = `
@@ -75,7 +75,7 @@ Antwort:
 
   const body = {
     model: CONFIG.llmChatModel,
-    stream: false,
+    stream,
     options: {
       temperature: CONFIG.defaultTemperature,
       seed: CONFIG.defaultSeed
@@ -86,14 +86,22 @@ Antwort:
     ]
   };
 
-  const answer = await doLLMCall(body, "chat");
+  const answer = await doLLMCall(body, "chat", onToken);
   return answer;
 }
 
-async function doLLMCall(body, phaseLabel) {
+function extractTokenFromStreamPayload(payload) {
+  if (typeof payload !== "object" || payload === null) return "";
+  const direct = payload.message?.content || payload.delta?.content;
+  if (typeof direct === "string") return direct;
+  if (typeof payload.response === "string") return payload.response;
+  if (typeof payload.output === "string") return payload.output;
+  return "";
+}
+
+async function doLLMCall(body, phaseLabel, onToken) {
   const systemPrompt = body.messages[0]?.content || "";
   const userPrompt = body.messages[1]?.content || "";
-  const requestBody = JSON.stringify(body);
 
   logDebug("LLM-Request", { model: body.model, phase: phaseLabel });
 
@@ -102,8 +110,6 @@ async function doLLMCall(body, phaseLabel) {
     model: body.model,
     systemPrompt,
     userPrompt,
-    requestBody,
-    responseBody: null,
     rawResponse: null,
     parsedResponse: null,
     extra: { phase: phaseLabel }
@@ -150,28 +156,65 @@ async function doLLMCall(body, phaseLabel) {
     throw new Error(`LLM error: ${resp.status} ${resp.statusText}`);
   }
 
-  const responseBody = await resp.text();
-  let json;
-  try {
-    json = JSON.parse(responseBody);
-  } catch (error) {
-    logError("LLM-Response kein gültiges JSON", {
-      phase: phaseLabel,
-      error: String(error)
-    });
+  if (body.stream) {
+    const reader = resp.body?.getReader();
+    const decoder = new TextDecoder();
+    if (!reader) {
+      throw new Error("Keine Streaming-Quelle für LLM verfügbar");
+    }
+
+    let buffer = "";
+    let content = "";
+
+    const processLine = (line) => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed === "[DONE]") return;
+
+      const payloadText = trimmed.startsWith("data:")
+        ? trimmed.slice(5).trim()
+        : trimmed;
+      try {
+        const json = JSON.parse(payloadText);
+        const token = extractTokenFromStreamPayload(json);
+        if (token) {
+          content += token;
+          onToken?.(token);
+        }
+        if (json.done && typeof json.response === "string") {
+          content = json.response;
+        }
+      } catch (err) {
+        logError("LLM-Stream-Parsefehler", { error: String(err), line: payloadText });
+      }
+    };
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      const parts = buffer.split("\n");
+      buffer = parts.pop();
+      for (const part of parts) processLine(part);
+    }
+
+    const rest = decoder.decode();
+    buffer += rest;
+    if (buffer) processLine(buffer);
+
     logLLMExchange({
-      phase: "response_parse_error",
+      phase: "response",
       model: body.model,
       systemPrompt,
       userPrompt,
-      requestBody,
-      responseBody,
-      rawResponse: responseBody,
-      parsedResponse: null,
+      rawResponse: content,
+      parsedResponse: content,
       extra: { phase: phaseLabel }
     });
-    throw error;
+    return content.trim();
   }
+
+  const json = await resp.json();
   const content =
     json.message?.content ??
     json.choices?.[0]?.message?.content ??
@@ -188,9 +231,7 @@ async function doLLMCall(body, phaseLabel) {
       model: body.model,
       systemPrompt,
       userPrompt,
-      requestBody,
-      responseBody,
-      rawResponse: responseBody,
+      rawResponse: content,
       parsedResponse: content,
       extra: { phase: phaseLabel }
     });
@@ -203,9 +244,7 @@ async function doLLMCall(body, phaseLabel) {
     model: body.model,
     systemPrompt,
     userPrompt,
-    requestBody,
-    responseBody,
-    rawResponse: responseBody,
+    rawResponse: content,
     parsedResponse: parsed,
     extra: { phase: phaseLabel }
   });
