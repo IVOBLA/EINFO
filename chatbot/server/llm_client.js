@@ -102,6 +102,7 @@ function extractTokenFromStreamPayload(payload) {
 async function doLLMCall(body, phaseLabel, onToken) {
   const systemPrompt = body.messages[0]?.content || "";
   const userPrompt = body.messages[1]?.content || "";
+  const serializedRequest = JSON.stringify(body);
 
   logDebug("LLM-Request", { model: body.model, phase: phaseLabel });
 
@@ -110,6 +111,7 @@ async function doLLMCall(body, phaseLabel, onToken) {
     model: body.model,
     systemPrompt,
     userPrompt,
+    rawRequest: serializedRequest,
     rawResponse: null,
     parsedResponse: null,
     extra: { phase: phaseLabel }
@@ -122,7 +124,7 @@ async function doLLMCall(body, phaseLabel, onToken) {
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
+        body: serializedRequest
       },
       CONFIG.llmRequestTimeoutMs
     );
@@ -143,6 +145,7 @@ async function doLLMCall(body, phaseLabel, onToken) {
       model: body.model,
       systemPrompt,
       userPrompt,
+      rawRequest: serializedRequest,
       rawResponse: t,
       parsedResponse: null,
       extra: {
@@ -163,6 +166,7 @@ async function doLLMCall(body, phaseLabel, onToken) {
 
     let buffer = "";
     let content = "";
+    let rawStream = "";
 
     const processLine = (line) => {
       const trimmed = line.trim();
@@ -189,7 +193,9 @@ async function doLLMCall(body, phaseLabel, onToken) {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
-      buffer += decoder.decode(value, { stream: true });
+      const chunk = decoder.decode(value, { stream: true });
+      rawStream += chunk;
+      buffer += chunk;
 
       const parts = buffer.split("\n");
       buffer = parts.pop();
@@ -197,6 +203,7 @@ async function doLLMCall(body, phaseLabel, onToken) {
     }
 
     const rest = decoder.decode();
+    rawStream += rest;
     buffer += rest;
     if (buffer) processLine(buffer);
 
@@ -205,14 +212,26 @@ async function doLLMCall(body, phaseLabel, onToken) {
       model: body.model,
       systemPrompt,
       userPrompt,
-      rawResponse: content,
+      rawRequest: serializedRequest,
+      rawResponse: rawStream,
       parsedResponse: content,
       extra: { phase: phaseLabel }
     });
     return content.trim();
   }
 
-  const json = await resp.json();
+  const rawText = await resp.text();
+  let json;
+  try {
+    json = JSON.parse(rawText);
+  } catch (err) {
+    logError("LLM-HTTP-Parsefehler", {
+      error: String(err),
+      phase: phaseLabel,
+      snippet: rawText.slice(0, 200)
+    });
+    throw err;
+  }
   const content =
     json.message?.content ??
     json.choices?.[0]?.message?.content ??
@@ -229,7 +248,8 @@ async function doLLMCall(body, phaseLabel, onToken) {
       model: body.model,
       systemPrompt,
       userPrompt,
-      rawResponse: content,
+      rawRequest: serializedRequest,
+      rawResponse: rawText,
       parsedResponse: content,
       extra: { phase: phaseLabel }
     });
@@ -242,7 +262,8 @@ async function doLLMCall(body, phaseLabel, onToken) {
     model: body.model,
     systemPrompt,
     userPrompt,
-    rawResponse: content,
+    rawRequest: serializedRequest,
+    rawResponse: rawText,
     parsedResponse: parsed,
     extra: { phase: phaseLabel }
   });
