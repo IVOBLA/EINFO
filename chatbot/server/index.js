@@ -13,6 +13,27 @@ import {
 import { callLLMForChat } from "./llm_client.js";
 import { logInfo, logError } from "./logger.js";
 
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function streamAnswer(res, answer) {
+  res.writeHead(200, {
+    "Content-Type": "text/plain; charset=utf-8",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+    "Transfer-Encoding": "chunked"
+  });
+
+  const tokens = answer.match(/\S+|\s+/g) || [];
+  for (const token of tokens) {
+    res.write(token);
+    await delay(60);
+  }
+
+  res.end();
+}
+
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -64,7 +85,7 @@ app.post("/api/chat", async (req, res) => {
 
   try {
     const answer = await callLLMForChat({ question });
-    res.json({ ok: true, answer });
+    await streamAnswer(res, answer || "(keine Antwort)");
   } catch (err) {
     logError("Fehler im Chat-Endpoint", { error: String(err) });
     res.status(500).json({ ok: false, error: String(err) });
