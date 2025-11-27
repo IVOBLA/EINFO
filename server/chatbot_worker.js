@@ -7,11 +7,11 @@ import path from "path";
 const CHATBOT_STEP_URL = "http://127.0.0.1:3100/api/sim/step";
 const WORKER_INTERVAL_MS = 30000;
 
-// Pfad zu deinen echten Daten
-const dataDir = path.resolve(
-  path.dirname(new URL(import.meta.url).pathname),
-  "./data"
-);
+// Pfad zu deinen echten Daten:
+// Wir gehen davon aus, dass du den Worker IMMER aus dem server-Ordner startest:
+//   cd C:\kanban41\server
+//   node chatbot_worker.js
+const dataDir = path.join(process.cwd(), "data");
 
 // Dateinamen an deine Struktur angepasst
 const FILES = {
@@ -24,6 +24,10 @@ const FILES = {
 function log(...args) {
   console.log("[chatbot-worker]", ...args);
 }
+
+// Debug
+log("Worker dataDir:", dataDir);
+log("Worker erwartet roles.json an:", path.join(dataDir, FILES.roles));
 
 async function safeReadJson(filePath, def) {
   try {
