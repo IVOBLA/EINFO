@@ -90,6 +90,94 @@ Antwort:
   return answer;
 }
 
+/** Streamt das LLM für den QA-Chat und liefert Text-Tokens zurück. */
+export async function* streamLLMChatTokens({ question }) {
+  const knowledgeContext = await getKnowledgeContextVector(question);
+
+  const systemPrompt = `
+Du bist ein lokaler Feuerwehr-Chatbot für den Bezirks-Einsatzstab.
+Du beantwortest Fragen ausschließlich anhand des KnowledgeContext.
+Wenn etwas dort nicht steht, sag das ehrlich.
+Sprache: Deutsch, kurze, klare Antworten, Feuerwehr-Jargon erlaubt.
+Keine personenbezogenen Daten.
+`;
+
+  const userPrompt = `
+FRAGE:
+${question}
+
+KnowledgeContext:
+${knowledgeContext || "(kein Knowledge-Kontext verfügbar)"}
+
+Antwort:
+- Kurz, präzise, anwendungsnah.
+- Wenn nicht geregelt: sag das.
+`;
+
+  const body = {
+    model: CONFIG.llmChatModel,
+    stream: true,
+    options: {
+      temperature: CONFIG.defaultTemperature,
+      seed: CONFIG.defaultSeed
+    },
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt }
+    ]
+  };
+
+  const resp = await fetchWithTimeout(
+    `${CONFIG.llmBaseUrl}/api/chat`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    },
+    CONFIG.llmRequestTimeoutMs
+  );
+
+  if (!resp.ok) {
+    const t = await resp.text().catch(() => "");
+    logError("LLM-HTTP-Fehler (stream)", {
+      status: resp.status,
+      statusText: resp.statusText,
+      body: t
+    });
+    throw new Error(`LLM error: ${resp.status} ${resp.statusText}`);
+  }
+
+  const reader = resp.body?.getReader();
+  if (!reader) {
+    throw new Error("LLM liefert keinen Stream-Körper");
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const { tokens, remaining } = parseStreamBuffer(buffer, false);
+    buffer = remaining;
+    for (const token of tokens) {
+      if (token) {
+        yield token;
+      }
+    }
+  }
+
+  buffer += decoder.decode();
+  const { tokens } = parseStreamBuffer(buffer, true);
+  for (const token of tokens) {
+    if (token) {
+      yield token;
+    }
+  }
+}
+
 async function doLLMCall(body, phaseLabel) {
   const systemPrompt = body.messages[0]?.content || "";
   const userPrompt = body.messages[1]?.content || "";
@@ -204,4 +292,64 @@ function safeParseJSON(text) {
       throw new Error("LLM JSON parse failed");
     }
   }
+}
+
+function parseStreamBuffer(buffer, flushAll) {
+  const parts = buffer.split("\n\n");
+  let remaining = "";
+  if (!flushAll) {
+    remaining = parts.pop() ?? "";
+  }
+
+  const tokens = [];
+  for (const part of parts) {
+    const dataText = extractDataText(part);
+    if (!dataText || dataText === "[DONE]") continue;
+    const token = extractTokenFromPayload(dataText);
+    if (token) tokens.push(token);
+  }
+
+  return { tokens, remaining };
+}
+
+function extractDataText(block) {
+  const dataLines = block
+    .split(/\r?\n/)
+    .filter((line) => line.startsWith("data:"))
+    .map((line) => line.replace(/^data:\s?/, ""));
+
+  const joined = dataLines.join("\n").trim();
+  return joined;
+}
+
+function extractTokenFromPayload(dataText) {
+  let payload;
+  try {
+    payload = JSON.parse(dataText);
+  } catch (_) {
+    return dataText;
+  }
+
+  const choice = payload.choices?.[0];
+  const delta = choice?.delta?.content;
+  const messageContent = choice?.message?.content;
+  const directMessage = payload.message?.content;
+  const tokenField = payload.token ?? payload.text ?? payload.response;
+
+  const token =
+    delta ?? directMessage ?? messageContent ?? tokenField ?? payload.content;
+
+  if (Array.isArray(token)) {
+    return token.join("");
+  }
+
+  if (typeof token === "number") {
+    return String(token);
+  }
+
+  if (typeof token === "string") {
+    return token;
+  }
+
+  return null;
 }

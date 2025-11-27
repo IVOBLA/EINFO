@@ -5,6 +5,7 @@ const chatInput = document.getElementById("chat-input");
 const chatSend = document.getElementById("chat-send");
 const chatLog = document.getElementById("chat-log");
 const BOT_NAME = "Florian";
+const chatEntries = [];
 
 const btnStart = document.getElementById("btn-start");
 const btnStep = document.getElementById("btn-step");
@@ -15,9 +16,22 @@ function appendLog(line) {
   logEl.textContent = `[${ts}] ${line}\n` + logEl.textContent;
 }
 
+function renderChatLog() {
+  chatLog.textContent = chatEntries
+    .map((entry) => `[${entry.ts}] ${entry.role}: ${entry.text}`)
+    .join("\n");
+}
+
 function appendChat(role, text) {
-  const ts = new Date().toLocaleTimeString();
-  chatLog.textContent = `[${ts}] ${role}: ${text}\n` + chatLog.textContent;
+  const entry = { ts: new Date().toLocaleTimeString(), role, text };
+  chatEntries.unshift(entry);
+  renderChatLog();
+  return entry;
+}
+
+function updateChatEntry(entry, newText) {
+  entry.text = newText;
+  renderChatLog();
 }
 
 function setBusy(busy) {
@@ -103,19 +117,39 @@ chatSend.addEventListener("click", async () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ question: q })
     });
-    const data = await res.json();
-    if (!data.ok) {
-      if (data.error === "simulation_running") {
+    const contentType = res.headers.get("content-type") || "";
+
+    if (!res.ok || contentType.includes("application/json")) {
+      const data = await res.json().catch(() => null);
+      if (data?.error === "simulation_running") {
         appendChat(
           BOT_NAME,
           "Chat ist nur verfügbar, wenn die Simulation pausiert ist."
         );
-      } else {
-        appendChat(BOT_NAME, "Fehler: " + (data.error || "unbekannt"));
+        return;
       }
+      const msg = data?.error || data?.reason || res.statusText || "unbekannt";
+      appendChat(BOT_NAME, "Fehler: " + msg);
       return;
     }
-    appendChat(BOT_NAME, data.answer || "(keine Antwort)");
+
+    const decoder = new TextDecoder();
+    const reader = res.body?.getReader();
+    if (!reader) {
+      appendChat(BOT_NAME, "(keine Antwort)");
+      return;
+    }
+
+    const botEntry = appendChat(BOT_NAME, "");
+    let accumulated = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      accumulated += decoder.decode(value, { stream: true });
+      updateChatEntry(botEntry, accumulated);
+    }
+    accumulated += decoder.decode();
+    updateChatEntry(botEntry, accumulated.trim());
   } catch (err) {
     appendChat(BOT_NAME, "Fehler beim Senden: " + err);
   }

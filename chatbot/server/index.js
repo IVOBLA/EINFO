@@ -10,8 +10,65 @@ import {
   stepSimulation,
   isSimulationRunning
 } from "./sim_loop.js";
-import { callLLMForChat } from "./llm_client.js";
+import { callLLMForChat, streamLLMChatTokens } from "./llm_client.js";
 import { logInfo, logError } from "./logger.js";
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function streamAnswer(res, answer) {
+  res.writeHead(200, {
+    "Content-Type": "text/plain; charset=utf-8",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+    "Transfer-Encoding": "chunked"
+  });
+
+  const tokens = answer.match(/\S+|\s+/g) || [];
+  for (const token of tokens) {
+    res.write(token);
+    await delay(60);
+  }
+
+  res.end();
+}
+
+async function streamLLMResponse(res, question) {
+  const tokenStream = streamLLMChatTokens({ question });
+
+  let firstChunk;
+  try {
+    firstChunk = await tokenStream.next();
+  } catch (err) {
+    throw err;
+  }
+
+  res.writeHead(200, {
+    "Content-Type": "text/plain; charset=utf-8",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+    "Transfer-Encoding": "chunked"
+  });
+
+  let hasContent = false;
+  if (!firstChunk.done && firstChunk.value) {
+    res.write(firstChunk.value);
+    hasContent = true;
+  }
+
+  for await (const token of tokenStream) {
+    if (!token) continue;
+    res.write(token);
+    hasContent = true;
+  }
+
+  if (!hasContent) {
+    res.write("(keine Antwort)");
+  }
+
+  res.end();
+}
 
 const app = express();
 app.use(cors());
@@ -63,11 +120,26 @@ app.post("/api/chat", async (req, res) => {
   }
 
   try {
-    const answer = await callLLMForChat({ question });
-    res.json({ ok: true, answer });
+    await streamLLMResponse(res, question);
   } catch (err) {
     logError("Fehler im Chat-Endpoint", { error: String(err) });
-    res.status(500).json({ ok: false, error: String(err) });
+    if (res.headersSent) {
+      try {
+        res.write("\n(Fehler beim Streamen der Antwort)");
+      } catch (_) {
+        // ignore
+      }
+      res.end();
+      return;
+    }
+
+    try {
+      const fallbackAnswer = await callLLMForChat({ question });
+      await streamAnswer(res, fallbackAnswer || "(keine Antwort)");
+    } catch (fallbackErr) {
+      logError("Fehler im Fallback-Chat", { error: String(fallbackErr) });
+      res.status(500).json({ ok: false, error: String(fallbackErr) });
+    }
   }
 });
 
