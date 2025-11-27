@@ -93,6 +93,7 @@ Antwort:
 async function doLLMCall(body, phaseLabel) {
   const systemPrompt = body.messages[0]?.content || "";
   const userPrompt = body.messages[1]?.content || "";
+  const requestBody = JSON.stringify(body);
 
   logDebug("LLM-Request", { model: body.model, phase: phaseLabel });
 
@@ -101,6 +102,8 @@ async function doLLMCall(body, phaseLabel) {
     model: body.model,
     systemPrompt,
     userPrompt,
+    requestBody,
+    responseBody: null,
     rawResponse: null,
     parsedResponse: null,
     extra: { phase: phaseLabel }
@@ -113,7 +116,7 @@ async function doLLMCall(body, phaseLabel) {
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
+        body: requestBody
       },
       CONFIG.llmRequestTimeoutMs
     );
@@ -134,6 +137,8 @@ async function doLLMCall(body, phaseLabel) {
       model: body.model,
       systemPrompt,
       userPrompt,
+      requestBody,
+      responseBody: t,
       rawResponse: t,
       parsedResponse: null,
       extra: {
@@ -145,7 +150,28 @@ async function doLLMCall(body, phaseLabel) {
     throw new Error(`LLM error: ${resp.status} ${resp.statusText}`);
   }
 
-  const json = await resp.json();
+  const responseBody = await resp.text();
+  let json;
+  try {
+    json = JSON.parse(responseBody);
+  } catch (error) {
+    logError("LLM-Response kein gültiges JSON", {
+      phase: phaseLabel,
+      error: String(error)
+    });
+    logLLMExchange({
+      phase: "response_parse_error",
+      model: body.model,
+      systemPrompt,
+      userPrompt,
+      requestBody,
+      responseBody,
+      rawResponse: null,
+      parsedResponse: null,
+      extra: { phase: phaseLabel }
+    });
+    throw error;
+  }
   const content =
     json.message?.content ??
     json.choices?.[0]?.message?.content ??
@@ -162,6 +188,8 @@ async function doLLMCall(body, phaseLabel) {
       model: body.model,
       systemPrompt,
       userPrompt,
+      requestBody,
+      responseBody,
       rawResponse: content,
       parsedResponse: content,
       extra: { phase: phaseLabel }
@@ -175,6 +203,8 @@ async function doLLMCall(body, phaseLabel) {
     model: body.model,
     systemPrompt,
     userPrompt,
+    requestBody,
+    responseBody,
     rawResponse: content,
     parsedResponse: parsed,
     extra: { phase: phaseLabel }
