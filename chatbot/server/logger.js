@@ -36,6 +36,7 @@ export function logLLMExchange(entry) {
     model: entry.model || null,
     systemPrompt: entry.systemPrompt || null,
     userPrompt: entry.userPrompt || null,
+    rawRequest: entry.rawRequest || null,
     rawResponse: entry.rawResponse || null,
     parsedResponse: entry.parsedResponse || null,
     extra: entry.extra || null
