@@ -16,7 +16,7 @@ const base = {
   knowledgeIndexDir: "../../knowledge_index",
 
   // HTTP/LLM Defaults
-  llmRequestTimeoutMs: Number(process.env.LLM_TIMEOUT_MS || "30000"),
+  llmRequestTimeoutMs: Number(process.env.LLM_TIMEOUT_MS || "240000"),
   embeddingCacheSize: Number(process.env.EMBED_CACHE_SIZE || "100"),
 
 
@@ -25,7 +25,7 @@ const base = {
   enableDebugLogging: process.env.CHATBOT_DEBUG === "1",
 
   // Auto-Sim-Schritt (wird ggf. pro Profil überschrieben)
-  autoStepMs: Number(process.env.CHATBOT_AUTO_STEP_MS || "30000"),
+  autoStepMs: Number(process.env.CHATBOT_AUTO_STEP_MS || "120000"),
 
   // Vector-RAG Basis-Settings (werden pro Profil evtl. geschärft)
   rag: {
@@ -58,7 +58,7 @@ if (profile === "phi3_cpu") {
     defaultTemperature: Number(process.env.LLM_TEMP || "0.2"),
     defaultSeed: Number(process.env.LLM_SEED || "123"),
 
-    autoStepMs: Number(process.env.CHATBOT_AUTO_STEP_MS || "60000"),
+    autoStepMs: Number(process.env.CHATBOT_AUTO_STEP_MS || "240000"),
 
     rag: {
       dim: Number(process.env.RAG_DIM || "768"),

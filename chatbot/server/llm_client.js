@@ -49,7 +49,7 @@ export async function callLLMForOps({ llmInput }) {
   return parsed;
 }
 
-/** LLM für QA-Chat */
+/** LLM für QA-Chat (auch Streaming) */
 export async function callLLMForChat({ question, stream = false, onToken }) {
   const knowledgeContext = await getKnowledgeContextVector(question);
 
@@ -90,6 +90,8 @@ Antwort:
   return answer;
 }
 
+// ------------------- Streaming-Helfer ------------------------------------
+
 function extractTokenFromStreamPayload(payload) {
   if (typeof payload !== "object" || payload === null) return "";
   const direct = payload.message?.content || payload.delta?.content;
@@ -128,6 +130,8 @@ function parseStreamBuffer(buffer, processPayload) {
   return remainder;
 }
 
+// ------------------- Zentrale LLM-Funktion -------------------------------
+
 async function doLLMCall(body, phaseLabel, onToken) {
   const systemPrompt = body.messages[0]?.content || "";
   const userPrompt = body.messages[1]?.content || "";
@@ -135,6 +139,7 @@ async function doLLMCall(body, phaseLabel, onToken) {
 
   logDebug("LLM-Request", { model: body.model, phase: phaseLabel });
 
+  // Anfrage IMMER in LLM.log protokollieren (direkt & unverändert)
   logLLMExchange({
     phase: "request",
     model: body.model,
@@ -158,7 +163,21 @@ async function doLLMCall(body, phaseLabel, onToken) {
       CONFIG.llmRequestTimeoutMs
     );
   } catch (error) {
-    logError("LLM-HTTP-Fehler", { error: String(error), phase: phaseLabel });
+    const errorStr = String(error);
+    logError("LLM-HTTP-Fehler", { error: errorStr, phase: phaseLabel });
+
+    // Auch Netzwerk-/Timeout-Fehler ins LLM.log
+    logLLMExchange({
+      phase: "response_error",
+      model: body.model,
+      systemPrompt,
+      userPrompt,
+      rawRequest: serializedRequest,
+      rawResponse: errorStr,
+      parsedResponse: null,
+      extra: { phase: phaseLabel, error: errorStr }
+    });
+
     throw error;
   }
 
@@ -169,6 +188,8 @@ async function doLLMCall(body, phaseLabel, onToken) {
       statusText: resp.statusText,
       body: t
     });
+
+    // HTTP-Fehler inkl. Body im LLM.log
     logLLMExchange({
       phase: "response_error",
       model: body.model,
@@ -183,9 +204,11 @@ async function doLLMCall(body, phaseLabel, onToken) {
         phase: phaseLabel
       }
     });
+
     throw new Error(`LLM error: ${resp.status} ${resp.statusText}`);
   }
 
+  // STREAMING-FALL ----------------------------------------------------------
   if (body.stream) {
     const reader = resp.body?.getReader();
     const decoder = new TextDecoder();
@@ -223,20 +246,9 @@ async function doLLMCall(body, phaseLabel, onToken) {
     buffer += rest;
     buffer = parseStreamBuffer(buffer, processPayload);
 
-    const finalPayloadText = extractDataText(buffer);
-    if (finalPayloadText) {
-      try {
-        processPayload(JSON.parse(finalPayloadText));
-      } catch (err) {
-        logError("LLM-Stream-Parsefehler", {
-          error: String(err),
-          line: finalPayloadText
-        });
-      }
-    }
-
+    // Gesamter Stream + finaler Text ins LLM.log
     logLLMExchange({
-      phase: "response",
+      phase: "response_stream",
       model: body.model,
       systemPrompt,
       userPrompt,
@@ -245,46 +257,20 @@ async function doLLMCall(body, phaseLabel, onToken) {
       parsedResponse: content,
       extra: { phase: phaseLabel }
     });
-    return content.trim();
+
+    return content;
   }
 
+  // NON-STREAMING-FALL ------------------------------------------------------
   const rawText = await resp.text();
-  let json;
+  let parsed = null;
   try {
-    json = JSON.parse(rawText);
-  } catch (err) {
-    logError("LLM-HTTP-Parsefehler", {
-      error: String(err),
-      phase: phaseLabel,
-      snippet: rawText.slice(0, 200)
-    });
-    throw err;
-  }
-  const content =
-    json.message?.content ??
-    json.choices?.[0]?.message?.content ??
-    "";
-
-  logDebug("LLM-Rohantwort", {
-    phase: phaseLabel,
-    length: content.length
-  });
-
-  if (phaseLabel === "chat") {
-    logLLMExchange({
-      phase: "response",
-      model: body.model,
-      systemPrompt,
-      userPrompt,
-      rawRequest: serializedRequest,
-      rawResponse: rawText,
-      parsedResponse: content,
-      extra: { phase: phaseLabel }
-    });
-    return content.trim();
+    parsed = JSON.parse(rawText);
+  } catch {
+    // Ist dann wohl ein Plain-Text-Response
   }
 
-  const parsed = safeParseJSON(content);
+  // Antwort IMMER in LLM.log
   logLLMExchange({
     phase: "response",
     model: body.model,
@@ -295,29 +281,6 @@ async function doLLMCall(body, phaseLabel, onToken) {
     parsedResponse: parsed,
     extra: { phase: phaseLabel }
   });
-  return parsed;
-}
 
-function safeParseJSON(text) {
-  try {
-    return JSON.parse(text);
-  } catch (_) {
-    const match = text.match(/\{[\s\S]*\}$/m);
-    if (match) {
-      try {
-        return JSON.parse(match[0]);
-      } catch (e2) {
-        logError("JSON-Parse-Fehler (Block)", {
-          error: String(e2),
-          snippet: match[0].slice(0, 200)
-        });
-        throw e2;
-      }
-    } else {
-      logError("LLM-Antwort kein gültiges JSON", {
-        snippet: text.slice(0, 200)
-      });
-      throw new Error("LLM JSON parse failed");
-    }
-  }
+  return parsed ?? rawText;
 }
