@@ -6,7 +6,7 @@ import path from "path";
 
 const CHATBOT_STEP_URL = "http://127.0.0.1:3100/api/sim/step";
 const WORKER_INTERVAL_MS = 30000;
-
+let isRunning = false; // <--- NEU
 // Pfad zu deinen echten Daten:
 // Wir gehen davon aus, dass du den Worker IMMER aus dem server-Ordner startest:
 //   cd C:\kanban41\server
@@ -63,6 +63,51 @@ function isAllowedOperation(op, missingRoles) {
   return true;
 }
 
+function explainOperationRejection(op, missingRoles) {
+  const reasons = [];
+  if (!op) {
+    reasons.push("Operation ist leer/undefined.");
+    return reasons.join(" ");
+  }
+
+  const originRole = op.originRole;
+  const via = op.via;
+  const fromRole = op.fromRole || op.assignedBy;
+
+  if (!originRole) {
+    reasons.push("originRole fehlt.");
+  }
+  if (!fromRole) {
+    reasons.push("fromRole/assignedBy fehlt.");
+  }
+  if (originRole && !missingRoles.includes(originRole)) {
+    reasons.push(
+      `originRole "${originRole}" ist nicht in missingRoles (${JSON.stringify(
+        missingRoles
+      )}).`
+    );
+  }
+  if (fromRole && !missingRoles.includes(fromRole)) {
+    reasons.push(
+      `fromRole/assignedBy "${fromRole}" ist nicht in missingRoles (${JSON.stringify(
+        missingRoles
+      )}).`
+    );
+  }
+  if (via !== "Meldestelle" && via !== "Meldestelle/S6") {
+    reasons.push(
+      `via ist "${via}" – erlaubt ist nur "Meldestelle" oder "Meldestelle/S6".`
+    );
+  }
+
+  if (!reasons.length) {
+    reasons.push("Unbekannter Grund – isAllowedOperation() hat false geliefert.");
+  }
+
+  return reasons.join(" ");
+}
+
+
 /**
  * Board-Operations auf Kanban-Struktur anwenden:
  * board.json:
@@ -103,11 +148,15 @@ async function applyBoardOperations(boardOps, missingRoles) {
   const updateOps = boardOps?.updateIncidentSites || [];
 
   // CREATE → neue Karte in Spalte "neu"
-  for (const op of createOps) {
-    if (!isAllowedOperation(op, missingRoles)) {
-      log("Board-Create verworfen:", op);
-      continue;
-    }
+for (const op of createOps) {
+  if (!isAllowedOperation(op, missingRoles)) {
+    log("Board-Create verworfen:", {
+      op,
+      reason: explainOperationRejection(op, missingRoles),
+      missingRoles
+    });
+    continue;
+  }
     const id = `cb-incident-${Date.now()}-${Math.random()
       .toString(36)
       .slice(2, 8)}`;
@@ -152,11 +201,15 @@ async function applyBoardOperations(boardOps, missingRoles) {
     }
   }
 
-  for (const op of updateOps) {
-    if (!isAllowedOperation(op, missingRoles)) {
-      log("Board-Update verworfen:", op);
-      continue;
-    }
+for (const op of updateOps) {
+  if (!isAllowedOperation(op, missingRoles)) {
+    log("Board-Update verworfen:", {
+      op,
+      reason: explainOperationRejection(op, missingRoles),
+      missingRoles
+    });
+    continue;
+  }
     const target = allItems.find((x) => x.it.id === op.incidentId);
     if (!target) {
       log("Board-Update: Incident nicht gefunden:", op.incidentId);
@@ -217,11 +270,15 @@ async function applyAufgabenOperations(taskOps, missingRoles) {
   const updateOps = taskOps?.update || [];
 
   // CREATE → neue Aufgabe im S2-Board
-  for (const op of createOps) {
-    if (!isAllowedOperation(op, missingRoles)) {
-      log("Aufgabe-Create verworfen:", op);
-      continue;
-    }
+for (const op of createOps) {
+  if (!isAllowedOperation(op, missingRoles)) {
+    log("Aufgabe-Create verworfen:", {
+      op,
+      reason: explainOperationRejection(op, missingRoles),
+      missingRoles
+    });
+    continue;
+  }
     const id = `cb-task-${Date.now()}-${Math.random()
       .toString(36)
       .slice(2, 8)}`;
@@ -256,11 +313,15 @@ async function applyAufgabenOperations(taskOps, missingRoles) {
   }
 
   // UPDATE → vorhandene Tasks aktualisieren
-  for (const op of updateOps) {
-    if (!isAllowedOperation(op, missingRoles)) {
-      log("Aufgabe-Update verworfen:", op);
-      continue;
-    }
+for (const op of updateOps) {
+  if (!isAllowedOperation(op, missingRoles)) {
+    log("Aufgabe-Update verworfen:", {
+      op,
+      reason: explainOperationRejection(op, missingRoles),
+      missingRoles
+    });
+    continue;
+  }
     const idx = tasks.findIndex((t) => t.id === op.taskId);
     if (idx === -1) {
       log("Aufgabe-Update: Task nicht gefunden:", op.taskId);
@@ -298,11 +359,15 @@ async function applyProtokollOperations(protoOps, missingRoles) {
 
   const createOps = protoOps?.create || [];
 
-  for (const op of createOps) {
-    if (!isAllowedOperation(op, missingRoles)) {
-      log("Protokoll-Create verworfen:", op);
-      continue;
-    }
+for (const op of createOps) {
+  if (!isAllowedOperation(op, missingRoles)) {
+    log("Protokoll-Create verworfen:", {
+      op,
+      reason: explainOperationRejection(op, missingRoles),
+      missingRoles
+    });
+    continue;
+  }
     const now = new Date();
     const id = `cb-prot-${now.getTime()}-${Math.random()
       .toString(36)
@@ -380,34 +445,93 @@ async function applyProtokollOperations(protoOps, missingRoles) {
 }
 
 async function runOnce() {
+  // Verhindert parallele Durchläufe, wenn ein Zyklus länger dauert als WORKER_INTERVAL_MS
+  if (isRunning) {
+    log("Vorheriger Worker-Durchlauf läuft noch – aktuelles Intervall wird übersprungen.");
+    return;
+  }
+
+  isRunning = true;
   try {
     const { missing } = await loadRoles();
     if (!missing.length) {
       log("Keine missingRoles – nichts zu tun.");
       return;
     }
-    const res = await fetch(CHATBOT_STEP_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ source: "worker" })
-    });
-    if (!res.ok) {
-      const t = await res.text().catch(() => "");
-      log("Chatbot HTTP-Fehler:", res.status, res.statusText, t);
+
+    while (true) {
+      const res = await fetch(CHATBOT_STEP_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source: "worker" })
+      });
+
+      if (!res.ok) {
+        // Body als Text lesen (kann JSON oder Plaintext sein)
+        let bodyText = "";
+        try {
+          bodyText = await res.text();
+        } catch {
+          bodyText = "";
+        }
+
+        let errorJson = null;
+        try {
+          errorJson = JSON.parse(bodyText);
+        } catch {
+          // nicht schlimm, bleibt null
+        }
+
+        const reason = errorJson?.reason || errorJson?.error;
+
+        // SPEZIALFALL: Schritt läuft noch – Worker wartet, bis LLM fertig ist
+        if (res.status === 500 && reason === "step_in_progress") {
+          log(
+            "LLM-Simulationsschritt läuft noch (step_in_progress) – warte 5s und probiere erneut ..."
+          );
+          await new Promise((resolve) => setTimeout(resolve, 5000));
+          continue; // nächster Versuch innerhalb dieses runOnce()
+        }
+
+        // Andere HTTP-Fehler normal loggen und abbrechen
+        log("Chatbot HTTP-Fehler:", res.status, res.statusText, bodyText);
+        return;
+      }
+
+      // OK-Antwort -> JSON lesen
+      const data = await res.json();
+
+      // Falls Backend step_in_progress als ok:false im JSON meldet
+      if (!data.ok) {
+        if (data.reason === "step_in_progress") {
+          log(
+            "LLM-Simulationsschritt läuft noch (step_in_progress, JSON) – warte 5s und probiere erneut ..."
+          );
+          await new Promise((resolve) => setTimeout(resolve, 5000));
+          continue;
+        }
+
+        log("Chatbot-Simulationsschritt nicht ok:", data.error || data.reason);
+        return;
+      }
+
+      // Ab hier: LLM ist fertig, Operationen anwenden
+      const ops = data.operations || {};
+      await applyBoardOperations(ops.board || {}, missing);
+      await applyAufgabenOperations(ops.aufgaben || {}, missing);
+      await applyProtokollOperations(ops.protokoll || {}, missing);
+
+      if (data.analysis) {
+        log("Chatbot-Analysis:", data.analysis);
+      }
+
+      // erfolgreicher Abschluss -> Schleife & runOnce beenden
       return;
     }
-    const data = await res.json();
-    if (!data.ok) {
-      log("Chatbot-Simulationsschritt nicht ok:", data.error || data.reason);
-      return;
-    }
-    const ops = data.operations || {};
-    await applyBoardOperations(ops.board || {}, missing);
-    await applyAufgabenOperations(ops.aufgaben || {}, missing);
-    await applyProtokollOperations(ops.protokoll || {}, missing);
-    if (data.analysis) log("Chatbot-Analysis:", data.analysis);
   } catch (err) {
     log("Fehler im Worker:", err.message);
+  } finally {
+    isRunning = false;
   }
 }
 
