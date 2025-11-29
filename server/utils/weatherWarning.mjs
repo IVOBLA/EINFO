@@ -15,6 +15,12 @@ const DATA_DIR = path.resolve(__dirname, "../data");
 const WARNING_DATE_FILE =
   process.env.WEATHER_WARNING_DATE_FILE ||
   path.join(DATA_DIR, "weather-warning-dates.txt");
+const WEATHER_INCIDENTS_FILE = path.join(DATA_DIR, "weather-incidents.txt");
+const WEATHER_CATEGORY_FILE = path.join(
+  DATA_DIR,
+  "conf",
+  "weather-categories.json"
+);
 
 // Hilfsfunktion: YYYY-MM-DD
 function todayKey(d = new Date()) {
@@ -36,6 +42,30 @@ function parseDateKey(raw) {
 
   const d = new Date(Date.UTC(year, month - 1, day));
   return Number.isNaN(d.getTime()) ? null : todayKey(d);
+}
+
+function normalizeCategories(raw = []) {
+  return (Array.isArray(raw) ? raw : [])
+    .map((name) => ({
+      raw: String(name),
+      normalized: String(name).toLowerCase(),
+    }))
+    .filter((item) => Boolean(item.normalized));
+}
+
+async function readCategories(file = WEATHER_CATEGORY_FILE) {
+  try {
+    const raw = await fsp.readFile(file, "utf8");
+    return normalizeCategories(JSON.parse(raw));
+  } catch (err) {
+    if (err?.code !== "ENOENT") {
+      console.warn(
+        "[weather-warning] Wetterkategorien konnten nicht geladen werden:",
+        err?.message || err
+      );
+    }
+    return [];
+  }
 }
 
 // Datumsangaben aus E-Mail-Text extrahieren
@@ -83,6 +113,50 @@ async function writeWarningDateFile(dates, file = WARNING_DATE_FILE) {
   );
 }
 
+async function readIncidentRecords(file = WEATHER_INCIDENTS_FILE) {
+  try {
+    const raw = await fsp.readFile(file, "utf8");
+    return raw
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        try {
+          return JSON.parse(line);
+        } catch (err) {
+          console.warn(
+            "[weather-warning] Ungültige Incident-Zeile wird ignoriert",
+            err?.message || err
+          );
+          return null;
+        }
+      })
+      .filter(Boolean);
+  } catch (err) {
+    if (err?.code === "ENOENT") return [];
+    throw err;
+  }
+}
+
+function findCategoryForEntry(entry, categories = []) {
+  if (!entry) return null;
+
+  const hay = [entry.typ, entry.description, entry.content, entry.title]
+    .filter(Boolean)
+    .map((value) => String(value).toLowerCase())
+    .join(" ");
+
+  return categories.find((cat) => hay.includes(cat.normalized)) || null;
+}
+
+function normalizeCreatedAt(createdAt, fallbackDate = new Date()) {
+  const d = createdAt ? new Date(createdAt) : null;
+  if (d && Number.isFinite(d.getTime())) return d.toISOString();
+
+  const fallback = fallbackDate instanceof Date ? fallbackDate : new Date();
+  return fallback.toISOString();
+}
+
 // -----------------------------------------------------------------------------
 // EXPORTS
 // -----------------------------------------------------------------------------
@@ -127,6 +201,46 @@ export async function generateWeatherFileIfWarning(warningDates = []) {
 
   await writeWarningDateFile([...set]);
   return true;
+}
+
+export async function appendWeatherIncidentFromBoardEntry(entry, options = {}) {
+  const {
+    categoryFile = WEATHER_CATEGORY_FILE,
+    outFile = WEATHER_INCIDENTS_FILE,
+    warningDateFile = WARNING_DATE_FILE,
+    now = new Date(),
+  } = options;
+
+  const today = todayKey(now);
+  const dates = await readWarningDateFile(warningDateFile);
+  if (!dates.includes(today)) {
+    return { appended: false, reason: "no-active-warning" };
+  }
+
+  const categories = await readCategories(categoryFile);
+  const matchedCategory = findCategoryForEntry(entry, categories);
+  if (!matchedCategory) {
+    return { appended: false, reason: "no-weather-category" };
+  }
+
+  const existing = await readIncidentRecords(outFile);
+  if (entry?.id && existing.some((item) => item?.id === entry.id)) {
+    return { appended: false, reason: "duplicate" };
+  }
+
+  const incident = {
+    id: entry?.id ?? null,
+    date: today,
+    category: matchedCategory.raw,
+    description:
+      entry?.description || entry?.content || entry?.title || entry?.typ || "",
+    createdAt: normalizeCreatedAt(entry?.createdAt, now),
+  };
+
+  await fsp.mkdir(path.dirname(outFile), { recursive: true });
+  await fsp.appendFile(outFile, `${JSON.stringify(incident)}\n`, "utf8");
+
+  return { appended: true, incident };
 }
 
 // Prüfen, ob HEUTE in warning-dates steht
