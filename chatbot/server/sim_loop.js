@@ -11,6 +11,10 @@ const timestamp = () => new Date().toISOString();
 let conversationHistory = [];
 let conversationId = null;
 
+// Merkt sich den letzten Stand der eingelesenen EINFO-Daten, damit nur neue
+// oder geänderte Einträge erneut an das LLM geschickt werden müssen.
+let lastComparableSnapshot = null;
+
 let running = false;
 let autoTimer = null;
 let stepInProgress = false;
@@ -95,6 +99,65 @@ function compressProtokoll(protokoll) {
   return JSON.stringify(compact);
 }
 
+function toComparableBoardEntry(entry = {}) {
+  return {
+    id: entry.id,
+    title: entry.content || "",
+    column: entry.column || "",
+    columnName: entry.columnName || entry.column || "",
+    ort: entry.ort || "",
+    typ: entry.typ || "",
+    alerted: entry.alerted || "",
+    humanId: entry.humanId || null,
+    timestamp: entry.timestamp || null,
+    statusSince: entry.statusSince || null
+  };
+}
+
+function toComparableAufgabe(task = {}) {
+  return {
+    id: task.id,
+    title: task.title || "",
+    type: task.type || "",
+    responsible: task.responsible || "",
+    status: task.status || "",
+    dueAt: task.dueAt || null,
+    originProtocolNr: task.originProtocolNr ?? task.meta?.protoNr ?? null,
+    relatedIncidentId: task.relatedIncidentId || null,
+    incidentTitle: task.incidentTitle || null
+  };
+}
+
+function toComparableProtokoll(entry = {}) {
+  return {
+    id: entry.id,
+    nr: entry.nr,
+    datum: entry.datum,
+    zeit: entry.zeit,
+    infoTyp: entry.infoTyp,
+    anvon: entry.anvon,
+    information: entry.information || ""
+  };
+}
+
+function buildDelta(currentList, previousComparableList, mapper) {
+  const comparableCurrent = currentList
+    .map((item) => mapper(item))
+    .filter((item) => item && item.id);
+
+  const previousMap = new Map(
+    (previousComparableList || []).map((item) => [item.id, JSON.stringify(item)])
+  );
+
+  const delta = comparableCurrent.filter((item) => {
+    const serialized = JSON.stringify(item);
+    const prevSerialized = previousMap.get(item.id);
+    return !prevSerialized || prevSerialized !== serialized;
+  });
+
+  return { delta, snapshot: comparableCurrent };
+}
+
 export function isSimulationRunning() {
   return running;
 }
@@ -151,11 +214,27 @@ export async function stepSimulation(options = {}) {
     const einfoData = await readEinfoInputs();
     const { roles, board, aufgaben, protokoll } = einfoData;
 
+    const { delta: boardDelta, snapshot: boardSnapshot } = buildDelta(
+      board,
+      lastComparableSnapshot?.board,
+      toComparableBoardEntry
+    );
+    const { delta: aufgabenDelta, snapshot: aufgabenSnapshot } = buildDelta(
+      aufgaben,
+      lastComparableSnapshot?.aufgaben,
+      toComparableAufgabe
+    );
+    const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
+      protokoll,
+      lastComparableSnapshot?.protokoll,
+      toComparableProtokoll
+    );
+
     const llmInput = {
       roles,
-      compressedBoard: compressBoard(board),
-      compressedAufgaben: compressAufgaben(aufgaben),
-      compressedProtokoll: compressProtokoll(protokoll)
+      compressedBoard: compressBoard(boardDelta),
+      compressedAufgaben: compressAufgaben(aufgabenDelta),
+      compressedProtokoll: compressProtokoll(protokollDelta)
     };
 
     const { parsed: llmResponse, rawText, userMessage } = await callLLMForOps({
@@ -191,6 +270,12 @@ export async function stepSimulation(options = {}) {
         0,
       hasProtokollOps: operations.protokoll?.create?.length > 0
     });
+
+    lastComparableSnapshot = {
+      board: boardSnapshot,
+      aufgaben: aufgabenSnapshot,
+      protokoll: protokollSnapshot
+    };
 
     return { ok: true, operations, analysis };
   } catch (err) {
