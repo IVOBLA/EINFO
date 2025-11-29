@@ -4,10 +4,46 @@ import { CONFIG } from "./config.js";
 import { readEinfoInputs } from "./einfo_io.js";
 import { callLLMForOps } from "./llm_client.js";
 import { logInfo, logError, logDebug } from "./logger.js";
+import { buildSystemPrompt } from "./prompts.js";
+
+const timestamp = () => new Date().toISOString();
+
+let conversationHistory = [];
+let conversationId = null;
 
 let running = false;
 let autoTimer = null;
 let stepInProgress = false;
+
+function resetConversation() {
+  conversationId = `sim-${Date.now()}`;
+  conversationHistory = [
+    { role: "system", content: buildSystemPrompt(), ts: timestamp() }
+  ];
+  logInfo("Neue Chat-Konversation gestartet", {
+    conversationId,
+    messageCount: conversationHistory.length
+  });
+}
+
+function ensureConversation() {
+  if (!conversationHistory.length) {
+    resetConversation();
+  }
+}
+
+function appendConversationMessage(role, content) {
+  if (!content) return;
+  conversationHistory.push({ role, content, ts: timestamp() });
+}
+
+function getConversationForLLM() {
+  return conversationHistory.map(({ role, content }) => ({ role, content }));
+}
+
+export function getConversationHistory() {
+  return conversationHistory.slice();
+}
 
 // Board kommt bereits als flache Liste aus einfo_io (flattenBoard)
 function compressBoard(board) {
@@ -65,6 +101,7 @@ export function isSimulationRunning() {
 
 export async function startSimulation() {
   running = true;
+  resetConversation();
   logInfo("EINFO-Chatbot Simulation gestartet", null);
 
   if (autoTimer) {
@@ -110,6 +147,7 @@ export async function stepSimulation(options = {}) {
   const source = options.source || "manual";
 
   try {
+    ensureConversation();
     const einfoData = await readEinfoInputs();
     const { roles, board, aufgaben, protokoll } = einfoData;
 
@@ -120,15 +158,26 @@ export async function stepSimulation(options = {}) {
       compressedProtokoll: compressProtokoll(protokoll)
     };
 
-    const llmResponse = await callLLMForOps({ llmInput });
+    const { parsed: llmResponse, rawText, userMessage } = await callLLMForOps({
+      llmInput,
+      conversation: getConversationForLLM()
+    });
 
-    const operations = llmResponse.operations || {
+    const operations = (llmResponse || {}).operations || {
       board: { createIncidentSites: [], updateIncidentSites: [] },
       aufgaben: { create: [], update: [] },
       protokoll: { create: [] }
     };
 
-    const analysis = llmResponse.analysis || "";
+    const analysis = (llmResponse || {}).analysis || "";
+
+    appendConversationMessage("user", userMessage);
+    appendConversationMessage(
+      "assistant",
+      typeof rawText === "string" && rawText.trim()
+        ? rawText
+        : JSON.stringify(llmResponse || {}, null, 2)
+    );
 
     logInfo("Simulationsschritt", {
       source,

@@ -16,7 +16,7 @@ function fetchWithTimeout(url, options, timeoutMs) {
 }
 
 /** LLM für OPERATIONS (Simulation) */
-export async function callLLMForOps({ llmInput }) {
+export async function callLLMForOps({ llmInput, conversation }) {
   const { compressedBoard, compressedAufgaben, compressedProtokoll } = llmInput;
 
   const knowledgeContext = await getKnowledgeContextVector(
@@ -32,6 +32,11 @@ export async function callLLMForOps({ llmInput }) {
     knowledgeContext
   });
 
+  const baseMessages =
+    Array.isArray(conversation) && conversation.length > 0
+      ? conversation
+      : [{ role: "system", content: systemPrompt }];
+
   const body = {
     model: CONFIG.llmChatModel,
     stream: false,
@@ -39,14 +44,14 @@ export async function callLLMForOps({ llmInput }) {
       temperature: CONFIG.defaultTemperature,
       seed: CONFIG.defaultSeed
     },
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt }
-    ]
+    messages: [...baseMessages, { role: "user", content: userPrompt }]
   };
 
-  const parsed = await doLLMCall(body, "ops");
-  return parsed;
+  const { parsed, rawText } = await doLLMCall(body, "ops", null, {
+    returnFullResponse: true
+  });
+
+  return { parsed, rawText, userMessage: userPrompt, messages: body.messages };
 }
 
 /** LLM für QA-Chat (auch Streaming) */
@@ -132,10 +137,14 @@ function parseStreamBuffer(buffer, processPayload) {
 
 // ------------------- Zentrale LLM-Funktion -------------------------------
 
-async function doLLMCall(body, phaseLabel, onToken) {
-  const systemPrompt = body.messages[0]?.content || "";
-  const userPrompt = body.messages[1]?.content || "";
+async function doLLMCall(body, phaseLabel, onToken, options = {}) {
+  const messages = Array.isArray(body.messages) ? body.messages : [];
   const serializedRequest = JSON.stringify(body);
+  const systemPrompt =
+    messages.find((m) => m.role === "system")?.content || messages[0]?.content || "";
+  const userPrompt =
+    [...messages].reverse().find((m) => m.role === "user")?.content || "";
+  const messageCount = messages.length;
 
   logDebug("LLM-Request", { model: body.model, phase: phaseLabel });
 
@@ -148,7 +157,7 @@ async function doLLMCall(body, phaseLabel, onToken) {
     rawRequest: serializedRequest,
     rawResponse: null,
     parsedResponse: null,
-    extra: { phase: phaseLabel }
+    extra: { phase: phaseLabel, messageCount }
   });
 
   let resp;
@@ -175,7 +184,7 @@ async function doLLMCall(body, phaseLabel, onToken) {
       rawRequest: serializedRequest,
       rawResponse: errorStr,
       parsedResponse: null,
-      extra: { phase: phaseLabel, error: errorStr }
+      extra: { phase: phaseLabel, error: errorStr, messageCount }
     });
 
     throw error;
@@ -201,7 +210,8 @@ async function doLLMCall(body, phaseLabel, onToken) {
       extra: {
         httpStatus: resp.status,
         httpStatusText: resp.statusText,
-        phase: phaseLabel
+        phase: phaseLabel,
+        messageCount
       }
     });
 
@@ -255,8 +265,12 @@ async function doLLMCall(body, phaseLabel, onToken) {
       rawRequest: serializedRequest,
       rawResponse: rawStream,
       parsedResponse: content,
-      extra: { phase: phaseLabel }
+      extra: { phase: phaseLabel, messageCount }
     });
+
+    if (options?.returnFullResponse) {
+      return { parsed: content, rawText: rawStream };
+    }
 
     return content;
   }
@@ -279,8 +293,12 @@ async function doLLMCall(body, phaseLabel, onToken) {
     rawRequest: serializedRequest,
     rawResponse: rawText,
     parsedResponse: parsed,
-    extra: { phase: phaseLabel }
+    extra: { phase: phaseLabel, messageCount }
   });
+
+  if (options?.returnFullResponse) {
+    return { parsed, rawText };
+  }
 
   return parsed ?? rawText;
 }
