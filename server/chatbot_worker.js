@@ -2,6 +2,7 @@
 
 import fs from "fs";
 import fsPromises from "fs/promises";
+import crypto from "crypto";
 import path from "path";
 
 const CHATBOT_STEP_URL = "http://127.0.0.1:3100/api/sim/step";
@@ -21,6 +22,12 @@ const FILES = {
   protokoll: "protocol.json"
 };
 
+const WATCHED_FILES = Object.fromEntries(
+  Object.entries(FILES).map(([key, file]) => [key, path.join(dataDir, file)])
+);
+
+let lastKnownFileSignatures = null;
+
 function log(...args) {
   console.log("[chatbot-worker]", ...args);
 }
@@ -39,6 +46,49 @@ async function safeReadJson(filePath, def) {
 }
 async function safeWriteJson(filePath, data) {
   await fsPromises.writeFile(filePath, JSON.stringify(data, null, 2), "utf8");
+}
+
+async function getFileSignature(filePath) {
+  try {
+    const content = await fsPromises.readFile(filePath);
+    const hash = crypto.createHash("sha256").update(content).digest("hex");
+    return { exists: true, hash };
+  } catch (err) {
+    if (err.code === "ENOENT") {
+      return { exists: false, hash: null };
+    }
+    throw err;
+  }
+}
+
+async function collectSimulationFileSignatures() {
+  const entries = await Promise.all(
+    Object.entries(WATCHED_FILES).map(async ([key, filePath]) => {
+      const signature = await getFileSignature(filePath);
+      return [key, signature];
+    })
+  );
+  return Object.fromEntries(entries);
+}
+
+function haveSimulationFilesChanged(currentSignatures) {
+  if (!lastKnownFileSignatures) {
+    return true;
+  }
+
+  const currentKeys = Object.keys(currentSignatures);
+  const previousKeys = Object.keys(lastKnownFileSignatures);
+
+  if (currentKeys.length !== previousKeys.length) {
+    return true;
+  }
+
+  return currentKeys.some((key) => {
+    const prev = lastKnownFileSignatures[key];
+    const curr = currentSignatures[key];
+    if (!prev || !curr) return true;
+    return prev.exists !== curr.exists || prev.hash !== curr.hash;
+  });
 }
 
 async function loadRoles() {
@@ -477,6 +527,12 @@ async function runOnce() {
       return;
     }
 
+    const fileSignatures = await collectSimulationFileSignatures();
+    if (!haveSimulationFilesChanged(fileSignatures)) {
+      log("Keine Änderungen an den Simulationsdateien – LLM-Aufruf übersprungen.");
+      return;
+    }
+
     const currentData = await loadSimulationData();
 
     while (true) {
@@ -550,6 +606,8 @@ async function runOnce() {
       if (data.analysis) {
         log("Chatbot-Analysis:", data.analysis);
       }
+
+      lastKnownFileSignatures = await collectSimulationFileSignatures();
 
       // erfolgreicher Abschluss -> Schleife & runOnce beenden
       return;
