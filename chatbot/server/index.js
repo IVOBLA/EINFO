@@ -14,22 +14,18 @@ import { callLLMForChat } from "./llm_client.js";
 import { logInfo, logError } from "./logger.js";
 
 async function streamAnswer({ res, question }) {
-  res.writeHead(200, {
-    "Content-Type": "text/plain; charset=utf-8",
-    "Cache-Control": "no-cache",
-    Connection: "keep-alive",
-    "Transfer-Encoding": "chunked"
+  res.setHeader("Content-Type", "text/plain; charset=utf-8");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("Transfer-Encoding", "chunked");
+
+  await callLLMForChat({
+    question,
+    stream: true,
+    onToken: (token) => res.write(token)
   });
 
-  try {
-    await callLLMForChat({
-      question,
-      stream: true,
-      onToken: (token) => res.write(token)
-    });
-  } finally {
-    res.end();
-  }
+  res.end();
 }
 
 const app = express();
@@ -85,7 +81,11 @@ app.post("/api/chat", async (req, res) => {
     await streamAnswer({ res, question });
   } catch (err) {
     logError("Fehler im Chat-Endpoint", { error: String(err) });
-    res.status(500).json({ ok: false, error: String(err) });
+    if (!res.headersSent) {
+      res.status(500).json({ ok: false, error: String(err) });
+    } else {
+      res.end();
+    }
   }
 });
 
