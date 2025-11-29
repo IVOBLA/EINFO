@@ -51,6 +51,24 @@ async function loadRoles() {
   return { active, missing };
 }
 
+async function loadSimulationData() {
+  const boardPath = path.join(dataDir, FILES.board);
+  const tasksPath = path.join(dataDir, FILES.aufgabenS2);
+  const protPath = path.join(dataDir, FILES.protokoll);
+
+  const [boardRaw, tasksRaw, protRaw] = await Promise.all([
+    safeReadJson(boardPath, { columns: {} }),
+    safeReadJson(tasksPath, []),
+    safeReadJson(protPath, [])
+  ]);
+
+  return {
+    board: ensureBoardStructure(boardRaw),
+    aufgaben: tasksRaw,
+    protokoll: protRaw
+  };
+}
+
 function isAllowedOperation(op, missingRoles) {
   if (!op) return false;
   const originRole = op.originRole;
@@ -453,17 +471,25 @@ async function runOnce() {
 
   isRunning = true;
   try {
-    const { missing } = await loadRoles();
+    const { active, missing } = await loadRoles();
     if (!missing.length) {
       log("Keine missingRoles – nichts zu tun.");
       return;
     }
 
+    const currentData = await loadSimulationData();
+
     while (true) {
       const res = await fetch(CHATBOT_STEP_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ source: "worker" })
+        body: JSON.stringify({
+          source: "worker",
+          data: {
+            ...currentData,
+            roles: { active, missing }
+          }
+        })
       });
 
       if (!res.ok) {
