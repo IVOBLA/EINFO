@@ -1,9 +1,19 @@
 // chatbot/server/llm_client.js
 
+// chatbot/server/llm_client.js
+
 import { CONFIG } from "./config.js";
-import { buildSystemPrompt, buildUserPrompt } from "./prompts.js";
+import {
+  buildSystemPrompt,          // allgemeiner Ops-Prompt
+  buildUserPrompt,            // allgemeiner Ops-Prompt
+  buildStartPrompts,          // Start-Prompt für Nicht-phi3
+  buildSystemPromptChat,
+  buildUserPromptChat
+} from "./prompts.js";
+
 import { logDebug, logError, logLLMExchange } from "./logger.js";
 import { getKnowledgeContextVector } from "./rag/rag_vector.js";
+
 
 function fetchWithTimeout(url, options, timeoutMs) {
   const controller = new AbortController();
@@ -15,27 +25,164 @@ function fetchWithTimeout(url, options, timeoutMs) {
   });
 }
 
+
+/** LLM für OPERATIONS (Simulation) */
 /** LLM für OPERATIONS (Simulation) */
 export async function callLLMForOps({ llmInput, conversation }) {
   const { compressedBoard, compressedAufgaben, compressedProtokoll } = llmInput;
+  const modelName = (CONFIG.llmChatModel || "").toLowerCase();
 
-  const knowledgeContext = await getKnowledgeContextVector(
-    "Stabsarbeit Kat-E Einsatzleiter LdStb Meldestelle S1 S2 S3 S4 S5 S6"
-  );
+  let systemPrompt;
+  let userPrompt;
+  let messages;
 
-  const systemPrompt = buildSystemPrompt();
-  const userPrompt = buildUserPrompt({
-    llmInput,
-    compressedBoard,
-    compressedAufgaben,
-    compressedProtokoll,
-    knowledgeContext
-  });
+  // ---------------------------------------------------------
+  // SPEZIALFALL: ERSTER SIMULATIONSSCHRITT
+  // ---------------------------------------------------------
+  if (llmInput.firstStep) {
+    // Für phi3_cpu: kompakter Start-Prompt mit Beispiel-JSON, OHNE RAG/History
+    if (modelName.includes("phi3")) {
+      const rolesJson = JSON.stringify(llmInput.roles || {}, null, 2);
 
-  const baseMessages =
-    Array.isArray(conversation) && conversation.length > 0
-      ? conversation
-      : [{ role: "system", content: systemPrompt }];
+      systemPrompt = `
+Du bist ein Simulationsmodul für den Bezirks-Einsatzstab.
+Sprache: Du schreibst ALLES auf Deutsch.
+
+Du musst GENAU EIN JSON-Objekt zurückgeben. Nichts davor, nichts danach.
+
+Erlaubtes Format:
+{
+  "operations": {
+    "board": { "createIncidentSites": [...], "updateIncidentSites": [] },
+    "aufgaben": { "create": [...], "update": [] },
+    "protokoll": { "create": [...] }
+  },
+  "analysis": "kurzer deutscher Text"
+}
+
+Rollenregeln:
+- originRole, fromRole, assignedBy NUR Rollen aus missingRoles.
+- "via" ist IMMER "Meldestelle" oder "Meldestelle/S6".
+
+BEISPIEL (Struktur und Stil):
+
+{
+  "operations": {
+    "board": {
+      "createIncidentSites": [
+        {
+          "originRole": "Einsatzleiter",
+          "fromRole": "Einsatzleiter",
+          "via": "Meldestelle",
+          "title": "Hochwasser Bereich Tiebel",
+          "description": "Überflutung im Uferbereich, Wasserstand steigend.",
+          "priority": "critical",
+          "locationHint": "Tiebel, Feldkirchen",
+          "linkedProtocolId": null
+        }
+      ],
+      "updateIncidentSites": []
+    },
+    "aufgaben": {
+      "create": [
+        {
+          "originRole": "LdStb",
+          "assignedBy": "Einsatzleiter",
+          "via": "Meldestelle",
+          "forRole": "S2",
+          "title": "Lagebild Hochwasser",
+          "description": "Pegelstände sammeln und Lagekarte aktualisieren.",
+          "priority": "high",
+          "linkedIncidentId": "incident-1",
+          "linkedProtocolId": null
+        }
+      ],
+      "update": []
+    },
+    "protokoll": {
+      "create": [
+        {
+          "originRole": "Einsatzleiter",
+          "fromRole": "Einsatzleiter",
+          "toRole": "LdStb",
+          "via": "Meldestelle",
+          "subject": "Lagemeldung Hochwasser",
+          "content": "Überflutung im Bereich Tiebel, mehrere Objekte gefährdet.",
+          "category": "Lagemeldung"
+        }
+      ]
+    }
+  },
+  "analysis": "Beispielausgabe, tatsächliche IDs und Texte an die aktuelle Lage anpassen."
+}
+
+Dies ist NUR ein Beispiel. Du musst eigene Inhalte erzeugen, aber GENAU dieses Format einhalten.
+`;
+
+      userPrompt = `
+START-SCHRITT – Hochwasser-Katastrophenszenario im Bezirk Feldkirchen.
+
+ROLES (active/missing):
+${rolesJson}
+
+Lage:
+- Nach Starkregen steigen die Pegel von Tiebel und Glan deutlich.
+- Erste Überflutungen im Uferbereich und in Unterführungen.
+- Der Bezirks-Einsatzstab wird eingerichtet.
+
+Aufgabe:
+- Erzeuge 1–3 neue Einsatzstellen in "operations.board.createIncidentSites"
+  passend zur Hochwasserlage (z.B. überflutete Straßenzüge, gefährdete Objekte).
+- Erzeuge mindestens einen Protokolleintrag in "operations.protokoll.create"
+  (z.B. Lagemeldung Einsatzleiter -> LdStb).
+- Erzeuge mindestens eine Aufgabe in "operations.aufgaben.create"
+  für eine fehlende Stabsrolle (z.B. S2, S3, S4 oder S5).
+
+Regeln:
+- originRole, fromRole, assignedBy NUR Rollen aus missingRoles verwenden.
+- "via" IMMER "Meldestelle" oder "Meldestelle/S6".
+- Gib NUR EIN JSON-Objekt im beschriebenen Format aus. Keine weiteren Texte.
+`;
+
+      messages = [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ];
+    } else {
+      // Nicht-phi3-Modelle: bestehenden (umfangreicheren) Start-Prompt nutzen
+      const start = buildStartPrompts({ roles: llmInput.roles });
+      systemPrompt = start.systemPrompt;
+      userPrompt = start.userPrompt;
+
+      messages = [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ];
+    }
+  } else {
+    // -------------------------------------------------------
+    // NORMALFALL: laufende Simulation
+    // -------------------------------------------------------
+    const knowledgeContext = await getKnowledgeContextVector(
+      "Stabsarbeit Kat-E Einsatzleiter LdStb Meldestelle S1 S2 S3 S4 S5 S6"
+    );
+
+    systemPrompt = buildSystemPrompt();
+    userPrompt = buildUserPrompt({
+      llmInput,
+      compressedBoard,
+      compressedAufgaben,
+      compressedProtokoll,
+      knowledgeContext
+    });
+
+    const baseMessages =
+      Array.isArray(conversation) && conversation.length > 0
+        ? conversation
+        : [{ role: "system", content: systemPrompt }];
+
+    messages = [...baseMessages, { role: "user", content: userPrompt }];
+  }
 
   const body = {
     model: CONFIG.llmChatModel,
@@ -44,39 +191,26 @@ export async function callLLMForOps({ llmInput, conversation }) {
       temperature: CONFIG.defaultTemperature,
       seed: CONFIG.defaultSeed
     },
-    messages: [...baseMessages, { role: "user", content: userPrompt }]
+    messages
   };
 
   const { parsed, rawText } = await doLLMCall(body, "ops", null, {
     returnFullResponse: true
   });
 
-  return { parsed, rawText, userMessage: userPrompt, messages: body.messages };
+  return { parsed, rawText, userMessage: userPrompt, messages };
 }
+
+
+
+
 
 /** LLM für QA-Chat (auch Streaming) */
 export async function callLLMForChat({ question, stream = false, onToken }) {
   const knowledgeContext = await getKnowledgeContextVector(question);
 
-  const systemPrompt = `
-Du bist ein lokaler Feuerwehr-Chatbot für den Bezirks-Einsatzstab.
-Du beantwortest Fragen ausschließlich anhand des KnowledgeContext.
-Wenn etwas dort nicht steht, sag das ehrlich.
-Sprache: Deutsch, kurze, klare Antworten, Feuerwehr-Jargon erlaubt.
-Keine personenbezogenen Daten.
-`;
-
-  const userPrompt = `
-FRAGE:
-${question}
-
-KnowledgeContext:
-${knowledgeContext || "(kein Knowledge-Kontext verfügbar)"}
-
-Antwort:
-- Kurz, präzise, anwendungsnah.
-- Wenn nicht geregelt: sag das.
-`;
+  const systemPrompt = buildSystemPromptChat();
+  const userPrompt = buildUserPromptChat(question, knowledgeContext);
 
   const body = {
     model: CONFIG.llmChatModel,
@@ -94,6 +228,7 @@ Antwort:
   const answer = await doLLMCall(body, "chat", onToken);
   return answer;
 }
+
 
 // ------------------- Streaming-Helfer ------------------------------------
 

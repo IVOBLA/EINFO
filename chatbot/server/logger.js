@@ -16,9 +16,12 @@ if (!fs.existsSync(LOG_DIR)) {
   fs.mkdirSync(LOG_DIR, { recursive: true });
 }
 
-// Hauptlog & LLM-Log (fester Dateiname, wie gefordert)
+
+// Hauptlog & LLM-Logs (feste Dateinamen)
 const MAIN_LOG_FILE = path.join(LOG_DIR, "chatbot.log");
-const LLM_LOG_FILE = path.join(LOG_DIR, "LLM.log");
+const LLM_REQUEST_LOG_FILE = path.join(LOG_DIR, "LLM_request.log");
+const LLM_RESPONSE_LOG_FILE = path.join(LOG_DIR, "LLM_response.log");
+
 
 function appendLine(filePath, line) {
   return fsPromises.appendFile(filePath, line + "\n").catch((err) => {
@@ -64,18 +67,47 @@ export function logError(msg, extra) {
 // - parsedResponse: evtl. geparstes JSON (oder null)
 // Nichts wird verändert, beschnitten oder anonymisiert.
 
-export function logLLMExchange(payload) {
-  const entry = {
+// --------- LLM-Logs -------------------------------------------------------
+//
+// Request und Response werden in getrennte Dateien geschrieben:
+//
+// - LLM_request.log: System-/User-Prompt + rawRequest
+// - LLM_response.log: nur rawResponse + parsedResponse
+//   (KEIN rawRequest/systemPrompt/userPrompt mehr im Response-Log)
+
+export function logLLMExchange(payload = {}) {
+  const phase = payload.phase || "unknown";
+
+  const base = {
     ts: new Date().toISOString(),
     type: "LLM",
-    // payload enthält z.B.:
-    // phase, model, systemPrompt, userPrompt,
-    // rawRequest, rawResponse, parsedResponse, extra
-    ...payload
+    phase,
+    model: payload.model || null,
+    extra: payload.extra || null
   };
 
-  return appendLine(LLM_LOG_FILE, JSON.stringify(entry));
+  // REQUEST-LOG
+  if (phase === "request") {
+    const entry = {
+      ...base,
+      systemPrompt: payload.systemPrompt || null,
+      userPrompt: payload.userPrompt || null,
+      rawRequest: payload.rawRequest || null
+    };
+    return appendLine(LLM_REQUEST_LOG_FILE, JSON.stringify(entry));
+  }
+
+  // RESPONSE-/ERROR-/STREAM-LOG
+  const entry = {
+    ...base,
+    // Wichtig: hier KEINE Request-Daten mehr mitschleppen
+    rawResponse: payload.rawResponse ?? null,
+    parsedResponse: payload.parsedResponse ?? null
+  };
+
+  return appendLine(LLM_RESPONSE_LOG_FILE, JSON.stringify(entry));
 }
+
 
 // Optional: alte API beibehalten (falls irgendwo noch verwendet)
 export function logLLMRequest(model, rawRequest) {

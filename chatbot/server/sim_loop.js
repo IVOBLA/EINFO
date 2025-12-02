@@ -42,8 +42,22 @@ function appendConversationMessage(role, content) {
 }
 
 function getConversationForLLM() {
-  return conversationHistory.map(({ role, content }) => ({ role, content }));
+  // Als „Erinnerung“ zählt nur, was im realen Zustand sichtbar ist.
+  // Darum schicken wir dem LLM nur den System-Prompt als festen Kontext.
+  // Alles andere (Board/Aufgaben/Protokoll) kommt im aktuellen userPrompt
+  // und basiert auf dem vom Worker tatsächlich übernommenen Dateistand.
+
+  if (conversationHistory.length > 0) {
+    const systemEntry = conversationHistory.find((m) => m.role === "system");
+    if (systemEntry) {
+      return [{ role: "system", content: systemEntry.content }];
+    }
+  }
+
+  // Fallback, falls aus irgendeinem Grund noch kein Systemeintrag existiert
+  return [{ role: "system", content: buildSystemPrompt() }];
 }
+
 
 export function getConversationHistory() {
   return conversationHistory.slice();
@@ -165,41 +179,21 @@ export function isSimulationRunning() {
 export async function startSimulation() {
   running = true;
   resetConversation();
-  logInfo("EINFO-Chatbot Simulation gestartet", null);
+  logInfo(
+    "EINFO-Chatbot Simulation gestartet (Schritte werden vom Worker ausgelöst)",
+    null
+  );
 
-  if (autoTimer) {
-    clearInterval(autoTimer);
-    autoTimer = null;
-  }
-
-  if (CONFIG.autoStepMs > 0) {
-    autoTimer = setInterval(async () => {
-      if (!running) return;
-      if (stepInProgress) {
-        logDebug("Auto-Step übersprungen (busy)", null);
-        return;
-      }
-      const res = await stepSimulation({ source: "auto" });
-      if (!res.ok) {
-        logError("Fehler Auto-Simulationsschritt", {
-          error: res.error || res.reason
-        });
-      }
-    }, CONFIG.autoStepMs);
-    logInfo("Auto-Loop aktiviert", { autoStepMs: CONFIG.autoStepMs });
-  } else {
-    logInfo("Auto-Loop deaktiviert (autoStepMs <= 0)", null);
-  }
+  // Auto-Loop ist bewusst deaktiviert.
+  // Alle Simulationsschritte kommen über /api/sim/step vom chatbot_worker.
 }
+
 
 export function pauseSimulation() {
   running = false;
-  if (autoTimer) {
-    clearInterval(autoTimer);
-    autoTimer = null;
-  }
   logInfo("EINFO-Chatbot Simulation pausiert", null);
 }
+
 
 export async function stepSimulation(options = {}) {
   if (!running) return { ok: false, reason: "not_running" };
@@ -229,12 +223,25 @@ export async function stepSimulation(options = {}) {
       lastComparableSnapshot?.protokoll,
       toComparableProtokoll
     );
+// --- NEU: Erkennen, dass dies der erste Simulationsschritt ist ---
+const isFirstStep =
+  (!lastComparableSnapshot ||
+    lastComparableSnapshot.board?.length === 0) &&
+  Array.isArray(board) && board.length === 0 &&
+  Array.isArray(aufgaben) && aufgaben.length === 0 &&
+  Array.isArray(protokoll) && protokoll.length === 0;
+
+// Debug-Log
+if (isFirstStep) {
+  logInfo("Erster Simulationsschritt: Szenario-Initialisierung aktiv", null);
+}
 
     const llmInput = {
       roles,
       compressedBoard: compressBoard(boardDelta),
       compressedAufgaben: compressAufgaben(aufgabenDelta),
-      compressedProtokoll: compressProtokoll(protokollDelta)
+      compressedProtokoll: compressProtokoll(protokollDelta),
+	  firstStep: isFirstStep  
     };
 
     const { parsed: llmResponse, rawText, userMessage } = await callLLMForOps({
