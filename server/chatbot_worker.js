@@ -2,7 +2,6 @@
 
 import fs from "fs";
 import fsPromises from "fs/promises";
-import crypto from "crypto";
 import path from "path";
 
 const CHATBOT_STEP_URL = "http://127.0.0.1:3100/api/sim/step";
@@ -22,15 +21,53 @@ const FILES = {
   protokoll: "protocol.json"
 };
 
-const WATCHED_FILES = Object.fromEntries(
-  Object.entries(FILES).map(([key, file]) => [key, path.join(dataDir, file)])
-);
-
-let lastKnownFileSignatures = null;
-
-function log(...args) {
-  console.log("[chatbot-worker]", ...args);
+// -------- NEU: Log-Verzeichnis und Worker-Logdatei --------
+const LOG_DIR = path.join(process.cwd(), "logs");
+if (!fs.existsSync(LOG_DIR)) {
+  fs.mkdirSync(LOG_DIR, { recursive: true });
 }
+const WORKER_LOG_FILE = path.join(LOG_DIR, "chatbot_worker.log");
+
+// -------- NEU: zusätzliches Log für verworfene Operationen --------
+const OPS_VERWORFEN_LOG_FILE = path.join(LOG_DIR, "ops_verworfen.log");
+
+function appendOpsVerworfenLog(entry) {
+  const line = JSON.stringify({
+    ts: new Date().toISOString(),
+    ...entry
+  });
+  fsPromises.appendFile(OPS_VERWORFEN_LOG_FILE, line + "\n").catch((err) => {
+    console.error(
+      "[chatbot-worker] Fehler beim Schreiben in ops_verworfen.log:",
+      err
+    );
+  });
+}
+// -----------------------------------------------------------
+
+
+
+function appendWorkerLog(line) {
+  fsPromises.appendFile(WORKER_LOG_FILE, line + "\n").catch((err) => {
+    // Wenn das Dateiloggen kaputt ist, nicht den Worker abstürzen lassen:
+    console.error("[chatbot-worker] Fehler beim Schreiben in Logdatei:", err);
+  });
+}
+
+// Zentrale Log-Funktion mit Zeitstempel + File-Log
+function log(...args) {
+  const ts = new Date().toISOString();
+  const textParts = args.map((a) =>
+    typeof a === "string" ? a : JSON.stringify(a)
+  );
+  const line = `[${ts}] ${textParts.join(" ")}`;
+
+  // Konsole wie bisher
+  console.log("[chatbot-worker]", ...args);
+  // In Datei schreiben
+  appendWorkerLog(line);
+}
+// -----------------------------------------------------------
 
 // Debug
 log("Worker dataDir:", dataDir);
@@ -48,49 +85,6 @@ async function safeWriteJson(filePath, data) {
   await fsPromises.writeFile(filePath, JSON.stringify(data, null, 2), "utf8");
 }
 
-async function getFileSignature(filePath) {
-  try {
-    const content = await fsPromises.readFile(filePath);
-    const hash = crypto.createHash("sha256").update(content).digest("hex");
-    return { exists: true, hash };
-  } catch (err) {
-    if (err.code === "ENOENT") {
-      return { exists: false, hash: null };
-    }
-    throw err;
-  }
-}
-
-async function collectSimulationFileSignatures() {
-  const entries = await Promise.all(
-    Object.entries(WATCHED_FILES).map(async ([key, filePath]) => {
-      const signature = await getFileSignature(filePath);
-      return [key, signature];
-    })
-  );
-  return Object.fromEntries(entries);
-}
-
-function haveSimulationFilesChanged(currentSignatures) {
-  if (!lastKnownFileSignatures) {
-    return true;
-  }
-
-  const currentKeys = Object.keys(currentSignatures);
-  const previousKeys = Object.keys(lastKnownFileSignatures);
-
-  if (currentKeys.length !== previousKeys.length) {
-    return true;
-  }
-
-  return currentKeys.some((key) => {
-    const prev = lastKnownFileSignatures[key];
-    const curr = currentSignatures[key];
-    if (!prev || !curr) return true;
-    return prev.exists !== curr.exists || prev.hash !== curr.hash;
-  });
-}
-
 async function loadRoles() {
   const rolesPath = path.join(dataDir, FILES.roles);
   const rolesRaw = await safeReadJson(rolesPath, {
@@ -99,24 +93,6 @@ async function loadRoles() {
   const active = rolesRaw?.roles?.active || [];
   const missing = rolesRaw?.roles?.missing || [];
   return { active, missing };
-}
-
-async function loadSimulationData() {
-  const boardPath = path.join(dataDir, FILES.board);
-  const tasksPath = path.join(dataDir, FILES.aufgabenS2);
-  const protPath = path.join(dataDir, FILES.protokoll);
-
-  const [boardRaw, tasksRaw, protRaw] = await Promise.all([
-    safeReadJson(boardPath, { columns: {} }),
-    safeReadJson(tasksPath, []),
-    safeReadJson(protPath, [])
-  ]);
-
-  return {
-    board: ensureBoardStructure(boardRaw),
-    aufgaben: tasksRaw,
-    protokoll: protRaw
-  };
 }
 
 function isAllowedOperation(op, missingRoles) {
@@ -217,14 +193,19 @@ async function applyBoardOperations(boardOps, missingRoles) {
 
   // CREATE → neue Karte in Spalte "neu"
 for (const op of createOps) {
-  if (!isAllowedOperation(op, missingRoles)) {
-    log("Board-Create verworfen:", {
-      op,
-      reason: explainOperationRejection(op, missingRoles),
-      missingRoles
-    });
-    continue;
-  }
+if (!isAllowedOperation(op, missingRoles)) {
+  const reason = explainOperationRejection(op, missingRoles);
+  log("Board-Create verworfen:", { op, reason, missingRoles });
+
+  appendOpsVerworfenLog({
+    kind: "board.create",
+    op,
+    reason,
+    missingRoles
+  });
+
+  continue;
+}
     const id = `cb-incident-${Date.now()}-${Math.random()
       .toString(36)
       .slice(2, 8)}`;
@@ -270,14 +251,20 @@ for (const op of createOps) {
   }
 
 for (const op of updateOps) {
-  if (!isAllowedOperation(op, missingRoles)) {
-    log("Board-Update verworfen:", {
-      op,
-      reason: explainOperationRejection(op, missingRoles),
-      missingRoles
-    });
-    continue;
-  }
+if (!isAllowedOperation(op, missingRoles)) {
+  const reason = explainOperationRejection(op, missingRoles);
+  log("Board-Update verworfen:", { op, reason, missingRoles });
+
+  appendOpsVerworfenLog({
+    kind: "board.update",
+    op,
+    reason,
+    missingRoles
+  });
+
+  continue;
+}
+
     const target = allItems.find((x) => x.it.id === op.incidentId);
     if (!target) {
       log("Board-Update: Incident nicht gefunden:", op.incidentId);
@@ -339,14 +326,19 @@ async function applyAufgabenOperations(taskOps, missingRoles) {
 
   // CREATE → neue Aufgabe im S2-Board
 for (const op of createOps) {
-  if (!isAllowedOperation(op, missingRoles)) {
-    log("Aufgabe-Create verworfen:", {
-      op,
-      reason: explainOperationRejection(op, missingRoles),
-      missingRoles
-    });
-    continue;
-  }
+if (!isAllowedOperation(op, missingRoles)) {
+  const reason = explainOperationRejection(op, missingRoles);
+  log("Aufgaben-Create verworfen:", { op, reason, missingRoles });
+
+  appendOpsVerworfenLog({
+    kind: "aufgaben.create",
+    op,
+    reason,
+    missingRoles
+  });
+
+  continue;
+}
     const id = `cb-task-${Date.now()}-${Math.random()
       .toString(36)
       .slice(2, 8)}`;
@@ -382,14 +374,20 @@ for (const op of createOps) {
 
   // UPDATE → vorhandene Tasks aktualisieren
 for (const op of updateOps) {
-  if (!isAllowedOperation(op, missingRoles)) {
-    log("Aufgabe-Update verworfen:", {
-      op,
-      reason: explainOperationRejection(op, missingRoles),
-      missingRoles
-    });
-    continue;
-  }
+if (!isAllowedOperation(op, missingRoles)) {
+  const reason = explainOperationRejection(op, missingRoles);
+  log("Aufgaben-Update verworfen:", { op, reason, missingRoles });
+
+  appendOpsVerworfenLog({
+    kind: "aufgaben.update",
+    op,
+    reason,
+    missingRoles
+  });
+
+  continue;
+}
+
     const idx = tasks.findIndex((t) => t.id === op.taskId);
     if (idx === -1) {
       log("Aufgabe-Update: Task nicht gefunden:", op.taskId);
@@ -428,14 +426,20 @@ async function applyProtokollOperations(protoOps, missingRoles) {
   const createOps = protoOps?.create || [];
 
 for (const op of createOps) {
-  if (!isAllowedOperation(op, missingRoles)) {
-    log("Protokoll-Create verworfen:", {
-      op,
-      reason: explainOperationRejection(op, missingRoles),
-      missingRoles
-    });
-    continue;
-  }
+if (!isAllowedOperation(op, missingRoles)) {
+  const reason = explainOperationRejection(op, missingRoles);
+  log("Protokoll-Create verworfen:", { op, reason, missingRoles });
+
+  appendOpsVerworfenLog({
+    kind: "protokoll.create",
+    op,
+    reason,
+    missingRoles
+  });
+
+  continue;
+}
+
     const now = new Date();
     const id = `cb-prot-${now.getTime()}-${Math.random()
       .toString(36)
@@ -521,31 +525,17 @@ async function runOnce() {
 
   isRunning = true;
   try {
-    const { active, missing } = await loadRoles();
+    const { missing } = await loadRoles();
     if (!missing.length) {
       log("Keine missingRoles – nichts zu tun.");
       return;
     }
 
-    const fileSignatures = await collectSimulationFileSignatures();
-    if (!haveSimulationFilesChanged(fileSignatures)) {
-      log("Keine Änderungen an den Simulationsdateien – LLM-Aufruf übersprungen.");
-      return;
-    }
-
-    const currentData = await loadSimulationData();
-
     while (true) {
       const res = await fetch(CHATBOT_STEP_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          source: "worker",
-          data: {
-            ...currentData,
-            roles: { active, missing }
-          }
-        })
+        body: JSON.stringify({ source: "worker" })
       });
 
       if (!res.ok) {
@@ -599,6 +589,33 @@ async function runOnce() {
 
       // Ab hier: LLM ist fertig, Operationen anwenden
       const ops = data.operations || {};
+	  
+	  const boardCreate = (ops.board?.createIncidentSites || []).length;
+      const boardUpdate = (ops.board?.updateIncidentSites || []).length;
+      const taskCreate = (ops.aufgaben?.create || []).length;
+      const taskUpdate = (ops.aufgaben?.update || []).length;
+      const protoCreate = (ops.protokoll?.create || []).length;
+
+      log(
+        "LLM-Operationen:",
+        `board.create=${boardCreate}, board.update=${boardUpdate},` +
+          ` aufgaben.create=${taskCreate}, aufgaben.update=${taskUpdate},` +
+          ` protokoll.create=${protoCreate}`
+      );
+
+      if (
+        boardCreate === 0 &&
+        boardUpdate === 0 &&
+        taskCreate === 0 &&
+        taskUpdate === 0 &&
+        protoCreate === 0
+      ) {
+        log(
+          "Hinweis: LLM hat keine Operationen geliefert – es wird nichts in den JSON-Dateien geändert."
+        );
+      }
+
+	  
       await applyBoardOperations(ops.board || {}, missing);
       await applyAufgabenOperations(ops.aufgaben || {}, missing);
       await applyProtokollOperations(ops.protokoll || {}, missing);
@@ -606,8 +623,6 @@ async function runOnce() {
       if (data.analysis) {
         log("Chatbot-Analysis:", data.analysis);
       }
-
-      lastKnownFileSignatures = await collectSimulationFileSignatures();
 
       // erfolgreicher Abschluss -> Schleife & runOnce beenden
       return;
