@@ -5,7 +5,7 @@ import { readEinfoInputs } from "./einfo_io.js";
 import { callLLMForOps } from "./llm_client.js";
 import { logInfo, logError, logDebug } from "./logger.js";
 import { buildSystemPrompt } from "./prompts.js";
-import { getLLMHistorySummary } from "./state_store.js";
+import { getLLMHistoryState, getLLMHistorySummary } from "./state_store.js";
 
 const timestamp = () => new Date().toISOString();
 
@@ -69,15 +69,13 @@ function compressBoard(board) {
   if (!Array.isArray(board)) return "[]";
   const compact = board.slice(0, 50).map((i) => ({
     id: i.id,
-    title: i.content || "",
-    column: i.column,
-    columnName: i.columnName,
-    ort: i.ort || "",
+    desc: i.content || "",
+    status: i.column,
+    location: i.ort || "",
     typ: i.typ || "",
-    alerted: i.alerted || "",
-    humanId: i.humanId || "",
-    timestamp: i.timestamp || null,
-    statusSince: i.statusSince || null
+    statusSince: i.statusSince || null,
+    assignedVehicles: i.raw?.assignedVehicles || i.assignedVehicles || null,
+    updatedAt: i.timestamp || i.raw?.updatedAt || null
   }));
   return JSON.stringify(compact);
 }
@@ -87,14 +85,12 @@ function compressAufgaben(aufgaben) {
   if (!Array.isArray(aufgaben)) return "[]";
   const compact = aufgaben.slice(0, 100).map((a) => ({
     id: a.id,
-    title: a.title || "",
-    type: a.type || "",
+    desc: a.title || a.description || "",
     responsible: a.responsible || "",
     status: a.status || "",
-    dueAt: a.dueAt || null,
-    originProtocolNr: a.originProtocolNr ?? a.meta?.protoNr ?? null,
+    updatedAt: a.updatedAt || a.changedAt || a.dueAt || null,
     relatedIncidentId: a.relatedIncidentId || null,
-    incidentTitle: a.incidentTitle || null
+    typ: a.type || a.category || null
   }));
   return JSON.stringify(compact);
 }
@@ -104,12 +100,12 @@ function compressProtokoll(protokoll) {
   if (!Array.isArray(protokoll)) return "[]";
   const compact = protokoll.slice(0, 100).map((p) => ({
     id: p.id,
-    nr: p.nr,
+    information: (p.information || "").slice(0, 180),
     datum: p.datum,
     zeit: p.zeit,
-    infoTyp: p.infoTyp,
-    anvon: p.anvon,
-    kurzinfo: (p.information || "").slice(0, 120)
+    ergehtAn: p.ergehtAn || p.anvon || "",
+    location: p.location || "",
+    typ: p.infoTyp || p.typ || ""
   }));
   return JSON.stringify(compact);
 }
@@ -117,41 +113,37 @@ function compressProtokoll(protokoll) {
 function toComparableBoardEntry(entry = {}) {
   return {
     id: entry.id,
-    title: entry.content || "",
-    column: entry.column || "",
-    columnName: entry.columnName || entry.column || "",
-    ort: entry.ort || "",
+    desc: entry.content || "",
+    status: entry.column || "",
+    location: entry.ort || "",
     typ: entry.typ || "",
-    alerted: entry.alerted || "",
-    humanId: entry.humanId || null,
-    timestamp: entry.timestamp || null,
-    statusSince: entry.statusSince || null
+    statusSince: entry.statusSince || null,
+    assignedVehicles: entry.raw?.assignedVehicles || entry.assignedVehicles || null,
+    updatedAt: entry.timestamp || entry.raw?.updatedAt || null
   };
 }
 
 function toComparableAufgabe(task = {}) {
   return {
     id: task.id,
-    title: task.title || "",
-    type: task.type || "",
+    desc: task.title || task.description || "",
     responsible: task.responsible || "",
     status: task.status || "",
-    dueAt: task.dueAt || null,
-    originProtocolNr: task.originProtocolNr ?? task.meta?.protoNr ?? null,
+    updatedAt: task.updatedAt || task.changedAt || task.dueAt || null,
     relatedIncidentId: task.relatedIncidentId || null,
-    incidentTitle: task.incidentTitle || null
+    typ: task.type || task.category || null
   };
 }
 
 function toComparableProtokoll(entry = {}) {
   return {
     id: entry.id,
-    nr: entry.nr,
+    information: entry.information || "",
     datum: entry.datum,
     zeit: entry.zeit,
-    infoTyp: entry.infoTyp,
-    anvon: entry.anvon,
-    information: entry.information || ""
+    ergehtAn: entry.ergehtAn || entry.anvon || "",
+    location: entry.location || "",
+    typ: entry.infoTyp || entry.typ || ""
   };
 }
 
@@ -224,18 +216,21 @@ export async function stepSimulation(options = {}) {
       lastComparableSnapshot?.protokoll,
       toComparableProtokoll
     );
-// --- NEU: Erkennen, dass dies der erste Simulationsschritt ist ---
-const isFirstStep =
-  (!lastComparableSnapshot ||
-    lastComparableSnapshot.board?.length === 0) &&
-  Array.isArray(board) && board.length === 0 &&
-  Array.isArray(aufgaben) && aufgaben.length === 0 &&
-  Array.isArray(protokoll) && protokoll.length === 0;
+    // --- NEU: Erkennen, dass dies der erste Simulationsschritt ist ---
+    const isFirstStep =
+      (!lastComparableSnapshot ||
+        lastComparableSnapshot.board?.length === 0) &&
+      Array.isArray(board) &&
+      board.length === 0 &&
+      Array.isArray(aufgaben) &&
+      aufgaben.length === 0 &&
+      Array.isArray(protokoll) &&
+      protokoll.length === 0;
 
-// Debug-Log
-if (isFirstStep) {
-  logInfo("Erster Simulationsschritt: Szenario-Initialisierung aktiv", null);
-}
+    // Debug-Log
+    if (isFirstStep) {
+      logInfo("Erster Simulationsschritt: Szenario-Initialisierung aktiv", null);
+    }
 
     const opsContext = {
       roles,
@@ -243,6 +238,7 @@ if (isFirstStep) {
       compressedAufgaben: compressAufgaben(aufgabenDelta),
       compressedProtokoll: compressProtokoll(protokollDelta),
       historySummary: getLLMHistorySummary(),
+      historyState: getLLMHistoryState(),
       firstStep: isFirstStep
     };
 
