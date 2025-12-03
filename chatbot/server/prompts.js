@@ -30,7 +30,13 @@ Sprache:
 Arbeitsweise:
 - Du bist ein SIMULATIONS-MODUL.
 - Du gibst AUSSCHLIESSLICH ein JSON-Objekt mit "operations", "analysis" und "meta".
-- Pflege meta.historySummary mit max. 2 Sätzen als laufende Kurz-Zusammenfassung.
+ - Pflege meta.historySummary mit max. 2 Sätzen als laufende Kurz-Zusammenfassung.
+ - Pflege meta.historyState als strukturiertes Speicherobjekt und aktualisiere es bei jedem Schritt.
+   historyState umfasst:
+   - openIncidents: kompakte Liste (max. 10) offener Lagen
+   - closedIncidents: nur IDs abgeschlossener Lagen
+   - openTasksByRole: Zähler offener Aufgaben je Rolle
+   - lastMajorEvents: kurze Stichpunkte wichtiger Ereignisse
 - Du schreibst NICHT direkt in Dateien. Das Backend übernimmt deine Operationen.
 - KEIN Text vor oder nach dem JSON-Objekt.
 - KEIN Markdown-Codeblock (z.B. kein Codeblock mit der Sprache json),
@@ -146,7 +152,13 @@ Top-Level:
   },
   "analysis": "kurzer deutscher Text (max. 400 Zeichen)",
   "meta": {
-    "historySummary": "max. 2 Sätze, Zusammenfassung der bisherigen Schritte"
+    "historySummary": "max. 2 Sätze, Zusammenfassung der bisherigen Schritte",
+    "historyState": {
+      "openIncidents": [...],
+      "closedIncidents": [...],
+      "openTasksByRole": { "S2": 2, "S3": 1 },
+      "lastMajorEvents": ["kurze Stichpunkte"]
+    }
   }
 }
 
@@ -169,7 +181,8 @@ Fallback:
   },
   "analysis": "kurze Begründung auf Deutsch, warum keine Maßnahmen gesetzt wurden",
   "meta": {
-    "historySummary": "kurze Zusammenfassung (max. 2 Sätze) des aktuellen Schritts"
+    "historySummary": "kurze Zusammenfassung (max. 2 Sätze) des aktuellen Schritts",
+    "historyState": { "openIncidents": [], "closedIncidents": [], "openTasksByRole": {}, "lastMajorEvents": [] }
   }
 }
 
@@ -196,6 +209,7 @@ export function buildUserPrompt({
   knowledgeContext
 }) {
   const rolesPart = JSON.stringify(llmInput.roles || {}, null, 2);
+  const historyStatePart = JSON.stringify(llmInput.historyState || {}, null, 2);
 
   return `
 Kontext zum aktuellen Aufruf:
@@ -212,11 +226,18 @@ ${compressedAufgaben}
 PROTOKOLL (kompakter Auszug, max. 100 Einträge, aus protocol.json):
 ${compressedProtokoll}
 
+HINWEIS: Es werden nur seit dem letzten Schritt neu angelegte oder geänderte JSON-Objekte übergeben.
+Die Felder sind auf Kerninformationen reduziert (z.B. desc/description, status, responsible, updatedAt,
+information, datum, zeit, ergehtAn, location, assignedVehicles, statusSince, typ).
+
 KNOWLEDGE-CONTEXT (Auszüge aus lokalen Richtlinien, bevorzugt zu verwenden):
 ${knowledgeContext || "(kein Knowledge-Kontext verfügbar)"}
 
 KURZ-ZUSAMMENFASSUNG BISHER:
 ${llmInput.historySummary || "(noch keine Zusammenfassung verfügbar)"}
+
+HISTORY-STATE (strukturierter Speicher, letzte Version):
+${historyStatePart}
 
 DEINE AUFGABE IN DIESEM SCHRITT:
 ${llmInput.firstStep ? `
@@ -267,6 +288,9 @@ Zweck:
 - Du gibst AUSSCHLIESSLICH ein JSON-Objekt im definierten Schema zurück.
  - Du gibst AUSSCHLIESSLICH ein JSON-Objekt im definierten Schema zurück.
  - Füge in meta.historySummary eine Kurz-Zusammenfassung (max. 2 Sätze) ein.
+ - Fülle meta.historyState als strukturiertes Speicherobjekt:
+   - openIncidents (max. 10 kompakte Einträge), closedIncidents (IDs),
+   - openTasksByRole (Zähler pro Rolle), lastMajorEvents (kurze Stichpunkte).
 - KEIN Text vor oder nach dem JSON.
 - KEINE Markdown-Codeblöcke und KEINE Kommentare.
 
@@ -293,7 +317,10 @@ Schema (Kurzfassung):
       "protokoll": { "create": [...] }
     },
     "analysis": "kurzer deutscher Text",
-    "meta": { "historySummary": "max. 2 Sätze" }
+    "meta": {
+      "historySummary": "max. 2 Sätze",
+      "historyState": { "openIncidents": [], "closedIncidents": [], "openTasksByRole": {}, "lastMajorEvents": [] }
+    }
   }
 - Mindestens 1 Einsatzstelle, 1 Protokolleintrag und 1 Aufgabe müssen erzeugt werden.
 `;
@@ -346,7 +373,10 @@ Ein einziges JSON-Objekt der Form:
     }
   },
   "analysis": "kurzer deutscher Text",
-  "meta": { "historySummary": "max. 2 kurze Sätze" }
+  "meta": {
+    "historySummary": "max. 2 kurze Sätze",
+    "historyState": { "openIncidents": [], "closedIncidents": [], "openTasksByRole": {}, "lastMajorEvents": [] }
+  }
 }
 
 KEIN weiterer Text, KEINE Erklärungen, KEINE Kommentare,

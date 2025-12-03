@@ -14,7 +14,7 @@ import {
 import { logDebug, logError, logLLMExchange } from "./logger.js";
 import { getKnowledgeContextVector } from "./rag/rag_vector.js";
 import { extractJsonObject } from "./json_sanitizer.js";
-import { setLLMHistorySummary } from "./state_store.js";
+import { setLLMHistoryMeta } from "./state_store.js";
 
 
 function fetchWithTimeout(url, options, timeoutMs) {
@@ -60,12 +60,16 @@ Erlaubtes Format:
     "protokoll": { "create": [...] }
   },
   "analysis": "kurzer deutscher Text",
-  "meta": { "historySummary": "max. 2 Sätze" }
+  "meta": {
+    "historySummary": "max. 2 Sätze",
+    "historyState": { "openIncidents": [], "closedIncidents": [], "openTasksByRole": {}, "lastMajorEvents": [] }
+  }
 }
 
 Rollenregeln:
 - originRole, fromRole, assignedBy NUR Rollen aus missingRoles.
 - "via" ist IMMER "Meldestelle" oder "Meldestelle/S6".
+- meta.historyState ist dein strukturierter Speicher über alle Schritte und muss gepflegt werden.
 
 BEISPIEL (Struktur und Stil):
 
@@ -117,7 +121,10 @@ BEISPIEL (Struktur und Stil):
     }
   },
   "analysis": "Beispielausgabe, tatsächliche IDs und Texte an die aktuelle Lage anpassen.",
-  "meta": { "historySummary": "Kurz zusammengefasster Schritt" }
+  "meta": {
+    "historySummary": "Kurz zusammengefasster Schritt",
+    "historyState": { "openIncidents": [], "closedIncidents": [], "openTasksByRole": {}, "lastMajorEvents": [] }
+  }
 }
 
 Dies ist NUR ein Beispiel. Du musst eigene Inhalte erzeugen, aber GENAU dieses Format einhalten.
@@ -202,7 +209,7 @@ Regeln:
     returnFullResponse: true
   });
 
-  setLLMHistorySummary(parsed?.meta?.historySummary);
+  setLLMHistoryMeta(parsed?.meta || {});
 
   return { parsed, rawText, userMessage: userPrompt, messages };
 }

@@ -11,7 +11,15 @@ let currentState = {
   meta: {}
 };
 
+const DEFAULT_HISTORY_STATE = Object.freeze({
+  openIncidents: [],
+  closedIncidents: [],
+  openTasksByRole: {},
+  lastMajorEvents: []
+});
+
 let llmHistorySummary = "";
+let llmHistoryState = DEFAULT_HISTORY_STATE;
 
 export function initState(scenarioConfig) {
   currentState = {
@@ -26,6 +34,7 @@ export function initState(scenarioConfig) {
   };
 
   llmHistorySummary = "";
+  llmHistoryState = DEFAULT_HISTORY_STATE;
 }
 
 export function getCurrentState() {
@@ -75,15 +84,86 @@ export function getLLMHistorySummary() {
   return llmHistorySummary;
 }
 
-export function setLLMHistorySummary(summary) {
-  if (typeof summary === "string") {
-    llmHistorySummary = summary.trim();
-    return;
-  }
+export function getLLMHistoryState() {
+  return JSON.parse(JSON.stringify(llmHistoryState));
+}
 
-  if (summary === null || summary === undefined) {
+function normalizeIncidentEntry(entry) {
+  if (!entry || typeof entry !== "object") return null;
+  const id = entry.id || entry.incidentId || null;
+  const desc = entry.title || entry.description || entry.desc || null;
+  const status = entry.status || entry.column || null;
+  const location = entry.location || entry.ort || null;
+  const typ = entry.typ || entry.type || null;
+
+  if (!id && !desc && !location) return null;
+
+  return {
+    id: id || null,
+    description: desc || null,
+    status: status || null,
+    location: location || null,
+    typ: typ || null,
+    statusSince: entry.statusSince || null,
+    assignedVehicles: entry.assignedVehicles || null
+  };
+}
+
+function normalizeHistoryState(state) {
+  if (!state || typeof state !== "object") return DEFAULT_HISTORY_STATE;
+
+  const openIncidents = Array.isArray(state.openIncidents)
+    ? state.openIncidents
+        .map(normalizeIncidentEntry)
+        .filter(Boolean)
+        .slice(0, 10)
+    : [];
+
+  const closedIncidents = Array.isArray(state.closedIncidents)
+    ? state.closedIncidents
+        .map((id) => (id ? String(id) : null))
+        .filter(Boolean)
+        .slice(0, 20)
+    : [];
+
+  const openTasksByRole = state.openTasksByRole && typeof state.openTasksByRole === "object"
+    ? Object.entries(state.openTasksByRole).reduce((acc, [role, count]) => {
+        const normalizedRole = String(role || "").trim();
+        const normalizedCount = Number.isFinite(Number(count)) ? Number(count) : 0;
+        if (normalizedRole && normalizedCount >= 0) {
+          acc[normalizedRole] = normalizedCount;
+        }
+        return acc;
+      }, {})
+    : {};
+
+  const lastMajorEvents = Array.isArray(state.lastMajorEvents)
+    ? state.lastMajorEvents
+        .map((entry) => String(entry || "").trim())
+        .filter(Boolean)
+        .slice(0, 10)
+    : [];
+
+  return {
+    openIncidents,
+    closedIncidents,
+    openTasksByRole,
+    lastMajorEvents
+  };
+}
+
+export function setLLMHistoryMeta(meta = {}) {
+  if (typeof meta?.historySummary === "string") {
+    llmHistorySummary = meta.historySummary.trim();
+  } else if (meta.historySummary === null || meta.historySummary === undefined) {
     llmHistorySummary = "";
   }
+
+  llmHistoryState = normalizeHistoryState(meta.historyState);
+}
+
+export function setLLMHistorySummary(summary) {
+  setLLMHistoryMeta({ historySummary: summary, historyState: llmHistoryState });
 }
 
 // Einfache Merge-Logik via incident.id
