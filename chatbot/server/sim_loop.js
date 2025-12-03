@@ -5,6 +5,7 @@ import { readEinfoInputs } from "./einfo_io.js";
 import { callLLMForOps } from "./llm_client.js";
 import { logInfo, logError, logDebug } from "./logger.js";
 import { buildSystemPrompt } from "./prompts.js";
+import { getLLMHistorySummary } from "./state_store.js";
 
 const timestamp = () => new Date().toISOString();
 
@@ -236,16 +237,17 @@ if (isFirstStep) {
   logInfo("Erster Simulationsschritt: Szenario-Initialisierung aktiv", null);
 }
 
-    const llmInput = {
+    const opsContext = {
       roles,
       compressedBoard: compressBoard(boardDelta),
       compressedAufgaben: compressAufgaben(aufgabenDelta),
       compressedProtokoll: compressProtokoll(protokollDelta),
-	  firstStep: isFirstStep  
+      historySummary: getLLMHistorySummary(),
+      firstStep: isFirstStep
     };
 
     const { parsed: llmResponse, rawText, userMessage } = await callLLMForOps({
-      llmInput,
+      llmInput: opsContext,
       conversation: getConversationForLLM()
     });
 
