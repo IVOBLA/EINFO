@@ -11,6 +11,8 @@ let currentState = {
   meta: {}
 };
 
+let llmHistorySummary = "";
+
 export function initState(scenarioConfig) {
   currentState = {
     scenarioId: scenarioConfig.scenarioId || `scenario-${Date.now()}`,
@@ -22,6 +24,8 @@ export function initState(scenarioConfig) {
     staffDecisions: [],
     meta: {}
   };
+
+  llmHistorySummary = "";
 }
 
 export function getCurrentState() {
@@ -65,6 +69,21 @@ export function applyLLMChangesToState(prevState, llmResponse, minutesPerStep) {
   const chatbotIncidents = incidents;
 
   return { newState, chatbotEvents, chatbotIncidents };
+}
+
+export function getLLMHistorySummary() {
+  return llmHistorySummary;
+}
+
+export function setLLMHistorySummary(summary) {
+  if (typeof summary === "string") {
+    llmHistorySummary = summary.trim();
+    return;
+  }
+
+  if (summary === null || summary === undefined) {
+    llmHistorySummary = "";
+  }
 }
 
 // Einfache Merge-Logik via incident.id

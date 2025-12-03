@@ -29,7 +29,8 @@ Sprache:
 
 Arbeitsweise:
 - Du bist ein SIMULATIONS-MODUL.
-- Du gibst AUSSCHLIESSLICH ein JSON-Objekt mit "operations" und "analysis".
+- Du gibst AUSSCHLIESSLICH ein JSON-Objekt mit "operations", "analysis" und "meta".
+- Pflege meta.historySummary mit max. 2 Sätzen als laufende Kurz-Zusammenfassung.
 - Du schreibst NICHT direkt in Dateien. Das Backend übernimmt deine Operationen.
 - KEIN Text vor oder nach dem JSON-Objekt.
 - KEIN Markdown-Codeblock (z.B. kein Codeblock mit der Sprache json),
@@ -143,7 +144,10 @@ Top-Level:
       ]
     }
   },
-  "analysis": "kurzer deutscher Text (max. 400 Zeichen)"
+  "analysis": "kurzer deutscher Text (max. 400 Zeichen)",
+  "meta": {
+    "historySummary": "max. 2 Sätze, Zusammenfassung der bisherigen Schritte"
+  }
 }
 
 Fallback:
@@ -163,7 +167,10 @@ Fallback:
       "create": []
     }
   },
-  "analysis": "kurze Begründung auf Deutsch, warum keine Maßnahmen gesetzt wurden"
+  "analysis": "kurze Begründung auf Deutsch, warum keine Maßnahmen gesetzt wurden",
+  "meta": {
+    "historySummary": "kurze Zusammenfassung (max. 2 Sätze) des aktuellen Schritts"
+  }
 }
 
 Kompaktheit:
@@ -171,6 +178,7 @@ Kompaktheit:
 - analysis kurz halten (< 400 Zeichen).
 - Nur wirklich notwendige Operations erzeugen.
 - Keine zusätzlichen Felder auf Top-Level.
+ - Nur operations, analysis und meta auf Top-Level.
 - KEIN Freitext außerhalb des JSON-Objekts.
 `;
 }
@@ -206,6 +214,9 @@ ${compressedProtokoll}
 
 KNOWLEDGE-CONTEXT (Auszüge aus lokalen Richtlinien, bevorzugt zu verwenden):
 ${knowledgeContext || "(kein Knowledge-Kontext verfügbar)"}
+
+KURZ-ZUSAMMENFASSUNG BISHER:
+${llmInput.historySummary || "(noch keine Zusammenfassung verfügbar)"}
 
 DEINE AUFGABE IN DIESEM SCHRITT:
 ${llmInput.firstStep ? `
@@ -254,6 +265,8 @@ Du bist der EINFO-Start-Assistent für den Bezirks-Einsatzstab.
 Zweck:
 - Du erzeugst ein realistisches Start-Szenario für den allerersten Simulationsschritt.
 - Du gibst AUSSCHLIESSLICH ein JSON-Objekt im definierten Schema zurück.
+ - Du gibst AUSSCHLIESSLICH ein JSON-Objekt im definierten Schema zurück.
+ - Füge in meta.historySummary eine Kurz-Zusammenfassung (max. 2 Sätze) ein.
 - KEIN Text vor oder nach dem JSON.
 - KEINE Markdown-Codeblöcke und KEINE Kommentare.
 
@@ -279,7 +292,8 @@ Schema (Kurzfassung):
       "aufgaben": { "create": [...], "update": [] },
       "protokoll": { "create": [...] }
     },
-    "analysis": "kurzer deutscher Text"
+    "analysis": "kurzer deutscher Text",
+    "meta": { "historySummary": "max. 2 Sätze" }
   }
 - Mindestens 1 Einsatzstelle, 1 Protokolleintrag und 1 Aufgabe müssen erzeugt werden.
 `;
@@ -331,7 +345,8 @@ Ein einziges JSON-Objekt der Form:
       "create": [ ...mindestens 1 Eintrag... ]
     }
   },
-  "analysis": "kurzer deutscher Text"
+  "analysis": "kurzer deutscher Text",
+  "meta": { "historySummary": "max. 2 kurze Sätze" }
 }
 
 KEIN weiterer Text, KEINE Erklärungen, KEINE Kommentare,

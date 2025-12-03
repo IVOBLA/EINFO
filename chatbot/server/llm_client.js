@@ -13,6 +13,8 @@ import {
 
 import { logDebug, logError, logLLMExchange } from "./logger.js";
 import { getKnowledgeContextVector } from "./rag/rag_vector.js";
+import { extractJsonObject } from "./json_sanitizer.js";
+import { setLLMHistorySummary } from "./state_store.js";
 
 
 function fetchWithTimeout(url, options, timeoutMs) {
@@ -57,7 +59,8 @@ Erlaubtes Format:
     "aufgaben": { "create": [...], "update": [] },
     "protokoll": { "create": [...] }
   },
-  "analysis": "kurzer deutscher Text"
+  "analysis": "kurzer deutscher Text",
+  "meta": { "historySummary": "max. 2 Sätze" }
 }
 
 Rollenregeln:
@@ -113,7 +116,8 @@ BEISPIEL (Struktur und Stil):
       ]
     }
   },
-  "analysis": "Beispielausgabe, tatsächliche IDs und Texte an die aktuelle Lage anpassen."
+  "analysis": "Beispielausgabe, tatsächliche IDs und Texte an die aktuelle Lage anpassen.",
+  "meta": { "historySummary": "Kurz zusammengefasster Schritt" }
 }
 
 Dies ist NUR ein Beispiel. Du musst eigene Inhalte erzeugen, aber GENAU dieses Format einhalten.
@@ -197,6 +201,8 @@ Regeln:
   const { parsed, rawText } = await doLLMCall(body, "ops", null, {
     returnFullResponse: true
   });
+
+  setLLMHistorySummary(parsed?.meta?.historySummary);
 
   return { parsed, rawText, userMessage: userPrompt, messages };
 }
@@ -413,10 +419,8 @@ async function doLLMCall(body, phaseLabel, onToken, options = {}) {
   // NON-STREAMING-FALL ------------------------------------------------------
   const rawText = await resp.text();
   let parsed = null;
-  try {
-    parsed = JSON.parse(rawText);
-  } catch {
-    // Ist dann wohl ein Plain-Text-Response
+  if (typeof rawText === "string" && rawText.trim()) {
+    parsed = extractJsonObject(rawText);
   }
 
   // Antwort IMMER in LLM.log
