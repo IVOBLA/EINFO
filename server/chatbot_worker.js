@@ -263,24 +263,27 @@ async function applyBoardOperations(boardOps, missingRoles) {
   let boardRaw = await safeReadJson(boardPath, { columns: {} });
   boardRaw = ensureBoardStructure(boardRaw);
 
+  const appliedCreate = [];
+  const appliedUpdate = [];
+
   const createOps = boardOps?.createIncidentSites || [];
   const updateOps = boardOps?.updateIncidentSites || [];
 
   // CREATE → neue Karte in Spalte "neu"
-for (const op of createOps) {
-if (!isAllowedOperation(op, missingRoles)) {
-  const reason = explainOperationRejection(op, missingRoles);
-  log("Board-Create verworfen:", { op, reason, missingRoles });
+  for (const op of createOps) {
+    if (!isAllowedOperation(op, missingRoles)) {
+      const reason = explainOperationRejection(op, missingRoles);
+      log("Board-Create verworfen:", { op, reason, missingRoles });
 
-  appendOpsVerworfenLog({
-    kind: "board.create",
-    op,
-    reason,
-    missingRoles
-  });
+      appendOpsVerworfenLog({
+        kind: "board.create",
+        op,
+        reason,
+        missingRoles
+      });
 
-  continue;
-}
+      continue;
+    }
     const id = `cb-incident-${Date.now()}-${Math.random()
       .toString(36)
       .slice(2, 8)}`;
@@ -312,6 +315,7 @@ if (!isAllowedOperation(op, missingRoles)) {
     };
 
     boardRaw.columns["neu"].items.push(newItem);
+    appliedCreate.push(op);
     log("Board-Create angewandt:", id);
   }
 
@@ -325,20 +329,20 @@ if (!isAllowedOperation(op, missingRoles)) {
     }
   }
 
-for (const op of updateOps) {
-if (!isAllowedOperation(op, missingRoles)) {
-  const reason = explainOperationRejection(op, missingRoles);
-  log("Board-Update verworfen:", { op, reason, missingRoles });
+  for (const op of updateOps) {
+    if (!isAllowedOperation(op, missingRoles)) {
+      const reason = explainOperationRejection(op, missingRoles);
+      log("Board-Update verworfen:", { op, reason, missingRoles });
 
-  appendOpsVerworfenLog({
-    kind: "board.update",
-    op,
-    reason,
-    missingRoles
-  });
+      appendOpsVerworfenLog({
+        kind: "board.update",
+        op,
+        reason,
+        missingRoles
+      });
 
-  continue;
-}
+      continue;
+    }
 
     const target = allItems.find((x) => x.it.id === op.incidentId);
     if (!target) {
@@ -386,34 +390,46 @@ if (!isAllowedOperation(op, missingRoles)) {
     }
 
     target.it.updated = new Date().toISOString();
+    appliedUpdate.push(op);
     log("Board-Update angewandt:", op.incidentId);
   }
 
   await safeWriteJson(boardPath, boardRaw);
+
+  return {
+    appliedCount: appliedCreate.length + appliedUpdate.length,
+    appliedOps: {
+      createIncidentSites: appliedCreate,
+      updateIncidentSites: appliedUpdate
+    }
+  };
 }
 
 async function applyAufgabenOperations(taskOps, missingRoles) {
   const tasksPath = path.join(dataDir, FILES.aufgabenS2);
   let tasks = await safeReadJson(tasksPath, []);
 
+  const appliedCreate = [];
+  const appliedUpdate = [];
+
   const createOps = taskOps?.create || [];
   const updateOps = taskOps?.update || [];
 
   // CREATE → neue Aufgabe im S2-Board
-for (const op of createOps) {
-if (!isAllowedOperation(op, missingRoles)) {
-  const reason = explainOperationRejection(op, missingRoles);
-  log("Aufgaben-Create verworfen:", { op, reason, missingRoles });
+  for (const op of createOps) {
+    if (!isAllowedOperation(op, missingRoles)) {
+      const reason = explainOperationRejection(op, missingRoles);
+      log("Aufgaben-Create verworfen:", { op, reason, missingRoles });
 
-  appendOpsVerworfenLog({
-    kind: "aufgaben.create",
-    op,
-    reason,
-    missingRoles
-  });
+      appendOpsVerworfenLog({
+        kind: "aufgaben.create",
+        op,
+        reason,
+        missingRoles
+      });
 
-  continue;
-}
+      continue;
+    }
     const id = `cb-task-${Date.now()}-${Math.random()
       .toString(36)
       .slice(2, 8)}`;
@@ -444,24 +460,25 @@ if (!isAllowedOperation(op, missingRoles)) {
       linkedProtocols: []
     };
     tasks.push(newTask);
+    appliedCreate.push(op);
     log("Aufgabe-Create angewandt:", id);
   }
 
   // UPDATE → vorhandene Tasks aktualisieren
-for (const op of updateOps) {
-if (!isAllowedOperation(op, missingRoles)) {
-  const reason = explainOperationRejection(op, missingRoles);
-  log("Aufgaben-Update verworfen:", { op, reason, missingRoles });
+  for (const op of updateOps) {
+    if (!isAllowedOperation(op, missingRoles)) {
+      const reason = explainOperationRejection(op, missingRoles);
+      log("Aufgaben-Update verworfen:", { op, reason, missingRoles });
 
-  appendOpsVerworfenLog({
-    kind: "aufgaben.update",
-    op,
-    reason,
-    missingRoles
-  });
+      appendOpsVerworfenLog({
+        kind: "aufgaben.update",
+        op,
+        reason,
+        missingRoles
+      });
 
-  continue;
-}
+      continue;
+    }
 
     const idx = tasks.findIndex((t) => t.id === op.taskId);
     if (idx === -1) {
@@ -488,32 +505,43 @@ if (!isAllowedOperation(op, missingRoles)) {
     }
 
     t.updatedAt = Date.now();
+    appliedUpdate.push(op);
     log("Aufgabe-Update angewandt:", op.taskId);
   }
 
   await safeWriteJson(tasksPath, tasks);
+
+  return {
+    appliedCount: appliedCreate.length + appliedUpdate.length,
+    appliedOps: {
+      create: appliedCreate,
+      update: appliedUpdate
+    }
+  };
 }
 
 async function applyProtokollOperations(protoOps, missingRoles) {
   const protPath = path.join(dataDir, FILES.protokoll);
   let prot = await safeReadJson(protPath, []);
 
+  const appliedCreate = [];
+
   const createOps = protoOps?.create || [];
 
-for (const op of createOps) {
-if (!isAllowedOperation(op, missingRoles)) {
-  const reason = explainOperationRejection(op, missingRoles);
-  log("Protokoll-Create verworfen:", { op, reason, missingRoles });
+  for (const op of createOps) {
+    if (!isAllowedOperation(op, missingRoles)) {
+      const reason = explainOperationRejection(op, missingRoles);
+      log("Protokoll-Create verworfen:", { op, reason, missingRoles });
 
-  appendOpsVerworfenLog({
-    kind: "protokoll.create",
-    op,
-    reason,
-    missingRoles
-  });
+      appendOpsVerworfenLog({
+        kind: "protokoll.create",
+        op,
+        reason,
+        missingRoles
+      });
 
-  continue;
-}
+      continue;
+    }
 
     const now = new Date();
     const id = `cb-prot-${now.getTime()}-${Math.random()
@@ -585,10 +613,16 @@ if (!isAllowedOperation(op, missingRoles)) {
     };
 
     prot.push(entry);
+    appliedCreate.push(op);
     log("Protokoll-Create angewandt:", id);
   }
 
   await safeWriteJson(protPath, prot);
+
+  return {
+    appliedCount: appliedCreate.length,
+    appliedOps: { create: appliedCreate }
+  };
 }
 
 async function runOnce() {
@@ -702,24 +736,47 @@ async function runOnce() {
       }
 
 	  
-      await applyBoardOperations(ops.board || {}, missing);
-      await applyAufgabenOperations(ops.aufgaben || {}, missing);
-      await applyProtokollOperations(ops.protokoll || {}, missing);
+      const applyResults = {
+        board: { appliedCount: 0, appliedOps: {} },
+        aufgaben: { appliedCount: 0, appliedOps: {} },
+        protokoll: { appliedCount: 0, appliedOps: {} }
+      };
+
+      try {
+        applyResults.board = await applyBoardOperations(ops.board || {}, missing);
+        applyResults.aufgaben = await applyAufgabenOperations(
+          ops.aufgaben || {},
+          missing
+        );
+        applyResults.protokoll = await applyProtokollOperations(
+          ops.protokoll || {},
+          missing
+        );
+      } catch (err) {
+        log(
+          "Fehler beim Anwenden der Operationen, Memory-Summary wird nicht geschrieben:",
+          err?.message || err
+        );
+        return;
+      }
 
       if (data.analysis) {
         log("Chatbot-Analysis:", data.analysis);
       }
 
       const opsApplied =
-        boardCreate + boardUpdate + taskCreate + taskUpdate + protoCreate > 0;
+        applyResults.board.appliedCount +
+          applyResults.aufgaben.appliedCount +
+          applyResults.protokoll.appliedCount >
+        0;
 
       if (opsApplied) {
         const stateAfter = await readStateCounts();
         const memoryText = buildMemorySummary({
           stateAfter,
-          appliedBoardOps: ops.board || {},
-          appliedAufgabenOps: ops.aufgaben || {},
-          appliedProtokollOps: ops.protokoll || {}
+          appliedBoardOps: applyResults.board.appliedOps || {},
+          appliedAufgabenOps: applyResults.aufgaben.appliedOps || {},
+          appliedProtokollOps: applyResults.protokoll.appliedOps || {}
         });
 
         await addMemory({
