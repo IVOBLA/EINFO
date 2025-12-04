@@ -13,7 +13,7 @@
  * - Operations-Schema
  * - Kompaktheit / JSON-Disziplin
  */
-export function buildSystemPrompt({ memorySnippets = [], ...rest } = {}) {
+export function buildSystemPrompt() {
   let systemPrompt = `
 Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.
 
@@ -195,15 +195,6 @@ Kompaktheit:
 - KEIN Freitext außerhalb des JSON-Objekts.
 `;
 
-  if (memorySnippets.length > 0) {
-    systemPrompt += `
-
-Bisher bekannte Lage / Erinnerungen:\n`;
-    for (const snippet of memorySnippets) {
-      systemPrompt += `- ${snippet}\n`;
-    }
-  }
-
   return systemPrompt;
 }
 
@@ -217,10 +208,10 @@ export function buildUserPrompt({
   compressedBoard,
   compressedAufgaben,
   compressedProtokoll,
-  knowledgeContext
+  knowledgeContext,
+  memorySnippets = []
 }) {
   const rolesPart = JSON.stringify(llmInput.roles || {}, null, 2);
-  const historyStatePart = JSON.stringify(llmInput.historyState || {}, null, 2);
 
   return `
 Kontext zum aktuellen Aufruf:
@@ -241,14 +232,11 @@ HINWEIS: Es werden nur seit dem letzten Schritt neu angelegte oder geänderte JS
 Die Felder sind auf Kerninformationen reduziert (z.B. desc/description, status, responsible, updatedAt,
 information, datum, zeit, ergehtAn, location, assignedVehicles, statusSince, typ).
 
+BISHER BEKANNTE LAGE / ERINNERUNGEN (RAG):
+${memorySnippets.length > 0 ? memorySnippets.map((m) => `- ${m}`).join("\n") : "(keine RAG-Erinnerungen gefunden)"}
+
 KNOWLEDGE-CONTEXT (Auszüge aus lokalen Richtlinien, bevorzugt zu verwenden):
 ${knowledgeContext || "(kein Knowledge-Kontext verfügbar)"}
-
-KURZ-ZUSAMMENFASSUNG BISHER:
-${llmInput.historySummary || "(noch keine Zusammenfassung verfügbar)"}
-
-HISTORY-STATE (strukturierter Speicher, letzte Version):
-${historyStatePart}
 
 DEINE AUFGABE IN DIESEM SCHRITT:
 ${llmInput.firstStep ? `
