@@ -193,9 +193,9 @@ export async function stepSimulation(options = {}) {
 
     const opsContext = {
       roles,
-      compressedBoard: compressBoard(boardDelta),
-      compressedAufgaben: compressAufgaben(aufgabenDelta),
-      compressedProtokoll: compressProtokoll(protokollDelta),
+      compressedBoard: compressBoard(board),
+      compressedAufgaben: compressAufgaben(aufgaben),
+      compressedProtokoll: compressProtokoll(protokoll),
       firstStep: isFirstStep
     };
 
