@@ -3,7 +3,11 @@
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
-import { addMemory, initMemoryStore } from "../chatbot/server/memory_manager.js";
+import {
+  addMemory,
+  initMemoryStore,
+  searchMemory
+} from "../chatbot/server/memory_manager.js";
 
 const CHATBOT_STEP_URL = "http://127.0.0.1:3100/api/sim/step";
 const WORKER_INTERVAL_MS = 30000;
@@ -110,6 +114,14 @@ async function readStateCounts() {
     aufgabenCount: Array.isArray(aufgabenRaw) ? aufgabenRaw.length : 0,
     protokollCount: Array.isArray(protokollRaw) ? protokollRaw.length : 0
   };
+}
+
+function buildMemoryQueryFromState(state = {}) {
+  const incidentCount = state.boardCount ?? 0;
+  const taskCount = state.aufgabenCount ?? 0;
+  const protocolCount = state.protokollCount ?? 0;
+
+  return `Aktuelle Lage: ${incidentCount} Einsatzstellen, ${taskCount} offene Aufgaben, ${protocolCount} Protokolleinträge. Relevante frühere Entscheidungen zur Hochwasserlage und Stabsarbeit.`;
 }
 
 function buildMemorySummary({
@@ -594,11 +606,22 @@ async function runOnce() {
       return;
     }
 
+    const stateCounts = await readStateCounts();
+    const memoryQuery = buildMemoryQueryFromState(stateCounts);
+    let memorySnippets = [];
+
+    try {
+      const memoryHits = await searchMemory({ query: memoryQuery, topK: 5 });
+      memorySnippets = memoryHits.map((hit) => hit.text);
+    } catch (err) {
+      log("Fehler bei der Memory-Suche:", err?.message || err);
+    }
+
     while (true) {
       const res = await fetch(CHATBOT_STEP_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ source: "worker" })
+        body: JSON.stringify({ source: "worker", memorySnippets })
       });
 
       if (!res.ok) {

@@ -204,6 +204,11 @@ export async function stepSimulation(options = {}) {
 
   stepInProgress = true;
   const source = options.source || "manual";
+  const providedMemorySnippets = Array.isArray(options.memorySnippets)
+    ? options.memorySnippets.filter((snippet) =>
+        typeof snippet === "string" && snippet.trim()
+      )
+    : [];
 
   try {
     ensureConversation();
@@ -251,14 +256,18 @@ export async function stepSimulation(options = {}) {
       firstStep: isFirstStep
     };
 
-    const memoryQuery = buildMemoryQueryFromState({
-      boardCount: board.length,
-      aufgabenCount: aufgaben.length,
-      protokollCount: protokoll.length
-    });
+    let memorySnippets = providedMemorySnippets;
 
-    const memoryHits = await searchMemory({ query: memoryQuery, topK: 5 });
-    const memorySnippets = memoryHits.map((hit) => hit.text);
+    if (!memorySnippets.length) {
+      const memoryQuery = buildMemoryQueryFromState({
+        boardCount: board.length,
+        aufgabenCount: aufgaben.length,
+        protokollCount: protokoll.length
+      });
+
+      const memoryHits = await searchMemory({ query: memoryQuery, topK: 5 });
+      memorySnippets = memoryHits.map((hit) => hit.text);
+    }
 
     const { parsed: llmResponse, rawText, userMessage } = await callLLMForOps({
       llmInput: opsContext,
