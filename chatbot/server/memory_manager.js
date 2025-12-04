@@ -66,15 +66,49 @@ export async function addMemory({ text, meta }) {
   await fsPromises.appendFile(MEMORY_FILE, JSON.stringify(fileItem) + "\n");
 }
 
-export async function searchMemory({ query, topK = 5 }) {
+export async function searchMemory({
+  query,
+  topK = 5,
+  now = new Date(),
+  maxAgeMinutes = null,
+  recencyHalfLifeMinutes = null,
+  longScenarioMinItems = null
+} = {}) {
   if (!query || !query.trim() || memoryItems.length === 0) return [];
 
+  const nowTs = now instanceof Date ? now.getTime() : Date.now();
   const qEmb = await embedText(query);
 
-  const scored = memoryItems.map((item) => ({
-    ...item,
-    score: cosineSimilarity(qEmb, item.embedding)
-  }));
+  const scored = memoryItems
+    .map((item) => {
+      let ageMinutes = 0;
+      if (item.meta?.ts) {
+        const ts = Date.parse(item.meta.ts);
+        if (!Number.isNaN(ts)) {
+          ageMinutes = (nowTs - ts) / 60000;
+        }
+      }
+
+      const baseScore = cosineSimilarity(qEmb, item.embedding);
+
+      if (maxAgeMinutes !== null && ageMinutes > maxAgeMinutes) {
+        return null;
+      }
+
+      let finalScore = baseScore;
+      if (recencyHalfLifeMinutes !== null) {
+        const decay = Math.exp(
+          -Math.log(2) * (ageMinutes / recencyHalfLifeMinutes)
+        );
+        finalScore = baseScore * decay;
+      }
+
+      return { ...item, score: finalScore, ageMinutes };
+    })
+    .filter(
+      (item) =>
+        item && typeof item.score === "number" && !Number.isNaN(item.score)
+    );
 
   scored.sort((a, b) => b.score - a.score);
   return scored.slice(0, topK);
