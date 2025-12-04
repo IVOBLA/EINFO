@@ -33,7 +33,8 @@ function fetchWithTimeout(url, options, timeoutMs) {
 export async function callLLMForOps({
   llmInput,
   conversation,
-  memorySnippets = []
+  memorySnippets = [],
+  ...rest
 }) {
   const { compressedBoard, compressedAufgaben, compressedProtokoll } = llmInput;
   const modelName = (CONFIG.llmChatModel || "").toLowerCase();
@@ -182,7 +183,7 @@ Regeln:
       "Stabsarbeit Kat-E Einsatzleiter LdStb Meldestelle S1 S2 S3 S4 S5 S6"
     );
 
-    systemPrompt = buildSystemPrompt({ memorySnippets });
+    systemPrompt = buildSystemPrompt({ memorySnippets, ...rest });
     userPrompt = buildUserPrompt({
       llmInput,
       compressedBoard,
