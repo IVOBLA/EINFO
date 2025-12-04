@@ -6,6 +6,7 @@ import { callLLMForOps } from "./llm_client.js";
 import { logInfo, logError, logDebug } from "./logger.js";
 import { buildSystemPrompt } from "./prompts.js";
 import { getLLMHistoryState, getLLMHistorySummary } from "./state_store.js";
+import { searchMemory } from "./memory_manager.js";
 
 const timestamp = () => new Date().toISOString();
 
@@ -62,6 +63,14 @@ function getConversationForLLM() {
 
 export function getConversationHistory() {
   return conversationHistory.slice();
+}
+
+function buildMemoryQueryFromState(state = {}) {
+  const incidentCount = state.boardCount ?? 0;
+  const taskCount = state.aufgabenCount ?? 0;
+  const protocolCount = state.protokollCount ?? 0;
+
+  return `Aktuelle Lage: ${incidentCount} Einsatzstellen, ${taskCount} offene Aufgaben, ${protocolCount} Protokolleinträge. Relevante frühere Entscheidungen zur Hochwasserlage und Stabsarbeit.`;
 }
 
 // Board kommt bereits als flache Liste aus einfo_io (flattenBoard)
@@ -242,9 +251,19 @@ export async function stepSimulation(options = {}) {
       firstStep: isFirstStep
     };
 
+    const memoryQuery = buildMemoryQueryFromState({
+      boardCount: board.length,
+      aufgabenCount: aufgaben.length,
+      protokollCount: protokoll.length
+    });
+
+    const memoryHits = await searchMemory({ query: memoryQuery, topK: 5 });
+    const memorySnippets = memoryHits.map((hit) => hit.text);
+
     const { parsed: llmResponse, rawText, userMessage } = await callLLMForOps({
       llmInput: opsContext,
-      conversation: getConversationForLLM()
+      conversation: getConversationForLLM(),
+      memorySnippets
     });
 
     const operations = (llmResponse || {}).operations || {

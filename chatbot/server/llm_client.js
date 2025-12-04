@@ -30,7 +30,11 @@ function fetchWithTimeout(url, options, timeoutMs) {
 
 /** LLM für OPERATIONS (Simulation) */
 /** LLM für OPERATIONS (Simulation) */
-export async function callLLMForOps({ llmInput, conversation }) {
+export async function callLLMForOps({
+  llmInput,
+  conversation,
+  memorySnippets = []
+}) {
   const { compressedBoard, compressedAufgaben, compressedProtokoll } = llmInput;
   const modelName = (CONFIG.llmChatModel || "").toLowerCase();
 
@@ -178,7 +182,7 @@ Regeln:
       "Stabsarbeit Kat-E Einsatzleiter LdStb Meldestelle S1 S2 S3 S4 S5 S6"
     );
 
-    systemPrompt = buildSystemPrompt();
+    systemPrompt = buildSystemPrompt({ memorySnippets });
     userPrompt = buildUserPrompt({
       llmInput,
       compressedBoard,
@@ -189,7 +193,7 @@ Regeln:
 
     const baseMessages =
       Array.isArray(conversation) && conversation.length > 0
-        ? conversation
+        ? [{ ...conversation[0], content: systemPrompt }]
         : [{ role: "system", content: systemPrompt }];
 
     messages = [...baseMessages, { role: "user", content: userPrompt }];
