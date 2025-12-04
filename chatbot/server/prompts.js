@@ -218,6 +218,13 @@ export function buildUserPrompt({
   knowledgeContext,
   memorySnippets = []
 }) {
+  const safeMemorySnippets = Array.isArray(memorySnippets)
+    ? memorySnippets
+    : [];
+  const formattedMemorySnippets =
+    safeMemorySnippets.length > 0
+      ? safeMemorySnippets.map((m) => `- ${m}`).join("\n")
+      : "(keine RAG-Erinnerungen gefunden)";
   const rolesPart = JSON.stringify(llmInput.roles || {}, null, 2);
 
   return `
@@ -240,7 +247,7 @@ Die Felder sind auf Kerninformationen reduziert (z.B. desc/description, status, 
 information, datum, zeit, ergehtAn, location, assignedVehicles, statusSince, typ).
 
 BISHER BEKANNTE LAGE / ERINNERUNGEN (RAG):
-${memorySnippets.length > 0 ? memorySnippets.map((m) => `- ${m}`).join("\n") : "(keine RAG-Erinnerungen gefunden)"}
+${formattedMemorySnippets}
 
 KNOWLEDGE-CONTEXT (Auszüge aus lokalen Richtlinien, bevorzugt zu verwenden):
 ${knowledgeContext || "(kein Knowledge-Kontext verfügbar)"}
