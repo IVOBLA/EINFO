@@ -3,67 +3,16 @@
 import { CONFIG } from "./config.js";
 import { readEinfoInputs } from "./einfo_io.js";
 import { callLLMForOps } from "./llm_client.js";
-import { logInfo, logError, logDebug } from "./logger.js";
-import { buildSystemPrompt } from "./prompts.js";
+import { logInfo, logError } from "./logger.js";
 import { getLLMHistoryState, getLLMHistorySummary } from "./state_store.js";
 import { searchMemory } from "./memory_manager.js";
-
-const timestamp = () => new Date().toISOString();
-
-let conversationHistory = [];
-let conversationId = null;
 
 // Merkt sich den letzten Stand der eingelesenen EINFO-Daten, damit nur neue
 // oder geänderte Einträge erneut an das LLM geschickt werden müssen.
 let lastComparableSnapshot = null;
 
 let running = false;
-let autoTimer = null;
 let stepInProgress = false;
-
-function resetConversation() {
-  conversationId = `sim-${Date.now()}`;
-  conversationHistory = [
-    { role: "system", content: buildSystemPrompt(), ts: timestamp() }
-  ];
-  logInfo("Neue Chat-Konversation gestartet", {
-    conversationId,
-    messageCount: conversationHistory.length
-  });
-}
-
-function ensureConversation() {
-  if (!conversationHistory.length) {
-    resetConversation();
-  }
-}
-
-function appendConversationMessage(role, content) {
-  if (!content) return;
-  conversationHistory.push({ role, content, ts: timestamp() });
-}
-
-function getConversationForLLM() {
-  // Als „Erinnerung“ zählt nur, was im realen Zustand sichtbar ist.
-  // Darum schicken wir dem LLM nur den System-Prompt als festen Kontext.
-  // Alles andere (Board/Aufgaben/Protokoll) kommt im aktuellen userPrompt
-  // und basiert auf dem vom Worker tatsächlich übernommenen Dateistand.
-
-  if (conversationHistory.length > 0) {
-    const systemEntry = conversationHistory.find((m) => m.role === "system");
-    if (systemEntry) {
-      return [{ role: "system", content: systemEntry.content }];
-    }
-  }
-
-  // Fallback, falls aus irgendeinem Grund noch kein Systemeintrag existiert
-  return [{ role: "system", content: buildSystemPrompt() }];
-}
-
-
-export function getConversationHistory() {
-  return conversationHistory.slice();
-}
 
 function buildMemoryQueryFromState(state = {}) {
   const incidentCount = state.boardCount ?? 0;
@@ -180,7 +129,6 @@ export function isSimulationRunning() {
 
 export async function startSimulation() {
   running = true;
-  resetConversation();
   logInfo(
     "EINFO-Chatbot Simulation gestartet (Schritte werden vom Worker ausgelöst)",
     null
@@ -211,7 +159,6 @@ export async function stepSimulation(options = {}) {
     : [];
 
   try {
-    ensureConversation();
     const einfoData = await readEinfoInputs();
     const { roles, board, aufgaben, protokoll } = einfoData;
 
@@ -269,9 +216,8 @@ export async function stepSimulation(options = {}) {
       memorySnippets = memoryHits.map((hit) => hit.text);
     }
 
-    const { parsed: llmResponse, rawText, userMessage } = await callLLMForOps({
+    const { parsed: llmResponse } = await callLLMForOps({
       llmInput: opsContext,
-      conversation: getConversationForLLM(),
       memorySnippets
     });
 
@@ -282,14 +228,6 @@ export async function stepSimulation(options = {}) {
     };
 
     const analysis = (llmResponse || {}).analysis || "";
-
-    appendConversationMessage("user", userMessage);
-    appendConversationMessage(
-      "assistant",
-      typeof rawText === "string" && rawText.trim()
-        ? rawText
-        : JSON.stringify(llmResponse || {}, null, 2)
-    );
 
     logInfo("Simulationsschritt", {
       source,
