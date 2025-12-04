@@ -1,5 +1,6 @@
 // chatbot/server/sim_loop.js
 
+import { CONFIG } from "./config.js";
 import { readEinfoInputs } from "./einfo_io.js";
 import { callLLMForOps } from "./llm_client.js";
 import { logInfo, logError } from "./logger.js";
@@ -208,7 +209,15 @@ export async function stepSimulation(options = {}) {
         protokollCount: protokoll.length
       });
 
-      const memoryHits = await searchMemory({ query: memoryQuery, topK: 5 });
+      const now = new Date();
+      const memoryHits = await searchMemory({
+        query: memoryQuery,
+        topK: CONFIG.memoryRag.longScenarioTopK,
+        now,
+        maxAgeMinutes: CONFIG.memoryRag.maxAgeMinutes,
+        recencyHalfLifeMinutes: CONFIG.memoryRag.recencyHalfLifeMinutes,
+        longScenarioMinItems: CONFIG.memoryRag.longScenarioMinItems
+      });
       memorySnippets = memoryHits.map((hit) => hit.text);
     }
 

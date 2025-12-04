@@ -33,6 +33,22 @@ const base = {
     indexMaxElements: Number(process.env.RAG_MAX_ELEM || "50000"),
     topK: Number(process.env.RAG_TOP_K || "8"),
     maxContextChars: Number(process.env.RAG_MAX_CTX || "2000")
+  },
+
+  memoryRag: {
+    // Ab wie vielen Memory-Items Long-Scenario-Logik sinnvoll ist (nur als Richtwert)
+    longScenarioMinItems: Number(process.env.MEM_RAG_LONG_MIN_ITEMS || "100"),
+
+    // Maximales Alter (in Minuten), das noch voll gewichtet wird
+    maxAgeMinutes: Number(process.env.MEM_RAG_MAX_AGE_MIN || "720"),
+
+    // Halbwertszeit für Recency-Decay (in Minuten)
+    recencyHalfLifeMinutes: Number(
+      process.env.MEM_RAG_HALF_LIFE_MIN || "120"
+    ),
+
+    // Standard-topK für Long-Scenario-Suche
+    longScenarioTopK: Number(process.env.MEM_RAG_LONG_TOP_K || "12")
   }
 };
 
@@ -98,6 +114,7 @@ if (profile === "phi3_cpu") {
 function mergeConfig(baseCfg, profileCfg) {
   const merged = { ...baseCfg, ...profileCfg };
   merged.rag = { ...baseCfg.rag, ...(profileCfg.rag || {}) };
+  merged.memoryRag = { ...baseCfg.memoryRag, ...(profileCfg.memoryRag || {}) };
   merged.profile = profile;
   return merged;
 }
