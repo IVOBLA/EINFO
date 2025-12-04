@@ -1,6 +1,7 @@
 // chatbot/server/memory_manager.js
 
 import fs from "fs";
+import fsPromises from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import { embedText } from "./rag/embedding.js";
@@ -22,24 +23,29 @@ function ensureMemoryDir() {
 export async function initMemoryStore() {
   ensureMemoryDir();
 
-  if (fs.existsSync(MEMORY_FILE)) {
-    const lines = fs
-      .readFileSync(MEMORY_FILE, "utf8")
-      .split("\n")
-      .filter(Boolean);
-
-    memoryItems = lines.map((line) => {
-      const parsed = JSON.parse(line);
-      return {
-        ...parsed,
-        embedding: Array.isArray(parsed.embedding)
-          ? Float32Array.from(parsed.embedding)
-          : parsed.embedding || new Float32Array()
-      };
-    });
-  } else {
+  if (!fs.existsSync(MEMORY_FILE)) {
     memoryItems = [];
+    return;
   }
+
+  const raw = await fsPromises.readFile(MEMORY_FILE, "utf8");
+  const lines = raw.split("\n").filter(Boolean);
+
+  memoryItems = lines
+    .map((line) => {
+      try {
+        const parsed = JSON.parse(line);
+        return {
+          ...parsed,
+          embedding: Array.isArray(parsed.embedding)
+            ? Float32Array.from(parsed.embedding)
+            : parsed.embedding || new Float32Array()
+        };
+      } catch {
+        return null;
+      }
+    })
+    .filter(Boolean);
 }
 
 export async function addMemory({ text, meta }) {
@@ -57,7 +63,7 @@ export async function addMemory({ text, meta }) {
 
   memoryItems.push(item);
   const fileItem = { ...item, embedding: Array.from(item.embedding) };
-  fs.appendFileSync(MEMORY_FILE, JSON.stringify(fileItem) + "\n");
+  await fsPromises.appendFile(MEMORY_FILE, JSON.stringify(fileItem) + "\n");
 }
 
 export async function searchMemory({ query, topK = 5 }) {
