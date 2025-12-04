@@ -4,7 +4,6 @@ import { CONFIG } from "./config.js";
 import { readEinfoInputs } from "./einfo_io.js";
 import { callLLMForOps } from "./llm_client.js";
 import { logInfo, logError } from "./logger.js";
-import { getLLMHistoryState, getLLMHistorySummary } from "./state_store.js";
 import { searchMemory } from "./memory_manager.js";
 
 // Merkt sich den letzten Stand der eingelesenen EINFO-Daten, damit nur neue
@@ -198,8 +197,6 @@ export async function stepSimulation(options = {}) {
       compressedBoard: compressBoard(boardDelta),
       compressedAufgaben: compressAufgaben(aufgabenDelta),
       compressedProtokoll: compressProtokoll(protokollDelta),
-      historySummary: getLLMHistorySummary(),
-      historyState: getLLMHistoryState(),
       firstStep: isFirstStep
     };
 
