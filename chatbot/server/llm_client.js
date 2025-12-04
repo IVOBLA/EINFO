@@ -196,13 +196,21 @@ Regeln:
     messages
   };
 
+  logDebug("OPS-Prompt aufgebaut", {
+    systemPrompt,
+    userPrompt,
+    memorySnippets: Array.isArray(memorySnippets)
+      ? memorySnippets.length
+      : 0
+  });
+
   const { parsed, rawText } = await doLLMCall(body, "ops", null, {
     returnFullResponse: true
   });
 
   setLLMHistoryMeta(parsed?.meta || {});
 
-  return { parsed, rawText, userMessage: userPrompt, messages };
+  return { parsed, rawText, systemPrompt, userMessage: userPrompt, messages };
 }
 
 
