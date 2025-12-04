@@ -32,7 +32,6 @@ function fetchWithTimeout(url, options, timeoutMs) {
 /** LLM für OPERATIONS (Simulation) */
 export async function callLLMForOps({
   llmInput,
-  conversation,
   memorySnippets = [],
   ...rest
 }) {
@@ -192,12 +191,10 @@ Regeln:
       knowledgeContext
     });
 
-    const baseMessages =
-      Array.isArray(conversation) && conversation.length > 0
-        ? [{ ...conversation[0], content: systemPrompt }]
-        : [{ role: "system", content: systemPrompt }];
-
-    messages = [...baseMessages, { role: "user", content: userPrompt }];
+    messages = [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt }
+    ];
   }
 
   const body = {
