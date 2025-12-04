@@ -13,7 +13,7 @@
  * - Operations-Schema
  * - Kompaktheit / JSON-Disziplin
  */
-export function buildSystemPrompt({ memorySnippets = [] } = {}) {
+export function buildSystemPrompt({ memorySnippets = [], ...rest } = {}) {
   let systemPrompt = `
 Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.
 
