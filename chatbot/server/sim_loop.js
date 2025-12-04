@@ -1,6 +1,5 @@
 // chatbot/server/sim_loop.js
 
-import { CONFIG } from "./config.js";
 import { readEinfoInputs } from "./einfo_io.js";
 import { callLLMForOps } from "./llm_client.js";
 import { logInfo, logError } from "./logger.js";
