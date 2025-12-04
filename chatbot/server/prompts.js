@@ -13,7 +13,7 @@
  * - Operations-Schema
  * - Kompaktheit / JSON-Disziplin
  */
-export function buildSystemPrompt() {
+export function buildSystemPrompt({ memorySnippets = [] } = {}) {
   let systemPrompt = `
 Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.
 
@@ -194,6 +194,13 @@ Kompaktheit:
  - Nur operations, analysis und meta auf Top-Level.
 - KEIN Freitext außerhalb des JSON-Objekts.
 `;
+
+  if (memorySnippets && memorySnippets.length > 0) {
+    systemPrompt += '\n\nBisher bekannte Lage / Erinnerungen:\n';
+    for (const snippet of memorySnippets) {
+      systemPrompt += `- ${snippet}\n`;
+    }
+  }
 
   return systemPrompt;
 }
