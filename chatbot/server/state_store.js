@@ -60,6 +60,7 @@ export function applyLLMChangesToState(prevState, llmResponse, minutesPerStep) {
     : [];
 
   const meta = llmResponse.meta || {};
+  const { historySummary, historyState, ...metaWithoutHistory } = meta;
 
   const newState = {
     ...prevState,
@@ -68,7 +69,8 @@ export function applyLLMChangesToState(prevState, llmResponse, minutesPerStep) {
     incidents: mergeIncidents(prevState.incidents, incidents),
     messages: [...prevState.messages, ...messages],
     staffDecisions: [...prevState.staffDecisions, ...staffDecisions],
-    meta
+    // HistoryMeta nur separat speichern, nicht als zusätzlichen Prompt-Input verwenden
+    meta: metaWithoutHistory
   };
 
   currentState = newState;
