@@ -181,7 +181,7 @@ Regeln:
       "Stabsarbeit Kat-E Einsatzleiter LdStb Meldestelle S1 S2 S3 S4 S5 S6"
     );
 
-    systemPrompt = buildSystemPrompt();
+    systemPrompt = buildSystemPrompt({ memorySnippets });
     userPrompt = buildUserPrompt({
       llmInput,
       compressedBoard,
