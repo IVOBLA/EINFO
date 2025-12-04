@@ -3,6 +3,7 @@
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
+import { addMemory, initMemoryStore } from "../chatbot/server/memory_manager.js";
 
 const CHATBOT_STEP_URL = "http://127.0.0.1:3100/api/sim/step";
 const WORKER_INTERVAL_MS = 30000;
@@ -83,6 +84,68 @@ async function safeReadJson(filePath, def) {
 }
 async function safeWriteJson(filePath, data) {
   await fsPromises.writeFile(filePath, JSON.stringify(data, null, 2), "utf8");
+}
+
+function countBoardItems(boardRaw = {}) {
+  const columns = boardRaw.columns || {};
+  return Object.values(columns).reduce((sum, col) => {
+    const items = Array.isArray(col.items) ? col.items.length : 0;
+    return sum + items;
+  }, 0);
+}
+
+async function readStateCounts() {
+  const boardPath = path.join(dataDir, FILES.board);
+  const aufgabenPath = path.join(dataDir, FILES.aufgabenS2);
+  const protokollPath = path.join(dataDir, FILES.protokoll);
+
+  const [boardRaw, aufgabenRaw, protokollRaw] = await Promise.all([
+    safeReadJson(boardPath, { columns: {} }),
+    safeReadJson(aufgabenPath, []),
+    safeReadJson(protokollPath, [])
+  ]);
+
+  return {
+    boardCount: countBoardItems(boardRaw),
+    aufgabenCount: Array.isArray(aufgabenRaw) ? aufgabenRaw.length : 0,
+    protokollCount: Array.isArray(protokollRaw) ? protokollRaw.length : 0
+  };
+}
+
+function buildMemorySummary({
+  stateAfter = {},
+  appliedBoardOps = {},
+  appliedAufgabenOps = {},
+  appliedProtokollOps = {}
+}) {
+  const incidentCount = stateAfter.boardCount ?? 0;
+  const taskCount = stateAfter.aufgabenCount ?? 0;
+
+  let text = `Simulationsschritt: ${incidentCount} Einsatzstellen aktiv, ${taskCount} offene Aufgaben.`;
+
+  if (appliedBoardOps.createIncidentSites?.length) {
+    const titles = appliedBoardOps.createIncidentSites
+      .map((i) => i.title)
+      .filter(Boolean);
+    if (titles.length) {
+      text += ` Neue Einsatzstellen: ${titles.join(", ")}.`;
+    }
+  }
+
+  if (appliedAufgabenOps.create?.length) {
+    const titles = appliedAufgabenOps.create
+      .map((t) => t.title)
+      .filter(Boolean);
+    if (titles.length) {
+      text += ` Neue Aufgaben: ${titles.join(", ")}.`;
+    }
+  }
+
+  if (appliedProtokollOps.create?.length) {
+    text += ` Neue Protokolleinträge: ${appliedProtokollOps.create.length}.`;
+  }
+
+  return text;
 }
 
 async function loadRoles() {
@@ -624,6 +687,28 @@ async function runOnce() {
         log("Chatbot-Analysis:", data.analysis);
       }
 
+      const opsApplied =
+        boardCreate + boardUpdate + taskCreate + taskUpdate + protoCreate > 0;
+
+      if (opsApplied) {
+        const stateAfter = await readStateCounts();
+        const memoryText = buildMemorySummary({
+          stateAfter,
+          appliedBoardOps: ops.board || {},
+          appliedAufgabenOps: ops.aufgaben || {},
+          appliedProtokollOps: ops.protokoll || {}
+        });
+
+        await addMemory({
+          text: memoryText,
+          meta: {
+            type: "step_summary",
+            ts: new Date().toISOString(),
+            source: "worker"
+          }
+        });
+      }
+
       // erfolgreicher Abschluss -> Schleife & runOnce beenden
       return;
     }
@@ -640,4 +725,14 @@ function startWorker() {
   setInterval(runOnce, WORKER_INTERVAL_MS);
 }
 
-startWorker();
+async function bootstrap() {
+  try {
+    await initMemoryStore();
+  } catch (err) {
+    log("Fehler beim Initialisieren des Memory-Stores:", err?.message || err);
+  }
+
+  startWorker();
+}
+
+bootstrap();

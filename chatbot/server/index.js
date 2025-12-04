@@ -12,6 +12,7 @@ import {
 } from "./sim_loop.js";
 import { callLLMForChat } from "./llm_client.js";
 import { logInfo, logError } from "./logger.js";
+import { initMemoryStore } from "./memory_manager.js";
 
 async function streamAnswer({ res, question }) {
   res.setHeader("Content-Type", "text/plain; charset=utf-8");
@@ -89,7 +90,20 @@ app.post("/api/chat", async (req, res) => {
   }
 });
 
-const PORT = process.env.CHATBOT_PORT || 3100;
-app.listen(PORT, () => {
-  logInfo(`Chatbot läuft auf http://localhost:${PORT} (GUI: /gui)`, null);
-});
+async function bootstrap() {
+  try {
+    await initMemoryStore();
+  } catch (err) {
+    logError("Fehler beim Initialisieren des Memory-Stores", {
+      error: String(err)
+    });
+    process.exit(1);
+  }
+
+  const PORT = process.env.CHATBOT_PORT || 3100;
+  app.listen(PORT, () => {
+    logInfo(`Chatbot läuft auf http://localhost:${PORT} (GUI: /gui)`, null);
+  });
+}
+
+bootstrap();
