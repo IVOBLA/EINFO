@@ -730,6 +730,8 @@ async function bootstrap() {
     await initMemoryStore();
   } catch (err) {
     log("Fehler beim Initialisieren des Memory-Stores:", err?.message || err);
+    process.exitCode = 1;
+    return;
   }
 
   startWorker();
