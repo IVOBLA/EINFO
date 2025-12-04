@@ -90,9 +90,9 @@ export function logLLMExchange(payload = {}) {
   if (phase === "request") {
     const entry = {
       ...base,
-      systemPrompt: payload.systemPrompt || null,
-      userPrompt: payload.userPrompt || null,
-      rawRequest: payload.rawRequest || null
+      systemPrompt: payload.systemPrompt ?? null,
+      userPrompt: payload.userPrompt ?? null,
+      rawRequest: payload.rawRequest ?? null
     };
     return appendLine(LLM_REQUEST_LOG_FILE, JSON.stringify(entry));
   }
