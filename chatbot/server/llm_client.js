@@ -39,7 +39,6 @@ export async function callLLMForOps({
 
   let systemPrompt;
   let userPrompt;
-  let messages;
 
   // ---------------------------------------------------------
   // SPEZIALFALL: ERSTER SIMULATIONSSCHRITT
@@ -157,21 +156,11 @@ Regeln:
 - "via" IMMER "Meldestelle" oder "Meldestelle/S6".
 - Gib NUR EIN JSON-Objekt im beschriebenen Format aus. Keine weiteren Texte.
 `;
-
-      messages = [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ];
     } else {
       // Nicht-phi3-Modelle: bestehenden (umfangreicheren) Start-Prompt nutzen
       const start = buildStartPrompts({ roles: llmInput.roles });
       systemPrompt = start.systemPrompt;
       userPrompt = start.userPrompt;
-
-      messages = [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ];
     }
   } else {
     // -------------------------------------------------------
@@ -190,12 +179,12 @@ Regeln:
       knowledgeContext,
       memorySnippets
     });
-
-    messages = [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt }
-    ];
   }
+
+  const messages = [
+    { role: "system", content: systemPrompt },
+    { role: "user", content: userPrompt }
+  ];
 
   const body = {
     model: CONFIG.llmChatModel,
