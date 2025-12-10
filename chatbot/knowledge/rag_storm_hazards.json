@@ -1,0 +1,502 @@
+{
+  "meta": {
+    "version": "1.0",
+    "scope": "Sturmschaeden",
+    "description": "Gefahrenklassen, Trigger und Maßnahmen für Sturmlagen (Wind-/Gewittersturm) im Bezirkseinsatzstab",
+    "lastUpdate": "2025-12-10T12:10:00+01:00"
+  },
+  "hazardClasses": [
+    {
+      "id": "wind",
+      "title": "Wind- und Sturmeinwirkung",
+      "description": "Gefahren durch hohe Windgeschwindigkeiten, herabfallende Teile und Windwurf.",
+      "hazards": [
+        {
+          "id": "wind-01",
+          "name": "Windwurf / umstürzende Bäume",
+          "shortText": "Starke Böen können Bäume entwurzeln oder große Äste abbrechen und auf Straßen, Gebäude oder Personen stürzen.",
+          "phase": ["ansteigend", "während", "nach"],
+          "triggers": {
+            "sensorTriggers": [
+              {
+                "id": "wind-gust-high",
+                "description": "Vorwarnung für Sturm / Orkan, gemessene Böen über Schwellenwert.",
+                "source": "Wetterdienst / lokale Station / GeoSphere",
+                "thresholdExample": "gustSpeed >= 80km/h im Flachland, >= 100km/h in exponierten Lagen."
+              }
+            ],
+            "situationTriggers": [
+              "Meldung: 'Baum auf Straße / Haus / Fahrzeug'.",
+              "Knackgeräusche, sich stark neigende Bäume, fallende Äste.",
+              "Straßenabschnitte im Wald oder in Alleen während Sturmereignis."
+            ],
+            "manualFlags": [
+              "S2 markiert Wald- und Alleenabschnitte auf wichtigen Zufahrten als gefährdet.",
+              "Straßenmeisterei meldet Windwurfgefahr oder bereits umgestürzte Bäume."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Aufenthalt unter Bäumen während Sturmereignis möglichst vermeiden.",
+              "Straßen durch Wald- oder Alleenabschnitte bei massivem Windwurfrisiko sperren.",
+              "Baumarbeiten nur mit entsprechend ausgebildetem Personal und Motorsägenberechtigung.",
+              "Gefallene Bäume können unter Spannung stehen – keine ungesicherte Schnittführung."
+            ],
+            "byRole": {
+              "S2": [
+                "Gefährdete Wald- und Alleenabschnitte in der Lagekarte markieren.",
+                "Lagebericht: mögliche Zufahrtsbeeinträchtigungen durch Windwurf hervorheben."
+              ],
+              "S3": [
+                "Einsatzkräfte beim Beseitigen von Bäumen nur mit Motorsägenausbildung und PSA einsetzen.",
+                "Zufahrten für Rettungswege priorisieren (zuerst Hauptachsen freimachen)."
+              ],
+              "S4": [
+                "PSA für Motorsägenarbeiten (Helm, Gehörschutz, Schnittschutzhose, Sicherheitsschuhe) bereitstellen.",
+                "Koordination mit Straßenmeisterei und Forstbetrieben für schweres Gerät."
+              ],
+              "S5": [
+                "Warnung an Bevölkerung: Waldgebiete und Alleen während des Sturms meiden.",
+                "Hinweise auf mögliche Straßensperren und Umleitungen."
+              ]
+            }
+          }
+        },
+        {
+          "id": "wind-02",
+          "name": "Herabfallende oder umherfliegende Gegenstände",
+          "shortText": "Dachziegel, Bleche, Schilder, Äste und andere Gegenstände können durch den Wind herab- oder weggerissen werden.",
+          "phase": ["ansteigend", "während"],
+          "triggers": {
+            "situationTriggers": [
+              "Meldung: 'Dachteile fliegen', 'Blech abgehoben', 'Werbetafel droht zu stürzen'.",
+              "Stark vibrierende oder gelöste Fassadenverkleidungen und Dachaufbauten.",
+              "Freistehende, ungesicherte Gegenstände (Container, Bauzäune, Gerüste) im Windbereich."
+            ],
+            "manualFlags": [
+              "Bauhof / Bauunternehmen melden instabile Baugerüste oder Bauzäune.",
+              "S2 markiert Objekte mit hohen Bauteilen (Kirchtürme, Hallen, Masten) als potenzielle Gefahrstellen."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Einsatz in der Falllinie von Dächern, Masten oder hohen Objekten möglichst vermeiden.",
+              "Bereiche mit drohend herabfallenden Teilen absperren und freihalten.",
+              "Arbeiten an Dächern oder Gerüsten nur, wenn Windlage dies zulässt und mit Absturzsicherung."
+            ],
+            "byRole": {
+              "S2": [
+                "Gefahrenbereiche rund um Gebäude mit Dachschäden / lockeren Teilen auf der Lagekarte einzeichnen.",
+                "Kennzeichnung kritischer Punkte (z. B. Hallendächer, Werbetürme)."
+              ],
+              "S3": [
+                "Keine Mannschaft direkt unter instabilen Bauteilen einsetzen.",
+                "Wenn nötig: Höhenrettungs- oder Fachkräfte mit Spezialausrüstung anfordern."
+              ],
+              "S4": [
+                "Absturzsicherung, Helme mit Kinnriemen, ggf. Hubsteiger und Fachpersonal organisieren."
+              ],
+              "S5": [
+                "Information an Bevölkerung, gefährdete Bereiche und Absperrungen strikt zu meiden.",
+                "Hinweise, lose Gegenstände (Gartenmöbel, Mülltonnen) rechtzeitig zu sichern."
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "gebaeude",
+      "title": "Gebäudeschäden durch Sturm",
+      "description": "Dach-, Fassaden- und Gebäudeschäden mit Folgegefahren.",
+      "hazards": [
+        {
+          "id": "gebaeude-01",
+          "name": "Dach- und Fassadenschäden",
+          "shortText": "Abgedeckte Dächer, beschädigte Fassaden und Dachaufbauten mit Gefahr für Einsturz oder Wassereintritt.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Meldung: 'Dach teilweise abgedeckt', 'Dachfenster herausgerissen', 'Blechdach gelöst'.",
+              "Starke Wassereinbrüche in Gebäude durch beschädigte Dachflächen.",
+              "Geräusche von reißenden Blechen, herabhängenden Dachteilen."
+            ],
+            "manualFlags": [
+              "Bauamt meldet bereits vorgeschädigte oder bekannte Problemgebäude.",
+              "S2 erhält Fotos/Videos mit deutlich sichtbaren Dachschäden."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Gebäude mit erheblichen Dachschäden als potenziell einsturz- oder einsturzteilsgefährdet einstufen.",
+              "Dacharbeiten nur, wenn Windlage und Sicherung es zulassen (Absturzsicherung, Hubsteiger).",
+              "Wasserschäden begrenzen (Abdecken, Notabdichtung), soweit ohne unverhältnismäßiges Risiko möglich."
+            ],
+            "byRole": {
+              "S2": [
+                "Gebäude mit schweren Schäden in der Lagekarte kennzeichnen (Symbol 'Dachschaden').",
+                "Lagebericht: Priorisierung kritischer Gebäude (z. B. Turnhallen, Gemeinschaftsunterkünfte)."
+              ],
+              "S3": [
+                "Einsatzkräfte nicht ungesichert auf Dächer schicken, Windentwicklung laufend beobachten.",
+                "Bei statischem Verdacht Statiker oder Bauamt beiziehen, bevor Innenangriffe/Arbeiten erfolgen."
+              ],
+              "S4": [
+                "Hubsteiger, Arbeitsbühnen, Material für Notabdichtungen (Planen) bereitstellen.",
+                "Koordination mit Dachdeckerbetrieben und Bauunternehmen."
+              ],
+              "S5": [
+                "Hinweis an Bevölkerung, beschädigte Gebäude nicht zu betreten und keine eigenen Dacharbeiten während Sturm vorzunehmen.",
+                "Information über Einrichtungen, die bei Unbewohnbarkeit als Ausweichquartier dienen können."
+              ]
+            }
+          }
+        },
+        {
+          "id": "gebaeude-02",
+          "name": "Einsturzgefährdete Bauwerke",
+          "shortText": "Sturmschäden an alten, vorgeschädigten oder leichten Konstruktionen können zum Einsturz führen.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Stark geneigte Giebelwände, Risse in tragenden Teilen, schiefstehende Masten.",
+              "Einstürzende Scheunen, Hallen oder Anbauten nach Sturmeinwirkung.",
+              "Meldung: 'Haus/Halle bewegt sich', 'Wände haben Risse bekommen'."
+            ],
+            "manualFlags": [
+              "Hinweis vom Bauamt oder Statiker: 'Gebäude einsturzgefährdet'.",
+              "S2 markiert Gebäude nach Erkundung als kritisch."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Betreten des Gebäudes und unmittelbaren Umfelds nur nach klarer Freigabe durch Fachpersonal.",
+              "Absperrung eines ausreichenden Sicherheitsbereichs um das Bauwerk.",
+              "Rettungsmaßnahmen mit Schwerpunkt auf Eigenschutz (z. B. von außen, über sichere Zugänge)."
+            ],
+            "byRole": {
+              "S2": [
+                "Sicherheitsradien um einsturzgefährdete Gebäude auf der Lagekarte einzeichnen.",
+                "Lagebericht mit explizitem Hinweis auf betroffene Struktur und Freigabestatus."
+              ],
+              "S3": [
+                "Einsatzkräfte bei Gebäuden mit Einsturzgefahr nur in kleinen Teams und mit klarer Rückzugsplanung einsetzen.",
+                "Gegebenenfalls nur zur Menschenrettung kurzzeitig ins Gefahrengebiet."
+              ],
+              "S4": [
+                "Kontaktaufnahme mit Statikern, Bauamt und technischem Hilfsdienst.",
+                "Organisation von Absperrmaterial und Beleuchtung."
+              ],
+              "S5": [
+                "Information der Bevölkerung über gesperrte Bereiche und die Gründe (Einsturzgefahr)."
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "elektrik",
+      "title": "Elektrische Gefahren bei Sturm",
+      "description": "Gefahren durch Freileitungen, Oberleitungen und beschädigte Elektroanlagen.",
+      "hazards": [
+        {
+          "id": "elektrik-01",
+          "name": "Herabgerissene Leitungen",
+          "shortText": "Sturm kann Strom-, Telefon- und Bahnoberleitungen abreißen oder beschädigen.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Meldung: 'Leitung am Boden', 'Mast umgestürzt', 'Leitung hängt durch'.",
+              "Funkenbildung oder Brand im Bereich von Leitungen.",
+              "Leitungen im Kontakt mit Fahrzeugen, Zäunen oder Bäumen."
+            ],
+            "manualFlags": [
+              "Netzbetreiber meldet beschädigte Leitungsabschnitte.",
+              "S2 markiert bekannte Leitungsabsturzzonen."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Alle herunterhängenden oder am Boden liegenden Leitungen als spannungsführend betrachten, bis Freigabe vorliegt.",
+              "Abstand halten, Bereich großräumig absperren.",
+              "Keine Berührung von Leitungen oder Gegenständen, die diese berühren (Fahrzeuge, Zäune, Bäume)."
+            ],
+            "byRole": {
+              "S2": [
+                "Gefahrenbereiche mit Leitungsabsturz in der Lagekarte markieren.",
+                "Lagebericht: klare Hinweise auf Kontakt mit Netzbetreiber und Freigabestatus."
+              ],
+              "S3": [
+                "Einsatzkräfte anweisen, Mindestabstände einzuhalten und keine 'Rettung' von Leitungen vorzunehmen.",
+                "Rettung aus Fahrzeugen in Leitungsnähe nur nach Rücksprache mit Netzbetreiber und klarer Taktik."
+              ],
+              "S4": [
+                "Koordination mit Energieversorgern für Abschaltung und Freigaben.",
+                "Organisation von Sperrmaterial und Beleuchtung."
+              ],
+              "S5": [
+                "Warnung an Bevölkerung, herunterhängende Leitungen zu melden und Abstand zu halten.",
+                "Hinweis, im Fahrzeug zu bleiben, wenn Leitungen darauf liegen, bis professionelle Hilfe da ist."
+              ]
+            }
+          }
+        },
+        {
+          "id": "elektrik-02",
+          "name": "Stromausfall und Notstrom",
+          "shortText": "Flächige Stromausfälle und unsachgemäßer Einsatz von Notstromaggregaten.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Großflächige Stromausfälle (Ortsteile dunkel).",
+              "Meldung: 'Notstromaggregat läuft im Keller / in Innenräumen'.",
+              "Provisorische Kabelverlegungen durch Privatpersonen."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Gefahren durch CO-Vergiftung bei Betrieb von Aggregaten in geschlossenen Räumen kommunizieren.",
+              "Unsachgemäße Einspeisungen in Hausnetze können zu Rückspeisungen und Gefährdung führen.",
+              "Kritische Einrichtungen (Krankenhäuser, Heime) mit Notstrom priorisieren."
+            ],
+            "byRole": {
+              "S2": [
+                "Status der Stromversorgung in der Lagekarte führen (ausgefallen/stabil)."
+              ],
+              "S3": [
+                "Einsätze bei Notstromproblemen (Abgase, Kabelbrand) priorisiert abarbeiten.",
+                "Bei Verdacht auf CO-Gefahren Atemschutz vorsehen."
+              ],
+              "S4": [
+                "Unterstützung kritischer Einrichtungen mit Aggregaten und Treibstoff.",
+                "Abstimmung mit Energieversorgern zur Wiederherstellung."
+              ],
+              "S5": [
+                "Information an Bevölkerung zum sicheren Umgang mit Notstromaggregaten (nur im Freien/ gut belüftet, richtige Anschlussweise)."
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "gefahrstoffe",
+      "title": "Gefahrstoffe und Sekundärgefahren",
+      "description": "Beschädigung von Tanks, Silos, Lagerhallen und Anlagen durch Sturm.",
+      "hazards": [
+        {
+          "id": "gefahrstoffe-01",
+          "name": "Beschädigte Tanks, Silos und Lager",
+          "shortText": "Sturm kann Tanks, Silos oder Lagerhallen mit Gefahrstoffen beschädigen.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Meldung: 'Dach von Lagerhalle abgedeckt', 'Tank umgestürzt', 'Silo beschädigt'.",
+              "Austritt von Flüssigkeiten oder Gasen aus beschädigten Behältern.",
+              "Geruchsbelästigung oder sichtbare Dampfwolken."
+            ],
+            "manualFlags": [
+              "Betriebe melden Schäden an Gefahrstofflagern.",
+              "S2 markiert Betriebe mit Gefahrstofflager gemäß Gefahrenplan."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Gefahrenzone um beschädigte Behälter einrichten, Windrichtung beachten.",
+              "Nur mit geeigneter PSA und nach Gefährdungsbeurteilung vorgehen.",
+              "Fachkräfte (Gefahrstoffzug, Betriebssicherheit, Umweltbehörden) einbinden."
+            ],
+            "byRole": {
+              "S2": [
+                "Gefahrstoffrelevante Betriebe und beschädigte Anlagen in der Lagekarte mit speziellen Symbolen kennzeichnen.",
+                "Lagebericht: Gefahrenlage und getroffene Maßnahmen dokumentieren."
+              ],
+              "S3": [
+                "Menschenrettung vor Umweltschutz, aber mit Eigenschutz.",
+                "Chemikalienschutz / Spezialkräfte anfordern, wenn Gefahr nicht klar einschätzbar."
+              ],
+              "S4": [
+                "Koordination mit Betriebsverantwortlichen, Umweltbehörden, spezialisierten Firmen.",
+                "Bereitstellung von Bindemitteln, Messgeräten (falls verfügbar)."
+              ],
+              "S5": [
+                "Ggf. Warnung an Bevölkerung (Fenster schließen, im Haus bleiben) je nach Stoff und Windrichtung.",
+                "Hinweise zur Vermeidung von Panik und zum richtigen Verhalten."
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "gesundheit",
+      "title": "Gesundheitliche Gefahren bei Sturm",
+      "description": "Verletzungsgefahren, Kältebelastung und indirekte gesundheitliche Folgen.",
+      "hazards": [
+        {
+          "id": "gesundheit-01",
+          "name": "Verletzungen durch Trümmer und Glassplitter",
+          "shortText": "Herabfallende Teile und zerbrochene Scheiben verursachen Schnitt- und Quetschverletzungen.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Viele Meldungen zu eingeschlagenen Fenstern, herabgefallenen Dachziegeln, herumfliegenden Teilen.",
+              "Personenschäden in Bereichen mit Glasfassaden oder Dachziegeln."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Einsatzkräfte mit Helm, Schutzbrille und Handschuhen einsetzen.",
+              "Auf herumliegende Glassplitter, Nägel, Blechteile achten.",
+              "Verletzte frühzeitig versorgen, ggf. auf versteckte Schnittverletzungen prüfen."
+            ],
+            "byRole": {
+              "S3": [
+                "Arbeitsbereiche so einrichten, dass unnötige Exposition gegenüber Trümmern reduziert wird."
+              ],
+              "S4": [
+                "Bereitstellung von Verbandsmaterial und Schutzkleidung, auch für längere Einsätze."
+              ],
+              "S5": [
+                "Bevölkerung auf Gefahren durch Glassplitter und Trümmer hinweisen, insbesondere bei Aufräumarbeiten."
+              ]
+            }
+          }
+        },
+        {
+          "id": "gesundheit-02",
+          "name": "Kälte- und Nässebelastung",
+          "shortText": "Lange Arbeit bei Wind, Regen und Kälte kann zu Unterkühlung und Erschöpfung führen.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Einsätze in der Nacht / bei niedrigen Temperaturen und Regen.",
+              "Lange ununterbrochene Außenarbeiten ohne wärmende Pause.",
+              "Anzeichen von Unterkühlung oder starkem Zittern bei Einsatzkräften."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Wetterschutzkleidung und Wechselkleidung bereitstellen.",
+              "Regelmäßige Aufwärmpausen in geschützten Bereichen einplanen.",
+              "Besondere Aufmerksamkeit auf Anzeichen von Unterkühlung und Erschöpfung."
+            ],
+            "byRole": {
+              "S1": [
+                "Personalrotation und Ruhezeiten planen, besonders bei widrigen Wetterbedingungen."
+              ],
+              "S4": [
+                "Heißgetränke, Verpflegung und beheizbare Aufenthaltsbereiche organisieren."
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "einsatzkraefte",
+      "title": "Gefahren für Einsatzkräfte",
+      "description": "Überlastung, riskante Arbeiten mit Motorsägen und in der Höhe.",
+      "hazards": [
+        {
+          "id": "einsatzkraefte-01",
+          "name": "Gefährliche Arbeiten mit Motorsäge",
+          "shortText": "Arbeiten an unter Spannung stehenden Bäumen und Stämmen sind besonders riskant.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Einsatzkräfte müssen im Bereich von Windwurf Motorsägen einsetzen.",
+              "Verdrehte, unter Spannung stehende Stämme und Kronen.",
+              "Nächtliche Arbeiten im Wald oder an Straßenrändern mit schlechtem Stand."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Motorsägenarbeiten nur durch ausgebildete Personen mit vollständiger PSA.",
+              "Keine unsicheren Schnitte an unter Spannung stehenden Stämmen ohne Erfahrung.",
+              "Arbeiten bei extremer Windlage oder ohne sichere Standfläche vermeiden."
+            ],
+            "byRole": {
+              "S3": [
+                "Nur entsprechend qualifizierte Trupps zum Windwurf schicken.",
+                "Bei schwierigen Lagen (Hang, Spannung) ggf. Forst- oder Spezialkräfte anfordern."
+              ],
+              "S4": [
+                "Schnittschutz-Ausrüstung, Helme, Funk, Beleuchtung sichern.",
+                "Bei Bedarf professionelle Unterstützung (Forstbetriebe) organisieren."
+              ]
+            }
+          }
+        },
+        {
+          "id": "einsatzkraefte-02",
+          "name": "Überlastung und Erschöpfung",
+          "shortText": "Viele kleine Einsätze über lange Zeit führen zu hoher Belastung und Fehlern.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Stundenlange Abarbeitung vieler kleiner Einsatzstellen.",
+              "Erkennbare Müdigkeit und Konzentrationsprobleme bei Mannschaften.",
+              "Mehrere Nächte mit Einsätzen ohne ausreichende Ruhezeiten."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Schichtsystem und Einsatzpriorisierung (LEBENSgefahr vor Sachschaden).",
+              "Frühzeitige Nachalarmierung zusätzlicher Kräfte und Nachbarfeuerwehren.",
+              "Einsatznachbesprechungen und Raum für Rückmeldungen der Einsatzkräfte schaffen."
+            ],
+            "byRole": {
+              "S1": [
+                "Personalplanung mit klarer Ablöse, Ruhe und Staffelung der Kräfte.",
+                "Einbindung von Reserven und Nachbarorganisationen."
+              ],
+              "S3": [
+                "Einsätze nach Priorität (Gefahr für Menschen, dann Infrastruktur, dann Sachschaden) ordnen.",
+                "Überlastete Einheiten von körperlich schweren Aufgaben entlasten."
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "psychosozial",
+      "title": "Psychosoziale Folgen",
+      "description": "Belastung durch Schäden, Dauerbelastung und Bedrohungsgefühl.",
+      "hazards": [
+        {
+          "id": "psychosozial-01",
+          "name": "Psychische Belastung durch Sturmschäden",
+          "shortText": "Zerstörte Häuser, umgestürzte Bäume, lange Stromausfälle belasten Bevölkerung und Einsatzkräfte.",
+          "phase": ["während", "nach", "langfristig"],
+          "triggers": {
+            "situationTriggers": [
+              "Viele Betroffene mit Sachschäden am Wohnhaus / Betrieb.",
+              "Lange Ausnahmesituation durch Strom-/Infrastrukturausfall.",
+              "Einsatzkräfte wirken gereizt, erschöpft oder emotional stark belastet."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Frühzeitige Einbindung psychosozialer Unterstützungsangebote für Betroffene und Einsatzkräfte.",
+              "Transparente Kommunikation des Stabes über Lage, Maßnahmen und Perspektive.",
+              "Einsatznachbesprechungen, um belastende Eindrücke zu sortieren."
+            ],
+            "byRole": {
+              "S1": [
+                "Psychosoziale Betreuung anfordern und Angebote aktiv an Einsatzkräfte kommunizieren.",
+                "Belastete Kamerad:innen aktiv ansprechen."
+              ],
+              "S5": [
+                "Information an Bevölkerung über verfügbare Unterstützungsangebote (Hotlines, Beratungsstellen).",
+                "Sensibler Umgang mit Bildern und Sprache in der Öffentlichkeitsarbeit."
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
