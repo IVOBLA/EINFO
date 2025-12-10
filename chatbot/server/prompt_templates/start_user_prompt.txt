@@ -1,0 +1,55 @@
+START-SZENARIO (erster Simulationsschritt):
+
+ROLES (active/missing):
+{{rolesJson}}
+
+Aktueller Zustand:
+- Board, Aufgaben und Protokoll sind vollständig leer.
+- Es soll ein erstes Lagebild für ein Katastrophenszenario im Bezirk Feldkirchen in Kärnten entstehen
+  (z.B. Starkregen / Hochwasser mit einzelnen Problemstellen).
+
+Erzeuge im JSON-Schema:
+- 1–3 neue Einsatzstellen (operations.board.createIncidentSites) mit:
+  - kurzem Titel (z.B. "Hochwasserbereich Tiebel"),
+  - Ortsangabe / Bereich,
+  - kurzer Lagebeschreibung,
+  - sinnvoller Priorität ("high" oder "critical" für akute Gefahr).
+- Zu diesen Einsatzstellen passende Protokolleinträge (operations.protokoll.create),
+  z.B. Lagemeldung vom Einsatzleiter an LdStb.
+- Aufgaben für fehlende Stabsstellen (operations.aufgaben.create), z.B.:
+  - S2: Lagekartenpflege / Pegelstände einholen,
+  - S3: Kräfteanforderung / Abschnittsbildung,
+  - S4: Verpflegung / Treibstoffplanung,
+  - S5: Information der Bevölkerung.
+
+Regeln:
+- originRole, fromRole, assignedBy NUR aus missingRoles wählen.
+- via IMMER "Meldestelle" oder "Meldestelle/S6".
+- Halte dich strikt an das Operations-Schema.
+
+GIB NUR FOLGENDES ZURÜCK:
+Ein einziges JSON-Objekt der Form:
+
+{
+  "operations": {
+    "board": {
+      "createIncidentSites": [ ...mindestens 1 Eintrag... ],
+      "updateIncidentSites": []
+    },
+    "aufgaben": {
+      "create": [ ...mindestens 1 Eintrag... ],
+      "update": []
+    },
+    "protokoll": {
+      "create": [ ...mindestens 1 Eintrag... ]
+    }
+  },
+  "analysis": "kurzer deutscher Text",
+  "meta": {
+    "historySummary": "max. 2 kurze Sätze",
+    "historyState": { "openIncidents": [], "closedIncidents": [], "openTasksByRole": {}, "lastMajorEvents": [] }
+  }
+}
+
+KEIN weiterer Text, KEINE Erklärungen, KEINE Kommentare,
+KEINE Markdown-Codeblock-Umrandung (also keine Codeblöcke mit drei Backticks).

@@ -1,0 +1,45 @@
+Kontext zum aktuellen Aufruf:
+
+ROLES (active/missing):
+{{rolesPart}}
+
+BOARD (kompakter Auszug, max. 50 Einträge, aus board.json):
+{{compressedBoard}}
+
+AUFGABEN (S2, kompakter Auszug, max. 100 Einträge, aus Aufg_board_S2.json):
+{{compressedAufgaben}}
+
+PROTOKOLL (kompakter Auszug, max. 100 Einträge, aus protocol.json):
+{{compressedProtokoll}}
+
+HINWEIS: Es werden nur seit dem letzten Schritt neu angelegte oder geänderte JSON-Objekte übergeben.
+Die Felder sind auf Kerninformationen reduziert (z.B. desc/description, status, responsible, updatedAt,
+information, datum, zeit, ergehtAn, location, assignedVehicles, statusSince, typ).
+
+BISHER BEKANNTE LAGE / ERINNERUNGEN (RAG):
+{{formattedMemorySnippets}}
+
+KNOWLEDGE-CONTEXT (Auszüge aus lokalen Richtlinien, bevorzugt zu verwenden):
+{{knowledgeContext}}
+
+DEINE AUFGABE IN DIESEM SCHRITT:
+{{taskSection}}
+Rollenbezug:
+- originRole MUSS in missingRoles stehen.
+- fromRole bzw. assignedBy MUSS in missingRoles stehen.
+- Du darfst KEINE Operationen erzeugen, in denen originRole oder fromRole/assignedBy in activeRoles vorkommen.
+- Wenn eine Rolle aktiv ist, darfst du ihr höchstens Aufgaben zuweisen, aber niemals in ihrem Namen handeln.
+
+Meldestelle:
+- Alle Operationen müssen "via": "Meldestelle" oder "Meldestelle/S6" haben.
+
+KnowledgeContext:
+- Verwende den KnowledgeContext für Prioritäten, Aufgabenverteilung und Auswahl der category (Lagemeldung, Auftrag, Rueckfrage,
+Rueckmeldung, Info).
+- Wenn ein Verhalten laut KnowledgeContext fragwürdig ist, sei vorsichtig und erkläre das kurz in "analysis".
+
+Antwortformat:
+- Gib AUSSCHLIESSLICH EIN EINZIGES JSON-OBJEKT im beschriebenen Schema zurück.
+- KEINE zusätzlichen Felder auf Top-Level.
+- KEIN Text vor oder nach dem JSON.
+- KEINE Markdown-Codeblöcke oder sonstige Code-Formatierung.

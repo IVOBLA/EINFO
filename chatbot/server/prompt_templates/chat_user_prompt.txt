@@ -1,0 +1,12 @@
+FRAGE DES BENUTZERS:
+{{question}}
+
+KnowledgeContext (Auszüge aus Richtlinie/E-31, lokal):
+{{knowledgeContext}}
+
+AUFGABE:
+- Beantworte die Frage ausschließlich auf Basis des KnowledgeContext und deines Feuerwehr-/Stabswissens.
+- Antworte kurz, präzise und verständlich für Einsatzleiter / Stabsmitglieder.
+- Wenn die Frage im KnowledgeContext nicht ausreichend beantwortet wird, sag klar:
+  was sicher ist, was unklar ist und was NICHT geregelt ist.
+- Immer auf Deutsch antworten.
