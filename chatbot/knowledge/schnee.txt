@@ -1,0 +1,61 @@
+Schneelast und Gebäudestatik
+
+Hazard: Übermäßige Schneelast auf Dächern
+Trigger: hohe Schneehöhen, Durchhängen von Dächern, Knackgeräusche, bekannte Schwächendächer.
+Maßnahmen:
+
+Gebäude räumen, sperren.
+
+Dachräumung nur durch Fachkräfte.
+
+Hazard: Eis- und Schneewächten
+Trigger: Überhänge an Dachkanten, Gefahr über Gehwegen.
+Maßnahmen:
+
+Fallbereiche absperren, Arbeiten nur mit Hubsteiger/Firmen.
+
+Verkehr
+
+Hazard: Schneeglätte und rutschige Fahrbahnen
+Trigger: Straßentemperatur um/unter 0 °C mit Niederschlag, Unfallhäufungen.
+Maßnahmen:
+
+Geschwindigkeitsreduktion, Sperrung kritischer Abschnitte, Winterdienst koordinieren.
+
+Hazard: Blockierte Straßen und liegengebliebene Fahrzeuge
+Trigger: feststeckende LKW/Busse, Verwehungen, gesperrte Straßen.
+Maßnahmen:
+
+Straßensperren/Umleitungen, Rettung eingeschlossener Personen, Erreichbarkeit kritischer Infrastruktur sichern.
+
+Infrastruktur
+
+Hazard: Schäden an Freileitungen und Masten
+Maßnahmen: Leitungen als spannungsführend behandeln, Bereiche sperren, Netzbetreiber einbinden.
+
+Hazard: Versorgungsausfall (Strom, Heizung, Wasser)
+Maßnahmen: Notstrom/Heizung für kritische Einrichtungen, Notunterkünfte, Fokus auf vulnerable Gruppen.
+
+Gesundheit
+
+Hazard: Unterkühlung/Erfrierungen
+Maßnahmen: Wetterschutz, Aufwärmpausen, medizinische Hilfe bei Symptomen.
+
+Hazard: Rutsch- und Sturzgefahr
+Maßnahmen: vorsichtiges Gehen, Schuhe mit Profil, Streuen/Sperren.
+
+Hazard: Körperliche Überlastung bei Räumarbeiten
+Maßnahmen: kurze Intervalle, Pausen, Hilfe für gefährdete Personen.
+
+Einsatzkräfte
+
+Hazard: Erschwerte Anfahrt und Rückzug
+Maßnahmen: sichere Anfahrtswege, keine Sackgassen, früh Schneeketten.
+
+Hazard: Überlastung/Dauereinsatz
+Maßnahmen: Schichtsystem, Priorisierung, Nachalarmierung.
+
+Psychosozial
+
+Hazard: Lang anhaltende Schneelage und Isolation
+Maßnahmen: psychosoziale Angebote, klare Kommunikation, Nachbesprechungen.
