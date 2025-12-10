@@ -1,0 +1,526 @@
+{
+  "meta": {
+    "version": "1.0",
+    "scope": "Unfaelle_generell",
+    "description": "Gefahrenklassen, Trigger und Maßnahmen für Verkehrsunfälle, Gefahrgut, Eisenbahn, Bus, Flugzeug usw. im Bezirkseinsatzstab",
+    "lastUpdate": "2025-12-10T12:40:00+01:00"
+  },
+  "hazardClasses": [
+    {
+      "id": "gefahrgut",
+      "title": "Gefahrgut- und Stoffunfälle",
+      "description": "Gefahren durch ausgetretene Gefahrstoffe bei Transport- oder Lagerunfällen.",
+      "hazards": [
+        {
+          "id": "gefahrgut-01",
+          "name": "Leckage / Ausströmung von Gefahrstoffen",
+          "shortText": "Austritt von Gasen, Flüssigkeiten oder festen Gefahrstoffen nach Unfall oder Lagerhavarie.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "sensorTriggers": [
+              {
+                "id": "gas-detection",
+                "description": "Gasmessgeräte zeigen erhöhte Konzentrationen.",
+                "source": "Gasmessgerät / stationäre Sensoren",
+                "thresholdExample": "Messwert > Alarmschwelle des Geräts."
+              }
+            ],
+            "situationTriggers": [
+              "Meldung: 'Tankwagen verunfallt', 'Container beschädigt', 'ungewöhnlicher Geruch / Rauch'.",
+              "Sichtbarer Stoffaustritt, Flüssigkeitsfilm, Dampf- oder Gaswolke.",
+              "Gefahrgutkennzeichnung (UN-Nummer, Warntafel) an Fahrzeug / Behälter."
+            ],
+            "manualFlags": [
+              "S2 markiert Einsatzstelle als 'Gefahrgutverdacht'.",
+              "Fahrer, Betrieb oder Leitstelle melden Gefahrgutbeteiligung."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Großzügigen Sperr- und Sicherheitsbereich einrichten, Windrichtung beachten.",
+              "Einsatz zunächst in Vollschutz / mit maximalem Eigenschutz planen, bis Stoff geklärt ist.",
+              "Gefahrgutnummern (UN-Nummer, Kemler) erfassen und über Nachschlagewerke / Leitstelle bewerten.",
+              "Keine Kanalisation oder Gewässer ohne Rücksprache mit Fachstellen spülen."
+            ],
+            "byRole": {
+              "S2": [
+                "Stoffdaten (UN-Nummer, Gefahrklasse) erfassen und in Lagekarte/Lagebericht dokumentieren.",
+                "Gefahrenbereiche (Gefahrzone, Absperrungen, Evakuierungsradius) kartieren."
+              ],
+              "S3": [
+                "Taktik nach GAMS-Regel (Gefahr erkennen – Absperren – Menschenrettung – Spezialkräfte) ausrichten.",
+                "Menschenrettung vor Leckabdichtung, wenn vertretbar, aber immer mit Eigenschutz."
+              ],
+              "S4": [
+                "Spezialkräfte (Gefahrgutzug, Chemiker, Umweltbehörden) alarmieren.",
+                "Stoffdatenblätter, Messgeräte, Bindemittel und Aufnahmemittel bereitstellen."
+              ],
+              "S5": [
+                "Warnung an Bevölkerung, je nach Stoff: Fenster schließen, Lüftung abstellen, im Gebäude bleiben.",
+                "Klare, sachliche Information ohne Panik zu erzeugen."
+              ]
+            }
+          }
+        },
+        {
+          "id": "gefahrgut-02",
+          "name": "Brand / Explosion mit Gefahrgut",
+          "shortText": "Feuer oder thermische Einwirkung an Gefahrgutbehältern kann zu Explosion oder Giftwolke führen.",
+          "phase": ["während"],
+          "triggers": {
+            "situationTriggers": [
+              "Meldung: 'Tankwagen brennt', 'Flammen in Nähe von Tanks/Behältern'.",
+              "Feuer im Bereich von Gasflaschenbündeln, Tanklagern, Tankstellen.",
+              "Knallgeräusche, Druckwellen, Flammenaustritt aus Sicherheitsventilen."
+            ],
+            "manualFlags": [
+              "Fahrzeugkennzeichnung weist auf Explosiv- oder leichtentzündliche Stoffe hin.",
+              "Betriebsinformationen: große Mengen brennbarer Stoffe in betroffener Halle."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Großräumige Absperrung, besonders in Ausbreitungsrichtung (Wind, Geländesenke).",
+              "Eigensicherung der Kräfte durch Abstand, Schutzbekleidung, Deckung.",
+              "Kühlung gefährdeter Behälter aus sicherer Entfernung, ggf. Rückzug vor Behälterzerknall.",
+              "Evakuierung oder Schutzraumempfehlung für betroffene Bevölkerung."
+            ],
+            "byRole": {
+              "S2": [
+                "Ermittlung der möglichen Explosions-/Gefahrenradien und Eintrag in die Lagekarte.",
+                "Lagebericht mit klarer Darstellung von Gefährdungen und Sperrbereichen."
+              ],
+              "S3": [
+                "Taktische Priorität: Menschenrettung, dann Schutz von Nachbarobjekten.",
+                "Rückzugs- und Sammelpunkte festlegen und kommunizieren."
+              ],
+              "S4": [
+                "Große Mengen Löschmittel (Wasser, Schaum) und Spezialmittel organisieren.",
+                "Unterstützung durch Werkfeuerwehr oder Gefahrstoffzug koordinieren."
+              ],
+              "S5": [
+                "Öffentlichkeitsarbeit mit konkreten Handlungsempfehlungen (z. B. Fenster schließen, Bereiche meiden).",
+                "Gerüchte eindämmen, nur bestätigte Informationen kommunizieren."
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "eisenbahn",
+      "title": "Eisenbahnunfälle",
+      "description": "Gefahren bei Zugunfällen, Entgleisungen und Personen im Gleis.",
+      "hazards": [
+        {
+          "id": "eisenbahn-01",
+          "name": "Zugunfall / Entgleisung",
+          "shortText": "Kollision oder Entgleisung von Zügen mit Verletzten, Gefahrgut und Infrastruktur-Schäden.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Meldung: 'Zug entgleist', 'Zug kollidiert mit Fahrzeug/Person'.",
+              "Verformte Waggons, Oberleitungsschäden, Gefahrgutfahrzeuge in Zügen.",
+              "Große Anzahl unverletzter, leicht- und schwerverletzter Personen."
+            ],
+            "manualFlags": [
+              "Bahnleitstelle meldet Streckensperre und Unfallort.",
+              "Hinweise auf Gefahrgutwaggons im Zugverband."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Kontakt zur Bahnleitstelle herstellen: Fahrstromabschaltung und Sicherung gegen weiteren Zugverkehr.",
+              "Lage aufgeteilt in Abschnitte: Patientensichtung, technische Rettung, Gefahrgut, Infrastruktur.",
+              "Oberleitung und Gleise als spannungsführend betrachten, bis Freigabe vorliegt."
+            ],
+            "byRole": {
+              "S2": [
+                "Unfallort, Zuglänge und Zugangswege (Zufahrten, Feldwege) kartieren.",
+                "Sammelplätze für Verletzte und Bereitstellungsräume einzeichnen."
+              ],
+              "S3": [
+                "Abschnittsbildung (z. B. Menschenrettung, Brandbekämpfung, Gefahrgut).",
+                "Rettungs- und Sichtungsbereiche fernab der Gleise anlegen."
+              ],
+              "S4": [
+                "Zusätzliche Rettungsmittel, Notärzte, Sanitätseinheiten und Beleuchtung organisieren.",
+                "Abstimmung mit Bahnunternehmen zu technischem Gerät (z. B. Schienenfahrzeuge, Hebemittel)."
+              ],
+              "S5": [
+                "Information an Bevölkerung zu Streckensperren und Ausfällen im Bahnverkehr.",
+                "Medienarbeit koordinieren, Informationspunkten vor Ort zuweisen."
+              ]
+            }
+          }
+        },
+        {
+          "id": "eisenbahn-02",
+          "name": "Personen im Gleisbereich",
+          "shortText": "Einsatz im Gleisbereich mit Risiko durch Zugverkehr und Oberleitung.",
+          "phase": ["während"],
+          "triggers": {
+            "situationTriggers": [
+              "Rettungseinsatz wegen Person im Gleis / an Bahnbrücke / Tunnel.",
+              "Suche nach Vermissten im Bahntrassenbereich.",
+              "Technische Hilfeleistung in unmittelbarer Gleisnähe."
+            ],
+            "manualFlags": [
+              "Bahnleitstelle bestätigt Fahrstromabschaltung und Sperrung der Strecke.",
+              "S3 fordert explizit Freigabe des Gleisbereichs an."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Einsatz im Gleisbereich erst nach klarer Sperr- und Freigabebestätigung durch Bahnleitstelle.",
+              "Gleise und Oberleitung bis dahin wie spannungsführend / betriebsbereit behandeln.",
+              "Rettung aus Gleisbereich so zügig wie möglich, Aufenthaltszeit minimieren."
+            ],
+            "byRole": {
+              "S2": [
+                "Einsatzabschnitte und sichere Zugangswege zum Gleis dokumentieren.",
+                "Gefahrenbereiche (Brücken, Tunnel, Bahndämme) klar kennzeichnen."
+              ],
+              "S3": [
+                "Keine Kräfte ins Gleis schicken, bevor Sperrung und Abschaltung schriftlich/über Funk bestätigt sind.",
+                "Sicherungsposten und klare Funkdisziplin einrichten."
+              ],
+              "S4": [
+                "Kommunikationsmittel (z. B. Bahn-Funkkontakt) sicherstellen.",
+                "Licht und Signalgeräte bereitstellen."
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "bus",
+      "title": "Bus- und Reisebusunfälle",
+      "description": "Gefahren bei Unfällen mit vielen Personen in Bussen.",
+      "hazards": [
+        {
+          "id": "bus-01",
+          "name": "Busunfall mit vielen Verletzten",
+          "shortText": "Verkehrsunfall mit Linien- oder Reisebus, häufig mit vielen Betroffenen.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Meldung: 'Bus umgestürzt', 'Bus mit Pkw kollidiert', 'Bus liegt im Graben'.",
+              "Viele Betroffene (stehende, Verletzte, Eingeklemmte).",
+              "Erreichbarkeit erschwert (Hanglage, Autobahn, Tunnel)."
+            ],
+            "manualFlags": [
+              "Rettungsleitstelle meldet MANV (Massenanfall von Verletzten).",
+              "Polizei / Straßenmeisterei berichten von Vollsperrung."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "MANV-Struktur mit Sichtung (Triage), Behandlungsplätzen und Transportorganisation etablieren.",
+              "Bus stabilisieren, Gefahr durch Brand, auslaufende Medien und Kippen beachten.",
+              "Betreuungsbereich für unverletzte / leicht verletzte Personen einrichten."
+            ],
+            "byRole": {
+              "S2": [
+                "Lagekarte mit Unfallstelle, Zufahrten, Bereitstellungsraum, Triage- und Behandlungsbereich.",
+                "Lagebericht: Anzahl geschätzter Betroffener und vorhandene Ressourcen."
+              ],
+              "S3": [
+                "Abschnittsbildung: Technische Rettung, Medizin (Triage), Transport, Betreuung.",
+                "Priorität: Absichern, Sichtung, dann technische Rettung."
+              ],
+              "S4": [
+                "Zusätzliche RTW/NAW, Sanitätsbereitschaften, Busse für Transport / Betreuung organisieren.",
+                "Verpflegung und Wetterschutz für Betroffene und Kräfte bereitstellen."
+              ],
+              "S5": [
+                "Information an Angehörige und Öffentlichkeit über Sammelpunkte und Infotelefon.",
+                "Pressekoordination, um unkontrollierte Berichterstattung zu vermeiden."
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "flugzeug",
+      "title": "Luftfahrtunfälle",
+      "description": "Gefahren bei Unfällen mit Kleinflugzeugen, Helikoptern und ggf. größeren Luftfahrzeugen.",
+      "hazards": [
+        {
+          "id": "flugzeug-01",
+          "name": "Flugunfall (Kleinflugzeug / Helikopter)",
+          "shortText": "Absturz oder Notlandung von Luftfahrzeugen mit Brand-, Explosion- und Gefahrstoffrisiko.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Meldung: 'Flugzeug abgestürzt', 'Helikopter hart gelandet'.",
+              "Trümmerfeld, Brand / Rauch, auslaufender Treibstoff.",
+              "Unklare Anzahl Insassen / Vermisste im Umfeld."
+            ],
+            "manualFlags": [
+              "Flugaufsicht / Flughafen melden Luftfahrzeug und Insassenzahl.",
+              "Hinweis auf Gefahrgut oder spezielle Fracht an Bord."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Gefahr durch Treibstoff, Batterien, pyrotechnische Systeme beachten.",
+              "Großzügige Absperrung wegen möglicher Explosion oder toxischer Gase.",
+              "Trümmerfeld als potenzielles Beweis- und Untersuchungsgebiet behandeln (Luftfahrtbehörde)."
+            ],
+            "byRole": {
+              "S2": [
+                "Trümmerfeldgrenzen und Zugänge in der Lagekarte dokumentieren.",
+                "Lagebericht mit Infos zu Luftfahrzeugtyp, Insassen und Gefahren (Treibstoff, Akkus)."
+              ],
+              "S3": [
+                "Menschenrettung und Brandbekämpfung unter Eigenschutz priorisieren.",
+                "Abschnitt 'Brand/Treibstoff', 'Menschenrettung', 'Sicherung Trümmerfeld' bilden."
+              ],
+              "S4": [
+                "Kontakt zu Flugplatz, Luftfahrtbehörden, ggf. militärischen Stellen.",
+                "Spezialmittel für Treibstoffbrände (Schaum) und Akku-Brände bereitstellen."
+              ],
+              "S5": [
+                "Medien- und Öffentlichkeitsarbeit eng mit Behörden abstimmen.",
+                "Hinweis an Bevölkerung, Trümmerteile nicht anzufassen oder mitzunehmen."
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "strasse",
+      "title": "Straßenverkehrsunfälle",
+      "description": "Allgemeine Gefahren bei Straßenverkehrsunfällen mit Pkw, Lkw usw.",
+      "hazards": [
+        {
+          "id": "strasse-01",
+          "name": "Unfall mit eingeklemmten Personen",
+          "shortText": "Kollision mit deformierten Fahrzeugen und eingeklemmten Insassen.",
+          "phase": ["während"],
+          "triggers": {
+            "situationTriggers": [
+              "Meldung: 'Person eingeklemmt', 'Fahrzeug überschlagen', 'Fahrzeug gegen Baum'.",
+              "Deformierte Fahrgastzelle, eingeschlossene oder eingeklemmte Personen.",
+              "Fahrzeuge in instabiler Lage (Hang, Leitplanke, Brücke)."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Einsatzstelle zuerst absichern (Verkehr, Brandgefahr, auslaufende Betriebsstoffe).",
+              "Stabilisierung der Fahrzeuge vor Beginn der technischen Rettung.",
+              "Zusammenarbeit mit Rettungsdienst (Crashrettung vs. schonende Rettung) abstimmen."
+            ],
+            "byRole": {
+              "S2": [
+                "Unfallort, Sperrungen und Rettungswege in der Lagekarte eintragen."
+              ],
+              "S3": [
+                "Standard-Taktik THL VU (Absichern – Brandschutz – Erstzugang – Rettung).",
+                "Auf Airbag- und Hochvoltsysteme in Fahrzeugen achten."
+              ],
+              "S4": [
+                "Hydraulische Rettungsgeräte, Unterbaumaterial, Brandschutzmittel bereitstellen.",
+                "Zusätzliche Rettungsmittel bei mehreren Eingeklemmten anfordern."
+              ],
+              "S5": [
+                "Hinweis an Öffentlichkeit: Verkehrsbehinderungen, Umleitungen.",
+                "Gaffer- und Filmaufnahmen thematisieren, Privatsphäre der Betroffenen schützen."
+              ]
+            }
+          }
+        },
+        {
+          "id": "strasse-02",
+          "name": "Massenkarambolage / Unfallserie",
+          "shortText": "Mehrere beteiligte Fahrzeuge, unübersichtliche Lage, viele Verletzte.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Meldung: 'mehrere Fahrzeuge beteiligt', 'Autobahn komplett blockiert'.",
+              "Unübersichtliche Lage über längeren Streckenabschnitt.",
+              "Sichtbehinderungen durch Wetter (Nebel, Schnee, Regen) oder Rauch."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Großräumige Verkehrsabsicherung, Nachfolgeunfälle verhindern.",
+              "Abschnittsbildung: Absicherung, Rettung, Transport, Abschleppen.",
+              "MANV-Struktur bei vielen Verletzten implementieren."
+            ],
+            "byRole": {
+              "S2": [
+                "Verkehrslage (Sperren, Umleitungen) und Einsatzabschnitte in der Karte darstellen.",
+                "Lagebericht: Einschätzung der Anzahl Betroffener und eingesetzter Ressourcen."
+              ],
+              "S3": [
+                "Abschnittsleiter für verschiedene Bereiche der Unfallstrecke benennen.",
+                "Priorisierung nach Lebensgefahr, nicht nach Reihenfolge des Auffindens."
+              ],
+              "S4": [
+                "Koordination mit Straßenmeisterei, Polizei, Abschleppdiensten.",
+                "Zusätzliche Rettungen und Sanitätseinheiten anfordern."
+              ],
+              "S5": [
+                "Information an Bevölkerung über längere Sperrungen und Alternativrouten.",
+                "Medienanfragen bündeln und abgestimmt beantworten."
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "medizin",
+      "title": "Medizinische Lage / MANV",
+      "description": "Gefahren und Herausforderungen bei vielen Verletzten.",
+      "hazards": [
+        {
+          "id": "medizin-01",
+          "name": "Massenanfall von Verletzten (MANV)",
+          "shortText": "Viele Verletzte überfordern örtliche Ressourcen, strukturierte Triage und Organisation nötig.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Mehr als 5–10 Verletzte an einer Einsatzstelle.",
+              "Rettungsdienst meldet MANV-Stufe ausgerufen.",
+              "Bus-/Zug-/Großunfall mit vielen Betroffenen."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Sichtung (Triage) nach etabliertem Schema einführen.",
+              "Behandlungsplatz und Sammelplätze für Betroffene einrichten.",
+              "Transportkoordination zentral organisieren (Hospital-Management)."
+            ],
+            "byRole": {
+              "S2": [
+                "Standorte von Sichtung, Behandlungsplatz, Patientenablage, Sammelplatz dokumentieren.",
+                "Lagebericht: Anzahl Sichtungskategorien (rot/gelb/grün/schwarz)."
+              ],
+              "S3": [
+                "Einsatzabschnitt 'Medizin' bilden und mit geeignetem Führer besetzen.",
+                "Rettungsmittelbewegungen koordinieren, damit An- und Abfahrt geordnet erfolgen."
+              ],
+              "S4": [
+                "Zusätzliche Rettungsmittel, Sanitätseinheiten, Notärzte und ggf. Betreuungsdienste anfordern.",
+                "Material (Tragen, Zelte, Beleuchtung, Verpflegung) organisieren."
+              ],
+              "S5": [
+                "Angehörigeninformation und Infotelefon vorbereiten.",
+                "Kommunikation über Anzahl Betroffener in Abstimmung mit Rettungsdienst und Polizei."
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "einsatzkraefte",
+      "title": "Gefahren für Einsatzkräfte",
+      "description": "Spezielle Risiken für Einsatzkräfte bei Unfällen.",
+      "hazards": [
+        {
+          "id": "einsatzkraefte-01",
+          "name": "Unzureichende Absicherung der Einsatzstelle",
+          "shortText": "Fehlende oder mangelhafte Verkehrs- und Gefahrenabsicherung gefährdet Kräfte.",
+          "phase": ["während"],
+          "triggers": {
+            "situationTriggers": [
+              "Einsatz auf Fahrbahn ohne ausreichende Verkehrsabsicherung.",
+              "Unübersichtliche Einsatzstelle (Kurven, Kuppen, Nacht).",
+              "Zusätzlicher Verkehr (Gaffer, Durchfahrer) im Nahbereich."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Absicherung nach geltenden Vorschriften (Warnkleidung, Pylonen, Blitzer, Vorwarnung).",
+              "Wenn Absicherung nicht möglich, Einsatz abbrechen oder auf Sicherung warten.",
+              "Kräfte möglichst hinter Schutz (Leitplanke, Fahrzeug) positionieren."
+            ],
+            "byRole": {
+              "S3": [
+                "Ohne ausreichende Sicherung keine Arbeiten im Gefahrenbereich.",
+                "Polizei oder Straßenmeisterei für Vollsperrung anfordern."
+              ],
+              "S4": [
+                "Absperr- und Sicherungsmaterial, Beleuchtung bereitstellen.",
+                "Evtl. zusätzliche Fahrzeuge als Schutzstaffel positionieren."
+              ]
+            }
+          }
+        },
+        {
+          "id": "einsatzkraefte-02",
+          "name": "Psychische Belastung durch schwere Unfälle",
+          "shortText": "Schwere Verletzungen, Todesopfer, insbesondere Kinder, belasten Einsatzkräfte stark.",
+          "phase": ["nach", "langfristig"],
+          "triggers": {
+            "situationTriggers": [
+              "Unfälle mit vielen Schwerverletzten oder Toten.",
+              "Beteiligung von Kindern oder Kollegen.",
+              "Einsatzkräfte zeigen anhaltende Belastungsreaktionen."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Psychosoziale Nachbetreuung (Peers, Krisenintervention) frühzeitig einbinden.",
+              "Einsatznachbesprechungen anbieten, offene Gesprächskultur fördern.",
+              "Belastete Personen aktiv ansprechen und Unterstützungsangebote kommunizieren."
+            ],
+            "byRole": {
+              "S1": [
+                "PSNV-Kräfte (Psychosoziale Notfallversorgung) anfordern.",
+                "Langfristige Folgen im Blick behalten (ggf. weitere Gespräche/Angebote)."
+              ],
+              "S5": [
+                "Interne Kommunikation anpassen (keine sensationsheischenden Bilder/Videos verbreiten)."
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "psychosozial",
+      "title": "Psychosoziale Folgen für Betroffene",
+      "description": "Psychische Belastung und Betreuung von Unfallbeteiligten und Angehörigen.",
+      "hazards": [
+        {
+          "id": "psychosozial-01",
+          "name": "Akute psychische Belastung bei Betroffenen und Angehörigen",
+          "shortText": "Schwere Unfälle mit Verletzten/Toten führen zu Schock, Angst und Trauer.",
+          "phase": ["während", "nach", "langfristig"],
+          "triggers": {
+            "situationTriggers": [
+              "Schwere Personenschäden, Todesopfer an der Einsatzstelle.",
+              "Angehörige oder Zeugen in emotionaler Ausnahmesituation.",
+              "Lang anhaltende Trauerreaktionen und Verarbeitungsprobleme."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Psychosoziale Akuthilfe vor Ort (Krisenintervention, Seelsorge) einbinden.",
+              "Ruhige, respektvolle Kommunikation mit Betroffenen und Angehörigen.",
+              "Information über weiterführende Beratungs- und Hilfsangebote geben."
+            ],
+            "byRole": {
+              "S1": [
+                "Betreuungs- und PSNV-Kräfte nach Bedarf alarmieren.",
+                "Einsatzkräfte auf sensiblen Umgang mit Betroffenen hinweisen."
+              ],
+              "S5": [
+                "Information an Bevölkerung über Hilfsangebote und Kontaktstellen.",
+                "Öffentlichkeitsarbeit respektvoll gestalten, keine Details, die Betroffene zusätzlich belasten."
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
