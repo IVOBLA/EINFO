@@ -9,6 +9,8 @@ const llmPrompt = document.getElementById("llm-prompt");
 const llmSend = document.getElementById("llm-send");
 const llmOutput = document.getElementById("llm-output");
 const llmRefresh = document.getElementById("llm-refresh");
+const llmGpuStatus = document.getElementById("llm-gpu-status");
+const llmError = document.getElementById("llm-error");
 const BOT_NAME = "Florian";
 const chatEntries = [];
 
@@ -55,6 +57,48 @@ function setLlmOutput(text) {
   if (llmOutput) {
     llmOutput.textContent = text;
   }
+}
+
+function setLlmError(text) {
+  if (llmError) {
+    llmError.textContent = text || "";
+  }
+}
+
+function renderGpuStatus(status) {
+  if (!llmGpuStatus) return;
+
+  llmGpuStatus.classList.remove("unavailable");
+
+  if (!status) {
+    llmGpuStatus.textContent = "GPU: keine Daten";
+    return;
+  }
+
+  if (status.available && Array.isArray(status.gpus) && status.gpus.length) {
+    const parts = status.gpus.map((gpu) => {
+      const utilization =
+        typeof gpu.utilizationPercent === "number"
+          ? `${gpu.utilizationPercent}%`
+          : "?";
+      const memoryUsed =
+        typeof gpu.memoryUsedMb === "number" ? gpu.memoryUsedMb : "?";
+      const memoryTotal =
+        typeof gpu.memoryTotalMb === "number" ? gpu.memoryTotalMb : "?";
+      return `${gpu.name || "GPU"}: ${utilization} – ${memoryUsed}/${memoryTotal} MiB`;
+    });
+    llmGpuStatus.textContent = `GPU: ${parts.join(" | ")}`;
+    return;
+  }
+
+  if (status.available) {
+    llmGpuStatus.textContent = "GPU: verfügbar, aber keine Details";
+    return;
+  }
+
+  llmGpuStatus.classList.add("unavailable");
+  const errorMsg = status.error || "nicht verfügbar";
+  llmGpuStatus.textContent = `GPU: ${errorMsg}`;
 }
 
 async function loadLlmModels() {
@@ -121,6 +165,7 @@ async function runLlmTest() {
   if (!prompt || !model) return;
 
   setLlmBusy(true);
+  setLlmError("");
   setLlmOutput("LLM wird abgefragt…");
 
   try {
@@ -130,9 +175,16 @@ async function runLlmTest() {
       body: JSON.stringify({ question: prompt, model })
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => null);
+    if (data?.gpuStatus) {
+      renderGpuStatus(data.gpuStatus);
+    }
+
     if (!res.ok || !data?.ok) {
-      throw new Error(data?.error || res.statusText || "Unbekannter Fehler");
+      const message = data?.error || res.statusText || "Unbekannter Fehler";
+      setLlmError(message);
+      setLlmOutput("Fehler beim Test: " + message);
+      return;
     }
 
     const answer =
@@ -140,8 +192,11 @@ async function runLlmTest() {
         ? data.answer
         : JSON.stringify(data.answer, null, 2);
 
+    setLlmError("");
     setLlmOutput(answer || "(keine Antwort)");
   } catch (err) {
+    renderGpuStatus({ available: false, error: String(err) });
+    setLlmError(String(err));
     setLlmOutput("Fehler beim Test: " + err);
   } finally {
     setLlmBusy(false);

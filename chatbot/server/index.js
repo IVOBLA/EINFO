@@ -13,6 +13,7 @@ import {
 import { callLLMForChat, listAvailableLlmModels } from "./llm_client.js";
 import { logInfo, logError } from "./logger.js";
 import { initMemoryStore } from "./memory_manager.js";
+import { getGpuStatus } from "./gpu_status.js";
 
 async function streamAnswer({ res, question }) {
   res.setHeader("Content-Type", "text/plain; charset=utf-8");
@@ -102,26 +103,29 @@ app.get("/api/llm/models", async (_req, res) => {
 
 app.post("/api/llm/test", async (req, res) => {
   const { question, model } = req.body || {};
+  const gpuStatus = await getGpuStatus();
 
   if (!question || typeof question !== "string") {
-    return res.status(400).json({ ok: false, error: "missing_question" });
+    return res.status(400).json({ ok: false, error: "missing_question", gpuStatus });
   }
 
   if (!model || typeof model !== "string") {
-    return res.status(400).json({ ok: false, error: "missing_model" });
+    return res.status(400).json({ ok: false, error: "missing_model", gpuStatus });
   }
 
   try {
     const models = await listAvailableLlmModels();
     if (!models.includes(model)) {
-      return res.status(400).json({ ok: false, error: "invalid_model" });
+      return res
+        .status(400)
+        .json({ ok: false, error: "invalid_model", gpuStatus });
     }
 
     const answer = await callLLMForChat({ question, model });
-    res.json({ ok: true, answer });
+    res.json({ ok: true, answer, gpuStatus });
   } catch (err) {
     logError("Fehler im LLM-Test-Endpunkt", { error: String(err) });
-    res.status(500).json({ ok: false, error: String(err) });
+    res.status(500).json({ ok: false, error: String(err), gpuStatus });
   }
 });
 
