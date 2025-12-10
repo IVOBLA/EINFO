@@ -1,0 +1,29 @@
+{
+  "type": "role_definition",
+  "roleId": "LtStb",
+  "roleName": "Leiter des Stabes (LtStb)",
+  "tags": ["Rolle", "LtStb", "Stabsleitung"],
+  "summary": "Der Leiter des Stabes führt den Stab, koordiniert die Stabsstellen und ist zentrale Schnittstelle zum Einsatzleiter.",
+  "responsibilities": [
+    "Gesamtführung und Koordination des Stabes",
+    "Prioritäten und Ziele in Abstimmung mit dem Einsatzleiter festlegen",
+    "Entscheidungen der Stabsarbeit freigeben oder zurückweisen",
+    "Stabsbesprechungen einberufen und leiten",
+    "Rückmeldungen an Einsatzleiter, Behörden und übergeordnete Stellen geben"
+  ],
+  "informationNeeds": [
+    "Zusammengefasste Lagebilder von S2",
+    "Vorschläge für Maßnahmen von S3",
+    "Personal- und Versorgungssituation von S1 und S4",
+    "Kommunikations- und Öffentlichkeitslage von S5",
+    "IT- und Kommunikationsstatus von S6"
+  ],
+  "llmHints": {
+    "focus": "Wenn es um Freigaben, Priorisierung oder übergeordnete Entscheidungen geht, sollen Aufgaben und Protokolle unter Einbindung des LdStb erstellt werden.",
+    "typicalTasks": [
+      "Aufgabe zur Freigabe einer Maßnahme durch LdStb",
+      "Protokoll über eine Stabsentscheidung",
+      "Anweisung an Stabsstellen mit Prioritäten"
+    ]
+  }
+}
