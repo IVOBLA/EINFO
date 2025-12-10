@@ -421,6 +421,7 @@ async function requestJsonRepairFromLLM({
 }
 
 async function doLLMCall(body, phaseLabel, onToken, options = {}) {
+  body.format = "json";
   const messages = Array.isArray(body.messages) ? body.messages : [];
   const serializedRequest = JSON.stringify(body);
   const systemPrompt =
