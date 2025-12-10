@@ -1,0 +1,28 @@
+{
+  "type": "role_definition",
+  "roleId": "S4",
+  "roleName": "S4 – Versorgung",
+  "tags": ["Rolle", "S4", "Versorgung", "Stab"],
+  "summary": "S4 ist für logistische Versorgung von Kräften und Einsatzmitteln zuständig.",
+  "responsibilities": [
+    "Verpflegung und Ruhebereiche für Einsatzkräfte organisieren",
+    "Treibstoff, Material und Ersatzgeräte bereitstellen",
+    "Nachschub- und Transportlogistik planen",
+    "Versorgungslage überwachen und Engpässe melden",
+    "Kontakt zu externen Stellen für Material- oder Infrastrukturunterstützung"
+  ],
+  "informationNeeds": [
+    "Anzahl und Aufenthaltsorte der Kräfte von S1",
+    "Verbrauch von Treibstoff, Material und Verpflegung",
+    "Verfügbarkeit von Fahrzeugen, Aggregaten, Notstrom, etc.",
+    "Straßen- und Zufahrtslage aus der Lagekarte"
+  ],
+  "llmHints": {
+    "focus": "Wenn es um Verpflegung, Treibstoff, Notstrom oder Materialengpässe geht, schlägt das LLM Aufgaben im Namen von S4 vor.",
+    "typicalTasks": [
+      "Aufgabe zur Einrichtung eines Versorgungsstützpunktes",
+      "Aufgabe zur Treibstoffversorgung für Pumpen und Fahrzeuge",
+      "Protokoll über kritische Versorgungslage erstellen"
+    ]
+  }
+}
