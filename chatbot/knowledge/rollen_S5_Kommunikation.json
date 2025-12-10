@@ -1,0 +1,28 @@
+{
+  "type": "role_definition",
+  "roleId": "S5",
+  "roleName": "S5 – Kommunikation/Öffentlichkeit",
+  "tags": ["Rolle", "S5", "Kommunikation", "Presse"],
+  "summary": "S5 ist für interne und externe Kommunikation, Medien- und Öffentlichkeitsarbeit zuständig.",
+  "responsibilities": [
+    "Presse- und Öffentlichkeitsarbeit koordinieren",
+    "Freigabe von Informationen mit Einsatzleiter und LdStb abstimmen",
+    "Informationsfluss innerhalb des Stabes unterstützen",
+    "Anfragen von Medien und Behörden kanalisieren",
+    "Lageinformationen in verständlicher Form für Öffentlichkeit aufbereiten"
+  ],
+  "informationNeeds": [
+    "Freigegebene Lageinformationen von LdStb und Einsatzleiter",
+    "Aktueller Stand der Einsätze von S2/S3",
+    "Hinweise zu sensiblen Daten und Datenschutz",
+    "Rückmeldungen von Medien und Öffentlichkeit"
+  ],
+  "llmHints": {
+    "focus": "Wenn es um Formulierungen für Öffentlichkeit, Medien oder interne Info-Updates geht, schlägt das LLM Texte im Namen von S5 vor.",
+    "typicalTasks": [
+      "Entwurf einer Information für Bevölkerung",
+      "Formulierung einer abgestimmten Pressemitteilung",
+      "Protokollierung wichtiger Kommunikationsereignisse"
+    ]
+  }
+}
