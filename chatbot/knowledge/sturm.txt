@@ -1,0 +1,84 @@
+Wind- und Sturmeinwirkung
+
+Hazard: Windwurf / umstürzende Bäume
+Trigger: Sturm-/Orkanwarnung, Meldungen „Baum auf Straße/Haus“, knacksende Bäume.
+Maßnahmen:
+
+Wald/Alleen bei Sturm meiden, Straßen ggf. sperren.
+
+Baumarbeiten nur durch ausgebildete Kräfte mit PSA.
+
+Hazard: Herabfallende/umherfliegende Gegenstände
+Trigger: fliegende Dachteile, Bleche, Schilder, lose Gerüste/Bauzäune.
+Maßnahmen:
+
+Bereiche unter/um gefährdete Objekte absperren.
+
+Dach-/Gerüstarbeiten nur gesichert und bei vertretbarer Windlage.
+
+Gebäudeschäden
+
+Hazard: Dach- und Fassadenschäden
+Trigger: abgedeckte Dächer, herausgerissene Dachfenster, Wassereintritt.
+Maßnahmen:
+
+Gebäude mit schweren Schäden als einsturz-/einsturzteilsgefährdet ansehen.
+
+Dacharbeiten nur mit Hubsteiger und Sicherung, wenn Windlage passt.
+
+Hazard: Einsturzgefährdete Bauwerke
+Trigger: starke Risse, geneigte Wände/Masten, Teile bereits eingestürzt.
+Maßnahmen:
+
+Sperrbereich einrichten, Betreten erst nach Freigabe durch Statiker.
+
+Elektrische Gefahren
+
+Hazard: Herabgerissene Leitungen
+Trigger: Leitungen am Boden oder hängend, Funkenbildung, Leitungen auf Fahrzeugen.
+Maßnahmen:
+
+Alle beschädigten Leitungen als spannungsführend behandeln.
+
+Großräumig absperren, Kontakt mit Netzbetreiber.
+
+Hazard: Stromausfall und Notstrom
+Trigger: großflächige Stromausfälle, Notstromaggregate in Innenräumen, provisorische Verkabelung.
+Maßnahmen:
+
+CO-Gefahr durch Aggregate kommunizieren.
+
+Unsachgemäße Einspeisungen unterbinden.
+
+Kritische Einrichtungen mit Notstrom versorgen.
+
+Gefahrstoffe
+
+Hazard: Beschädigte Tanks, Silos, Lager
+Trigger: abgedeckte Lagerhallen, umgestürzte Tanks, Geruch oder Dampfwolken.
+Maßnahmen:
+
+Gefahrenzone, Windrichtung beachten, PSA verwenden.
+
+Gefahrstoffzug/Betriebe/Behörden einbinden.
+
+Gesundheit
+
+Hazard: Verletzungen durch Trümmer und Glassplitter
+Maßnahmen: Helm, Schutzbrille, Handschuhe; Bevölkerung vor Aufräumgefahren warnen.
+
+Hazard: Kälte- und Nässebelastung
+Maßnahmen: Wetterschutzkleidung, Aufwärmpausen, Beobachtung von Unterkühlung.
+
+Einsatzkräfte
+
+Hazard: Gefährliche Arbeiten mit Motorsäge
+Maßnahmen: nur ausgebildete Kräfte, vollständige PSA, ggf. Forstprofi.
+
+Hazard: Überlastung/Erschöpfung
+Maßnahmen: Schichtsystem, Priorisierung, Nachbarwehren einbinden.
+
+Psychosozial
+
+Hazard: Psychische Belastung durch Sturmschäden
+Maßnahmen: psychosoziale Unterstützung, transparente Kommunikation, Nachbesprechungen.
