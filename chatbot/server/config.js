@@ -1,12 +1,10 @@
 // chatbot/server/config.js
-// Zentrale Konfiguration für EINFO-Chatbot mit Profilen:
-// - mixtral_gpu (Default)
-// - phi3_cpu (kleines CPU-Modell, kein GPU-Zwang)
+// Zentrale Konfiguration für den EINFO-Chatbot mit Basis-Defaults und optionalen Profilen
 
-const profile = process.env.CHATBOT_PROFILE || "mixtral_gpu";
+const profileName = process.env.CHATBOT_PROFILE || "default";
 
 /**
- * Basis-Defaults, die für alle Profile gelten
+ * Basis-Defaults, die modellunabhängig sind
  */
 const base = {
   dataDir: "../../server/data",
@@ -16,9 +14,10 @@ const base = {
   knowledgeIndexDir: "../../knowledge_index",
 
   // HTTP/LLM Defaults
+  llmBaseUrl: process.env.LLM_BASE_URL || "http://127.0.0.1:11434",
+  llmEmbedModel: process.env.LLM_EMBED_MODEL || "nomic-embed-text",
   llmRequestTimeoutMs: Number(process.env.LLM_TIMEOUT_MS || "240000"),
   embeddingCacheSize: Number(process.env.EMBED_CACHE_SIZE || "100"),
-
 
   // Logging
   logDir: "../logs",
@@ -27,14 +26,20 @@ const base = {
   // Auto-Sim-Schritt (wird ggf. pro Profil überschrieben)
   autoStepMs: Number(process.env.CHATBOT_AUTO_STEP_MS || "120000"),
 
+  // LLM Defaults
+  defaultTemperature: Number(process.env.LLM_TEMP || "0.25"),
+  defaultSeed: Number(process.env.LLM_SEED || "42"),
+
   // Vector-RAG Basis-Settings (werden pro Profil evtl. geschärft)
   rag: {
     dim: Number(process.env.RAG_DIM || "768"),
     indexMaxElements: Number(process.env.RAG_MAX_ELEM || "50000"),
     topK: Number(process.env.RAG_TOP_K || "8"),
-    maxContextChars: Number(process.env.RAG_MAX_CTX || "2000")
+    maxContextChars: Number(process.env.RAG_MAX_CTX || "2000"),
+    scoreThreshold: Number(process.env.RAG_SCORE_THRESHOLD || "0.3")
   },
 
+  // Memory-RAG Defaults
   memoryRag: {
     // Ab wie vielen Memory-Items Long-Scenario-Logik sinnvoll ist (nur als Richtwert)
     longScenarioMinItems: Number(process.env.MEM_RAG_LONG_MIN_ITEMS || "100"),
@@ -49,74 +54,55 @@ const base = {
 
     // Standard-topK für Long-Scenario-Suche
     longScenarioTopK: Number(process.env.MEM_RAG_LONG_TOP_K || "12")
-  }
+  },
+
+  // Globale JSON-Einstellungen
+  jsonEnforce: true,
+  jsonSanitizer: true
 };
 
 /**
- * Profil-spezifische Overrides
+ * Profil-spezifische Overrides (nur wenn Sonderbehandlung nötig ist)
  */
-let profileConfig = {};
-
-if (profile === "phi3_cpu") {
-  // Leichtes CPU-Profil:
-  // - kleineres Chat-Modell
-  // - konservativere Kontexte
-  // - etwas seltenerer Auto-Step
-  profileConfig = {
-    llmBaseUrl: process.env.LLM_BASE_URL || "http://127.0.0.1:11434",
-
-    // Name aus deinen Logs: "phi3_cpu"
-    llmChatModel: process.env.LLM_CHAT_MODEL || "phi3_cpu",
-
-    // Embedding bleibt gleich (CPU-tauglich)
-    llmEmbedModel: process.env.LLM_EMBED_MODEL || "nomic-embed-text",
-
+const profiles = {
+  default: {
+    llmChatModel: process.env.LLM_CHAT_MODEL || "mixtral_einfo"
+  },
+  phi3_cpu: {
+    llmChatModel: "phi3_einfo",
     defaultTemperature: Number(process.env.LLM_TEMP || "0.2"),
     defaultSeed: Number(process.env.LLM_SEED || "123"),
-
     autoStepMs: Number(process.env.CHATBOT_AUTO_STEP_MS || "240000"),
-
     rag: {
-      dim: Number(process.env.RAG_DIM || "768"),
       indexMaxElements: Number(process.env.RAG_MAX_ELEM || "30000"),
       topK: Number(process.env.RAG_TOP_K || "6"),
       maxContextChars: Number(process.env.RAG_MAX_CTX || "1400")
     }
-  };
-} else {
-  // Default: Mixtral auf GPU (Q4) – kräftiger, aber schwerer
-  profileConfig = {
-    llmBaseUrl: process.env.LLM_BASE_URL || "http://127.0.0.1:11434",
-
-    // z.B. ollama: mixtral:8x7b-instruct-q4_0
-    llmChatModel:
-      process.env.LLM_CHAT_MODEL || "mixtral-8x7b-instruct-q4",
-
-    llmEmbedModel: process.env.LLM_EMBED_MODEL || "nomic-embed-text",
-
-    defaultTemperature: Number(process.env.LLM_TEMP || "0.25"),
-    defaultSeed: Number(process.env.LLM_SEED || "42"),
-
-    autoStepMs: Number(process.env.CHATBOT_AUTO_STEP_MS || "30000"),
-
+  },
+  mixtral_gpu: {
+    llmChatModel: "mixtral_einfo",
     rag: {
-      dim: Number(process.env.RAG_DIM || "768"),
-      indexMaxElements: Number(process.env.RAG_MAX_ELEM || "50000"),
-      topK: Number(process.env.RAG_TOP_K || "8"),
-      maxContextChars: Number(process.env.RAG_MAX_CTX || "2000")
+      topK: Number(process.env.RAG_TOP_K || "10")
     }
-  };
-}
+  }
+};
+
+const profileConfig = profiles[profileName] || profiles.default;
+const activeProfile = profiles[profileName] ? profileName : "default";
 
 /**
- * CONFIG = base + profileConfig (rag wird tief gemerged)
+ * CONFIG = base + profileConfig (rag/memoryRag wird tief gemerged)
  */
-function mergeConfig(baseCfg, profileCfg) {
-  const merged = { ...baseCfg, ...profileCfg };
-  merged.rag = { ...baseCfg.rag, ...(profileCfg.rag || {}) };
-  merged.memoryRag = { ...baseCfg.memoryRag, ...(profileCfg.memoryRag || {}) };
-  merged.profile = profile;
-  return merged;
-}
-
-export const CONFIG = mergeConfig(base, profileConfig);
+export const CONFIG = {
+  ...base,
+  ...profileConfig,
+  rag: {
+    ...base.rag,
+    ...(profileConfig.rag || {})
+  },
+  memoryRag: {
+    ...base.memoryRag,
+    ...(profileConfig.memoryRag || {})
+  },
+  profile: activeProfile
+};
