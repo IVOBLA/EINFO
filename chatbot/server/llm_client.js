@@ -333,6 +333,93 @@ function parseStreamBuffer(buffer, processPayload) {
 
 // ------------------- Zentrale LLM-Funktion -------------------------------
 
+async function requestJsonRepairFromLLM({
+  invalidJson,
+  model,
+  phaseLabel,
+  messageCount
+}) {
+  const systemPrompt =
+    "Du bist ein strenger JSON-Reparatur-Assistent. Korrigiere nur Syntaxfehler " +
+    "und formatiere so, dass exakt ein gültiges JSON-Objekt entsteht. Lass Inhalte " +
+    "unverändert und gib ausschließlich das reparierte JSON zurück.";
+
+  const userPrompt =
+    "Dieses JSON ist ungültig und konnte technisch nicht repariert werden. " +
+    "Bitte liefere nur die korrigierte Variante ohne weitere Erklärungen:\n\n" +
+    invalidJson;
+
+  const repairBody = {
+    model: model || CONFIG.llmChatModel,
+    stream: false,
+    options: {
+      temperature: 0,
+      seed: CONFIG.defaultSeed
+    },
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt }
+    ]
+  };
+
+  const serializedRequest = JSON.stringify(repairBody);
+
+  logLLMExchange({
+    phase: "json_repair_request",
+    model: repairBody.model,
+    systemPrompt,
+    userPrompt,
+    rawRequest: serializedRequest,
+    rawResponse: null,
+    parsedResponse: null,
+    extra: { phase: phaseLabel, messageCount }
+  });
+
+  let rawText = "";
+  let parsed = null;
+
+  try {
+    const resp = await fetchWithTimeout(
+      `${CONFIG.llmBaseUrl}/api/chat`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: serializedRequest
+      },
+      CONFIG.llmRequestTimeoutMs
+    );
+
+    rawText = await resp.text();
+    if (resp.ok && typeof rawText === "string" && rawText.trim()) {
+      parsed = extractJsonObject(rawText);
+    }
+
+    if (!resp.ok) {
+      logError("LLM-JSON-Reparatur-HTTP-Fehler", {
+        status: resp.status,
+        statusText: resp.statusText,
+        body: rawText
+      });
+    }
+  } catch (error) {
+    rawText = String(error);
+    logError("LLM-JSON-Reparatur-Fehler", { error: rawText });
+  }
+
+  logLLMExchange({
+    phase: "json_repair_response",
+    model: repairBody.model,
+    systemPrompt,
+    userPrompt,
+    rawRequest: serializedRequest,
+    rawResponse: rawText,
+    parsedResponse: parsed,
+    extra: { phase: phaseLabel, messageCount }
+  });
+
+  return { parsed, rawText };
+}
+
 async function doLLMCall(body, phaseLabel, onToken, options = {}) {
   const messages = Array.isArray(body.messages) ? body.messages : [];
   const serializedRequest = JSON.stringify(body);
@@ -488,6 +575,19 @@ async function doLLMCall(body, phaseLabel, onToken, options = {}) {
   let parsed = null;
   if (typeof rawText === "string" && rawText.trim()) {
     parsed = extractJsonObject(rawText);
+  }
+
+  if (!parsed && typeof rawText === "string" && rawText.trim()) {
+    const { parsed: repaired } = await requestJsonRepairFromLLM({
+      invalidJson: rawText,
+      model: body.model,
+      phaseLabel,
+      messageCount
+    });
+
+    if (repaired) {
+      parsed = repaired;
+    }
   }
 
   // Antwort IMMER in LLM.log
