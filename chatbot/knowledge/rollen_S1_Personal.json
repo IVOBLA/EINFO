@@ -1,0 +1,28 @@
+{
+  "type": "role_definition",
+  "roleId": "S1",
+  "roleName": "S1 – Personal",
+  "tags": ["Rolle", "S1", "Personal", "Stab"],
+  "summary": "S1 ist für alle personalbezogenen Belange im Stab und im Einsatzgebiet zuständig.",
+  "responsibilities": [
+    "Übersicht über verfügbare Einsatzkräfte und deren Qualifikationen führen",
+    "Nachalarmierung und Ablöseplanung organisieren",
+    "Personelle Einsatzbereitschaft der Feuerwehren überwachen",
+    "Rückmeldungen zu Personalengpässen an LdStb und Einsatzleiter geben",
+    "Dokumentation von Personaleinsatz und Schichtwechseln"
+  ],
+  "informationNeeds": [
+    "Aktueller Personalstand in allen betroffenen Feuerwehren",
+    "Schichtpläne, Ruhezeiten und verfügbare Reserven",
+    "Besondere Qualifikationen (z. B. Boot, Atemschutz, Kran)",
+    "Rückmeldungen der Einsatzabschnittsleiter zum Personalbedarf"
+  ],
+  "llmHints": {
+    "focus": "Wenn es um Personal, Verfügbarkeit von Kräften oder Ablöseplanung geht, schlägt das LLM Aufgaben und Protokolle im Namen von S1 vor.",
+    "typicalTasks": [
+      "Aufgabe an S1 zur Planung von Ablösungen erstellen",
+      "Aufgabe an S1 zur Nachalarmierung zusätzlicher Kräfte",
+      "Protokolleintrag über kritische Personalengpässe verfassen"
+    ]
+  }
+}
