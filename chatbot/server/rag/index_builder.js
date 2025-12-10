@@ -37,7 +37,7 @@ async function loadFiles() {
   for (const e of entries) {
     if (!e.isFile()) continue;
     const ext = path.extname(e.name).toLowerCase();
-    if (![".txt", ".md", ".pdf"].includes(ext)) continue;
+    if (![".txt", ".md", ".pdf", ".json"].includes(ext)) continue;
     files.push({ name: e.name, path: path.join(knowledgeDir, e.name), ext });
   }
   return files;
@@ -48,6 +48,19 @@ async function extractText(file) {
     const buf = await fsPromises.readFile(file.path);
     const data = await pdfParse(buf);
     return data.text || "";
+  }
+  if (file.ext === ".json") {
+    const raw = await fsPromises.readFile(file.path, "utf8");
+    try {
+      const parsed = JSON.parse(raw);
+      return JSON.stringify(parsed, null, 2);
+    } catch (err) {
+      logError("JSON konnte nicht geparsed werden, verwende Rohinhalt", {
+        file: file.name,
+        error: String(err)
+      });
+      return raw;
+    }
   }
   const raw = await fsPromises.readFile(file.path, "utf8");
   return raw;

@@ -26,6 +26,15 @@ async function loadTextFromFile(filePath) {
     const data = await fsPromises.readFile(filePath);
     const pdfData = await pdfParse(data);
     return pdfData.text || "";
+  } else if (ext === ".json") {
+    const raw = await fsPromises.readFile(filePath, "utf8");
+    try {
+      const parsed = JSON.parse(raw);
+      return JSON.stringify(parsed, null, 2);
+    } catch (err) {
+      console.warn(`[ingest] JSON konnte nicht geparsed werden, verwende Rohinhalt: ${filePath}`);
+      return raw;
+    }
   } else {
     // z.B. .md oder .log kannst du bei Bedarf ergänzen
     return fsPromises.readFile(filePath, "utf8");
@@ -34,7 +43,7 @@ async function loadTextFromFile(filePath) {
 
 async function buildIndex() {
   await ensureDirs();
-  const pattern = path.join(knowledgeDirAbs, "**/*.{txt,pdf}");
+  const pattern = path.join(knowledgeDirAbs, "**/*.{txt,pdf,json}");
   const files = await glob(pattern, { nodir: true });
 
   const docs = [];
