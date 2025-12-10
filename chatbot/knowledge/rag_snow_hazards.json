@@ -1,0 +1,486 @@
+{
+  "meta": {
+    "version": "1.0",
+    "scope": "Schneelage",
+    "description": "Gefahrenklassen, Trigger und Maßnahmen für Schneefall, Schneesturm und winterliche Lagen im Bezirkseinsatzstab",
+    "lastUpdate": "2025-12-10T12:20:00+01:00"
+  },
+  "hazardClasses": [
+    {
+      "id": "schneelast",
+      "title": "Schneelast und Gebäudestatik",
+      "description": "Gefahren durch hohe Schneelasten auf Dächern und Konstruktionen.",
+      "hazards": [
+        {
+          "id": "schneelast-01",
+          "name": "Übermäßige Schneelast auf Dächern",
+          "shortText": "Starke Schneefälle und Verwehungen erhöhen die Dachlast, vor allem bei Flach- und Hallendächern.",
+          "phase": ["ansteigend", "während", "nach"],
+          "triggers": {
+            "sensorTriggers": [
+              {
+                "id": "snowload-high",
+                "description": "Hohe Neuschneemengen oder hohe Gesamt-Schneedecke im Vergleich zu regionalen Grenzwerten.",
+                "source": "Schneehöhensensor / Wetterdienst / GeoSphere",
+                "thresholdExample": "snowHeight >= regionaler Warnwert ODER > 50 cm Nassschnee auf Flachdächern."
+              }
+            ],
+            "situationTriggers": [
+              "Meldung: 'Dach hängt durch', 'Risse im Mauerwerk', 'Knack- und Knirschgeräusche aus Dachbereich'.",
+              "Starke Verwehungen auf Dächern, insbesondere an Hallen, Turnsälen, Stallungen.",
+              "Bekannte Problemgebäude mit großer Dachfläche und schwächerer Konstruktion."
+            ],
+            "manualFlags": [
+              "Bauamt oder Statiker warnt vor Schneelast auf bestimmten Gebäuden.",
+              "S2 markiert kritische Dächer (Hallen, Turnsäle, Ställe) als besonders gefährdet."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Gebäude mit erkennbaren Verformungen oder Geräuschen sofort räumen und sperren.",
+              "Dachräumungen nur von Fachfirmen oder speziell geschulten Kräften durchführen lassen.",
+              "Aufenthalt unter gefährdeten Dachbereichen vermeiden (Fallbereich berücksichtigen)."
+            ],
+            "byRole": {
+              "S2": [
+                "Kritische Gebäude in der Lagekarte mit Symbol 'Schneelast' kennzeichnen.",
+                "Lagebericht: Hinweise auf gefährdete Hallen, Turnsäle, Stallungen und öffentliche Gebäude."
+              ],
+              "S3": [
+                "Einsatzkräfte nicht auf potentiell überlastete Dächer schicken.",
+                "Rettungsmaßnahmen nur mit Fokus auf Menschenrettung und Eigenschutz."
+              ],
+              "S4": [
+                "Kontaktaufnahme mit Bauämtern, Statikern und Dachdeckerbetrieben.",
+                "Organisation von Absperrmaterial, Hubsteigern und Ausrüstung für fachgerechte Räumung."
+              ],
+              "S5": [
+                "Information an Bevölkerung, gefährdete Gebäude nicht zu betreten und Dachräumungen nicht eigenmächtig durchzuführen.",
+                "Hinweis auf alternative Unterbringungsmöglichkeiten, falls Gebäude geräumt werden müssen."
+              ]
+            }
+          }
+        },
+        {
+          "id": "schneelast-02",
+          "name": "Eis- und Schneewächten",
+          "shortText": "Überhängende Schnee- und Eiswächten an Dächern können plötzlich abbrechen.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Sichtbare Überhänge von Schnee/Eis an Dachkanten oder Vorsprüngen.",
+              "Meldung: 'Eiszapfen drohen abzubrechen', 'Schneebretter über Gehsteig'."
+            ],
+            "manualFlags": [
+              "Gemeinden oder Hausverwaltungen melden Gefahrenstellen über Gehwegen / Eingängen.",
+              "S2 erhält Fotos/Videos mit deutlichen Überhängen."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Gefährdete Bereiche unter Schnee- und Eiswächten absperren.",
+              "Abschlagen/Entfernen nur durch Fachkräfte und mit geeigneter Sicherung.",
+              "Fußgängerbereiche bei Gefahr großräumig umleiten."
+            ],
+            "byRole": {
+              "S2": [
+                "Gefahrenpunkte an stark frequentierten Wegen auf der Lagekarte kennzeichnen."
+              ],
+              "S3": [
+                "Einsatzkräfte nicht im direkten Fallbereich arbeiten lassen.",
+                "Wenn notwendig Hubsteiger oder Fachfirmen hinzuziehen."
+              ],
+              "S4": [
+                "Hubsteiger, Absperrmaterial und PSA (Helme mit Visier) bereitstellen.",
+                "Abstimmung mit Straßenerhalter und Hausverwaltungen."
+              ],
+              "S5": [
+                "Hinweis an Bevölkerung, Absperrungen zu beachten und Gefahrenbereiche zu meiden."
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "verkehr",
+      "title": "Verkehrs- und Mobilitätsgefahren",
+      "description": "Gefahren durch Schneeglätte, Sichtbehinderung, blockierte Straßen und liegengebliebene Fahrzeuge.",
+      "hazards": [
+        {
+          "id": "verkehr-01",
+          "name": "Schneeglätte und rutschige Fahrbahnen",
+          "shortText": "Schnee, Matsch, Eis und überfrierende Nässe führen zu erhöhter Unfallgefahr.",
+          "phase": ["ansteigend", "während"],
+          "triggers": {
+            "sensorTriggers": [
+              {
+                "id": "roadtemp-low",
+                "description": "Straßentemperatur um oder unter 0°C bei Niederschlag.",
+                "source": "Straßensensoren / Wetterdienst",
+                "thresholdExample": "roadTemp <= 0°C UND precipitationType = Schnee oder Regen."
+              }
+            ],
+            "situationTriggers": [
+              "Häufung von Verkehrsunfällen auf einzelnen Streckenabschnitten.",
+              "Meldungen: 'Fahrbahnen spiegelglatt', 'Autos kommen nicht mehr weg'.",
+              "Schneeverwehungen in exponierten Lagen / auf Brücken."
+            ],
+            "manualFlags": [
+              "Straßenmeisterei meldet 'extreme Glätte' oder empfohlene Sperren.",
+              "Polizei meldet gehäufte Unfälle an bestimmten Strecken."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Geschwindigkeitsreduktion und ggf. Sperrung besonders gefährlicher Abschnitte.",
+              "Hinweis an Einsatzkräfte: vorsichtige Anfahrt, Schneeketten bei Bedarf anlegen.",
+              "Koordination mit Winterdienst zur Streuung/Pflügung kritischer Abschnitte."
+            ],
+            "byRole": {
+              "S2": [
+                "Gefährliche Streckenabschnitte auf der Lagekarte markieren.",
+                "Lagebericht: Hinweise auf gesperrte oder nur eingeschränkt befahrbare Straßen."
+              ],
+              "S3": [
+                "Einsatzfahrzeuge nicht unnötig in hochgefährdete Bereiche entsenden.",
+                "Sammelpunkte so wählen, dass Anfahrt sicher möglich bleibt."
+              ],
+              "S4": [
+                "Abstimmung mit Straßenmeisterei und Gemeinden für Winterdienst.",
+                "Bereitstellung von Schneeketten, Sand/Splitt und Abschlepphilfen."
+              ],
+              "S5": [
+                "Öffentliche Information zu Glättegefahr, empfohlene Routen und Fahrverhalten.",
+                "Hinweis, unnötige Fahrten zu vermeiden."
+              ]
+            }
+          }
+        },
+        {
+          "id": "verkehr-02",
+          "name": "Blockierte Straßen und liegengebliebene Fahrzeuge",
+          "shortText": "Starker Schneefall kann Straßen unpassierbar machen, Fahrzeuge bleiben stecken.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Meldung: 'LKW quert Straße', 'Bus steckt fest', 'Kolonne kommt nicht weiter'.",
+              "Mehrere liegengebliebene Fahrzeuge auf Steigungen oder in Kurven.",
+              "Starke Verwehungen auf exponierten Abschnitten (Pässe, freie Flächen)."
+            ],
+            "manualFlags": [
+              "Straßenmeisterei oder Polizei melden gesperrte Straßen.",
+              "S2 erhält Lageberichte mit 'Ort XY abgeschnitten'."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Straßenabschnitte mit feststeckenden Fahrzeugen sperren oder umleiten.",
+              "Rettung von eingeschlossenen Personen (Kälte, medizinische Notfälle) priorisieren.",
+              "Zufahrten zu kritischer Infrastruktur offen halten (Krankenhaus, Feuerwehr, Rettung)."
+            ],
+            "byRole": {
+              "S2": [
+                "Aktuelle Erreichbarkeit von Ortschaften und wichtigen Objekten auf der Lagekarte darstellen.",
+                "Markierung isolierter Gebiete ohne reguläre Zufahrt."
+              ],
+              "S3": [
+                "Priorität auf Rettung und Versorgung, nicht auf allgemeine Abschleppaufgaben.",
+                "Einsatzkräfte nicht ohne Not in abgeschnittene Bereiche schicken, wenn Rückzug fraglich ist."
+              ],
+              "S4": [
+                "Organisation von Räumfahrzeugen und ggf. Raupenfahrzeugen/Schneefahrzeugen.",
+                "Abstimmung mit Linienbetreibern (Bus/Bahn) und Speditionen."
+              ],
+              "S5": [
+                "Information an Bevölkerung über nicht befahrbare Straßen und alternative Routen.",
+                "Hinweis, Fahrzeuge möglichst aus engen Straßen abzuziehen und Rettungswege freizuhalten."
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "infrastruktur",
+      "title": "Schäden an Infrastruktur",
+      "description": "Schäden und Ausfälle bei Strom, Leitungen, Gebäuden und Versorgungseinrichtungen durch Schnee und Eis.",
+      "hazards": [
+        {
+          "id": "infrastruktur-01",
+          "name": "Schäden an Freileitungen und Masten",
+          "shortText": "Nasser Schnee, Eis und Wind führen zu Mast- und Leitungsbruch.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Meldung: 'Leitung hängt durch', 'Mast abgeknickt', 'Leitung auf Straße'.",
+              "Großflächige Stromausfälle in bestimmten Regionen.",
+              "Funk- oder Telekom-Ausfälle in Verbindung mit starkem Schneefall."
+            ],
+            "manualFlags": [
+              "Netzbetreiber meldet Störungen im Leitungsnetz.",
+              "S2 markiert gefährdete oder bereits betroffene Leitungsabschnitte."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Herunterhängende Leitungen stets als spannungsführend betrachten.",
+              "Bereiche unter durchhängenden Leitungen und um beschädigte Masten absperren.",
+              "Stromausfälle und betroffene Bereiche im Lagebild dokumentieren."
+            ],
+            "byRole": {
+              "S2": [
+                "Status der Stromversorgung und bekannte Leitungsstörungen in der Lagekarte führen.",
+                "Lagebericht: Übersicht der betroffenen Ortsteile und kritischer Einrichtungen."
+              ],
+              "S3": [
+                "Einsätze im Bereich beschädigter Leitungen nur nach Rücksprache mit Netzbetreiber.",
+                "Mindestabstände und Sicherheitsregeln für Einsatzkräfte strikt einhalten."
+              ],
+              "S4": [
+                "Koordination mit Netzbetreibern und Organisation von Notstrom für kritische Infrastruktur.",
+                "Bereitstellung von Sperrmaterial und Beleuchtung."
+              ],
+              "S5": [
+                "Information an Bevölkerung über Stromausfälle und richtige Verhaltensweisen.",
+                "Hinweis, herunterhängende Leitungen zu melden und Abstand zu halten."
+              ]
+            }
+          }
+        },
+        {
+          "id": "infrastruktur-02",
+          "name": "Versorgungsausfall (Strom, Heizung, Wasser)",
+          "shortText": "Schneelagen können zu längerem Ausfall von Strom und Heizung führen.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Mehrstündige bis mehrtägige Stromausfälle bei winterlichen Temperaturen.",
+              "Meldung: 'Heizung fällt aus', 'kein Wasser', 'Wärmeversorgung unterbrochen'.",
+              "Orte oder Ortsteile sind abgeschnitten und ohne Versorgung."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Kritische Einrichtungen mit Notstrom und Brennstoff versorgen.",
+              "Schutz von vulnerablen Gruppen (ältere Menschen, Pflegebedürftige, Kinder) besonders beachten.",
+              "Warme Aufenthaltsräume / Notunterkünfte einrichten, falls nötig."
+            ],
+            "byRole": {
+              "S2": [
+                "Status von Strom/Heizung/Wasser in der Lagekarte dokumentieren.",
+                "Isolierte Gebiete mit Versorgungsschwierigkeiten besonders hervorheben."
+              ],
+              "S3": [
+                "Priorisierung von Einsätzen zur Unterstützung lebenswichtiger Einrichtungen.",
+                "Unterstützung beim Transport von Menschen in Notunterkünfte."
+              ],
+              "S4": [
+                "Organisation von Notstromaggregaten, Heizgeräten, Decken und Verpflegung.",
+                "Abstimmung mit Sozialdiensten und Gemeinden."
+              ],
+              "S5": [
+                "Bevölkerung über Notunterkünfte, Hilfsangebote und Eigenvorsorge informieren.",
+                "Hinweis auf sicheren Umgang mit Notheizungen und Aggregaten (CO-Gefahr)."
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "gesundheit",
+      "title": "Gesundheitliche Gefahren",
+      "description": "Unterkühlung, Ausrutschen, körperliche Überlastung bei Schneeräumung usw.",
+      "hazards": [
+        {
+          "id": "gesundheit-01",
+          "name": "Unterkühlung und Erfrierungen",
+          "shortText": "Lange Aufenthalte in Kälte und Nässe führen zu Unterkühlung.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Einsatz bei niedrigen Temperaturen, Wind und Nässe über längere Zeit.",
+              "Anzeichen von Zittern, Koordinationsstörungen, Verlangsamung bei Einsatzkräften.",
+              "Personen in Fahrzeugen oder Gebäuden ohne Heizung eingeschlossen."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Wetterschutzkleidung, Mützen, Handschuhe und wasserdichte Schuhe einsetzen.",
+              "Regelmäßige Aufwärmpausen in geheizten Bereichen einplanen.",
+              "Anzeichen von Unterkühlung ernst nehmen und medizinische Hilfe veranlassen."
+            ],
+            "byRole": {
+              "S1": [
+                "Schichtplanung mit ausreichenden Ruhe- und Aufwärmzeiten.",
+                "Aufteilung von Außenaufgaben, um Dauerexposition zu begrenzen."
+              ],
+              "S4": [
+                "Bereitstellung von heißen Getränken, Decken und beheizbaren Aufenthaltsräumen."
+              ]
+            }
+          }
+        },
+        {
+          "id": "gesundheit-02",
+          "name": "Rutsch- und Sturzgefahr",
+          "shortText": "Glatter Untergrund, verdeckte Hindernisse und unebener Schnee erhöhen Sturzrisiko.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Glatteis auf Wegen, Treppen, Zufahrten.",
+              "Schnee verdeckt Stufen, Kanten, Schächte und Hindernisse.",
+              "Meldungen über Stürze von Fußgängern oder Einsatzkräften."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Einsatzkräfte auf langsames und bewusstes Gehen hinweisen.",
+              "Geeignete Schuhe mit gutem Profil verwenden.",
+              "Gefährliche Bereiche abstreuen oder sperren, soweit möglich."
+            ],
+            "byRole": {
+              "S3": [
+                "Einsatzstellen so einrichten, dass unnötige Wege über glatte Flächen vermieden werden."
+              ],
+              "S4": [
+                "Abstimmung mit Winterdienst für Streuung von Zugängen und wichtigen Wegen."
+              ]
+            }
+          }
+        },
+        {
+          "id": "gesundheit-03",
+          "name": "Körperliche Überlastung bei Räumarbeiten",
+          "shortText": "Schneeräumung und Freilegen von Fahrzeugen kann extrem anstrengend sein.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Längere manuelle Räumarbeiten mit Schaufel, besonders bei schwerem Nassschnee.",
+              "Ältere oder gesundheitlich vorbelastete Personen räumen große Flächen.",
+              "Meldung von Kreislaufbeschwerden während oder nach Schneeräumung."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Räumarbeiten in kürzere Intervalle aufteilen und Pausen einplanen.",
+              "Bei gesundheitlich gefährdeten Personen Räumhilfe durch Dritte organisieren.",
+              "Aufwärm- und Trinkpausen sicherstellen, Überlastungszeichen beachten."
+            ],
+            "byRole": {
+              "S5": [
+                "Information an Bevölkerung über Risiken schwerer körperlicher Arbeit bei Kälte.",
+                "Hinweis, Hilfe (Nachbarn, Gemeinden) anzunehmen bzw. anzufordern."
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "einsatzkraefte",
+      "title": "Gefahren für Einsatzkräfte",
+      "description": "Besondere Risiken für Feuerwehr und Rettung in Schneelage.",
+      "hazards": [
+        {
+          "id": "einsatzkraefte-01",
+          "name": "Erschwerte Anfahrt und Rückzugsmöglichkeiten",
+          "shortText": "Schnee und Glätte erschweren Anfahrt, Rückzug und Ortswechsel.",
+          "phase": ["während"],
+          "triggers": {
+            "situationTriggers": [
+              "Einsatzfahrzeuge kommen schwer voran oder bleiben stecken.",
+              "Straßen sind nur einspurig oder noch nicht geräumt.",
+              "Sichtbehinderung durch Schneefall oder Verwehungen."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Anfahrtswege sorgfältig wählen und Rückzugsmöglichkeiten einplanen.",
+              "Nicht in Sackgassen oder Engstellen ohne Wendemöglichkeit fahren.",
+              "Schneeketten rechtzeitig montieren, nicht erst im Hang."
+            ],
+            "byRole": {
+              "S3": [
+                "Einsatzorte so wählen, dass sie trotz Schneelage erreichbar und verlassbar bleiben.",
+                "Sammelplätze an gut erreichbaren Knotenpunkten definieren."
+              ],
+              "S4": [
+                "Ausrüstung für Fahrzeugbergung, Schneeketten und Hilfsmittel bereitstellen.",
+                "Abstimmung mit Winterdienst zur Freihaltung von Einsatzrouten."
+              ]
+            }
+          }
+        },
+        {
+          "id": "einsatzkraefte-02",
+          "name": "Überlastung und Dauereinsatz",
+          "shortText": "Viele kleinere Einsätze bei Schneelage führen zu langer Einsatzdauer.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Stunden- oder tagelange Abarbeitung von Baum, Verkehr und Versorgungs-Einsätzen.",
+              "Erkennbare Müdigkeit und Gereiztheit in den Mannschaften.",
+              "Fehlende Ablöse aufgrund breiter Betroffenheit."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Schichtsystem und Priorisierung der Einsätze (Menschen vor Sachwerten).",
+              "Frühzeitige Unterstützung durch Nachbarwehren anfordern.",
+              "Einsatznachbesprechung und Raum für Rückmeldungen schaffen."
+            ],
+            "byRole": {
+              "S1": [
+                "Personalrotation planen, Reserven aktivieren und rechtzeitig nachalarmieren.",
+                "Belastungen im Personalbericht erfassen und nachbereiten."
+              ],
+              "S3": [
+                "Einsätze strikt nach Dringlichkeit priorisieren.",
+                "Überlastete Einheiten von körperlich schweren Aufgaben entlasten."
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "psychosozial",
+      "title": "Psychosoziale Folgen",
+      "description": "Belastung durch längere Winterlagen, Isolation und Schäden.",
+      "hazards": [
+        {
+          "id": "psychosozial-01",
+          "name": "Psychische Belastung durch lang anhaltende Schneelage",
+          "shortText": "Lange Schneelagen, Isolation und fortgesetzte Störungen (Strom, Verkehr) können belasten.",
+          "phase": ["während", "nach", "langfristig"],
+          "triggers": {
+            "situationTriggers": [
+              "Ortschaften länger abgeschnitten oder nur schwer erreichbar.",
+              "Langwierige Versorgungsschwierigkeiten und wiederkehrende Störungen.",
+              "Einsatzkräfte und Bevölkerung äußern Frust, Müdigkeit und Resignation."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Frühzeitige Einbindung psychosozialer Unterstützungsangebote.",
+              "Transparente Kommunikation über Lage, Fortschritte und Perspektiven.",
+              "Einsatznachbesprechungen und Austauschmöglichkeiten schaffen."
+            ],
+            "byRole": {
+              "S1": [
+                "Psychosoziale Betreuung für Einsatzkräfte organisieren.",
+                "Belastete Kamerad:innen aktiv ansprechen und unterstützen."
+              ],
+              "S5": [
+                "Information an Bevölkerung über Hilfsangebote, Hotlines und Beratungsstellen.",
+                "Kommunikation ruhig, sachlich und ermutigend gestalten."
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
