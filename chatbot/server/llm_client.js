@@ -6,7 +6,7 @@ import { CONFIG } from "./config.js";
 import {
   buildSystemPrompt,          // allgemeiner Ops-Prompt
   buildUserPrompt,            // allgemeiner Ops-Prompt
-  buildStartPrompts,          // Start-Prompt für Nicht-phi3
+  buildStartPrompts,          // Start-Prompt
   buildSystemPromptChat,
   buildUserPromptChat
 } from "./prompts.js";
@@ -77,8 +77,6 @@ export async function callLLMForOps({
   memorySnippets = []
 }) {
   const { compressedBoard, compressedAufgaben, compressedProtokoll } = llmInput;
-  const modelName = (CONFIG.llmChatModel || "").toLowerCase();
-
   let systemPrompt;
   let userPrompt;
 
@@ -86,124 +84,9 @@ export async function callLLMForOps({
   // SPEZIALFALL: ERSTER SIMULATIONSSCHRITT
   // ---------------------------------------------------------
   if (llmInput.firstStep) {
-    // Für phi3_cpu: kompakter Start-Prompt mit Beispiel-JSON, OHNE RAG/History
-    if (modelName.includes("phi3")) {
-      const rolesJson = JSON.stringify(llmInput.roles || {}, null, 2);
-
-      systemPrompt = `
-Du bist ein Simulationsmodul für den Bezirks-Einsatzstab.
-Sprache: Du schreibst ALLES auf Deutsch.
-
-Du musst GENAU EIN JSON-Objekt zurückgeben. Nichts davor, nichts danach.
-
-Erlaubtes Format:
-{
-  "operations": {
-    "board": { "createIncidentSites": [...], "updateIncidentSites": [] },
-    "aufgaben": { "create": [...], "update": [] },
-    "protokoll": { "create": [...] }
-  },
-  "analysis": "kurzer deutscher Text",
-  "meta": {
-    "historySummary": "max. 2 Sätze",
-    "historyState": { "openIncidents": [], "closedIncidents": [], "openTasksByRole": {}, "lastMajorEvents": [] }
-  }
-}
-
-Rollenregeln:
-- originRole, fromRole, assignedBy NUR Rollen aus missingRoles.
-- "via" ist IMMER "Meldestelle" oder "Meldestelle/S6".
-- meta.historyState ist dein strukturierter Speicher über alle Schritte und muss gepflegt werden.
-
-BEISPIEL (Struktur und Stil):
-
-{
-  "operations": {
-    "board": {
-      "createIncidentSites": [
-        {
-          "originRole": "Einsatzleiter",
-          "fromRole": "Einsatzleiter",
-          "via": "Meldestelle",
-          "title": "Hochwasser Bereich Tiebel",
-          "description": "Überflutung im Uferbereich, Wasserstand steigend.",
-          "priority": "critical",
-          "locationHint": "Tiebel, Feldkirchen",
-          "linkedProtocolId": null
-        }
-      ],
-      "updateIncidentSites": []
-    },
-    "aufgaben": {
-      "create": [
-        {
-          "originRole": "LdStb",
-          "assignedBy": "Einsatzleiter",
-          "via": "Meldestelle",
-          "forRole": "S2",
-          "title": "Lagebild Hochwasser",
-          "description": "Pegelstände sammeln und Lagekarte aktualisieren.",
-          "priority": "high",
-          "linkedIncidentId": "incident-1",
-          "linkedProtocolId": null
-        }
-      ],
-      "update": []
-    },
-    "protokoll": {
-      "create": [
-        {
-          "originRole": "Einsatzleiter",
-          "fromRole": "Einsatzleiter",
-          "toRole": "LdStb",
-          "via": "Meldestelle",
-          "subject": "Lagemeldung Hochwasser",
-          "content": "Überflutung im Bereich Tiebel, mehrere Objekte gefährdet.",
-          "category": "Lagemeldung"
-        }
-      ]
-    }
-  },
-  "analysis": "Beispielausgabe, tatsächliche IDs und Texte an die aktuelle Lage anpassen.",
-  "meta": {
-    "historySummary": "Kurz zusammengefasster Schritt",
-    "historyState": { "openIncidents": [], "closedIncidents": [], "openTasksByRole": {}, "lastMajorEvents": [] }
-  }
-}
-
-Dies ist NUR ein Beispiel. Du musst eigene Inhalte erzeugen, aber GENAU dieses Format einhalten.
-`;
-
-      userPrompt = `
-START-SCHRITT – Hochwasser-Katastrophenszenario im Bezirk Feldkirchen.
-
-ROLES (active/missing):
-${rolesJson}
-
-Lage:
-- Nach Starkregen steigen die Pegel von Tiebel und Glan deutlich.
-- Erste Überflutungen im Uferbereich und in Unterführungen.
-- Der Bezirks-Einsatzstab wird eingerichtet.
-
-Aufgabe:
-- Erzeuge 1–3 neue Einsatzstellen in "operations.board.createIncidentSites"
-  passend zur Hochwasserlage (z.B. überflutete Straßenzüge, gefährdete Objekte).
-- Erzeuge mindestens einen Protokolleintrag in "operations.protokoll.create"
-  (z.B. Lagemeldung Einsatzleiter -> LdStb).
-- Erzeuge mindestens eine Aufgabe in "operations.aufgaben.create"
-  für eine fehlende Stabsrolle (z.B. S2, S3, S4 oder S5).
-
-Regeln:
-- originRole, fromRole, assignedBy NUR Rollen aus missingRoles verwenden.
-- "via" IMMER "Meldestelle" oder "Meldestelle/S6".
-- Gib NUR EIN JSON-Objekt im beschriebenen Format aus. Keine weiteren Texte.
-`;
-    } else {
-      // Nicht-phi3-Modelle: bestehenden (umfangreicheren) Start-Prompt nutzen
-      const start = buildStartPrompts({ roles: llmInput.roles });
-      systemPrompt = start.systemPrompt;
-      userPrompt = start.userPrompt;
-    }
+    const start = buildStartPrompts({ roles: llmInput.roles });
+    systemPrompt = start.systemPrompt;
+    userPrompt = start.userPrompt;
   } else {
     // -------------------------------------------------------
     // NORMALFALL: laufende Simulation

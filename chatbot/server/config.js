@@ -68,17 +68,6 @@ const profiles = {
   default: {
     llmChatModel: process.env.LLM_CHAT_MODEL || "mixtral_einfo"
   },
-  phi3_cpu: {
-    llmChatModel: "phi3_einfo",
-    defaultTemperature: Number(process.env.LLM_TEMP || "0.2"),
-    defaultSeed: Number(process.env.LLM_SEED || "123"),
-    autoStepMs: Number(process.env.CHATBOT_AUTO_STEP_MS || "240000"),
-    rag: {
-      indexMaxElements: Number(process.env.RAG_MAX_ELEM || "30000"),
-      topK: Number(process.env.RAG_TOP_K || "6"),
-      maxContextChars: Number(process.env.RAG_MAX_CTX || "1400")
-    }
-  },
   mixtral_gpu: {
     llmChatModel: "mixtral_einfo",
     rag: {
