@@ -106,6 +106,36 @@ function cosineSimilarity(a, b) {
   return dot / (Math.sqrt(na) * Math.sqrt(nb));
 }
 
+function heapPush(heap, item) {
+  heap.push(item);
+  let i = heap.length - 1;
+  while (i > 0) {
+    const parent = Math.floor((i - 1) / 2);
+    if (heap[parent].s <= item.s) break;
+    heap[i] = heap[parent];
+    i = parent;
+  }
+  heap[i] = item;
+}
+
+function heapReplaceRoot(heap, item) {
+  let i = 0;
+  const length = heap.length;
+  const half = length >> 1;
+  while (i < half) {
+    let left = (i << 1) + 1;
+    let right = left + 1;
+    let smallest = left;
+    if (right < length && heap[right].s < heap[left].s) {
+      smallest = right;
+    }
+    if (heap[smallest].s >= item.s) break;
+    heap[i] = heap[smallest];
+    i = smallest;
+  }
+  heap[i] = item;
+}
+
 /**
  * Liefert einen String mit Knowledge-Kontext (Top-K Chunks).
  */
@@ -122,18 +152,29 @@ export async function getKnowledgeContextVector(query) {
   }
   const qArr = Array.from(qEmb);
 
-  const sims = [];
   const n = Math.min(vectors.length, CONFIG.rag.indexMaxElements);
+  const k = Math.min(CONFIG.rag.topK, n);
+  if (k === 0) return "";
+
+  const heap = [];
 
   for (let i = 0; i < n; i++) {
     const v = vectors[i];
     const s = cosineSimilarity(qArr, v);
-    sims.push({ idx: i, s });
+    const entry = { idx: i, s };
+
+    if (heap.length < k) {
+      heapPush(heap, entry);
+      continue;
+    }
+
+    if (s > heap[0].s) {
+      heapReplaceRoot(heap, entry);
+    }
   }
 
-  sims.sort((a, b) => b.s - a.s);
+  const sims = heap.sort((a, b) => b.s - a.s);
 
-  const k = Math.min(CONFIG.rag.topK, sims.length);
   const parts = [];
   let remaining = CONFIG.rag.maxContextChars;
 
