@@ -20,10 +20,54 @@ const FILES = {
   protokoll: "protocol.json"
 };
 
-async function safeReadJson(filePath, defaultValue) {
+function validatePayload(value, validateFn, contextLabel) {
+  if (typeof validateFn !== "function") return { ok: true };
+  try {
+    const result = validateFn(value);
+    if (result === true) return { ok: true };
+    if (result && typeof result === "object" && result.ok !== false) return { ok: true };
+    const message = typeof result?.error === "string" ? result.error : "Ungültiges JSON-Format";
+    return { ok: false, error: message, context: contextLabel };
+  } catch (err) {
+    return { ok: false, error: String(err || "Ungültiges JSON-Format"), context: contextLabel };
+  }
+}
+
+const validateRolesPayload = (value) => {
+  if (!value || typeof value !== "object") return { ok: false, error: "Rollen-Payload fehlt" };
+  if (!value.roles || typeof value.roles !== "object") return { ok: false, error: '"roles"-Schlüssel fehlt' };
+  const { active, missing } = value.roles;
+  if (!Array.isArray(active) || !Array.isArray(missing)) {
+    return { ok: false, error: "Rollen benötigen die Felder active und missing als Arrays" };
+  }
+  return { ok: true };
+};
+
+const validateBoardPayload = (value) => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return { ok: false, error: "Board-Payload muss ein Objekt sein" };
+  if (!value.columns || typeof value.columns !== "object" || Array.isArray(value.columns)) {
+    return { ok: false, error: "Pflichtfeld 'columns' fehlt oder ist ungültig" };
+  }
+  return { ok: true };
+};
+
+const validateArrayPayload = (label) => (value) => {
+  if (!Array.isArray(value)) return { ok: false, error: `${label} muss ein Array sein` };
+  return { ok: true };
+};
+
+async function safeReadJson(filePath, defaultValue, { validate, contextLabel } = {}) {
   try {
     const raw = await fsPromises.readFile(filePath, "utf8");
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+
+    const validation = validatePayload(parsed, validate, contextLabel || path.basename(filePath));
+    if (!validation.ok) {
+      logError(`Ungültige JSON-Struktur in ${filePath}`, { error: validation.error, context: validation.context });
+      return defaultValue;
+    }
+
+    return parsed;
   } catch (err) {
     if (err.code !== "ENOENT") {
       logError(`Fehler beim Lesen von ${filePath}`, { error: String(err) });
@@ -99,10 +143,10 @@ export async function readEinfoInputs() {
   const protokollPath = path.join(dataDirAbs, FILES.protokoll);
 
   const [rolesRaw, boardRaw, aufgabenS2Raw, protokollRaw] = await Promise.all([
-    safeReadJson(rolesPath, { roles: { active: [], missing: [] } }),
-    safeReadJson(boardPath, { columns: {} }),
-    safeReadJson(aufgabenS2Path, []),
-    safeReadJson(protokollPath, [])
+    safeReadJson(rolesPath, { roles: { active: [], missing: [] } }, { validate: validateRolesPayload, contextLabel: "roles" }),
+    safeReadJson(boardPath, { columns: {} }, { validate: validateBoardPayload, contextLabel: "board" }),
+    safeReadJson(aufgabenS2Path, [], { validate: validateArrayPayload("Aufg_board_S2.json") }),
+    safeReadJson(protokollPath, [], { validate: validateArrayPayload("protocol.json") })
   ]);
 
   const active = rolesRaw?.roles?.active || [];
