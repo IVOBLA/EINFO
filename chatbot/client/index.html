@@ -102,6 +102,25 @@
       small {
         color: #6b7280;
       }
+      .status-row {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-top: 0.25rem;
+      }
+      .error-text {
+        color: #b91c1c;
+        font-size: 0.85rem;
+      }
+      .gpu-badge {
+        background: #ecfdf3;
+        color: #166534;
+      }
+      .gpu-badge.unavailable {
+        background: #fef2f2;
+        color: #991b1b;
+      }
       @media (max-width: 900px) {
         main {
           grid-template-columns: 1fr;
@@ -154,6 +173,10 @@
         ></textarea>
         <div class="toolbar" style="margin-top:0.5rem">
           <button id="llm-send">Testen</button>
+        </div>
+        <div class="status-row">
+          <span id="llm-gpu-status" class="badge gpu-badge">GPU: keine Daten</span>
+          <span id="llm-error" class="error-text"></span>
         </div>
         <div id="llm-output" class="log"></div>
       </section>
