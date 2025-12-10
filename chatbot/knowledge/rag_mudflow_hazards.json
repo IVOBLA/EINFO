@@ -1,0 +1,358 @@
+{
+  "meta": {
+    "version": "1.0",
+    "scope": "Murenabgänge",
+    "description": "Gefahrenklassen, Trigger und Maßnahmen für Murenabgänge und Hangrutschungen im Bezirkseinsatzstab",
+    "lastUpdate": "2025-12-10T11:58:00+01:00"
+  },
+  "hazardClasses": [
+    {
+      "id": "geologie",
+      "title": "Hangstabilität und Murenbildung",
+      "description": "Gefahren durch aufgeweichte Hänge, instabile Böden, Rutschungen und Muren.",
+      "hazards": [
+        {
+          "id": "geologie-01",
+          "name": "Akute Mure / Hangrutsch",
+          "shortText": "Plötzliche Massenbewegung aus Wasser, Schlamm, Gestein und Holz, die mit hoher Geschwindigkeit talwärts fließt.",
+          "phase": ["ansteigend", "während"],
+          "triggers": {
+            "sensorTriggers": [
+              {
+                "id": "rainfall-high",
+                "description": "Starkregen / mehrstündiger Dauerregen über Schwellenwert",
+                "source": "Regenmesser / GeoSphere / lokaler Sensor",
+                "thresholdExample": "rain24h >= 50mm ODER rain1h >= 20mm in Steillagen"
+              }
+            ],
+            "situationTriggers": [
+              "Meldung: lauter Donner-/Rollgeräusch aus Hang, Staubwolke, Erschütterung.",
+              "Plötzlicher Anstieg von trübem, steinigem Wasser in Wildbächen.",
+              "Sichtbare frische Risse im Hang, kippende Bäume, abrutschende Böschungsbereiche."
+            ],
+            "manualFlags": [
+              "S2 markiert Hang / Bachlauf als 'Murenverdächtig'.",
+              "Warnung der Wildbach- und Lawinenverbauung (WLV) oder Gemeinde über Murenhinweise."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Aufenthalt im unmittelbaren Gefahrenbereich des Hanges oder Bachlaufes unverzüglich einstellen.",
+              "Straßen, Wege und Gebäude im möglichen Murenkorridor räumen und sperren.",
+              "Erst nach fachlicher Beurteilung durch Geologen / WLV wieder freigeben.",
+              "Mögliche Folgemuren berücksichtigen, auch wenn der erste Abgang vorbei ist."
+            ],
+            "byRole": {
+              "S2": [
+                "Gefahrenkorridor der Mure (Einzugsgebiet, Laufweg, Ablagerungsbereich) auf der Lagekarte einzeichnen.",
+                "Abgleich mit Gefahrenzonenplan (WLV/HORA) und Dokumentation der betroffenen Objekte."
+              ],
+              "S3": [
+                "Einsatzkräfte nur in sicheren Bereichen positionieren; keine Aufstellung im direkten Hangfuß oder Bachbett.",
+                "Zufahrtswege so wählen, dass Fluchtweg aus dem Murenkorridor möglich bleibt."
+              ],
+              "S4": [
+                "Absperrmaterial, Beleuchtung und ggf. Erkundungsmittel (Drohne, Scheinwerfer) bereitstellen.",
+                "Kontaktaufnahme mit WLV, Geologen und Straßenmeisterei zur Lagebeurteilung."
+              ],
+              "S5": [
+                "Warnung an Bevölkerung in Hang- und Bachnähe: Häuser im Murenkorridor verlassen, Sperren strikt beachten.",
+                "Hinweis, sich nicht in Bachbetten, Gräben oder unter steilen Böschungen aufzuhalten."
+              ]
+            }
+          }
+        },
+        {
+          "id": "geologie-02",
+          "name": "Vorzeichen einer Mure / instabiler Hang",
+          "shortText": "Frühwarnzeichen für mögliche Rutschungen, bevor die Mure abgeht.",
+          "phase": ["ansteigend", "präventiv"],
+          "triggers": {
+            "situationTriggers": [
+              "Neue oder sich vergrößernde Risse im Boden, Mauern, Straßen.",
+              "Schiefe Zäune, kippende Bäume oder Stangen, abgesackte Straßenränder.",
+              "Hangquellaustritte oder stark zunehmende Wasseraustritte in Steillagen nach Regen."
+            ],
+            "manualFlags": [
+              "Gemeinde, WLV oder Anrainer melden 'ungewöhnliche Bewegungen' im Hang.",
+              "S2 erhält Fotos / Meldungen mit klaren Verdachtsmomenten."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Gefährdeten Hangbereich markieren und dokumentieren (Fotos, Koordinaten).",
+              "Aufenthalt von Personen und Fahrzeugen im potenziellen Rutschbereich reduzieren.",
+              "Kritische Gebäude vorsorglich räumen, wenn begründete akute Gefahr besteht.",
+              "Einbindung von WLV / Geologen zur Beurteilung und Empfehlung weiterer Maßnahmen."
+            ],
+            "byRole": {
+              "S2": [
+                "Gefährdete Bereiche in der Lagekarte mit Warnsymbol 'instabiler Hang' kennzeichnen.",
+                "Vorwarnlagebericht mit Beschreibung der beobachteten Vorzeichen erstellen."
+              ],
+              "S3": [
+                "Einsatzkräfte von unmittelbar gefährdeten Hängen abziehen oder nur kurzzeitig einsetzten.",
+                "Erkundungsaufträge an örtliche Wehren mit klarer Sicherheitsweisung ausgeben."
+              ],
+              "S4": [
+                "Organisation von Erkundungsmitteln (z. B. Drohne), um Hänge aus sicherer Distanz zu beurteilen."
+              ],
+              "S5": [
+                "Information an Bevölkerung im betroffenen Bereich über beobachtete Gefahr und Verhaltenshinweise.",
+                "Ankündigung möglicher Räumung/Absperrung, um Überraschungsmomente zu vermeiden."
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "wasserwege",
+      "title": "Wildbäche und Gerinne",
+      "description": "Gefahren durch verlegte Bachläufe, Verklausungen und Umleitströme bei Muren.",
+      "hazards": [
+        {
+          "id": "wasserwege-01",
+          "name": "Verklausung und Umlenkung von Wildbächen",
+          "shortText": "Muren und Holz verlegen Bachläufe, Wasser sucht sich neue Wege.",
+          "phase": ["ansteigend", "während"],
+          "triggers": {
+            "situationTriggers": [
+              "Meldung: 'Bach verlegt', 'Brücke verstopft', 'Wasser läuft anders als sonst'.",
+              "Starker Anstieg oder plötzliches Versiegen der Wasserführung unterhalb einer Engstelle.",
+              "Anschwemmung großer Holz- und Blockmassen im Gerinne."
+            ],
+            "manualFlags": [
+              "WLV warnt vor drohender Verklausung / Ausbruch eines Wildbaches.",
+              "Fotos/Videos zeigen verlegte Brücken oder Durchlässe."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Aufenthalt im direkten Bachbett, unter Brücken und Engstellen wegen spontaner Flutwellen vermeiden.",
+              "Gefährdete Brücken und Bachufer für Verkehr sperren.",
+              "Mögliche neue Abflusswege (über Wiesen, Straßen, Gebäude) antizipieren und in der Lageplanung berücksichtigen."
+            ],
+            "byRole": {
+              "S2": [
+                "Skizzieren der möglichen neuen Abflusswege auf der Lagekarte.",
+                "Abgleich mit Gefahrenzonen und kritischer Infrastruktur im möglichen Überflutungsweg."
+              ],
+              "S3": [
+                "Einsatzkräfte für Beobachtungsaufgaben so positionieren, dass sie nicht von plötzlichen Flutwellen erfasst werden können.",
+                "Rettungseinsätze in Bachnähe nur mit klarer Fluchtmöglichkeit und Sicherung."
+              ],
+              "S4": [
+                "Absperrmaterial, Beleuchtung an gefährdeten Querungen bereitstellen.",
+                "Abstimmung mit Straßenmeisterei und Gemeinde zu gezielten Sperren."
+              ],
+              "S5": [
+                "Warnung an Bevölkerung, Bachläufe und Brücken nicht zu betreten oder aus Neugier zu beobachten.",
+                "Hinweis auf mögliche schnelle Wasserstandsänderungen ohne Vorwarnung."
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "infrastruktur",
+      "title": "Schäden an Infrastruktur und Gebäuden",
+      "description": "Zerstörung und Überdeckung von Straßen, Brücken, Gebäuden und Leitungen durch Muren.",
+      "hazards": [
+        {
+          "id": "infrastruktur-01",
+          "name": "Zerstörung und Überdeckung von Straßen und Gebäuden",
+          "shortText": "Massenbewegungen können Straßen, Häuser und Leitungen verschütten oder abreißen.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Meldung: 'Straße verschüttet', 'Haus teilweise/komplett von Mure betroffen'.",
+              "Trümmer und Murenmaterial im Bereich von Brücken, Leitungen oder Gebäuden.",
+              "Versorgungseinrichtungen (Strom, Wasser, Gas) im Murenkorridor beschädigt."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Verschüttete Straßen und Objekte zunächst als instabil und absturzgefährdet betrachten.",
+              "Betreten von verschütteten Gebäudeteilen nur nach Sicherung durch Fachpersonal (Statiker) und mit geeigneter Ausrüstung.",
+              "Zufahrten neu planen, wenn bisherige Straßen dauerhaft blockiert oder zerstört sind."
+            ],
+            "byRole": {
+              "S2": [
+                "Aktualisierung der Lagekarte mit unpassierbaren Straßen und betroffenen Gebäuden.",
+                "Markierung von isolierten Gebieten ohne reguläre Zufahrt."
+              ],
+              "S3": [
+                "Rettungsmaßnahmen auf akute Lebensgefahr fokussieren, dabei Eigenschutz beachten.",
+                "Gefahr durch weitere Nachrutschungen bei der Einsatzplanung berücksichtigen."
+              ],
+              "S4": [
+                "Abstimmung mit Infrastrukturbetreibern (Energie, Wasser, Gas, Telekom) und Straßenmeisterei.",
+                "Organisation von schwerem Gerät (Bagger, Lader) in Abstimmung mit den zuständigen Stellen."
+              ],
+              "S5": [
+                "Information an Bevölkerung über gesperrte Verkehrswege, Umleitungen und betroffene Gebiete."
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "gefahrstoffe",
+      "title": "Gefahrstoffe und Sekundärgefahren",
+      "description": "Mitgerissene Tanks, Leitungen und Lager mit Gefahrstoffen oder Treibstoffen.",
+      "hazards": [
+        {
+          "id": "gefahrstoffe-01",
+          "name": "Mitgerissene Tanks und Leitungen",
+          "shortText": "Muren können Heizöltanks, Gasbehälter, Treibstofflager und Leitungen beschädigen.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Sichtbare Tanks, Kanister oder Gasflaschen im Murenmaterial.",
+              "Geruch nach Öl, Benzin oder Gas im Bereich eines Murenabgangs.",
+              "Meldung: 'Heizraum / Tankraum von Mure betroffen'."
+            ],
+            "manualFlags": [
+              "S2 erhält Hinweise auf betroffene Objekte mit Lagerung von Gefahrstoffen.",
+              "Rückmeldung von Energieversorgern über beschädigte Leitungen."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Gefahrenzone um verdächtige Behälter und Leitungen einrichten, Zündquellen vermeiden.",
+              "Einsatzkräfte nur mit geeigneter PSA und Messgeräten (falls vorhanden) in den Gefahrenbereich.",
+              "Umwelt- und Gefahrstofffachstellen einbinden, Freimessung und Sanierungsplanung veranlassen."
+            ],
+            "byRole": {
+              "S2": [
+                "Lagekarte um bekannte oder vermutete Gefahrstofflager ergänzen.",
+                "Gefahrstoff-Hinweise im Lagebericht explizit kennzeichnen."
+              ],
+              "S3": [
+                "Taktische Priorität: Menschenrettung, dann Sicherung von Gefahrstoffquellen.",
+                "Bei Gasverdacht großräumig absperren und nur mit geeigneten Maßnahmen vorgehen."
+              ],
+              "S4": [
+                "Abstimmung mit Versorgern (Gas/Energie) und Spezialfirmen für Gefahrstoffbeseitigung.",
+                "Organisation von Absperr- und Mess-Ausrüstung."
+              ],
+              "S5": [
+                "Ggf. Warnung an Bevölkerung vor Geruchsbelästigung und möglichen Gefahrstofffreisetzungen, mit klaren Verhaltensregeln."
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "einsatzkraefte",
+      "title": "Gefahren für Einsatzkräfte",
+      "description": "Gefährdung durch Instabilität, schlechte Sicht, Nacht-Einsätze, Überlastung.",
+      "hazards": [
+        {
+          "id": "einsatzkraefte-01",
+          "name": "Instabile Einsatzumgebung",
+          "shortText": "Einsatz in steilen, rutschgefährdeten Hängen und auf Murenkörpern.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Einsatzkräfte müssen sich auf frischem Murenmaterial oder am Hang bewegen.",
+              "Nachteinsätze in unübersichtlichem Gelände.",
+              "Sichtbare Nachrutschungen oder Bewegung im Gelände während des Einsatzes."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Begehung frischer Murenkörper nur, wenn unbedingt nötig und mit Sicherungsmaßnahmen.",
+              "Aufenthaltsdauer im unmittelbaren Gefahrenbereich begrenzen.",
+              "Einsatz bei Dunkelheit nur mit ausreichender Beleuchtung und klarer Rückzugsmöglichkeit."
+            ],
+            "byRole": {
+              "S2": [
+                "Gefährliche Einsatzbereiche auf der Lagekarte kennzeichnen ('instabil').",
+                "Hinweis auf Nachrutschgefahr in der Lagedarstellung klar hervorheben."
+              ],
+              "S3": [
+                "Taktische Vorgabe: Sicherheit vor Geschwindigkeit, insbesondere bei vermissten Personen.",
+                "Sicherer Standplatz für Führungskräfte und Mannschaften planen."
+              ],
+              "S4": [
+                "Bereitstellung von Sicherungsmitteln (Seile, Gurte) und Beleuchtung.",
+                "Ggf. Unterstützung durch alpine/bergrettungstechnische Kräfte anfordern."
+              ]
+            }
+          }
+        },
+        {
+          "id": "einsatzkraefte-02",
+          "name": "Psychische und körperliche Überlastung",
+          "shortText": "Belastende Bilder, harte körperliche Arbeit im unwegsamen Gelände.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Lange Schichten im Gelände bei Kälte/Nässe.",
+              "Rettung und Bergung von Verletzten oder Toten in Murenmaterial.",
+              "Subjektive Berichte von Erschöpfung, Frust oder Hilflosigkeit der Mannschaften."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Schichtbetrieb mit ausreichenden Ruhezeiten sicherstellen.",
+              "Psychosoziale Unterstützungsangebote (Peers, Krisenintervention) frühzeitig einplanen.",
+              "Nach belastenden Einsätzen strukturierte Einsatznachbesprechungen durchführen."
+            ],
+            "byRole": {
+              "S1": [
+                "Personalplanung so anpassen, dass Ablöse und Ruhe real möglich sind.",
+                "Belastete Kamerad:innen gezielt ansprechen und Unterstützungswege anbieten."
+              ],
+              "S3": [
+                "Aufteilung besonders belastender Aufgaben auf mehrere Teams, um Einzelne zu entlasten."
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "psychosozial",
+      "title": "Psychosoziale Folgen",
+      "description": "Traumatische Eindrücke und Langzeitfolgen für Betroffene und Einsatzkräfte.",
+      "hazards": [
+        {
+          "id": "psychosozial-01",
+          "name": "Psychische Belastung durch Murenabgänge",
+          "shortText": "Plötzliche Zerstörung von Häusern, Todesopfer und Vermisste belasten stark.",
+          "phase": ["während", "nach", "langfristig"],
+          "triggers": {
+            "situationTriggers": [
+              "Schwere Personenschäden oder Todesopfer durch Mure.",
+              "Orte mit hoher emotionaler Bindung betroffen (z. B. Wohnhäuser, bekannte Orte).",
+              "Betroffene und Einsatzkräfte zeigen starke emotionale Reaktionen."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Frühe Einbindung von psychosozialer Akuthilfe für Betroffene und Einsatzkräfte.",
+              "Schaffung von Räumen für Gespräch und Nachbesprechung im Stab.",
+              "Hinweise auf längerfristige Beratungs- und Unterstützungsangebote geben."
+            ],
+            "byRole": {
+              "S1": [
+                "Einsatznachbesprechungen organisieren, speziell nach besonders belastenden Lagen.",
+                "Angebote der psychosozialen Betreuung aktiv bekannt machen."
+              ],
+              "S5": [
+                "Information an Bevölkerung über verfügbare psychosoziale Unterstützungsangebote.",
+                "Kommunikation sensibel und respektvoll, bewusst auf retraumatisierende Darstellungen verzichten."
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
