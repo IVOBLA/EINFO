@@ -27,6 +27,48 @@ function fetchWithTimeout(url, options, timeoutMs) {
   });
 }
 
+export async function listAvailableLlmModels() {
+  const url = `${CONFIG.llmBaseUrl}/api/tags`;
+  let resp;
+
+  try {
+    resp = await fetchWithTimeout(
+      url,
+      { method: "GET" },
+      CONFIG.llmRequestTimeoutMs
+    );
+  } catch (err) {
+    logError("LLM-Modelle konnten nicht geladen werden", {
+      error: String(err)
+    });
+    throw new Error("Ollama-Modelle nicht erreichbar");
+  }
+
+  if (!resp.ok) {
+    logError("LLM-Modelle-HTTP-Fehler", {
+      status: resp.status,
+      statusText: resp.statusText
+    });
+    throw new Error(`Fehler ${resp.status} beim Laden der Modellliste`);
+  }
+
+  const data = await resp.json().catch(() => null);
+  const models = Array.isArray(data?.models) ? data.models : [];
+  const names = Array.from(
+    new Set(
+      models
+        .map((entry) => entry?.name)
+        .filter((name) => typeof name === "string" && name.trim())
+    )
+  );
+
+  if (!names.length) {
+    throw new Error("Keine Ollama-Modelle gefunden");
+  }
+
+  return names;
+}
+
 
 /** LLM für OPERATIONS (Simulation) */
 /** LLM für OPERATIONS (Simulation) */
@@ -218,14 +260,21 @@ Regeln:
 
 
 /** LLM für QA-Chat (auch Streaming) */
-export async function callLLMForChat({ question, stream = false, onToken }) {
+export async function callLLMForChat({
+  question,
+  stream = false,
+  onToken,
+  model
+}) {
   const knowledgeContext = await getKnowledgeContextVector(question);
 
   const systemPrompt = buildSystemPromptChat();
   const userPrompt = buildUserPromptChat(question, knowledgeContext);
 
+  const modelName = model || CONFIG.llmChatModel;
+
   const body = {
-    model: CONFIG.llmChatModel,
+    model: modelName,
     stream,
     options: {
       temperature: CONFIG.defaultTemperature,

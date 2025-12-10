@@ -4,6 +4,11 @@ const statusEl = document.getElementById("status");
 const chatInput = document.getElementById("chat-input");
 const chatSend = document.getElementById("chat-send");
 const chatLog = document.getElementById("chat-log");
+const llmModelSelect = document.getElementById("llm-model-select");
+const llmPrompt = document.getElementById("llm-prompt");
+const llmSend = document.getElementById("llm-send");
+const llmOutput = document.getElementById("llm-output");
+const llmRefresh = document.getElementById("llm-refresh");
 const BOT_NAME = "Florian";
 const chatEntries = [];
 
@@ -38,6 +43,109 @@ function setBusy(busy) {
   btnStep.disabled = busy;
   btnStart.disabled = busy;
   btnPause.disabled = busy;
+}
+
+function setLlmBusy(busy) {
+  if (llmSend) llmSend.disabled = busy;
+  if (llmRefresh) llmRefresh.disabled = busy;
+  if (llmModelSelect) llmModelSelect.disabled = busy;
+}
+
+function setLlmOutput(text) {
+  if (llmOutput) {
+    llmOutput.textContent = text;
+  }
+}
+
+async function loadLlmModels() {
+  if (!llmModelSelect) return;
+
+  setLlmBusy(true);
+  llmModelSelect.innerHTML = "";
+  const placeholder = document.createElement("option");
+  placeholder.textContent = "Modelle werden geladen…";
+  placeholder.disabled = true;
+  placeholder.selected = true;
+  llmModelSelect.appendChild(placeholder);
+  if (llmSend) llmSend.disabled = true;
+
+  try {
+    const res = await fetch("/api/llm/models");
+    const data = await res.json();
+
+    if (!res.ok || !data?.ok) {
+      throw new Error(data?.error || res.statusText || "Unbekannter Fehler");
+    }
+
+    const models = Array.isArray(data.models) ? data.models : [];
+    llmModelSelect.innerHTML = "";
+
+    if (!models.length) {
+      const opt = document.createElement("option");
+      opt.textContent = "Keine Modelle gefunden";
+      opt.disabled = true;
+      opt.selected = true;
+      llmModelSelect.appendChild(opt);
+      if (llmSend) llmSend.disabled = true;
+      return;
+    }
+
+    for (const model of models) {
+      const opt = document.createElement("option");
+      opt.value = model;
+      opt.textContent = model;
+      llmModelSelect.appendChild(opt);
+    }
+
+    if (llmSend) llmSend.disabled = false;
+  } catch (err) {
+    llmModelSelect.innerHTML = "";
+    const opt = document.createElement("option");
+    opt.textContent = "Laden fehlgeschlagen";
+    opt.disabled = true;
+    opt.selected = true;
+    llmModelSelect.appendChild(opt);
+    if (llmSend) llmSend.disabled = true;
+    setLlmOutput("Fehler beim Laden der Modelle: " + err);
+  } finally {
+    setLlmBusy(false);
+  }
+}
+
+async function runLlmTest() {
+  if (!llmPrompt || !llmModelSelect || !llmSend) return;
+
+  const prompt = (llmPrompt.value || "").trim();
+  const model = llmModelSelect.value;
+
+  if (!prompt || !model) return;
+
+  setLlmBusy(true);
+  setLlmOutput("LLM wird abgefragt…");
+
+  try {
+    const res = await fetch("/api/llm/test", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: prompt, model })
+    });
+
+    const data = await res.json();
+    if (!res.ok || !data?.ok) {
+      throw new Error(data?.error || res.statusText || "Unbekannter Fehler");
+    }
+
+    const answer =
+      typeof data.answer === "string"
+        ? data.answer
+        : JSON.stringify(data.answer, null, 2);
+
+    setLlmOutput(answer || "(keine Antwort)");
+  } catch (err) {
+    setLlmOutput("Fehler beim Test: " + err);
+  } finally {
+    setLlmBusy(false);
+  }
 }
 
 btnStart.addEventListener("click", async () => {
@@ -161,3 +269,26 @@ chatInput.addEventListener("keydown", (ev) => {
     chatSend.click();
   }
 });
+
+if (llmRefresh) {
+  llmRefresh.addEventListener("click", () => {
+    loadLlmModels();
+  });
+}
+
+if (llmSend) {
+  llmSend.addEventListener("click", () => {
+    runLlmTest();
+  });
+}
+
+if (llmPrompt) {
+  llmPrompt.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)) {
+      ev.preventDefault();
+      runLlmTest();
+    }
+  });
+}
+
+loadLlmModels();

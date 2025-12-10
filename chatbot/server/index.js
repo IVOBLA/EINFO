@@ -10,7 +10,7 @@ import {
   stepSimulation,
   isSimulationRunning
 } from "./sim_loop.js";
-import { callLLMForChat } from "./llm_client.js";
+import { callLLMForChat, listAvailableLlmModels } from "./llm_client.js";
 import { logInfo, logError } from "./logger.js";
 import { initMemoryStore } from "./memory_manager.js";
 
@@ -87,6 +87,41 @@ app.post("/api/chat", async (req, res) => {
     } else {
       res.end();
     }
+  }
+});
+
+app.get("/api/llm/models", async (_req, res) => {
+  try {
+    const models = await listAvailableLlmModels();
+    res.json({ ok: true, models });
+  } catch (err) {
+    logError("Fehler beim Laden der LLM-Modelle", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+app.post("/api/llm/test", async (req, res) => {
+  const { question, model } = req.body || {};
+
+  if (!question || typeof question !== "string") {
+    return res.status(400).json({ ok: false, error: "missing_question" });
+  }
+
+  if (!model || typeof model !== "string") {
+    return res.status(400).json({ ok: false, error: "missing_model" });
+  }
+
+  try {
+    const models = await listAvailableLlmModels();
+    if (!models.includes(model)) {
+      return res.status(400).json({ ok: false, error: "invalid_model" });
+    }
+
+    const answer = await callLLMForChat({ question, model });
+    res.json({ ok: true, answer });
+  } catch (err) {
+    logError("Fehler im LLM-Test-Endpunkt", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
   }
 });
 
