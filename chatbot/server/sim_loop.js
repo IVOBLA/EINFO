@@ -9,6 +9,7 @@ import { searchMemory } from "./memory_manager.js";
 // Merkt sich den letzten Stand der eingelesenen EINFO-Daten, damit nur neue
 // oder geänderte Einträge erneut an das LLM geschickt werden müssen.
 let lastComparableSnapshot = null;
+let lastCompressedBoardJson = "[]";
 
 let running = false;
 let stepInProgress = false;
@@ -26,9 +27,9 @@ function compressBoard(board) {
   if (!Array.isArray(board)) return "[]";
   const compact = board.slice(0, 50).map((i) => ({
     id: i.id,
-    desc: i.content || "",
-    status: i.column,
-    location: i.ort || "",
+    desc: i.desc ?? i.content ?? "",
+    status: i.status ?? i.column ?? "",
+    location: i.location ?? i.ort ?? "",
     typ: i.typ || "",
     statusSince: i.statusSince || null,
     assignedVehicles: i.raw?.assignedVehicles || i.assignedVehicles || null,
@@ -192,9 +193,15 @@ export async function stepSimulation(options = {}) {
       logInfo("Erster Simulationsschritt: Szenario-Initialisierung aktiv", null);
     }
 
+    const boardUnchanged =
+      lastComparableSnapshot?.board?.length === boardSnapshot.length &&
+      boardDelta.length === 0;
+
     const opsContext = {
       roles,
-      compressedBoard: compressBoard(board),
+      compressedBoard: boardUnchanged
+        ? lastCompressedBoardJson
+        : compressBoard(boardSnapshot),
       compressedAufgaben: compressAufgaben(aufgaben),
       compressedProtokoll: compressProtokoll(protokoll),
       firstStep: isFirstStep
@@ -252,6 +259,8 @@ export async function stepSimulation(options = {}) {
       aufgaben: aufgabenSnapshot,
       protokoll: protokollSnapshot
     };
+
+    lastCompressedBoardJson = opsContext.compressedBoard;
 
     return { ok: true, operations, analysis };
   } catch (err) {
