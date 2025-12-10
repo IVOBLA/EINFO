@@ -1,0 +1,28 @@
+{
+  "type": "role_definition",
+  "roleId": "S2",
+  "roleName": "S2 – Lage",
+  "tags": ["Rolle", "S2", "Lage", "Stab"],
+  "summary": "S2 ist für die laufende Lagedarstellung, Lagebewertung und Prognosen zuständig.",
+  "responsibilities": [
+    "Gesamtlage erfassen und laufend aktualisieren",
+    "Lagekarte und Übersicht über alle Einsatzstellen führen",
+    "Gefahren erkennen und bewerten (z. B. Hochwasser, Sturm, Blackout)",
+    "Lageentwicklungen und Prognosen für den Einsatzleiter und LdStb aufbereiten",
+    "Lageberichte für Besprechungen erstellen"
+  ],
+  "informationNeeds": [
+    "Alle Meldungen aus dem Einsatzgebiet (Protokoll, Funk, Telefon)",
+    "Daten aus Fachsystemen (z. B. Wetter, Pegelstände, HORA/WISA)",
+    "Rückmeldungen der Einsatzabschnittsleiter zur Lage vor Ort",
+    "Karten- und GIS-Informationen zu Gefahrenbereichen"
+  ],
+  "llmHints": {
+    "focus": "Wenn es um Übersicht, Gefahrenbewertung und Lageprognosen geht, schlägt das LLM Maßnahmen und Protokolle im Namen von S2 vor.",
+    "typicalTasks": [
+      "Neue Einsatzstellen anlegen oder priorisieren",
+      "Lagebericht für LdStb vorbereiten",
+      "Protokolleinträge zu Lageänderungen erstellen"
+    ]
+  }
+}
