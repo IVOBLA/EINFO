@@ -1,0 +1,28 @@
+{
+  "type": "role_definition",
+  "roleId": "S3",
+  "roleName": "S3 – Einsatz",
+  "tags": ["Rolle", "S3", "Einsatz", "Stab"],
+  "summary": "S3 ist für die operative Einsatzführung auf Stabsebene zuständig.",
+  "responsibilities": [
+    "Einsatzschwerpunkte festlegen und priorisieren",
+    "Kräfte und Mittel den Einsatzstellen zuordnen",
+    "Taktische Maßnahmen mit dem Einsatzleiter abstimmen",
+    "Einsatzabschnitte bilden und koordinieren",
+    "Rückmeldungen aus dem Einsatzgebiet auswerten und Maßnahmen anpassen"
+  ],
+  "informationNeeds": [
+    "Aktuelle Lageeinschätzung von S2",
+    "Verfügbarkeit von Kräften und Mitteln von S1 und S4",
+    "Taktische Rückmeldungen der Einsatzabschnittsleiter",
+    "Informationen zu Gefahren, Sperren und Infrastruktur"
+  ],
+  "llmHints": {
+    "focus": "Wenn es um Zuweisung von Kräften, taktische Maßnahmen oder Priorisierung von Einsatzstellen geht, schlägt das LLM Vorschläge im Namen von S3 vor.",
+    "typicalTasks": [
+      "Aufgabe an eine Einsatzstelle zur Schwerpunktbildung erstellen",
+      "Maßnahmenempfehlung bei Überlastung einer Einsatzstelle",
+      "Protokolleinträge zu getroffenen taktischen Entscheidungen"
+    ]
+  }
+}
