@@ -3,6 +3,18 @@ import { exec } from "child_process";
 import { promisify } from "util";
 
 const execAsync = promisify(exec);
+const isWindows = process.platform === "win32";
+
+const SMI_QUERY =
+  "--query-gpu=name,utilization.gpu,memory.used,memory.total --format=csv,noheader,nounits";
+const SMI_COMMAND = `nvidia-smi ${SMI_QUERY}`;
+
+function buildUnavailable(error) {
+  return {
+    available: false,
+    error
+  };
+}
 
 function parseNvidiaSmiOutput(output) {
   const lines = output
@@ -26,20 +38,27 @@ function parseNvidiaSmiOutput(output) {
 
 export async function getGpuStatus() {
   try {
-    const { stdout } = await execAsync(
-      "nvidia-smi --query-gpu=name,utilization.gpu,memory.used,memory.total --format=csv,noheader,nounits"
-    );
+    const { stdout } = await execAsync(SMI_COMMAND);
 
     const gpus = parseNvidiaSmiOutput(stdout);
+
+    if (!gpus.length) {
+      return buildUnavailable("nvidia-smi lieferte keine GPU-Daten");
+    }
 
     return {
       available: true,
       gpus
     };
   } catch (err) {
-    return {
-      available: false,
-      error: String(err)
-    };
+    if (err?.code === "ENOENT" || /not found/i.test(err?.message || "")) {
+      const hint = isWindows
+        ? "nvidia-smi wurde nicht gefunden (Windows: NVIDIA-Treiber/CUDA prüfen)"
+        : "nvidia-smi wurde nicht gefunden (NVIDIA-Treiber unter Linux prüfen)";
+      return buildUnavailable(hint);
+    }
+
+    const detailedError = String(err?.stderr || err?.message || err);
+    return buildUnavailable(detailedError);
   }
 }

@@ -387,11 +387,23 @@ async function doLLMCall(body, phaseLabel, onToken, options = {}) {
   }
 
   if (!resp.ok) {
-    const t = await resp.text().catch(() => "");
+    const rawText = await resp.text().catch(() => "");
+    let parsedError = "";
+
+    try {
+      const parsed = JSON.parse(rawText);
+      parsedError = parsed?.error || parsed?.message || "";
+    } catch (err) {
+      if (err) parsedError = "";
+    }
+
+    const responseSummary = parsedError || rawText || resp.statusText;
+    const detailedMessage = `LLM-Fehler ${resp.status}: ${responseSummary}`;
+
     logError("LLM-HTTP-Fehler", {
       status: resp.status,
       statusText: resp.statusText,
-      body: t
+      body: rawText
     });
 
     // HTTP-Fehler inkl. Body im LLM.log
@@ -401,7 +413,7 @@ async function doLLMCall(body, phaseLabel, onToken, options = {}) {
       systemPrompt,
       userPrompt,
       rawRequest: serializedRequest,
-      rawResponse: t,
+      rawResponse: rawText,
       parsedResponse: null,
       extra: {
         httpStatus: resp.status,
@@ -411,7 +423,7 @@ async function doLLMCall(body, phaseLabel, onToken, options = {}) {
       }
     });
 
-    throw new Error(`LLM error: ${resp.status} ${resp.statusText}`);
+    throw new Error(detailedMessage);
   }
 
   // STREAMING-FALL ----------------------------------------------------------

@@ -69,6 +69,7 @@ function renderGpuStatus(status) {
   if (!llmGpuStatus) return;
 
   llmGpuStatus.classList.remove("unavailable");
+  const errorText = status?.error ? String(status.error) : "";
 
   if (!status) {
     llmGpuStatus.textContent = "GPU: keine Daten";
@@ -87,18 +88,38 @@ function renderGpuStatus(status) {
         typeof gpu.memoryTotalMb === "number" ? gpu.memoryTotalMb : "?";
       return `${gpu.name || "GPU"}: ${utilization} – ${memoryUsed}/${memoryTotal} MiB`;
     });
-    llmGpuStatus.textContent = `GPU: ${parts.join(" | ")}`;
+    const joined = `GPU: ${parts.join(" | ")}`;
+    llmGpuStatus.textContent = errorText ? `${joined} (Hinweis: ${errorText})` : joined;
     return;
   }
 
   if (status.available) {
-    llmGpuStatus.textContent = "GPU: verfügbar, aber keine Details";
+    const text = errorText || "verfügbar, aber keine Details";
+    llmGpuStatus.textContent = `GPU: ${text}`;
     return;
   }
 
   llmGpuStatus.classList.add("unavailable");
-  const errorMsg = status.error || "nicht verfügbar";
+  const errorMsg = errorText || "nicht verfügbar";
   llmGpuStatus.textContent = `GPU: ${errorMsg}`;
+}
+
+async function refreshGpuStatus() {
+  if (!llmGpuStatus) return;
+
+  try {
+    const res = await fetch("/api/llm/gpu");
+    const data = await res.json().catch(() => null);
+
+    if (data?.gpuStatus) {
+      renderGpuStatus(data.gpuStatus);
+      return;
+    }
+
+    renderGpuStatus({ available: false, error: "Keine GPU-Daten vom Server" });
+  } catch (err) {
+    renderGpuStatus({ available: false, error: String(err) });
+  }
 }
 
 async function loadLlmModels() {
@@ -328,6 +349,7 @@ chatInput.addEventListener("keydown", (ev) => {
 if (llmRefresh) {
   llmRefresh.addEventListener("click", () => {
     loadLlmModels();
+    refreshGpuStatus();
   });
 }
 
@@ -347,3 +369,4 @@ if (llmPrompt) {
 }
 
 loadLlmModels();
+refreshGpuStatus();

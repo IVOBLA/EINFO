@@ -101,6 +101,16 @@ app.get("/api/llm/models", async (_req, res) => {
   }
 });
 
+app.get("/api/llm/gpu", async (_req, res) => {
+  try {
+    const gpuStatus = await getGpuStatus();
+    res.json({ ok: true, gpuStatus });
+  } catch (err) {
+    logError("Fehler beim Lesen des GPU-Status", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
 app.post("/api/llm/test", async (req, res) => {
   const { question, model } = req.body || {};
   const gpuStatus = await getGpuStatus();
