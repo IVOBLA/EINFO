@@ -1,0 +1,28 @@
+{
+  "type": "role_definition",
+  "roleId": "S6",
+  "roleName": "S6 – IT/Meldestelle",
+  "tags": ["Rolle", "S6", "IT", "Meldestelle"],
+  "summary": "S6 ist für die Informations- und Kommunikationstechnik sowie die Meldestelle zuständig.",
+  "responsibilities": [
+    "Meldestelle betreiben und eingehende Meldungen erfassen",
+    "Weiterleitung von Meldungen an zuständige Stabsstellen koordinieren",
+    "IT-Systeme, Funk- und Kommunikationsmittel betreuen",
+    "Störungen der Informationswege erkennen und beheben lassen",
+    "Dokumentation des Meldeverkehrs und Sicherung der Daten"
+  ],
+  "informationNeeds": [
+    "Alle eingehenden Meldungen aus Funk, Telefon und digitalen Kanälen",
+    "Status der IT- und Kommunikationssysteme",
+    "Kontaktwege zu Einsatzabschnitten und externen Stellen",
+    "Rückmeldungen der Stabsstellen zu offenen Meldungen"
+  ],
+  "llmHints": {
+    "focus": "Alle LLM-Operationen laufen formal über die Meldestelle; wenn Weiterleitung, Erfassung oder IT-Themen betroffen sind, kann S6 als Ursprung oder via-Rolle genutzt werden.",
+    "typicalTasks": [
+      "Protokollierung eingehender Meldungen",
+      "Aufgaben zu IT-Störungen oder Kommunikationsproblemen",
+      "Zuordnung von Meldungen an zuständige Stabsstellen"
+    ]
+  }
+}
