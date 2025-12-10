@@ -1,0 +1,415 @@
+{
+  "meta": {
+    "version": "1.0",
+    "scope": "Hochwasser",
+    "description": "Gefahrenklassen, Trigger und Maßnahmen für Hochwasser-Einsätze im Bezirkseinsatzstab",
+    "lastUpdate": "2025-12-10T11:40:00+01:00"
+  },
+  "hazardClasses": [
+    {
+      "id": "hydraulik",
+      "title": "Hydraulische Gefahren",
+      "description": "Gefahren durch Wasserstand, Strömung, Unterspülung, Treibgut und Rutschungen.",
+      "hazards": [
+        {
+          "id": "hydraulik-01",
+          "name": "Starke Strömung / Wassertiefe",
+          "shortText": "Schon geringe Wassertiefen mit Strömung können Menschen und Fahrzeuge mitreißen.",
+          "phase": ["während", "ansteigend", "scheitel"],
+          "triggers": {
+            "sensorTriggers": [
+              {
+                "id": "waterlevel-high",
+                "description": "Pegel > HQ1 bzw. lokale Warmschwelle",
+                "source": "Pegelserver / GeoSphere / lokaler Sensor",
+                "thresholdExample": "waterLevelRelativeToHQ100 >= 0.0"
+              }
+            ],
+            "situationTriggers": [
+              "Meldung: Straße überflutet / Unterführung voll Wasser",
+              "Fotos/Video zeigen fließendes Wasser auf Verkehrswegen",
+              "Boote oder Personen müssen sich im fließenden Wasser bewegen"
+            ],
+            "manualFlags": [
+              "S2 markiert Einsatzstelle als 'Gefahr durch Strömung'",
+              "Einsatzleiter meldet: Personen im fließenden Wasser"
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Kein Betreten von überfluteten Straßen ohne Strömungsbeurteilung.",
+              "Einsatzkräfte ab Wadenhöhe im fließenden Wasser nur mit Sicherung und geeigneter PSA.",
+              "Fahrzeuge nicht in überflutete Bereiche einfahren lassen.",
+              "Strömungsschwerpunkte (Brücken, Engstellen) meiden."
+            ],
+            "byRole": {
+              "S2": [
+                "Lagekarte: Bereiche mit starker Strömung markieren.",
+                "Hinweis in Lagebericht: 'Bewegen im Wasser nur mit Sicherung'."
+              ],
+              "S3": [
+                "Taktische Anweisung: Personenrettung nur mit gesicherter Mannschaft und geeigneten Rettungsmitteln (z. B. Leinen, Boote).",
+                "Erkundung: Strömung und Wassertiefe an kritischen Punkten prüfen."
+              ],
+              "S4": [
+                "Sicherstellung von PSA (Rettungswesten, Wathosen, Leinen)."
+              ],
+              "S5": [
+                "Warnung an Bevölkerung: 'Keine überfluteten Straßen betreten oder befahren'."
+              ]
+            }
+          }
+        },
+        {
+          "id": "hydraulik-02",
+          "name": "Unterspülte Verkehrswege und Bauwerke",
+          "shortText": "Fahrbahnen, Brücken und Ufermauern können durch Unterspülung plötzlich versagen.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Sichtbare Risse, Setzungen oder Abbrüche an Fahrbahnrändern.",
+              "Stark strömendes Wasser an Brückenpfeilern / Ufermauern.",
+              "Meldung: 'Fahrbahn trägt nicht mehr' oder 'Haarrisse/Risse an Brücke'."
+            ],
+            "manualFlags": [
+              "S2 markiert Straße / Brücke als 'gesperrt/unsicher'.",
+              "Straßenmeisterei / Gemeinde meldet Schäden an Brücken oder Ufern."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Straßenabschnitte mit Verdacht auf Unterspülung für Einsatzkräfte und Bevölkerung sperren.",
+              "Brücken bei Unterspülungsverdacht nur nach Freigabe durch Fachpersonal benutzen.",
+              "Im Zweifelsfall Umleitungen und alternative Zufahrten planen."
+            ],
+            "byRole": {
+              "S2": [
+                "Sperren und Gefahrenstellen in Lagekarte eintragen.",
+                "Lagebericht: 'Zufahrt über Straße X gesperrt, Ausweichroute Y nutzen'."
+              ],
+              "S3": [
+                "Zufahrten für Einsatzfahrzeuge anpassen, keine schweren Fahrzeuge über verdächtige Bauwerke schicken."
+              ],
+              "S4": [
+                "Koordination mit Straßenmeisterei / Gemeinde für Absperrmaterial und Fachbegutachtung."
+              ],
+              "S5": [
+                "Information an Bevölkerung: 'Brücke / Straße X gesperrt wegen Unterspülungsgefahr'."
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "elektrik",
+      "title": "Elektrische Gefahren",
+      "description": "Gefahren durch unter Spannung stehendes Wasser, überflutete Anlagen und Rückspeisungen.",
+      "hazards": [
+        {
+          "id": "elektrik-01",
+          "name": "Unter Spannung stehendes Wasser",
+          "shortText": "Überflutete elektrische Anlagen können Strom ins Wasser einleiten.",
+          "phase": ["während", "ansteigend", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Keller, Garagen oder Straßen mit sichtbaren Elektroinstallationen im Wasser.",
+              "Meldung: 'Wasser steht bis zu Steckdosen / Sicherungskasten'.",
+              "Überflutete Trafostationen, Verteilerkästen oder Schalthäuser."
+            ],
+            "manualFlags": [
+              "Netzbetreiber meldet: Teilnetz noch unter Spannung.",
+              "PV-Anlagen / Notstromaggregate in überfluteten Bereichen bekannt."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Überflutete Bereiche grundsätzlich als 'unter Spannung stehend' betrachten, bis Freigabe durch Fachpersonal.",
+              "Betreten überfluteter Keller / Technikräume nur nach Freigabe durch Elektriker / Energieversorger.",
+              "Rettungsmaßnahmen aus spannungsverdächtigem Bereich möglichst von trockenem, sicheren Standort (z. B. Leiter, Boot)."
+            ],
+            "byRole": {
+              "S2": [
+                "In Lagekarte Bereiche mit elektrischer Gefährdung markieren ('E-Strom')."
+              ],
+              "S3": [
+                "Taktische Weisung: Keine Mannschaft in überflutete Keller ohne Freigabe.",
+                "Koordination mit Netzbetreiber für Abschaltungen."
+              ],
+              "S4": [
+                "Kontaktaufnahme und Alarmierung von Elektrikern / Netzbetreibern.",
+                "Bereitstellung isolierender Hilfsmittel nach Möglichkeit."
+              ],
+              "S5": [
+                "Öffentlichkeitsinformation: 'Überflutete Keller nicht betreten, Strom abschalten lassen'."
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "gefahrstoffe",
+      "title": "Gefahrstoffe und Umwelt",
+      "description": "Gefahren durch Heizöl, Chemikalien, Abwasser und kontaminiertes Wasser.",
+      "hazards": [
+        {
+          "id": "gefahrstoffe-01",
+          "name": "Austritt von Heizöl und Chemikalien",
+          "shortText": "Heizöltanks und Chemikalienlager können bei Hochwasser beschädigt werden.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Sichtbarer Ölfilm auf Wasseroberfläche.",
+              "Meldung: 'Heizöltank im Keller überflutet / aufgeschwommen'.",
+              "Betriebe mit Chemikalienlager im Überflutungsbereich."
+            ],
+            "manualFlags": [
+              "S2 markiert Einsatzstelle als 'Gefahrstoffverdacht'.",
+              "Amt / Umweltbehörde meldet mögliche Kontamination."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Gefährdete Bereiche absperren und Kennzeichnung als Gefahrstoffbereich.",
+              "Aufnehmen von Ölfilmen mit geeigneten Bindemitteln soweit möglich.",
+              "Umweltfachstellen (z. B. Gewässerschutz, Umweltbehörde) informieren.",
+              "Dokumentation der Schadstelle für spätere Sanierung."
+            ],
+            "byRole": {
+              "S2": [
+                "Gefahrstoff-Orte in Lagekarte inkl. Fließrichtung des Wassers eintragen.",
+                "Übersicht 'Heizöltanks im Überschwemmungsgebiet' führen (sofern Daten vorhanden)."
+              ],
+              "S3": [
+                "Einsatz bei Gefahrstoffverdacht nur mit entsprechender Schutzausrüstung.",
+                "Priorisierung der Maßnahmen: Menschenrettung vor Umweltschutz, wenn notwendig."
+              ],
+              "S4": [
+                "Abstimmung mit Fachfirmen für Schadstoff- und Ölschadensanierung."
+              ],
+              "S5": [
+                "Hinweis an Bevölkerung: kontaminiertes Wasser meiden, kein Kontakt ohne PSA.",
+                "Information an betroffene Hausbesitzer über Meldewege (Versicherung, Umweltbehörde)."
+              ]
+            }
+          }
+        },
+        {
+          "id": "gefahrstoffe-02",
+          "name": "Abwasser und Fäkalien",
+          "shortText": "Überlastete Kanalisation und Kläranlagen führen zu hygienischen Gefahren.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Rückstau aus Kanaldeckeln (braunes, übel riechendes Wasser).",
+              "Meldung der Kläranlage über Überlastung / Überlaufen.",
+              "Überflutete Kläranlage oder Pumpstation."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Einsatzkräfte in Kontakt mit Abwasser nur mit geeigneter PSA (Schutzhandschuhe, ggf. Infektionsschutz).",
+              "Hinweis an Bevölkerung: Kontakt mit Hochwasser meiden, hygienische Maßnahmen (Händedesinfektion, Duschen).",
+              "Aufenthalt in stark kontaminierten Innenräumen (Keller) möglichst vermeiden."
+            ],
+            "byRole": {
+              "S2": [
+                "Kontaminationszonen in Lagekarte markieren."
+              ],
+              "S3": [
+                "Einsatz in stark kontaminierten Bereichen minimieren und Aufenthaltsdauer begrenzen."
+              ],
+              "S4": [
+                "Beschaffung von Desinfektionsmitteln und Einmal-Schutzausrüstung.",
+                "Koordination mit Gesundheitsbehörden."
+              ],
+              "S5": [
+                "Gezielte Warnhinweise: 'Hochwasserwasser nicht zum Waschen/Kochen/Trinken verwenden'."
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "gesundheit",
+      "title": "Gesundheit und Hygiene",
+      "description": "Infektionsrisiken, Haut- und Wundinfektionen, Schimmel und gesundheitliche Langzeitfolgen.",
+      "hazards": [
+        {
+          "id": "gesundheit-01",
+          "name": "Infektionsrisiko durch kontaminiertes Wasser",
+          "shortText": "Hochwasserwasser kann Krankheitserreger enthalten.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Längerer Aufenthalt von Einsatzkräften im Hochwasserwasser.",
+              "Arbeiten in überfluteten Kellern mit sichtbar verschmutztem Wasser.",
+              "Meldung von Magen-Darm-Erkrankungen im betroffenen Gebiet."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Kontakt mit Hochwasserwasser auf das Notwendige beschränken.",
+              "Nach Einsätzen: gründliches Waschen/Duschen, Kleidung wechseln.",
+              "Wunden abdecken, bei Verletzungen frühzeitig medizinische Abklärung anregen."
+            ],
+            "byRole": {
+              "S3": [
+                "Arbeitsrotation, um Dauerbelastung im Wasser zu begrenzen."
+              ],
+              "S4": [
+                "Bereitstellung von Wechselkleidung, Hygienematerial und Desinfektionsmitteln.",
+                "Abstimmung mit Gesundheitsbehörden über Impf- und Vorsorgeempfehlungen."
+              ],
+              "S5": [
+                "Information an Bevölkerung: grundlegende Hygieneregeln nach Hochwasser."
+              ]
+            }
+          }
+        },
+        {
+          "id": "gesundheit-02",
+          "name": "Schimmel und Innenraumbelastung",
+          "shortText": "Nach Rückgang des Wassers kommt es häufig zu starkem Schimmelbefall in Gebäuden.",
+          "phase": ["nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Gebäude über längere Zeit deutlich durchfeuchtet / überflutet.",
+              "Keller und Wohnräume nach Tagen noch feucht und schlecht belüftet."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Gebäude so rasch wie möglich belüften und trocknen (sofern sicher betreten werden kann).",
+              "Längeren Aufenthalt in verschimmelten Räumen meiden, besonders bei Atemwegserkrankungen.",
+              "Fachkundige Beurteilung und Sanierung empfehlen."
+            ],
+            "byRole": {
+              "S2": [
+                "In Lagebericht Hinweise zu längerfristigen Gesundheitsgefahren aufnehmen."
+              ],
+              "S5": [
+                "Information an Bevölkerung über Umgang mit Schimmel (Lüften, Schutzmasken, Fachberatung)."
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "infrastruktur",
+      "title": "Infrastruktur und kritische Einrichtungen",
+      "description": "Ausfälle und Beeinträchtigung von Strom, Wasser, Verkehr, Krankenhäusern etc.",
+      "hazards": [
+        {
+          "id": "infrastruktur-01",
+          "name": "Ausfall kritischer Infrastruktur",
+          "shortText": "Strom-, Wasser-, Abwasser- und Kommunikationsausfälle beeinträchtigen die Einsatzführung.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Stromausfall in ganzen Ortsteilen.",
+              "Ausfall von Telefon / Mobilfunk / Internet.",
+              "Meldung: Wasserwerk / Kläranlage / Krankenhaus im Hochwassergebiet beeinträchtigt."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Ersatzkommunikationswege vorbereiten (z. B. Funk, Melder).",
+              "Notstromversorgung für kritische Einrichtungen priorisieren.",
+              "Transport- und Versorgungswege (Treibstoff, Lebensmittel, Medikamente) planen."
+            ],
+            "byRole": {
+              "S2": [
+                "Lagebild mit Status kritischer Infrastrukturen pflegen."
+              ],
+              "S3": [
+                "Einsätze nach Kritikalität der betroffenen Einrichtungen priorisieren."
+              ],
+              "S4": [
+                "Beschaffung / Einsatz von Aggregaten und Treibstoff koordinieren."
+              ],
+              "S5": [
+                "Bevölkerung über erwartete Ausfälle und Vorsorgemaßnahmen informieren."
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "einsatzkraefte",
+      "title": "Gefahren für Einsatzkräfte",
+      "description": "Fehleinschätzung, unzureichende PSA, Überlastung, Absturz- und Einspülgefahr.",
+      "hazards": [
+        {
+          "id": "einsatzkraefte-01",
+          "name": "Fehleinschätzung und Überlastung",
+          "shortText": "Hohe körperliche und psychische Belastung erhöht Fehler- und Unfallrisiko.",
+          "phase": ["während", "nach"],
+          "triggers": {
+            "situationTriggers": [
+              "Lange Einsatzzeiten ohne Ablöse.",
+              "Personalmangel / hoher Druck durch viele Einsatzstellen.",
+              "Auffällige Konzentrationsfehler oder Erschöpfungsanzeichen."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Schichtsysteme und Ruhezeiten für Einsatzkräfte sicherstellen.",
+              "Regelmäßige Lagebesprechungen mit Fokus auf Sicherheit.",
+              "Niederschwellige Möglichkeit zum Abmelden bei Überlastung."
+            ],
+            "byRole": {
+              "S1": [
+                "Personalplanung mit Ablöse- und Ruhezeiten.",
+                "Monitoring der Belastung einzelner Einheiten."
+              ],
+              "S3": [
+                "Keine Hochrisiko-Einsätze mit erschöpften Mannschaften.",
+                "Einbau von Sicherheitspausen in die Einsatzplanung."
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "psychosozial",
+      "title": "Psychosoziale Folgen",
+      "description": "Psychische Belastung von Betroffenen und Einsatzkräften.",
+      "hazards": [
+        {
+          "id": "psychosozial-01",
+          "name": "Psychische Belastung",
+          "shortText": "Hochwasserereignisse können langanhaltende psychische Folgen haben.",
+          "phase": ["während", "nach", "langfristig"],
+          "triggers": {
+            "situationTriggers": [
+              "Schwere Personenschäden, Todesfälle oder massive Zerstörung.",
+              "Einsatzkräfte berichten über Schlafprobleme, starke Emotionen oder Rückzug.",
+              "Anhaltende Belastung über mehrere Tage ohne Entspannung."
+            ]
+          },
+          "measures": {
+            "generic": [
+              "Frühzeitige Einbindung psychosozialer Unterstützungsangebote (z. B. Peers, Krisenintervention).",
+              "Offene Kommunikation über Belastungen fördern.",
+              "Information über Hilfsangebote für Betroffene und Einsatzkräfte."
+            ],
+            "byRole": {
+              "S1": [
+                "Angebote für Einsatzkräftenachsorge organisieren (z. B. Einsatznachbesprechungen, Peer-Support)."
+              ],
+              "S5": [
+                "Hinweise an Bevölkerung zu psychosozialen Beratungsangeboten kommunizieren."
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
