@@ -1,0 +1,87 @@
+Gefahrgut- und Stoffunfälle
+
+Hazard: Leckage / Ausströmung von Gefahrstoffen
+Trigger: Tankwagen verunfallt, Geruch, Dampf-/Gaswolke, Warntafeln.
+Maßnahmen:
+
+GAMS-Regel beachten, großräumig absperren, Stoff identifizieren.
+
+Menschenrettung mit Eigenschutz, Spezialkräfte anfordern.
+
+Hazard: Brand/Explosion mit Gefahrgut
+Trigger: Feuer an Gefahrgutbehältern, Tanklager, Gasflaschen.
+Maßnahmen:
+
+Großer Sperrbereich, Behälter kühlen, Evakuierung/Schutzräume, Spezialmittel.
+
+Eisenbahnunfälle
+
+Hazard: Zugunfall/Entgleisung
+Trigger: Meldung „Zug entgleist/kollidiert“, viele Verletzte, Gefahrgut im Zug.
+Maßnahmen:
+
+Bahnleitstelle: Strom aus, Strecke sperren.
+
+Abschnittsbildung (Rettung, Gefahrgut, Infrastruktur).
+
+Hazard: Personen im Gleisbereich
+Maßnahmen: Einsatz erst nach sicherer Sperr-/Freigabebestätigung, Gleis/Oberleitung vorher wie spannungsführend behandeln.
+
+Bus- und Reisebusunfälle
+
+Hazard: Busunfall mit vielen Verletzten
+Maßnahmen:
+
+MANV-Struktur (Triage, Behandlungsplatz, Transport).
+
+Bus stabilisieren, Betreuungsbereich für Unverletzte/Leichtverletzte.
+
+Luftfahrtunfälle
+
+Hazard: Flugunfall (Kleinflugzeug/Helikopter)
+Trigger: Absturz/Notlandung, Trümmerfeld, Treibstoff, Brand.
+Maßnahmen:
+
+Treibstoff, Batterien, Pyro-Systeme beachten.
+
+Trümmerfeld als Beweisbereich, Luftfahrtbehörde einbinden.
+
+Straßenverkehrsunfälle
+
+Hazard: Unfall mit eingeklemmten Personen
+Maßnahmen:
+
+Absichern, Brandschutz, Fahrzeuge stabilisieren.
+
+THL-VU-Standard, Airbags/Hochvoltsysteme beachten.
+
+Hazard: Massenkarambolage/Unfallserie
+Maßnahmen:
+
+Großräumige Absicherung, MANV-Struktur, Abschnittsbildung, Priorisierung nach Lebensgefahr.
+
+Medizinische Lage / MANV
+
+Hazard: Massenanfall von Verletzten
+Maßnahmen:
+
+Triage, Behandlungsplatz, Transportkoordination, Übersicht über Kategorien (rot/gelb/grün/schwarz).
+
+Einsatzkräfte
+
+Hazard: Unzureichende Absicherung
+Maßnahmen:
+
+Verkehrsabsicherung nach Vorschrift, ggf. Einsatz abbrechen bis Sicherung steht.
+
+Hazard: Psychische Belastung durch schwere Unfälle
+Maßnahmen:
+
+PSNV einbinden, Nachbesprechungen, längerfristige Betreuung.
+
+Psychosozial – Betroffene
+
+Hazard: Akute psychische Belastung bei Betroffenen/Angehörigen
+Maßnahmen:
+
+Krisenintervention, Seelsorge, ruhige Kommunikation, Verweis auf Hilfsangebote.
