@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   createMailScheduleRunner,
   sanitizeMailScheduleEntry,
+  resolveAttachmentPath,
   shouldSendMailNow,
 } from "../utils/mailSchedule.mjs";
 
@@ -55,6 +56,13 @@ test("sanitizeMailScheduleEntry preserves literal and aliased time modes", () =>
   const aliasTime = buildBaseEntry({ mode: "uhrzeit", time: "9:30" });
   assert.equal(aliasTime.mode, "time");
   assert.equal(aliasTime.timeOfDay, "09:30");
+});
+
+test("resolveAttachmentPath verhindert Path Traversal und akzeptiert gültige Pfade", () => {
+  const baseDir = "/data";
+  assert.equal(resolveAttachmentPath(baseDir, "reports/summary.pdf"), "/data/reports/summary.pdf");
+  assert.equal(resolveAttachmentPath(baseDir, "../geheim.txt"), null);
+  assert.equal(resolveAttachmentPath(baseDir, "/etc/passwd"), null);
 });
 
 test("runMailScheduleSweep sends due mails and persists lastSentAt", async () => {
