@@ -28,7 +28,9 @@ function fetchWithTimeout(url, options, timeoutMs) {
 }
 
 export async function embedText(text) {
-  const normalized = text.trim();
+  // Limitiere Text-Länge um Timeouts zu vermeiden
+  const normalized = text.trim().slice(0, 2000);
+  
   if (CONFIG.embeddingCacheSize > 0 && embeddingCache.has(normalized)) {
     const cached = embeddingCache.get(normalized);
     logDebug("Embedding aus Cache", { dim: cached.length });
@@ -37,7 +39,7 @@ export async function embedText(text) {
 
   const body = {
     model: CONFIG.llmEmbedModel,
-    prompt: text
+    prompt: normalized
   };
 
   let resp;
@@ -49,7 +51,7 @@ export async function embedText(text) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body)
       },
-      CONFIG.llmRequestTimeoutMs
+      CONFIG.llmEmbedTimeoutMs || CONFIG.llmRequestTimeoutMs
     );
   } catch (error) {
     logError("Embedding-HTTP-Fehler", { error: String(error) });
@@ -61,19 +63,61 @@ export async function embedText(text) {
     logError("Embedding-HTTP-Fehler", {
       status: resp.status,
       statusText: resp.statusText,
-      body: t
+      body: t.slice(0, 200)
     });
     throw new Error(`Embedding error: ${resp.status} ${resp.statusText}`);
   }
 
   const json = await resp.json();
   const vec = json.embedding || json.data?.[0]?.embedding;
+  
   if (!Array.isArray(vec)) {
     logError("Ungültige Embedding-Antwort", { json });
     throw new Error("Invalid embedding response");
   }
+  
+  // Dimension prüfen
+  if (vec.length !== CONFIG.rag.dim) {
+    logDebug("Embedding-Dimension weicht ab", { 
+      expected: CONFIG.rag.dim, 
+      actual: vec.length 
+    });
+  }
+  
   const arr = Float32Array.from(vec);
   rememberEmbedding(normalized, arr);
   logDebug("Embedding erzeugt", { dim: arr.length });
   return arr;
+}
+
+/**
+ * Batch-Embedding für mehrere Texte
+ * @param {string[]} texts - Array von Texten
+ * @param {number} batchSize - Parallele Anfragen (default: 4)
+ * @returns {Promise<Float32Array[]>}
+ */
+export async function embedTextBatch(texts, batchSize = 4) {
+  const results = [];
+  
+  for (let i = 0; i < texts.length; i += batchSize) {
+    const batch = texts.slice(i, i + batchSize);
+    
+    const embeddings = await Promise.all(
+      batch.map(text => 
+        embedText(text).catch(err => {
+          logError("Batch-Embedding-Fehler", { error: String(err) });
+          return new Float32Array(CONFIG.rag.dim);
+        })
+      )
+    );
+    
+    results.push(...embeddings);
+    
+    // Kleine Pause zwischen Batches
+    if (i + batchSize < texts.length) {
+      await new Promise(r => setTimeout(r, 100));
+    }
+  }
+  
+  return results;
 }
