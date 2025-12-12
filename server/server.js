@@ -686,7 +686,8 @@ const AUTO_STOP_MIN = (() => {
 // Ohne FF_AUTO_STOP_MIN (oder leerem Wert) bleibt der Fetcher dauerhaft aktiv.
 // Bei ungültigen Werten greifen wir auf 60 Minuten zurück, um bestehendes Verhalten zu erhalten.
 const AUTO_STOP_ENABLED = AUTO_STOP_MIN !== null;
-setInterval(async () => {
+let autoStopTimer = null;
+autoStopTimer = setInterval(async () => {
   try{
     if (!AUTO_STOP_ENABLED) return;
     const idleMin = (Date.now() - lastActivityMs) / 60000;
