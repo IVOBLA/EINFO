@@ -14,6 +14,7 @@ import { getGpuStatus } from "../chatbot/server/gpu_status.js";
 const CHATBOT_STEP_URL = "http://127.0.0.1:3100/api/sim/step";
 const WORKER_INTERVAL_MS = 30000;
 let isRunning = false; // <--- NEU
+let workerIntervalId = null; // Store interval ID for cleanup
 // Pfad zu deinen echten Daten:
 // Wir gehen davon aus, dass du den Worker IMMER aus dem server-Ordner startest:
 //   cd C:\kanban41\server
@@ -790,7 +791,15 @@ async function runOnce() {
 function startWorker() {
   log("Chatbot-Worker gestartet, Intervall:", WORKER_INTERVAL_MS, "ms");
   runOnce();
-  setInterval(runOnce, WORKER_INTERVAL_MS);
+  workerIntervalId = setInterval(runOnce, WORKER_INTERVAL_MS);
+}
+
+function stopWorker() {
+  if (workerIntervalId !== null) {
+    clearInterval(workerIntervalId);
+    workerIntervalId = null;
+    log("Chatbot-Worker gestoppt");
+  }
 }
 
 async function bootstrap() {
@@ -806,3 +815,16 @@ async function bootstrap() {
 }
 
 bootstrap();
+
+// Graceful shutdown on SIGINT and SIGTERM
+process.on("SIGINT", () => {
+  log("SIGINT empfangen, fahre Worker herunter...");
+  stopWorker();
+  process.exit(0);
+});
+
+process.on("SIGTERM", () => {
+  log("SIGTERM empfangen, fahre Worker herunter...");
+  stopWorker();
+  process.exit(0);
+});
