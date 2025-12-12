@@ -9,6 +9,8 @@ import {
   searchMemory
 } from "../chatbot/server/memory_manager.js";
 
+import { getGpuStatus } from "../chatbot/server/gpu_status.js";
+
 const CHATBOT_STEP_URL = "http://127.0.0.1:3100/api/sim/step";
 const WORKER_INTERVAL_MS = 30000;
 let isRunning = false; // <--- NEU
@@ -35,6 +37,9 @@ const WORKER_LOG_FILE = path.join(LOG_DIR, "chatbot_worker.log");
 
 // -------- NEU: zusätzliches Log für verworfene Operationen --------
 const OPS_VERWORFEN_LOG_FILE = path.join(LOG_DIR, "ops_verworfen.log");
+
+const RETRY_DELAY_MS = 5000;
+const MAX_RETRIES = 10;
 
 function appendOpsVerworfenLog(entry) {
   const line = JSON.stringify({
@@ -71,6 +76,22 @@ function log(...args) {
   console.log("[chatbot-worker]", ...args);
   // In Datei schreiben
   appendWorkerLog(line);
+}
+
+// NEU: GPU-Status loggen
+async function logGpuStatus() {
+  try {
+    const status = await getGpuStatus();
+    if (status.available && status.gpus?.[0]) {
+      const gpu = status.gpus[0];
+      log(`GPU: ${gpu.name} | VRAM: ${gpu.memoryUsedMb}/${gpu.memoryTotalMb}MB | Temp: ${gpu.temperatureCelsius || "?"}°C`);
+      if (status.warning) {
+        log(`GPU-WARNUNG: ${status.warning}`);
+      }
+    }
+  } catch (err) {
+    // Ignorieren
+  }
 }
 // -----------------------------------------------------------
 
@@ -626,19 +647,24 @@ async function applyProtokollOperations(protoOps, missingRoles) {
 }
 
 async function runOnce() {
-  // Verhindert parallele Durchläufe, wenn ein Zyklus länger dauert als WORKER_INTERVAL_MS
   if (isRunning) {
-    log("Vorheriger Worker-Durchlauf läuft noch – aktuelles Intervall wird übersprungen.");
+    log("Vorheriger Worker-Durchlauf läuft noch – überspringe.");
     return;
   }
 
   isRunning = true;
+  const startTime = Date.now();
+  
   try {
+    await logGpuStatus();
+    
     const { missing } = await loadRoles();
     if (!missing.length) {
       log("Keine missingRoles – nichts zu tun.");
       return;
     }
+
+    log(`Starte Simulationsschritt mit ${missing.length} fehlenden Rollen`);
 
     const stateCounts = await readStateCounts();
     const memoryQuery = buildMemoryQueryFromState(stateCounts);
@@ -648,10 +674,12 @@ async function runOnce() {
       const memoryHits = await searchMemory({ query: memoryQuery, topK: 5 });
       memorySnippets = memoryHits.map((hit) => hit.text);
     } catch (err) {
-      log("Fehler bei der Memory-Suche:", err?.message || err);
+      log("Fehler bei Memory-Suche:", err?.message || err);
     }
 
-    while (true) {
+    let retries = 0;
+    
+    while (retries < MAX_RETRIES) {
       const res = await fetch(CHATBOT_STEP_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -659,83 +687,51 @@ async function runOnce() {
       });
 
       if (!res.ok) {
-        // Body als Text lesen (kann JSON oder Plaintext sein)
         let bodyText = "";
-        try {
-          bodyText = await res.text();
-        } catch {
-          bodyText = "";
-        }
+        try { bodyText = await res.text(); } catch {}
 
         let errorJson = null;
-        try {
-          errorJson = JSON.parse(bodyText);
-        } catch {
-          // nicht schlimm, bleibt null
-        }
+        try { errorJson = JSON.parse(bodyText); } catch {}
 
         const reason = errorJson?.reason || errorJson?.error;
 
-        // SPEZIALFALL: Schritt läuft noch – Worker wartet, bis LLM fertig ist
         if (res.status === 500 && reason === "step_in_progress") {
-          log(
-            "LLM-Simulationsschritt läuft noch (step_in_progress) – warte 5s und probiere erneut ..."
-          );
-          await new Promise((resolve) => setTimeout(resolve, 5000));
-          continue; // nächster Versuch innerhalb dieses runOnce()
-        }
-
-        // Andere HTTP-Fehler normal loggen und abbrechen
-        log("Chatbot HTTP-Fehler:", res.status, res.statusText, bodyText);
-        return;
-      }
-
-      // OK-Antwort -> JSON lesen
-      const data = await res.json();
-
-      // Falls Backend step_in_progress als ok:false im JSON meldet
-      if (!data.ok) {
-        if (data.reason === "step_in_progress") {
-          log(
-            "LLM-Simulationsschritt läuft noch (step_in_progress, JSON) – warte 5s und probiere erneut ..."
-          );
-          await new Promise((resolve) => setTimeout(resolve, 5000));
+          retries++;
+          log(`LLM läuft noch (${retries}/${MAX_RETRIES}) – warte ${RETRY_DELAY_MS}ms...`);
+          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
           continue;
         }
 
-        log("Chatbot-Simulationsschritt nicht ok:", data.error || data.reason);
+        log("HTTP-Fehler:", res.status, bodyText.slice(0, 200));
         return;
       }
 
-      // Ab hier: LLM ist fertig, Operationen anwenden
-      const ops = data.operations || {};
-	  
-	  const boardCreate = (ops.board?.createIncidentSites || []).length;
-      const boardUpdate = (ops.board?.updateIncidentSites || []).length;
-      const taskCreate = (ops.aufgaben?.create || []).length;
-      const taskUpdate = (ops.aufgaben?.update || []).length;
-      const protoCreate = (ops.protokoll?.create || []).length;
+      const data = await res.json();
 
-      log(
-        "LLM-Operationen:",
-        `board.create=${boardCreate}, board.update=${boardUpdate},` +
-          ` aufgaben.create=${taskCreate}, aufgaben.update=${taskUpdate},` +
-          ` protokoll.create=${protoCreate}`
-      );
-
-      if (
-        boardCreate === 0 &&
-        boardUpdate === 0 &&
-        taskCreate === 0 &&
-        taskUpdate === 0 &&
-        protoCreate === 0
-      ) {
-        log(
-          "Hinweis: LLM hat keine Operationen geliefert – es wird nichts in den JSON-Dateien geändert."
-        );
+      if (!data.ok) {
+        if (data.reason === "step_in_progress") {
+          retries++;
+          log(`LLM läuft noch (${retries}/${MAX_RETRIES}) – warte...`);
+          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+          continue;
+        }
+        log("Schritt nicht ok:", data.error || data.reason);
+        return;
       }
 
-	  
+      // Erfolgreich
+      const ops = data.operations || {};
+      
+      const counts = {
+        boardCreate: (ops.board?.createIncidentSites || []).length,
+        boardUpdate: (ops.board?.updateIncidentSites || []).length,
+        taskCreate: (ops.aufgaben?.create || []).length,
+        taskUpdate: (ops.aufgaben?.update || []).length,
+        protoCreate: (ops.protokoll?.create || []).length
+      };
+
+      log("LLM-Operationen:", counts);
+
       const applyResults = {
         board: { appliedCount: 0, appliedOps: {} },
         aufgaben: { appliedCount: 0, appliedOps: {} },
@@ -744,33 +740,23 @@ async function runOnce() {
 
       try {
         applyResults.board = await applyBoardOperations(ops.board || {}, missing);
-        applyResults.aufgaben = await applyAufgabenOperations(
-          ops.aufgaben || {},
-          missing
-        );
-        applyResults.protokoll = await applyProtokollOperations(
-          ops.protokoll || {},
-          missing
-        );
+        applyResults.aufgaben = await applyAufgabenOperations(ops.aufgaben || {}, missing);
+        applyResults.protokoll = await applyProtokollOperations(ops.protokoll || {}, missing);
       } catch (err) {
-        log(
-          "Fehler beim Anwenden der Operationen, Memory-Summary wird nicht geschrieben:",
-          err?.message || err
-        );
+        log("Fehler beim Anwenden:", err?.message || err);
         return;
       }
 
       if (data.analysis) {
-        log("Chatbot-Analysis:", data.analysis);
+        log("Analysis:", data.analysis.slice(0, 150));
       }
 
-      const opsApplied =
+      const totalApplied =
         applyResults.board.appliedCount +
-          applyResults.aufgaben.appliedCount +
-          applyResults.protokoll.appliedCount >
-        0;
+        applyResults.aufgaben.appliedCount +
+        applyResults.protokoll.appliedCount;
 
-      if (opsApplied) {
+      if (totalApplied > 0) {
         const stateAfter = await readStateCounts();
         const memoryText = buildMemorySummary({
           stateAfter,
@@ -781,19 +767,21 @@ async function runOnce() {
 
         await addMemory({
           text: memoryText,
-          meta: {
-            type: "step_summary",
-            ts: new Date().toISOString(),
-            source: "worker"
-          }
+          meta: { type: "step_summary", ts: new Date().toISOString(), source: "worker" }
         });
       }
 
-      // erfolgreicher Abschluss -> Schleife & runOnce beenden
+      const duration = Date.now() - startTime;
+      log(`Schritt abgeschlossen in ${duration}ms | Angewandt: ${totalApplied}`);
+      
+      await logGpuStatus();
       return;
     }
+    
+    log(`Max. Retries (${MAX_RETRIES}) erreicht.`);
+    
   } catch (err) {
-    log("Fehler im Worker:", err.message);
+    log("Fehler:", err.message);
   } finally {
     isRunning = false;
   }
