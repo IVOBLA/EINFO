@@ -104,7 +104,18 @@ export function shouldSendMailNow(entry, { now = Date.now(), defaultIntervalMinu
 export function resolveAttachmentPath(dataDir, filePath) {
   const cleaned = typeof filePath === "string" ? filePath.trim() : "";
   if (!cleaned) return null;
-  return path.isAbsolute(cleaned) ? cleaned : path.join(dataDir, cleaned);
+
+  const baseDir = path.resolve(dataDir);
+  const resolved = path.isAbsolute(cleaned)
+    ? path.normalize(cleaned)
+    : path.resolve(baseDir, cleaned);
+
+  const relative = path.relative(baseDir, resolved);
+  if (relative.startsWith("..") || path.isAbsolute(relative)) {
+    return null;
+  }
+
+  return resolved;
 }
 
 export async function buildScheduledMailAttachments(
