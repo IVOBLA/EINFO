@@ -25,46 +25,76 @@ function buildMemoryQueryFromState(state = {}) {
 // Board kommt bereits als flache Liste aus einfo_io (flattenBoard)
 function compressBoard(board) {
   if (!Array.isArray(board)) return "[]";
-  const compact = board.slice(0, 50).map((i) => ({
+  
+  // Nur nicht-erledigte Items, limitiert
+  const maxItems = CONFIG.prompt?.maxBoardItems || 25;
+  
+  const filtered = board
+    .filter((i) => i.status !== "erledigt" && i.column !== "erledigt")
+    .slice(0, maxItems);
+  
+  // Kompakte Schlüssel für weniger Tokens
+  const compact = filtered.map((i) => ({
     id: i.id,
-    desc: i.desc ?? i.content ?? "",
-    status: i.status ?? i.column ?? "",
-    location: i.location ?? i.ort ?? "",
+    t: (i.desc ?? i.content ?? "").slice(0, 80),  // title
+    s: i.status ?? i.column ?? "",                 // status
+    o: (i.location ?? i.ort ?? "").slice(0, 40),  // ort
     typ: i.typ || "",
-    statusSince: i.statusSince || null,
-    assignedVehicles: i.raw?.assignedVehicles || i.assignedVehicles || null,
-    updatedAt: i.timestamp || i.raw?.updatedAt || null
+    upd: i.timestamp || i.raw?.updatedAt || null
   }));
+  
   return JSON.stringify(compact);
 }
-
 // Aufg_board_S2.json: S2-Aufgaben
+
 function compressAufgaben(aufgaben) {
   if (!Array.isArray(aufgaben)) return "[]";
-  const compact = aufgaben.slice(0, 100).map((a) => ({
+  
+  const maxItems = CONFIG.prompt?.maxAufgabenItems || 50;
+  
+  // Nicht-erledigte zuerst, dann limitieren
+  const sorted = [...aufgaben].sort((a, b) => {
+    const aErledigt = a.status === "Erledigt" || a.status === "Storniert";
+    const bErledigt = b.status === "Erledigt" || b.status === "Storniert";
+    if (aErledigt && !bErledigt) return 1;
+    if (!aErledigt && bErledigt) return -1;
+    return 0;
+  });
+  
+  const compact = sorted.slice(0, maxItems).map((a) => ({
     id: a.id,
-    desc: a.title || a.description || "",
-    responsible: a.responsible || "",
-    status: a.status || "",
-    updatedAt: a.updatedAt || a.changedAt || a.dueAt || null,
-    relatedIncidentId: a.relatedIncidentId || null,
-    typ: a.type || a.category || null
+    t: (a.title || a.description || "").slice(0, 60),  // title
+    r: a.responsible || "",                             // responsible
+    s: a.status || "",                                  // status
+    inc: a.relatedIncidentId || null                    // incident
   }));
+  
   return JSON.stringify(compact);
 }
 
 // protocol.json: Protokolleinträge
+
 function compressProtokoll(protokoll) {
   if (!Array.isArray(protokoll)) return "[]";
-  const compact = protokoll.slice(0, 100).map((p) => ({
+  
+  const maxItems = CONFIG.prompt?.maxProtokollItems || 30;
+  
+  // Neueste zuerst
+  const sorted = [...protokoll].sort((a, b) => {
+    const tA = a.zeit || "";
+    const tB = b.zeit || "";
+    return tB.localeCompare(tA);
+  });
+  
+  const compact = sorted.slice(0, maxItems).map((p) => ({
     id: p.id,
-    information: (p.information || "").slice(0, 180),
-    datum: p.datum,
-    zeit: p.zeit,
-    ergehtAn: p.ergehtAn || p.anvon || "",
-    location: p.location || "",
+    i: (p.information || "").slice(0, 100),  // information
+    d: p.datum,                               // datum
+    z: p.zeit,                                // zeit
+    von: p.ergehtAn || p.anvon || "",        // von/an
     typ: p.infoTyp || p.typ || ""
   }));
+  
   return JSON.stringify(compact);
 }
 
@@ -207,6 +237,17 @@ export async function stepSimulation(options = {}) {
       firstStep: isFirstStep
     };
 
+    const estimatedDataTokens = Math.ceil(
+      (opsContext.compressedBoard.length +
+        opsContext.compressedAufgaben.length +
+        opsContext.compressedProtokoll.length) / 4
+    );
+    
+    if (estimatedDataTokens > 2000) {
+      logDebug("Hohe Datenmenge für LLM", { estimatedDataTokens });
+    }
+
+    
     let memorySnippets = providedMemorySnippets;
 
     if (!memorySnippets.length) {
@@ -270,3 +311,4 @@ export async function stepSimulation(options = {}) {
     stepInProgress = false;
   }
 }
+
