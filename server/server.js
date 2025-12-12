@@ -686,7 +686,8 @@ const AUTO_STOP_MIN = (() => {
 // Ohne FF_AUTO_STOP_MIN (oder leerem Wert) bleibt der Fetcher dauerhaft aktiv.
 // Bei ungültigen Werten greifen wir auf 60 Minuten zurück, um bestehendes Verhalten zu erhalten.
 const AUTO_STOP_ENABLED = AUTO_STOP_MIN !== null;
-setInterval(async () => {
+let autoStopTimer = null;
+autoStopTimer = setInterval(async () => {
   try{
     if (!AUTO_STOP_ENABLED) return;
     const idleMin = (Date.now() - lastActivityMs) / 60000;
@@ -730,20 +731,36 @@ async function readJson(file, fallback){
   }
 }
 
+// Track types currently being added to prevent race conditions
+const pendingTypeAdditions = new Set();
+
 async function ensureTypeKnown(value) {
   const raw = typeof value === "string" ? value.trim() : "";
   if (!raw) return;
+
+  const normalized = raw.toLowerCase();
+
+  // If this type is already being processed, skip to avoid race condition
+  if (pendingTypeAdditions.has(normalized)) {
+    return;
+  }
+
   try {
+    // Mark this type as being processed
+    pendingTypeAdditions.add(normalized);
+
     const current = await readJson(TYPES_FILE, []);
     const entries = Array.isArray(current)
       ? current.filter((entry) => typeof entry === "string" && entry.trim())
       : [];
-    const normalized = raw.toLowerCase();
     const exists = entries.some((entry) => entry.trim().toLowerCase() === normalized);
     if (exists) return;
     await writeJson(TYPES_FILE, [...entries, raw]);
   } catch (err) {
     console.warn("[types] konnte types.json nicht aktualisieren:", err?.message || err);
+  } finally {
+    // Always remove from pending set, even if an error occurred
+    pendingTypeAdditions.delete(normalized);
   }
 }
 

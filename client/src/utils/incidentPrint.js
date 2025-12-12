@@ -134,12 +134,22 @@ function buildIncidentPrintHtml({
         function markReady(){
           if (window.__incidentMapReady) return;
           window.__incidentMapReady = true;
-          try { document.body.setAttribute('data-map-ready', '1'); } catch(e){}
+          try {
+            document.body.setAttribute('data-map-ready', '1');
+          } catch(e){
+            console.error('[incidentPrint] Failed to set data-map-ready attribute:', e);
+          }
       if (${autoPrint ? "true" : "false"}) {
             // Nur EINMAL drucken
             if (!window.__alreadyPrinted) {
               window.__alreadyPrinted = true;
-             setTimeout(() => { try { window.print(); } catch(e){} }, 100);
+             setTimeout(() => {
+               try {
+                 window.print();
+               } catch(e){
+                 console.error('[incidentPrint] Failed to trigger print:', e);
+               }
+             }, 100);
             }
           }
         }
