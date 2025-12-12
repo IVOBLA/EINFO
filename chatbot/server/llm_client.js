@@ -15,6 +15,7 @@ import { logDebug, logError, logLLMExchange } from "./logger.js";
 import { getKnowledgeContextVector } from "./rag/rag_vector.js";
 import { extractJsonObject } from "./json_sanitizer.js";
 import { setLLMHistoryMeta } from "./state_store.js";
+import { extractJsonObject, validateOperationsJson } from "./json_sanitizer.js";
 
 
 function fetchWithTimeout(url, options, timeoutMs) {
@@ -71,7 +72,6 @@ export async function listAvailableLlmModels() {
 
 
 /** LLM für OPERATIONS (Simulation) */
-/** LLM für OPERATIONS (Simulation) */
 export async function callLLMForOps({
   llmInput,
   memorySnippets = []
@@ -80,17 +80,11 @@ export async function callLLMForOps({
   let systemPrompt;
   let userPrompt;
 
-  // ---------------------------------------------------------
-  // SPEZIALFALL: ERSTER SIMULATIONSSCHRITT
-  // ---------------------------------------------------------
   if (llmInput.firstStep) {
     const start = buildStartPrompts({ roles: llmInput.roles });
     systemPrompt = start.systemPrompt;
     userPrompt = start.userPrompt;
   } else {
-    // -------------------------------------------------------
-    // NORMALFALL: laufende Simulation
-    // -------------------------------------------------------
     const knowledgeContext = await getKnowledgeContextVector(
       "Stabsarbeit Kat-E Einsatzleiter LdStb Meldestelle S1 S2 S3 S4 S5 S6"
     );
@@ -111,34 +105,52 @@ export async function callLLMForOps({
     { role: "user", content: userPrompt }
   ];
 
+  // Token-Schätzung
+  const totalChars = systemPrompt.length + userPrompt.length;
+  const estimatedTokens = Math.ceil(totalChars / 4);
+  
+  logDebug("OPS-Prompt aufgebaut", {
+    systemLen: systemPrompt.length,
+    userLen: userPrompt.length,
+    estimatedTokens,
+    memorySnippets: Array.isArray(memorySnippets) ? memorySnippets.length : 0
+  });
+
+  if (estimatedTokens > 6000) {
+    logDebug("WARNUNG: Prompt sehr groß", { estimatedTokens });
+  }
+
   const body = {
     model: CONFIG.llmChatModel,
     stream: false,
     options: {
       temperature: CONFIG.defaultTemperature,
-      seed: CONFIG.defaultSeed
+      seed: CONFIG.defaultSeed,
+      num_ctx: CONFIG.llmNumCtx || 8192,
+      num_batch: CONFIG.llmNumBatch || 512,
+      num_predict: 2048,
+      stop: ["```", "<|eot_id|>", "</s>"]
     },
     messages
   };
 
-  logDebug("OPS-Prompt aufgebaut", {
-    systemPrompt,
-    userPrompt,
-    memorySnippets: Array.isArray(memorySnippets)
-      ? memorySnippets.length
-      : 0
+  const { parsed, rawText } = await doLLMCall(body, "ops", null, {
+    returnFullResponse: true,
+    timeoutMs: CONFIG.llmSimTimeoutMs || CONFIG.llmRequestTimeoutMs
   });
 
-  const { parsed, rawText } = await doLLMCall(body, "ops", null, {
-    returnFullResponse: true
-  });
+  // Validierung
+  if (parsed) {
+    const validation = validateOperationsJson(parsed);
+    if (!validation.valid) {
+      logError("Operations-JSON ungültig", { error: validation.error });
+    }
+  }
 
   setLLMHistoryMeta(parsed?.meta || {});
 
   return { parsed, rawText, systemPrompt, userMessage: userPrompt, messages };
 }
-
-
 
 
 
@@ -161,7 +173,11 @@ export async function callLLMForChat({
     stream,
     options: {
       temperature: CONFIG.defaultTemperature,
-      seed: CONFIG.defaultSeed
+      seed: CONFIG.defaultSeed,
+      num_ctx: CONFIG.llmNumCtx || 8192,
+      num_batch: CONFIG.llmNumBatch || 512,
+      num_predict: 1024,
+      stop: ["```", "<|eot_id|>", "</s>"]
     },
     messages: [
       { role: "system", content: systemPrompt },
@@ -169,7 +185,15 @@ export async function callLLMForChat({
     ]
   };
 
-  const answer = await doLLMCall(body, "chat", onToken);
+  // Kein format: "json" für Chat (Streaming-kompatibel)
+  if (!stream) {
+    // Für nicht-streaming kann JSON erzwungen werden, falls gewünscht
+    // body.format = "json";
+  }
+
+  const answer = await doLLMCall(body, "chat", onToken, {
+    timeoutMs: CONFIG.llmChatTimeoutMs || CONFIG.llmRequestTimeoutMs
+  });
   return answer;
 }
 
@@ -223,21 +247,26 @@ async function requestJsonRepairFromLLM({
   messageCount
 }) {
   const systemPrompt =
-    "Du bist ein strenger JSON-Reparatur-Assistent. Korrigiere nur Syntaxfehler " +
-    "und formatiere so, dass exakt ein gültiges JSON-Objekt entsteht. Lass Inhalte " +
-    "unverändert und gib ausschließlich das reparierte JSON zurück.";
+    "Du bist ein JSON-Reparatur-Assistent. " +
+    "Korrigiere nur Syntaxfehler und gib NUR das reparierte JSON zurück. " +
+    "KEINE Markdown-Codeblöcke (keine ```). " +
+    "KEIN Text vor oder nach dem JSON.";
+
+  // Limitiere die Länge des ungültigen JSON
+  const limitedJson = invalidJson.slice(0, 4000);
 
   const userPrompt =
-    "Dieses JSON ist ungültig und konnte technisch nicht repariert werden. " +
-    "Bitte liefere nur die korrigierte Variante ohne weitere Erklärungen:\n\n" +
-    invalidJson;
+    "Repariere dieses ungültige JSON. Antworte NUR mit dem korrigierten JSON:\n\n" +
+    limitedJson;
 
   const repairBody = {
     model: model || CONFIG.llmChatModel,
     stream: false,
     options: {
       temperature: 0,
-      seed: CONFIG.defaultSeed
+      seed: CONFIG.defaultSeed,
+      num_predict: 2048,
+      stop: ["```"]
     },
     messages: [
       { role: "system", content: systemPrompt },
@@ -251,8 +280,8 @@ async function requestJsonRepairFromLLM({
     phase: "json_repair_request",
     model: repairBody.model,
     systemPrompt,
-    userPrompt,
-    rawRequest: serializedRequest,
+    userPrompt: userPrompt.slice(0, 200) + "...",
+    rawRequest: null,
     rawResponse: null,
     parsedResponse: null,
     extra: { phase: phaseLabel, messageCount }
@@ -269,7 +298,7 @@ async function requestJsonRepairFromLLM({
         headers: { "Content-Type": "application/json" },
         body: serializedRequest
       },
-      CONFIG.llmRequestTimeoutMs
+      CONFIG.llmChatTimeoutMs || CONFIG.llmRequestTimeoutMs
     );
 
     rawText = await resp.text();
@@ -281,7 +310,7 @@ async function requestJsonRepairFromLLM({
       logError("LLM-JSON-Reparatur-HTTP-Fehler", {
         status: resp.status,
         statusText: resp.statusText,
-        body: rawText
+        body: rawText.slice(0, 200)
       });
     }
   } catch (error) {
@@ -292,17 +321,13 @@ async function requestJsonRepairFromLLM({
   logLLMExchange({
     phase: "json_repair_response",
     model: repairBody.model,
-    systemPrompt,
-    userPrompt,
-    rawRequest: serializedRequest,
-    rawResponse: rawText,
-    parsedResponse: parsed,
+    rawResponse: rawText.slice(0, 500),
+    parsedResponse: parsed ? "OK" : null,
     extra: { phase: phaseLabel, messageCount }
   });
 
   return { parsed, rawText };
 }
-
 async function doLLMCall(body, phaseLabel, onToken, options = {}) {
   body.format = "json";
   const messages = Array.isArray(body.messages) ? body.messages : [];
@@ -336,7 +361,7 @@ async function doLLMCall(body, phaseLabel, onToken, options = {}) {
         headers: { "Content-Type": "application/json" },
         body: serializedRequest
       },
-      CONFIG.llmRequestTimeoutMs
+       options.timeoutMs || CONFIG.llmRequestTimeoutMs
     );
   } catch (error) {
     const errorStr = String(error);
