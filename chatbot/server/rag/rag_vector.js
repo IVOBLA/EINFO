@@ -90,18 +90,30 @@ async function ensureLoaded() {
   }
 }
 
+// ERSETZEN: Optimierte Version mit Loop-Unrolling
 function cosineSimilarity(a, b) {
+  const len = Math.min(a.length, b.length);
   let dot = 0.0;
   let na = 0.0;
   let nb = 0.0;
-  const len = Math.min(a.length, b.length);
-  for (let i = 0; i < len; i++) {
-    const va = a[i];
-    const vb = b[i];
-    dot += va * vb;
-    na += va * va;
-    nb += vb * vb;
+  
+  // Loop-Unrolling für bessere Performance
+  const unrollLen = len - (len % 4);
+  let i = 0;
+  
+  for (; i < unrollLen; i += 4) {
+    dot += a[i] * b[i] + a[i+1] * b[i+1] + a[i+2] * b[i+2] + a[i+3] * b[i+3];
+    na += a[i] * a[i] + a[i+1] * a[i+1] + a[i+2] * a[i+2] + a[i+3] * a[i+3];
+    nb += b[i] * b[i] + b[i+1] * b[i+1] + b[i+2] * b[i+2] + b[i+3] * b[i+3];
   }
+  
+  // Rest
+  for (; i < len; i++) {
+    dot += a[i] * b[i];
+    na += a[i] * a[i];
+    nb += b[i] * b[i];
+  }
+  
   if (na === 0 || nb === 0) return 0;
   return dot / (Math.sqrt(na) * Math.sqrt(nb));
 }
@@ -145,7 +157,7 @@ export async function getKnowledgeContextVector(query) {
 
   let qEmb;
   try {
-    qEmb = await embedText(query); // Float32Array
+    qEmb = await embedText(query);
   } catch (error) {
     logError("Embedding für Query fehlgeschlagen", { error: String(error) });
     return "";
@@ -154,6 +166,8 @@ export async function getKnowledgeContextVector(query) {
 
   const n = Math.min(vectors.length, CONFIG.rag.indexMaxElements);
   const k = Math.min(CONFIG.rag.topK, n);
+  const scoreThreshold = CONFIG.rag.scoreThreshold || 0.3;
+  
   if (k === 0) return "";
 
   const heap = [];
@@ -161,6 +175,10 @@ export async function getKnowledgeContextVector(query) {
   for (let i = 0; i < n; i++) {
     const v = vectors[i];
     const s = cosineSimilarity(qArr, v);
+    
+    // Score-Threshold prüfen
+    if (s < scoreThreshold) continue;
+    
     const entry = { idx: i, s };
 
     if (heap.length < k) {
@@ -178,28 +196,35 @@ export async function getKnowledgeContextVector(query) {
   const parts = [];
   let remaining = CONFIG.rag.maxContextChars;
 
-  for (let i = 0; i < k; i++) {
+  for (let i = 0; i < sims.length; i++) {
     const { idx, s } = sims[i];
     const ch = meta.chunks[idx];
     if (!ch) continue;
-    const header = `# ${ch.fileName} (Chunk ${ch.id}, sim=${s.toFixed(3)})\n`;
+    
+    // Kompakteres Format
+    const header = `[${ch.fileName}|${s.toFixed(2)}]\n`;
     const text = ch.text;
     const need = header.length + text.length + 2;
+    
     if (need > remaining) {
       if (remaining <= header.length + 10) break;
       const cut = text.slice(0, remaining - header.length - 2);
       parts.push(header + cut);
       break;
     }
+    
     parts.push(header + text);
     remaining -= need;
     if (remaining <= 0) break;
   }
 
   const ctx = parts.join("\n\n");
-  logDebug("Vector-Knowledge-Kontext (JS) erzeugt", {
+  
+  logDebug("Vector-Knowledge-Kontext erzeugt", {
     length: ctx.length,
-    parts: parts.length
+    parts: parts.length,
+    topScore: sims[0]?.s?.toFixed(3) || "N/A"
   });
+  
   return ctx;
 }
