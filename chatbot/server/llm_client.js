@@ -13,9 +13,8 @@ import {
 
 import { logDebug, logError, logLLMExchange } from "./logger.js";
 import { getKnowledgeContextVector } from "./rag/rag_vector.js";
-import { extractJsonObject } from "./json_sanitizer.js";
-import { setLLMHistoryMeta } from "./state_store.js";
 import { extractJsonObject, validateOperationsJson } from "./json_sanitizer.js";
+import { setLLMHistoryMeta } from "./state_store.js";
 
 
 function fetchWithTimeout(url, options, timeoutMs) {
