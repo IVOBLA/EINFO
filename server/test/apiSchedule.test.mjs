@@ -83,3 +83,38 @@ test("runApiScheduleSweep calls due URLs and persists lastRunAt", async () => {
   assert.equal(storage[0].lastRunAt, now);
 });
 
+test("runApiScheduleSweep serializes object bodies to JSON", async () => {
+  let now = Date.UTC(2024, 0, 1, 10, 0, 0);
+  const bodyPayload = { hello: "world", answer: 42 };
+  let storage = [
+    buildBaseEntry({
+      id: "json", mode: "interval", intervalMinutes: 5, lastRunAt: null, body: bodyPayload,
+    }),
+  ];
+  const receivedBodies = [];
+  const receivedMethods = [];
+
+  const runner = createApiScheduleRunner({
+    scheduleFile: "/data/conf/api-schedule.json",
+    defaultIntervalMinutes: API_OPTIONS.defaultIntervalMinutes,
+    minIntervalMinutes: API_OPTIONS.minIntervalMinutes,
+    sweepIntervalMs: 1000,
+    appendError: async () => {},
+    readJson: async () => storage,
+    writeJson: async (_file, next) => {
+      storage = next;
+      return next;
+    },
+    fetchImpl: async (_url, opts) => {
+      receivedBodies.push(opts?.body);
+      receivedMethods.push(opts?.method);
+      return { ok: true, status: 200 };
+    },
+    nowProvider: () => now,
+  });
+
+  await runner.runApiScheduleSweep();
+  assert.deepEqual(receivedBodies, [JSON.stringify(bodyPayload)]);
+  assert.deepEqual(receivedMethods, ["POST"]);
+});
+
