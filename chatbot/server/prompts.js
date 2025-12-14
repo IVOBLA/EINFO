@@ -71,7 +71,8 @@ export function buildUserPrompt({
   compressedAufgaben,
   compressedProtokoll,
   knowledgeContext,
-  memorySnippets = []
+  memorySnippets,
+  messagesNeedingResponse  // NEU
 }) {
   const safeMemorySnippets = Array.isArray(memorySnippets)
     ? memorySnippets
@@ -91,15 +92,116 @@ export function buildUserPrompt({
 - Halte dich streng an das JSON-Schema und die Rollenregeln.`
     : `- Analysiere die Lage auf Basis der übergebenen Ausschnitte.
 - Ergänze/aktualisiere Einsatzstellen, Aufgaben und Protokoll nur dort, wo es fachlich notwendig ist.`;
+// ============================================================
+  // NEU: Formatiere Meldungen die Antwort benötigen
+  // ============================================================
+  let responseRequests = "";
+  if (messagesNeedingResponse && messagesNeedingResponse.length > 0) {
+    responseRequests = `
 
-  return fillTemplate(operationsUserPromptTemplate, {
+═══════════════════════════════════════════════════════════════════════════════
+WICHTIG - MELDUNGEN DIE ANTWORT BENÖTIGEN
+═══════════════════════════════════════════════════════════════════════════════
+
+Die folgenden AUSGEHENDEN Meldungen wurden verschickt und benötigen JETZT eine 
+Antwort von den genannten Empfängern.
+
+Du MUSST für JEDE dieser Meldungen einen Protokolleintrag als Antwort erstellen:
+  → operations.protokoll.create
+
+Die Antwort kann sein:
+  ✓ POSITIV: zustimmend, bestätigend ("wird erledigt", "verstanden", "OK", "Einheiten unterwegs")
+  ✗ NEGATIV: ablehnend, Rückfrage ("nicht möglich", "brauche mehr Info", "keine Kapazität")
+
+Entscheide situationsabhängig basierend auf:
+  - Der Rolle/Stelle des Empfängers
+  - Der aktuellen Lage
+  - Realistischen Einschränkungen (Personal, Zeit, Ressourcen)
+
+EXTERNE STELLEN und ihre typischen Antwortmuster:
+───────────────────────────────────────────────────────────────────────────────
+  Leitstelle (LST):     Alarmierungsbestätigungen, Einheiten-Verfügbarkeit
+                        → "Alarmierung erfolgt, 3 Fahrzeuge ETA 15 Min"
+                        → "Alle Einheiten im Einsatz, frühestens in 30 Min"
+  
+  Polizei (POL):        Absperrungen, Verkehrsregelung, Evakuierungshilfe
+                        → "Absperrung Hauptstraße wird eingerichtet"
+                        → "Streife erst in 20 Min verfügbar"
+  
+  Bürgermeister (BM):   Evakuierungsentscheidungen, Gemeinderessourcen
+                        → "Evakuierung genehmigt, Turnhalle als Notquartier"
+                        → "Muss erst mit Gemeinderat Rücksprache halten"
+  
+  WLV/Wildbach:         Gefahrenbeurteilung Muren, Wildbäche
+                        → "Gutachter wird entsandt"
+                        → "Gebiet muss sofort geräumt werden"
+  
+  Straßenmeisterei:     Straßensperren, Räumung, Streudienst
+                        → "Sperre wird errichtet, Umleitungsbeschilderung folgt"
+                        → "Räumgerät erst morgen früh verfügbar"
+  
+  EVN/Energieversorger: Stromabschaltung, Freigaben, Netzstatus
+                        → "Abschaltung erfolgt in 10 Min"
+                        → "Benötige Freigabe vom Netzmeister"
+  
+  Rotes Kreuz (RK):     Sanitätsdienst, Rettungstransporte, Evakuierungshilfe
+                        → "2 RTW werden disponiert"
+                        → "Kapazität erschöpft, keine freien Fahrzeuge"
+  
+  Bundesheer (BH):      Assistenzeinsatz, schweres Gerät, Personal
+                        → "Assistenzanforderung wird geprüft"
+                        → "Pionierbataillon kann in 2h vor Ort sein"
+───────────────────────────────────────────────────────────────────────────────
+
+ANTWORT-FORMAT für jeden Protokolleintrag:
+{
+  "information": "[Antworttext der Stelle]",
+  "infoTyp": "Rueckmeldung",
+  "anvon": "[Name der antwortenden Stelle]",
+  "ergehtAn": ["[Original-Absender]"],
+  "richtung": "ein",
+  "bezugNr": [Original-Protokoll-Nr falls bekannt]
+}
+
+`;
+
+    // Einzelne Meldungen auflisten
+    for (let i = 0; i < messagesNeedingResponse.length; i++) {
+      const msg = messagesNeedingResponse[i];
+      responseRequests += `
+┌─────────────────────────────────────────────────────────────────────────────
+│ MELDUNG ${i + 1} - Protokoll-Nr. ${msg.nr || "?"} (${msg.datum || ""} ${msg.zeit || ""})
+├─────────────────────────────────────────────────────────────────────────────
+│ Von:     ${msg.anvon}
+│ An:      ${msg.allRecipients.join(", ")}`;
+      
+      if (msg.externalRecipients.length > 0) {
+        responseRequests += `
+│ ⚠️  EXTERNE: ${msg.externalRecipients.join(", ")}`;
+      }
+      
+      responseRequests += `
+│ Typ:     ${msg.infoTyp}
+│ Inhalt:  "${msg.information}"
+│
+│ → Erstelle Antwort von: ${msg.allRecipients.join(" ODER ")}
+└─────────────────────────────────────────────────────────────────────────────
+`;
+    }
+    
+    responseRequests += `
+═══════════════════════════════════════════════════════════════════════════════
+`;
+  }
+return fillTemplate(operationsUserPromptTemplate, {
     rolesPart,
     compressedBoard,
     compressedAufgaben,
     compressedProtokoll,
     formattedMemorySnippets,
     knowledgeContext: knowledgeContext || "(kein Knowledge-Kontext verfügbar)",
-    taskSection
+    taskSection,
+    responseRequests  // NEU
   });
 }
 
