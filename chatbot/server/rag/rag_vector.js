@@ -165,7 +165,7 @@ export async function getKnowledgeContextWithSources(query, options = {}) {
 
   await ensureLoaded();
 
-  if (!embeddingsData || !metaData) {
+  if (!meta || !vectors || !meta.chunks?.length || !vectors.length) {
     logDebug("RAG nicht geladen - kein Kontext", null);
     return { context: "", sources: [] };
   }
@@ -173,16 +173,16 @@ export async function getKnowledgeContextWithSources(query, options = {}) {
   const queryEmbedding = await embedText(query);
   const results = [];
 
-  for (let i = 0; i < embeddingsData.vectors.length; i++) {
-    const docVec = embeddingsData.vectors[i];
+ for (let i = 0; i < vectors.length; i++) {
+  const docVec = vectors[i];
     const score = cosineSimilarity(queryEmbedding, docVec);
     
     if (score >= threshold) {
       results.push({
         index: i,
         score,
-        text: metaData.chunks[i]?.text || "",
-        fileName: metaData.chunks[i]?.fileName || "unbekannt"
+  text: meta.chunks[i]?.text || "",
+  fileName: meta.chunks[i]?.fileName || "unbekannt"
       });
     }
   }
@@ -298,4 +298,5 @@ export async function getKnowledgeContextVector(query) {
   
   return ctx;
 }
+
 
