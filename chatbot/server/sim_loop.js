@@ -3,8 +3,167 @@
 import { CONFIG } from "./config.js";
 import { readEinfoInputs } from "./einfo_io.js";
 import { callLLMForOps } from "./llm_client.js";
-import { logInfo, logError } from "./logger.js";
+import { logInfo, logError, logDebug } from "./logger.js";  // NEU: logDebug
 import { searchMemory } from "./memory_manager.js";
+import { logEvent } from "./audit_trail.js";  // NEU: Audit-Trail
+
+// ============================================================
+// Konstanten für interne Stabsrollen
+// ============================================================
+const INTERNAL_ROLES = new Set([
+  "EL", "LTSTB", "LTSTBSTV", 
+  "S1", "S2", "S3", "S4", "S5", "S6",
+  "MELDESTELLE", "MS"
+]);
+
+// ============================================================
+// Identifiziert ausgehende Protokolleinträge die Antworten benötigen
+// ============================================================
+/**
+ * Findet alle ausgehenden Meldungen an Stellen, die nicht aktiv besetzt sind.
+ * Das können interne Stabsrollen (in missingRoles) oder externe Stellen sein.
+ * 
+ * @param {Array} protokoll - Alle Protokolleinträge (nicht nur Delta!)
+ * @param {Array} protokollDelta - Neue/geänderte Protokolleinträge
+ * @param {Object} roles - { active: [...], missing: [...] }
+ * @returns {Array} Meldungen die eine Antwort benötigen
+ */
+function identifyMessagesNeedingResponse(protokoll, protokollDelta, roles) {
+  const { active, missing } = roles;
+  const activeSet = new Set(active.map(r => String(r).toUpperCase()));
+  const needingResponse = [];
+
+  // Prüfe nur neue/geänderte Einträge (Delta)
+  for (const entry of protokollDelta) {
+    // Nur ausgehende Meldungen prüfen
+    const richtung = entry.richtung || entry.uebermittlungsart?.richtung || "";
+    const isOutgoing = /aus/i.test(richtung) || 
+                       entry.uebermittlungsart?.aus === true ||
+                       entry.uebermittlungsart?.aus === "true";
+    
+    if (!isOutgoing) continue;
+
+    // Prüfe ob diese Meldung bereits eine Antwort hat
+    // (suche nach Protokolleinträgen die auf diese Meldung antworten)
+    const hasResponse = protokoll.some(p => {
+      if (p.id === entry.id) return false;
+      const pRichtung = p.richtung || p.uebermittlungsart?.richtung || "";
+      const isIncoming = /ein/i.test(pRichtung) || p.uebermittlungsart?.ein;
+      if (!isIncoming) return false;
+      
+      // Prüfe ob es eine Rückmeldung auf diese Nr ist
+      const refNr = p.bezugNr || p.referenzNr || p.antwortAuf;
+      if (refNr && String(refNr) === String(entry.nr)) return true;
+      
+      // Oder ob der Absender der Antwort ein Empfänger der Original-Meldung war
+      const pVon = String(p.anvon || "").toUpperCase();
+      const originalEmpfaenger = Array.isArray(entry.ergehtAn) 
+        ? entry.ergehtAn.map(e => String(e).toUpperCase())
+        : [];
+      if (originalEmpfaenger.includes(pVon)) {
+        // Zeitlich nach der Original-Meldung?
+        const origTime = entry.zeit || "";
+        const respTime = p.zeit || "";
+        if (respTime > origTime) return true;
+      }
+      
+      return false;
+    });
+
+    if (hasResponse) continue;
+
+    // Sammle alle Empfänger
+    const ergehtAn = Array.isArray(entry.ergehtAn) 
+      ? entry.ergehtAn 
+      : (entry.ergehtAn ? [entry.ergehtAn] : []);
+    
+    const ergehtAnText = entry.ergehtAnText || "";
+    const allRecipients = [...ergehtAn];
+    
+    // Zusätzliche Empfänger aus Freitext
+    if (ergehtAnText) {
+      const textRecipients = ergehtAnText
+        .split(/[,;]/)
+        .map(r => r.trim())
+        .filter(Boolean);
+      allRecipients.push(...textRecipients);
+    }
+
+    // Filtere Duplikate
+    const uniqueRecipients = [...new Set(allRecipients)];
+
+    // Prüfe welche Empfänger NICHT aktiv besetzt sind
+    const nonActiveRecipients = uniqueRecipients.filter(r => {
+      const upper = String(r).toUpperCase();
+      return !activeSet.has(upper);
+    });
+    
+    if (nonActiveRecipients.length === 0) continue;
+
+    // Unterscheide: Interne Stabsrollen vs. Externe Stellen
+    const missingSet = new Set(missing.map(r => String(r).toUpperCase()));
+    const internalMissing = [];
+    const externalRecipients = [];
+    
+    for (const r of nonActiveRecipients) {
+      const upper = String(r).toUpperCase();
+      // Ist es eine bekannte interne Rolle?
+      if (INTERNAL_ROLES.has(upper) || missingSet.has(upper)) {
+        internalMissing.push(r);
+      } else {
+        // Externe Stelle (Leitstelle, Polizei, Bürgermeister, etc.)
+        externalRecipients.push(r);
+      }
+    }
+
+    needingResponse.push({
+      id: entry.id,
+      nr: entry.nr,
+      datum: entry.datum || "",
+      zeit: entry.zeit || "",
+      infoTyp: entry.infoTyp || entry.typ || "",
+      anvon: entry.anvon || "Stab",
+      information: entry.information || "",
+      allRecipients: nonActiveRecipients,
+      internalMissing,
+      externalRecipients,
+      originalEntry: entry
+    });
+  }
+
+  return needingResponse;
+}
+
+// ============================================================
+// Erweitert missingRoles um externe Stellen
+// ============================================================
+/**
+ * Fügt externe Stellen temporär zu missingRoles hinzu,
+ * damit das LLM auch für diese Antworten generieren kann.
+ * 
+ * @param {Array} messagesNeedingResponse 
+ * @param {Array} currentMissingRoles 
+ * @returns {Array} Erweiterte missingRoles Liste
+ */
+function extendMissingRolesWithExternal(messagesNeedingResponse, currentMissingRoles) {
+  const extendedMissing = [...currentMissingRoles];
+  const alreadyIncluded = new Set(currentMissingRoles.map(r => String(r).toUpperCase()));
+  
+  for (const msg of messagesNeedingResponse) {
+    for (const recipient of msg.externalRecipients) {
+      const upper = String(recipient).toUpperCase();
+      if (!alreadyIncluded.has(upper)) {
+        extendedMissing.push(recipient);
+        alreadyIncluded.add(upper);
+        logDebug("Externe Stelle wird simuliert", { role: recipient });
+      }
+    }
+  }
+  
+  return extendedMissing;
+}
+
+// Merkt sich den letzten Stand der eingelesenen EINFO-Daten...
 
 // Merkt sich den letzten Stand der eingelesenen EINFO-Daten, damit nur neue
 // oder geänderte Einträge erneut an das LLM geschickt werden müssen.
@@ -202,12 +361,65 @@ export async function stepSimulation(options = {}) {
       lastComparableSnapshot?.aufgaben,
       toComparableAufgabe
     );
-    const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
+const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
       protokoll,
       lastComparableSnapshot?.protokoll,
       toComparableProtokoll
     );
-    // --- NEU: Erkennen, dass dies der erste Simulationsschritt ist ---
+
+    // ============================================================
+    // NEU: Audit-Trail - Schritt-Start loggen
+    // ============================================================
+    const stepStartTime = Date.now();
+    const stepId = `step_${stepStartTime}_${Math.random().toString(36).slice(2, 6)}`;
+    
+    logEvent("simulation", "step_start", {
+      stepId,
+      source,
+      boardCount: board.length,
+      aufgabenCount: aufgaben.length,
+      protokollCount: protokoll.length
+    });
+
+    // ============================================================
+    // NEU: Identifiziere Meldungen die eine Antwort benötigen
+    // ============================================================
+    const messagesNeedingResponse = identifyMessagesNeedingResponse(
+      protokoll,      // Alle Protokolleinträge (für Antwort-Check)
+      protokollDelta, // Nur neue/geänderte prüfen
+      roles
+    );
+    
+    // Erweitere missingRoles um externe Stellen
+    let effectiveMissingRoles = roles.missing;
+    if (messagesNeedingResponse.length > 0) {
+      effectiveMissingRoles = extendMissingRolesWithExternal(
+        messagesNeedingResponse, 
+        roles.missing
+      );
+      
+      logInfo("Meldungen benötigen Antwort", { 
+        count: messagesNeedingResponse.length,
+        messages: messagesNeedingResponse.map(m => ({
+          nr: m.nr,
+          von: m.anvon,
+          an: m.allRecipients,
+          extern: m.externalRecipients,
+          info: (m.information || "").slice(0, 50)
+        }))
+      });
+      
+      // Audit-Event
+      logEvent("simulation", "response_needed", {
+        stepId,
+        messageCount: messagesNeedingResponse.length,
+        externalEntities: [...new Set(
+          messagesNeedingResponse.flatMap(m => m.externalRecipients)
+        )]
+      });
+    }
+
+    // --- Erkennen, dass dies der erste Simulationsschritt ist ---
     const isFirstStep =
       (!lastComparableSnapshot ||
         lastComparableSnapshot.board?.length === 0) &&
@@ -227,14 +439,22 @@ export async function stepSimulation(options = {}) {
       lastComparableSnapshot?.board?.length === boardSnapshot.length &&
       boardDelta.length === 0;
 
-    const opsContext = {
-      roles,
+const opsContext = {
+      // NEU: Verwende erweiterte Rollen-Liste mit externen Stellen
+      roles: {
+        active: roles.active,
+        missing: effectiveMissingRoles
+      },
       compressedBoard: boardUnchanged
         ? lastCompressedBoardJson
         : compressBoard(boardSnapshot),
       compressedAufgaben: compressAufgaben(aufgaben),
       compressedProtokoll: compressProtokoll(protokoll),
-      firstStep: isFirstStep
+      firstStep: isFirstStep,
+      // NEU: Meldungen die Antwort brauchen
+      messagesNeedingResponse: messagesNeedingResponse.length > 0 
+        ? messagesNeedingResponse 
+        : null
     };
 
     const estimatedDataTokens = Math.ceil(
@@ -269,9 +489,18 @@ export async function stepSimulation(options = {}) {
       memorySnippets = memoryHits.map((hit) => hit.text);
     }
 
-    const { parsed: llmResponse } = await callLLMForOps({
+const { parsed: llmResponse } = await callLLMForOps({
       llmInput: opsContext,
       memorySnippets
+    });
+
+    // NEU: LLM-Aufruf im Audit loggen
+    const llmDuration = Date.now() - stepStartTime;
+    logEvent("llm", "ops_call", {
+      stepId,
+      durationMs: llmDuration,
+      hasResponse: !!llmResponse,
+      model: CONFIG.llmChatModel
     });
 
     const operations = (llmResponse || {}).operations || {
@@ -301,14 +530,32 @@ export async function stepSimulation(options = {}) {
       protokoll: protokollSnapshot
     };
 
-    lastCompressedBoardJson = opsContext.compressedBoard;
+lastCompressedBoardJson = opsContext.compressedBoard;
+
+    // NEU: Audit-Event für Simulationsschritt-Ende
+    const stepDuration = Date.now() - stepStartTime;
+    logEvent("simulation", "step_complete", {
+      stepId,
+      durationMs: stepDuration,
+      protocolsCreated: operations.protokoll?.create?.length || 0,
+      tasksCreated: operations.aufgaben?.create?.length || 0,
+      incidentsCreated: operations.board?.createIncidentSites?.length || 0,
+      responsesGenerated: messagesNeedingResponse.length
+    });
 
     return { ok: true, operations, analysis };
   } catch (err) {
+    // NEU: Fehler im Audit loggen
+    logEvent("error", "simulation_failed", {
+      source,
+      error: String(err)
+    });
+    
     logError("Fehler im Simulationsschritt", { error: String(err), source });
     return { ok: false, error: String(err) };
   } finally {
     stepInProgress = false;
   }
 }
+
 
