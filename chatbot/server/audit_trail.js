@@ -215,6 +215,69 @@ export async function listAuditTrails() {
     return [];
   }
 }
+// Am Ende von audit_trail.js hinzufügen (vor dem letzten Export):
+
+let isPaused = false;
+
+/**
+ * Pausiert die aktuelle Übung
+ */
+export function pauseExercise() {
+  if (!currentExerciseId) return false;
+  isPaused = true;
+  logEvent("exercise", "pause", { timestamp: Date.now() });
+  return true;
+}
+
+/**
+ * Setzt die pausierte Übung fort
+ */
+export function resumeExercise() {
+  if (!currentExerciseId || !isPaused) return false;
+  isPaused = false;
+  logEvent("exercise", "resume", { timestamp: Date.now() });
+  return true;
+}
+
+/**
+ * Filtert Events der aktuellen Übung
+ */
+export function getFilteredEvents({ category, since, limit } = {}) {
+  let filtered = [...events];
+  
+  if (category) {
+    filtered = filtered.filter(e => e.category === category);
+  }
+  
+  if (since) {
+    const sinceDate = new Date(since);
+    filtered = filtered.filter(e => new Date(e.timestamp) > sinceDate);
+  }
+  
+  if (limit && limit > 0) {
+    filtered = filtered.slice(-limit);
+  }
+  
+  return filtered;
+}
+
+/**
+ * Löscht einen gespeicherten Audit-Trail
+ */
+export async function deleteAuditTrail(exerciseId) {
+  const filePath = path.join(AUDIT_DIR, `${exerciseId}.json`);
+  
+  try {
+    await fsPromises.unlink(filePath);
+    logDebug("Audit-Trail gelöscht", { exerciseId });
+    return true;
+  } catch (err) {
+    if (err.code === "ENOENT") return false;
+    logError("Audit-Trail löschen fehlgeschlagen", { exerciseId, error: String(err) });
+    return false;
+  }
+}
+
 
 /**
  * Gibt aktuellen Status zurück
