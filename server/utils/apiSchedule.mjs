@@ -12,6 +12,20 @@ const MODE_ALIASES = new Map([
 
 const ALLOWED_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"];
 
+function normalizeBody(value) {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string") return value;
+  if (["number", "boolean", "bigint"].includes(typeof value)) return String(value);
+  if (typeof value === "object") {
+    try {
+      return JSON.stringify(value);
+    } catch (_err) {
+      return "";
+    }
+  }
+  return "";
+}
+
 export function normalizeApiMode(value) {
   if (typeof value !== "string") return "interval";
   const normalized = value.trim().toLowerCase();
@@ -43,12 +57,15 @@ export function sanitizeApiScheduleEntry(entry, { defaultIntervalMinutes, minInt
     ? Math.max(minIntervalMinutes, Math.floor(intervalRaw))
     : defaultIntervalMinutes;
 
+  const methodInput = entry?.method ?? (entry?.body ? "POST" : "GET");
+  const method = normalizeMethod(methodInput);
+
   return {
     id: typeof entry?.id === "string" && entry.id.trim() ? entry.id.trim() : crypto.randomUUID(),
     label: typeof entry?.label === "string" ? entry.label.trim() : "",
     url: typeof entry?.url === "string" ? entry.url.trim() : "",
-    method: normalizeMethod(entry?.method),
-    body: typeof entry?.body === "string" ? entry.body : "",
+    method,
+    body: normalizeBody(entry?.body),
     mode,
     intervalMinutes,
     timeOfDay: mode === "time" ? normalizeTimeOfDay(entry?.timeOfDay ?? entry?.time ?? entry?.clock) : null,
