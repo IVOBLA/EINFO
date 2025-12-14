@@ -107,3 +107,68 @@ export async function saveTemplate(template) {
   logDebug("Template gespeichert", { id: template.id });
   return true;
 }
+
+// Am Ende von template_manager.js hinzufügen:
+
+/**
+ * Löscht ein Template
+ */
+export async function deleteTemplate(templateId) {
+  const filePath = path.join(SCENARIOS_DIR, `${templateId}.json`);
+  
+  try {
+    await fsPromises.unlink(filePath);
+    cachedTemplates = null; // Cache invalidieren
+    logDebug("Template gelöscht", { id: templateId });
+    return true;
+  } catch (err) {
+    if (err.code === "ENOENT") return false;
+    logError("Template löschen fehlgeschlagen", { templateId, error: String(err) });
+    throw err;
+  }
+}
+
+/**
+ * Validiert ein Template
+ */
+export function validateTemplate(template) {
+  const errors = [];
+  
+  if (!template.id || typeof template.id !== "string") {
+    errors.push("id fehlt oder ist ungültig");
+  }
+  if (!template.title || typeof template.title !== "string") {
+    errors.push("title fehlt oder ist ungültig");
+  }
+  if (template.difficulty && !["easy", "medium", "hard"].includes(template.difficulty)) {
+    errors.push("difficulty muss easy, medium oder hard sein");
+  }
+  if (template.mode && !["free", "guided", "realtime"].includes(template.mode)) {
+    errors.push("mode muss free, guided oder realtime sein");
+  }
+  
+  return {
+    valid: errors.length === 0,
+    errors
+  };
+}
+
+/**
+ * Erstellt eine Übung aus einem Template
+ */
+export async function createExerciseFromTemplate(templateId) {
+  const template = await loadTemplate(templateId);
+  if (!template) return null;
+  
+  const exerciseId = `ex_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  
+  return {
+    exerciseId,
+    templateId: template.id,
+    templateTitle: template.title,
+    mode: template.mode || "free",
+    initialState: template.initial_state || {},
+    triggers: template.triggers || [],
+    successCriteria: template.success_criteria || {}
+  };
+}
