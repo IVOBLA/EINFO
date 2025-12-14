@@ -1,0 +1,66 @@
+{
+  "id": "hochwasser_basic",
+  "title": "Hochwasser - Grundübung",
+  "description": "Einfaches Hochwasser-Szenario für Einsteiger",
+  "difficulty": "easy",
+  "duration_minutes": 60,
+  "mode": "guided",
+  
+  "initial_state": {
+    "board": [
+      {
+        "id": "inc_001",
+        "content": "Hochwasser Hauptstraße 45 - Keller unter Wasser",
+        "ort": "Hauptstraße 45, 3100 Musterstadt",
+        "typ": "Wasserschaden",
+        "column": "neu"
+      }
+    ],
+    "protokoll": [
+      {
+        "id": "p_001",
+        "information": "Anruf Bürgermeister: Pegelstand steigt weiter, weitere Überflutungen erwartet",
+        "infoTyp": "Lagemeldung",
+        "ergehtAn": ["LtStb", "S2"],
+        "anvon": "Bürgermeister"
+      }
+    ],
+    "aufgaben": []
+  },
+  
+  "triggers": [
+    {
+      "id": "trigger_001",
+      "delay_minutes": 10,
+      "condition": { "type": "time_elapsed" },
+      "action": {
+        "type": "create_protocol",
+        "data": {
+          "information": "Wetterwarnung: Starkregen erwartet in den nächsten 2 Stunden",
+          "infoTyp": "Warnung",
+          "ergehtAn": ["S2", "S3"],
+          "anvon": "ZAMG"
+        }
+      }
+    },
+    {
+      "id": "trigger_002",
+      "delay_minutes": 20,
+      "condition": { "type": "time_elapsed" },
+      "action": {
+        "type": "create_incident",
+        "data": {
+          "content": "Keller vollgelaufen - Person eingeschlossen",
+          "ort": "Bachstraße 12",
+          "typ": "Menschenrettung"
+        }
+      }
+    }
+  ],
+  
+  "success_criteria": {
+    "min_protocols": 5,
+    "min_tasks_assigned": 3,
+    "required_roles_active": ["LtStb", "S2", "S3"]
+  }
+}
