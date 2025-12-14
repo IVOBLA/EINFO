@@ -148,6 +148,76 @@ function heapReplaceRoot(heap, item) {
   heap[i] = item;
 }
 
+// ============================================================
+// NEU: Funktion für RAG mit Quellenangaben
+// ============================================================
+
+/**
+ * Wie getKnowledgeContextVector, aber mit detaillierten Quelleninfos
+ * @param {string} query - Suchanfrage
+ * @param {object} options - Optionen
+ * @returns {Promise<{context: string, sources: Array}>}
+ */
+export async function getKnowledgeContextWithSources(query, options = {}) {
+  const topK = options.topK || CONFIG.rag.topK || 5;
+  const maxChars = options.maxChars || CONFIG.rag.maxContextChars || 2500;
+  const threshold = options.threshold || CONFIG.rag.scoreThreshold || 0.35;
+
+  await ensureLoaded();
+
+  if (!embeddingsData || !metaData) {
+    logDebug("RAG nicht geladen - kein Kontext", null);
+    return { context: "", sources: [] };
+  }
+
+  const queryEmbedding = await embedText(query);
+  const results = [];
+
+  for (let i = 0; i < embeddingsData.vectors.length; i++) {
+    const docVec = embeddingsData.vectors[i];
+    const score = cosineSimilarity(queryEmbedding, docVec);
+    
+    if (score >= threshold) {
+      results.push({
+        index: i,
+        score,
+        text: metaData.chunks[i]?.text || "",
+        fileName: metaData.chunks[i]?.fileName || "unbekannt"
+      });
+    }
+  }
+
+  // Nach Score sortieren
+  results.sort((a, b) => b.score - a.score);
+  const topResults = results.slice(0, topK);
+
+  // Context aufbauen
+  let context = "";
+  let charCount = 0;
+  const sources = [];
+
+  for (const r of topResults) {
+    if (charCount + r.text.length > maxChars) break;
+    
+    context += r.text + "\n\n";
+    charCount += r.text.length;
+    
+    sources.push({
+      fileName: r.fileName,
+      score: Math.round(r.score * 100),
+      preview: r.text.slice(0, 100) + "..."
+    });
+  }
+
+  logDebug("RAG mit Quellen", { 
+    query: query.slice(0, 50), 
+    resultsFound: results.length,
+    sourcesUsed: sources.length 
+  });
+
+  return { context: context.trim(), sources };
+}
+
 /**
  * Liefert einen String mit Knowledge-Kontext (Top-K Chunks).
  */
@@ -228,3 +298,4 @@ export async function getKnowledgeContextVector(query) {
   
   return ctx;
 }
+
