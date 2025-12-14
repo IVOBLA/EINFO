@@ -41,7 +41,7 @@ const base = {
   autoStepMs: Number(process.env.CHATBOT_AUTO_STEP_MS || "120000"),
 
   // LLM Defaults
-  defaultTemperature: Number(process.env.LLM_TEMP || "0.3"),
+  defaultTemperature: Number(process.env.LLM_TEMP || "0.05"),
   defaultSeed: Number(process.env.LLM_SEED || "42"),
 
   // Vector-RAG Settings - OPTIMIERT für Llama
