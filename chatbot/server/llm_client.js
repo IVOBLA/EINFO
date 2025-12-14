@@ -1,7 +1,5 @@
 // chatbot/server/llm_client.js
 
-// chatbot/server/llm_client.js
-
 import { CONFIG } from "./config.js";
 import {
   buildSystemPrompt,          // allgemeiner Ops-Prompt
@@ -89,13 +87,14 @@ export async function callLLMForOps({
     );
 
     systemPrompt = buildSystemPrompt({ memorySnippets });
-    userPrompt = buildUserPrompt({
+userPrompt = buildUserPrompt({
       llmInput,
       compressedBoard,
       compressedAufgaben,
       compressedProtokoll,
       knowledgeContext,
-      memorySnippets
+      memorySnippets,
+      messagesNeedingResponse: llmInput.messagesNeedingResponse || null
     });
   }
 
