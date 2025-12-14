@@ -71,6 +71,11 @@ const __dirname = path.dirname(__filename);
 const clientDir = path.resolve(__dirname, "../client");
 app.use("/gui", express.static(clientDir));
 
+// Dashboard-Route
+app.get("/dashboard", (req, res) => {
+  res.sendFile(path.join(clientDir, "dashboard.html"));
+});
+
 // ============================================================
 // Bestehende Simulations-Routen
 // ============================================================
@@ -519,3 +524,4 @@ async function bootstrap() {
 }
 
 bootstrap();
+
