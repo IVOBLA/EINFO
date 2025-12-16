@@ -11,6 +11,7 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.21.0",
+    "glob": "^13.0.0",
     "pdf-parse": "^1.1.1"
   }
 }
