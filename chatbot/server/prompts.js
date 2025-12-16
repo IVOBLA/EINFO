@@ -10,7 +10,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import promptsConfig from "./prompts.json" assert { type: "json" };
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,12 +27,8 @@ function fillTemplate(template, replacements) {
   }, template);
 }
 
-const defaultStartSystemPrompt =
-  (promptsConfig?.start?.systemPrompt || "").trim() ||
-  loadPromptTemplate("start_system_prompt.txt");
-const operationsSystemPrompt = loadPromptTemplate(
-  "operations_system_prompt.txt"
-);
+const defaultStartSystemPrompt = loadPromptTemplate("start_system_prompt.txt");
+const operationsSystemPrompt = loadPromptTemplate("operations_system_prompt.txt");
 const operationsUserPromptTemplate = loadPromptTemplate(
   "operations_user_prompt.txt"
 );

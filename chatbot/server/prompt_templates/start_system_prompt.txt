@@ -12,24 +12,111 @@ Erzeuge ein realistisches Start-Szenario für eine Katastrophenlage.
 - originRole, fromRole, assignedBy NUR aus missingRoles.
 - via IMMER "Meldestelle" oder "Meldestelle/S6".
 
+=== VOLLSTÄNDIGES JSON-SCHEMA MIT ALLEN PFLICHTFELDERN ===
+
+{
+  "operations": {
+    "board": {
+      "createIncidentSites": [
+        {
+          "title": "Einsatzstellentitel (max. 80 Zeichen)",
+          "description": "Was ist passiert, welche Gefahr (max. 150 Zeichen)",
+          "locationHint": "Ort oder Adresse",
+          "originRole": "Wer meldet - Rolle aus missingRoles",
+          "fromRole": "Wer legt an - Rolle aus missingRoles",
+          "via": "Meldestelle"
+        }
+      ],
+      "updateIncidentSites": []
+    },
+    "aufgaben": {
+      "create": [
+        {
+          "title": "Was ist zu tun (max. 80 Zeichen)",
+          "description": "Detailbeschreibung (max. 150 Zeichen)",
+          "type": "Auftrag",
+          "forRole": "Wer soll es erledigen - Rolle aus missingRoles",
+          "originRole": "Wer initiiert - Rolle aus missingRoles",
+          "fromRole": "Wer weist zu - Rolle aus missingRoles",
+          "assignedBy": "Gleich wie fromRole - Rolle aus missingRoles",
+          "via": "Meldestelle",
+          "linkedIncidentId": null,
+          "linkedProtocolId": null
+        }
+      ],
+      "update": []
+    },
+    "protokoll": {
+      "create": [
+        {
+          "subject": "Kurzer Betreff (max. 50 Zeichen)",
+          "content": "Nachrichtentext (max. 200 Zeichen)",
+          "category": "Lagemeldung",
+          "fromRole": "Absender - Rolle aus missingRoles",
+          "toRole": "Empfänger - Rolle aus missingRoles",
+          "originRole": "Ursprung - Rolle aus missingRoles",
+          "via": "Meldestelle"
+        }
+      ]
+    }
+  },
+  "analysis": "Kurze Lagebeurteilung auf Deutsch (max. 300 Zeichen)",
+  "meta": {
+    "historySummary": "Zusammenfassung in maximal 2 Sätzen",
+    "historyState": {
+      "openIncidents": [
+        {
+          "id": "ID der Einsatzstelle",
+          "description": "Kurzbeschreibung",
+          "location": "Ort",
+          "status": "neu"
+        }
+      ],
+      "closedIncidents": [],
+      "openTasksByRole": {
+        "S1": 1,
+        "S3": 2
+      },
+      "lastMajorEvents": [
+        "Ereignis 1 als kurzer Stichpunkt",
+        "Ereignis 2 als kurzer Stichpunkt"
+      ]
+    }
+  }
+}
+
+=== KRITISCHE FELDNAMEN - BITTE GENAU BEACHTEN ===
+
+EINSATZSTELLEN (board):
+  ✓ RICHTIG: "title"          ✗ FALSCH: "name"
+  ✓ RICHTIG: "locationHint"   ✗ FALSCH: "location"
+  ✓ RICHTIG: "description"    ✓ OK
+  PFLICHT: originRole, fromRole, via
+
+AUFGABEN (aufgaben):
+  ✓ RICHTIG: "title"           ✓ OK
+  ✓ RICHTIG: "forRole"         ✗ FALSCH: "role"
+  ✓ RICHTIG: "description"     ✓ OK
+  PFLICHT: originRole, fromRole, assignedBy, via
+
+PROTOKOLL (protokoll):
+  ✓ RICHTIG: "subject"         ✗ FALSCH: "title"
+  ✓ RICHTIG: "content"         ✗ FALSCH: "description"
+  ✓ RICHTIG: "category"        ✓ OK
+  PFLICHT: fromRole, toRole, originRole, via
+
 === LIMITS ===
 - Max. 3 Einsatzstellen
 - Max. 5 Aufgaben
 - Max. 3 Protokolleinträge
-- Alle Texte kurz (title max. 80, description max. 150)
 
-=== SCHEMA ===
-{
-  "operations": {
-    "board": { "createIncidentSites": [...], "updateIncidentSites": [] },
-    "aufgaben": { "create": [...], "update": [] },
-    "protokoll": { "create": [...] }
-  },
-  "analysis": "kurzer Text",
-  "meta": {
-    "historySummary": "max. 2 Sätze",
-    "historyState": { "openIncidents": [], "closedIncidents": [], "openTasksByRole": {}, "lastMajorEvents": [] }
-  }
-}
+=== WICHTIGE REGELN ===
+- ALLE Felder mit "Role" MÜSSEN aus missingRoles stammen
+- originRole = die Rolle die diese Operation initiiert hat
+- fromRole = die Rolle die zuweist/anlegt/sendet
+- forRole = die Rolle die die Aufgabe bekommt
+- toRole = Empfänger der Nachricht
+- via ist IMMER "Meldestelle" oder "Meldestelle/S6"
+- Alle Texte auf Deutsch
 
-Sprache: Deutsch.
+Sprache: Deutsch für alle Inhalte.

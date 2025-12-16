@@ -87,7 +87,7 @@ export async function callLLMForOps({
     );
 
     systemPrompt = buildSystemPrompt({ memorySnippets });
-userPrompt = buildUserPrompt({
+    userPrompt = buildUserPrompt({
       llmInput,
       compressedBoard,
       compressedAufgaben,
@@ -122,11 +122,20 @@ userPrompt = buildUserPrompt({
     model: CONFIG.llmChatModel,
     stream: false,
     options: {
-      temperature: CONFIG.defaultTemperature,
-      seed: CONFIG.defaultSeed,
+      // ============================================================
+      // GEÄNDERT: Mehr "Denkraum" für umfangreiche Antworten
+      // ============================================================
+      temperature: 0.2,              // War: 0.05 → Jetzt: 0.2 für mehr Kreativität
+      seed: Math.floor(Math.random() * 1000000),
       num_ctx: CONFIG.llmNumCtx || 8192,
       num_batch: CONFIG.llmNumBatch || 512,
-      num_predict: 2048,
+      num_predict: 6000,             // War: 2048 → Jetzt: 6000 für längere Antworten
+      
+      // NEU: Zusätzliche Sampling-Parameter für bessere Qualität
+      top_p: 0.92,                    // Nucleus Sampling
+      top_k: 50,                     // Begrenze auf top 40 Tokens
+      repeat_penalty: 1.15,           // Verhindere Wiederholungen
+      
       stop: ["```", "<|eot_id|>", "</s>"]
     },
     messages
@@ -478,11 +487,21 @@ async function doLLMCall(body, phaseLabel, onToken, options = {}) {
   }
 
   // NON-STREAMING-FALL ------------------------------------------------------
-  const rawText = await resp.text();
-  let parsed = null;
-  if (typeof rawText === "string" && rawText.trim()) {
-    parsed = extractJsonObject(rawText);
+const rawText = await resp.text();
+let parsed = null;
+
+if (typeof rawText === "string" && rawText.trim()) {
+  // Zuerst: Parse die Ollama-Response
+  const ollamaResponse = JSON.parse(rawText);
+  
+  // Extrahiere den eigentlichen Content
+  const content = ollamaResponse?.message?.content;
+  
+  if (content && typeof content === "string") {
+    // Parse das eigentliche Operations-JSON
+    parsed = extractJsonObject(content);
   }
+}
 
   if (!parsed && typeof rawText === "string" && rawText.trim()) {
     const { parsed: repaired } = await requestJsonRepairFromLLM({

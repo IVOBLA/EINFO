@@ -19,9 +19,17 @@ WISSEN:
 AUFGABE:
 {{taskSection}}
 
+{{responseRequests}}
+
 REGELN:
 1. originRole/fromRole/assignedBy NUR aus missingRoles
 2. via IMMER "Meldestelle" oder "Meldestelle/S6"
 3. Texte kurz halten (Limits beachten)
+4. Verwende die KORREKTEN Feldnamen aus dem Schema
+
+WICHTIGE FELDNAMEN:
+- Board: "title" (nicht "name"), "locationHint" (nicht "location")
+- Aufgaben: "forRole" (nicht "role")
+- Protokoll: "subject" (nicht "title"), "content" (nicht "description")
 
 Antworte NUR mit JSON. Kein Text davor oder danach. Keine ```.
