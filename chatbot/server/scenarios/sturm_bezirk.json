@@ -1,0 +1,165 @@
+{
+  "id": "sturm_bezirk",
+  "title": "Sturmschäden Bezirk Feldkirchen",
+  "description": "Ein schwerer Herbststurm zieht über den Bezirk. Umgestürzte Bäume, beschädigte Dächer und Stromausfälle erfordern koordinierten Einsatz.",
+  "difficulty": "easy",
+  "duration_minutes": 60,
+  "mode": "free",
+  
+  "scenario_context": {
+    "event_type": "Sturm",
+    "region": "Bezirk Feldkirchen",
+    "affected_areas": [
+      "Gnesau",
+      "Sirnitz",
+      "Albeck",
+      "Steuerberg"
+    ],
+    "weather": "Orkanböen bis 120 km/h, Regen",
+    "initial_situation": "Seit 06:00 Uhr mehren sich die Einsatzmeldungen. Die Landesstraßen sind teilweise blockiert.",
+    "special_conditions": [
+      "Mehrere Stromleitungen beschädigt",
+      "Mobilfunknetz in Gnesau gestört",
+      "Schulen im Bezirk geschlossen"
+    ]
+  },
+  
+  "initial_state": {
+    "board": {
+      "columns": {
+        "neu": {
+          "name": "Neu",
+          "items": [
+            {
+              "id": "st-001",
+              "humanId": "E-1",
+              "content": "Baum auf Fahrbahn L87",
+              "typ": "T1, Verkehrshindernis",
+              "ort": "L87 km 3, Gnesau",
+              "latitude": 46.7650,
+              "longitude": 13.9420,
+              "description": "Großer Baum blockiert beide Fahrspuren",
+              "alerted": "FF Gnesau",
+              "assignedVehicles": [],
+              "createdAt": "2025-01-01T06:30:00.000Z",
+              "statusSince": "2025-01-01T06:30:00.000Z"
+            },
+            {
+              "id": "st-002",
+              "humanId": "E-2",
+              "content": "Dachschaden Wohnhaus",
+              "typ": "T2, Gebäudesicherung",
+              "ort": "Dorfstraße 12, Sirnitz",
+              "latitude": 46.8249,
+              "longitude": 14.0538,
+              "description": "Dachziegel abgedeckt, Regenwasser dringt ein",
+              "alerted": "FF Sirnitz",
+              "assignedVehicles": [],
+              "createdAt": "2025-01-01T06:45:00.000Z",
+              "statusSince": "2025-01-01T06:45:00.000Z"
+            },
+            {
+              "id": "st-003",
+              "humanId": "E-3",
+              "content": "Stromleitung auf Straße",
+              "typ": "T3, Gefahr durch Strom",
+              "ort": "Albecker Straße, Albeck",
+              "latitude": 46.8200,
+              "longitude": 14.0600,
+              "description": "Freileitung liegt auf der Straße, Status unklar",
+              "alerted": "FF Albeck",
+              "assignedVehicles": [],
+              "createdAt": "2025-01-01T07:00:00.000Z",
+              "statusSince": "2025-01-01T07:00:00.000Z"
+            }
+          ]
+        },
+        "in-bearbeitung": {
+          "name": "In Bearbeitung",
+          "items": []
+        },
+        "erledigt": {
+          "name": "Erledigt",
+          "items": []
+        }
+      }
+    },
+    "protokoll": []
+  },
+  
+  "triggers": [
+    {
+      "id": "trigger-1",
+      "condition": {
+        "type": "time_elapsed",
+        "minutes": 10
+      },
+      "action": {
+        "type": "external_message",
+        "data": {
+          "from": "KELAG",
+          "infoTyp": "Info",
+          "information": "Stromleitung in Albeck wurde abgeschaltet. Bereich ist stromfrei. Bitte Freigabe nach Bergung der Leitung melden."
+        }
+      }
+    },
+    {
+      "id": "trigger-2",
+      "condition": {
+        "type": "time_elapsed",
+        "minutes": 20
+      },
+      "action": {
+        "type": "add_incident",
+        "data": {
+          "humanId": "E-4",
+          "content": "Person unter Baum eingeklemmt",
+          "typ": "T3, Menschenrettung",
+          "ort": "Waldweg, Steuerberg",
+          "latitude": 46.7800,
+          "longitude": 14.1200,
+          "description": "Waldarbeiter wurde von umstürzendem Baum getroffen, bei Bewusstsein",
+          "priority": "high"
+        }
+      }
+    }
+  ],
+  
+  "success_criteria": {
+    "min_incidents_resolved": 4,
+    "max_duration_minutes": 60,
+    "required_protocols": 3
+  },
+  
+  "hints": [
+    "Bei Stromleitung auf der Straße: Bereich absichern, Abstand halten",
+    "KELAG für Freischaltung kontaktieren",
+    "Kettensägen-Einsätze nur mit entsprechender Ausbildung"
+  ],
+  
+  "external_entities": {
+    "KELAG": {
+      "name": "KELAG Kärnten",
+      "response_style": "technisch, sicherheitsbewusst",
+      "typical_responses": [
+        "Freischaltung erfolgt, Bereich stromfrei",
+        "Monteur unterwegs, ETA 30 Minuten"
+      ]
+    },
+    "STM": {
+      "name": "Straßenmeisterei Feldkirchen",
+      "response_style": "praktisch, lösungsorientiert",
+      "typical_responses": [
+        "Räumfahrzeug entsandt",
+        "Umleitung wird eingerichtet"
+      ]
+    }
+  },
+  
+  "metadata": {
+    "created_at": "2025-01-01T00:00:00.000Z",
+    "created_by": "System",
+    "version": "1.0",
+    "tags": ["sturm", "naturereignis", "verkehr"]
+  }
+}

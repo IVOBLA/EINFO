@@ -1,0 +1,162 @@
+{
+  "id": "hochwasser_feldkirchen",
+  "title": "Hochwasser Bezirk Feldkirchen",
+  "description": "Simuliert ein Hochwasserereignis mit mehreren betroffenen Gemeinden im Bezirk Feldkirchen. Steigender Wasserstand der Gurk und Tiebel führt zu Überflutungen.",
+  "difficulty": "medium",
+  "duration_minutes": 90,
+  "mode": "free",
+  
+  "scenario_context": {
+    "event_type": "Hochwasser",
+    "region": "Bezirk Feldkirchen",
+    "affected_areas": [
+      "Feldkirchen Zentrum",
+      "Steuerberg",
+      "Ossiach",
+      "Himmelberg"
+    ],
+    "weather": "Starkregen seit 48 Stunden, Pegelstände steigend",
+    "initial_situation": "Die Bezirksleitzentrale hat den Katastrophenfall ausgerufen. Mehrere Feuerwehren sind bereits im Einsatz.",
+    "special_conditions": [
+      "Stromausfall in Teilen von Feldkirchen",
+      "B94 zwischen Feldkirchen und Himmelberg gesperrt",
+      "Evakuierung des Altenheims Feldkirchen läuft"
+    ]
+  },
+  
+  "initial_state": {
+    "board": {
+      "columns": {
+        "neu": {
+          "name": "Neu",
+          "items": [
+            {
+              "id": "hw-001",
+              "humanId": "E-1",
+              "content": "Kellerüberflutung Hauptplatz 5",
+              "typ": "T3, Wasserschaden",
+              "ort": "Hauptplatz 5, Feldkirchen",
+              "latitude": 46.7233,
+              "longitude": 14.0954,
+              "description": "Keller steht 50cm unter Wasser, Heizöltank bedroht",
+              "alerted": "FF Feldkirchen",
+              "assignedVehicles": [],
+              "createdAt": "2025-01-01T08:00:00.000Z",
+              "statusSince": "2025-01-01T08:00:00.000Z"
+            },
+            {
+              "id": "hw-002",
+              "humanId": "E-2",
+              "content": "Straßenüberflutung B94",
+              "typ": "T2, Verkehrshindernis",
+              "ort": "B94 km 12, Himmelberg",
+              "latitude": 46.7550,
+              "longitude": 14.0200,
+              "description": "Straße auf 200m überflutet, mehrere PKW eingeschlossen",
+              "alerted": "FF Himmelberg, FF Feldkirchen",
+              "assignedVehicles": [],
+              "createdAt": "2025-01-01T08:15:00.000Z",
+              "statusSince": "2025-01-01T08:15:00.000Z"
+            }
+          ]
+        },
+        "in-bearbeitung": {
+          "name": "In Bearbeitung",
+          "items": []
+        },
+        "erledigt": {
+          "name": "Erledigt",
+          "items": []
+        }
+      }
+    },
+    "protokoll": []
+  },
+  
+  "triggers": [
+    {
+      "id": "trigger-1",
+      "condition": {
+        "type": "time_elapsed",
+        "minutes": 15
+      },
+      "action": {
+        "type": "add_incident",
+        "data": {
+          "humanId": "E-3",
+          "content": "Evakuierung Altenheim",
+          "typ": "T4, Menschenrettung",
+          "ort": "Altenheim Sonnenschein, Feldkirchen",
+          "latitude": 46.7250,
+          "longitude": 14.0980,
+          "description": "50 Bewohner müssen evakuiert werden, Erdgeschoss überflutet",
+          "priority": "high"
+        }
+      }
+    },
+    {
+      "id": "trigger-2",
+      "condition": {
+        "type": "incident_count",
+        "column": "in-bearbeitung",
+        "operator": ">=",
+        "value": 2
+      },
+      "action": {
+        "type": "external_message",
+        "data": {
+          "from": "BH",
+          "infoTyp": "Info",
+          "information": "Die Bezirkshauptmannschaft hat Katastrophenhilfe des Bundesheeres angefordert. Ankunft in ca. 2 Stunden."
+        }
+      }
+    }
+  ],
+  
+  "success_criteria": {
+    "min_incidents_resolved": 3,
+    "max_duration_minutes": 90,
+    "required_protocols": 5,
+    "all_evacuations_complete": true
+  },
+  
+  "hints": [
+    "Bei Hochwasser immer zuerst Menschenleben priorisieren",
+    "Stromabschaltung in überfluteten Bereichen koordinieren",
+    "Regelmäßige Lagemeldungen an BH und LWZ senden"
+  ],
+  
+  "external_entities": {
+    "POL": {
+      "name": "Polizei Feldkirchen",
+      "response_style": "formell, präzise",
+      "typical_responses": [
+        "Straßensperren eingerichtet",
+        "Verkehrsumleitung aktiv"
+      ]
+    },
+    "RK": {
+      "name": "Rotes Kreuz Feldkirchen",
+      "response_style": "kooperativ, hilfsbereit",
+      "typical_responses": [
+        "Rettungswagen entsandt",
+        "Notunterkunft wird vorbereitet"
+      ]
+    },
+    "KELAG": {
+      "name": "KELAG Kärnten",
+      "response_style": "technisch, fachlich",
+      "typical_responses": [
+        "Stromabschaltung erfolgt",
+        "Wiedereinschaltung nach Freigabe durch Feuerwehr"
+      ]
+    }
+  },
+  
+  "metadata": {
+    "created_at": "2025-01-01T00:00:00.000Z",
+    "created_by": "System",
+    "version": "1.0",
+    "tags": ["hochwasser", "naturkatastrophe", "evakuierung"]
+  }
+}
