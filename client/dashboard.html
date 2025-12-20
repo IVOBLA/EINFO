@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EINFO Übungsleiter Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a; 
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+    
+    .header {
+      background: #1e293b;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #334155;
+    }
+    .header h1 { font-size: 1.5rem; color: #f8fafc; }
+    
+    .status-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+    .status-badge.active { background: #22c55e; color: #052e16; }
+    .status-badge.inactive { background: #475569; color: #e2e8f0; }
+    .status-badge.paused { background: #f59e0b; color: #451a03; }
+    
+    main { padding: 2rem; }
+    
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 1.5rem;
+      max-width: 1800px;
+      margin: 0 auto;
+    }
+    
+    .card {
+      background: #1e293b;
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      border: 1px solid #334155;
+    }
+    .card h2 {
+      font-size: 1.125rem;
+      margin-bottom: 1rem;
+      color: #94a3b8;
+      border-bottom: 1px solid #334155;
+      padding-bottom: 0.5rem;
+    }
+    
+    .btn {
+      padding: 0.5rem 1rem;
+      border-radius: 0.375rem;
+      border: none;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .btn-primary { background: #3b82f6; color: white; }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-danger { background: #ef4444; color: white; }
+    .btn-danger:hover { background: #dc2626; }
+    .btn-secondary { background: #475569; color: white; }
+    .btn-secondary:hover { background: #64748b; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    
+    .btn-group { display: flex; gap: 0.5rem; margin-top: 1rem; }
+    
+    .connected { color: #22c55e; }
+    .disconnected { color: #ef4444; }
+    
+    /* Szenario-Auswahl */
+    .scenario-select {
+      width: 100%;
+      padding: 0.75rem;
+      border-radius: 0.375rem;
+      border: 1px solid #475569;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+    }
+    .scenario-select:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+    .scenario-info {
+      background: #0f172a;
+      padding: 0.75rem;
+      border-radius: 0.375rem;
+      font-size: 0.875rem;
+      margin-bottom: 1rem;
+    }
+    .scenario-info .label { color: #64748b; }
+    .scenario-info .value { color: #e2e8f0; margin-left: 0.5rem; }
+    
+    /* Rollen-Liste */
+    .role-list {
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.5rem;
+    }
+    .role-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0.75rem;
+      background: #0f172a;
+      border-radius: 0.375rem;
+      font-size: 0.875rem;
+    }
+    .role-item.active { border-left: 3px solid #22c55e; }
+    .role-item.missing { border-left: 3px solid #f59e0b; }
+    .role-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 0.5rem;
+    }
+    .role-dot.active { background: #22c55e; }
+    .role-dot.missing { background: #f59e0b; }
+    
+    /* Statistiken */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+    .stat-item {
+      text-align: center;
+      padding: 1rem;
+      background: #0f172a;
+      border-radius: 0.375rem;
+    }
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #3b82f6;
+    }
+    .stat-label {
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-top: 0.25rem;
+    }
+    
+    /* Event-Log */
+    .event-log {
+      height: 300px;
+      overflow-y: auto;
+      background: #0f172a;
+      border-radius: 0.375rem;
+      padding: 0.75rem;
+      font-family: 'Monaco', 'Consolas', monospace;
+      font-size: 0.8125rem;
+    }
+    .event-log .event {
+      padding: 0.25rem 0;
+      border-bottom: 1px solid #1e293b;
+    }
+    .event-log .time { color: #64748b; margin-right: 0.5rem; }
+    .event-log .msg { color: #e2e8f0; }
+    .event-log .msg.error { color: #ef4444; }
+    .event-log .msg.success { color: #22c55e; }
+    .event-log .msg.warning { color: #f59e0b; }
+    
+    /* Worker-Status */
+    .worker-status {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      background: #0f172a;
+      border-radius: 0.375rem;
+    }
+    .worker-indicator {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    .worker-indicator.running { background: #22c55e; }
+    .worker-indicator.stopped { background: #ef4444; animation: none; }
+    .worker-indicator.paused { background: #f59e0b; }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <h1>🚒 EINFO Übungsleiter Dashboard</h1>
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <span id="sse-status" class="disconnected">● Nicht verbunden</span>
+      <span id="exercise-status" class="status-badge inactive">Keine Übung aktiv</span>
+    </div>
+  </header>
+  
+  <main class="grid">
+    <!-- Übungssteuerung -->
+    <section class="card">
+      <h2>Übungssteuerung</h2>
+      
+      <!-- NEU: Szenario-Auswahl -->
+      <label for="scenario-select" style="display: block; margin-bottom: 0.5rem; color: #94a3b8;">
+        Szenario auswählen:
+      </label>
+      <select id="scenario-select" class="scenario-select">
+        <option value="">-- Kein Szenario (Freie Übung) --</option>
+      </select>
+      
+      <div id="scenario-info" class="scenario-info" style="display: none;">
+        <div><span class="label">Schwierigkeit:</span><span class="value" id="scenario-difficulty">-</span></div>
+        <div><span class="label">Dauer:</span><span class="value" id="scenario-duration">-</span></div>
+        <div><span class="label">Beschreibung:</span><span class="value" id="scenario-description">-</span></div>
+      </div>
+      
+      <div id="exercise-info">
+        <p style="color: #64748b;">Wähle ein Szenario und starte die Übung</p>
+      </div>
+      
+      <div class="btn-group">
+        <button id="btn-start" class="btn btn-primary">Übung starten</button>
+        <button id="btn-pause" class="btn btn-secondary" disabled>Pause</button>
+        <button id="btn-end" class="btn btn-danger" disabled>Beenden</button>
+      </div>
+    </section>
+    
+    <!-- Live-Statistiken -->
+    <section class="card">
+      <h2>Live-Statistiken</h2>
+      <div class="stat-grid">
+        <div class="stat-item">
+          <div class="stat-value" id="stat-steps">0</div>
+          <div class="stat-label">Sim-Schritte</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="stat-protocols">0</div>
+          <div class="stat-label">Protokolle</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="stat-tasks">0</div>
+          <div class="stat-label">Aufgaben</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="stat-incidents">0</div>
+          <div class="stat-label">Einsätze</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="stat-duration">00:00</div>
+          <div class="stat-label">Laufzeit</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="stat-errors">0</div>
+          <div class="stat-label">Fehler</div>
+        </div>
+      </div>
+    </section>
+    
+    <!-- Rollen-Status -->
+    <section class="card">
+      <h2>Stabsstellen-Status</h2>
+      <p style="color: #64748b; font-size: 0.875rem; margin-bottom: 1rem;">
+        🟢 Besetzt (Mensch) | 🟠 KI-simuliert
+      </p>
+      <ul id="role-list" class="role-list">
+        <li class="role-item">Lade Rollen...</li>
+      </ul>
+    </section>
+    
+    <!-- Worker-Status -->
+    <section class="card">
+      <h2>Simulation Worker</h2>
+      <div class="worker-status">
+        <div id="worker-indicator" class="worker-indicator stopped"></div>
+        <div>
+          <div id="worker-status-text">Gestoppt</div>
+          <div style="font-size: 0.75rem; color: #64748b;">
+            Intervall: <span id="worker-interval">60s</span>
+          </div>
+        </div>
+      </div>
+      <div class="btn-group">
+        <button id="btn-step" class="btn btn-secondary">Manueller Schritt</button>
+      </div>
+    </section>
+    
+    <!-- Event-Log -->
+    <section class="card" style="grid-column: 1 / -1;">
+      <h2>Event-Log</h2>
+      <div id="event-log" class="event-log">
+        <div class="event">
+          <span class="time">[--:--:--]</span>
+          <span class="msg">Dashboard geladen. Verbinde mit Server...</span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // ============================================================
+    // DOM-Elemente
+    // ============================================================
+    const sseStatus = document.getElementById("sse-status");
+    const exerciseStatus = document.getElementById("exercise-status");
+    const scenarioSelect = document.getElementById("scenario-select");
+    const scenarioInfo = document.getElementById("scenario-info");
+    const btnStart = document.getElementById("btn-start");
+    const btnPause = document.getElementById("btn-pause");
+    const btnEnd = document.getElementById("btn-end");
+    const btnStep = document.getElementById("btn-step");
+    const roleList = document.getElementById("role-list");
+    const eventLog = document.getElementById("event-log");
+    const workerIndicator = document.getElementById("worker-indicator");
+    const workerStatusText = document.getElementById("worker-status-text");
+    
+    // Statistik-Elemente
+    const statSteps = document.getElementById("stat-steps");
+    const statProtocols = document.getElementById("stat-protocols");
+    const statTasks = document.getElementById("stat-tasks");
+    const statIncidents = document.getElementById("stat-incidents");
+    const statDuration = document.getElementById("stat-duration");
+    const statErrors = document.getElementById("stat-errors");
+    
+    // ============================================================
+    // State
+    // ============================================================
+    let exerciseActive = false;
+    let exerciseId = null;
+    let exerciseStartTime = null;
+    let selectedScenario = null;
+    let eventSource = null;
+    let durationTimer = null;
+    
+    // Statistiken
+    const stats = {
+      steps: 0,
+      protocols: 0,
+      tasks: 0,
+      incidents: 0,
+      errors: 0
+    };
+    
+    // ============================================================
+    // Hilfsfunktionen
+    // ============================================================
+    function formatTime(date) {
+      return date.toTimeString().slice(0, 8);
+    }
+    
+    function formatDuration(ms) {
+      const seconds = Math.floor(ms / 1000);
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+    }
+    
+    function addEvent(msg, type = "info") {
+      const div = document.createElement("div");
+      div.className = "event";
+      div.innerHTML = `
+        <span class="time">[${formatTime(new Date())}]</span>
+        <span class="msg ${type}">${msg}</span>
+      `;
+      eventLog.insertBefore(div, eventLog.firstChild);
+      
+      // Maximal 100 Events
+      while (eventLog.children.length > 100) {
+        eventLog.removeChild(eventLog.lastChild);
+      }
+    }
+    
+    function updateUI() {
+      if (exerciseActive) {
+        exerciseStatus.textContent = "Übung aktiv";
+        exerciseStatus.className = "status-badge active";
+        btnStart.disabled = true;
+        btnPause.disabled = false;
+        btnEnd.disabled = false;
+        scenarioSelect.disabled = true;
+        workerIndicator.className = "worker-indicator running";
+        workerStatusText.textContent = "Läuft";
+      } else {
+        exerciseStatus.textContent = "Keine Übung aktiv";
+        exerciseStatus.className = "status-badge inactive";
+        btnStart.disabled = false;
+        btnPause.disabled = true;
+        btnEnd.disabled = true;
+        scenarioSelect.disabled = false;
+        workerIndicator.className = "worker-indicator stopped";
+        workerStatusText.textContent = "Gestoppt";
+      }
+    }
+    
+    // ============================================================
+    // Szenarien laden
+    // ============================================================
+    async function loadScenarios() {
+      try {
+        const res = await fetch("/api/templates");
+        const data = await res.json();
+        
+        if (!data.ok || !Array.isArray(data.templates)) {
+          addEvent("Keine Szenarien gefunden", "warning");
+          return;
+        }
+        
+        // Select füllen
+        scenarioSelect.innerHTML = '<option value="">-- Kein Szenario (Freie Übung) --</option>';
+        
+        for (const template of data.templates) {
+          const option = document.createElement("option");
+          option.value = template.id;
+          option.textContent = `${template.title} (${template.difficulty || "mittel"})`;
+          option.dataset.template = JSON.stringify(template);
+          scenarioSelect.appendChild(option);
+        }
+        
+        addEvent(`${data.templates.length} Szenarien geladen`, "success");
+        
+      } catch (err) {
+        addEvent(`Fehler beim Laden der Szenarien: ${err.message}`, "error");
+      }
+    }
+    
+    // Szenario-Auswahl Handler
+    scenarioSelect.addEventListener("change", () => {
+      const option = scenarioSelect.selectedOptions[0];
+      
+      if (!option.value) {
+        selectedScenario = null;
+        scenarioInfo.style.display = "none";
+        return;
+      }
+      
+      try {
+        selectedScenario = JSON.parse(option.dataset.template);
+        
+        // Info anzeigen
+        document.getElementById("scenario-difficulty").textContent = 
+          selectedScenario.difficulty || "mittel";
+        document.getElementById("scenario-duration").textContent = 
+          `${selectedScenario.duration_minutes || 60} Minuten`;
+        document.getElementById("scenario-description").textContent = 
+          selectedScenario.description || "-";
+        
+        scenarioInfo.style.display = "block";
+        addEvent(`Szenario "${selectedScenario.title}" ausgewählt`);
+        
+      } catch (err) {
+        selectedScenario = null;
+        scenarioInfo.style.display = "none";
+      }
+    });
+    
+    // ============================================================
+    // Rollen laden
+    // ============================================================
+    async function loadRoles() {
+      try {
+        // Online-Rollen vom Server abrufen
+        const onlineRes = await fetch("/api/user/online-roles");
+        let onlineRoles = [];
+        
+        if (onlineRes.ok) {
+          const data = await onlineRes.json();
+          onlineRoles = Array.isArray(data?.roles) ? data.roles : 
+                        Array.isArray(data) ? data : [];
+        }
+        
+        // Normalisieren
+        const onlineSet = new Set(
+          onlineRoles.map(r => {
+            if (typeof r === "string") return r.toUpperCase();
+            if (typeof r?.id === "string") return r.id.toUpperCase();
+            return null;
+          }).filter(Boolean)
+        );
+        
+        // Alle Stabsstellen definieren
+        const alleStabsstellen = [
+          { id: "LTSTB", label: "LtStb" },
+          { id: "LTSTBSTV", label: "LtStbStv" },
+          { id: "S1", label: "S1" },
+          { id: "S2", label: "S2" },
+          { id: "S3", label: "S3" },
+          { id: "S4", label: "S4" },
+          { id: "S5", label: "S5" },
+          { id: "S6", label: "S6" }
+        ];
+        
+        // HTML generieren
+        roleList.innerHTML = alleStabsstellen.map(rolle => {
+          const isActive = onlineSet.has(rolle.id);
+          const statusClass = isActive ? "active" : "missing";
+          const statusText = isActive ? "besetzt" : "KI";
+          const dotClass = isActive ? "active" : "missing";
+          
+          return `
+            <li class="role-item ${statusClass}">
+              <span>
+                <span class="role-dot ${dotClass}"></span>
+                ${rolle.label}
+              </span>
+              <span>${statusText}</span>
+            </li>
+          `;
+        }).join("");
+        
+      } catch (err) {
+        console.error("Fehler beim Laden der Rollen:", err);
+        roleList.innerHTML = `<li class="role-item" style="color: #ef4444;">Fehler: ${err.message}</li>`;
+      }
+    }
+    
+    // ============================================================
+    // SSE-Verbindung
+    // ============================================================
+    function connectSSE() {
+      if (eventSource) {
+        eventSource.close();
+      }
+      
+      eventSource = new EventSource("/api/events");
+      
+      eventSource.onopen = () => {
+        sseStatus.textContent = "● Verbunden";
+        sseStatus.className = "connected";
+        addEvent("SSE-Verbindung hergestellt", "success");
+      };
+      
+      eventSource.onerror = () => {
+        sseStatus.textContent = "● Nicht verbunden";
+        sseStatus.className = "disconnected";
+        
+        // Reconnect nach 5 Sekunden
+        setTimeout(connectSSE, 5000);
+      };
+      
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          handleSSEEvent(data);
+        } catch (err) {
+          console.error("SSE Parse Error:", err);
+        }
+      };
+      
+      // Spezifische Event-Typen
+      eventSource.addEventListener("simulation", (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          handleSimulationEvent(data);
+        } catch (err) {
+          console.error("Simulation Event Error:", err);
+        }
+      });
+      
+      eventSource.addEventListener("stats", (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          updateStats(data);
+        } catch (err) {
+          console.error("Stats Event Error:", err);
+        }
+      });
+    }
+    
+    function handleSSEEvent(data) {
+      if (data.type === "step_complete") {
+        stats.steps++;
+        statSteps.textContent = stats.steps;
+        addEvent(`Simulationsschritt ${stats.steps} abgeschlossen`);
+      }
+    }
+    
+    function handleSimulationEvent(data) {
+      if (data.event === "step_complete") {
+        stats.steps++;
+        statSteps.textContent = stats.steps;
+        
+        if (data.protocolsCreated) {
+          stats.protocols += data.protocolsCreated;
+          statProtocols.textContent = stats.protocols;
+        }
+        if (data.tasksCreated) {
+          stats.tasks += data.tasksCreated;
+          statTasks.textContent = stats.tasks;
+        }
+        if (data.incidentsCreated) {
+          stats.incidents += data.incidentsCreated;
+          statIncidents.textContent = stats.incidents;
+        }
+      }
+    }
+    
+    function updateStats(data) {
+      if (data.protocols !== undefined) {
+        stats.protocols = data.protocols;
+        statProtocols.textContent = stats.protocols;
+      }
+      if (data.tasks !== undefined) {
+        stats.tasks = data.tasks;
+        statTasks.textContent = stats.tasks;
+      }
+      if (data.incidents !== undefined) {
+        stats.incidents = data.incidents;
+        statIncidents.textContent = stats.incidents;
+      }
+    }
+    
+    // ============================================================
+    // Übung starten
+    // ============================================================
+    btnStart.addEventListener("click", async () => {
+      try {
+        btnStart.disabled = true;
+        addEvent("Übung wird gestartet...");
+        
+        // 1. Audit-Trail starten
+        const auditRes = await fetch("/api/audit/start", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            exerciseName: selectedScenario?.title || "Freie Übung",
+            scenarioId: selectedScenario?.id || null,
+            startedAt: new Date().toISOString()
+          })
+        });
+        const auditData = await auditRes.json();
+        
+        if (!auditData.ok) {
+          throw new Error(auditData.error || "Audit-Start fehlgeschlagen");
+        }
+        
+        exerciseId = auditData.exerciseId;
+        addEvent(`Audit-Trail gestartet: ${exerciseId}`, "success");
+        
+        // 2. Szenario laden wenn ausgewählt
+        if (selectedScenario?.id) {
+          const templateRes = await fetch(`/api/templates/${selectedScenario.id}/create-exercise`, {
+            method: "POST"
+          });
+          const templateData = await templateRes.json();
+          
+          if (templateData.ok) {
+            addEvent(`Szenario "${selectedScenario.title}" geladen`, "success");
+          }
+        }
+        
+        // 3. Simulation starten
+        const simRes = await fetch("/api/sim/start", { method: "POST" });
+        const simData = await simRes.json();
+        
+        if (!simData.ok) {
+          throw new Error(simData.error || "Simulation-Start fehlgeschlagen");
+        }
+        
+        addEvent("Simulation gestartet", "success");
+        
+        // State aktualisieren
+        exerciseActive = true;
+        exerciseStartTime = Date.now();
+        
+        // Statistiken zurücksetzen
+        stats.steps = 0;
+        stats.protocols = 0;
+        stats.tasks = 0;
+        stats.incidents = 0;
+        stats.errors = 0;
+        statSteps.textContent = "0";
+        statProtocols.textContent = "0";
+        statTasks.textContent = "0";
+        statIncidents.textContent = "0";
+        statErrors.textContent = "0";
+        
+        // Dauer-Timer starten
+        durationTimer = setInterval(() => {
+          const elapsed = Date.now() - exerciseStartTime;
+          statDuration.textContent = formatDuration(elapsed);
+        }, 1000);
+        
+        updateUI();
+        
+      } catch (err) {
+        addEvent(`FEHLER: ${err.message}`, "error");
+        stats.errors++;
+        statErrors.textContent = stats.errors;
+        btnStart.disabled = false;
+      }
+    });
+    
+    // ============================================================
+    // Übung pausieren
+    // ============================================================
+    btnPause.addEventListener("click", async () => {
+      try {
+        const res = await fetch("/api/sim/pause", { method: "POST" });
+        const data = await res.json();
+        
+        if (data.ok) {
+          addEvent("Simulation pausiert", "warning");
+          workerIndicator.className = "worker-indicator paused";
+          workerStatusText.textContent = "Pausiert";
+          exerciseStatus.className = "status-badge paused";
+          exerciseStatus.textContent = "Pausiert";
+        }
+        
+      } catch (err) {
+        addEvent(`Fehler beim Pausieren: ${err.message}`, "error");
+      }
+    });
+    
+    // ============================================================
+    // Übung beenden
+    // ============================================================
+    btnEnd.addEventListener("click", async () => {
+      if (!confirm("Übung wirklich beenden?")) return;
+      
+      try {
+        // 1. Simulation stoppen
+        await fetch("/api/sim/pause", { method: "POST" });
+        
+        // 2. Audit beenden
+        if (exerciseId) {
+          await fetch("/api/audit/end", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ exerciseId })
+          });
+        }
+        
+        // Timer stoppen
+        if (durationTimer) {
+          clearInterval(durationTimer);
+          durationTimer = null;
+        }
+        
+        addEvent("Übung beendet", "success");
+        
+        exerciseActive = false;
+        exerciseId = null;
+        exerciseStartTime = null;
+        
+        updateUI();
+        
+      } catch (err) {
+        addEvent(`Fehler beim Beenden: ${err.message}`, "error");
+      }
+    });
+    
+    // ============================================================
+    // Manueller Schritt
+    // ============================================================
+    btnStep.addEventListener("click", async () => {
+      try {
+        btnStep.disabled = true;
+        addEvent("Manueller Schritt...");
+        
+        const res = await fetch("/api/sim/step", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ source: "manual" })
+        });
+        const data = await res.json();
+        
+        if (data.ok) {
+          stats.steps++;
+          statSteps.textContent = stats.steps;
+          addEvent("Schritt erfolgreich", "success");
+        } else {
+          addEvent(`Schritt fehlgeschlagen: ${data.reason || data.error}`, "error");
+        }
+        
+      } catch (err) {
+        addEvent(`Fehler: ${err.message}`, "error");
+      } finally {
+        btnStep.disabled = false;
+      }
+    });
+    
+    // ============================================================
+    // Initialisierung
+    // ============================================================
+    connectSSE();
+    loadScenarios();
+    loadRoles();
+    
+    // Rollen alle 15 Sekunden aktualisieren
+    setInterval(loadRoles, 15000);
+    
+    addEvent("Dashboard initialisiert", "success");
+  </script>
+</body>
+</html>
