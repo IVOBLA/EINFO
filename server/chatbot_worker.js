@@ -665,6 +665,14 @@ async function runOnce() {
     return;
   }
 
+// Zuerst roles.json synchronisieren
+const { active, missing } = await syncRolesFile();
+
+if (missing.length === 0) {
+  return { ok: true, skipped: true, reason: "Alle Stabsstellen besetzt" };
+}
+
+  
   isRunning = true;
   const startTime = Date.now();
   
@@ -840,4 +848,5 @@ process.on("SIGTERM", () => {
   stopWorker();
   process.exit(0);
 });
+
 
