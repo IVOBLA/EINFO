@@ -11,6 +11,18 @@ import {
 
 import { getGpuStatus } from "../chatbot/server/gpu_status.js";
 
+import { syncRolesFile } from "./roles_sync.js";
+import { transformLlmOperationsToJson, isMeldestelle } from "./field_mapper.js";
+import {
+  confirmProtocolsByLtStb,
+  updateTaskStatusForSimulatedRoles,
+  ensureOneIncidentInProgress,
+  assignVehiclesByDistance,
+  deriveTasksFromProtocol,
+  isAllowedOperation,
+  explainOperationRejection
+} from "./simulation_helpers.js";
+
 const CHATBOT_STEP_URL = "http://127.0.0.1:3100/api/sim/step";
 const WORKER_INTERVAL_MS = 30000;
 let isRunning = false; // <--- NEU
@@ -828,3 +840,4 @@ process.on("SIGTERM", () => {
   stopWorker();
   process.exit(0);
 });
+
