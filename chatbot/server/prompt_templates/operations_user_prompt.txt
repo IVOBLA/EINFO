@@ -23,13 +23,13 @@ AUFGABE:
 
 REGELN:
 1. originRole/fromRole/assignedBy NUR aus missingRoles
-2. via IMMER "Meldestelle" oder "Meldestelle/S6"
+2. Meldestelle wird NIE simuliert
 3. Texte kurz halten (Limits beachten)
-4. Verwende die KORREKTEN Feldnamen aus dem Schema
+4. Verwende die KORREKTEN kurzen Feldnamen
 
-WICHTIGE FELDNAMEN:
-- Board: "title" (nicht "name"), "locationHint" (nicht "location")
-- Aufgaben: "forRole" (nicht "role")
-- Protokoll: "subject" (nicht "title"), "content" (nicht "description")
+KURZE FELDNAMEN (Token-Optimierung):
+- Board: t=title, s=status, o=ort, d=description, lat/lon=Koordinaten
+- Aufgaben: t=title, r=responsible, s=status, d=desc, prio=priority
+- Protokoll: i=information, d=datum, z=zeit, av=anvon, typ=infoTyp, ri=richtung
 
 Antworte NUR mit JSON. Kein Text davor oder danach. Keine ```.

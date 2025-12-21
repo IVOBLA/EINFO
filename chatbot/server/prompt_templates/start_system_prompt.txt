@@ -10,7 +10,7 @@ Erzeuge ein realistisches Start-Szenario für eine Katastrophenlage.
 
 === ROLLEN ===
 - originRole, fromRole, assignedBy NUR aus missingRoles.
-- via IMMER "Meldestelle" oder "Meldestelle/S6".
+- Meldestelle wird NIE simuliert.
 
 === VOLLSTÄNDIGES JSON-SCHEMA MIT ALLEN PFLICHTFELDERN ===
 
@@ -19,12 +19,11 @@ Erzeuge ein realistisches Start-Szenario für eine Katastrophenlage.
     "board": {
       "createIncidentSites": [
         {
-          "title": "Einsatzstellentitel (max. 80 Zeichen)",
-          "description": "Was ist passiert, welche Gefahr (max. 150 Zeichen)",
-          "locationHint": "Ort oder Adresse",
+          "t": "Einsatzstellentitel (max. 80 Zeichen)",
+          "d": "Was ist passiert, welche Gefahr (max. 150 Zeichen)",
+          "o": "Ort oder Adresse",
           "originRole": "Wer meldet - Rolle aus missingRoles",
-          "fromRole": "Wer legt an - Rolle aus missingRoles",
-          "via": "Meldestelle"
+          "fromRole": "Wer legt an - Rolle aus missingRoles"
         }
       ],
       "updateIncidentSites": []
@@ -32,16 +31,12 @@ Erzeuge ein realistisches Start-Szenario für eine Katastrophenlage.
     "aufgaben": {
       "create": [
         {
-          "title": "Was ist zu tun (max. 80 Zeichen)",
-          "description": "Detailbeschreibung (max. 150 Zeichen)",
-          "type": "Auftrag",
-          "forRole": "Wer soll es erledigen - Rolle aus missingRoles",
+          "t": "Was ist zu tun (max. 80 Zeichen)",
+          "d": "Detailbeschreibung (max. 150 Zeichen)",
+          "r": "Wer soll es erledigen - Rolle aus missingRoles",
           "originRole": "Wer initiiert - Rolle aus missingRoles",
           "fromRole": "Wer weist zu - Rolle aus missingRoles",
-          "assignedBy": "Gleich wie fromRole - Rolle aus missingRoles",
-          "via": "Meldestelle",
-          "linkedIncidentId": null,
-          "linkedProtocolId": null
+          "ab": "Gleich wie fromRole - Rolle aus missingRoles"
         }
       ],
       "update": []
@@ -49,13 +44,13 @@ Erzeuge ein realistisches Start-Szenario für eine Katastrophenlage.
     "protokoll": {
       "create": [
         {
-          "subject": "Kurzer Betreff (max. 50 Zeichen)",
-          "content": "Nachrichtentext (max. 200 Zeichen)",
-          "category": "Lagemeldung",
-          "fromRole": "Absender - Rolle aus missingRoles",
-          "toRole": "Empfänger - Rolle aus missingRoles",
+          "i": "Nachrichtentext (max. 200 Zeichen)",
+          "typ": "Lagemeldung",
+          "av": "Absender - Rolle aus missingRoles",
+          "ea": ["Empfänger - Rolle aus missingRoles"],
+          "ri": "ein",
           "originRole": "Ursprung - Rolle aus missingRoles",
-          "via": "Meldestelle"
+          "fromRole": "Absender - Rolle aus missingRoles"
         }
       ]
     }
@@ -85,25 +80,30 @@ Erzeuge ein realistisches Start-Szenario für eine Katastrophenlage.
   }
 }
 
-=== KRITISCHE FELDNAMEN - BITTE GENAU BEACHTEN ===
+=== KURZE FELDNAMEN (Token-Optimierung) ===
 
 EINSATZSTELLEN (board):
-  ✓ RICHTIG: "title"          ✗ FALSCH: "name"
-  ✓ RICHTIG: "locationHint"   ✗ FALSCH: "location"
-  ✓ RICHTIG: "description"    ✓ OK
-  PFLICHT: originRole, fromRole, via
+  t = title (Titel)
+  d = description (Beschreibung)
+  o = ort (Standort)
+  s = status (neu/in-bearbeitung/erledigt)
+  PFLICHT: originRole, fromRole
 
 AUFGABEN (aufgaben):
-  ✓ RICHTIG: "title"           ✓ OK
-  ✓ RICHTIG: "forRole"         ✗ FALSCH: "role"
-  ✓ RICHTIG: "description"     ✓ OK
-  PFLICHT: originRole, fromRole, assignedBy, via
+  t = title (Titel)
+  d = desc (Beschreibung)
+  r = responsible (Verantwortlich)
+  s = status
+  ab = assignedBy (Zugewiesen von)
+  PFLICHT: originRole, fromRole, ab
 
 PROTOKOLL (protokoll):
-  ✓ RICHTIG: "subject"         ✗ FALSCH: "title"
-  ✓ RICHTIG: "content"         ✗ FALSCH: "description"
-  ✓ RICHTIG: "category"        ✓ OK
-  PFLICHT: fromRole, toRole, originRole, via
+  i = information (Nachrichteninhalt)
+  typ = infoTyp (Lagemeldung/Auftrag/Info)
+  av = anvon (Absender)
+  ea = ergehtAn (Empfänger-Array)
+  ri = richtung (ein/aus)
+  PFLICHT: originRole, fromRole
 
 === LIMITS ===
 - Max. 3 Einsatzstellen
@@ -114,9 +114,9 @@ PROTOKOLL (protokoll):
 - ALLE Felder mit "Role" MÜSSEN aus missingRoles stammen
 - originRole = die Rolle die diese Operation initiiert hat
 - fromRole = die Rolle die zuweist/anlegt/sendet
-- forRole = die Rolle die die Aufgabe bekommt
-- toRole = Empfänger der Nachricht
-- via ist IMMER "Meldestelle" oder "Meldestelle/S6"
+- r = die Rolle die die Aufgabe bekommt (responsible)
+- ea = Empfänger der Nachricht (ergehtAn-Array)
+- Meldestelle wird NIE simuliert
 - Alle Texte auf Deutsch
 
 Sprache: Deutsch für alle Inhalte.
