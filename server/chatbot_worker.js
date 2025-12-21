@@ -271,13 +271,13 @@ async function applyBoardOperations(boardOps, missingRoles) {
 
     const newItem = {
       id,
-      content: op.title || "Einsatzstelle (KI)",
+      content: op.content || "Einsatzstelle (KI)",
       createdAt: nowIso,
       statusSince: nowIso,
       assignedVehicles: [],
       everVehicles: [],
       everPersonnel: 0,
-      ort: op.locationHint || "",
+      ort: op.ort || "",
       typ: op.description || "",
       externalId: null,
       alerted: "",
@@ -333,14 +333,14 @@ async function applyBoardOperations(boardOps, missingRoles) {
     const changes = op.changes || {};
 
     // Erlaubte Felder auf der Karte (Schema nicht zerstören)
-    if ("title" in changes || "content" in changes) {
-      target.it.content = changes.title || changes.content || target.it.content;
+    if ("content" in changes) {
+      target.it.content = changes.content || target.it.content;
     }
     if ("description" in changes) {
       target.it.description = changes.description;
     }
-    if ("ort" in changes || "locationHint" in changes) {
-      target.it.ort = changes.ort || changes.locationHint;
+    if ("ort" in changes) {
+      target.it.ort = changes.ort;
     }
 
     // Status-Änderung → Spaltenwechsel?
@@ -421,8 +421,8 @@ async function applyAufgabenOperations(taskOps, missingRoles) {
       clientId: null,
       title: op.title || "Aufgabe (KI)",
       type: op.type || "Auftrag",
-      responsible: op.forRole || "",
-      desc: op.description || "",
+      responsible: op.responsible || "",
+      desc: op.desc || "",
       status: "Neu",
       dueAt: null,
       createdAt: now,
@@ -434,7 +434,7 @@ async function applyAufgabenOperations(taskOps, missingRoles) {
       },
       originProtocolNr: op.linkedProtocolId || null,
       createdBy: "CHATBOT",
-      relatedIncidentId: op.linkedIncidentId || null,
+      relatedIncidentId: op.relatedIncidentId || null,
       incidentTitle: null,
       linkedProtocolNrs: op.linkedProtocolId ? [op.linkedProtocolId] : [],
       linkedProtocols: []
@@ -470,13 +470,13 @@ async function applyAufgabenOperations(taskOps, missingRoles) {
     // nur Felder anfassen, die im S2-Board existieren
     const t = tasks[idx];
     if ("title" in changes) t.title = changes.title;
-    if ("description" in changes) t.desc = changes.description;
+    if ("desc" in changes) t.desc = changes.desc;
     if ("status" in changes) t.status = changes.status;
-    if ("forRole" in changes || "responsible" in changes) {
-      t.responsible = changes.forRole || changes.responsible;
+    if ("responsible" in changes) {
+      t.responsible = changes.responsible;
     }
-    if ("linkedIncidentId" in changes) {
-      t.relatedIncidentId = changes.linkedIncidentId;
+    if ("relatedIncidentId" in changes) {
+      t.relatedIncidentId = changes.relatedIncidentId;
     }
     if ("linkedProtocolId" in changes) {
       t.originProtocolNr = changes.linkedProtocolId;
@@ -536,8 +536,8 @@ async function applyProtokollOperations(protoOps, missingRoles) {
       nr: (prot.length ? prot.length + 1 : 1),
       datum,
       zeit,
-      infoTyp: op.category || "Info",
-      anvon: op.fromRole || "Chatbot",
+      infoTyp: op.infoTyp || "Info",
+      anvon: op.anvon || "Chatbot",
       uebermittlungsart: {
         kanalNr: "CHATBOT",
         kanal: "Chatbot",
@@ -545,16 +545,16 @@ async function applyProtokollOperations(protoOps, missingRoles) {
         ein: true,
         aus: false
       },
-      information: op.content || "",
+      information: op.information || "",
       rueckmeldung1: "",
       rueckmeldung2: "",
-      ergehtAn: op.toRole ? [op.toRole] : [],
-      ergehtAnText: op.toRole || "",
+      ergehtAn: Array.isArray(op.ergehtAn) ? op.ergehtAn : (op.ergehtAn ? [op.ergehtAn] : []),
+      ergehtAnText: Array.isArray(op.ergehtAn) ? op.ergehtAn.join(", ") : (op.ergehtAn || ""),
       lagebericht: "",
       massnahmen: [
         {
           massnahme: "",
-          verantwortlich: op.toRole || "",
+          verantwortlich: Array.isArray(op.ergehtAn) ? (op.ergehtAn[0] || "") : (op.ergehtAn || ""),
           done: false
         },
         {
@@ -687,8 +687,9 @@ if (missing.length === 0) {
       }
 
       // Erfolgreich
-      const ops = data.operations || {};
-      
+      // Transform LLM short field names (t, d, o, r, i, ea) to JSON long names (title, desc, etc.)
+      const ops = transformLlmOperationsToJson(data.operations || {});
+
       const counts = {
         boardCreate: (ops.board?.createIncidentSites || []).length,
         boardUpdate: (ops.board?.updateIncidentSites || []).length,
