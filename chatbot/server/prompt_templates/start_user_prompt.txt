@@ -12,7 +12,8 @@ ANFORDERUNGEN:
 - 1-5 Aufgaben (aufgaben.create)
 - 1-3 Protokolleinträge (protokoll.create)
 - Alle Rollen-Felder aus missingRoles
-- via = "Meldestelle" oder "Meldestelle/S6"
+- Meldestelle wird NIE simuliert
+- Verwende KURZE Feldnamen (t, d, o, s, i, typ, av, ea, ri, r, ab)
 - Alle Texte auf Deutsch und kurz
 
 Antworte NUR mit JSON. Kein Text. Keine ```.

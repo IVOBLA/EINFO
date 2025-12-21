@@ -11,8 +11,8 @@ import {
 
 import { getGpuStatus } from "../chatbot/server/gpu_status.js";
 
-import { syncRolesFile } from "./roles_sync.js";
-import { transformLlmOperationsToJson, isMeldestelle } from "./field_mapper.js";
+import { syncRolesFile } from "../chatbot/server/roles_sync.js";
+import { transformLlmOperationsToJson, isMeldestelle } from "../chatbot/server/field_mapper.js";
 import {
   confirmProtocolsByLtStb,
   updateTaskStatusForSimulatedRoles,
@@ -21,7 +21,7 @@ import {
   deriveTasksFromProtocol,
   isAllowedOperation,
   explainOperationRejection
-} from "./simulation_helpers.js";
+} from "../chatbot/server/simulation_helpers.js";
 
 const CHATBOT_STEP_URL = "http://127.0.0.1:3100/api/sim/step";
 const WORKER_INTERVAL_MS = 30000;
@@ -204,62 +204,8 @@ async function loadRoles() {
   return { active, missing };
 }
 
-function isAllowedOperation(op, missingRoles) {
-  if (!op) return false;
-  const originRole = op.originRole;
-  const via = op.via;
-  const fromRole = op.fromRole || op.assignedBy;
-  if (!originRole || !fromRole) return false;
-  if (!missingRoles.includes(originRole)) return false;
-  if (!missingRoles.includes(fromRole)) return false;
-  if (via !== "Meldestelle" && via !== "Meldestelle/S6") return false;
-  return true;
-}
-
-function explainOperationRejection(op, missingRoles) {
-  const reasons = [];
-  if (!op) {
-    reasons.push("Operation ist leer/undefined.");
-    return reasons.join(" ");
-  }
-
-  const originRole = op.originRole;
-  const via = op.via;
-  const fromRole = op.fromRole || op.assignedBy;
-
-  if (!originRole) {
-    reasons.push("originRole fehlt.");
-  }
-  if (!fromRole) {
-    reasons.push("fromRole/assignedBy fehlt.");
-  }
-  if (originRole && !missingRoles.includes(originRole)) {
-    reasons.push(
-      `originRole "${originRole}" ist nicht in missingRoles (${JSON.stringify(
-        missingRoles
-      )}).`
-    );
-  }
-  if (fromRole && !missingRoles.includes(fromRole)) {
-    reasons.push(
-      `fromRole/assignedBy "${fromRole}" ist nicht in missingRoles (${JSON.stringify(
-        missingRoles
-      )}).`
-    );
-  }
-  if (via !== "Meldestelle" && via !== "Meldestelle/S6") {
-    reasons.push(
-      `via ist "${via}" – erlaubt ist nur "Meldestelle" oder "Meldestelle/S6".`
-    );
-  }
-
-  if (!reasons.length) {
-    reasons.push("Unbekannter Grund – isAllowedOperation() hat false geliefert.");
-  }
-
-  return reasons.join(" ");
-}
-
+// isAllowedOperation und explainOperationRejection werden aus
+// ../chatbot/server/simulation_helpers.js importiert (ohne "via"-Prüfung)
 
 /**
  * Board-Operations auf Kanban-Struktur anwenden:
