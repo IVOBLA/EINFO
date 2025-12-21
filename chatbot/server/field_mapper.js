@@ -252,12 +252,18 @@ function addProtocolDefaults(entry) {
 
 /**
  * Transformiert alle Operations vom LLM-Format ins JSON-Format.
- * 
+ *
  * Diese Funktion:
- * 1. Wandelt kurze Feldnamen in lange um
+ * 1. Wandelt kurze Feldnamen in lange um (auf allen Ebenen)
  * 2. ENTFERNT das Feld "via" überall
  * 3. Fügt Standardwerte zu Protokolleinträgen hinzu
- * 
+ * 4. Konvertiert verschachtelte "changes"-Objekte in Update-Operations
+ *
+ * WICHTIG: Update-Operations haben eine verschachtelte "changes"-Struktur:
+ *   { id: "...", changes: { t: "...", d: "..." } }
+ * Diese "changes" müssen ebenfalls konvertiert werden, sonst werden Updates
+ * ignoriert, da chatbot_worker.js nach langen Feldnamen sucht!
+ *
  * @param {Object} operations - Die Operations vom LLM
  * @returns {Object} - Die transformierten Operations für die JSON-Dateien
  */
@@ -280,6 +286,10 @@ export function transformLlmOperationsToJson(operations) {
     result.board.updateIncidentSites = result.board.updateIncidentSites.map(item => {
       const converted = llmToJson(item, "board");
       delete converted.via;
+      // WICHTIG: Auch das verschachtelte changes-Objekt konvertieren!
+      if (converted.changes) {
+        converted.changes = llmToJson(converted.changes, "board");
+      }
       return converted;
     });
   }
@@ -305,6 +315,10 @@ export function transformLlmOperationsToJson(operations) {
     result.aufgaben.update = result.aufgaben.update.map(item => {
       const converted = llmToJson(item, "aufgaben");
       delete converted.via;
+      // WICHTIG: Auch das verschachtelte changes-Objekt konvertieren!
+      if (converted.changes) {
+        converted.changes = llmToJson(converted.changes, "aufgaben");
+      }
       return converted;
     });
   }
