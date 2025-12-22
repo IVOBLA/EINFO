@@ -41,6 +41,28 @@ import {
 } from "./template_manager.js";
 
 // ============================================================
+// NEU: Imports für Disaster Context und LLM Feedback
+// ============================================================
+import {
+  initializeDisasterContext,
+  updateDisasterContextFromEinfo,
+  getCurrentDisasterContext,
+  getDisasterContextSummary,
+  loadDisasterContext,
+  listDisasterContexts,
+  finalizeDisasterContext,
+  recordLLMSuggestion
+} from "./disaster_context.js";
+
+import {
+  saveFeedback,
+  findSimilarLearnedResponses,
+  getLearnedResponsesContext,
+  listFeedbacks,
+  getFeedbackStatistics
+} from "./llm_feedback.js";
+
+// ============================================================
 // Streaming-Antwort für Chat
 // ============================================================
 async function streamAnswer({ res, question }) {
@@ -425,6 +447,233 @@ app.post("/api/templates/:templateId/create-exercise", async (req, res) => {
     res.json({ ok: true, exercise });
   } catch (err) {
     logError("Übung aus Template erstellen Fehler", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// ============================================================
+// NEU: API-Routen für Disaster Context
+// ============================================================
+
+// Disaster Context initialisieren
+app.post("/api/disaster/init", async (req, res) => {
+  try {
+    const { type, description, scenario } = req.body || {};
+    const context = await initializeDisasterContext({
+      type,
+      description,
+      scenario
+    });
+    logInfo("Disaster Context initialisiert", { disasterId: context.disasterId });
+    broadcastSSE("disaster_started", { disasterId: context.disasterId, type });
+    res.json({ ok: true, context });
+  } catch (err) {
+    logError("Disaster Context Init Fehler", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// Aktuellen Disaster Context abrufen
+app.get("/api/disaster/current", (req, res) => {
+  try {
+    const context = getCurrentDisasterContext();
+    if (!context) {
+      return res.status(404).json({ ok: false, error: "Kein aktiver Disaster Context" });
+    }
+    res.json({ ok: true, context });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// Disaster Context Summary abrufen (für LLM-Prompts)
+app.get("/api/disaster/summary", (req, res) => {
+  try {
+    const { maxLength } = req.query;
+    const summary = getDisasterContextSummary({
+      maxLength: maxLength ? parseInt(maxLength, 10) : 1500
+    });
+    res.json({ ok: true, summary });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// Alle Disaster Contexts auflisten
+app.get("/api/disaster/list", async (req, res) => {
+  try {
+    const contexts = await listDisasterContexts();
+    res.json({ ok: true, contexts });
+  } catch (err) {
+    logError("Disaster Context Liste Fehler", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// Disaster Context laden
+app.get("/api/disaster/:disasterId", async (req, res) => {
+  try {
+    const { disasterId } = req.params;
+    const context = await loadDisasterContext(disasterId);
+    if (!context) {
+      return res.status(404).json({ ok: false, error: "Disaster Context nicht gefunden" });
+    }
+    res.json({ ok: true, context });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// Disaster Context abschließen
+app.post("/api/disaster/finalize", async (req, res) => {
+  try {
+    const context = await finalizeDisasterContext();
+    if (!context) {
+      return res.status(404).json({ ok: false, error: "Kein aktiver Disaster Context" });
+    }
+    broadcastSSE("disaster_completed", { disasterId: context.disasterId });
+    res.json({ ok: true, context });
+  } catch (err) {
+    logError("Disaster Context Finalize Fehler", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// LLM-Suggestion aufzeichnen
+app.post("/api/disaster/record-suggestion", async (req, res) => {
+  try {
+    const { suggestion, accepted, madeBy } = req.body || {};
+    if (!suggestion) {
+      return res.status(400).json({ ok: false, error: "suggestion fehlt" });
+    }
+    await recordLLMSuggestion({ suggestion, accepted, madeBy });
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// ============================================================
+// NEU: API-Routen für LLM Feedback & Learning
+// ============================================================
+
+// Feedback zu LLM-Antwort speichern
+app.post("/api/feedback", async (req, res) => {
+  try {
+    const {
+      disasterId,
+      disasterType,
+      disasterPhase,
+      interactionType,
+      question,
+      llmResponse,
+      llmModel,
+      rating,
+      helpful,
+      accurate,
+      actionable,
+      userId,
+      userRole,
+      comment,
+      implemented,
+      outcome
+    } = req.body || {};
+
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ ok: false, error: "Ungültiges Rating (1-5)" });
+    }
+
+    const feedback = await saveFeedback({
+      disasterId,
+      disasterType,
+      disasterPhase,
+      interactionType,
+      question,
+      llmResponse,
+      llmModel,
+      rating,
+      helpful,
+      accurate,
+      actionable,
+      userId,
+      userRole,
+      comment,
+      implemented,
+      outcome
+    });
+
+    if (feedback) {
+      broadcastSSE("feedback_received", { feedbackId: feedback.feedbackId, rating });
+    }
+
+    res.json({ ok: true, feedback });
+  } catch (err) {
+    logError("Feedback speichern Fehler", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// Alle Feedbacks abrufen
+app.get("/api/feedback/list", async (req, res) => {
+  try {
+    const { limit, minRating } = req.query;
+    const feedbacks = await listFeedbacks({
+      limit: limit ? parseInt(limit, 10) : 50,
+      minRating: minRating ? parseInt(minRating, 10) : null
+    });
+    res.json({ ok: true, feedbacks });
+  } catch (err) {
+    logError("Feedback Liste Fehler", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// Feedback-Statistiken abrufen
+app.get("/api/feedback/stats", async (req, res) => {
+  try {
+    const stats = await getFeedbackStatistics();
+    res.json({ ok: true, stats });
+  } catch (err) {
+    logError("Feedback Statistiken Fehler", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// Ähnliche gelernte Antworten finden
+app.post("/api/feedback/similar", async (req, res) => {
+  try {
+    const { question, topK, minScore } = req.body || {};
+    if (!question) {
+      return res.status(400).json({ ok: false, error: "question fehlt" });
+    }
+
+    const similar = await findSimilarLearnedResponses(question, {
+      topK: topK || 3,
+      minScore: minScore || 0.6
+    });
+
+    res.json({ ok: true, similar });
+  } catch (err) {
+    logError("Ähnliche Antworten Fehler", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// Learned Responses Context für LLM abrufen
+app.post("/api/feedback/learned-context", async (req, res) => {
+  try {
+    const { question, maxLength } = req.body || {};
+    if (!question) {
+      return res.status(400).json({ ok: false, error: "question fehlt" });
+    }
+
+    const context = await getLearnedResponsesContext(question, {
+      maxLength: maxLength || 1000
+    });
+
+    res.json({ ok: true, context });
+  } catch (err) {
+    logError("Learned Context Fehler", { error: String(err) });
     res.status(500).json({ ok: false, error: String(err) });
   }
 });

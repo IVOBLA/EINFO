@@ -14,6 +14,10 @@ import { getKnowledgeContextVector } from "./rag/rag_vector.js";
 import { extractJsonObject, validateOperationsJson } from "./json_sanitizer.js";
 import { setLLMHistoryMeta } from "./state_store.js";
 
+// NEU: Imports für Disaster Context und Learned Responses
+import { getDisasterContextSummary } from "./disaster_context.js";
+import { getLearnedResponsesContext } from "./llm_feedback.js";
+
 
 function fetchWithTimeout(url, options, timeoutMs) {
   const controller = new AbortController();
@@ -82,9 +86,17 @@ export async function callLLMForOps({
     systemPrompt = start.systemPrompt;
     userPrompt = start.userPrompt;
   } else {
+    // Knowledge Context aus RAG
     const knowledgeContext = await getKnowledgeContextVector(
       "Stabsarbeit Kat-E Einsatzleiter LdStb Meldestelle S1 S2 S3 S4 S5 S6"
     );
+
+    // NEU: Disaster Context abrufen
+    const disasterContext = getDisasterContextSummary({ maxLength: 1500 });
+
+    // NEU: Learned Responses abrufen (basierend auf aktuellem Board-Context)
+    const contextQuery = `${compressedBoard.substring(0, 200)} Katastrophenmanagement Einsatzleitung`;
+    const learnedResponses = await getLearnedResponsesContext(contextQuery, { maxLength: 1000 });
 
     systemPrompt = buildSystemPrompt({ memorySnippets });
     userPrompt = buildUserPrompt({
@@ -94,7 +106,9 @@ export async function callLLMForOps({
       compressedProtokoll,
       knowledgeContext,
       memorySnippets,
-      messagesNeedingResponse: llmInput.messagesNeedingResponse || null
+      messagesNeedingResponse: llmInput.messagesNeedingResponse || null,
+      disasterContext,    // NEU
+      learnedResponses    // NEU
     });
   }
 
@@ -168,10 +182,17 @@ export async function callLLMForChat({
   onToken,
   model
 }) {
+  // Knowledge Context aus RAG
   const knowledgeContext = await getKnowledgeContextVector(question);
 
+  // NEU: Disaster Context abrufen
+  const disasterContext = getDisasterContextSummary({ maxLength: 1000 });
+
+  // NEU: Learned Responses abrufen (basierend auf Frage)
+  const learnedResponses = await getLearnedResponsesContext(question, { maxLength: 800 });
+
   const systemPrompt = buildSystemPromptChat();
-  const userPrompt = buildUserPromptChat(question, knowledgeContext);
+  const userPrompt = buildUserPromptChat(question, knowledgeContext, disasterContext, learnedResponses);
 
   const modelName = model || CONFIG.llmChatModel;
 

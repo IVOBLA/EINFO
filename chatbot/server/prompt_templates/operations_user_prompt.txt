@@ -10,6 +10,16 @@ AUFGABEN (kompakt):
 PROTOKOLL (kompakt):
 {{compressedProtokoll}}
 
+═══════════════════════════════════════════════════════════════════════════════
+KATASTROPHEN-KONTEXT (Verlauf der aktuellen Lage):
+═══════════════════════════════════════════════════════════════════════════════
+{{disasterContext}}
+
+═══════════════════════════════════════════════════════════════════════════════
+GELERNTE ANTWORTEN (aus positiv bewerteten Erfahrungen):
+═══════════════════════════════════════════════════════════════════════════════
+{{learnedResponses}}
+
 ERINNERUNGEN:
 {{formattedMemorySnippets}}
 

@@ -68,7 +68,9 @@ export function buildUserPrompt({
   compressedProtokoll,
   knowledgeContext,
   memorySnippets,
-  messagesNeedingResponse  // NEU
+  messagesNeedingResponse,  // NEU
+  disasterContext = "",      // NEU
+  learnedResponses = ""      // NEU
 }) {
   const safeMemorySnippets = Array.isArray(memorySnippets)
     ? memorySnippets
@@ -197,7 +199,9 @@ return fillTemplate(operationsUserPromptTemplate, {
     formattedMemorySnippets,
     knowledgeContext: knowledgeContext || "(kein Knowledge-Kontext verfügbar)",
     taskSection,
-    responseRequests  // NEU
+    responseRequests,  // NEU
+    disasterContext: disasterContext || "(kein Katastrophen-Kontext verfügbar)",  // NEU
+    learnedResponses: learnedResponses || "(keine gelernten Antworten verfügbar)"  // NEU
   });
 }
 
@@ -230,10 +234,14 @@ export function buildSystemPromptChat() {
  * User-Prompt für den QA-Chat.
  * question: Originalfrage des Benutzers
  * knowledgeContext: zusammengesetzter Text aus RAG (kann leer sein)
+ * disasterContext: Katastrophen-Kontext (NEU)
+ * learnedResponses: Gelernte Antworten (NEU)
  */
-export function buildUserPromptChat(question, knowledgeContext) {
+export function buildUserPromptChat(question, knowledgeContext, disasterContext = "", learnedResponses = "") {
   return fillTemplate(chatUserPromptTemplate, {
     question,
-    knowledgeContext: knowledgeContext || "(kein KnowledgeContext verfügbar)"
+    knowledgeContext: knowledgeContext || "(kein KnowledgeContext verfügbar)",
+    disasterContext: disasterContext || "(kein Katastrophen-Kontext verfügbar)",
+    learnedResponses: learnedResponses || "(keine gelernten Antworten verfügbar)"
   });
 }

@@ -1,7 +1,18 @@
 FRAGE:
 {{question}}
 
-WISSEN:
+═══════════════════════════════════════════════════════════════════════════════
+KATASTROPHEN-KONTEXT (Verlauf der aktuellen Lage):
+═══════════════════════════════════════════════════════════════════════════════
+{{disasterContext}}
+
+═══════════════════════════════════════════════════════════════════════════════
+GELERNTE ANTWORTEN (aus positiv bewerteten Erfahrungen):
+═══════════════════════════════════════════════════════════════════════════════
+{{learnedResponses}}
+
+WISSEN (aus Knowledge-Base):
 {{knowledgeContext}}
 
-Beantworte kurz auf Deutsch. Sage ehrlich wenn der Wissenskontext nicht reicht.
+HINWEIS: Nutze die gelernten Antworten wenn sie zur Frage passen. Nutze den Katastrophen-Kontext
+um situationsgerecht zu antworten. Beantworte kurz auf Deutsch. Sage ehrlich wenn der Wissenskontext nicht reicht.
