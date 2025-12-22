@@ -3,7 +3,12 @@
 import express from "express";
 import cors from "cors";
 import path from "path";
+import fs from "fs";
+import fsPromises from "fs/promises";
 import { fileURLToPath } from "url";
+import multer from "multer";
+import { exec } from "child_process";
+import { promisify } from "util";
 import {
   startSimulation,
   pauseSimulation,
@@ -14,6 +19,9 @@ import { callLLMForChat, listAvailableLlmModels } from "./llm_client.js";
 import { logInfo, logError } from "./logger.js";
 import { initMemoryStore } from "./memory_manager.js";
 import { getGpuStatus } from "./gpu_status.js";
+import { CONFIG } from "./config.js";
+
+const execAsync = promisify(exec);
 
 // ============================================================
 // NEU: Imports für Audit-Trail und Templates
@@ -74,6 +82,11 @@ app.use("/gui", express.static(clientDir));
 // Dashboard-Route
 app.get("/dashboard", (req, res) => {
   res.sendFile(path.join(clientDir, "dashboard.html"));
+});
+
+// Admin-Panel-Route
+app.get("/admin", (req, res) => {
+  res.sendFile(path.join(clientDir, "admin.html"));
 });
 
 // ============================================================
@@ -496,6 +509,245 @@ function broadcastSSE(eventType, data) {
 export { broadcastSSE };
 
 // ============================================================
+// NEU: Admin-Panel APIs für Chatbot-Steuerung & Knowledge-Management
+// ============================================================
+
+// Multer-Setup für File-Upload
+const storage = multer.diskStorage({
+  destination: async (req, file, cb) => {
+    const knowledgeDir = path.resolve(__dirname, CONFIG.knowledgeDir);
+    await fsPromises.mkdir(knowledgeDir, { recursive: true });
+    cb(null, knowledgeDir);
+  },
+  filename: (req, file, cb) => {
+    // Sanitize filename
+    const safeName = file.originalname.replace(/[^a-zA-Z0-9_\-\.]/g, "_");
+    cb(null, safeName);
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
+  fileFilter: (req, file, cb) => {
+    const allowedExts = [".pdf", ".txt", ".json", ".md"];
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (allowedExts.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`Nur ${allowedExts.join(", ")} Dateien erlaubt`));
+    }
+  }
+});
+
+// ============================================================
+// Chatbot-Status & Steuerung
+// ============================================================
+
+app.get("/api/admin/chatbot-status", (req, res) => {
+  try {
+    const status = {
+      running: isSimulationRunning(),
+      uptime: process.uptime(),
+      memoryUsage: process.memoryUsage(),
+      nodeVersion: process.version
+    };
+    res.json({ ok: true, status });
+  } catch (err) {
+    logError("Chatbot-Status Fehler", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// ============================================================
+// Knowledge-Status
+// ============================================================
+
+app.get("/api/admin/knowledge-status", async (req, res) => {
+  try {
+    const knowledgeDir = path.resolve(__dirname, CONFIG.knowledgeDir);
+    const metaPath = path.resolve(__dirname, CONFIG.knowledgeIndexDir, "meta.json");
+
+    // Liste Knowledge-Dateien
+    let knowledgeFiles = [];
+    try {
+      const files = await fsPromises.readdir(knowledgeDir);
+      knowledgeFiles = files.filter(f => {
+        const ext = path.extname(f).toLowerCase();
+        return [".txt", ".pdf", ".json", ".md"].includes(ext);
+      });
+    } catch (err) {
+      logError("Knowledge-Dir nicht lesbar", { error: String(err) });
+    }
+
+    // Lade Index-Status
+    let indexedFiles = [];
+    let indexedChunks = 0;
+    let indexExists = false;
+
+    try {
+      if (fs.existsSync(metaPath)) {
+        const meta = JSON.parse(await fsPromises.readFile(metaPath, "utf8"));
+        indexedFiles = (meta.files || []).map(f => f.name);
+        indexedChunks = (meta.chunks || []).length;
+        indexExists = true;
+      }
+    } catch (err) {
+      logError("Index nicht lesbar", { error: String(err) });
+    }
+
+    const missingFiles = knowledgeFiles.filter(f => !indexedFiles.includes(f));
+    const coverage = knowledgeFiles.length > 0
+      ? Math.round((indexedFiles.length / knowledgeFiles.length) * 100)
+      : 0;
+
+    res.json({
+      ok: true,
+      knowledge: {
+        totalFiles: knowledgeFiles.length,
+        indexedFiles: indexedFiles.length,
+        missingFiles,
+        totalChunks: indexedChunks,
+        coverage,
+        indexExists,
+        files: knowledgeFiles
+      }
+    });
+  } catch (err) {
+    logError("Knowledge-Status Fehler", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// ============================================================
+// Knowledge-Index neu bauen
+// ============================================================
+
+let indexBuildRunning = false;
+let indexBuildProgress = null;
+
+app.post("/api/admin/rebuild-index", async (req, res) => {
+  if (indexBuildRunning) {
+    return res.status(409).json({
+      ok: false,
+      error: "Index-Build läuft bereits",
+      progress: indexBuildProgress
+    });
+  }
+
+  indexBuildRunning = true;
+  indexBuildProgress = { status: "starting", percent: 0 };
+
+  // Sende sofortige Antwort
+  res.json({ ok: true, message: "Index-Build gestartet" });
+
+  // Build im Hintergrund
+  try {
+    logInfo("Index-Build gestartet", null);
+    indexBuildProgress = { status: "building", percent: 10 };
+
+    const scriptPath = path.resolve(__dirname, "rag/index_builder.js");
+    const { stdout, stderr } = await execAsync(`node "${scriptPath}"`, {
+      timeout: 600000 // 10 Min
+    });
+
+    logInfo("Index-Build abgeschlossen", { stdout });
+    indexBuildProgress = { status: "completed", percent: 100 };
+
+    // Broadcast an SSE-Clients
+    broadcastSSE("index_rebuild", { status: "completed" });
+
+  } catch (err) {
+    logError("Index-Build fehlgeschlagen", { error: String(err) });
+    indexBuildProgress = { status: "failed", percent: 0, error: String(err) };
+    broadcastSSE("index_rebuild", { status: "failed", error: String(err) });
+  } finally {
+    // Reset nach 60 Sekunden
+    setTimeout(() => {
+      indexBuildRunning = false;
+      indexBuildProgress = null;
+    }, 60000);
+  }
+});
+
+app.get("/api/admin/index-build-status", (req, res) => {
+  res.json({
+    ok: true,
+    running: indexBuildRunning,
+    progress: indexBuildProgress
+  });
+});
+
+// ============================================================
+// Knowledge-Datei hochladen
+// ============================================================
+
+app.post("/api/admin/upload-knowledge", upload.single("file"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ ok: false, error: "Keine Datei hochgeladen" });
+    }
+
+    logInfo("Knowledge-Datei hochgeladen", {
+      filename: req.file.filename,
+      size: req.file.size
+    });
+
+    res.json({
+      ok: true,
+      file: {
+        name: req.file.filename,
+        size: req.file.size,
+        path: req.file.path
+      },
+      message: "Datei hochgeladen. Bitte Index neu bauen."
+    });
+
+    broadcastSSE("knowledge_uploaded", { filename: req.file.filename });
+
+  } catch (err) {
+    logError("File-Upload Fehler", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// ============================================================
+// Knowledge-Datei löschen
+// ============================================================
+
+app.delete("/api/admin/knowledge/:filename", async (req, res) => {
+  try {
+    const { filename } = req.params;
+
+    // Sanitize filename (security!)
+    const safeName = path.basename(filename);
+    const knowledgeDir = path.resolve(__dirname, CONFIG.knowledgeDir);
+    const filePath = path.join(knowledgeDir, safeName);
+
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ ok: false, error: "Datei nicht gefunden" });
+    }
+
+    // Delete file
+    await fsPromises.unlink(filePath);
+
+    logInfo("Knowledge-Datei gelöscht", { filename: safeName });
+
+    res.json({
+      ok: true,
+      message: "Datei gelöscht. Bitte Index neu bauen."
+    });
+
+    broadcastSSE("knowledge_deleted", { filename: safeName });
+
+  } catch (err) {
+    logError("File-Delete Fehler", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// ============================================================
 // Bootstrap & Server-Start
 // ============================================================
 
@@ -518,6 +770,7 @@ async function bootstrap() {
       llm: ["/api/llm/models", "/api/llm/gpu", "/api/llm/test"],
       audit: ["/api/audit/status", "/api/audit/start", "/api/audit/end", "/api/audit/list"],
       templates: ["/api/templates"],
+      admin: ["/api/admin/chatbot-status", "/api/admin/knowledge-status", "/api/admin/rebuild-index"],
       sse: ["/api/events"]
     });
   });

@@ -1,0 +1,642 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <title>EINFO - Admin Panel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; }
+
+    .header {
+      background: #1e293b;
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #334155;
+    }
+    .header h1 { font-size: 1.25rem; }
+    .status-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+    .status-badge.running { background: #22c55e; color: #000; }
+    .status-badge.stopped { background: #64748b; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 1rem;
+      padding: 1rem;
+    }
+
+    .card {
+      background: #1e293b;
+      border-radius: 0.75rem;
+      padding: 1rem;
+      border: 1px solid #334155;
+    }
+    .card h2 {
+      font-size: 0.875rem;
+      color: #94a3b8;
+      margin-bottom: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+    }
+    .stat-item {
+      background: #0f172a;
+      padding: 0.75rem;
+      border-radius: 0.5rem;
+      text-align: center;
+    }
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #38bdf8;
+    }
+    .stat-label {
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-top: 0.25rem;
+    }
+
+    .btn {
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      border: none;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.15s;
+      width: 100%;
+      margin-top: 0.5rem;
+    }
+    .btn-primary { background: #3b82f6; color: white; }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-success { background: #22c55e; color: #000; }
+    .btn-success:hover { background: #16a34a; }
+    .btn-danger { background: #ef4444; color: white; }
+    .btn-danger:hover { background: #dc2626; }
+    .btn-secondary { background: #475569; color: white; }
+    .btn-secondary:hover { background: #334155; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #0f172a;
+      border-radius: 9999px;
+      overflow: hidden;
+      margin: 0.5rem 0;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #3b82f6, #22c55e);
+      transition: width 0.3s;
+    }
+
+    .file-list {
+      max-height: 300px;
+      overflow-y: auto;
+      margin-top: 0.5rem;
+    }
+    .file-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem;
+      border-radius: 0.375rem;
+      background: #0f172a;
+      margin-bottom: 0.25rem;
+    }
+    .file-item .name {
+      font-family: monospace;
+      font-size: 0.75rem;
+      flex: 1;
+    }
+    .file-item .badge {
+      padding: 0.125rem 0.5rem;
+      border-radius: 0.25rem;
+      font-size: 0.625rem;
+      margin-left: 0.5rem;
+    }
+    .badge.indexed { background: #22c55e; color: #000; }
+    .badge.missing { background: #ef4444; }
+
+    .upload-zone {
+      border: 2px dashed #475569;
+      border-radius: 0.5rem;
+      padding: 2rem;
+      text-align: center;
+      margin-top: 0.5rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .upload-zone:hover { border-color: #3b82f6; background: rgba(59, 130, 246, 0.05); }
+    .upload-zone.dragover { border-color: #22c55e; background: rgba(34, 197, 94, 0.1); }
+
+    input[type="file"] { display: none; }
+
+    .alert {
+      padding: 0.75rem;
+      border-radius: 0.5rem;
+      margin-bottom: 1rem;
+      font-size: 0.875rem;
+    }
+    .alert-info { background: rgba(59, 130, 246, 0.1); border-left: 4px solid #3b82f6; }
+    .alert-success { background: rgba(34, 197, 94, 0.1); border-left: 4px solid #22c55e; }
+    .alert-warning { background: rgba(245, 158, 11, 0.1); border-left: 4px solid #f59e0b; }
+    .alert-error { background: rgba(239, 68, 68, 0.1); border-left: 4px solid #ef4444; }
+
+    .btn-sm {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.75rem;
+      width: auto;
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <h1>⚙️ EINFO Admin Panel</h1>
+    <div style="display: flex; align-items: center; gap: 1rem;">
+      <span id="chatbot-status" class="status-badge stopped">Chatbot: Gestoppt</span>
+    </div>
+  </header>
+
+  <main class="grid">
+    <!-- Chatbot-Steuerung -->
+    <section class="card">
+      <h2>Chatbot-Steuerung</h2>
+      <div id="chatbot-info" class="stat-grid">
+        <div class="stat-item">
+          <div class="stat-value" id="uptime">0h 0m</div>
+          <div class="stat-label">Uptime</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="memory">0 MB</div>
+          <div class="stat-label">Memory</div>
+        </div>
+      </div>
+      <button id="btn-start-sim" class="btn btn-success">▶ Simulation starten</button>
+      <button id="btn-pause-sim" class="btn btn-secondary" disabled>⏸ Simulation pausieren</button>
+      <button id="btn-step-sim" class="btn btn-primary">➡ Einzelschritt</button>
+    </section>
+
+    <!-- Knowledge-Status -->
+    <section class="card" style="grid-column: span 2;">
+      <h2>Knowledge-Management</h2>
+
+      <div id="knowledge-alerts"></div>
+
+      <div class="stat-grid" style="margin-bottom: 1rem;">
+        <div class="stat-item">
+          <div class="stat-value" id="knowledge-files">0</div>
+          <div class="stat-label">Knowledge-Dateien</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="knowledge-indexed">0</div>
+          <div class="stat-label">Indiziert</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="knowledge-chunks">0</div>
+          <div class="stat-label">Chunks</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="knowledge-coverage">0%</div>
+          <div class="stat-label">Coverage</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 1rem;">
+        <label style="font-size: 0.75rem; color: #94a3b8;">Index-Build-Status</label>
+        <div class="progress-bar">
+          <div id="index-progress" class="progress-fill" style="width: 0%"></div>
+        </div>
+        <p id="index-status" style="font-size: 0.75rem; color: #64748b; margin-top: 0.25rem;">
+          Bereit
+        </p>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+        <button id="btn-rebuild-index" class="btn btn-primary">🔨 Index neu bauen</button>
+        <button id="btn-refresh-knowledge" class="btn btn-secondary">🔄 Status aktualisieren</button>
+      </div>
+    </section>
+
+    <!-- File-Upload -->
+    <section class="card">
+      <h2>Knowledge-Datei hochladen</h2>
+
+      <div id="upload-zone" class="upload-zone">
+        <p style="font-size: 0.875rem; margin-bottom: 0.5rem;">📁 Datei hierher ziehen</p>
+        <p style="font-size: 0.75rem; color: #64748b;">oder klicken zum Auswählen</p>
+        <p style="font-size: 0.625rem; color: #64748b; margin-top: 0.5rem;">
+          Erlaubt: .pdf, .txt, .json, .md (max. 10 MB)
+        </p>
+      </div>
+
+      <input type="file" id="file-input" accept=".pdf,.txt,.json,.md" />
+
+      <div id="upload-status" style="margin-top: 1rem;"></div>
+    </section>
+
+    <!-- Knowledge-Dateien -->
+    <section class="card" style="grid-column: span 2;">
+      <h2>Knowledge-Dateien</h2>
+
+      <div class="file-list" id="file-list">
+        <p style="color: #64748b; font-size: 0.875rem;">Lade...</p>
+      </div>
+    </section>
+  </main>
+
+  <script type="module">
+    // ============================================================
+    // State
+    // ============================================================
+    let chatbotRunning = false;
+    let knowledgeStatus = null;
+    let indexBuildRunning = false;
+
+    // ============================================================
+    // DOM Elements
+    // ============================================================
+    const chatbotStatusBadge = document.getElementById("chatbot-status");
+    const uptimeEl = document.getElementById("uptime");
+    const memoryEl = document.getElementById("memory");
+
+    const knowledgeFilesEl = document.getElementById("knowledge-files");
+    const knowledgeIndexedEl = document.getElementById("knowledge-indexed");
+    const knowledgeChunksEl = document.getElementById("knowledge-chunks");
+    const knowledgeCoverageEl = document.getElementById("knowledge-coverage");
+    const knowledgeAlertsEl = document.getElementById("knowledge-alerts");
+
+    const indexProgress = document.getElementById("index-progress");
+    const indexStatus = document.getElementById("index-status");
+
+    const fileList = document.getElementById("file-list");
+    const uploadZone = document.getElementById("upload-zone");
+    const fileInput = document.getElementById("file-input");
+    const uploadStatusEl = document.getElementById("upload-status");
+
+    const btnStartSim = document.getElementById("btn-start-sim");
+    const btnPauseSim = document.getElementById("btn-pause-sim");
+    const btnStepSim = document.getElementById("btn-step-sim");
+    const btnRebuildIndex = document.getElementById("btn-rebuild-index");
+    const btnRefreshKnowledge = document.getElementById("btn-refresh-knowledge");
+
+    // ============================================================
+    // API Calls
+    // ============================================================
+
+    async function loadChatbotStatus() {
+      try {
+        const res = await fetch("/api/admin/chatbot-status");
+        const data = await res.json();
+
+        if (data.ok) {
+          chatbotRunning = data.status.running;
+          updateChatbotUI(data.status);
+        }
+      } catch (err) {
+        console.error("Fehler beim Laden des Chatbot-Status:", err);
+      }
+    }
+
+    async function loadKnowledgeStatus() {
+      try {
+        const res = await fetch("/api/admin/knowledge-status");
+        const data = await res.json();
+
+        if (data.ok) {
+          knowledgeStatus = data.knowledge;
+          updateKnowledgeUI();
+        }
+      } catch (err) {
+        console.error("Fehler beim Laden des Knowledge-Status:", err);
+      }
+    }
+
+    async function startSimulation() {
+      try {
+        btnStartSim.disabled = true;
+        const res = await fetch("/api/sim/start", { method: "POST" });
+        const data = await res.json();
+
+        if (data.ok) {
+          showAlert("Simulation gestartet", "success");
+          await loadChatbotStatus();
+        } else {
+          showAlert("Fehler: " + data.error, "error");
+        }
+      } catch (err) {
+        showAlert("Fehler: " + err.message, "error");
+      } finally {
+        btnStartSim.disabled = false;
+      }
+    }
+
+    async function pauseSimulation() {
+      try {
+        const res = await fetch("/api/sim/pause", { method: "POST" });
+        const data = await res.json();
+
+        if (data.ok) {
+          showAlert("Simulation pausiert", "info");
+          await loadChatbotStatus();
+        }
+      } catch (err) {
+        showAlert("Fehler: " + err.message, "error");
+      }
+    }
+
+    async function stepSimulation() {
+      try {
+        btnStepSim.disabled = true;
+        btnStepSim.textContent = "⏳ Läuft...";
+
+        const res = await fetch("/api/sim/step", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({})
+        });
+        const data = await res.json();
+
+        if (data.ok) {
+          showAlert("Simulationsschritt abgeschlossen", "success");
+        } else {
+          showAlert("Fehler: " + (data.error || "Unbekannter Fehler"), "error");
+        }
+      } catch (err) {
+        showAlert("Fehler: " + err.message, "error");
+      } finally {
+        btnStepSim.disabled = false;
+        btnStepSim.textContent = "➡ Einzelschritt";
+      }
+    }
+
+    async function rebuildIndex() {
+      if (indexBuildRunning) {
+        showAlert("Index-Build läuft bereits", "warning");
+        return;
+      }
+
+      if (!confirm("Index neu bauen? Dies kann 5-10 Minuten dauern.")) {
+        return;
+      }
+
+      try {
+        indexBuildRunning = true;
+        btnRebuildIndex.disabled = true;
+        indexStatus.textContent = "Index-Build gestartet...";
+        indexProgress.style.width = "10%";
+
+        const res = await fetch("/api/admin/rebuild-index", { method: "POST" });
+        const data = await res.json();
+
+        if (data.ok) {
+          showAlert("Index-Build gestartet. Bitte warten...", "info");
+          pollIndexBuildStatus();
+        } else {
+          throw new Error(data.error);
+        }
+      } catch (err) {
+        showAlert("Fehler: " + err.message, "error");
+        indexBuildRunning = false;
+        btnRebuildIndex.disabled = false;
+        indexProgress.style.width = "0%";
+      }
+    }
+
+    async function pollIndexBuildStatus() {
+      const interval = setInterval(async () => {
+        try {
+          const res = await fetch("/api/admin/index-build-status");
+          const data = await res.json();
+
+          if (!data.running) {
+            clearInterval(interval);
+            indexBuildRunning = false;
+            btnRebuildIndex.disabled = false;
+
+            if (data.progress?.status === "completed") {
+              indexStatus.textContent = "Index-Build abgeschlossen!";
+              indexProgress.style.width = "100%";
+              showAlert("Index erfolgreich neu aufgebaut!", "success");
+
+              setTimeout(() => {
+                indexProgress.style.width = "0%";
+                indexStatus.textContent = "Bereit";
+              }, 3000);
+
+              await loadKnowledgeStatus();
+            } else if (data.progress?.status === "failed") {
+              indexStatus.textContent = "Index-Build fehlgeschlagen";
+              indexProgress.style.width = "0%";
+              showAlert("Fehler: " + (data.progress.error || "Unbekannt"), "error");
+            }
+          } else if (data.progress) {
+            indexStatus.textContent = `Status: ${data.progress.status}`;
+            indexProgress.style.width = data.progress.percent + "%";
+          }
+        } catch (err) {
+          console.error("Poll-Fehler:", err);
+        }
+      }, 2000);
+    }
+
+    async function uploadFile(file) {
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        uploadStatusEl.innerHTML = '<div class="alert alert-info">Lade hoch: ' + file.name + '</div>';
+
+        const res = await fetch("/api/admin/upload-knowledge", {
+          method: "POST",
+          body: formData
+        });
+
+        const data = await res.json();
+
+        if (data.ok) {
+          uploadStatusEl.innerHTML = '<div class="alert alert-success">✓ ' + data.message + '</div>';
+          setTimeout(() => uploadStatusEl.innerHTML = "", 5000);
+          await loadKnowledgeStatus();
+        } else {
+          throw new Error(data.error);
+        }
+      } catch (err) {
+        uploadStatusEl.innerHTML = '<div class="alert alert-error">✗ Fehler: ' + err.message + '</div>';
+      }
+    }
+
+    async function deleteFile(filename) {
+      if (!confirm(`Datei "${filename}" wirklich löschen?`)) return;
+
+      try {
+        const res = await fetch(`/api/admin/knowledge/${encodeURIComponent(filename)}`, {
+          method: "DELETE"
+        });
+
+        const data = await res.json();
+
+        if (data.ok) {
+          showAlert(data.message, "success");
+          await loadKnowledgeStatus();
+        } else {
+          throw new Error(data.error);
+        }
+      } catch (err) {
+        showAlert("Fehler: " + err.message, "error");
+      }
+    }
+
+    // ============================================================
+    // UI Updates
+    // ============================================================
+
+    function updateChatbotUI(status) {
+      if (status.running) {
+        chatbotStatusBadge.textContent = "Chatbot: Läuft";
+        chatbotStatusBadge.className = "status-badge running";
+        btnStartSim.disabled = true;
+        btnPauseSim.disabled = false;
+      } else {
+        chatbotStatusBadge.textContent = "Chatbot: Gestoppt";
+        chatbotStatusBadge.className = "status-badge stopped";
+        btnStartSim.disabled = false;
+        btnPauseSim.disabled = true;
+      }
+
+      // Uptime
+      const hours = Math.floor(status.uptime / 3600);
+      const minutes = Math.floor((status.uptime % 3600) / 60);
+      uptimeEl.textContent = `${hours}h ${minutes}m`;
+
+      // Memory
+      const memMB = Math.round(status.memoryUsage.heapUsed / 1024 / 1024);
+      memoryEl.textContent = `${memMB} MB`;
+    }
+
+    function updateKnowledgeUI() {
+      if (!knowledgeStatus) return;
+
+      knowledgeFilesEl.textContent = knowledgeStatus.totalFiles;
+      knowledgeIndexedEl.textContent = knowledgeStatus.indexedFiles;
+      knowledgeChunksEl.textContent = knowledgeStatus.totalChunks;
+      knowledgeCoverageEl.textContent = knowledgeStatus.coverage + "%";
+
+      // Alerts
+      knowledgeAlertsEl.innerHTML = "";
+
+      if (!knowledgeStatus.indexExists) {
+        knowledgeAlertsEl.innerHTML = '<div class="alert alert-error">⚠️ Knowledge-Index fehlt! Bitte Index bauen.</div>';
+      } else if (knowledgeStatus.coverage < 100) {
+        knowledgeAlertsEl.innerHTML = `<div class="alert alert-warning">⚠️ ${knowledgeStatus.missingFiles.length} Dateien noch nicht indiziert</div>`;
+      } else {
+        knowledgeAlertsEl.innerHTML = '<div class="alert alert-success">✓ Alle Knowledge-Dateien indiziert</div>';
+      }
+
+      // File-Liste
+      fileList.innerHTML = "";
+
+      if (knowledgeStatus.files.length === 0) {
+        fileList.innerHTML = '<p style="color: #64748b; font-size: 0.875rem;">Keine Dateien</p>';
+      } else {
+        for (const filename of knowledgeStatus.files) {
+          const isIndexed = !knowledgeStatus.missingFiles.includes(filename);
+
+          const item = document.createElement("div");
+          item.className = "file-item";
+          item.innerHTML = `
+            <span class="name">${filename}</span>
+            <span class="badge ${isIndexed ? 'indexed' : 'missing'}">
+              ${isIndexed ? '✓ Indiziert' : '⚠ Nicht indiziert'}
+            </span>
+            <button class="btn btn-danger btn-sm" onclick="deleteFile('${filename}')">🗑</button>
+          `;
+
+          fileList.appendChild(item);
+        }
+      }
+    }
+
+    function showAlert(message, type = "info") {
+      const alert = document.createElement("div");
+      alert.className = `alert alert-${type}`;
+      alert.textContent = message;
+
+      knowledgeAlertsEl.innerHTML = "";
+      knowledgeAlertsEl.appendChild(alert);
+
+      setTimeout(() => {
+        if (knowledgeAlertsEl.contains(alert)) {
+          loadKnowledgeStatus(); // Refresh
+        }
+      }, 5000);
+    }
+
+    // ============================================================
+    // Event Handlers
+    // ============================================================
+
+    btnStartSim.addEventListener("click", startSimulation);
+    btnPauseSim.addEventListener("click", pauseSimulation);
+    btnStepSim.addEventListener("click", stepSimulation);
+    btnRebuildIndex.addEventListener("click", rebuildIndex);
+    btnRefreshKnowledge.addEventListener("click", loadKnowledgeStatus);
+
+    // File-Upload
+    uploadZone.addEventListener("click", () => fileInput.click());
+
+    uploadZone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      uploadZone.classList.add("dragover");
+    });
+
+    uploadZone.addEventListener("dragleave", () => {
+      uploadZone.classList.remove("dragover");
+    });
+
+    uploadZone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      uploadZone.classList.remove("dragover");
+
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        uploadFile(files[0]);
+      }
+    });
+
+    fileInput.addEventListener("change", (e) => {
+      if (e.target.files.length > 0) {
+        uploadFile(e.target.files[0]);
+      }
+    });
+
+    // Global für delete
+    window.deleteFile = deleteFile;
+
+    // ============================================================
+    // Init
+    // ============================================================
+
+    loadChatbotStatus();
+    loadKnowledgeStatus();
+
+    // Auto-refresh every 10 seconds
+    setInterval(loadChatbotStatus, 10000);
+  </script>
+</body>
+</html>
