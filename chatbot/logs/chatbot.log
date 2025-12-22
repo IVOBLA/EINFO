@@ -1,0 +1,690 @@
+{"ts":"2025-12-22T08:16:31.755Z","level":"INFO","msg":"Knowledge-Verzeichnis existiert nicht","extra":{"dir":"/home/user/EINFO/chatbot/server/knowledge"}}
+{"ts":"2025-12-22T08:16:31.760Z","level":"INFO","msg":"Keine Knowledge-Files gefunden","extra":null}
+{"ts":"2025-12-22T08:16:49.756Z","level":"INFO","msg":"Knowledge-Verzeichnis existiert nicht","extra":{"dir":"/home/user/EINFO/chatbot/server/knowledge"}}
+{"ts":"2025-12-22T08:16:49.761Z","level":"INFO","msg":"Keine Knowledge-Files gefunden","extra":null}
+{"ts":"2025-12-22T08:17:12.516Z","level":"INFO","msg":"Knowledge-Verzeichnis existiert nicht","extra":{"dir":"/home/user/EINFO/chatbot/chatbot/knowledge"}}
+{"ts":"2025-12-22T08:17:12.522Z","level":"INFO","msg":"Keine Knowledge-Files gefunden","extra":null}
+{"ts":"2025-12-22T08:17:28.147Z","level":"INFO","msg":"Knowledge-Files gefunden","extra":{"count":22}}
+{"ts":"2025-12-22T08:17:28.151Z","level":"INFO","msg":"Verarbeite Knowledge-Datei","extra":{"file":"6_Anforderungen-an-die-Feuerwehr-im-Ereignisfall_E6_compressed_web.pdf"}}
+{"ts":"2025-12-22T08:17:28.338Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.339Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"6_Anforderungen-an-die-Feuerwehr-im-Ereignisfall_E6_compressed_web.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.341Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.341Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"6_Anforderungen-an-die-Feuerwehr-im-Ereignisfall_E6_compressed_web.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.344Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.344Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"6_Anforderungen-an-die-Feuerwehr-im-Ereignisfall_E6_compressed_web.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.346Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.346Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"6_Anforderungen-an-die-Feuerwehr-im-Ereignisfall_E6_compressed_web.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.347Z","level":"INFO","msg":"Verarbeite Knowledge-Datei","extra":{"file":"HWW_Fachunterlagen_Gefahren-EK_E5_web.pdf"}}
+{"ts":"2025-12-22T08:17:28.539Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"HWW_Fachunterlagen_Gefahren-EK_E5_web.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.538Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.540Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.540Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"HWW_Fachunterlagen_Gefahren-EK_E5_web.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.543Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.543Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"HWW_Fachunterlagen_Gefahren-EK_E5_web.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.544Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.544Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"HWW_Fachunterlagen_Gefahren-EK_E5_web.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.548Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"HWW_Fachunterlagen_Gefahren-EK_E5_web.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.548Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.549Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.550Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"HWW_Fachunterlagen_Gefahren-EK_E5_web.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.551Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.551Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"HWW_Fachunterlagen_Gefahren-EK_E5_web.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.552Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.552Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"HWW_Fachunterlagen_Gefahren-EK_E5_web.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.554Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.554Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"HWW_Fachunterlagen_Gefahren-EK_E5_web.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.555Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"HWW_Fachunterlagen_Gefahren-EK_E5_web.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.555Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.556Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.556Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"HWW_Fachunterlagen_Gefahren-EK_E5_web.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.558Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.558Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"HWW_Fachunterlagen_Gefahren-EK_E5_web.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.559Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.559Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"HWW_Fachunterlagen_Gefahren-EK_E5_web.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.560Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.560Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"HWW_Fachunterlagen_Gefahren-EK_E5_web.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.561Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.561Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"HWW_Fachunterlagen_Gefahren-EK_E5_web.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.563Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.563Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"HWW_Fachunterlagen_Gefahren-EK_E5_web.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.564Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.564Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"HWW_Fachunterlagen_Gefahren-EK_E5_web.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.565Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.566Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"HWW_Fachunterlagen_Gefahren-EK_E5_web.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.567Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.567Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"HWW_Fachunterlagen_Gefahren-EK_E5_web.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.568Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"HWW_Fachunterlagen_Gefahren-EK_E5_web.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.568Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:28.568Z","level":"INFO","msg":"Verarbeite Knowledge-Datei","extra":{"file":"e31.pdf"}}
+{"ts":"2025-12-22T08:17:29.202Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.202Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.203Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.203Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.205Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.205Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.206Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.206Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.207Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.207Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.209Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.209Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.210Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.210Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.212Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.212Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.213Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.213Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.214Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.214Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.215Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.215Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.216Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.216Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.217Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.218Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.219Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.219Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.220Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.220Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.221Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.221Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.222Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.222Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.223Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.224Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.225Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.225Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.226Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.226Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.227Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.227Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.228Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.228Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.229Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.229Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.230Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.231Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.231Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.232Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.232Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.233Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.235Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.235Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.236Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.236Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.238Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.237Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.239Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.239Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.240Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.240Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.241Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.241Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.242Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.242Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.244Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.244Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.245Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.245Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.247Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.247Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.248Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.248Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.249Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.249Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.251Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.251Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.252Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.252Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.253Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.253Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.254Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.254Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.255Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.255Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.256Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.257Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.258Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.258Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.259Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.259Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.260Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.260Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.261Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.261Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.262Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.262Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.263Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.263Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.264Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.264Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.265Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.265Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.267Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.267Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.268Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.268Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.269Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.269Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.270Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.270Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.271Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.271Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.272Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.273Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.274Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.274Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.275Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.275Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.276Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.276Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.277Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.277Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.278Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.278Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.279Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.279Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.280Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.281Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.282Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.282Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.283Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.283Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.284Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.284Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.285Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.285Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.286Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.287Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.287Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.288Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.288Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.289Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.289Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.290Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.291Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.291Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.292Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.292Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.293Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.293Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.294Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.294Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.295Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.295Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.296Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.296Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.297Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.297Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.299Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.298Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.300Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.300Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.301Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.301Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.302Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.302Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.303Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.303Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.304Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.304Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.305Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.305Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.306Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.306Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.308Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.308Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.309Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.309Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.310Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.310Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.311Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.311Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.312Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.312Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.314Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.314Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.315Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.315Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.316Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.316Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.317Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.317Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.318Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.318Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.319Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.319Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.320Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.320Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.321Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.321Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.322Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.323Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.324Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.324Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.325Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.325Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.326Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.326Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.327Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.327Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.328Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.328Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"e31.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.328Z","level":"INFO","msg":"Verarbeite Knowledge-Datei","extra":{"file":"hochwasser.txt"}}
+{"ts":"2025-12-22T08:17:29.330Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"hochwasser.txt","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.330Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.331Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.331Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"hochwasser.txt","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.332Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.332Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"hochwasser.txt","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.333Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.333Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"hochwasser.txt","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.334Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"hochwasser.txt","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.334Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.335Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.336Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"hochwasser.txt","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.337Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.337Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"hochwasser.txt","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.337Z","level":"INFO","msg":"Verarbeite Knowledge-Datei","extra":{"file":"mure.txt"}}
+{"ts":"2025-12-22T08:17:29.339Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.339Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"mure.txt","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.340Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.340Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"mure.txt","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.341Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.341Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"mure.txt","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.341Z","level":"INFO","msg":"Verarbeite Knowledge-Datei","extra":{"file":"rag_accident_hazards.json"}}
+{"ts":"2025-12-22T08:17:29.343Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.344Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_accident_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.345Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.345Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_accident_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.346Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.346Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_accident_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.347Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.347Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_accident_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.348Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.348Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_accident_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.349Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.349Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_accident_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.350Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.350Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_accident_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.351Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.352Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_accident_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.353Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.353Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_accident_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.354Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.354Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_accident_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.355Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.355Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_accident_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.356Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.356Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_accident_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.357Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.357Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_accident_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.358Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.358Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_accident_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.359Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.359Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_accident_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.360Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.360Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_accident_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.361Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.362Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_accident_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.363Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.363Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_accident_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.364Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.364Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_accident_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.365Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.365Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_accident_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.366Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.367Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_accident_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.368Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.368Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_accident_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.368Z","level":"INFO","msg":"Verarbeite Knowledge-Datei","extra":{"file":"rag_flood_hazards.json"}}
+{"ts":"2025-12-22T08:17:29.370Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.370Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_flood_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.371Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.371Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_flood_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.372Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.372Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_flood_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.373Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.374Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_flood_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.375Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.375Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_flood_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.376Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.376Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_flood_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.377Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_flood_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.377Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.378Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.378Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_flood_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.379Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.379Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_flood_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.380Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.381Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_flood_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.382Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.382Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_flood_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.383Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.383Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_flood_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.384Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.384Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_flood_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.385Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.385Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_flood_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.385Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.386Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_flood_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.387Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.387Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_flood_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.387Z","level":"INFO","msg":"Verarbeite Knowledge-Datei","extra":{"file":"rag_mudflow_hazards.json"}}
+{"ts":"2025-12-22T08:17:29.389Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.389Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_mudflow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.390Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.390Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_mudflow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.391Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.391Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_mudflow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.392Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.392Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_mudflow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.393Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.393Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_mudflow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.394Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.395Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_mudflow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.396Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.396Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_mudflow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.397Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.397Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_mudflow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.398Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.398Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_mudflow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.399Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.399Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_mudflow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.400Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.400Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_mudflow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.401Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.401Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_mudflow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.404Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.404Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_mudflow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.405Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.405Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_mudflow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.406Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.406Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_mudflow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.407Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.407Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_mudflow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.407Z","level":"INFO","msg":"Verarbeite Knowledge-Datei","extra":{"file":"rag_snow_hazards.json"}}
+{"ts":"2025-12-22T08:17:29.410Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_snow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.410Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.411Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.411Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_snow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.412Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.412Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_snow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.413Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.413Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_snow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.415Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.415Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_snow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.416Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.416Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_snow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.417Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.417Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_snow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.418Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_snow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.418Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.419Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.419Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_snow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.421Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_snow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.421Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.422Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.422Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_snow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.423Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.423Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_snow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.424Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.424Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_snow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.425Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.425Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_snow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.427Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.427Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_snow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.428Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.428Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_snow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.429Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.429Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_snow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.430Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.430Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_snow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.431Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.431Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_snow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.433Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.433Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_snow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.434Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.434Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_snow_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.434Z","level":"INFO","msg":"Verarbeite Knowledge-Datei","extra":{"file":"rag_storm_hazards.json"}}
+{"ts":"2025-12-22T08:17:29.436Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_storm_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.436Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.437Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.438Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_storm_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.439Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.439Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_storm_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.440Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.440Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_storm_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.441Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.441Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_storm_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.442Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.442Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_storm_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.443Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.444Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_storm_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.445Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.445Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_storm_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.446Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.446Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_storm_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.447Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.447Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_storm_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.448Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.448Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_storm_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.449Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.449Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_storm_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.450Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.450Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_storm_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.451Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.452Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_storm_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.453Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.453Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_storm_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.454Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.454Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_storm_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.455Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.455Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_storm_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.456Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.456Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_storm_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.457Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.457Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_storm_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.458Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.458Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_storm_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.459Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.459Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_storm_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.460Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.460Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rag_storm_hazards.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.460Z","level":"INFO","msg":"Verarbeite Knowledge-Datei","extra":{"file":"richtlinie.pdf"}}
+{"ts":"2025-12-22T08:17:29.584Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.584Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.586Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.586Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.587Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.587Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.588Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.588Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.589Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.589Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.590Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.590Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.591Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.592Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.593Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.593Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.594Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.594Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.595Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.595Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.596Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.596Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.597Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.597Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.598Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.598Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.599Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.599Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.600Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.601Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.602Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.602Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.603Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.603Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.604Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.604Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.605Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.605Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.606Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.607Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.608Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.608Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.609Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.609Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.610Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.610Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.612Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.612Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.613Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.613Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.614Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.614Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.615Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.615Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.616Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.616Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.617Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.618Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.618Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.619Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.619Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.620Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.621Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.621Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.622Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.622Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.623Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.623Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.624Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.624Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.625Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.625Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.626Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.626Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.627Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.627Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.628Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.628Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.629Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.629Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.630Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.630Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.631Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.631Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.632Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.633Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.634Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.634Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.635Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.635Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.636Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.636Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.637Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.637Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.639Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.639Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.640Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.640Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.641Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.641Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.642Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.642Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.643Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.643Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.644Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.645Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.645Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.645Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.646Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.647Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.648Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.648Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.649Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.649Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.650Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.650Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.651Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.651Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.652Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.652Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.653Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.654Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.654Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.655Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.656Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.656Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.657Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.657Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.658Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.658Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.659Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.659Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"richtlinie.pdf","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.660Z","level":"INFO","msg":"Verarbeite Knowledge-Datei","extra":{"file":"rollen_Einsatzleiter.json"}}
+{"ts":"2025-12-22T08:17:29.661Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rollen_Einsatzleiter.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.661Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.662Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.662Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rollen_Einsatzleiter.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.664Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.664Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rollen_Einsatzleiter.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.664Z","level":"INFO","msg":"Verarbeite Knowledge-Datei","extra":{"file":"rollen_LtStb.json"}}
+{"ts":"2025-12-22T08:17:29.665Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.666Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rollen_LtStb.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.666Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.667Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rollen_LtStb.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.667Z","level":"INFO","msg":"Verarbeite Knowledge-Datei","extra":{"file":"rollen_S1_Personal.json"}}
+{"ts":"2025-12-22T08:17:29.668Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.668Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rollen_S1_Personal.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.669Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.669Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rollen_S1_Personal.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.669Z","level":"INFO","msg":"Verarbeite Knowledge-Datei","extra":{"file":"rollen_S2_Lage.json"}}
+{"ts":"2025-12-22T08:17:29.671Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.671Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rollen_S2_Lage.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.672Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.672Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rollen_S2_Lage.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.672Z","level":"INFO","msg":"Verarbeite Knowledge-Datei","extra":{"file":"rollen_S3_Einsatz.json"}}
+{"ts":"2025-12-22T08:17:29.674Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rollen_S3_Einsatz.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.674Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.675Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rollen_S3_Einsatz.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.675Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.675Z","level":"INFO","msg":"Verarbeite Knowledge-Datei","extra":{"file":"rollen_S4_Versorgung.json"}}
+{"ts":"2025-12-22T08:17:29.677Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.677Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rollen_S4_Versorgung.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.678Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.678Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rollen_S4_Versorgung.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.678Z","level":"INFO","msg":"Verarbeite Knowledge-Datei","extra":{"file":"rollen_S5_Kommunikation.json"}}
+{"ts":"2025-12-22T08:17:29.679Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rollen_S5_Kommunikation.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.679Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.680Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.681Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rollen_S5_Kommunikation.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.681Z","level":"INFO","msg":"Verarbeite Knowledge-Datei","extra":{"file":"rollen_S6_IT_Meldestelle.json"}}
+{"ts":"2025-12-22T08:17:29.682Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.682Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rollen_S6_IT_Meldestelle.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.683Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.683Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"rollen_S6_IT_Meldestelle.json","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.683Z","level":"INFO","msg":"Verarbeite Knowledge-Datei","extra":{"file":"schnee.txt"}}
+{"ts":"2025-12-22T08:17:29.685Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.685Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"schnee.txt","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.686Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.686Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"schnee.txt","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.687Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.687Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"schnee.txt","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.687Z","level":"INFO","msg":"Verarbeite Knowledge-Datei","extra":{"file":"sturm.txt"}}
+{"ts":"2025-12-22T08:17:29.689Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.689Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"sturm.txt","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.689Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.690Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"sturm.txt","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.691Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.691Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"sturm.txt","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.691Z","level":"INFO","msg":"Verarbeite Knowledge-Datei","extra":{"file":"unfall.txt"}}
+{"ts":"2025-12-22T08:17:29.692Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.692Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"unfall.txt","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.693Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.693Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"unfall.txt","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.694Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.695Z","level":"ERROR","msg":"Fehler beim Embedding eines Chunks","extra":{"file":"unfall.txt","error":"TypeError: fetch failed"}}
+{"ts":"2025-12-22T08:17:29.696Z","level":"INFO","msg":"Vector-Index (JS) gebaut","extra":{"dim":1024,"elements":0,"metaPath":"/home/user/EINFO/chatbot/knowledge_index/meta.json","embeddingsPath":"/home/user/EINFO/chatbot/knowledge_index/embeddings.json"}}
