@@ -6,6 +6,10 @@ import { callLLMForOps } from "./llm_client.js";
 import { logInfo, logError, logDebug } from "./logger.js";  // NEU: logDebug
 import { searchMemory } from "./memory_manager.js";
 import { logEvent } from "./audit_trail.js";  // NEU: Audit-Trail
+import {
+  updateDisasterContextFromEinfo,
+  incrementSimulationStep
+} from "./disaster_context.js";  // NEU: Disaster Context Integration
 
 // ============================================================
 // Konstanten für interne Stabsrollen
@@ -419,6 +423,28 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
       });
     }
 
+    // ============================================================
+    // NEU: Disaster Context mit aktuellen EINFO-Daten aktualisieren
+    // ============================================================
+    try {
+      await updateDisasterContextFromEinfo({
+        board,
+        protokoll,
+        aufgaben,
+        roles
+      });
+      logDebug("Disaster Context aktualisiert", {
+        boardItems: board.length,
+        protokollItems: protokoll.length,
+        aufgabenItems: aufgaben.length
+      });
+    } catch (err) {
+      logError("Fehler beim Aktualisieren des Disaster Context", {
+        error: String(err)
+      });
+      // Fehler nicht weitergeben - Simulation soll weiterlaufen
+    }
+
     // --- Erkennen, dass dies der erste Simulationsschritt ist ---
     const isFirstStep =
       (!lastComparableSnapshot ||
@@ -542,6 +568,9 @@ lastCompressedBoardJson = opsContext.compressedBoard;
       incidentsCreated: operations.board?.createIncidentSites?.length || 0,
       responsesGenerated: messagesNeedingResponse.length
     });
+
+    // NEU: Simulationsschritt-Counter inkrementieren
+    incrementSimulationStep();
 
     return { ok: true, operations, analysis };
   } catch (err) {
