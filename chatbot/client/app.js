@@ -317,7 +317,8 @@ chatSend.addEventListener("click", async () => {
       return;
     }
 
-    const decoder = new TextDecoder();
+    // UTF-8 explizit erzwingen für korrekte Sonderzeichen (ü, ö, ä, ß)
+    const decoder = new TextDecoder('utf-8', { fatal: false, ignoreBOM: true });
     const reader = res.body?.getReader();
     if (!reader) {
       appendChat(BOT_NAME, "(keine Antwort)");

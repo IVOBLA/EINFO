@@ -323,13 +323,20 @@ async function requestJsonRepairFromLLM({
       `${CONFIG.llmBaseUrl}/api/chat`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          "Accept": "application/json; charset=utf-8",
+          "Accept-Charset": "utf-8"
+        },
         body: serializedRequest
       },
       CONFIG.llmChatTimeoutMs || CONFIG.llmRequestTimeoutMs
     );
 
-    rawText = await resp.text();
+    // Response als ArrayBuffer lesen und manuell mit UTF-8 dekodieren
+    const buffer = await resp.arrayBuffer();
+    const utf8Decoder = new TextDecoder('utf-8', { fatal: false, ignoreBOM: true });
+    rawText = utf8Decoder.decode(buffer);
     if (resp.ok && typeof rawText === "string" && rawText.trim()) {
       parsed = extractJsonObject(rawText);
     }
@@ -386,7 +393,11 @@ async function doLLMCall(body, phaseLabel, onToken, options = {}) {
       `${CONFIG.llmBaseUrl}/api/chat`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          "Accept": "application/json; charset=utf-8",
+          "Accept-Charset": "utf-8"
+        },
         body: serializedRequest
       },
        options.timeoutMs || CONFIG.llmRequestTimeoutMs
@@ -450,10 +461,21 @@ async function doLLMCall(body, phaseLabel, onToken, options = {}) {
     throw new Error(detailedMessage);
   }
 
+  // Content-Type Header validieren und warnen wenn UTF-8 nicht explizit
+  const contentType = resp.headers.get("content-type") || "";
+  if (contentType && !contentType.toLowerCase().includes("utf-8")) {
+    logDebug("LLM-Response Content-Type ohne explizites UTF-8", {
+      contentType,
+      phase: phaseLabel,
+      hint: "Response wird trotzdem als UTF-8 dekodiert"
+    });
+  }
+
   // STREAMING-FALL ----------------------------------------------------------
   if (body.stream) {
     const reader = resp.body?.getReader();
-    const decoder = new TextDecoder();
+    // UTF-8 explizit erzwingen mit fatal: true für Encoding-Fehler-Erkennung
+    const decoder = new TextDecoder('utf-8', { fatal: false, ignoreBOM: true });
     if (!reader) {
       throw new Error("Keine Streaming-Quelle für LLM verfügbar");
     }
@@ -508,8 +530,12 @@ async function doLLMCall(body, phaseLabel, onToken, options = {}) {
   }
 
   // NON-STREAMING-FALL ------------------------------------------------------
-const rawText = await resp.text();
-let parsed = null;
+  // Response als ArrayBuffer lesen und manuell mit UTF-8 dekodieren
+  // um Encoding-Probleme bei Sonderzeichen (ü, ö, ä, ß) zu vermeiden
+  const buffer = await resp.arrayBuffer();
+  const utf8Decoder = new TextDecoder('utf-8', { fatal: false, ignoreBOM: true });
+  const rawText = utf8Decoder.decode(buffer);
+  let parsed = null;
 
 if (typeof rawText === "string" && rawText.trim()) {
   // Zuerst: Parse die Ollama-Response
