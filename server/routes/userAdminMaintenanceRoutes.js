@@ -6,6 +6,22 @@ import { fileURLToPath } from "url";
 import archiver from "archiver";
 import { pipeline } from "stream";
 import { promisify } from "util";
+import multer from "multer";
+import {
+  chatbotStatus,
+  chatbotServerStart,
+  chatbotServerStop,
+  workerStart,
+  workerStop,
+  startAll,
+  stopAll,
+  runIngest,
+  listKnowledgeFiles,
+  saveKnowledgeFile,
+  deleteKnowledgeFile,
+  KNOWLEDGE_DIR,
+} from "../chatbotRunner.js";
+
 const pipe = promisify(pipeline);
 
 const __filename = fileURLToPath(import.meta.url);
@@ -13,7 +29,7 @@ const __dirname  = path.dirname(__filename);
 
 /**
  * Factory: createAdminMaintenanceRoutes({ baseDir })
- * baseDir MUSS vom Server übergeben werden (z. B. <repo>/server/data).
+ * baseDir MUSS vom Server ï¿½bergeben werden (z. B. <repo>/server/data).
  */
 export default function createAdminMaintenanceRoutes({ baseDir }) {
   if (!baseDir) throw new Error("baseDir required for admin maintenance routes");
@@ -100,12 +116,12 @@ export default function createAdminMaintenanceRoutes({ baseDir }) {
       for (const f of files) {
         const dest = path.join(BASE_DIR, f.rel);
         await fs.mkdir(path.dirname(dest), { recursive: true });
-        await fs.copyFile(f.abs, dest); // überschreibt
+        await fs.copyFile(f.abs, dest); // ï¿½berschreibt
       }
 
       res.json({
         ok: true,
-        message: `Initialsetup abgeschlossen. ${deletedCount} CSV gelöscht, ${files.length} Dateien kopiert.`,
+        message: `Initialsetup abgeschlossen. ${deletedCount} CSV gelï¿½scht, ${files.length} Dateien kopiert.`,
         baseDir: BASE_DIR.replaceAll("\\", "/"),
       });
     } catch (err) {
@@ -219,6 +235,199 @@ export default function createAdminMaintenanceRoutes({ baseDir }) {
         topLevel: top,
       });
     } catch (err) {
+      res.status(500).json({ ok: false, error: err.message });
+    }
+  });
+
+  // ===========================================================================
+  // CHATBOT & WORKER KONTROLLE
+  // ===========================================================================
+
+  // Status abrufen
+  router.get("/chatbot/status", (_req, res) => {
+    try {
+      const status = chatbotStatus();
+      res.json({ ok: true, ...status });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err.message });
+    }
+  });
+
+  // Chatbot und Worker zusammen starten
+  router.post("/chatbot/start", async (_req, res) => {
+    try {
+      const result = await startAll();
+      res.json(result);
+    } catch (err) {
+      console.error("Chatbot start error:", err);
+      res.status(500).json({ ok: false, error: err.message });
+    }
+  });
+
+  // Chatbot und Worker zusammen stoppen
+  router.post("/chatbot/stop", async (_req, res) => {
+    try {
+      const result = await stopAll();
+      res.json(result);
+    } catch (err) {
+      console.error("Chatbot stop error:", err);
+      res.status(500).json({ ok: false, error: err.message });
+    }
+  });
+
+  // Nur Chatbot-Server starten
+  router.post("/chatbot/server/start", async (_req, res) => {
+    try {
+      const result = await chatbotServerStart();
+      res.json({ ok: true, ...result });
+    } catch (err) {
+      console.error("Chatbot server start error:", err);
+      res.status(500).json({ ok: false, error: err.message });
+    }
+  });
+
+  // Nur Chatbot-Server stoppen
+  router.post("/chatbot/server/stop", async (_req, res) => {
+    try {
+      const result = await chatbotServerStop();
+      res.json(result);
+    } catch (err) {
+      console.error("Chatbot server stop error:", err);
+      res.status(500).json({ ok: false, error: err.message });
+    }
+  });
+
+  // Nur Worker starten
+  router.post("/chatbot/worker/start", async (_req, res) => {
+    try {
+      const result = await workerStart();
+      res.json({ ok: true, ...result });
+    } catch (err) {
+      console.error("Worker start error:", err);
+      res.status(500).json({ ok: false, error: err.message });
+    }
+  });
+
+  // Nur Worker stoppen
+  router.post("/chatbot/worker/stop", async (_req, res) => {
+    try {
+      const result = await workerStop();
+      res.json(result);
+    } catch (err) {
+      console.error("Worker stop error:", err);
+      res.status(500).json({ ok: false, error: err.message });
+    }
+  });
+
+  // ===========================================================================
+  // KNOWLEDGE-VERWALTUNG
+  // ===========================================================================
+
+  // Multer-Konfiguration fÃ¼r File-Uploads
+  const knowledgeStorage = multer.diskStorage({
+    destination: async (_req, _file, cb) => {
+      await fs.mkdir(KNOWLEDGE_DIR, { recursive: true }).catch(() => {});
+      cb(null, KNOWLEDGE_DIR);
+    },
+    filename: (_req, file, cb) => {
+      // Originalnamen beibehalten, aber unsichere Zeichen ersetzen
+      const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_");
+      cb(null, safeName);
+    },
+  });
+
+  const knowledgeUpload = multer({
+    storage: knowledgeStorage,
+    limits: { fileSize: 50 * 1024 * 1024 }, // Max 50MB
+    fileFilter: (_req, file, cb) => {
+      // Erlaubte Dateitypen
+      const allowedTypes = [".txt", ".pdf", ".json", ".md", ".csv"];
+      const ext = path.extname(file.originalname).toLowerCase();
+      if (allowedTypes.includes(ext)) {
+        cb(null, true);
+      } else {
+        cb(new Error(`Dateityp ${ext} nicht erlaubt. Erlaubt: ${allowedTypes.join(", ")}`));
+      }
+    },
+  });
+
+  // Knowledge-Dateien auflisten
+  router.get("/knowledge/files", async (_req, res) => {
+    try {
+      const files = await listKnowledgeFiles();
+      res.json({ ok: true, files, knowledgeDir: KNOWLEDGE_DIR });
+    } catch (err) {
+      console.error("Knowledge list error:", err);
+      res.status(500).json({ ok: false, error: err.message });
+    }
+  });
+
+  // Datei hochladen
+  router.post("/knowledge/upload", knowledgeUpload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ ok: false, error: "Keine Datei hochgeladen" });
+      }
+      res.json({
+        ok: true,
+        filename: req.file.filename,
+        size: req.file.size,
+        message: `Datei "${req.file.filename}" erfolgreich hochgeladen`,
+      });
+    } catch (err) {
+      console.error("Knowledge upload error:", err);
+      res.status(500).json({ ok: false, error: err.message });
+    }
+  });
+
+  // Mehrere Dateien hochladen
+  router.post("/knowledge/upload-multiple", knowledgeUpload.array("files", 20), async (req, res) => {
+    try {
+      if (!req.files || req.files.length === 0) {
+        return res.status(400).json({ ok: false, error: "Keine Dateien hochgeladen" });
+      }
+      const uploaded = req.files.map((f) => ({
+        filename: f.filename,
+        size: f.size,
+      }));
+      res.json({
+        ok: true,
+        files: uploaded,
+        count: uploaded.length,
+        message: `${uploaded.length} Datei(en) erfolgreich hochgeladen`,
+      });
+    } catch (err) {
+      console.error("Knowledge multi-upload error:", err);
+      res.status(500).json({ ok: false, error: err.message });
+    }
+  });
+
+  // Datei lÃ¶schen
+  router.delete("/knowledge/files/:filename", async (req, res) => {
+    try {
+      const filename = req.params.filename;
+      if (!filename) {
+        return res.status(400).json({ ok: false, error: "Dateiname fehlt" });
+      }
+      const result = await deleteKnowledgeFile(filename);
+      res.json(result);
+    } catch (err) {
+      console.error("Knowledge delete error:", err);
+      res.status(500).json({ ok: false, error: err.message });
+    }
+  });
+
+  // ===========================================================================
+  // INGEST (Knowledge-Indexierung)
+  // ===========================================================================
+
+  // Ingest starten
+  router.post("/knowledge/ingest", async (_req, res) => {
+    try {
+      const result = await runIngest();
+      res.json(result);
+    } catch (err) {
+      console.error("Ingest error:", err);
       res.status(500).json({ ok: false, error: err.message });
     }
   });
