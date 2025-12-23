@@ -200,12 +200,22 @@ export async function callLLMForChat({
     model: modelName,
     stream,
     options: {
-      temperature: CONFIG.defaultTemperature,
+      // ============================================================
+      // CHAT-OPTIMIERTE PARAMETER für ausführliche deutsche Antworten
+      // ============================================================
+      temperature: 0.4,            // Höher als Ops für natürlichere Sprache
       seed: CONFIG.defaultSeed,
       num_ctx: CONFIG.llmNumCtx || 8192,
       num_batch: CONFIG.llmNumBatch || 512,
-      num_predict: 1024,
-      stop: ["```", "<|eot_id|>", "</s>"]
+      num_predict: 2048,           // Erhöht von 1024 für ausführliche Antworten
+
+      // Sampling-Parameter für bessere Textqualität
+      top_p: 0.9,                  // Nucleus Sampling für Vielfalt
+      top_k: 40,                   // Begrenzt Wortschatz auf wahrscheinlichste
+      repeat_penalty: 1.1,         // Leichte Strafe für Wiederholungen
+
+      // KEINE stop-Tokens für natürlichen Textfluss
+      // (``` würde mitten in Erklärungen abbrechen)
     },
     messages: [
       { role: "system", content: systemPrompt },
@@ -213,11 +223,7 @@ export async function callLLMForChat({
     ]
   };
 
-  // Kein format: "json" für Chat (Streaming-kompatibel)
-  if (!stream) {
-    // Für nicht-streaming kann JSON erzwungen werden, falls gewünscht
-    // body.format = "json";
-  }
+  // Chat-Modus: KEIN JSON-Format, natürlicher deutscher Text!
 
   const answer = await doLLMCall(body, "chat", onToken, {
     timeoutMs: CONFIG.llmChatTimeoutMs || CONFIG.llmRequestTimeoutMs
@@ -364,7 +370,11 @@ async function requestJsonRepairFromLLM({
   return { parsed, rawText };
 }
 async function doLLMCall(body, phaseLabel, onToken, options = {}) {
-  body.format = "json";
+  // WICHTIG: JSON-Format nur für Ops/Simulation, NICHT für Chat!
+  // Chat soll natürlichen deutschen Text liefern, kein JSON.
+  if (phaseLabel !== "chat") {
+    body.format = "json";
+  }
   const messages = Array.isArray(body.messages) ? body.messages : [];
   const serializedRequest = JSON.stringify(body);
   const systemPrompt =
@@ -540,17 +550,26 @@ async function doLLMCall(body, phaseLabel, onToken, options = {}) {
 if (typeof rawText === "string" && rawText.trim()) {
   // Zuerst: Parse die Ollama-Response
   const ollamaResponse = JSON.parse(rawText);
-  
+
   // Extrahiere den eigentlichen Content
   const content = ollamaResponse?.message?.content;
-  
+
   if (content && typeof content === "string") {
-    // Parse das eigentliche Operations-JSON
-    parsed = extractJsonObject(content);
+    // ============================================================
+    // CHAT-MODUS: Text direkt zurückgeben, KEIN JSON-Parsing!
+    // ============================================================
+    if (phaseLabel === "chat") {
+      // Für Chat: Einfach den Text-Content zurückgeben
+      parsed = content;
+    } else {
+      // Für Ops/Simulation: JSON parsen
+      parsed = extractJsonObject(content);
+    }
   }
 }
 
-  if (!parsed && typeof rawText === "string" && rawText.trim()) {
+  // JSON-Reparatur NUR für Nicht-Chat-Modi (Ops/Simulation)
+  if (!parsed && phaseLabel !== "chat" && typeof rawText === "string" && rawText.trim()) {
     const { parsed: repaired } = await requestJsonRepairFromLLM({
       invalidJson: rawText,
       model: body.model,

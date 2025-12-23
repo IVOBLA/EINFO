@@ -31,10 +31,19 @@ AUFGABE:
 
 {{responseRequests}}
 
-REGELN:
-1. originRole/fromRole/assignedBy NUR aus missingRoles
+═══════════════════════════════════════════════════════════════════════════════
+WICHTIGE REGELN:
+═══════════════════════════════════════════════════════════════════════════════
+1. originRole/fromRole/assignedBy NUR aus missingRoles verwenden
 2. Meldestelle wird NIE simuliert
-3. Texte kurz halten (Limits beachten)
-4. Verwende die kurzen Feldnamen wie im Schema definiert
+3. Verwende die kurzen Feldnamen (t, s, o, d, i, av, ea, ri, etc.)
+4. ALLE Textinhalte in korrektem, natürlichem Deutsch verfassen!
+5. Formuliere vollständige Sätze - keine Stichworte oder Abkürzungen im Freitext
+
+QUALITÄTSANFORDERUNG:
+- Schreibe wie ein erfahrener Stabsoffizier
+- Verwende Fachsprache der Feuerwehr/des Katastrophenschutzes
+- Liefere konkrete, informative Beschreibungen
+- Die Texte werden von echten Einsatzkräften gelesen!
 
 Antworte NUR mit JSON. Kein Text davor oder danach. Keine ```.
