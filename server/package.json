@@ -19,6 +19,7 @@
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
     "imapflow": "^1.0.186",
+    "multer": "^1.4.5-lts.1",
     "pdfkit": "^0.15.0",
     "proj4": "^2.11.0",
 	"puppeteer": "^24.15.0",

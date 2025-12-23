@@ -118,6 +118,16 @@ export default function User_AdminPanel() {
   const [savingApiSchedule, setSavingApiSchedule] = useState(false);
   const [loadingApiSchedules, setLoadingApiSchedules] = useState(false);
 
+  // Chatbot & Worker State
+  const [chatbotStatus, setChatbotStatus] = useState({ chatbot: { running: false }, worker: { running: false } });
+  const [chatbotLoading, setChatbotLoading] = useState(false);
+
+  // Knowledge State
+  const [knowledgeFiles, setKnowledgeFiles] = useState([]);
+  const [knowledgeLoading, setKnowledgeLoading] = useState(false);
+  const [ingestRunning, setIngestRunning] = useState(false);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
+
   // ---- capabilities ↔ apps Konvertierung ----
   const parseCapToken = (t) => {
     if (!t) return null;
@@ -326,6 +336,22 @@ export default function User_AdminPanel() {
       try {
         await loadMailSchedules();
         await loadApiSchedules();
+      } catch (_) {/* optional */}
+      // Chatbot-Status laden
+      try {
+        const cbRes = await fetch("/api/user/admin/chatbot/status", { credentials: "include", cache: "no-store" });
+        if (cbRes.ok) {
+          const cbData = await cbRes.json();
+          if (cbData.ok !== false) setChatbotStatus(cbData);
+        }
+      } catch (_) {/* optional */}
+      // Knowledge-Dateien laden
+      try {
+        const kfRes = await fetch("/api/user/admin/knowledge/files", { credentials: "include", cache: "no-store" });
+        if (kfRes.ok) {
+          const kfData = await kfRes.json();
+          if (kfData.ok !== false) setKnowledgeFiles(kfData.files || []);
+        }
       } catch (_) {/* optional */}
     } catch (e) {
       if (e.status === 423) setLocked(true);
@@ -1703,6 +1729,243 @@ export default function User_AdminPanel() {
           </div>
           <div className="text-xs text-gray-500">
             Hinweis: Nur <b>Admin</b>. Initialsetup überschreibt bestehende Dateien im Datenverzeichnis.
+          </div>
+        </div>
+      </details>
+
+      {/* 8) Chatbot & Worker Kontrolle */}
+      <details className="border rounded p-3" open>
+        <summary className="cursor-pointer font-medium">Chatbot & Worker</summary>
+        <div className="mt-3 space-y-3 text-sm">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className={`inline-block w-3 h-3 rounded-full ${chatbotStatus.chatbot?.running ? "bg-green-500" : "bg-gray-400"}`} />
+              <span>Chatbot: <b>{chatbotStatus.chatbot?.running ? "Läuft" : "Gestoppt"}</b></span>
+              {chatbotStatus.chatbot?.pid && <span className="text-xs text-gray-500">(PID: {chatbotStatus.chatbot.pid})</span>}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={`inline-block w-3 h-3 rounded-full ${chatbotStatus.worker?.running ? "bg-green-500" : "bg-gray-400"}`} />
+              <span>Worker: <b>{chatbotStatus.worker?.running ? "Läuft" : "Gestoppt"}</b></span>
+              {chatbotStatus.worker?.pid && <span className="text-xs text-gray-500">(PID: {chatbotStatus.worker.pid})</span>}
+            </div>
+            <button
+              type="button"
+              className="ml-auto px-2 py-1 border rounded text-xs"
+              disabled={chatbotLoading}
+              onClick={async () => {
+                setChatbotLoading(true);
+                try {
+                  const res = await fetch("/api/user/admin/chatbot/status", { credentials: "include" });
+                  const js = await res.json();
+                  if (js.ok !== false) setChatbotStatus(js);
+                } catch {}
+                setChatbotLoading(false);
+              }}
+            >
+              Status aktualisieren
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="px-4 py-2 rounded bg-green-600 hover:bg-green-700 text-white disabled:opacity-60"
+              disabled={locked || chatbotLoading || (chatbotStatus.chatbot?.running && chatbotStatus.worker?.running)}
+              onClick={async () => {
+                setErr(""); setMsg(""); setChatbotLoading(true);
+                try {
+                  const res = await fetch("/api/user/admin/chatbot/start", { method: "POST", credentials: "include" });
+                  const js = await res.json();
+                  if (!res.ok || js.error) throw new Error(js.error || "Start fehlgeschlagen");
+                  if (js.status) setChatbotStatus(js.status);
+                  setMsg("Chatbot & Worker gestartet.");
+                } catch (ex) {
+                  setErr(ex.message || "Start fehlgeschlagen");
+                } finally {
+                  setChatbotLoading(false);
+                }
+              }}
+            >
+              Starten
+            </button>
+            <button
+              type="button"
+              className="px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white disabled:opacity-60"
+              disabled={locked || chatbotLoading || (!chatbotStatus.chatbot?.running && !chatbotStatus.worker?.running)}
+              onClick={async () => {
+                setErr(""); setMsg(""); setChatbotLoading(true);
+                try {
+                  const res = await fetch("/api/user/admin/chatbot/stop", { method: "POST", credentials: "include" });
+                  const js = await res.json();
+                  if (!res.ok || js.error) throw new Error(js.error || "Stop fehlgeschlagen");
+                  if (js.status) setChatbotStatus(js.status);
+                  setMsg("Chatbot & Worker gestoppt.");
+                } catch (ex) {
+                  setErr(ex.message || "Stop fehlgeschlagen");
+                } finally {
+                  setChatbotLoading(false);
+                }
+              }}
+            >
+              Stoppen
+            </button>
+          </div>
+
+          <div className="text-xs text-gray-500">
+            Startet/Stoppt den Chatbot-Server (Port 3100) und den Simulations-Worker zusammen.
+          </div>
+        </div>
+      </details>
+
+      {/* 9) Knowledge-Verwaltung */}
+      <details className="border rounded p-3" open>
+        <summary className="cursor-pointer font-medium">Knowledge-Basis (RAG)</summary>
+        <div className="mt-3 space-y-4 text-sm">
+          {/* Datei-Upload */}
+          <div className="space-y-2">
+            <label className="font-medium">Neue Dateien hochladen</label>
+            <input
+              type="file"
+              multiple
+              accept=".txt,.pdf,.json,.md,.csv"
+              disabled={uploadingFiles || locked}
+              onChange={async (e) => {
+                const files = e.target.files;
+                if (!files || files.length === 0) return;
+                setErr(""); setMsg(""); setUploadingFiles(true);
+                try {
+                  const formData = new FormData();
+                  for (const file of files) {
+                    formData.append("files", file);
+                  }
+                  const res = await fetch("/api/user/admin/knowledge/upload-multiple", {
+                    method: "POST",
+                    credentials: "include",
+                    body: formData,
+                  });
+                  const js = await res.json();
+                  if (!res.ok || js.error) throw new Error(js.error || "Upload fehlgeschlagen");
+                  setMsg(js.message || `${js.count} Datei(en) hochgeladen`);
+                  // Liste aktualisieren
+                  const listRes = await fetch("/api/user/admin/knowledge/files", { credentials: "include" });
+                  const listJs = await listRes.json();
+                  if (listJs.ok !== false) setKnowledgeFiles(listJs.files || []);
+                } catch (ex) {
+                  setErr(ex.message || "Upload fehlgeschlagen");
+                } finally {
+                  setUploadingFiles(false);
+                  e.target.value = "";
+                }
+              }}
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            />
+            <div className="text-xs text-gray-500">
+              Erlaubte Dateitypen: .txt, .pdf, .json, .md, .csv (max. 50MB pro Datei)
+            </div>
+          </div>
+
+          {/* Ingest starten */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-60"
+              disabled={ingestRunning || locked}
+              onClick={async () => {
+                setErr(""); setMsg(""); setIngestRunning(true);
+                try {
+                  const res = await fetch("/api/user/admin/knowledge/ingest", { method: "POST", credentials: "include" });
+                  const js = await res.json();
+                  if (!res.ok || js.error) throw new Error(js.error || "Ingest fehlgeschlagen");
+                  setMsg("Knowledge-Index erfolgreich aktualisiert.");
+                } catch (ex) {
+                  setErr(ex.message || "Ingest fehlgeschlagen");
+                } finally {
+                  setIngestRunning(false);
+                }
+              }}
+            >
+              {ingestRunning ? "Indexierung läuft…" : "Ingest starten"}
+            </button>
+            <button
+              type="button"
+              className="px-3 py-2 border rounded"
+              disabled={knowledgeLoading}
+              onClick={async () => {
+                setKnowledgeLoading(true);
+                try {
+                  const res = await fetch("/api/user/admin/knowledge/files", { credentials: "include" });
+                  const js = await res.json();
+                  if (js.ok !== false) setKnowledgeFiles(js.files || []);
+                } catch {}
+                setKnowledgeLoading(false);
+              }}
+            >
+              Liste aktualisieren
+            </button>
+          </div>
+
+          {/* Dateiliste */}
+          <div>
+            <label className="font-medium">Vorhandene Knowledge-Dateien</label>
+            {knowledgeLoading ? (
+              <div className="text-xs text-gray-500 mt-2">Lade…</div>
+            ) : knowledgeFiles.length === 0 ? (
+              <div className="text-xs text-gray-500 mt-2">– keine Dateien vorhanden –</div>
+            ) : (
+              <div className="mt-2 max-h-48 overflow-y-auto border rounded">
+                <table className="w-full text-xs">
+                  <thead className="bg-gray-50 sticky top-0">
+                    <tr>
+                      <th className="px-2 py-1 text-left">Dateiname</th>
+                      <th className="px-2 py-1 text-right">Größe</th>
+                      <th className="px-2 py-1 text-right">Geändert</th>
+                      <th className="px-2 py-1"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {knowledgeFiles.map((f) => (
+                      <tr key={f.name} className="border-t hover:bg-gray-50">
+                        <td className="px-2 py-1 font-mono">{f.name}</td>
+                        <td className="px-2 py-1 text-right text-gray-500">
+                          {f.size < 1024 ? `${f.size} B` : f.size < 1048576 ? `${(f.size / 1024).toFixed(1)} KB` : `${(f.size / 1048576).toFixed(1)} MB`}
+                        </td>
+                        <td className="px-2 py-1 text-right text-gray-500">
+                          {new Date(f.modified).toLocaleString("de-AT", { hour12: false })}
+                        </td>
+                        <td className="px-2 py-1 text-right">
+                          <button
+                            type="button"
+                            className="text-red-600 hover:text-red-800"
+                            onClick={async () => {
+                              if (!window.confirm(`Datei "${f.name}" wirklich löschen?`)) return;
+                              setErr(""); setMsg("");
+                              try {
+                                const res = await fetch(`/api/user/admin/knowledge/files/${encodeURIComponent(f.name)}`, {
+                                  method: "DELETE",
+                                  credentials: "include",
+                                });
+                                const js = await res.json();
+                                if (!res.ok || js.error) throw new Error(js.error || "Löschen fehlgeschlagen");
+                                setKnowledgeFiles((prev) => prev.filter((x) => x.name !== f.name));
+                                setMsg(`Datei "${f.name}" gelöscht.`);
+                              } catch (ex) {
+                                setErr(ex.message || "Löschen fehlgeschlagen");
+                              }
+                            }}
+                          >
+                            Löschen
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          <div className="text-xs text-gray-500">
+            Nach dem Hochladen neuer Dateien muss <b>Ingest</b> gestartet werden, um den Index zu aktualisieren.
           </div>
         </div>
       </details>
