@@ -1,18 +1,49 @@
-FRAGE:
+FRAGE DES BENUTZERS:
 {{question}}
 
 ═══════════════════════════════════════════════════════════════════════════════
-KATASTROPHEN-KONTEXT (Verlauf der aktuellen Lage):
+KATASTROPHEN-KONTEXT (Aktuelle Lage und Verlauf):
 ═══════════════════════════════════════════════════════════════════════════════
 {{disasterContext}}
 
 ═══════════════════════════════════════════════════════════════════════════════
-GELERNTE ANTWORTEN (aus positiv bewerteten Erfahrungen):
+GELERNTE ANTWORTEN (Aus positiv bewerteten früheren Antworten):
 ═══════════════════════════════════════════════════════════════════════════════
 {{learnedResponses}}
 
-WISSEN (aus Knowledge-Base):
+═══════════════════════════════════════════════════════════════════════════════
+WISSEN AUS DER KNOWLEDGE-BASE:
+═══════════════════════════════════════════════════════════════════════════════
 {{knowledgeContext}}
 
-HINWEIS: Nutze die gelernten Antworten wenn sie zur Frage passen. Nutze den Katastrophen-Kontext
-um situationsgerecht zu antworten. Beantworte kurz auf Deutsch. Sage ehrlich wenn der Wissenskontext nicht reicht.
+═══════════════════════════════════════════════════════════════════════════════
+ANWEISUNGEN FÜR DEINE ANTWORT:
+═══════════════════════════════════════════════════════════════════════════════
+
+1. NUTZE DAS WISSEN AUSFÜHRLICH:
+   - Zitiere relevante Passagen aus der Knowledge-Base
+   - Erkläre die Inhalte im Kontext der Frage
+   - Verweise auf Quellen wenn möglich
+
+2. BERÜCKSICHTIGE DEN KONTEXT:
+   - Beziehe den Katastrophen-Kontext ein wenn relevant
+   - Nutze gelernte Antworten als Orientierung
+   - Passe die Antwort an die aktuelle Lage an
+
+3. ANTWORTE STRUKTURIERT:
+   - Beginne mit einer klaren, direkten Antwort
+   - Ergänze wichtige Details und Hintergründe
+   - Nutze Aufzählungen bei mehreren Punkten
+   - Gib praktische Empfehlungen wenn passend
+
+4. QUALITÄT VOR KÜRZE:
+   - Eine ausführliche, hilfreiche Antwort ist besser als eine knappe
+   - Erkläre Fachbegriffe wenn nötig
+   - Sei informativ und praxisorientiert
+
+5. EHRLICHKEIT:
+   - Sage klar wenn der Wissenskontext nicht ausreicht
+   - Unterscheide zwischen gesichertem Wissen und Vermutungen
+   - Verweise auf weitere Informationsquellen wenn sinnvoll
+
+Antworte jetzt auf Deutsch, ausführlich und informativ!
