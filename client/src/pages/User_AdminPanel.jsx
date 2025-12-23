@@ -1777,6 +1777,17 @@ export default function User_AdminPanel() {
                   const res = await fetch("/api/user/admin/chatbot/start", { method: "POST", credentials: "include" });
                   const js = await res.json();
                   if (!res.ok || js.error) throw new Error(js.error || "Start fehlgeschlagen");
+
+                  // Prüfe verschachtelte Fehler in results.chatbot.error und results.worker.error
+                  const chatbotError = js.results?.chatbot?.error;
+                  const workerError = js.results?.worker?.error;
+                  if (chatbotError || workerError) {
+                    const errors = [];
+                    if (chatbotError) errors.push(`Chatbot: ${chatbotError}`);
+                    if (workerError) errors.push(`Worker: ${workerError}`);
+                    throw new Error(errors.join("; "));
+                  }
+
                   if (js.status) setChatbotStatus(js.status);
                   setMsg("Chatbot & Worker gestartet.");
                 } catch (ex) {
@@ -1798,6 +1809,17 @@ export default function User_AdminPanel() {
                   const res = await fetch("/api/user/admin/chatbot/stop", { method: "POST", credentials: "include" });
                   const js = await res.json();
                   if (!res.ok || js.error) throw new Error(js.error || "Stop fehlgeschlagen");
+
+                  // Prüfe verschachtelte Fehler in results.chatbot.error und results.worker.error
+                  const chatbotError = js.results?.chatbot?.error;
+                  const workerError = js.results?.worker?.error;
+                  if (chatbotError || workerError) {
+                    const errors = [];
+                    if (chatbotError) errors.push(`Chatbot: ${chatbotError}`);
+                    if (workerError) errors.push(`Worker: ${workerError}`);
+                    throw new Error(errors.join("; "));
+                  }
+
                   if (js.status) setChatbotStatus(js.status);
                   setMsg("Chatbot & Worker gestoppt.");
                 } catch (ex) {
