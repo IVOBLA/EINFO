@@ -159,22 +159,120 @@ export function jsonToLlm(obj, type) {
 }
 
 // ============================================================
+// Board-Standardwerte
+// ============================================================
+
+/**
+ * Fügt Pflicht-Standardwerte zu einer Einsatzstelle hinzu.
+ * LLM liefert nur: t, o, typ (und optional d, s)
+ * Worker setzt: id, createdAt, statusSince, assignedVehicles, etc.
+ *
+ * @param {Object} entry - Die Einsatzstelle vom LLM (nach Feldkonvertierung)
+ * @returns {Object} - Der Eintrag mit allen Pflichtfeldern
+ */
+function addBoardDefaults(entry) {
+  const now = new Date();
+  const nowIso = now.toISOString();
+
+  return {
+    // ID generieren
+    id: entry.id || `inc-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+
+    // Vom LLM kommende Felder
+    content: entry.content || entry.t || "Einsatzstelle",
+    ort: entry.ort || entry.o || "",
+    typ: entry.typ || "Sonstig",
+    description: entry.description || entry.d || "",
+    status: entry.status || entry.s || "open",
+
+    // Standardwerte vom Worker
+    createdAt: nowIso,
+    statusSince: nowIso,
+    updated: nowIso,
+    timestamp: nowIso,
+
+    // Leere Arrays/Objekte
+    assignedVehicles: entry.assignedVehicles || [],
+    everVehicles: [],
+    everPersonnel: 0,
+    alerted: entry.alerted || "",
+
+    // Koordinaten (optional vom LLM)
+    latitude: entry.latitude || entry.lat || null,
+    longitude: entry.longitude || entry.lon || null,
+    location: "",
+
+    // Weitere Standardwerte
+    externalId: null,
+    humanId: entry.humanId || entry.hid || null,
+    everVehicleLabels: {},
+    isArea: false,
+    areaCardId: null,
+    areaColor: null
+  };
+}
+
+// ============================================================
+// Aufgaben-Standardwerte
+// ============================================================
+
+/**
+ * Fügt Pflicht-Standardwerte zu einer Aufgabe hinzu.
+ * LLM liefert nur: t, r, prio, ab (und optional d, s)
+ * Worker setzt: id, createdAt, updatedAt, etc.
+ *
+ * @param {Object} entry - Die Aufgabe vom LLM (nach Feldkonvertierung)
+ * @returns {Object} - Der Eintrag mit allen Pflichtfeldern
+ */
+function addTaskDefaults(entry) {
+  const now = Date.now();
+  const nowIso = new Date(now).toISOString();
+
+  return {
+    // ID generieren
+    id: entry.id || `task-${now}-${Math.random().toString(36).slice(2, 8)}`,
+    clientId: null,
+
+    // Vom LLM kommende Felder
+    title: entry.title || entry.t || "Aufgabe",
+    responsible: entry.responsible || entry.r || "",
+    priority: entry.priority || entry.prio || "medium",
+    assignedBy: entry.assignedBy || entry.ab || "",
+    desc: entry.desc || entry.d || "",
+    status: entry.status || entry.s || "open",
+
+    // Standardwerte vom Worker
+    type: entry.type || "Auftrag",
+    dueAt: entry.dueDate || entry.due || null,
+    createdAt: now,
+    updatedAt: now,
+    kind: "task",
+
+    // Meta-Informationen
+    meta: {
+      source: "chatbot",
+      protoNr: entry.relatedIncidentId || entry.inc || null
+    },
+
+    // Verknüpfungen
+    relatedIncidentId: entry.relatedIncidentId || entry.inc || null,
+    incidentTitle: null,
+    originProtocolNr: null,
+    linkedProtocolNrs: [],
+    linkedProtocols: [],
+    createdBy: "CHATBOT"
+  };
+}
+
+// ============================================================
 // Protokoll-Standardwerte
 // ============================================================
 
 /**
  * Fügt Pflicht-Standardwerte zu einem Protokolleintrag hinzu.
- * Diese Werte kommen NICHT vom LLM sondern werden vom Worker gesetzt.
- * 
- * Pflichtfelder laut Anforderung:
- * - datum: Aktuelles Datum (ISO)
- * - zeit: Aktuelle Uhrzeit (HH:MM)
- * - anvon: Absender/Empfänger
- * - infoTyp: Auftrag/Info/Lagemeldung
- * - information: Meldungsinhalt
- * - printCount: IMMER 0 (wird vom Worker gesetzt, nicht LLM)
- * - uebermittlungsart: { kanalNr: "bot", ein: true/false, aus: true/false }
- * 
+ * LLM liefert nur: i, typ, av, ri (und optional ea)
+ * Worker setzt: id, datum, zeit, printCount, uebermittlungsart, etc.
+ *
  * @param {Object} entry - Der Protokolleintrag vom LLM
  * @returns {Object} - Der Eintrag mit allen Pflichtfeldern
  */
@@ -227,22 +325,27 @@ function addProtocolDefaults(entry) {
 
     // Maßnahmen-Array (5 leere Slots)
     massnahmen: entry.massnahmen || [
-      { massnahme: "", verantwortlich: "" },
-      { massnahme: "", verantwortlich: "" },
-      { massnahme: "", verantwortlich: "" },
-      { massnahme: "", verantwortlich: "" },
-      { massnahme: "", verantwortlich: "" }
+      { massnahme: "", verantwortlich: "", done: false },
+      { massnahme: "", verantwortlich: "", done: false },
+      { massnahme: "", verantwortlich: "", done: false },
+      { massnahme: "", verantwortlich: "", done: false },
+      { massnahme: "", verantwortlich: "", done: false }
     ],
 
     // History für Audit-Trail
     history: [
       {
-        action: "created",
-        at: now.toISOString(),
-        by: "simulation-worker",
-        details: "Automatisch durch Simulation erstellt"
+        ts: now.getTime(),
+        action: "create",
+        by: "CHATBOT",
+        after: {}
       }
-    ]
+    ],
+
+    // Weitere Worker-Felder
+    lastBy: "CHATBOT",
+    createdBy: "CHATBOT",
+    zu: ""
   };
 }
 
@@ -276,9 +379,9 @@ export function transformLlmOperationsToJson(operations) {
   if (result.board?.createIncidentSites) {
     result.board.createIncidentSites = result.board.createIncidentSites.map(item => {
       const converted = llmToJson(item, "board");
-      // "via" ENTFERNEN - wird nicht mehr verwendet
       delete converted.via;
-      return converted;
+      // Standardwerte hinzufügen (id, createdAt, assignedVehicles, etc.)
+      return addBoardDefaults(converted);
     });
   }
 
@@ -307,7 +410,8 @@ export function transformLlmOperationsToJson(operations) {
     result.aufgaben.create = result.aufgaben.create.map(item => {
       const converted = llmToJson(item, "aufgaben");
       delete converted.via;
-      return converted;
+      // Standardwerte hinzufügen (id, createdAt, etc.)
+      return addTaskDefaults(converted);
     });
   }
 
@@ -450,5 +554,7 @@ export const __test__ = {
   STABSSTELLEN,
   EXTERNE_STELLEN,
   MELDESTELLE,
+  addBoardDefaults,
+  addTaskDefaults,
   addProtocolDefaults
 };

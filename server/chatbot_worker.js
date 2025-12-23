@@ -250,6 +250,7 @@ async function applyBoardOperations(boardOps, missingRoles) {
   const updateOps = boardOps?.updateIncidentSites || [];
 
   // CREATE → neue Karte in Spalte "neu"
+  // Defaults werden bereits im field_mapper.js gesetzt (addBoardDefaults)
   for (const op of createOps) {
     if (!isAllowedOperation(op, missingRoles)) {
       const reason = explainOperationRejection(op, missingRoles);
@@ -264,39 +265,11 @@ async function applyBoardOperations(boardOps, missingRoles) {
 
       continue;
     }
-    const id = `cb-incident-${Date.now()}-${Math.random()
-      .toString(36)
-      .slice(2, 8)}`;
-    const nowIso = new Date().toISOString();
 
-    const newItem = {
-      id,
-      content: op.content || "Einsatzstelle (KI)",
-      createdAt: nowIso,
-      statusSince: nowIso,
-      assignedVehicles: [],
-      everVehicles: [],
-      everPersonnel: 0,
-      ort: op.ort || "",
-      typ: op.description || "",
-      externalId: null,
-      alerted: "",
-      latitude: null,
-      longitude: null,
-      location: "",
-      timestamp: nowIso,
-      description: op.description || "",
-      everVehicleLabels: {},
-      updated: nowIso,
-      isArea: false,
-      areaCardId: null,
-      areaColor: null,
-      humanId: null
-    };
-
-    boardRaw.columns["neu"].items.push(newItem);
+    // op enthält bereits alle Felder mit Defaults vom field_mapper
+    boardRaw.columns["neu"].items.push(op);
     appliedCreate.push(op);
-    log("Board-Create angewandt:", id);
+    log("Board-Create angewandt:", op.id);
   }
 
   // UPDATE → passende Karte in allen Spalten suchen
@@ -396,6 +369,7 @@ async function applyAufgabenOperations(taskOps, missingRoles) {
   const updateOps = taskOps?.update || [];
 
   // CREATE → neue Aufgabe im S2-Board
+  // Defaults werden bereits im field_mapper.js gesetzt (addTaskDefaults)
   for (const op of createOps) {
     if (!isAllowedOperation(op, missingRoles)) {
       const reason = explainOperationRejection(op, missingRoles);
@@ -410,38 +384,11 @@ async function applyAufgabenOperations(taskOps, missingRoles) {
 
       continue;
     }
-    const id = `cb-task-${Date.now()}-${Math.random()
-      .toString(36)
-      .slice(2, 8)}`;
-    const now = Date.now();
-    const nowIso = new Date(now).toISOString();
 
-    const newTask = {
-      id,
-      clientId: null,
-      title: op.title || "Aufgabe (KI)",
-      type: op.type || "Auftrag",
-      responsible: op.responsible || "",
-      desc: op.desc || "",
-      status: "Neu",
-      dueAt: null,
-      createdAt: now,
-      updatedAt: now,
-      kind: "task",
-      meta: {
-        source: "chatbot",
-        protoNr: op.linkedProtocolId || null
-      },
-      originProtocolNr: op.linkedProtocolId || null,
-      createdBy: "CHATBOT",
-      relatedIncidentId: op.relatedIncidentId || null,
-      incidentTitle: null,
-      linkedProtocolNrs: op.linkedProtocolId ? [op.linkedProtocolId] : [],
-      linkedProtocols: []
-    };
-    tasks.push(newTask);
+    // op enthält bereits alle Felder mit Defaults vom field_mapper
+    tasks.push(op);
     appliedCreate.push(op);
-    log("Aufgabe-Create angewandt:", id);
+    log("Aufgabe-Create angewandt:", op.id);
   }
 
   // UPDATE → vorhandene Tasks aktualisieren
@@ -508,6 +455,8 @@ async function applyProtokollOperations(protoOps, missingRoles) {
 
   const createOps = protoOps?.create || [];
 
+  // Defaults werden bereits im field_mapper.js gesetzt (addProtocolDefaults)
+  // Hier nur noch kontextabhängige Werte ergänzen (nr, ergehtAnText)
   for (const op of createOps) {
     if (!isAllowedOperation(op, missingRoles)) {
       const reason = explainOperationRejection(op, missingRoles);
@@ -523,78 +472,13 @@ async function applyProtokollOperations(protoOps, missingRoles) {
       continue;
     }
 
-    const now = new Date();
-    const id = `cb-prot-${now.getTime()}-${Math.random()
-      .toString(36)
-      .slice(2, 8)}`;
+    // Kontextabhängige Werte ergänzen
+    op.nr = prot.length ? prot.length + 1 : 1;
+    op.ergehtAnText = Array.isArray(op.ergehtAn) ? op.ergehtAn.join(", ") : (op.ergehtAn || "");
 
-    const datum = now.toISOString().slice(0, 10); // YYYY-MM-DD
-    const zeit = now.toISOString().slice(11, 16); // HH:MM
-
-    const entry = {
-      id,
-      nr: (prot.length ? prot.length + 1 : 1),
-      datum,
-      zeit,
-      infoTyp: op.infoTyp || "Info",
-      anvon: op.anvon || "Chatbot",
-      uebermittlungsart: {
-        kanalNr: "CHATBOT",
-        kanal: "Chatbot",
-        art: "intern",
-        ein: true,
-        aus: false
-      },
-      information: op.information || "",
-      rueckmeldung1: "",
-      rueckmeldung2: "",
-      ergehtAn: Array.isArray(op.ergehtAn) ? op.ergehtAn : (op.ergehtAn ? [op.ergehtAn] : []),
-      ergehtAnText: Array.isArray(op.ergehtAn) ? op.ergehtAn.join(", ") : (op.ergehtAn || ""),
-      lagebericht: "",
-      massnahmen: [
-        {
-          massnahme: "",
-          verantwortlich: Array.isArray(op.ergehtAn) ? (op.ergehtAn[0] || "") : (op.ergehtAn || ""),
-          done: false
-        },
-        {
-          massnahme: "",
-          verantwortlich: "",
-          done: false
-        },
-        {
-          massnahme: "",
-          verantwortlich: "",
-          done: false
-        },
-        {
-          massnahme: "",
-          verantwortlich: "",
-          done: false
-        },
-        {
-          massnahme: "",
-          verantwortlich: "",
-          done: false
-        }
-      ],
-      printCount: 0,
-      history: [
-        {
-          ts: now.getTime(),
-          action: "create",
-          by: op.originRole || "CHATBOT",
-          after: {} // nicht nötig, kann leer bleiben oder minimal
-        }
-      ],
-      lastBy: op.originRole || "CHATBOT",
-      createdBy: "CHATBOT",
-      zu: ""
-    };
-
-    prot.push(entry);
+    prot.push(op);
     appliedCreate.push(op);
-    log("Protokoll-Create angewandt:", id);
+    log("Protokoll-Create angewandt:", op.id);
   }
 
   await safeWriteJson(protPath, prot);
