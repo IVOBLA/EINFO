@@ -153,12 +153,11 @@ EXTERNE STELLEN und ihre typischen Antwortmuster:
 
 ANTWORT-FORMAT für jeden Protokolleintrag:
 {
-  "information": "[Antworttext der Stelle]",
-  "infoTyp": "Rueckmeldung",
-  "anvon": "[Name der antwortenden Stelle]",
-  "ergehtAn": ["[Original-Absender]"],
-  "richtung": "ein",
-  "bezugNr": [Original-Protokoll-Nr falls bekannt]
+  "i": "[Antworttext der Stelle]",
+  "typ": "Rueckmeldung",
+  "av": "[Name der antwortenden Stelle]",
+  "ea": ["[Original-Absender]"],
+  "ri": "ein"
 }
 
 `;

@@ -12,16 +12,22 @@ Erzeuge ein realistisches Start-Szenario für eine Katastrophenlage.
 - originRole, fromRole, assignedBy NUR aus missingRoles.
 - Meldestelle wird NIE simuliert.
 
-=== VOLLSTÄNDIGES JSON-SCHEMA MIT ALLEN PFLICHTFELDERN ===
-
+=== VOLLSTÄNDIGES JSON-SCHEMA ===
 {
   "operations": {
     "board": {
       "createIncidentSites": [
         {
           "t": "Einsatzstellentitel (max. 80 Zeichen)",
-          "d": "Was ist passiert, welche Gefahr (max. 150 Zeichen)",
+          "s": "open|active|closed",
           "o": "Ort oder Adresse",
+          "d": "Was ist passiert, welche Gefahr (max. 150 Zeichen)",
+          "lat": 46.xxx,
+          "lon": 14.xxx,
+          "typ": "Brand|Hochwasser|Sturm|Verkehr|Sonstig",
+          "hid": "E001",
+          "al": ["FF Ortschaft"],
+          "av": ["TLF", "KDO"],
           "originRole": "Wer meldet - Rolle aus missingRoles",
           "fromRole": "Wer legt an - Rolle aus missingRoles"
         }
@@ -32,11 +38,15 @@ Erzeuge ein realistisches Start-Szenario für eine Katastrophenlage.
       "create": [
         {
           "t": "Was ist zu tun (max. 80 Zeichen)",
+          "r": "S2|S3|S4|S5|LTSTB",
+          "s": "open|inProgress|done",
           "d": "Detailbeschreibung (max. 150 Zeichen)",
-          "r": "Wer soll es erledigen - Rolle aus missingRoles",
+          "inc": "uuid-der-einsatzstelle|null",
+          "due": "2024-01-15T14:00:00Z|null",
+          "prio": "low|medium|high|critical",
+          "ab": "LTSTB|S2|S3",
           "originRole": "Wer initiiert - Rolle aus missingRoles",
-          "fromRole": "Wer weist zu - Rolle aus missingRoles",
-          "ab": "Gleich wie fromRole - Rolle aus missingRoles"
+          "fromRole": "Wer weist zu - Rolle aus missingRoles"
         }
       ],
       "update": []
@@ -45,10 +55,10 @@ Erzeuge ein realistisches Start-Szenario für eine Katastrophenlage.
       "create": [
         {
           "i": "Nachrichtentext (max. 200 Zeichen)",
-          "typ": "Lagemeldung",
+          "typ": "Lagemeldung|Auftrag|Rueckfrage|Rueckmeldung|Info",
           "av": "Absender - Rolle aus missingRoles",
           "ea": ["Empfänger - Rolle aus missingRoles"],
-          "ri": "ein",
+          "ri": "ein|aus",
           "originRole": "Ursprung - Rolle aus missingRoles",
           "fromRole": "Absender - Rolle aus missingRoles"
         }
@@ -59,51 +69,18 @@ Erzeuge ein realistisches Start-Szenario für eine Katastrophenlage.
   "meta": {
     "historySummary": "Zusammenfassung in maximal 2 Sätzen",
     "historyState": {
-      "openIncidents": [
-        {
-          "id": "ID der Einsatzstelle",
-          "description": "Kurzbeschreibung",
-          "location": "Ort",
-          "status": "neu"
-        }
-      ],
+      "openIncidents": ["E001"],
       "closedIncidents": [],
-      "openTasksByRole": {
-        "S1": 1,
-        "S3": 2
-      },
-      "lastMajorEvents": [
-        "Ereignis 1 als kurzer Stichpunkt",
-        "Ereignis 2 als kurzer Stichpunkt"
-      ]
+      "openTasksByRole": {"S2": 2, "S3": 1},
+      "lastMajorEvents": ["Szenario gestartet"]
     }
   }
 }
 
-=== KURZE FELDNAMEN (Token-Optimierung) ===
-
-EINSATZSTELLEN (board):
-  t = title (Titel)
-  d = description (Beschreibung)
-  o = ort (Standort)
-  s = status (neu/in-bearbeitung/erledigt)
-  PFLICHT: originRole, fromRole
-
-AUFGABEN (aufgaben):
-  t = title (Titel)
-  d = desc (Beschreibung)
-  r = responsible (Verantwortlich)
-  s = status
-  ab = assignedBy (Zugewiesen von)
-  PFLICHT: originRole, fromRole, ab
-
-PROTOKOLL (protokoll):
-  i = information (Nachrichteninhalt)
-  typ = infoTyp (Lagemeldung/Auftrag/Info)
-  av = anvon (Absender)
-  ea = ergehtAn (Empfänger-Array)
-  ri = richtung (ein/aus)
-  PFLICHT: originRole, fromRole
+=== PFLICHTFELDER ===
+Board (createIncidentSites): t, s, o, typ, originRole, fromRole
+Aufgaben (create): t, r, s, prio, ab, originRole, fromRole
+Protokoll (create): i, typ, av, ri, originRole, fromRole
 
 === LIMITS ===
 - Max. 3 Einsatzstellen
