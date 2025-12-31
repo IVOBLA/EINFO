@@ -52,6 +52,61 @@ import {
   createExerciseFromTemplate
 } from "./template_manager.js";
 
+import fs from "fs/promises";
+
+// ============================================================
+// Szenarien-Verwaltung
+// ============================================================
+const SCENARIOS_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "scenarios");
+
+async function listScenarios() {
+  try {
+    const files = await fs.readdir(SCENARIOS_DIR);
+    const scenarios = [];
+
+    for (const file of files) {
+      if (!file.endsWith(".json")) continue;
+      try {
+        const content = await fs.readFile(path.join(SCENARIOS_DIR, file), "utf-8");
+        const scenario = JSON.parse(content);
+        scenarios.push({
+          id: scenario.id || file.replace(".json", ""),
+          title: scenario.title || "Unbenannt",
+          description: scenario.description || "",
+          difficulty: scenario.difficulty || "unknown",
+          duration_minutes: scenario.duration_minutes || 60,
+          mode: scenario.mode || "free",
+          event_type: scenario.scenario_context?.event_type || "Unbekannt",
+          file: file
+        });
+      } catch (err) {
+        // Datei überspringen wenn nicht parsbar
+      }
+    }
+
+    return scenarios;
+  } catch (err) {
+    return [];
+  }
+}
+
+async function loadScenario(scenarioId) {
+  try {
+    const files = await fs.readdir(SCENARIOS_DIR);
+    for (const file of files) {
+      if (!file.endsWith(".json")) continue;
+      const content = await fs.readFile(path.join(SCENARIOS_DIR, file), "utf-8");
+      const scenario = JSON.parse(content);
+      if (scenario.id === scenarioId || file === `${scenarioId}.json`) {
+        return scenario;
+      }
+    }
+    return null;
+  } catch (err) {
+    return null;
+  }
+}
+
 // ============================================================
 // Imports für Disaster Context und LLM Feedback
 // ============================================================
@@ -103,25 +158,83 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const clientDir = path.resolve(__dirname, "../client");
-app.use("/gui", express.static(clientDir));
 
-// Dashboard-Route
+// Beide Routen zeigen auf die gleiche zusammengeführte GUI
+app.use("/gui", express.static(clientDir));
 app.get("/dashboard", (req, res) => {
-  res.sendFile(path.join(clientDir, "dashboard.html"));
+  res.sendFile(path.join(clientDir, "index.html"));
+});
+
+// Root-Route auf GUI umleiten
+app.get("/", (req, res) => {
+  res.redirect("/gui/");
+});
+
+// ============================================================
+// API-Routen für Szenarien
+// ============================================================
+
+app.get("/api/scenarios", async (_req, res) => {
+  try {
+    const scenarios = await listScenarios();
+    res.json({ ok: true, scenarios });
+  } catch (err) {
+    logError("Fehler beim Laden der Szenarien", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+app.get("/api/scenarios/:scenarioId", async (req, res) => {
+  try {
+    const { scenarioId } = req.params;
+    const scenario = await loadScenario(scenarioId);
+    if (!scenario) {
+      return res.status(404).json({ ok: false, error: "Szenario nicht gefunden" });
+    }
+    res.json({ ok: true, scenario });
+  } catch (err) {
+    logError("Fehler beim Laden des Szenarios", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
 });
 
 // ============================================================
 // Bestehende Simulations-Routen
 // ============================================================
 
+// Aktives Szenario speichern
+let activeScenario = null;
+
 app.post("/api/sim/start", async (req, res) => {
   try {
+    const { scenarioId } = req.body || {};
+
+    // Szenario laden wenn angegeben
+    if (scenarioId) {
+      const scenario = await loadScenario(scenarioId);
+      if (!scenario) {
+        return res.status(404).json({ ok: false, error: "Szenario nicht gefunden" });
+      }
+      activeScenario = scenario;
+      logInfo("Szenario geladen", { scenarioId, title: scenario.title });
+      broadcastSSE("scenario_loaded", {
+        scenarioId,
+        title: scenario.title,
+        description: scenario.description
+      });
+    }
+
     await startSimulation();
-    res.json({ ok: true });
+    res.json({ ok: true, scenario: activeScenario ? { id: activeScenario.id, title: activeScenario.title } : null });
   } catch (err) {
     logError("Fehler beim Starten der Simulation", { error: String(err) });
     res.status(500).json({ ok: false, error: String(err) });
   }
+});
+
+// Aktives Szenario abrufen
+app.get("/api/sim/scenario", (_req, res) => {
+  res.json({ ok: true, scenario: activeScenario });
 });
 
 app.post("/api/sim/pause", (req, res) => {
