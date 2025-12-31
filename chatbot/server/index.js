@@ -381,7 +381,7 @@ app.post("/api/llm/model", (req, res) => {
   if (!model) {
     return res.status(400).json({ 
       ok: false, 
-      error: "model fehlt. Erlaubte Werte: fast, balanced, quality, auto" 
+      error: "model fehlt. Erlaubte Werte: fast, balanced, auto" 
     });
   }
   
@@ -412,7 +412,7 @@ app.post("/api/llm/task-model", (req, res) => {
   if (!taskType || !model) {
     return res.status(400).json({ 
       ok: false, 
-      error: "taskType und model erforderlich. taskType: start|operations|chat|default, model: fast|balanced|quality" 
+      error: "taskType und model erforderlich. taskType: start|operations|chat|default, model: fast|balanced" 
     });
   }
   
