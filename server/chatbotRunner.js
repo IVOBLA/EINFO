@@ -14,7 +14,8 @@ const __dirname = path.dirname(__filename);
 const CHATBOT_DIR = path.resolve(__dirname, "..", "chatbot");
 const CHATBOT_SERVER_SCRIPT = path.join(CHATBOT_DIR, "server", "index.js");
 const WORKER_SCRIPT = path.join(__dirname, "chatbot_worker.js");
-const INGEST_SCRIPT = path.join(CHATBOT_DIR, "ingest", "ingest_all.js");
+// RAG index_builder.js erstellt meta.json + embeddings.json (korrektes Format für RAG-System)
+const INGEST_SCRIPT = path.join(CHATBOT_DIR, "server", "rag", "index_builder.js");
 const KNOWLEDGE_DIR = path.join(CHATBOT_DIR, "knowledge");
 
 // Prozess-Referenzen
@@ -313,10 +314,10 @@ export async function stopAll() {
 
 export async function runIngest() {
   return new Promise((resolve, reject) => {
-    console.log("[INGEST] Starte Knowledge-Indexierung…");
+    console.log("[INGEST] Starte Knowledge-Indexierung (RAG index_builder)…");
 
     const ingestProcess = spawn(process.execPath, [INGEST_SCRIPT], {
-      cwd: path.join(CHATBOT_DIR, "ingest"),
+      cwd: path.join(CHATBOT_DIR, "server", "rag"),
       stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
     });

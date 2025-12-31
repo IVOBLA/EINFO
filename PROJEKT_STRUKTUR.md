@@ -93,9 +93,6 @@ chatbot/
 │   ├── LLM.log                # LLM-Requests/-Responses
 │   └── ops_verworfen.log      # Verworfene Operations
 │
-├── ingest/                    # 🔧 Index-Build-Tools (Legacy)
-│   └── ingest_all.js          # Alter Index-Builder
-│
 ├── client/                    # 🖥️ Web-GUI (Dashboard)
 │   ├── dashboard.html
 │   ├── app.js
