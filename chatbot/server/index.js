@@ -208,6 +208,7 @@ let activeScenario = null;
 app.post("/api/sim/start", async (req, res) => {
   try {
     const { scenarioId } = req.body || {};
+    activeScenario = null;
 
     // Szenario laden wenn angegeben
     if (scenarioId) {
