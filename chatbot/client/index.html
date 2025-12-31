@@ -1,186 +1,1021 @@
 <!doctype html>
 <html lang="de">
-  <head>
-    <meta charset="utf-8" />
-    <title>EINFO Chatbot – Simulation & Chat</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <style>
-      body {
-        font-family: system-ui, sans-serif;
-        margin: 0;
-        background: #f3f4f6;
-      }
-      header {
-        background: #111827;
-        color: #f9fafb;
-        padding: 0.75rem 1rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      main {
-        padding: 1rem;
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-        gap: 1rem;
-      }
-      .card {
-        background: #ffffff;
-        border-radius: 0.75rem;
-        padding: 0.75rem;
-        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
-        display: flex;
-        flex-direction: column;
-        max-height: calc(100vh - 80px);
-      }
-      .card h2 {
-        font-size: 0.95rem;
-        margin: 0 0 0.5rem;
-      }
-      .toolbar {
-        display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-        margin-bottom: 0.5rem;
-        align-items: center;
-      }
-      button {
-        border-radius: 999px;
-        border: none;
-        padding: 0.4rem 0.8rem;
-        cursor: pointer;
-        font-size: 0.85rem;
-        background: #2563eb;
-        color: #ffffff;
-      }
-      button.secondary {
-        background: #e5e7eb;
-        color: #111827;
-      }
-      button:disabled {
-        opacity: 0.5;
-        cursor: default;
-      }
-      .log {
-        flex: 1;
-        overflow: auto;
-        border-radius: 0.5rem;
-        background: #f9fafb;
-        padding: 0.5rem;
-        font-size: 0.8rem;
-        white-space: pre-wrap;
-      }
-      .badge {
-        border-radius: 999px;
-        padding: 0.1rem 0.6rem;
-        font-size: 0.75rem;
-        background: #e5e7eb;
-        color: #111827;
-      }
-      input[type="text"] {
-        flex: 1;
-        padding: 0.35rem 0.5rem;
-        border-radius: 999px;
-        border: 1px solid #d1d5db;
-        font-size: 0.85rem;
-      }
-      textarea {
-        width: 100%;
-        min-height: 90px;
-        padding: 0.5rem;
-        border-radius: 0.5rem;
-        border: 1px solid #d1d5db;
-        font-size: 0.9rem;
-        resize: vertical;
-      }
-      select {
-        border-radius: 0.5rem;
-        border: 1px solid #d1d5db;
-        padding: 0.35rem 0.5rem;
-        font-size: 0.85rem;
-      }
-      small {
-        color: #6b7280;
-      }
-      .status-row {
-        display: flex;
-        gap: 0.5rem;
-        align-items: center;
-        flex-wrap: wrap;
-        margin-top: 0.25rem;
-      }
-      .error-text {
-        color: #b91c1c;
-        font-size: 0.85rem;
-      }
-      .gpu-badge {
-        background: #ecfdf3;
-        color: #166534;
-      }
-      .gpu-badge.unavailable {
-        background: #fef2f2;
-        color: #991b1b;
-      }
-      @media (max-width: 900px) {
-        main {
-          grid-template-columns: 1fr;
+<head>
+  <meta charset="utf-8" />
+  <title>EINFO - Stabsarbeit Simulator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+
+    /* Header */
+    .header {
+      background: #1e293b;
+      padding: 0.75rem 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #334155;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .header h1 { font-size: 1.1rem; }
+    .header-right { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+
+    .status-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    .status-badge.active { background: #22c55e; color: #000; }
+    .status-badge.inactive { background: #64748b; }
+    .status-badge.scenario { background: #3b82f6; }
+
+    .connected { color: #22c55e; font-size: 0.85rem; }
+    .disconnected { color: #ef4444; font-size: 0.85rem; }
+
+    /* Main Grid */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1rem;
+      padding: 1rem;
+      max-height: calc(100vh - 60px);
+    }
+
+    @media (max-width: 1400px) {
+      .main-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 900px) {
+      .main-grid { grid-template-columns: 1fr; max-height: none; }
+    }
+
+    /* Cards */
+    .card {
+      background: #1e293b;
+      border-radius: 0.75rem;
+      padding: 1rem;
+      border: 1px solid #334155;
+      display: flex;
+      flex-direction: column;
+      max-height: 400px;
+      overflow: hidden;
+    }
+    .card.tall { max-height: 500px; }
+    .card h2 {
+      font-size: 0.85rem;
+      color: #94a3b8;
+      margin-bottom: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      flex-shrink: 0;
+    }
+
+    /* Scrollable content */
+    .scrollable {
+      flex: 1;
+      overflow-y: auto;
+      min-height: 0;
+    }
+
+    /* Stats */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+    }
+    .stat-item {
+      background: #0f172a;
+      padding: 0.5rem;
+      border-radius: 0.5rem;
+      text-align: center;
+    }
+    .stat-value { font-size: 1.25rem; font-weight: 700; color: #38bdf8; }
+    .stat-label { font-size: 0.65rem; color: #64748b; margin-top: 0.125rem; }
+
+    /* Role list */
+    .role-list { list-style: none; }
+    .role-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.375rem 0.5rem;
+      border-radius: 0.375rem;
+      margin-bottom: 0.25rem;
+      font-size: 0.85rem;
+    }
+    .role-item.active { background: rgba(34, 197, 94, 0.1); }
+    .role-item.missing { background: rgba(239, 68, 68, 0.1); }
+    .role-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 0.5rem;
+      display: inline-block;
+    }
+    .role-dot.active { background: #22c55e; }
+    .role-dot.missing { background: #ef4444; }
+
+    /* Event log */
+    .event-log { font-family: monospace; font-size: 0.75rem; }
+    .event-item {
+      padding: 0.25rem 0.5rem;
+      border-bottom: 1px solid #334155;
+    }
+    .event-time { color: #64748b; margin-right: 0.5rem; }
+    .event-category {
+      padding: 0.1rem 0.3rem;
+      border-radius: 0.25rem;
+      font-size: 0.6rem;
+      margin-right: 0.5rem;
+    }
+    .event-category.simulation { background: #3b82f6; }
+    .event-category.llm { background: #8b5cf6; }
+    .event-category.user { background: #22c55e; }
+    .event-category.exercise { background: #f59e0b; }
+
+    /* Buttons */
+    .btn {
+      padding: 0.4rem 0.8rem;
+      border-radius: 0.5rem;
+      border: none;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .btn-primary { background: #3b82f6; color: white; }
+    .btn-primary:hover { background: #2563eb; }
+    .btn-success { background: #22c55e; color: white; }
+    .btn-success:hover { background: #16a34a; }
+    .btn-danger { background: #ef4444; color: white; }
+    .btn-danger:hover { background: #dc2626; }
+    .btn-secondary { background: #475569; color: white; }
+    .btn-secondary:hover { background: #334155; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-group { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.75rem; }
+
+    /* Form elements */
+    input[type="text"], textarea, select {
+      width: 100%;
+      padding: 0.4rem 0.6rem;
+      border-radius: 0.5rem;
+      border: 1px solid #475569;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-size: 0.85rem;
+    }
+    input[type="text"]:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: #3b82f6;
+    }
+    textarea { min-height: 80px; resize: vertical; }
+
+    /* Chat */
+    .chat-input-row {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+    }
+    .chat-input-row input { flex: 1; }
+    .chat-log {
+      font-family: monospace;
+      font-size: 0.8rem;
+      white-space: pre-wrap;
+      background: #0f172a;
+      padding: 0.5rem;
+      border-radius: 0.5rem;
+    }
+
+    /* GPU Status */
+    .gpu-badge {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.375rem;
+      background: #ecfdf3;
+      color: #166534;
+    }
+    .gpu-badge.unavailable { background: #fef2f2; color: #991b1b; }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-overlay.hidden { display: none; }
+    .modal {
+      background: #1e293b;
+      border-radius: 1rem;
+      padding: 1.5rem;
+      max-width: 600px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      border: 1px solid #334155;
+    }
+    .modal h2 { font-size: 1.25rem; margin-bottom: 1rem; color: #f1f5f9; }
+
+    /* Scenario cards */
+    .scenario-list { display: flex; flex-direction: column; gap: 0.75rem; }
+    .scenario-card {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 0.75rem;
+      padding: 1rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .scenario-card:hover { border-color: #3b82f6; background: #1e293b; }
+    .scenario-card.selected { border-color: #22c55e; background: #1e293b; }
+    .scenario-card h3 { font-size: 1rem; margin-bottom: 0.25rem; color: #f1f5f9; }
+    .scenario-card p { font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.5rem; }
+    .scenario-meta {
+      display: flex;
+      gap: 0.75rem;
+      font-size: 0.75rem;
+      color: #64748b;
+    }
+    .scenario-meta span {
+      background: #334155;
+      padding: 0.125rem 0.5rem;
+      border-radius: 0.25rem;
+    }
+
+    /* Sim Log */
+    .sim-log {
+      background: #0f172a;
+      padding: 0.5rem;
+      border-radius: 0.5rem;
+      font-family: monospace;
+      font-size: 0.75rem;
+      white-space: pre-wrap;
+    }
+
+    /* Operations output */
+    .ops-output {
+      background: #0f172a;
+      padding: 0.5rem;
+      border-radius: 0.5rem;
+      font-family: monospace;
+      font-size: 0.7rem;
+      white-space: pre-wrap;
+      overflow-x: auto;
+    }
+
+    small { color: #64748b; font-size: 0.75rem; }
+    .error-text { color: #ef4444; font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <h1>EINFO Stabsarbeit Simulator</h1>
+    <div class="header-right">
+      <span id="scenario-badge" class="status-badge scenario" style="display:none;"></span>
+      <span id="sse-status" class="disconnected">Nicht verbunden</span>
+      <span id="exercise-status" class="status-badge inactive">Keine Simulation aktiv</span>
+    </div>
+  </header>
+
+  <main class="main-grid">
+    <!-- Steuerung -->
+    <section class="card">
+      <h2>Steuerung</h2>
+      <div id="control-info">
+        <p style="color: #64748b; font-size: 0.85rem;">Starten Sie eine Simulation mit Szenario-Auswahl</p>
+      </div>
+      <div class="btn-group">
+        <button id="btn-start" class="btn btn-success">Simulation starten</button>
+        <button id="btn-step" class="btn btn-primary" disabled>Schritt</button>
+        <button id="btn-pause" class="btn btn-secondary" disabled>Pause</button>
+        <button id="btn-end" class="btn btn-danger" disabled>Beenden</button>
+      </div>
+      <div class="scrollable" style="margin-top: 0.75rem;">
+        <div id="sim-log" class="sim-log"></div>
+      </div>
+    </section>
+
+    <!-- Live-Statistiken -->
+    <section class="card">
+      <h2>Live-Statistiken</h2>
+      <div class="stat-grid">
+        <div class="stat-item">
+          <div class="stat-value" id="stat-steps">0</div>
+          <div class="stat-label">Sim-Schritte</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="stat-llm">0</div>
+          <div class="stat-label">LLM-Aufrufe</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="stat-protocols">0</div>
+          <div class="stat-label">Protokolle</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="stat-tasks">0</div>
+          <div class="stat-label">Aufgaben</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="stat-incidents">0</div>
+          <div class="stat-label">Einsatzstellen</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-value" id="stat-duration">0:00</div>
+          <div class="stat-label">Dauer</div>
+        </div>
+      </div>
+
+      <h2 style="margin-top: 1rem;">Rollen-Status</h2>
+      <div class="scrollable">
+        <ul class="role-list" id="role-list">
+          <li class="role-item missing"><span><span class="role-dot missing"></span>Lade...</span></li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- Event-Log -->
+    <section class="card tall">
+      <h2>Event-Log (Live)</h2>
+      <div class="scrollable event-log" id="event-log">
+        <div class="event-item" style="color: #64748b;">Warte auf Events...</div>
+      </div>
+    </section>
+
+    <!-- Chat -->
+    <section class="card tall">
+      <h2>Chat (nur bei Pause)</h2>
+      <div class="scrollable">
+        <div id="chat-log" class="chat-log"></div>
+      </div>
+      <div class="chat-input-row">
+        <input id="chat-input" type="text" placeholder="Frage an den EINFO-Chatbot..." />
+        <button id="chat-send" class="btn btn-primary">Senden</button>
+      </div>
+    </section>
+
+    <!-- Operations Output -->
+    <section class="card tall">
+      <h2>Operations (LLM-Ausgabe)</h2>
+      <div class="scrollable">
+        <div id="ops-output" class="ops-output"></div>
+      </div>
+    </section>
+
+    <!-- LLM-Test -->
+    <section class="card tall">
+      <h2>LLM-Test</h2>
+      <div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
+        <select id="llm-model-select" style="flex: 1;"></select>
+        <button id="llm-refresh" class="btn btn-secondary">Neu laden</button>
+      </div>
+      <small>Test-Prompt eingeben:</small>
+      <textarea id="llm-prompt" placeholder="Beispiel: Fasse die aktuellen Einsatzstellen zusammen..." style="margin-top: 0.25rem;"></textarea>
+      <div class="btn-group">
+        <button id="llm-send" class="btn btn-primary">Testen</button>
+        <span id="llm-gpu-status" class="gpu-badge">GPU: keine Daten</span>
+      </div>
+      <span id="llm-error" class="error-text"></span>
+      <div class="scrollable" style="margin-top: 0.5rem;">
+        <div id="llm-output" class="sim-log"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Szenario-Auswahl Modal -->
+  <div id="scenario-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <h2>Szenario auswaehlen</h2>
+      <p style="color: #94a3b8; margin-bottom: 1rem; font-size: 0.9rem;">
+        Waehlen Sie ein Uebungsszenario aus oder starten Sie ohne Szenario (freier Modus).
+      </p>
+      <div id="scenario-list" class="scenario-list">
+        <p style="color: #64748b;">Szenarien werden geladen...</p>
+      </div>
+      <div class="btn-group" style="margin-top: 1.5rem; justify-content: flex-end;">
+        <button id="btn-start-free" class="btn btn-secondary">Ohne Szenario starten</button>
+        <button id="btn-start-scenario" class="btn btn-success" disabled>Mit Szenario starten</button>
+        <button id="btn-cancel-modal" class="btn btn-secondary">Abbrechen</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    // ============================================================
+    // State
+    // ============================================================
+    let simulationRunning = false;
+    let exerciseId = null;
+    let statistics = { simSteps: 0, llmCalls: 0, protocolsCreated: 0, tasksCreated: 0, incidentsCreated: 0 };
+    let eventSource = null;
+    let startTime = null;
+    let durationInterval = null;
+    let selectedScenarioId = null;
+    let activeScenario = null;
+    const chatEntries = [];
+    const BOT_NAME = "Florian";
+
+    // ============================================================
+    // DOM Elements
+    // ============================================================
+    const sseStatus = document.getElementById("sse-status");
+    const exerciseStatus = document.getElementById("exercise-status");
+    const scenarioBadge = document.getElementById("scenario-badge");
+    const controlInfo = document.getElementById("control-info");
+    const btnStart = document.getElementById("btn-start");
+    const btnStep = document.getElementById("btn-step");
+    const btnPause = document.getElementById("btn-pause");
+    const btnEnd = document.getElementById("btn-end");
+    const simLog = document.getElementById("sim-log");
+    const eventLog = document.getElementById("event-log");
+    const roleList = document.getElementById("role-list");
+    const opsOutput = document.getElementById("ops-output");
+
+    // Stats
+    const statSteps = document.getElementById("stat-steps");
+    const statLlm = document.getElementById("stat-llm");
+    const statProtocols = document.getElementById("stat-protocols");
+    const statTasks = document.getElementById("stat-tasks");
+    const statIncidents = document.getElementById("stat-incidents");
+    const statDuration = document.getElementById("stat-duration");
+
+    // Chat
+    const chatInput = document.getElementById("chat-input");
+    const chatSend = document.getElementById("chat-send");
+    const chatLog = document.getElementById("chat-log");
+
+    // LLM Test
+    const llmModelSelect = document.getElementById("llm-model-select");
+    const llmPrompt = document.getElementById("llm-prompt");
+    const llmSend = document.getElementById("llm-send");
+    const llmOutput = document.getElementById("llm-output");
+    const llmRefresh = document.getElementById("llm-refresh");
+    const llmGpuStatus = document.getElementById("llm-gpu-status");
+    const llmError = document.getElementById("llm-error");
+
+    // Modal
+    const scenarioModal = document.getElementById("scenario-modal");
+    const scenarioList = document.getElementById("scenario-list");
+    const btnStartFree = document.getElementById("btn-start-free");
+    const btnStartScenario = document.getElementById("btn-start-scenario");
+    const btnCancelModal = document.getElementById("btn-cancel-modal");
+
+    // ============================================================
+    // SSE Connection
+    // ============================================================
+    function connectSSE() {
+      if (eventSource) eventSource.close();
+
+      eventSource = new EventSource("/api/events");
+
+      eventSource.onopen = () => {
+        sseStatus.textContent = "Verbunden";
+        sseStatus.className = "connected";
+      };
+
+      eventSource.onerror = () => {
+        sseStatus.textContent = "Nicht verbunden";
+        sseStatus.className = "disconnected";
+        setTimeout(connectSSE, 5000);
+      };
+
+      eventSource.addEventListener("status", (e) => {
+        const data = JSON.parse(e.data);
+        if (data.statistics) {
+          statistics = { ...statistics, ...data.statistics };
+          updateStats();
         }
+      });
+
+      eventSource.addEventListener("exercise_started", (e) => {
+        const data = JSON.parse(e.data);
+        exerciseId = data.exerciseId;
+        addEventToLog("exercise", "Uebung gestartet: " + (data.exerciseName || exerciseId));
+      });
+
+      eventSource.addEventListener("exercise_ended", (e) => {
+        addEventToLog("exercise", "Uebung beendet");
+      });
+
+      eventSource.addEventListener("scenario_loaded", (e) => {
+        const data = JSON.parse(e.data);
+        addEventToLog("simulation", "Szenario geladen: " + data.title);
+      });
+
+      eventSource.onmessage = (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.category) {
+            addEventToLog(data.category, data.action || "event");
+          }
+          if (data.statistics) {
+            statistics = { ...statistics, ...data.statistics };
+            updateStats();
+          }
+        } catch {}
+      };
+    }
+
+    // ============================================================
+    // Scenario Modal
+    // ============================================================
+    async function loadScenarios() {
+      try {
+        const res = await fetch("/api/scenarios");
+        const data = await res.json();
+
+        if (!data.ok || !data.scenarios?.length) {
+          scenarioList.innerHTML = '<p style="color: #64748b;">Keine Szenarien gefunden.</p>';
+          return;
+        }
+
+        scenarioList.innerHTML = data.scenarios.map(s => `
+          <div class="scenario-card" data-id="${s.id}">
+            <h3>${s.title}</h3>
+            <p>${s.description}</p>
+            <div class="scenario-meta">
+              <span>${s.event_type}</span>
+              <span>${s.difficulty}</span>
+              <span>${s.duration_minutes} Min.</span>
+              <span>${s.mode}</span>
+            </div>
+          </div>
+        `).join("");
+
+        // Click handler for scenario cards
+        scenarioList.querySelectorAll(".scenario-card").forEach(card => {
+          card.addEventListener("click", () => {
+            scenarioList.querySelectorAll(".scenario-card").forEach(c => c.classList.remove("selected"));
+            card.classList.add("selected");
+            selectedScenarioId = card.dataset.id;
+            btnStartScenario.disabled = false;
+          });
+        });
+      } catch (err) {
+        scenarioList.innerHTML = '<p style="color: #ef4444;">Fehler beim Laden der Szenarien.</p>';
       }
-    </style>
-  </head>
-  <body>
-    <header>
-      <h1 style="font-size: 1rem; margin: 0">
-        EINFO Chatbot – Simulation & Wissenschat
-      </h1>
-      <span id="status" class="badge">Status: inaktiv</span>
-    </header>
-    <main>
-      <section class="card">
-        <h2>Simulation & Operations</h2>
-        <div class="toolbar">
-          <button id="btn-start">Simulation starten</button>
-          <button id="btn-step">Schritt ausführen</button>
-          <button id="btn-pause" class="secondary">Pause</button>
-        </div>
-        <div id="log" class="log"></div>
-      </section>
-      <section class="card">
-        <h2>Operations / Chat</h2>
-        <div class="toolbar">
-          <input
-            id="chat-input"
-            type="text"
-            placeholder="Frage an den EINFO-Chatbot… (nur wenn Simulation pausiert)"
-          />
-          <button id="chat-send">Senden</button>
-        </div>
-        <div id="ops" class="log"></div>
-        <div id="chat-log" class="log" style="margin-top:0.5rem"></div>
-      </section>
-      <section class="card">
-        <h2>LLM-Test (nur vorhandene Ollama-Modelle)</h2>
-        <div class="toolbar">
-          <label for="llm-model-select" style="font-size:0.85rem">Modell:</label>
-          <select id="llm-model-select"></select>
-          <button id="llm-refresh" class="secondary">Neu laden</button>
-        </div>
-        <small>Bitte einen Test-Prompt eingeben. Es wird immer das ausgewählte Ollama-Modell genutzt.</small>
-        <textarea
-          id="llm-prompt"
-          placeholder="Beispiel: Fasse die aktuellen Einsatzstellen zusammen oder frage nach Wissenstest…"
-          style="margin-top:0.5rem"
-        ></textarea>
-        <div class="toolbar" style="margin-top:0.5rem">
-          <button id="llm-send">Testen</button>
-        </div>
-        <div class="status-row">
-          <span id="llm-gpu-status" class="badge gpu-badge">GPU: keine Daten</span>
-          <span id="llm-error" class="error-text"></span>
-        </div>
-        <div id="llm-output" class="log"></div>
-      </section>
-    </main>
-    <script type="module" src="./app.js"></script>
-  </body>
+    }
+
+    function showScenarioModal() {
+      selectedScenarioId = null;
+      btnStartScenario.disabled = true;
+      scenarioModal.classList.remove("hidden");
+      loadScenarios();
+    }
+
+    function hideScenarioModal() {
+      scenarioModal.classList.add("hidden");
+    }
+
+    // ============================================================
+    // Simulation Control
+    // ============================================================
+    async function startSimulation(scenarioId = null) {
+      appendSimLog("Simulation wird gestartet...");
+      setBusy(true);
+
+      try {
+        const body = scenarioId ? { scenarioId } : {};
+        const res = await fetch("/api/sim/start", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+
+        if (data.ok) {
+          simulationRunning = true;
+          startTime = Date.now();
+          startDurationTimer();
+
+          if (data.scenario) {
+            activeScenario = data.scenario;
+            scenarioBadge.textContent = data.scenario.title;
+            scenarioBadge.style.display = "inline";
+            controlInfo.innerHTML = `<p><strong>${data.scenario.title}</strong></p>`;
+          } else {
+            controlInfo.innerHTML = `<p><strong>Freier Modus</strong></p>`;
+          }
+
+          appendSimLog("Simulation gestartet.");
+          addEventToLog("simulation", "Simulation gestartet" + (data.scenario ? `: ${data.scenario.title}` : ""));
+          updateUI();
+        } else {
+          appendSimLog("Fehler: " + (data.error || "Unbekannt"));
+        }
+      } catch (err) {
+        appendSimLog("Fehler: " + err);
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    async function stepSimulation() {
+      appendSimLog("Manueller Schritt...");
+      setBusy(true);
+
+      try {
+        const res = await fetch("/api/sim/step", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ source: "manual" })
+        });
+        const data = await res.json();
+
+        if (data.ok) {
+          appendSimLog("Schritt OK - Operations empfangen.");
+          statistics.simSteps = (statistics.simSteps || 0) + 1;
+          statistics.llmCalls = (statistics.llmCalls || 0) + 1;
+          if (data.operations?.protokoll?.create?.length) {
+            statistics.protocolsCreated = (statistics.protocolsCreated || 0) + data.operations.protokoll.create.length;
+          }
+          if (data.operations?.aufgaben?.create?.length) {
+            statistics.tasksCreated = (statistics.tasksCreated || 0) + data.operations.aufgaben.create.length;
+          }
+          if (data.operations?.board?.createIncidentSites?.length) {
+            statistics.incidentsCreated = (statistics.incidentsCreated || 0) + data.operations.board.createIncidentSites.length;
+          }
+          updateStats();
+          opsOutput.textContent = JSON.stringify({ operations: data.operations, analysis: data.analysis }, null, 2);
+          addEventToLog("llm", "Operations generiert");
+        } else {
+          appendSimLog("Fehler: " + (data.error || data.reason));
+        }
+      } catch (err) {
+        appendSimLog("Fehler: " + err);
+      } finally {
+        setBusy(false);
+      }
+    }
+
+    async function pauseSimulation() {
+      appendSimLog("Simulation wird pausiert...");
+      try {
+        await fetch("/api/sim/pause", { method: "POST" });
+        simulationRunning = false;
+        appendSimLog("Simulation pausiert. Chat verfuegbar.");
+        addEventToLog("simulation", "Simulation pausiert");
+        updateUI();
+      } catch (err) {
+        appendSimLog("Fehler: " + err);
+      }
+    }
+
+    async function endSimulation() {
+      if (!confirm("Simulation wirklich beenden?")) return;
+
+      try {
+        await fetch("/api/sim/pause", { method: "POST" });
+        await fetch("/api/audit/end", { method: "POST" });
+        simulationRunning = false;
+        stopDurationTimer();
+        activeScenario = null;
+        scenarioBadge.style.display = "none";
+        controlInfo.innerHTML = '<p style="color: #64748b;">Starten Sie eine Simulation mit Szenario-Auswahl</p>';
+        appendSimLog("Simulation beendet.");
+        addEventToLog("exercise", "Simulation beendet");
+        updateUI();
+      } catch (err) {
+        appendSimLog("Fehler: " + err);
+      }
+    }
+
+    // ============================================================
+    // UI Helpers
+    // ============================================================
+    function updateUI() {
+      if (simulationRunning) {
+        exerciseStatus.textContent = "Simulation aktiv";
+        exerciseStatus.className = "status-badge active";
+        btnStart.disabled = true;
+        btnStep.disabled = false;
+        btnPause.disabled = false;
+        btnEnd.disabled = false;
+      } else {
+        exerciseStatus.textContent = "Keine Simulation aktiv";
+        exerciseStatus.className = "status-badge inactive";
+        btnStart.disabled = false;
+        btnStep.disabled = true;
+        btnPause.disabled = true;
+        btnEnd.disabled = true;
+      }
+    }
+
+    function updateStats() {
+      statSteps.textContent = statistics.simSteps || 0;
+      statLlm.textContent = statistics.llmCalls || 0;
+      statProtocols.textContent = statistics.protocolsCreated || 0;
+      statTasks.textContent = statistics.tasksCreated || 0;
+      statIncidents.textContent = statistics.incidentsCreated || 0;
+    }
+
+    function appendSimLog(line) {
+      const ts = new Date().toLocaleTimeString();
+      simLog.textContent = `[${ts}] ${line}\n` + simLog.textContent;
+    }
+
+    function addEventToLog(category, message) {
+      const time = new Date().toLocaleTimeString("de-DE");
+      const item = document.createElement("div");
+      item.className = "event-item";
+      item.innerHTML = `
+        <span class="event-time">${time}</span>
+        <span class="event-category ${category}">${category}</span>
+        ${message}
+      `;
+
+      const placeholder = eventLog.querySelector('[style*="color: #64748b"]');
+      if (placeholder) placeholder.remove();
+
+      eventLog.insertBefore(item, eventLog.firstChild);
+
+      while (eventLog.children.length > 100) {
+        eventLog.removeChild(eventLog.lastChild);
+      }
+    }
+
+    function formatDuration(ms) {
+      const totalSeconds = Math.floor(ms / 1000);
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+    }
+
+    function startDurationTimer() {
+      stopDurationTimer();
+      durationInterval = setInterval(() => {
+        if (startTime) {
+          statDuration.textContent = formatDuration(Date.now() - startTime);
+        }
+      }, 1000);
+    }
+
+    function stopDurationTimer() {
+      if (durationInterval) {
+        clearInterval(durationInterval);
+        durationInterval = null;
+      }
+    }
+
+    function setBusy(busy) {
+      btnStep.disabled = busy || !simulationRunning;
+      btnStart.disabled = busy || simulationRunning;
+      btnPause.disabled = busy || !simulationRunning;
+    }
+
+    function loadRoles() {
+      roleList.innerHTML = `
+        <li class="role-item active"><span><span class="role-dot active"></span>LdStb</span><span>besetzt</span></li>
+        <li class="role-item active"><span><span class="role-dot active"></span>S2</span><span>besetzt</span></li>
+        <li class="role-item missing"><span><span class="role-dot missing"></span>S1</span><span>KI</span></li>
+        <li class="role-item missing"><span><span class="role-dot missing"></span>S3</span><span>KI</span></li>
+        <li class="role-item missing"><span><span class="role-dot missing"></span>S4</span><span>KI</span></li>
+        <li class="role-item missing"><span><span class="role-dot missing"></span>S5</span><span>KI</span></li>
+        <li class="role-item missing"><span><span class="role-dot missing"></span>S6</span><span>KI</span></li>
+      `;
+    }
+
+    // ============================================================
+    // Chat
+    // ============================================================
+    function renderChatLog() {
+      chatLog.textContent = chatEntries.map(e => `[${e.ts}] ${e.role}: ${e.text}`).join("\n");
+    }
+
+    function appendChat(role, text) {
+      const entry = { ts: new Date().toLocaleTimeString(), role, text };
+      chatEntries.unshift(entry);
+      renderChatLog();
+      return entry;
+    }
+
+    function updateChatEntry(entry, newText) {
+      entry.text = newText;
+      renderChatLog();
+    }
+
+    chatSend.addEventListener("click", async () => {
+      const q = (chatInput.value || "").trim();
+      if (!q) return;
+      chatInput.value = "";
+      appendChat("Du", q);
+
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: q })
+        });
+        const contentType = res.headers.get("content-type") || "";
+
+        if (!res.ok || contentType.includes("application/json")) {
+          const data = await res.json().catch(() => null);
+          if (data?.error === "simulation_running") {
+            appendChat(BOT_NAME, "Chat ist nur verfuegbar, wenn die Simulation pausiert ist.");
+            return;
+          }
+          appendChat(BOT_NAME, "Fehler: " + (data?.error || res.statusText || "unbekannt"));
+          return;
+        }
+
+        const decoder = new TextDecoder('utf-8', { fatal: false, ignoreBOM: true });
+        const reader = res.body?.getReader();
+        if (!reader) {
+          appendChat(BOT_NAME, "(keine Antwort)");
+          return;
+        }
+
+        const botEntry = appendChat(BOT_NAME, "");
+        let accumulated = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          accumulated += decoder.decode(value, { stream: true });
+          updateChatEntry(botEntry, accumulated);
+        }
+        accumulated += decoder.decode();
+        updateChatEntry(botEntry, accumulated.trim());
+        addEventToLog("user", "Chat-Nachricht gesendet");
+      } catch (err) {
+        appendChat(BOT_NAME, "Fehler: " + err);
+      }
+    });
+
+    chatInput.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter") {
+        ev.preventDefault();
+        chatSend.click();
+      }
+    });
+
+    // ============================================================
+    // LLM Test
+    // ============================================================
+    function setLlmBusy(busy) {
+      llmSend.disabled = busy;
+      llmRefresh.disabled = busy;
+      llmModelSelect.disabled = busy;
+    }
+
+    function renderGpuStatus(status) {
+      if (!status) {
+        llmGpuStatus.textContent = "GPU: keine Daten";
+        return;
+      }
+
+      llmGpuStatus.classList.remove("unavailable");
+
+      if (status.available && Array.isArray(status.gpus) && status.gpus.length) {
+        const parts = status.gpus.map(gpu => {
+          const util = typeof gpu.utilizationPercent === "number" ? `${gpu.utilizationPercent}%` : "?";
+          const memUsed = typeof gpu.memoryUsedMb === "number" ? gpu.memoryUsedMb : "?";
+          const memTotal = typeof gpu.memoryTotalMb === "number" ? gpu.memoryTotalMb : "?";
+          return `${gpu.name || "GPU"}: ${util} - ${memUsed}/${memTotal} MiB`;
+        });
+        llmGpuStatus.textContent = `GPU: ${parts.join(" | ")}`;
+        return;
+      }
+
+      if (status.available) {
+        llmGpuStatus.textContent = "GPU: verfuegbar";
+        return;
+      }
+
+      llmGpuStatus.classList.add("unavailable");
+      llmGpuStatus.textContent = `GPU: ${status.error || "nicht verfuegbar"}`;
+    }
+
+    async function refreshGpuStatus() {
+      try {
+        const res = await fetch("/api/llm/gpu");
+        const data = await res.json().catch(() => null);
+        if (data?.gpuStatus) renderGpuStatus(data.gpuStatus);
+        else renderGpuStatus({ available: false, error: "Keine GPU-Daten" });
+      } catch (err) {
+        renderGpuStatus({ available: false, error: String(err) });
+      }
+    }
+
+    async function loadLlmModels() {
+      setLlmBusy(true);
+      llmModelSelect.innerHTML = '<option disabled selected>Modelle werden geladen...</option>';
+      llmSend.disabled = true;
+
+      try {
+        const res = await fetch("/api/llm/models");
+        const data = await res.json();
+
+        if (!res.ok || !data?.ok) throw new Error(data?.error || "Fehler");
+
+        const models = data.models || [];
+        llmModelSelect.innerHTML = "";
+
+        if (!models.length) {
+          llmModelSelect.innerHTML = '<option disabled selected>Keine Modelle gefunden</option>';
+          return;
+        }
+
+        for (const model of models) {
+          const opt = document.createElement("option");
+          opt.value = model;
+          opt.textContent = model;
+          llmModelSelect.appendChild(opt);
+        }
+        llmSend.disabled = false;
+      } catch (err) {
+        llmModelSelect.innerHTML = '<option disabled selected>Laden fehlgeschlagen</option>';
+        llmOutput.textContent = "Fehler: " + err;
+      } finally {
+        setLlmBusy(false);
+      }
+    }
+
+    async function runLlmTest() {
+      const prompt = (llmPrompt.value || "").trim();
+      const model = llmModelSelect.value;
+      if (!prompt || !model) return;
+
+      setLlmBusy(true);
+      llmError.textContent = "";
+      llmOutput.textContent = "LLM wird abgefragt...";
+
+      try {
+        const res = await fetch("/api/llm/test", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question: prompt, model })
+        });
+
+        const data = await res.json().catch(() => null);
+        if (data?.gpuStatus) renderGpuStatus(data.gpuStatus);
+
+        if (!res.ok || !data?.ok) {
+          llmError.textContent = data?.error || "Fehler";
+          llmOutput.textContent = "Fehler: " + (data?.error || "Unbekannt");
+          return;
+        }
+
+        llmOutput.textContent = typeof data.answer === "string" ? data.answer : JSON.stringify(data.answer, null, 2);
+        addEventToLog("llm", "LLM-Test ausgefuehrt");
+      } catch (err) {
+        llmError.textContent = String(err);
+        llmOutput.textContent = "Fehler: " + err;
+      } finally {
+        setLlmBusy(false);
+      }
+    }
+
+    llmRefresh.addEventListener("click", () => {
+      loadLlmModels();
+      refreshGpuStatus();
+    });
+
+    llmSend.addEventListener("click", runLlmTest);
+
+    llmPrompt.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter" && (ev.ctrlKey || ev.metaKey)) {
+        ev.preventDefault();
+        runLlmTest();
+      }
+    });
+
+    // ============================================================
+    // Event Handlers
+    // ============================================================
+    btnStart.addEventListener("click", showScenarioModal);
+
+    btnStartFree.addEventListener("click", () => {
+      hideScenarioModal();
+      startSimulation(null);
+    });
+
+    btnStartScenario.addEventListener("click", () => {
+      hideScenarioModal();
+      startSimulation(selectedScenarioId);
+    });
+
+    btnCancelModal.addEventListener("click", hideScenarioModal);
+
+    btnStep.addEventListener("click", stepSimulation);
+    btnPause.addEventListener("click", pauseSimulation);
+    btnEnd.addEventListener("click", endSimulation);
+
+    // ============================================================
+    // Init
+    // ============================================================
+    connectSSE();
+    loadRoles();
+    loadLlmModels();
+    refreshGpuStatus();
+    updateUI();
+  </script>
+</body>
 </html>
