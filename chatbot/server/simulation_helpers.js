@@ -14,6 +14,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { isMeldestelle, isStabsstelle, normalizeRole } from "./field_mapper.js";
+import { readAufgBoardFile, writeAufgBoardFile } from "./aufgaben_board_io.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -162,14 +163,17 @@ export async function updateTaskStatusForSimulatedRoles(missingRoles, dataDir) {
 
     let board;
     try {
-      const content = await fs.readFile(boardPath, "utf8");
-      board = JSON.parse(content);
+      board = await readAufgBoardFile(boardPath, {
+        roleId: role,
+        logError: (message, data) => log("error", message, data),
+        writeBack: true,
+        backupOnChange: true
+      });
     } catch {
-      // Board existiert nicht oder ist leer - überspringen
       continue;
     }
 
-    const items = board.items || [];
+    const items = Array.isArray(board.items) ? board.items : [];
     let updated = 0;
 
     // Einen Task pro Durchlauf um einen Status weiterschalten
@@ -211,7 +215,7 @@ export async function updateTaskStatusForSimulatedRoles(missingRoles, dataDir) {
 
     // Speichern wenn Änderungen
     if (updated > 0) {
-      await fs.writeFile(boardPath, JSON.stringify(board, null, 2), "utf8");
+      await writeAufgBoardFile(boardPath, board);
       roleUpdates[role] = updated;
       totalUpdated += updated;
     }
@@ -475,22 +479,16 @@ export async function deriveTasksFromProtocol(newProtocolEntries, missingRoles, 
       // Aufgabenboard für diese Rolle laden/erstellen
       const boardPath = path.join(dataDir, `Aufg_board_${normalizedRecipient}.json`);
 
-      let board;
-      try {
-        const content = await fs.readFile(boardPath, "utf8");
-        board = JSON.parse(content);
-      } catch {
-        // Board existiert nicht - neu erstellen
-        board = { items: [] };
-      }
-
-      if (!Array.isArray(board.items)) {
-        board.items = [];
-      }
+      const board = await readAufgBoardFile(boardPath, {
+        roleId: normalizedRecipient,
+        logError: (message, data) => log("error", message, data),
+        writeBack: true,
+        backupOnChange: true
+      });
 
       // Aufgabe hinzufügen
       board.items.push(task);
-      await fs.writeFile(boardPath, JSON.stringify(board, null, 2), "utf8");
+      await writeAufgBoardFile(boardPath, board);
 
       createdTasks++;
       log("info", `Aufgabe für ${normalizedRecipient} aus Protokoll abgeleitet`, {

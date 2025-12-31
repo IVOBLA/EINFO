@@ -13,6 +13,8 @@ import { getGpuStatus } from "../chatbot/server/gpu_status.js";
 
 import { syncRolesFile } from "../chatbot/server/roles_sync.js";
 import { transformLlmOperationsToJson, isMeldestelle } from "../chatbot/server/field_mapper.js";
+import { normalizeRole } from "../chatbot/server/field_mapper.js";
+import { readAufgBoardFile, writeAufgBoardFile } from "../chatbot/server/aufgaben_board_io.js";
 import {
   confirmProtocolsByLtStb,
   updateTaskStatusForSimulatedRoles,
@@ -37,7 +39,6 @@ const dataDir = path.join(process.cwd(), "data");
 const FILES = {
   roles: "roles.json",
   board: "board.json",
-  aufgabenS2: "Aufg_board_S2.json",
   protokoll: "protocol.json"
 };
 
@@ -134,18 +135,35 @@ function countBoardItems(boardRaw = {}) {
 
 async function readStateCounts() {
   const boardPath = path.join(dataDir, FILES.board);
-  const aufgabenPath = path.join(dataDir, FILES.aufgabenS2);
   const protokollPath = path.join(dataDir, FILES.protokoll);
 
-  const [boardRaw, aufgabenRaw, protokollRaw] = await Promise.all([
+  const [boardRaw, protokollRaw] = await Promise.all([
     safeReadJson(boardPath, { columns: {} }),
-    safeReadJson(aufgabenPath, []),
     safeReadJson(protokollPath, [])
   ]);
 
+  const roles = await loadRoles();
+  const roleIds = [...roles.active, ...roles.missing]
+    .map((role) => normalizeRole(role))
+    .filter((role, index, arr) => role && arr.indexOf(role) === index);
+  const boards = await Promise.all(
+    roleIds.map((roleId) =>
+      readAufgBoardFile(path.join(dataDir, `Aufg_board_${roleId}.json`), {
+        roleId,
+        logError: (message, data) => log(message, data),
+        writeBack: true,
+        backupOnChange: true
+      })
+    )
+  );
+  const aufgabenCount = boards.reduce((sum, board) => {
+    const items = Array.isArray(board?.items) ? board.items.length : 0;
+    return sum + items;
+  }, 0);
+
   return {
     boardCount: countBoardItems(boardRaw),
-    aufgabenCount: Array.isArray(aufgabenRaw) ? aufgabenRaw.length : 0,
+    aufgabenCount,
     protokollCount: Array.isArray(protokollRaw) ? protokollRaw.length : 0
   };
 }
@@ -385,15 +403,47 @@ async function applyBoardOperations(boardOps, missingRoles) {
   };
 }
 
+function resolveTaskBoardRoleId(task) {
+  return normalizeRole(
+    task?.responsible ||
+      task?.createdBy ||
+      task?.assignedBy ||
+      task?.originRole ||
+      task?.fromRole
+  );
+}
+
+async function loadAufgabenBoardsForRoles(roles) {
+  const uniqueRoles = roles
+    .map((role) => normalizeRole(role))
+    .filter((role, index, arr) => role && arr.indexOf(role) === index);
+  const entries = await Promise.all(
+    uniqueRoles.map(async (roleId) => {
+      const filePath = path.join(dataDir, `Aufg_board_${roleId}.json`);
+      const board = await readAufgBoardFile(filePath, {
+        roleId,
+        logError: (message, data) => log(message, data),
+        writeBack: true,
+        backupOnChange: true
+      });
+      return { roleId, filePath, board };
+    })
+  );
+  return new Map(entries.map((entry) => [entry.roleId, entry]));
+}
+
 async function applyAufgabenOperations(taskOps, missingRoles) {
-  const tasksPath = path.join(dataDir, FILES.aufgabenS2);
-  let tasks = await safeReadJson(tasksPath, []);
+  const createOps = taskOps?.create || [];
+  const updateOps = taskOps?.update || [];
+  const roleCandidates = [
+    ...missingRoles,
+    ...createOps.map(resolveTaskBoardRoleId),
+    ...updateOps.map((op) => resolveTaskBoardRoleId(op?.changes))
+  ].filter(Boolean);
+  const boardsByRole = await loadAufgabenBoardsForRoles(roleCandidates);
 
   const appliedCreate = [];
   const appliedUpdate = [];
-
-  const createOps = taskOps?.create || [];
-  const updateOps = taskOps?.update || [];
 
   // CREATE → neue Aufgabe im S2-Board
   for (const op of createOps) {
@@ -439,7 +489,13 @@ async function applyAufgabenOperations(taskOps, missingRoles) {
       linkedProtocolNrs: op.linkedProtocolId ? [op.linkedProtocolId] : [],
       linkedProtocols: []
     };
-    tasks.push(newTask);
+    const targetRole = resolveTaskBoardRoleId(newTask);
+    const boardEntry = boardsByRole.get(targetRole);
+    if (!boardEntry) {
+      log("Aufgabe-Create: Kein Board für Rolle gefunden:", targetRole || "UNBEKANNT");
+      continue;
+    }
+    boardEntry.board.items.push(newTask);
     appliedCreate.push(op);
     log("Aufgabe-Create angewandt:", id);
   }
@@ -460,15 +516,23 @@ async function applyAufgabenOperations(taskOps, missingRoles) {
       continue;
     }
 
-    const idx = tasks.findIndex((t) => t.id === op.taskId);
-    if (idx === -1) {
+    let targetEntry = null;
+    let idx = -1;
+    for (const entry of boardsByRole.values()) {
+      idx = entry.board.items.findIndex((t) => t.id === op.taskId);
+      if (idx !== -1) {
+        targetEntry = entry;
+        break;
+      }
+    }
+    if (!targetEntry || idx === -1) {
       log("Aufgabe-Update: Task nicht gefunden:", op.taskId);
       continue;
     }
     const changes = op.changes || {};
 
     // nur Felder anfassen, die im S2-Board existieren
-    const t = tasks[idx];
+    const t = targetEntry.board.items[idx];
     if ("title" in changes) t.title = changes.title;
     if ("desc" in changes) t.desc = changes.desc;
     if ("status" in changes) t.status = changes.status;
@@ -489,7 +553,11 @@ async function applyAufgabenOperations(taskOps, missingRoles) {
     log("Aufgabe-Update angewandt:", op.taskId);
   }
 
-  await safeWriteJson(tasksPath, tasks);
+  await Promise.all(
+    Array.from(boardsByRole.values()).map((entry) =>
+      writeAufgBoardFile(entry.filePath, entry.board)
+    )
+  );
 
   return {
     appliedCount: appliedCreate.length + appliedUpdate.length,
