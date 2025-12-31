@@ -2,6 +2,25 @@
 // Zentrale Konfiguration für den EINFO-Chatbot mit Multi-Modell Unterstützung
 
 const profileName = process.env.CHATBOT_PROFILE || "default";
+const supportedModelKeys = new Set(["fast", "balanced"]);
+
+function sanitizeActiveModel(value) {
+  if (!value) {
+    return "balanced";
+  }
+  if (value === "auto") {
+    return "auto";
+  }
+  if (value === "quality") {
+    console.warn('[CONFIG] LLM_MODEL="quality" ist veraltet, verwende "balanced".');
+    return "balanced";
+  }
+  if (!supportedModelKeys.has(value)) {
+    console.warn(`[CONFIG] LLM_MODEL="${value}" ist unbekannt, verwende "balanced".`);
+    return "balanced";
+  }
+  return value;
+}
 
 /**
  * Basis-Defaults
@@ -55,7 +74,7 @@ const base = {
 
     // Globales Override (überschreibt taskModels wenn nicht "auto")
     // Werte: "auto" | "fast" | "balanced"
-    activeModel: process.env.LLM_MODEL || "balanced"
+    activeModel: sanitizeActiveModel(process.env.LLM_MODEL)
   },
   
   // Differenzierte Timeouts (Fallbacks wenn Modell-Config keine hat)
