@@ -41,29 +41,21 @@ const base = {
         numGpu: 20,
         numCtx: 4096,
         temperature: 0.1
-      },
-      quality: {
-        name: process.env.LLM_MODEL_QUALITY || "einfo-quality",
-        timeout: Number(process.env.LLM_TIMEOUT_QUALITY || "180000"),
-        description: "Höchste Qualität, langsam (GPU+CPU Offloading)",
-        numGpu: 20,           // Teilweise auf GPU, Rest auf CPU/RAM
-        numCtx: 4096,
-        temperature: 0.05
       }
     },
 
     // Welches Modell für welchen Task-Typ
-    // Werte: "fast" | "balanced" | "quality"
+    // Werte: "fast" | "balanced"
     taskModels: {
-      start: process.env.LLM_TASK_START || "quality",       // Erstes Szenario
+      start: process.env.LLM_TASK_START || "balanced",      // Erstes Szenario
       operations: process.env.LLM_TASK_OPS || "balanced",   // Laufende Simulation
       chat: process.env.LLM_TASK_CHAT || "balanced",        // QA-Chat
       default: process.env.LLM_TASK_DEFAULT || "balanced"
     },
 
     // Globales Override (überschreibt taskModels wenn nicht "auto")
-    // Werte: "auto" | "fast" | "balanced" | "quality"
-    activeModel: process.env.LLM_MODEL || "auto"
+    // Werte: "auto" | "fast" | "balanced"
+    activeModel: process.env.LLM_MODEL || "balanced"
   },
   
   // Differenzierte Timeouts (Fallbacks wenn Modell-Config keine hat)
@@ -295,11 +287,11 @@ export const CONFIG = {
 
 /**
  * Ändert das aktive Modell zur Laufzeit
- * @param {string} modelKey - "fast" | "balanced" | "quality" | "auto"
+ * @param {string} modelKey - "fast" | "balanced" | "auto"
  */
 export function setActiveModel(modelKey) {
   if (modelKey !== "auto" && !CONFIG.llm.models[modelKey]) {
-    throw new Error(`Unbekanntes Modell: ${modelKey}. Erlaubt: fast, balanced, quality, auto`);
+    throw new Error(`Unbekanntes Modell: ${modelKey}. Erlaubt: fast, balanced, auto`);
   }
   CONFIG.llm.activeModel = modelKey;
   console.log(`[CONFIG] Aktives Modell gewechselt zu: ${modelKey}`);
@@ -352,7 +344,7 @@ export function getModelForTask(taskType) {
 /**
  * Setzt die Task-Modell-Zuordnung zur Laufzeit
  * @param {string} taskType - "start" | "operations" | "chat" | "default"
- * @param {string} modelKey - "fast" | "balanced" | "quality"
+ * @param {string} modelKey - "fast" | "balanced"
  */
 export function setTaskModel(taskType, modelKey) {
   if (!CONFIG.llm.models[modelKey]) {
