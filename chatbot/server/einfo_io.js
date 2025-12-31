@@ -6,6 +6,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { CONFIG } from "./config.js";
 import { logDebug, logError } from "./logger.js";
+import { normalizeRole } from "./field_mapper.js";
+import { readAufgBoardFile } from "./aufgaben_board_io.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,7 +18,6 @@ const dataDirAbs = path.resolve(__dirname, CONFIG.dataDir);
 const FILES = {
   roles: "roles.json",
   board: "board.json",
-  aufgabenS2: "Aufg_board_S2.json",
   protokoll: "protocol.json"
 };
 
@@ -118,13 +119,16 @@ function flattenBoard(boardRaw) {
   return result;
 }
 
-/**
- * Aufgabenboard S2:
- * Aufg_board_S2.json ist ein Array von Tasks.
- */
-function normalizeAufgabenS2(raw) {
-  if (!Array.isArray(raw)) return [];
-  return raw;
+function normalizeRoleList(values = []) {
+  const seen = new Set();
+  const roles = [];
+  for (const value of values) {
+    const normalized = normalizeRole(value);
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    roles.push(normalized);
+  }
+  return roles;
 }
 
 /**
@@ -139,21 +143,31 @@ function normalizeProtokoll(raw) {
 export async function readEinfoInputs() {
   const rolesPath = path.join(dataDirAbs, FILES.roles);
   const boardPath = path.join(dataDirAbs, FILES.board);
-  const aufgabenS2Path = path.join(dataDirAbs, FILES.aufgabenS2);
   const protokollPath = path.join(dataDirAbs, FILES.protokoll);
 
-  const [rolesRaw, boardRaw, aufgabenS2Raw, protokollRaw] = await Promise.all([
+  const [rolesRaw, boardRaw, protokollRaw] = await Promise.all([
     safeReadJson(rolesPath, { roles: { active: [], missing: [] } }, { validate: validateRolesPayload, contextLabel: "roles" }),
     safeReadJson(boardPath, { columns: {} }, { validate: validateBoardPayload, contextLabel: "board" }),
-    safeReadJson(aufgabenS2Path, [], { validate: validateArrayPayload("Aufg_board_S2.json") }),
     safeReadJson(protokollPath, [], { validate: validateArrayPayload("protocol.json") })
   ]);
 
   const active = rolesRaw?.roles?.active || [];
   const missing = rolesRaw?.roles?.missing || [];
+  const roleIds = normalizeRoleList([...active, ...missing]);
+
+  const aufgabenBoards = await Promise.all(
+    roleIds.map((roleId) =>
+      readAufgBoardFile(path.join(dataDirAbs, `Aufg_board_${roleId}.json`), {
+        roleId,
+        logError
+      })
+    )
+  );
 
   const board = flattenBoard(boardRaw);
-  const aufgaben = normalizeAufgabenS2(aufgabenS2Raw);
+  const aufgaben = aufgabenBoards.flatMap((boardData) =>
+    Array.isArray(boardData?.items) ? boardData.items : []
+  );
   const protokoll = normalizeProtokoll(protokollRaw);
 
   logDebug("EINFO-Inputs gelesen", {
