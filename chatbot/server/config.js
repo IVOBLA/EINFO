@@ -1,5 +1,5 @@
 // chatbot/server/config.js
-// Zentrale Konfiguration für den EINFO-Chatbot mit Llama 3.1 8B auf RTX 4070
+// Zentrale Konfiguration für den EINFO-Chatbot mit Multi-Modell Unterstützung
 
 const profileName = process.env.CHATBOT_PROFILE || "default";
 
@@ -10,23 +10,69 @@ const base = {
   dataDir: "../../server/data",
 
   // Verzeichnisse für Knowledge & Index
-  knowledgeDir: "../../knowledge",
-  knowledgeIndexDir: "../../knowledge_index",
+  knowledgeDir: "/home/bfkdo/EINFO/chatbot/knowledge",
+  knowledgeIndexDir: "/home/bfkdo/EINFO/chatbot/knowledge_index",
 
   // HTTP/LLM Basis
   llmBaseUrl: process.env.LLM_BASE_URL || "http://127.0.0.1:11434",
   
-  // Modelle - GEÄNDERT für Llama 3.1
+  // Legacy-Modell-Config (für Abwärtskompatibilität)
   llmChatModel: process.env.LLM_CHAT_MODEL || "llama3.1:8b",
   llmEmbedModel: process.env.LLM_EMBED_MODEL || "mxbai-embed-large",
+
+  // ============================================================
+  // Multi-Modell Konfiguration
+  // ============================================================
+  llm: {
+    // Verfügbare Modelle mit ihren Eigenschaften
+    models: {
+      fast: {
+        name: process.env.LLM_MODEL_FAST || "llama3.1:8b",
+        timeout: Number(process.env.LLM_TIMEOUT_FAST || "30000"),
+        description: "Schnell, für einfache Tasks",
+        numGpu: 20,           // Alle Layer auf GPU
+        numCtx: 4096,
+        temperature: 0.05
+      },
+      balanced: {
+        name: process.env.LLM_MODEL_BALANCED || "einfo-balanced",
+        timeout: Number(process.env.LLM_TIMEOUT_BALANCED || "90000"),
+        description: "Ausgewogen, gute JSON-Qualität",
+        numGpu: 20,
+        numCtx: 4096,
+        temperature: 0.1
+      },
+      quality: {
+        name: process.env.LLM_MODEL_QUALITY || "einfo-quality",
+        timeout: Number(process.env.LLM_TIMEOUT_QUALITY || "180000"),
+        description: "Höchste Qualität, langsam (GPU+CPU Offloading)",
+        numGpu: 20,           // Teilweise auf GPU, Rest auf CPU/RAM
+        numCtx: 4096,
+        temperature: 0.05
+      }
+    },
+
+    // Welches Modell für welchen Task-Typ
+    // Werte: "fast" | "balanced" | "quality"
+    taskModels: {
+      start: process.env.LLM_TASK_START || "quality",       // Erstes Szenario
+      operations: process.env.LLM_TASK_OPS || "balanced",   // Laufende Simulation
+      chat: process.env.LLM_TASK_CHAT || "balanced",        // QA-Chat
+      default: process.env.LLM_TASK_DEFAULT || "balanced"
+    },
+
+    // Globales Override (überschreibt taskModels wenn nicht "auto")
+    // Werte: "auto" | "fast" | "balanced" | "quality"
+    activeModel: process.env.LLM_MODEL || "auto"
+  },
   
-  // Differenzierte Timeouts - NEU
+  // Differenzierte Timeouts (Fallbacks wenn Modell-Config keine hat)
   llmChatTimeoutMs: Number(process.env.LLM_CHAT_TIMEOUT_MS || "60000"),
   llmSimTimeoutMs: Number(process.env.LLM_SIM_TIMEOUT_MS || "300000"),
   llmEmbedTimeoutMs: Number(process.env.LLM_EMBED_TIMEOUT_MS || "30000"),
-  llmRequestTimeoutMs: Number(process.env.LLM_TIMEOUT_MS || "240000"), // Fallback
+  llmRequestTimeoutMs: Number(process.env.LLM_TIMEOUT_MS || "240000"),
   
-  // Llama-spezifische Parameter - NEU
+  // Llama-spezifische Parameter
   llmNumCtx: Number(process.env.LLM_NUM_CTX || "8192"),
   llmNumBatch: Number(process.env.LLM_NUM_BATCH || "512"),
   
@@ -44,16 +90,16 @@ const base = {
   defaultTemperature: Number(process.env.LLM_TEMP || "0.05"),
   defaultSeed: Number(process.env.LLM_SEED || "42"),
 
-  // Vector-RAG Settings - OPTIMIERT für Llama
+  // Vector-RAG Settings
   rag: {
-    dim: Number(process.env.RAG_DIM || "1024"), // mxbai-embed-large = 1024
+    dim: Number(process.env.RAG_DIM || "1024"),
     indexMaxElements: Number(process.env.RAG_MAX_ELEM || "50000"),
     topK: Number(process.env.RAG_TOP_K || "5"),
     maxContextChars: Number(process.env.RAG_MAX_CTX || "2500"),
     scoreThreshold: Number(process.env.RAG_SCORE_THRESHOLD || "0.35")
   },
 
-  // Prompt-Limits - NEU
+  // Prompt-Limits
   prompt: {
     maxBoardItems: Number(process.env.PROMPT_MAX_BOARD || "25"),
     maxAufgabenItems: Number(process.env.PROMPT_MAX_AUFGABEN || "50"),
@@ -74,35 +120,22 @@ const base = {
 };
 
 
-
 export const simulationConfig = {
   // ============================================================
   // Simulation Worker Konfiguration
   // ============================================================
   simulation: {
-    // Intervall zwischen Worker-Durchläufen in Millisekunden
-    // Default: 60 Sekunden, über Umgebungsvariable anpassbar
     workerIntervalMs: Number(process.env.SIM_WORKER_INTERVAL_MS || "60000"),
-
-    // Maximale Wiederholungsversuche bei LLM-Fehlern
     maxRetries: Number(process.env.SIM_MAX_RETRIES || "3"),
-
-    // Wartezeit zwischen Wiederholungen in Millisekunden
     retryDelayMs: Number(process.env.SIM_RETRY_DELAY_MS || "5000"),
-
-    // URL zum EINFO Haupt-Server (für Online-Rollen-Abfrage)
     mainServerUrl: process.env.MAIN_SERVER_URL || "http://localhost:4040",
-
-    // API-Endpoint für Online-Rollen
     onlineRolesEndpoint: "/api/user/online-roles"
   },
 
   // ============================================================
   // Feldnamen-Mapping: LLM (kurz) ↔ JSON (lang)
   // ============================================================
-  // Token-Optimierung: Kurze Feldnamen sparen ~30% Tokens beim LLM
   fieldMapping: {
-    // Einsatzboard (board.json)
     board: {
       llmToJson: {
         t: "content",
@@ -125,8 +158,6 @@ export const simulationConfig = {
         humanId: "hid"
       }
     },
-
-    // Aufgabenboards (Aufg_board_*.json)
     aufgaben: {
       llmToJson: {
         t: "title",
@@ -147,8 +178,6 @@ export const simulationConfig = {
         priority: "prio"
       }
     },
-
-    // Protokoll (protocol.json)
     protokoll: {
       llmToJson: {
         i: "information",
@@ -174,47 +203,19 @@ export const simulationConfig = {
   // ============================================================
   // Rollendefinitionen für die Simulation
   // ============================================================
-
-  // Stabsstellen die simuliert werden können
   stabsstellen: [
-    "LtStb",      // Leiter Stab
-    "LtStbStv",   // Stellvertreter Leiter Stab
-    "S1",         // Personal
-    "S2",         // Lage
-    "S3",         // Einsatz
-    "S4",         // Versorgung
-    "S5",         // Presse/Öffentlichkeitsarbeit
-    "S6"          // Kommunikation/IT
+    "LtStb", "LtStbStv", "S1", "S2", "S3", "S4", "S5", "S6"
   ],
 
-  // Externe Stellen (für Simulation von ein-/ausgehenden Meldungen)
   externeStellen: [
-    "LST",      // Landesstellte / Leitstelle
-    "POL",      // Polizei
-    "BM",       // Bürgermeister
-    "WLV",      // Wildbach- und Lawinenverbauung
-    "STM",      // Straßenmeisterei
-    "EVN",      // Energieversorger
-    "RK",       // Rotes Kreuz
-    "BH",       // Bezirkshauptmannschaft
-    "GEM",      // Gemeinde
-    "ÖBB",      // Österreichische Bundesbahnen
-    "ASFINAG",  // Autobahnen
-    "KELAG",    // Kärntner Elektrizitäts-AG
-    "LWZ"       // Landeswarnzentrale
+    "LST", "POL", "BM", "WLV", "STM", "EVN", "RK", "BH",
+    "GEM", "ÖBB", "ASFINAG", "KELAG", "LWZ"
   ],
 
-  // Meldestelle-Bezeichnungen
-  // WICHTIG: Die Meldestelle ist KEINE Stabsstelle und wird NIE simuliert!
-  meldestelle: [
-    "Meldestelle",
-    "MS",
-    "Meldestelle/S6"
-  ],
+  meldestelle: ["Meldestelle", "MS", "Meldestelle/S6"],
 
   // ============================================================
   // Feuerwehr-Standorte im Bezirk Feldkirchen
-  // Für Fahrzeugzuweisung nach Entfernung zum Einsatzort
   // ============================================================
   feuerwehrStandorte: {
     "FF Feldkirchen": { lat: 46.7233, lon: 14.0954 },
@@ -252,7 +253,6 @@ const profiles = {
       scoreThreshold: 0.35
     }
   },
-  // Legacy-Profil für Mixtral (falls noch benötigt)
   mixtral_gpu: {
     llmChatModel: "mixtral_einfo",
     llmEmbedModel: "nomic-embed-text",
@@ -284,5 +284,91 @@ export const CONFIG = {
     ...base.prompt,
     ...(profileConfig.prompt || {})
   },
+  llm: base.llm,
   profile: activeProfile
 };
+
+
+// ============================================================
+// Runtime-Modell-Management (zur Laufzeit änderbar)
+// ============================================================
+
+/**
+ * Ändert das aktive Modell zur Laufzeit
+ * @param {string} modelKey - "fast" | "balanced" | "quality" | "auto"
+ */
+export function setActiveModel(modelKey) {
+  if (modelKey !== "auto" && !CONFIG.llm.models[modelKey]) {
+    throw new Error(`Unbekanntes Modell: ${modelKey}. Erlaubt: fast, balanced, quality, auto`);
+  }
+  CONFIG.llm.activeModel = modelKey;
+  console.log(`[CONFIG] Aktives Modell gewechselt zu: ${modelKey}`);
+}
+
+/**
+ * Gibt die aktuelle Modell-Konfiguration zurück
+ * @returns {Object}
+ */
+export function getActiveModelConfig() {
+  const activeKey = CONFIG.llm.activeModel;
+  if (activeKey === "auto") {
+    return { key: "auto", mode: "task-based", taskModels: CONFIG.llm.taskModels };
+  }
+  return {
+    key: activeKey,
+    mode: "fixed",
+    ...CONFIG.llm.models[activeKey]
+  };
+}
+
+/**
+ * Gibt das Modell für einen bestimmten Task-Typ zurück
+ * @param {string} taskType - "start" | "operations" | "chat"
+ * @returns {Object} - { key, name, timeout, numGpu, ... }
+ */
+export function getModelForTask(taskType) {
+  const llmConfig = CONFIG.llm;
+  
+  // Wenn globales Override aktiv (nicht "auto")
+  if (llmConfig.activeModel && llmConfig.activeModel !== "auto") {
+    const model = llmConfig.models[llmConfig.activeModel];
+    if (model) {
+      return { key: llmConfig.activeModel, ...model };
+    }
+  }
+  
+  // Task-basierte Auswahl
+  const modelKey = llmConfig.taskModels[taskType] || llmConfig.taskModels.default;
+  const model = llmConfig.models[modelKey];
+  
+  if (!model) {
+    console.warn(`[CONFIG] Modell "${modelKey}" nicht gefunden, verwende balanced`);
+    return { key: "balanced", ...llmConfig.models.balanced };
+  }
+  
+  return { key: modelKey, ...model };
+}
+
+/**
+ * Setzt die Task-Modell-Zuordnung zur Laufzeit
+ * @param {string} taskType - "start" | "operations" | "chat" | "default"
+ * @param {string} modelKey - "fast" | "balanced" | "quality"
+ */
+export function setTaskModel(taskType, modelKey) {
+  if (!CONFIG.llm.models[modelKey]) {
+    throw new Error(`Unbekanntes Modell: ${modelKey}`);
+  }
+  if (!CONFIG.llm.taskModels.hasOwnProperty(taskType)) {
+    throw new Error(`Unbekannter Task-Typ: ${taskType}`);
+  }
+  CONFIG.llm.taskModels[taskType] = modelKey;
+  console.log(`[CONFIG] Task "${taskType}" verwendet jetzt Modell: ${modelKey}`);
+}
+
+/**
+ * Gibt alle konfigurierten Modelle zurück
+ * @returns {Object}
+ */
+export function getAllModels() {
+  return { ...CONFIG.llm.models };
+}

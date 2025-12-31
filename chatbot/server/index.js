@@ -10,13 +10,25 @@ import {
   stepSimulation,
   isSimulationRunning
 } from "./sim_loop.js";
-import { callLLMForChat, listAvailableLlmModels } from "./llm_client.js";
+import { 
+  callLLMForChat, 
+  listAvailableLlmModels,
+  checkConfiguredModels,
+  getModelForTask
+} from "./llm_client.js";
+import { 
+  CONFIG, 
+  setActiveModel, 
+  getActiveModelConfig,
+  setTaskModel,
+  getAllModels
+} from "./config.js";
 import { logInfo, logError } from "./logger.js";
 import { initMemoryStore } from "./memory_manager.js";
 import { getGpuStatus } from "./gpu_status.js";
 
 // ============================================================
-// NEU: Imports für Audit-Trail und Templates
+// Imports für Audit-Trail und Templates
 // ============================================================
 import {
   startAuditTrail,
@@ -41,7 +53,7 @@ import {
 } from "./template_manager.js";
 
 // ============================================================
-// NEU: Imports für Disaster Context und LLM Feedback
+// Imports für Disaster Context und LLM Feedback
 // ============================================================
 import {
   initializeDisasterContext,
@@ -209,7 +221,212 @@ app.post("/api/llm/test", async (req, res) => {
 });
 
 // ============================================================
-// NEU: API-Routen für Audit-Trail (Übungs-Protokollierung)
+// NEU: Multi-Modell Management API
+// ============================================================
+
+// Alle konfigurierten Modelle und deren Status
+app.get("/api/llm/config", async (_req, res) => {
+  try {
+    const modelStatus = await checkConfiguredModels();
+    const taskModels = CONFIG.llm.taskModels;
+    
+    // Welches Modell wird für welchen Task verwendet?
+    const taskModelDetails = {};
+    for (const [task, modelKey] of Object.entries(taskModels)) {
+      const model = CONFIG.llm.models[modelKey];
+      taskModelDetails[task] = {
+        key: modelKey,
+        name: model?.name || "unknown",
+        timeout: model?.timeout || 0,
+        description: model?.description || ""
+      };
+    }
+    
+    res.json({
+      ok: true,
+      activeModel: modelStatus.activeConfig,
+      configuredModels: CONFIG.llm.models,
+      taskModels: taskModelDetails,
+      installedModels: modelStatus.installed,
+      available: modelStatus.available,
+      missing: modelStatus.missing
+    });
+  } catch (err) {
+    logError("Fehler beim Laden der Modell-Konfiguration", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// Aktives Modell wechseln (global)
+app.post("/api/llm/model", (req, res) => {
+  const { model } = req.body || {};
+  
+  if (!model) {
+    return res.status(400).json({ 
+      ok: false, 
+      error: "model fehlt. Erlaubte Werte: fast, balanced, quality, auto" 
+    });
+  }
+  
+  try {
+    setActiveModel(model);
+    
+    const newConfig = getActiveModelConfig();
+    logInfo("Modell gewechselt", { model, config: newConfig });
+    
+    // SSE-Broadcast für Dashboard-Updates
+    broadcastSSE("model_changed", { model, config: newConfig });
+    
+    res.json({
+      ok: true,
+      message: `Modell gewechselt zu: ${model}`,
+      activeModel: newConfig
+    });
+  } catch (err) {
+    logError("Fehler beim Modell-Wechsel", { error: String(err), model });
+    res.status(400).json({ ok: false, error: String(err) });
+  }
+});
+
+// Task-spezifisches Modell setzen
+app.post("/api/llm/task-model", (req, res) => {
+  const { taskType, model } = req.body || {};
+  
+  if (!taskType || !model) {
+    return res.status(400).json({ 
+      ok: false, 
+      error: "taskType und model erforderlich. taskType: start|operations|chat|default, model: fast|balanced|quality" 
+    });
+  }
+  
+  try {
+    setTaskModel(taskType, model);
+    
+    logInfo("Task-Modell gesetzt", { taskType, model });
+    broadcastSSE("task_model_changed", { taskType, model });
+    
+    res.json({
+      ok: true,
+      message: `Task "${taskType}" verwendet jetzt Modell: ${model}`,
+      taskModels: CONFIG.llm.taskModels
+    });
+  } catch (err) {
+    logError("Fehler beim Setzen des Task-Modells", { error: String(err), taskType, model });
+    res.status(400).json({ ok: false, error: String(err) });
+  }
+});
+
+// Modell für bestimmten Task-Typ abfragen
+app.get("/api/llm/model/:taskType", (req, res) => {
+  const { taskType } = req.params;
+  
+  try {
+    const model = getModelForTask(taskType);
+    res.json({
+      ok: true,
+      taskType,
+      model
+    });
+  } catch (err) {
+    res.status(400).json({ ok: false, error: String(err) });
+  }
+});
+
+// Schnelltest eines bestimmten Modell-Profils
+app.post("/api/llm/test-model", async (req, res) => {
+  const { modelKey } = req.body || {};
+  
+  if (!modelKey || !CONFIG.llm.models[modelKey]) {
+    return res.status(400).json({ 
+      ok: false, 
+      error: `Ungültiger modelKey. Erlaubt: ${Object.keys(CONFIG.llm.models).join(", ")}` 
+    });
+  }
+  
+  const modelConfig = CONFIG.llm.models[modelKey];
+  const testPrompt = 'Antworte kurz auf Deutsch: Was ist 2+2? Gib nur die Zahl zurück.';
+  
+  const startTime = Date.now();
+  
+  try {
+    // GPU-Status vorher
+    const gpuBefore = await getGpuStatus();
+    
+    const answer = await callLLMForChat({ 
+      question: testPrompt, 
+      model: modelConfig.name 
+    });
+    
+    const duration = Date.now() - startTime;
+    
+    // GPU-Status nachher
+    const gpuAfter = await getGpuStatus();
+    
+    logInfo("Modell-Test erfolgreich", { modelKey, duration });
+    
+    res.json({
+      ok: true,
+      modelKey,
+      modelName: modelConfig.name,
+      duration,
+      timeout: modelConfig.timeout,
+      response: typeof answer === "string" ? answer.slice(0, 500) : answer,
+      gpu: {
+        before: gpuBefore,
+        after: gpuAfter
+      }
+    });
+  } catch (err) {
+    const duration = Date.now() - startTime;
+    logError("Modell-Test fehlgeschlagen", { 
+      modelKey, 
+      modelName: modelConfig.name, 
+      error: String(err),
+      duration 
+    });
+    
+    res.status(500).json({ 
+      ok: false, 
+      error: String(err),
+      modelKey,
+      modelName: modelConfig.name,
+      duration,
+      timeout: modelConfig.timeout
+    });
+  }
+});
+
+// Alle Modell-Profile mit aktuellem Status
+app.get("/api/llm/profiles", async (_req, res) => {
+  try {
+    const allModels = getAllModels();
+    const modelStatus = await checkConfiguredModels();
+    const activeConfig = getActiveModelConfig();
+    
+    const profiles = {};
+    for (const [key, config] of Object.entries(allModels)) {
+      const isAvailable = modelStatus.available.some(m => m.key === key);
+      profiles[key] = {
+        ...config,
+        available: isAvailable,
+        isActive: activeConfig.key === key
+      };
+    }
+    
+    res.json({
+      ok: true,
+      profiles,
+      activeModel: activeConfig,
+      taskModels: CONFIG.llm.taskModels
+    });
+  } catch (err) {
+    logError("Fehler beim Laden der Modell-Profile", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// ============================================================
+// API-Routen für Audit-Trail (Übungs-Protokollierung)
 // ============================================================
 
 // Status der aktuellen Übung abrufen
@@ -269,7 +486,7 @@ app.post("/api/audit/end", async (req, res) => {
     // SSE-Broadcast
     broadcastSSE("exercise_ended", { 
       exerciseId: result.metadata?.exerciseId,
-      statistics: result.statistics 
+      eventCount: result.events?.length 
     });
     
     res.json({ ok: true, result });
@@ -279,70 +496,26 @@ app.post("/api/audit/end", async (req, res) => {
   }
 });
 
-// Übung pausieren
-app.post("/api/audit/pause", (req, res) => {
-  try {
-    const success = pauseExercise();
-    if (success) {
-      broadcastSSE("exercise_paused", { timestamp: Date.now() });
-    }
-    res.json({ ok: success });
-  } catch (err) {
-    res.status(500).json({ ok: false, error: String(err) });
-  }
-});
-
-// Übung fortsetzen
-app.post("/api/audit/resume", (req, res) => {
-  try {
-    const success = resumeExercise();
-    if (success) {
-      broadcastSSE("exercise_resumed", { timestamp: Date.now() });
-    }
-    res.json({ ok: success });
-  } catch (err) {
-    res.status(500).json({ ok: false, error: String(err) });
-  }
-});
-
-// Alle vergangenen Übungen auflisten
+// Liste aller gespeicherten Übungen
 app.get("/api/audit/list", async (req, res) => {
   try {
-    const trails = await listAuditTrails();
-    res.json({ ok: true, trails });
+    const list = await listAuditTrails();
+    res.json({ ok: true, exercises: list });
   } catch (err) {
     logError("Audit-Liste Fehler", { error: String(err) });
     res.status(500).json({ ok: false, error: String(err) });
   }
 });
 
-// Live-Events der aktuellen Übung abrufen (mit Filter)
-app.get("/api/audit/events", (req, res) => {
-  try {
-    const { category, since, limit } = req.query;
-    const events = getFilteredEvents({
-      category: category || undefined,
-      since: since || undefined,
-      limit: limit ? parseInt(limit, 10) : undefined
-    });
-    res.json({ ok: true, events });
-  } catch (err) {
-    res.status(500).json({ ok: false, error: String(err) });
-  }
-});
-
-// Einzelne vergangene Übung laden (für Nachbesprechung)
+// Bestimmte Übung laden
 app.get("/api/audit/:exerciseId", async (req, res) => {
   try {
     const { exerciseId } = req.params;
-    if (!exerciseId) {
-      return res.status(400).json({ ok: false, error: "exerciseId fehlt" });
-    }
-    const trail = await loadAuditTrail(exerciseId);
-    if (!trail) {
+    const exercise = await loadAuditTrail(exerciseId);
+    if (!exercise) {
       return res.status(404).json({ ok: false, error: "Übung nicht gefunden" });
     }
-    res.json({ ok: true, trail });
+    res.json({ ok: true, exercise });
   } catch (err) {
     logError("Audit laden Fehler", { error: String(err) });
     res.status(500).json({ ok: false, error: String(err) });
@@ -353,22 +526,61 @@ app.get("/api/audit/:exerciseId", async (req, res) => {
 app.delete("/api/audit/:exerciseId", async (req, res) => {
   try {
     const { exerciseId } = req.params;
-    const success = await deleteAuditTrail(exerciseId);
-    res.json({ ok: success });
+    const deleted = await deleteAuditTrail(exerciseId);
+    if (!deleted) {
+      return res.status(404).json({ ok: false, error: "Übung nicht gefunden" });
+    }
+    res.json({ ok: true });
   } catch (err) {
+    logError("Audit löschen Fehler", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// Übung pausieren
+app.post("/api/audit/pause", (req, res) => {
+  try {
+    pauseExercise();
+    broadcastSSE("exercise_paused", {});
+    res.json({ ok: true });
+  } catch (err) {
+    logError("Audit pausieren Fehler", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// Übung fortsetzen
+app.post("/api/audit/resume", (req, res) => {
+  try {
+    resumeExercise();
+    broadcastSSE("exercise_resumed", {});
+    res.json({ ok: true });
+  } catch (err) {
+    logError("Audit fortsetzen Fehler", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// Events filtern
+app.post("/api/audit/events", async (req, res) => {
+  try {
+    const { exerciseId, filters } = req.body || {};
+    const events = await getFilteredEvents(exerciseId, filters);
+    res.json({ ok: true, events });
+  } catch (err) {
+    logError("Events filtern Fehler", { error: String(err) });
     res.status(500).json({ ok: false, error: String(err) });
   }
 });
 
 // ============================================================
-// NEU: API-Routen für Übungs-Templates (Szenarien)
+// API-Routen für Templates
 // ============================================================
 
-// Alle Templates auflisten
+// Alle Templates laden
 app.get("/api/templates", async (req, res) => {
   try {
-    const forceRefresh = req.query.refresh === "true";
-    const templates = await loadAllTemplates(forceRefresh);
+    const templates = await loadAllTemplates();
     res.json({ ok: true, templates });
   } catch (err) {
     logError("Templates laden Fehler", { error: String(err) });
@@ -376,13 +588,10 @@ app.get("/api/templates", async (req, res) => {
   }
 });
 
-// Einzelnes Template laden (vollständig mit initial_state, triggers, etc.)
+// Einzelnes Template laden
 app.get("/api/templates/:templateId", async (req, res) => {
   try {
     const { templateId } = req.params;
-    if (!templateId) {
-      return res.status(400).json({ ok: false, error: "templateId fehlt" });
-    }
     const template = await loadTemplate(templateId);
     if (!template) {
       return res.status(404).json({ ok: false, error: "Template nicht gefunden" });
@@ -394,27 +603,16 @@ app.get("/api/templates/:templateId", async (req, res) => {
   }
 });
 
-// Neues Template speichern oder bestehendes aktualisieren
+// Template speichern
 app.post("/api/templates", async (req, res) => {
   try {
     const template = req.body;
-    if (!template) {
-      return res.status(400).json({ ok: false, error: "Template-Daten fehlen" });
-    }
-    
-    // Validierung
     const validation = validateTemplate(template);
     if (!validation.valid) {
-      return res.status(400).json({ 
-        ok: false, 
-        error: "Validierungsfehler", 
-        details: validation.errors 
-      });
+      return res.status(400).json({ ok: false, error: validation.errors.join(", ") });
     }
-    
-    await saveTemplate(template);
-    logInfo("Template gespeichert", { id: template.id });
-    res.json({ ok: true, id: template.id });
+    const saved = await saveTemplate(template);
+    res.json({ ok: true, template: saved });
   } catch (err) {
     logError("Template speichern Fehler", { error: String(err) });
     res.status(500).json({ ok: false, error: String(err) });
@@ -425,26 +623,39 @@ app.post("/api/templates", async (req, res) => {
 app.delete("/api/templates/:templateId", async (req, res) => {
   try {
     const { templateId } = req.params;
-    const success = await deleteTemplate(templateId);
-    if (!success) {
+    const deleted = await deleteTemplate(templateId);
+    if (!deleted) {
       return res.status(404).json({ ok: false, error: "Template nicht gefunden" });
     }
-    logInfo("Template gelöscht", { id: templateId });
     res.json({ ok: true });
   } catch (err) {
+    logError("Template löschen Fehler", { error: String(err) });
     res.status(500).json({ ok: false, error: String(err) });
   }
 });
 
-// Übung aus Template erstellen (kopiert initial_state)
+// Übung aus Template erstellen
 app.post("/api/templates/:templateId/create-exercise", async (req, res) => {
   try {
     const { templateId } = req.params;
-    const exercise = await createExerciseFromTemplate(templateId);
-    if (!exercise) {
+    const { exerciseName, participants, instructor } = req.body || {};
+    
+    const result = await createExerciseFromTemplate(templateId, {
+      exerciseName,
+      participants,
+      instructor
+    });
+    
+    if (!result) {
       return res.status(404).json({ ok: false, error: "Template nicht gefunden" });
     }
-    res.json({ ok: true, exercise });
+    
+    broadcastSSE("exercise_created_from_template", { 
+      templateId, 
+      exerciseId: result.exerciseId 
+    });
+    
+    res.json({ ok: true, ...result });
   } catch (err) {
     logError("Übung aus Template erstellen Fehler", { error: String(err) });
     res.status(500).json({ ok: false, error: String(err) });
@@ -452,58 +663,70 @@ app.post("/api/templates/:templateId/create-exercise", async (req, res) => {
 });
 
 // ============================================================
-// NEU: API-Routen für Disaster Context
+// API-Routen für Disaster Context
 // ============================================================
-
-// Disaster Context initialisieren
-app.post("/api/disaster/init", async (req, res) => {
-  try {
-    const { type, description, scenario } = req.body || {};
-    const context = await initializeDisasterContext({
-      type,
-      description,
-      scenario
-    });
-    logInfo("Disaster Context initialisiert", { disasterId: context.disasterId });
-    broadcastSSE("disaster_started", { disasterId: context.disasterId, type });
-    res.json({ ok: true, context });
-  } catch (err) {
-    logError("Disaster Context Init Fehler", { error: String(err) });
-    res.status(500).json({ ok: false, error: String(err) });
-  }
-});
 
 // Aktuellen Disaster Context abrufen
 app.get("/api/disaster/current", (req, res) => {
   try {
     const context = getCurrentDisasterContext();
-    if (!context) {
-      return res.status(404).json({ ok: false, error: "Kein aktiver Disaster Context" });
-    }
     res.json({ ok: true, context });
   } catch (err) {
+    logError("Disaster Context Fehler", { error: String(err) });
     res.status(500).json({ ok: false, error: String(err) });
   }
 });
 
-// Disaster Context Summary abrufen (für LLM-Prompts)
+// Disaster Context Summary abrufen
 app.get("/api/disaster/summary", (req, res) => {
   try {
     const { maxLength } = req.query;
-    const summary = getDisasterContextSummary({
-      maxLength: maxLength ? parseInt(maxLength, 10) : 1500
+    const summary = getDisasterContextSummary({ 
+      maxLength: maxLength ? parseInt(maxLength, 10) : 1500 
     });
     res.json({ ok: true, summary });
   } catch (err) {
+    logError("Disaster Summary Fehler", { error: String(err) });
     res.status(500).json({ ok: false, error: String(err) });
   }
 });
 
-// Alle Disaster Contexts auflisten
+// Neuen Disaster Context initialisieren
+app.post("/api/disaster/init", async (req, res) => {
+  try {
+    const { disasterType, location, severity } = req.body || {};
+    const context = await initializeDisasterContext({
+      disasterType: disasterType || "Hochwasser",
+      location: location || "Bezirk Feldkirchen",
+      severity: severity || "mittel"
+    });
+    broadcastSSE("disaster_initialized", { disasterId: context.disasterId });
+    res.json({ ok: true, context });
+  } catch (err) {
+    logError("Disaster Init Fehler", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// Disaster Context aus EINFO aktualisieren
+app.post("/api/disaster/update", async (req, res) => {
+  try {
+    const context = await updateDisasterContextFromEinfo();
+    if (context) {
+      broadcastSSE("disaster_updated", { disasterId: context.disasterId });
+    }
+    res.json({ ok: true, context });
+  } catch (err) {
+    logError("Disaster Update Fehler", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// Liste aller Disaster Contexts
 app.get("/api/disaster/list", async (req, res) => {
   try {
-    const contexts = await listDisasterContexts();
-    res.json({ ok: true, contexts });
+    const list = await listDisasterContexts();
+    res.json({ ok: true, disasters: list });
   } catch (err) {
     logError("Disaster Context Liste Fehler", { error: String(err) });
     res.status(500).json({ ok: false, error: String(err) });
@@ -554,7 +777,7 @@ app.post("/api/disaster/record-suggestion", async (req, res) => {
 });
 
 // ============================================================
-// NEU: API-Routen für LLM Feedback & Learning
+// API-Routen für LLM Feedback & Learning
 // ============================================================
 
 // Feedback zu LLM-Antwort speichern
@@ -679,7 +902,7 @@ app.post("/api/feedback/learned-context", async (req, res) => {
 });
 
 // ============================================================
-// NEU: Server-Sent Events für Live-Updates
+// Server-Sent Events für Live-Updates
 // ============================================================
 
 // Speichert alle verbundenen SSE-Clients
@@ -702,6 +925,10 @@ app.get("/api/events", (req, res) => {
   try {
     const status = getAuditStatus();
     res.write(`event: status\ndata: ${JSON.stringify(status)}\n\n`);
+    
+    // Modell-Status senden
+    const modelConfig = getActiveModelConfig();
+    res.write(`event: model_status\ndata: ${JSON.stringify(modelConfig)}\n\n`);
   } catch {
     // Ignorieren wenn kein Audit aktiv
   }
@@ -726,7 +953,7 @@ app.get("/api/events", (req, res) => {
 /**
  * Sendet Event an alle verbundenen SSE-Clients
  * Kann von anderen Modulen verwendet werden
- * @param {string} eventType - Name des Events (z.B. "exercise_started", "step_complete")
+ * @param {string} eventType - Name des Events
  * @param {object} data - Daten die gesendet werden
  */
 function broadcastSSE(eventType, data) {
@@ -764,13 +991,37 @@ async function bootstrap() {
     logInfo("Verfügbare Endpoints:", {
       simulation: ["/api/sim/start", "/api/sim/pause", "/api/sim/step"],
       chat: ["/api/chat"],
-      llm: ["/api/llm/models", "/api/llm/gpu", "/api/llm/test"],
+      llm: ["/api/llm/models", "/api/llm/gpu", "/api/llm/test", "/api/llm/config", "/api/llm/model", "/api/llm/profiles"],
       audit: ["/api/audit/status", "/api/audit/start", "/api/audit/end", "/api/audit/list"],
       templates: ["/api/templates"],
+      disaster: ["/api/disaster/current", "/api/disaster/summary", "/api/disaster/init"],
+      feedback: ["/api/feedback", "/api/feedback/list", "/api/feedback/stats"],
       sse: ["/api/events"]
+    });
+    
+    // Modell-Konfiguration beim Start loggen
+    const activeModel = getActiveModelConfig();
+    logInfo("LLM-Konfiguration:", {
+      activeModel: activeModel.key,
+      mode: activeModel.mode,
+      taskModels: CONFIG.llm.taskModels
+    });
+    
+    // Verfügbare Modelle prüfen
+    checkConfiguredModels().then(status => {
+      if (status.missing.length > 0) {
+        logInfo("WARNUNG: Fehlende Modelle", { 
+          missing: status.missing.map(m => m.name) 
+        });
+      }
+      logInfo("Installierte Modelle", { 
+        count: status.installed.length,
+        available: status.available.map(m => m.key)
+      });
+    }).catch(() => {
+      // Ignorieren beim Start
     });
   });
 }
 
 bootstrap();
-

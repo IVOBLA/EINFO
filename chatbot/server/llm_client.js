@@ -1,10 +1,11 @@
 // chatbot/server/llm_client.js
+// LLM-Client mit Multi-Modell Unterstützung
 
-import { CONFIG } from "./config.js";
+import { CONFIG, getModelForTask, getActiveModelConfig } from "./config.js";
 import {
-  buildSystemPrompt,          // allgemeiner Ops-Prompt
-  buildUserPrompt,            // allgemeiner Ops-Prompt
-  buildStartPrompts,          // Start-Prompt
+  buildSystemPrompt,
+  buildUserPrompt,
+  buildStartPrompts,
   buildSystemPromptChat,
   buildUserPromptChat
 } from "./prompts.js";
@@ -14,7 +15,7 @@ import { getKnowledgeContextVector } from "./rag/rag_vector.js";
 import { extractJsonObject, validateOperationsJson } from "./json_sanitizer.js";
 import { setLLMHistoryMeta } from "./state_store.js";
 
-// NEU: Imports für Disaster Context und Learned Responses
+// Imports für Disaster Context und Learned Responses
 import { getDisasterContextSummary } from "./disaster_context.js";
 import { getLearnedResponsesContext } from "./llm_feedback.js";
 
@@ -28,6 +29,45 @@ function fetchWithTimeout(url, options, timeoutMs) {
     clearTimeout(id);
   });
 }
+
+// ============================================================
+// Multi-Modell Unterstützung
+// ============================================================
+
+/**
+ * Baut die Ollama-Options basierend auf Modell-Config
+ * @param {Object} modelConfig - Modell-Konfiguration aus CONFIG.llm.models
+ * @param {Object} overrides - Optionale Überschreibungen
+ * @returns {Object} - Ollama options
+ */
+function buildModelOptions(modelConfig, overrides = {}) {
+  return {
+    temperature: overrides.temperature ?? modelConfig.temperature ?? 0.05,
+    seed: overrides.seed ?? Math.floor(Math.random() * 1000000),
+    num_ctx: overrides.numCtx ?? modelConfig.numCtx ?? CONFIG.llmNumCtx ?? 4096,
+    num_batch: CONFIG.llmNumBatch || 512,
+    num_gpu: modelConfig.numGpu ?? 99,
+    num_predict: overrides.numPredict ?? 4000,
+    top_p: overrides.topP ?? 0.92,
+    top_k: overrides.topK ?? 50,
+    repeat_penalty: overrides.repeatPenalty ?? 1.15,
+    stop: overrides.stop ?? ["```", "<|eot_id|>", "</s>"]
+  };
+}
+
+/**
+ * Loggt Modell-Auswahl für Debugging
+ */
+function logModelSelection(taskType, modelConfig) {
+  logDebug("Modell ausgewählt", {
+    taskType,
+    modelKey: modelConfig.key,
+    modelName: modelConfig.name,
+    timeout: modelConfig.timeout,
+    numGpu: modelConfig.numGpu
+  });
+}
+
 
 export async function listAvailableLlmModels() {
   const url = `${CONFIG.llmBaseUrl}/api/tags`;
@@ -91,10 +131,10 @@ export async function callLLMForOps({
       "Stabsarbeit Kat-E Einsatzleiter LdStb Meldestelle S1 S2 S3 S4 S5 S6"
     );
 
-    // NEU: Disaster Context abrufen
+    // Disaster Context abrufen
     const disasterContext = getDisasterContextSummary({ maxLength: 1500 });
 
-    // NEU: Learned Responses abrufen (basierend auf aktuellem Board-Context)
+    // Learned Responses abrufen (basierend auf aktuellem Board-Context)
     const contextQuery = `${compressedBoard.substring(0, 200)} Katastrophenmanagement Einsatzleitung`;
     const learnedResponses = await getLearnedResponsesContext(contextQuery, { maxLength: 1000 });
 
@@ -107,8 +147,8 @@ export async function callLLMForOps({
       knowledgeContext,
       memorySnippets,
       messagesNeedingResponse: llmInput.messagesNeedingResponse || null,
-      disasterContext,    // NEU
-      learnedResponses    // NEU
+      disasterContext,
+      learnedResponses
     });
   }
 
@@ -132,32 +172,27 @@ export async function callLLMForOps({
     logDebug("WARNUNG: Prompt sehr groß", { estimatedTokens });
   }
 
+  // ============================================================
+  // Multi-Modell Auswahl basierend auf Task-Typ
+  // ============================================================
+  const taskType = llmInput.firstStep ? "start" : "operations";
+  const modelConfig = getModelForTask(taskType);
+  logModelSelection(taskType, modelConfig);
+
   const body = {
-    model: CONFIG.llmChatModel,
+    model: modelConfig.name,
     stream: false,
-    options: {
-      // ============================================================
-      // GEÄNDERT: Mehr "Denkraum" für umfangreiche Antworten
-      // ============================================================
-      temperature: 0.2,              // War: 0.05 → Jetzt: 0.2 für mehr Kreativität
-      seed: Math.floor(Math.random() * 1000000),
-      num_ctx: CONFIG.llmNumCtx || 8192,
-      num_batch: CONFIG.llmNumBatch || 512,
-      num_predict: 6000,             // War: 2048 → Jetzt: 6000 für längere Antworten
-      
-      // NEU: Zusätzliche Sampling-Parameter für bessere Qualität
-      top_p: 0.92,                    // Nucleus Sampling
-      top_k: 50,                     // Begrenze auf top 40 Tokens
-      repeat_penalty: 1.15,           // Verhindere Wiederholungen
-      
+    options: buildModelOptions(modelConfig, {
+      temperature: taskType === "start" ? 0.1 : 0.2,  // Start braucht mehr Konsistenz
+      numPredict: 6000,
       stop: ["```", "<|eot_id|>", "</s>"]
-    },
+    }),
     messages
   };
 
   const { parsed, rawText } = await doLLMCall(body, "ops", null, {
     returnFullResponse: true,
-    timeoutMs: CONFIG.llmSimTimeoutMs || CONFIG.llmRequestTimeoutMs
+    timeoutMs: modelConfig.timeout || CONFIG.llmSimTimeoutMs || CONFIG.llmRequestTimeoutMs
   });
 
   // Validierung
@@ -170,7 +205,7 @@ export async function callLLMForOps({
 
   setLLMHistoryMeta(parsed?.meta || {});
 
-  return { parsed, rawText, systemPrompt, userMessage: userPrompt, messages };
+  return { parsed, rawText, systemPrompt, userMessage: userPrompt, messages, model: modelConfig.name };
 }
 
 
@@ -185,48 +220,50 @@ export async function callLLMForChat({
   // Knowledge Context aus RAG
   const knowledgeContext = await getKnowledgeContextVector(question);
 
-  // NEU: Disaster Context abrufen
+  // Disaster Context abrufen
   const disasterContext = getDisasterContextSummary({ maxLength: 1000 });
 
-  // NEU: Learned Responses abrufen (basierend auf Frage)
+  // Learned Responses abrufen (basierend auf Frage)
   const learnedResponses = await getLearnedResponsesContext(question, { maxLength: 800 });
 
   const systemPrompt = buildSystemPromptChat();
   const userPrompt = buildUserPromptChat(question, knowledgeContext, disasterContext, learnedResponses);
 
-  const modelName = model || CONFIG.llmChatModel;
+  // ============================================================
+  // Multi-Modell Auswahl für Chat
+  // ============================================================
+// Bei explizitem Modell: numGpu aus Config ermitteln oder Default 20 für Offloading
+const modelConfig = model 
+  ? { 
+      key: "explicit", 
+      name: model, 
+      timeout: 120000,  // GEÄNDERT: 120s statt 60s
+      numGpu: 20,
+      temperature: 0.4 
+    }
+  : getModelForTask("chat");
+  
+  logModelSelection("chat", modelConfig);
 
   const body = {
-    model: modelName,
+    model: modelConfig.name,
     stream,
-    options: {
-      // ============================================================
-      // CHAT-OPTIMIERTE PARAMETER für ausführliche deutsche Antworten
-      // ============================================================
-      temperature: 0.4,            // Höher als Ops für natürlichere Sprache
-      seed: CONFIG.defaultSeed,
-      num_ctx: CONFIG.llmNumCtx || 8192,
-      num_batch: CONFIG.llmNumBatch || 512,
-      num_predict: 2048,           // Erhöht von 1024 für ausführliche Antworten
-
-      // Sampling-Parameter für bessere Textqualität
-      top_p: 0.9,                  // Nucleus Sampling für Vielfalt
-      top_k: 40,                   // Begrenzt Wortschatz auf wahrscheinlichste
-      repeat_penalty: 1.1,         // Leichte Strafe für Wiederholungen
-
-      // KEINE stop-Tokens für natürlichen Textfluss
-      // (``` würde mitten in Erklärungen abbrechen)
-    },
+    options: buildModelOptions(modelConfig, {
+      temperature: 0.4,           // Höher für natürlichere Sprache
+      numPredict: 2048,
+      topP: 0.9,
+      topK: 40,
+      repeatPenalty: 1.1,
+      stop: []                    // Keine stop-Tokens für natürlichen Textfluss
+    }),
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt }
     ]
   };
 
-  // Chat-Modus: KEIN JSON-Format, natürlicher deutscher Text!
-
   const answer = await doLLMCall(body, "chat", onToken, {
-    timeoutMs: CONFIG.llmChatTimeoutMs || CONFIG.llmRequestTimeoutMs
+    timeoutMs: modelConfig.timeout || CONFIG.llmChatTimeoutMs || CONFIG.llmRequestTimeoutMs
   });
   return answer;
 }
@@ -260,19 +297,22 @@ function parseStreamBuffer(buffer, processPayload) {
   const remainder = parts.pop();
 
   for (const part of parts) {
-    const payloadText = extractDataText(part);
-    if (!payloadText) continue;
+    const dataText = extractDataText(part);
+    if (!dataText) continue;
+
     try {
-      processPayload(JSON.parse(payloadText));
-    } catch (err) {
-      logError("LLM-Stream-Parsefehler", { error: String(err), line: payloadText });
+      const json = JSON.parse(dataText);
+      processPayload(json);
+    } catch {
+      // Ignoriere ungültiges JSON
     }
   }
 
   return remainder;
 }
 
-// ------------------- Zentrale LLM-Funktion -------------------------------
+
+// ------------------- JSON-Reparatur --------------------------------------
 
 async function requestJsonRepairFromLLM({
   invalidJson,
@@ -280,66 +320,47 @@ async function requestJsonRepairFromLLM({
   phaseLabel,
   messageCount
 }) {
-  const systemPrompt =
-    "Du bist ein JSON-Reparatur-Assistent. " +
-    "Korrigiere nur Syntaxfehler und gib NUR das reparierte JSON zurück. " +
-    "KEINE Markdown-Codeblöcke (keine ```). " +
-    "KEIN Text vor oder nach dem JSON.";
-
-  // Limitiere die Länge des ungültigen JSON
-  const limitedJson = invalidJson.slice(0, 4000);
-
-  const userPrompt =
-    "Repariere dieses ungültige JSON. Antworte NUR mit dem korrigierten JSON:\n\n" +
-    limitedJson;
-
   const repairBody = {
-    model: model || CONFIG.llmChatModel,
+    model,
     stream: false,
+    format: "json",
     options: {
       temperature: 0,
       seed: CONFIG.defaultSeed,
-      num_predict: 2048,
-      stop: ["```"]
+      num_ctx: CONFIG.llmNumCtx || 4096,
+      num_predict: 4000
     },
     messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userPrompt }
+      {
+        role: "system",
+        content:
+          "Du bist ein JSON-Reparatur-Assistent. Extrahiere aus dem folgenden Text das JSON-Objekt und repariere es falls nötig. Antworte NUR mit dem reparierten JSON, nichts anderes."
+      },
+      {
+        role: "user",
+        content: `Repariere dieses JSON:\n\n${invalidJson.slice(0, 4000)}`
+      }
     ]
   };
 
-  const serializedRequest = JSON.stringify(repairBody);
-
-  logLLMExchange({
-    phase: "json_repair_request",
-    model: repairBody.model,
-    systemPrompt,
-    userPrompt: userPrompt.slice(0, 200) + "...",
-    rawRequest: null,
-    rawResponse: null,
-    parsedResponse: null,
-    extra: { phase: phaseLabel, messageCount }
-  });
-
+  let resp;
   let rawText = "";
   let parsed = null;
 
   try {
-    const resp = await fetchWithTimeout(
+    resp = await fetchWithTimeout(
       `${CONFIG.llmBaseUrl}/api/chat`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json; charset=utf-8",
-          "Accept": "application/json; charset=utf-8",
-          "Accept-Charset": "utf-8"
+          Accept: "application/json; charset=utf-8"
         },
-        body: serializedRequest
+        body: JSON.stringify(repairBody)
       },
-      CONFIG.llmChatTimeoutMs || CONFIG.llmRequestTimeoutMs
+      CONFIG.llmRequestTimeoutMs
     );
 
-    // Response als ArrayBuffer lesen und manuell mit UTF-8 dekodieren
     const buffer = await resp.arrayBuffer();
     const utf8Decoder = new TextDecoder('utf-8', { fatal: false, ignoreBOM: true });
     rawText = utf8Decoder.decode(buffer);
@@ -369,9 +390,10 @@ async function requestJsonRepairFromLLM({
 
   return { parsed, rawText };
 }
+
+
 async function doLLMCall(body, phaseLabel, onToken, options = {}) {
-  // WICHTIG: JSON-Format nur für Ops/Simulation, NICHT für Chat!
-  // Chat soll natürlichen deutschen Text liefern, kein JSON.
+  // JSON-Format nur für Ops/Simulation, NICHT für Chat
   if (phaseLabel !== "chat") {
     body.format = "json";
   }
@@ -385,7 +407,7 @@ async function doLLMCall(body, phaseLabel, onToken, options = {}) {
 
   logDebug("LLM-Request", { model: body.model, phase: phaseLabel });
 
-  // Anfrage IMMER in LLM.log protokollieren (direkt & unverändert)
+  // Anfrage IMMER in LLM.log protokollieren
   logLLMExchange({
     phase: "request",
     model: body.model,
@@ -416,7 +438,6 @@ async function doLLMCall(body, phaseLabel, onToken, options = {}) {
     const errorStr = String(error);
     logError("LLM-HTTP-Fehler", { error: errorStr, phase: phaseLabel });
 
-    // Auch Netzwerk-/Timeout-Fehler ins LLM.log
     logLLMExchange({
       phase: "response_error",
       model: body.model,
@@ -451,7 +472,6 @@ async function doLLMCall(body, phaseLabel, onToken, options = {}) {
       body: rawText
     });
 
-    // HTTP-Fehler inkl. Body im LLM.log
     logLLMExchange({
       phase: "response_error",
       model: body.model,
@@ -471,7 +491,7 @@ async function doLLMCall(body, phaseLabel, onToken, options = {}) {
     throw new Error(detailedMessage);
   }
 
-  // Content-Type Header validieren und warnen wenn UTF-8 nicht explizit
+  // Content-Type Header validieren
   const contentType = resp.headers.get("content-type") || "";
   if (contentType && !contentType.toLowerCase().includes("utf-8")) {
     logDebug("LLM-Response Content-Type ohne explizites UTF-8", {
@@ -481,10 +501,9 @@ async function doLLMCall(body, phaseLabel, onToken, options = {}) {
     });
   }
 
-  // STREAMING-FALL ----------------------------------------------------------
+  // STREAMING-FALL
   if (body.stream) {
     const reader = resp.body?.getReader();
-    // UTF-8 explizit erzwingen mit fatal: true für Encoding-Fehler-Erkennung
     const decoder = new TextDecoder('utf-8', { fatal: false, ignoreBOM: true });
     if (!reader) {
       throw new Error("Keine Streaming-Quelle für LLM verfügbar");
@@ -520,7 +539,6 @@ async function doLLMCall(body, phaseLabel, onToken, options = {}) {
     buffer += rest;
     buffer = parseStreamBuffer(buffer, processPayload);
 
-    // Gesamter Stream + finaler Text ins LLM.log
     logLLMExchange({
       phase: "response_stream",
       model: body.model,
@@ -539,36 +557,31 @@ async function doLLMCall(body, phaseLabel, onToken, options = {}) {
     return content;
   }
 
-  // NON-STREAMING-FALL ------------------------------------------------------
-  // Response als ArrayBuffer lesen und manuell mit UTF-8 dekodieren
-  // um Encoding-Probleme bei Sonderzeichen (ü, ö, ä, ß) zu vermeiden
+  // NON-STREAMING-FALL
   const buffer = await resp.arrayBuffer();
   const utf8Decoder = new TextDecoder('utf-8', { fatal: false, ignoreBOM: true });
   const rawText = utf8Decoder.decode(buffer);
   let parsed = null;
 
-if (typeof rawText === "string" && rawText.trim()) {
-  // Zuerst: Parse die Ollama-Response
-  const ollamaResponse = JSON.parse(rawText);
+  if (typeof rawText === "string" && rawText.trim()) {
+    // Zuerst: Parse die Ollama-Response
+    const ollamaResponse = JSON.parse(rawText);
 
-  // Extrahiere den eigentlichen Content
-  const content = ollamaResponse?.message?.content;
+    // Extrahiere den eigentlichen Content
+    const content = ollamaResponse?.message?.content;
 
-  if (content && typeof content === "string") {
-    // ============================================================
-    // CHAT-MODUS: Text direkt zurückgeben, KEIN JSON-Parsing!
-    // ============================================================
-    if (phaseLabel === "chat") {
-      // Für Chat: Einfach den Text-Content zurückgeben
-      parsed = content;
-    } else {
-      // Für Ops/Simulation: JSON parsen
-      parsed = extractJsonObject(content);
+    if (content && typeof content === "string") {
+      // CHAT-MODUS: Text direkt zurückgeben, KEIN JSON-Parsing!
+      if (phaseLabel === "chat") {
+        parsed = content;
+      } else {
+        // Für Ops/Simulation: JSON parsen
+        parsed = extractJsonObject(content);
+      }
     }
   }
-}
 
-  // JSON-Reparatur NUR für Nicht-Chat-Modi (Ops/Simulation)
+  // JSON-Reparatur NUR für Nicht-Chat-Modi
   if (!parsed && phaseLabel !== "chat" && typeof rawText === "string" && rawText.trim()) {
     const { parsed: repaired } = await requestJsonRepairFromLLM({
       invalidJson: rawText,
@@ -599,4 +612,54 @@ if (typeof rawText === "string" && rawText.trim()) {
   }
 
   return parsed ?? rawText;
+}
+
+
+// ============================================================
+// Exports für Multi-Modell Management
+// ============================================================
+
+export { getModelForTask };
+
+/**
+ * Prüft welche konfigurierten Modelle in Ollama verfügbar sind
+ * @returns {Promise<Object>} - { available, missing, installed }
+ */
+export async function checkConfiguredModels() {
+  try {
+    const installedModels = await listAvailableLlmModels();
+    const installedSet = new Set(installedModels.map(m => m.split(":")[0]));
+    
+    const configuredModels = Object.entries(CONFIG.llm.models).map(([key, config]) => ({
+      key,
+      name: config.name,
+      baseName: config.name.split(":")[0]
+    }));
+    
+    const available = [];
+    const missing = [];
+    
+    for (const model of configuredModels) {
+      if (installedSet.has(model.baseName) || installedSet.has(model.name)) {
+        available.push(model);
+      } else {
+        missing.push(model);
+      }
+    }
+    
+    return {
+      available,
+      missing,
+      installed: installedModels,
+      activeConfig: getActiveModelConfig()
+    };
+  } catch (err) {
+    logError("Fehler beim Prüfen der Modelle", { error: String(err) });
+    return {
+      available: [],
+      missing: [],
+      installed: [],
+      error: String(err)
+    };
+  }
 }
