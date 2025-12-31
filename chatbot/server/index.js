@@ -208,7 +208,7 @@ let activeScenario = null;
 app.post("/api/sim/start", async (req, res) => {
   try {
     const { scenarioId } = req.body || {};
-    activeScenario = null;
+    let nextScenario = activeScenario;
 
     // Szenario laden wenn angegeben
     if (scenarioId) {
@@ -216,16 +216,19 @@ app.post("/api/sim/start", async (req, res) => {
       if (!scenario) {
         return res.status(404).json({ ok: false, error: "Szenario nicht gefunden" });
       }
-      activeScenario = scenario;
+      nextScenario = scenario;
       logInfo("Szenario geladen", { scenarioId, title: scenario.title });
       broadcastSSE("scenario_loaded", {
         scenarioId,
         title: scenario.title,
         description: scenario.description
       });
+    } else {
+      nextScenario = null;
     }
 
     await startSimulation();
+    activeScenario = nextScenario;
     res.json({ ok: true, scenario: activeScenario ? { id: activeScenario.id, title: activeScenario.title } : null });
   } catch (err) {
     logError("Fehler beim Starten der Simulation", { error: String(err) });
