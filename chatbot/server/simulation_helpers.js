@@ -30,6 +30,23 @@ const log = (level, msg, data) => {
 };
 
 // ============================================================
+// 0. Hilfsfunktion: Rolle aus anvon-Feld extrahieren
+// ============================================================
+
+/**
+ * Extrahiert Rolle aus "Von: EL" oder "An: S2" Format
+ * @param {string} anvon - z.B. "Von: EL" oder "EL"
+ * @returns {string|null}
+ */
+function extractRoleFromAnvon(anvon) {
+  if (!anvon || typeof anvon !== 'string') return null;
+  const trimmed = anvon.trim();
+  // "Von: EL" oder "An: S2" → "EL" bzw "S2"
+  const match = trimmed.match(/^(?:Von|An):\s*(.+)$/i);
+  return match ? match[1].trim() : trimmed;
+}
+
+// ============================================================
 // Feuerwehr-Standorte im Bezirk Feldkirchen
 // ============================================================
 
@@ -505,59 +522,61 @@ export async function deriveTasksFromProtocol(newProtocolEntries, missingRoles, 
 // 6. Operations-Validierung
 // ============================================================
 
+
+
 /**
  * Prüft ob eine Operation vom LLM erlaubt ist.
  * 
  * Regeln:
- * 1. originRole muss in missingRoles sein (wird simuliert)
- * 2. fromRole muss in missingRoles sein (wird simuliert)
- * 3. Meldestelle darf NIE als originRole/fromRole verwendet werden
- * 4. "via" wird NICHT mehr geprüft (wurde entfernt)
+ * 1. Extrahiert die Absender-Rolle aus vorhandenen Feldern
+ * 2. Rolle muss in missingRoles sein (wird simuliert)
+ * 3. Meldestelle darf NIE simuliert werden
+ * 
+ * Feld-Priorität: ab > av > r > assignedBy > createdBy
  * 
  * @param {Object} op - Die Operation vom LLM
  * @param {string[]} missingRoles - Die simulierten Rollen
  * @returns {boolean} - true wenn Operation erlaubt
  */
+
 export function isAllowedOperation(op, missingRoles) {
   if (!op) return false;
 
-  const originRole = op.originRole;
-  const fromRole = op.fromRole || op.assignedBy;
+  // Rolle aus verschiedenen möglichen Feldern extrahieren
+  // Priorität basierend auf Zielstruktur der JSON-Dateien
+  const extractedRole = 
+    op.ab ||                          // Aufgaben: assignedBy (kurz)
+    extractRoleFromAnvon(op.av) ||    // Protokoll: "Von: EL" → "EL"
+    op.r ||                           // Aufgaben: responsible (kurz)
+    op.assignedBy ||                  // Aufgaben: assignedBy (lang)
+    op.responsible ||                 // Aufgaben: responsible (lang)
+    op.createdBy ||                   // Allgemein
+    op.originRole ||                  // Legacy (falls noch vorhanden)
+    op.fromRole;                      // Legacy (falls noch vorhanden)
 
-  // Pflichtfelder prüfen
-  if (!originRole) {
-    log("debug", "Operation abgelehnt: originRole fehlt", { op });
-    return false;
-  }
-  if (!fromRole) {
-    log("debug", "Operation abgelehnt: fromRole/assignedBy fehlt", { op });
-    return false;
-  }
-
-  // Meldestelle darf NICHT simuliert werden
-  if (isMeldestelle(originRole)) {
-    log("debug", "Operation abgelehnt: originRole ist Meldestelle", { originRole });
-    return false;
-  }
-  if (isMeldestelle(fromRole)) {
-    log("debug", "Operation abgelehnt: fromRole ist Meldestelle", { fromRole });
-    return false;
-  }
-
-  // Rollen müssen in missingRoles sein
-  const normalizedMissing = missingRoles.map(r => normalizeRole(r));
-
-  if (!normalizedMissing.includes(normalizeRole(originRole))) {
-    log("debug", "Operation abgelehnt: originRole nicht in missingRoles", {
-      originRole,
-      missingRoles
+  // Wenn keine Rolle gefunden werden kann
+  if (!extractedRole) {
+    log("debug", "Operation abgelehnt: Keine Absender-Rolle gefunden", { 
+      op,
+      checkedFields: ["ab", "av", "r", "assignedBy", "responsible", "createdBy"]
     });
     return false;
   }
 
-  if (!normalizedMissing.includes(normalizeRole(fromRole))) {
-    log("debug", "Operation abgelehnt: fromRole nicht in missingRoles", {
-      fromRole,
+  // Meldestelle darf NICHT simuliert werden
+  if (isMeldestelle(extractedRole)) {
+    log("debug", "Operation abgelehnt: Rolle ist Meldestelle", { extractedRole });
+    return false;
+  }
+
+  // Rolle muss in missingRoles sein
+  const normalizedMissing = missingRoles.map(r => normalizeRole(r));
+  const normalizedExtracted = normalizeRole(extractedRole);
+
+  if (!normalizedMissing.includes(normalizedExtracted)) {
+    log("debug", "Operation abgelehnt: Rolle nicht in missingRoles", {
+      extractedRole,
+      normalized: normalizedExtracted,
       missingRoles
     });
     return false;
@@ -565,6 +584,7 @@ export function isAllowedOperation(op, missingRoles) {
 
   return true;
 }
+
 
 /**
  * Erklärt warum eine Operation abgelehnt wurde.
@@ -574,38 +594,38 @@ export function isAllowedOperation(op, missingRoles) {
  * @param {string[]} missingRoles - Die simulierten Rollen
  * @returns {string} - Erklärung der Ablehnung
  */
-export function explainOperationRejection(op, missingRoles) {
-  const reasons = [];
 
+export function explainOperationRejection(op, missingRoles) {
   if (!op) {
     return "Operation ist leer/undefined.";
   }
 
-  const originRole = op.originRole;
-  const fromRole = op.fromRole || op.assignedBy;
+  // Rolle extrahieren (gleiche Logik wie isAllowedOperation)
+  const extractedRole = 
+    op.ab ||
+    extractRoleFromAnvon(op.av) ||
+    op.r ||
+    op.assignedBy ||
+    op.responsible ||
+    op.createdBy ||
+    op.originRole ||
+    op.fromRole;
+
+  if (!extractedRole) {
+    return `Keine Absender-Rolle gefunden. Geprüfte Felder: ab, av, r, assignedBy, responsible, createdBy. Operation: ${JSON.stringify(op).slice(0, 200)}`;
+  }
+
+  if (isMeldestelle(extractedRole)) {
+    return `Rolle "${extractedRole}" ist Meldestelle - wird nicht simuliert.`;
+  }
+
   const normalizedMissing = missingRoles.map(r => normalizeRole(r));
-
-  // originRole prüfen
-  if (!originRole) {
-    reasons.push("originRole fehlt.");
-  } else if (isMeldestelle(originRole)) {
-    reasons.push(`originRole "${originRole}" ist Meldestelle - wird nicht simuliert.`);
-  } else if (!normalizedMissing.includes(normalizeRole(originRole))) {
-    reasons.push(`originRole "${originRole}" ist nicht in missingRoles [${missingRoles.join(", ")}].`);
+  if (!normalizedMissing.includes(normalizeRole(extractedRole))) {
+    return `Rolle "${extractedRole}" ist nicht in missingRoles [${missingRoles.join(", ")}].`;
   }
 
-  // fromRole prüfen
-  if (!fromRole) {
-    reasons.push("fromRole/assignedBy fehlt.");
-  } else if (isMeldestelle(fromRole)) {
-    reasons.push(`fromRole "${fromRole}" ist Meldestelle - wird nicht simuliert.`);
-  } else if (!normalizedMissing.includes(normalizeRole(fromRole))) {
-    reasons.push(`fromRole "${fromRole}" ist nicht in missingRoles [${missingRoles.join(", ")}].`);
-  }
-
-  return reasons.length > 0 ? reasons.join(" ") : "Unbekannter Grund.";
+  return "Unbekannter Grund.";
 }
-
 // ============================================================
 // Export
 // ============================================================
