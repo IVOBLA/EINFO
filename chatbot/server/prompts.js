@@ -80,7 +80,7 @@ export function buildUserPrompt({
       ? safeMemorySnippets.map((m) => `- ${m}`).join("\n")
       : "(keine RAG-Erinnerungen gefunden)";
   const rolesPart = JSON.stringify(llmInput.roles || {}, null, 2);
-  const taskSection = llmInput.firstStep
+const taskSection = llmInput.firstStep
     ? `SPEZIALFALL: START DER SIMULATION
 - Board, Aufgaben und Protokoll sind komplett leer.
 - Du MUSST jetzt ein realistisches Start-Szenario erzeugen.
@@ -88,8 +88,42 @@ export function buildUserPrompt({
 - Erzeuge dazu passende Protokolleinträge (operations.protokoll.create).
 - Erzeuge Aufgaben für S2/S3/S4/S5 (operations.aufgaben.create), damit der Stab arbeiten kann.
 - Halte dich streng an das JSON-Schema und die Rollenregeln.`
-    : `- Analysiere die Lage auf Basis der übergebenen Ausschnitte.
-- Ergänze/aktualisiere Einsatzstellen, Aufgaben und Protokoll nur dort, wo es fachlich notwendig ist.`;
+    : `=== DEINE AUFGABE IN DIESEM SCHRITT ===
+Du simulierst die FEHLENDEN Stabsstellen (missingRoles). Handle JETZT aktiv!
+
+PRÜFE und HANDLE folgende Punkte:
+
+1. OFFENE AUFGABEN mit Status "Neu" oder "open":
+   → Wenn eine Aufgabe einer missingRole zugewiesen ist:
+     - Erstelle einen Protokolleintrag als Statusmeldung (typ: "Rueckmeldung")
+     - ODER aktualisiere den Aufgabenstatus auf "inProgress" oder "done"
+   
+2. EINSATZSTELLEN ohne aktuelle Aktivität:
+   → Erstelle realistische Lagefortschritte:
+     - Neue Lagemeldungen von Einsatzstellen
+     - Statusänderungen (z.B. "Pumpeinsatz läuft", "Absicherung erfolgt")
+     - Ressourcenanforderungen oder -freigaben
+
+3. LAGEENTWICKLUNG simulieren:
+   → Die Katastrophe entwickelt sich weiter! Mögliche Ereignisse:
+     - Neue Schadensmeldungen eingehen
+     - Verschlechterung/Verbesserung bestehender Lagen
+     - Rückmeldungen von alarmierten Einheiten
+     - Anfragen von externen Stellen (Gemeinde, Polizei)
+
+4. STABSARBEIT simulieren:
+   → Fehlende Stabsrollen müssen aktiv sein:
+     - S2 (Lage): Lageberichte, Kartenaktualisierungen
+     - S3 (Einsatz): Einsatzdisposition, Kräftezuweisung
+     - S4 (Versorgung): Logistik, Verpflegung
+     - S5 (Öffentlichkeit): Pressemeldungen, Bürgerinformation
+     - LtStb: Koordination, Auftragserteilung
+
+WICHTIG:
+- Erzeuge MINDESTENS 1-2 Protokolleinträge pro Durchlauf
+- Reagiere auf offene Aufgaben der missingRoles
+- Halte die Simulation lebendig und realistisch
+- Verwende NUR Rollen aus missingRoles als Absender (av, ab)`;
 // ============================================================
   // NEU: Formatiere Meldungen die Antwort benötigen
   // ============================================================
@@ -118,7 +152,7 @@ Entscheide situationsabhängig basierend auf:
 
 EXTERNE STELLEN und ihre typischen Antwortmuster:
 ───────────────────────────────────────────────────────────────────────────────
-  Leitstelle (LST):     Alarmierungsbestätigungen, Einheiten-Verfügbarkeit
+  Leitstelle (LAWZ):     Alarmierungsbestätigungen, Einheiten-Verfügbarkeit
                         → "Alarmierung erfolgt, 3 Fahrzeuge ETA 15 Min"
                         → "Alle Einheiten im Einsatz, frühestens in 30 Min"
   
