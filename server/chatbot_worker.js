@@ -435,8 +435,10 @@ async function loadAufgabenBoardsForRoles(roles) {
 async function applyAufgabenOperations(taskOps, missingRoles) {
   const createOps = taskOps?.create || [];
   const updateOps = taskOps?.update || [];
+  const { active: activeRoles = [] } = await loadRoles().catch(() => ({ active: [] }));
   const roleCandidates = [
     ...missingRoles,
+    ...activeRoles,
     ...createOps.map(resolveTaskBoardRoleId),
     ...updateOps.map((op) => resolveTaskBoardRoleId(op?.changes))
   ].filter(Boolean);
