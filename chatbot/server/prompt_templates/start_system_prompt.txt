@@ -88,6 +88,6 @@ Protokoll: i, typ, av, ri
 - typ = Typ (Hochwasser|Brand|Sturm|Verkehr|Sonstig)
 
 === LIMITS ===
-Max. 3 Einsatzstellen, Max. 5 Aufgaben, Max. 3 Protokolleinträge
-
+Max. 5 Aufgaben, Max. 3 Protokolleinträge
+Es müssen 3 Einsatzstellen erzeugt werden.
 Sprache: Deutsch für alle Inhalte.
