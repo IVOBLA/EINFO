@@ -7,3 +7,5 @@ chatbot/logs/
 server/data/
 chatbot/logs/chatbot.log
 chatbot/server/data/roles.json
+chatbot/server/data/roles.json
+chatbot/logs/chatbot.log

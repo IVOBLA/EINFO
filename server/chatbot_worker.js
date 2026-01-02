@@ -269,19 +269,7 @@ async function applyBoardOperations(boardOps, missingRoles) {
 
   // CREATE → neue Karte in Spalte "neu"
   for (const op of createOps) {
-    if (!isAllowedOperation(op, missingRoles)) {
-      const reason = explainOperationRejection(op, missingRoles);
-      log("Board-Create verworfen:", { op, reason, missingRoles });
 
-      appendOpsVerworfenLog({
-        kind: "board.create",
-        op,
-        reason,
-        missingRoles
-      });
-
-      continue;
-    }
     const id = `cb-incident-${Date.now()}-${Math.random()
       .toString(36)
       .slice(2, 8)}`;

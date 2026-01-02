@@ -55,7 +55,7 @@ const base = {
       },
       balanced: {
         name: process.env.LLM_MODEL_BALANCED || "einfo-balanced",
-        timeout: Number(process.env.LLM_TIMEOUT_BALANCED || "90000"),
+        timeout: Number(process.env.LLM_TIMEOUT_BALANCED || "220000"),
         description: "Ausgewogen, gute JSON-Qualität",
         numGpu: 20,
         numCtx: 4096,

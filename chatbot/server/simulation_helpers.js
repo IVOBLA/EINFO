@@ -546,7 +546,7 @@ export function isAllowedOperation(op, missingRoles) {
   // Priorität basierend auf Zielstruktur der JSON-Dateien
   const extractedRole = 
     op.ab ||                          // Aufgaben: assignedBy (kurz)
-    extractRoleFromAnvon(op.av) ||    // Protokoll: "Von: EL" → "EL"
+    extractRoleFromAnvon(op.anvon) ||    // Protokoll: "Von: EL" → "EL"
     op.r ||                           // Aufgaben: responsible (kurz)
     op.assignedBy ||                  // Aufgaben: assignedBy (lang)
     op.responsible ||                 // Aufgaben: responsible (lang)
