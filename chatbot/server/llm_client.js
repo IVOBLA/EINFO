@@ -115,14 +115,16 @@ export async function listAvailableLlmModels() {
 /** LLM für OPERATIONS (Simulation) */
 export async function callLLMForOps({
   llmInput,
-  memorySnippets = []
+  memorySnippets = [],
+  scenario = null  // NEU: Szenario-Parameter
 }) {
   const { compressedBoard, compressedAufgaben, compressedProtokoll } = llmInput;
   let systemPrompt;
   let userPrompt;
 
   if (llmInput.firstStep) {
-    const start = buildStartPrompts({ roles: llmInput.roles });
+    // NEU: Szenario an Start-Prompt übergeben
+    const start = buildStartPrompts({ roles: llmInput.roles, scenario });
     systemPrompt = start.systemPrompt;
     userPrompt = start.userPrompt;
   } else {
