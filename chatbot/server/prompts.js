@@ -269,22 +269,29 @@ ${(ctx.special_conditions || []).map(c => `  - ${c}`).join("\n")}
 ═══════════════════════════════════════════════════════════════════════════════`;
 
     // Initiale Einsatzstellen aus dem Szenario extrahieren
-    if (scenario.initial_state?.board?.columns) {
-      const allItems = [];
-      for (const column of Object.values(scenario.initial_state.board.columns)) {
+    const allItems = [];
+    const board = scenario.initial_state?.board;
+    if (board?.columns) {
+      for (const column of Object.values(board.columns)) {
         if (Array.isArray(column.items)) {
           allItems.push(...column.items);
         }
       }
-      if (allItems.length > 0) {
-        initialBoard = `
+    } else if (Array.isArray(board)) {
+      for (const column of board) {
+        if (Array.isArray(column?.items)) {
+          allItems.push(...column.items);
+        }
+      }
+    }
+    if (allItems.length > 0) {
+      initialBoard = `
 INITIALE EINSATZSTELLEN (aus Szenario vorgegeben):
 ${allItems.map(item => `  - ${item.humanId || item.id}: ${item.content} (${item.ort || "Ort unbekannt"})
     Typ: ${item.typ || "Unbekannt"}
     Beschreibung: ${item.description || ""}`).join("\n")}
 
 WICHTIG: Du MUSST diese Einsatzstellen mit genau diesen Daten anlegen!`;
-      }
     }
 
     // Hinweise aus dem Szenario
