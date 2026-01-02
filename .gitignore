@@ -5,3 +5,5 @@ server/logs/
 server/dist/
 chatbot/logs/
 server/data/
+chatbot/logs/chatbot.log
+chatbot/server/data/roles.json
