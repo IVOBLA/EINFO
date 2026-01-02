@@ -176,6 +176,9 @@ let lastCompressedBoardJson = "[]";
 
 let running = false;
 let stepInProgress = false;
+// NEU: Zustand für "Simulation wurde gerade gestartet"
+// Wird beim Start auf true gesetzt und nach dem ersten Schritt zurückgesetzt
+let simulationJustStarted = false;
 
 function buildMemoryQueryFromState(state = {}) {
   const incidentCount = state.boardCount ?? 0;
@@ -322,6 +325,8 @@ export function isSimulationRunning() {
 
 export async function startSimulation() {
   running = true;
+  // NEU: Setze Zustand für ersten Schritt - der Start-Prompt wird verwendet
+  simulationJustStarted = true;
   logInfo(
     "EINFO-Chatbot Simulation gestartet (Schritte werden vom Worker ausgelöst)",
     null
@@ -446,19 +451,13 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
     }
 
     // --- Erkennen, dass dies der erste Simulationsschritt ist ---
-    const isFirstStep =
-      (!lastComparableSnapshot ||
-        lastComparableSnapshot.board?.length === 0) &&
-      Array.isArray(board) &&
-      board.length === 0 &&
-      Array.isArray(aufgaben) &&
-      aufgaben.length === 0 &&
-      Array.isArray(protokoll) &&
-      protokoll.length === 0;
+    // NEU: Nutze den expliziten Zustand simulationJustStarted statt Heuristik
+    const isFirstStep = simulationJustStarted;
 
-    // Debug-Log
-    if (isFirstStep) {
-      logInfo("Erster Simulationsschritt: Szenario-Initialisierung aktiv", null);
+    // Zustand nach dem Auslesen zurücksetzen
+    if (simulationJustStarted) {
+      simulationJustStarted = false;
+      logInfo("Erster Simulationsschritt: Start-Prompt wird verwendet", null);
     }
 
     const boardUnchanged =
