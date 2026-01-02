@@ -8,7 +8,8 @@ import {
   startSimulation,
   pauseSimulation,
   stepSimulation,
-  isSimulationRunning
+  isSimulationRunning,
+  getActiveScenario  // NEU: Szenario-Getter aus sim_loop
 } from "./sim_loop.js";
 import { 
   callLLMForChat, 
@@ -202,33 +203,29 @@ app.get("/api/scenarios/:scenarioId", async (req, res) => {
 // Bestehende Simulations-Routen
 // ============================================================
 
-// Aktives Szenario speichern
-let activeScenario = null;
-
 app.post("/api/sim/start", async (req, res) => {
   try {
     const { scenarioId } = req.body || {};
-    let nextScenario = activeScenario;
+    let scenario = null;
 
     // Szenario laden wenn angegeben
     if (scenarioId) {
-      const scenario = await loadScenario(scenarioId);
+      scenario = await loadScenario(scenarioId);
       if (!scenario) {
         return res.status(404).json({ ok: false, error: "Szenario nicht gefunden" });
       }
-      nextScenario = scenario;
       logInfo("Szenario geladen", { scenarioId, title: scenario.title });
       broadcastSSE("scenario_loaded", {
         scenarioId,
         title: scenario.title,
         description: scenario.description
       });
-    } else {
-      nextScenario = null;
     }
 
-    await startSimulation();
-    activeScenario = nextScenario;
+    // NEU: Szenario wird jetzt an startSimulation übergeben und in sim_loop.js verwaltet
+    await startSimulation(scenario);
+
+    const activeScenario = getActiveScenario();
     res.json({ ok: true, scenario: activeScenario ? { id: activeScenario.id, title: activeScenario.title } : null });
   } catch (err) {
     logError("Fehler beim Starten der Simulation", { error: String(err) });
@@ -236,8 +233,9 @@ app.post("/api/sim/start", async (req, res) => {
   }
 });
 
-// Aktives Szenario abrufen
+// Aktives Szenario abrufen (jetzt aus sim_loop.js)
 app.get("/api/sim/scenario", (_req, res) => {
+  const activeScenario = getActiveScenario();
   res.json({ ok: true, scenario: activeScenario });
 });
 

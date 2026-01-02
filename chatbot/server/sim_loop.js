@@ -179,6 +179,8 @@ let stepInProgress = false;
 // NEU: Zustand für "Simulation wurde gerade gestartet"
 // Wird beim Start auf true gesetzt und nach dem ersten Schritt zurückgesetzt
 let simulationJustStarted = false;
+// NEU: Aktives Szenario für die Simulation
+let activeScenario = null;
 
 function buildMemoryQueryFromState(state = {}) {
   const incidentCount = state.boardCount ?? 0;
@@ -323,17 +325,35 @@ export function isSimulationRunning() {
   return running;
 }
 
-export async function startSimulation() {
+export async function startSimulation(scenario = null) {
   running = true;
   // NEU: Setze Zustand für ersten Schritt - der Start-Prompt wird verwendet
   simulationJustStarted = true;
-  logInfo(
-    "EINFO-Chatbot Simulation gestartet (Schritte werden vom Worker ausgelöst)",
-    null
-  );
+  // NEU: Szenario speichern für die Simulation
+  activeScenario = scenario;
+
+  if (scenario) {
+    logInfo("Simulation mit Szenario gestartet", {
+      scenarioId: scenario.id,
+      title: scenario.title,
+      eventType: scenario.scenario_context?.event_type
+    });
+  } else {
+    logInfo(
+      "EINFO-Chatbot Simulation gestartet (Schritte werden vom Worker ausgelöst)",
+      null
+    );
+  }
 
   // Auto-Loop ist bewusst deaktiviert.
   // Alle Simulationsschritte kommen über /api/sim/step vom chatbot_worker.
+}
+
+/**
+ * Gibt das aktuell aktive Szenario zurück
+ */
+export function getActiveScenario() {
+  return activeScenario;
 }
 
 
@@ -516,7 +536,8 @@ const opsContext = {
 
 const { parsed: llmResponse } = await callLLMForOps({
       llmInput: opsContext,
-      memorySnippets
+      memorySnippets,
+      scenario: activeScenario  // NEU: Szenario an LLM übergeben
     });
 
     // NEU: LLM-Aufruf im Audit loggen

@@ -3,14 +3,21 @@ START-SZENARIO für Bezirk Feldkirchen, Kärnten.
 ROLLEN:
 {{rolesJson}}
 
+{{scenarioContext}}
+
+{{initialBoard}}
+
+{{scenarioHints}}
+
 AUSGANGSLAGE:
 - Board, Aufgaben und Protokoll sind leer.
-- Erstelle ein realistisches Katastrophenszenario (z.B. Hochwasser, Sturm, Murenabgang).
+- Du musst das oben beschriebene Szenario initialisieren.
 
 ANFORDERUNGEN:
-- 1-3 Einsatzstellen (board.createIncidentSites)
-- 1-5 Aufgaben (aufgaben.create)
-- 1-3 Protokolleinträge (protokoll.create)
+- Wenn oben INITIALE EINSATZSTELLEN definiert sind: Lege GENAU diese Einsatzstellen an (board.createIncidentSites)
+- Andernfalls: Erstelle 1-3 passende Einsatzstellen basierend auf dem Szenario-Kontext
+- 1-5 Aufgaben (aufgaben.create) passend zum Szenario
+- 1-3 Protokolleinträge (protokoll.create) als initiale Lageberichte
 - Alle Rollen-Felder aus missingRoles
 - Meldestelle wird NIE simuliert
 - Alle Texte auf Deutsch und kurz

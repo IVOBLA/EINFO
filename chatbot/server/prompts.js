@@ -242,10 +242,66 @@ return fillTemplate(operationsUserPromptTemplate, {
 // Spezieller Start-Prompt für den ALLERERSTEN Simulationsschritt
 // (wird bei llmInput.firstStep über llm_client.js verwendet)
 // ----------------------------------------------------------
-export function buildStartPrompts({ roles }) {
+export function buildStartPrompts({ roles, scenario = null }) {
   const rolesJson = JSON.stringify(roles || {}, null, 2);
   const systemPrompt = defaultStartSystemPrompt.trim();
-  const userPrompt = fillTemplate(startUserPromptTemplate, { rolesJson });
+
+  // NEU: Wenn ein Szenario vorhanden ist, dieses in den Prompt einbauen
+  let scenarioContext = "";
+  let initialBoard = "";
+  let scenarioHints = "";
+
+  if (scenario) {
+    const ctx = scenario.scenario_context || {};
+    scenarioContext = `
+VORGEGEBENES SZENARIO: ${scenario.title || "Unbekannt"}
+═══════════════════════════════════════════════════════════════════════════════
+Ereignistyp: ${ctx.event_type || "Katastrophe"}
+Region: ${ctx.region || "Bezirk Feldkirchen"}
+Wetter: ${ctx.weather || ""}
+Ausgangslage: ${ctx.initial_situation || ""}
+
+Betroffene Gebiete:
+${(ctx.affected_areas || []).map(a => `  - ${a}`).join("\n")}
+
+Besondere Bedingungen:
+${(ctx.special_conditions || []).map(c => `  - ${c}`).join("\n")}
+═══════════════════════════════════════════════════════════════════════════════`;
+
+    // Initiale Einsatzstellen aus dem Szenario extrahieren
+    if (scenario.initial_state?.board?.columns) {
+      const allItems = [];
+      for (const column of Object.values(scenario.initial_state.board.columns)) {
+        if (Array.isArray(column.items)) {
+          allItems.push(...column.items);
+        }
+      }
+      if (allItems.length > 0) {
+        initialBoard = `
+INITIALE EINSATZSTELLEN (aus Szenario vorgegeben):
+${allItems.map(item => `  - ${item.humanId || item.id}: ${item.content} (${item.ort || "Ort unbekannt"})
+    Typ: ${item.typ || "Unbekannt"}
+    Beschreibung: ${item.description || ""}`).join("\n")}
+
+WICHTIG: Du MUSST diese Einsatzstellen mit genau diesen Daten anlegen!`;
+      }
+    }
+
+    // Hinweise aus dem Szenario
+    if (scenario.hints && scenario.hints.length > 0) {
+      scenarioHints = `
+HINWEISE für dieses Szenario:
+${scenario.hints.map(h => `  → ${h}`).join("\n")}`;
+    }
+  }
+
+  // Template mit Szenario-Kontext füllen
+  const userPrompt = fillTemplate(startUserPromptTemplate, {
+    rolesJson,
+    scenarioContext: scenarioContext || "(Kein Szenario vorgegeben - erstelle ein realistisches Katastrophenszenario)",
+    initialBoard: initialBoard || "",
+    scenarioHints: scenarioHints || ""
+  });
 
   return { systemPrompt, userPrompt };
 }
