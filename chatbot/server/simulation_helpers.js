@@ -603,7 +603,7 @@ export function explainOperationRejection(op, missingRoles) {
   // Rolle extrahieren (gleiche Logik wie isAllowedOperation)
   const extractedRole = 
     op.ab ||
-    extractRoleFromAnvon(op.av) ||
+    extractRoleFromAnvon(op.anvon) ||
     op.r ||
     op.assignedBy ||
     op.responsible ||

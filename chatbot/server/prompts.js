@@ -88,42 +88,51 @@ const taskSection = llmInput.firstStep
 - Erzeuge dazu passende Protokolleinträge (operations.protokoll.create).
 - Erzeuge Aufgaben für S2/S3/S4/S5 (operations.aufgaben.create), damit der Stab arbeiten kann.
 - Halte dich streng an das JSON-Schema und die Rollenregeln.`
-    : `=== DEINE AUFGABE IN DIESEM SCHRITT ===
+: `=== KRITISCH: ANTWORTFORMAT ===
+Du MUSST exakt dieses JSON-Schema verwenden - KEINE Abweichung!
+
+{
+  "operations": {
+    "board": {
+      "createIncidentSites": [],
+      "updateIncidentSites": []
+    },
+    "aufgaben": {
+      "create": [],
+      "update": []
+    },
+    "protokoll": {
+      "create": []
+    }
+  },
+  "analysis": "Kurze Lagebeurteilung"
+}
+
+VERBOTEN - Diese Formate sind FALSCH:
+✗ "protokolle": [...]     ← FALSCH! Muss "operations.protokoll.create" sein
+✗ "aufgaben": [...]       ← FALSCH! Muss "operations.aufgaben.create/update" sein
+✗ "einsatzstellen": [...]  ← FALSCH! Muss "operations.board.createIncidentSites" sein
+
+=== DEINE AUFGABE ===
 Du simulierst die FEHLENDEN Stabsstellen (missingRoles). Handle JETZT aktiv!
 
-PRÜFE und HANDLE folgende Punkte:
+1. OFFENE AUFGABEN bearbeiten:
+   → Erstelle Protokolleintrag in operations.protokoll.create
+   → ODER aktualisiere Aufgabe in operations.aufgaben.update
 
-1. OFFENE AUFGABEN mit Status "Neu" oder "open":
-   → Wenn eine Aufgabe einer missingRole zugewiesen ist:
-     - Erstelle einen Protokolleintrag als Statusmeldung (typ: "Rueckmeldung")
-     - ODER aktualisiere den Aufgabenstatus auf "inProgress" oder "done"
-   
-2. EINSATZSTELLEN ohne aktuelle Aktivität:
-   → Erstelle realistische Lagefortschritte:
-     - Neue Lagemeldungen von Einsatzstellen
-     - Statusänderungen (z.B. "Pumpeinsatz läuft", "Absicherung erfolgt")
-     - Ressourcenanforderungen oder -freigaben
+2. LAGEENTWICKLUNG simulieren:
+   → Neue Lagemeldungen in operations.protokoll.create
+   → Statusänderungen in operations.board.updateIncidentSites
 
-3. LAGEENTWICKLUNG simulieren:
-   → Die Katastrophe entwickelt sich weiter! Mögliche Ereignisse:
-     - Neue Schadensmeldungen eingehen
-     - Verschlechterung/Verbesserung bestehender Lagen
-     - Rückmeldungen von alarmierten Einheiten
-     - Anfragen von externen Stellen (Gemeinde, Polizei)
+3. STABSARBEIT der fehlenden Rollen:
+   → S2: Lageberichte  → S3: Einsatzdisposition
+   → S4: Versorgung    → S5: Öffentlichkeitsarbeit
+   → LtStb: Koordination
 
-4. STABSARBEIT simulieren:
-   → Fehlende Stabsrollen müssen aktiv sein:
-     - S2 (Lage): Lageberichte, Kartenaktualisierungen
-     - S3 (Einsatz): Einsatzdisposition, Kräftezuweisung
-     - S4 (Versorgung): Logistik, Verpflegung
-     - S5 (Öffentlichkeit): Pressemeldungen, Bürgerinformation
-     - LtStb: Koordination, Auftragserteilung
-
-WICHTIG:
-- Erzeuge MINDESTENS 1-2 Protokolleinträge pro Durchlauf
-- Reagiere auf offene Aufgaben der missingRoles
-- Halte die Simulation lebendig und realistisch
-- Verwende NUR Rollen aus missingRoles als Absender (av, ab)`;
+PFLICHT:
+- MINDESTENS 1-2 Einträge in operations.protokoll.create
+- NUR Rollen aus missingRoles als Absender (av, ab)
+- ALLES unter "operations" verschachteln!`;
 // ============================================================
   // NEU: Formatiere Meldungen die Antwort benötigen
   // ============================================================

@@ -10,3 +10,9 @@ chatbot/server/data/roles.json
 chatbot/server/data/roles.json
 chatbot/logs/chatbot.log
 chatbot/server/data/roles.json
+chatbot/data/memory_store.jsonl
+chatbot/logs/chatbot.log
+chatbot/server/data/roles.json
+server/data/group_locations.json
+server/data/group_locations.json
+server/data/conf/group-alerted.json
