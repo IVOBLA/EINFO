@@ -327,8 +327,19 @@ export function isSimulationRunning() {
 
 export async function startSimulation(scenario = null) {
   running = true;
-  // NEU: Setze Zustand für ersten Schritt - der Start-Prompt wird verwendet
-  simulationJustStarted = true;
+  // NEU: Setze Zustand für ersten Schritt nur bei frischem/leerem Zustand
+  const snapshotCounts = {
+    board: lastComparableSnapshot?.board?.length || 0,
+    aufgaben: lastComparableSnapshot?.aufgaben?.length || 0,
+    protokoll: lastComparableSnapshot?.protokoll?.length || 0
+  };
+  const hasSnapshotData =
+    snapshotCounts.board > 0 ||
+    snapshotCounts.aufgaben > 0 ||
+    snapshotCounts.protokoll > 0;
+  const hasCompressedBoard =
+    typeof lastCompressedBoardJson === "string" && lastCompressedBoardJson !== "[]";
+  simulationJustStarted = !(hasSnapshotData || hasCompressedBoard);
   // NEU: Szenario speichern für die Simulation
   activeScenario = scenario;
 
