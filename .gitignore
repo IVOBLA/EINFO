@@ -1,10 +1,10 @@
 node_modules/
 .DS_Store
 
-server/logs/
-server/dist/
+logs/
+dist/
 chatbot/logs/
-server/data/
+data/
 chatbot/logs/chatbot.log
 chatbot/server/data/roles.json
 chatbot/server/data/roles.json
@@ -16,3 +16,5 @@ chatbot/server/data/roles.json
 server/data/group_locations.json
 server/data/group_locations.json
 server/data/conf/group-alerted.json
+chatbot/logs/chatbot.log
+chatbot/server/data/roles.json
