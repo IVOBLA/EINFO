@@ -163,33 +163,33 @@ function buildMemoryQueryFromState(state = {}) {
 // Board kommt bereits als flache Liste aus einfo_io (flattenBoard)
 function compressBoard(board) {
   if (!Array.isArray(board)) return "[]";
-  
+
   // Nur nicht-erledigte Items, limitiert
   const maxItems = CONFIG.prompt?.maxBoardItems || 25;
-  
+
   const filtered = board
     .filter((i) => i.status !== "erledigt" && i.column !== "erledigt")
     .slice(0, maxItems);
-  
-  // Kompakte Schlüssel für weniger Tokens
+
+  // Volle Feldnamen für bessere Verständlichkeit
   const compact = filtered.map((i) => ({
     id: i.id,
-    t: (i.desc ?? i.content ?? "").slice(0, 80),  // title
-    s: i.status ?? i.column ?? "",                 // status
-    o: (i.location ?? i.ort ?? "").slice(0, 40),  // ort
+    content: (i.desc ?? i.content ?? "").slice(0, 80),
+    status: i.status ?? i.column ?? "",
+    ort: (i.location ?? i.ort ?? "").slice(0, 40),
     typ: i.typ || "",
-    upd: i.timestamp || i.raw?.updatedAt || null
+    updatedAt: i.timestamp || i.raw?.updatedAt || null
   }));
-  
+
   return JSON.stringify(compact);
 }
 // Aufg_board_S2.json: S2-Aufgaben
 
 function compressAufgaben(aufgaben) {
   if (!Array.isArray(aufgaben)) return "[]";
-  
+
   const maxItems = CONFIG.prompt?.maxAufgabenItems || 50;
-  
+
   // Nicht-erledigte zuerst, dann limitieren
   const sorted = [...aufgaben].sort((a, b) => {
     const aErledigt = a.status === "Erledigt" || a.status === "Storniert";
@@ -198,15 +198,16 @@ function compressAufgaben(aufgaben) {
     if (!aErledigt && bErledigt) return -1;
     return 0;
   });
-  
+
+  // Volle Feldnamen für bessere Verständlichkeit
   const compact = sorted.slice(0, maxItems).map((a) => ({
     id: a.id,
-    t: (a.title || a.description || "").slice(0, 60),  // title
-    r: a.responsible || "",                             // responsible
-    s: a.status || "",                                  // status
-    inc: a.relatedIncidentId || null                    // incident
+    title: (a.title || a.description || "").slice(0, 60),
+    responsible: a.responsible || "",
+    status: a.status || "",
+    relatedIncidentId: a.relatedIncidentId || null
   }));
-  
+
   return JSON.stringify(compact);
 }
 
@@ -214,25 +215,27 @@ function compressAufgaben(aufgaben) {
 
 function compressProtokoll(protokoll) {
   if (!Array.isArray(protokoll)) return "[]";
-  
+
   const maxItems = CONFIG.prompt?.maxProtokollItems || 30;
-  
+
   // Neueste zuerst
   const sorted = [...protokoll].sort((a, b) => {
     const tA = a.zeit || "";
     const tB = b.zeit || "";
     return tB.localeCompare(tA);
   });
-  
+
+  // Volle Feldnamen für bessere Verständlichkeit
   const compact = sorted.slice(0, maxItems).map((p) => ({
     id: p.id,
-    i: (p.information || "").slice(0, 100),  // information
-    d: p.datum,                               // datum
-    z: p.zeit,                                // zeit
-    von: p.ergehtAn || p.anvon || "",        // von/an
-    typ: p.infoTyp || p.typ || ""
+    information: (p.information || "").slice(0, 100),
+    datum: p.datum,
+    zeit: p.zeit,
+    anvon: p.anvon || "",
+    ergehtAn: p.ergehtAn || [],
+    infoTyp: p.infoTyp || p.typ || ""
   }));
-  
+
   return JSON.stringify(compact);
 }
 

@@ -15,16 +15,16 @@ Du bist der EINFO-Start-Assistent für den Bezirks-Einsatzstab.
     "board": {
       "createIncidentSites": [
         {
-          "t": "Hochwasser Tiebel-Gebiet",
-          "s": "open",
-          "o": "Feldkirchen, Tiebelstraße 15",
-          "d": "Starke Überflutungen nach Gewitter, mehrere Keller betroffen",
-          "lat": 46.723,
-          "lon": 14.095,
+          "content": "Hochwasser Tiebel-Gebiet",
+          "status": "open",
+          "ort": "Feldkirchen, Tiebelstraße 15",
+          "description": "Starke Überflutungen nach Gewitter, mehrere Keller betroffen",
+          "latitude": 46.723,
+          "longitude": 14.095,
           "typ": "Hochwasser",
-          "hid": "E001",
-          "al": ["FF Feldkirchen"],
-          "av": ["TLF", "KDO"]
+          "humanId": "E001",
+          "alerted": ["FF Feldkirchen"],
+          "assignedVehicles": ["TLF", "KDO"]
         }
       ],
       "updateIncidentSites": []
@@ -32,14 +32,14 @@ Du bist der EINFO-Start-Assistent für den Bezirks-Einsatzstab.
     "aufgaben": {
       "create": [
         {
-          "t": "Lagekarte aktualisieren",
-          "r": "S2",
-          "s": "open",
-          "d": "Pegelstände und betroffene Gebiete in Lagekarte eintragen",
-          "inc": null,
-          "due": null,
-          "prio": "high",
-          "ab": "LtStb"
+          "title": "Lagekarte aktualisieren",
+          "responsible": "S2",
+          "status": "open",
+          "desc": "Pegelstände und betroffene Gebiete in Lagekarte eintragen",
+          "relatedIncidentId": null,
+          "dueDate": null,
+          "priority": "high",
+          "assignedBy": "LtStb"
         }
       ],
       "update": []
@@ -47,11 +47,11 @@ Du bist der EINFO-Start-Assistent für den Bezirks-Einsatzstab.
     "protokoll": {
       "create": [
         {
-          "i": "Starkregen seit 14:00 Uhr, Tiebel über Normalstand, mehrere Straßen überflutet",
-          "typ": "Lagemeldung",
-          "av": "EL",
-          "ea": ["LtStb", "S2"],
-          "ri": "ein"
+          "information": "Starkregen seit 14:00 Uhr, Tiebel über Normalstand, mehrere Straßen überflutet",
+          "infoTyp": "Lagemeldung",
+          "anvon": "EL",
+          "ergehtAn": ["LtStb", "S2"],
+          "richtung": "ein"
         }
       ]
     }
@@ -69,21 +69,22 @@ Du bist der EINFO-Start-Assistent für den Bezirks-Einsatzstab.
 }
 
 === PFLICHTFELDER ===
-Board: t, s, o, typ
-Aufgaben: t, r, s, prio, ab
-Protokoll: i, typ, av, ri
+Board: content, status, ort, typ
+Aufgaben: title, responsible, status, priority, assignedBy
+Protokoll: information, infoTyp, anvon, richtung
 
 === FELDNAMEN ===
-- t = Titel
-- s = Status (open|active|closed bzw. open|inProgress|done)
-- o = Ort
-- d = Beschreibung
-- r = Verantwortliche Rolle
-- ab = Auftraggeber (wer weist zu)
-- av = Absender (Protokoll)
-- ea = Empfänger-Array
-- ri = Richtung (ein|aus)
-- prio = Priorität (low|medium|high|critical)
+- content = Titel der Einsatzstelle
+- status = Status (open|active|closed bzw. open|inProgress|done)
+- ort = Ortsangabe
+- description = Beschreibung
+- title = Aufgabentitel
+- responsible = Verantwortliche Rolle
+- assignedBy = Auftraggeber (wer weist zu)
+- anvon = Absender (Protokoll)
+- ergehtAn = Empfänger-Array
+- richtung = Richtung (ein|aus)
+- priority = Priorität (low|medium|high|critical)
 - typ = Typ (Hochwasser|Brand|Sturm|Verkehr|Sonstig)
 
 === LIMITS ===
