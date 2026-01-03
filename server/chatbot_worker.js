@@ -12,8 +12,12 @@ import {
 import { getGpuStatus } from "../chatbot/server/gpu_status.js";
 
 import { syncRolesFile } from "../chatbot/server/roles_sync.js";
-import { transformLlmOperationsToJson, isMeldestelle } from "../chatbot/server/field_mapper.js";
-import { normalizeRole } from "../chatbot/server/field_mapper.js";
+import {
+  transformLlmOperationsToJson,
+  isMeldestelle,
+  isStabsstelle,
+  normalizeRole
+} from "../chatbot/server/field_mapper.js";
 import { readAufgBoardFile, writeAufgBoardFile } from "../chatbot/server/aufgaben_board_io.js";
 import {
   confirmProtocolsByLtStb,
@@ -256,19 +260,38 @@ function ensureBoardStructure(boardRaw) {
   return boardRaw;
 }
 
-async function applyBoardOperations(boardOps, activeRoles) {
+async function applyBoardOperations(boardOps, activeRoles, staffRoles) {
   const boardPath = path.join(dataDir, FILES.board);
   let boardRaw = await safeReadJson(boardPath, { columns: {} });
   boardRaw = ensureBoardStructure(boardRaw);
 
   const appliedCreate = [];
   const appliedUpdate = [];
+  const staffRoleSet = new Set(
+    Array.isArray(staffRoles)
+      ? staffRoles.map((role) => normalizeRole(role)).filter(Boolean)
+      : []
+  );
+  const allowedOptions = { allowedRoles: Array.from(staffRoleSet) };
 
   const createOps = boardOps?.createIncidentSites || [];
   const updateOps = boardOps?.updateIncidentSites || [];
 
   // CREATE → neue Karte in Spalte "neu"
   for (const op of createOps) {
+    if (!isAllowedOperation(op, activeRoles, allowedOptions)) {
+      const reason = explainOperationRejection(op, activeRoles, allowedOptions);
+      log("Board-Create verworfen:", { op, reason, activeRoles });
+
+      appendOpsVerworfenLog({
+        kind: "board.create",
+        op,
+        reason,
+        activeRoles
+      });
+
+      continue;
+    }
 
     const id = `cb-incident-${Date.now()}-${Math.random()
       .toString(36)
@@ -316,8 +339,8 @@ async function applyBoardOperations(boardOps, activeRoles) {
   }
 
   for (const op of updateOps) {
-    if (!isAllowedOperation(op, activeRoles)) {
-      const reason = explainOperationRejection(op, activeRoles);
+    if (!isAllowedOperation(op, activeRoles, allowedOptions)) {
+      const reason = explainOperationRejection(op, activeRoles, allowedOptions);
       log("Board-Update verworfen:", { op, reason, activeRoles });
 
       appendOpsVerworfenLog({
@@ -420,16 +443,26 @@ async function loadAufgabenBoardsForRoles(roles) {
   return new Map(entries.map((entry) => [entry.roleId, entry]));
 }
 
-async function applyAufgabenOperations(taskOps, activeRoles) {
+async function applyAufgabenOperations(taskOps, activeRoles, staffRoles = []) {
   const createOps = taskOps?.create || [];
   const updateOps = taskOps?.update || [];
-  const { missing: missingRoles = [] } = await loadRoles().catch(() => ({ missing: [] }));
+  const staffRoleSet = new Set(
+    staffRoles.map((role) => normalizeRole(role)).filter(Boolean)
+  );
+  const isAllowedStaffRole = (role) => {
+    if (staffRoleSet.size > 0) {
+      return staffRoleSet.has(normalizeRole(role));
+    }
+    return isStabsstelle(role);
+  };
+  const allowedOptions = { allowedRoles: Array.from(staffRoleSet) };
   const roleCandidates = [
-    ...missingRoles,
-    ...activeRoles,
+    ...staffRoles,
     ...createOps.map(resolveTaskBoardRoleId),
     ...updateOps.map((op) => resolveTaskBoardRoleId(op?.changes))
-  ].filter(Boolean);
+  ]
+    .filter(Boolean)
+    .filter((role) => isAllowedStaffRole(role));
   const boardsByRole = await loadAufgabenBoardsForRoles(roleCandidates);
 
   const appliedCreate = [];
@@ -437,8 +470,8 @@ async function applyAufgabenOperations(taskOps, activeRoles) {
 
   // CREATE → neue Aufgabe im S2-Board
   for (const op of createOps) {
-    if (!isAllowedOperation(op, activeRoles)) {
-      const reason = explainOperationRejection(op, activeRoles);
+    if (!isAllowedOperation(op, activeRoles, allowedOptions)) {
+      const reason = explainOperationRejection(op, activeRoles, allowedOptions);
       log("Aufgaben-Create verworfen:", { op, reason, activeRoles });
 
       appendOpsVerworfenLog({
@@ -492,8 +525,8 @@ async function applyAufgabenOperations(taskOps, activeRoles) {
 
   // UPDATE → vorhandene Tasks aktualisieren
   for (const op of updateOps) {
-    if (!isAllowedOperation(op, activeRoles)) {
-      const reason = explainOperationRejection(op, activeRoles);
+    if (!isAllowedOperation(op, activeRoles, allowedOptions)) {
+      const reason = explainOperationRejection(op, activeRoles, allowedOptions);
       log("Aufgaben-Update verworfen:", { op, reason, activeRoles });
 
       appendOpsVerworfenLog({
@@ -558,17 +591,45 @@ async function applyAufgabenOperations(taskOps, activeRoles) {
   };
 }
 
-async function applyProtokollOperations(protoOps, activeRoles) {
+function resolveProtokollAnvon(op) {
+  const candidates = [
+    op?.anvon,
+    op?.ab,
+    op?.r,
+    op?.assignedBy,
+    op?.responsible,
+    op?.createdBy,
+    op?.originRole,
+    op?.fromRole
+  ];
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.trim()) {
+      return candidate.trim();
+    }
+  }
+  return "Chatbot";
+}
+
+async function applyProtokollOperations(protoOps, activeRoles, staffRoles) {
   const protPath = path.join(dataDir, FILES.protokoll);
   let prot = await safeReadJson(protPath, []);
 
   const appliedCreate = [];
+  const staffRoleSet = new Set(
+    Array.isArray(staffRoles)
+      ? staffRoles.map((role) => normalizeRole(role)).filter(Boolean)
+      : []
+  );
+  const allowedOptions = {
+    allowedRoles: Array.from(staffRoleSet),
+    allowExternal: true
+  };
 
   const createOps = protoOps?.create || [];
 
   for (const op of createOps) {
-    if (!isAllowedOperation(op, activeRoles)) {
-      const reason = explainOperationRejection(op, activeRoles);
+    if (!isAllowedOperation(op, activeRoles, allowedOptions)) {
+      const reason = explainOperationRejection(op, activeRoles, allowedOptions);
       log("Protokoll-Create verworfen:", { op, reason, activeRoles });
 
       appendOpsVerworfenLog({
@@ -595,7 +656,7 @@ async function applyProtokollOperations(protoOps, activeRoles) {
       datum,
       zeit,
       infoTyp: op.infoTyp || "Info",
-      anvon: op.anvon || "Chatbot",
+      anvon: resolveProtokollAnvon(op),
       uebermittlungsart: {
         kanalNr: "CHATBOT",
         kanal: "Chatbot",
@@ -670,7 +731,7 @@ async function runOnce() {
   }
 
   // Zuerst roles.json synchronisieren
-  const { active } = await syncRolesFile();
+  const { active, missing } = await syncRolesFile();
 
   
   isRunning = true;
@@ -755,9 +816,22 @@ async function runOnce() {
       };
 
       try {
-        applyResults.board = await applyBoardOperations(ops.board || {}, active);
-        applyResults.aufgaben = await applyAufgabenOperations(ops.aufgaben || {}, active);
-        applyResults.protokoll = await applyProtokollOperations(ops.protokoll || {}, active);
+        const staffRoles = [...active, ...missing];
+        applyResults.board = await applyBoardOperations(
+          ops.board || {},
+          active,
+          staffRoles
+        );
+        applyResults.aufgaben = await applyAufgabenOperations(
+          ops.aufgaben || {},
+          active,
+          staffRoles
+        );
+        applyResults.protokoll = await applyProtokollOperations(
+          ops.protokoll || {},
+          active,
+          staffRoles
+        );
       } catch (err) {
         log("Fehler beim Anwenden:", err?.message || err);
         return;
