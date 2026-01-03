@@ -135,7 +135,7 @@ Du simulierst KEINE Rollen aus activeRoles. Handle JETZT aktiv!
 
 PFLICHT:
 - MINDESTENS 1-2 Einträge in operations.protokoll.create
-- Absender (av, ab) dürfen NICHT in activeRoles sein
+- Absender (anvon, assignedBy) dürfen NICHT in activeRoles sein
 - ALLES unter "operations" verschachteln!`;
 // ============================================================
   // NEU: Formatiere Meldungen die Antwort benötigen
@@ -200,11 +200,11 @@ EXTERNE STELLEN und ihre typischen Antwortmuster:
 
 ANTWORT-FORMAT für jeden Protokolleintrag:
 {
-  "i": "[Antworttext der Stelle]",
-  "typ": "Rueckmeldung",
-  "av": "[Name der antwortenden Stelle]",
-  "ea": ["[Original-Absender]"],
-  "ri": "ein"
+  "information": "[Antworttext der Stelle]",
+  "infoTyp": "Rueckmeldung",
+  "anvon": "[Name der antwortenden Stelle]",
+  "ergehtAn": ["[Original-Absender]"],
+  "richtung": "ein"
 }
 
 `;

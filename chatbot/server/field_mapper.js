@@ -1,45 +1,35 @@
 // chatbot/server/field_mapper.js
 // ============================================================
-// Konvertiert Feldnamen zwischen LLM (kurz) und JSON (lang)
-// Entfernt "via" und fügt Standardwerte hinzu
+// Feldnamen-Behandlung für LLM-Operations
+// Das LLM verwendet jetzt die vollen Feldnamen (wie in den JSON-Dateien)
+// Dieses Modul fügt Standardwerte hinzu und normalisiert die Daten
 // ============================================================
 
 // ============================================================
-// Konfiguration - Feldnamen-Mapping
+// Fallback-Mapping für kurze Feldnamen (Rückwärtskompatibilität)
+// Falls das LLM trotzdem kurze Feldnamen verwendet, werden diese konvertiert
 // ============================================================
 
 const FIELD_MAPPING = {
   // Einsatzboard (board.json)
   board: {
-    llmToJson: {
+    // Kurze Feldnamen → Volle Feldnamen (Fallback)
+    shortToFull: {
       t: "content",
       s: "status",
       o: "ort",
       d: "description",
       lat: "latitude",
       lon: "longitude",
-      typ: "typ",
       hid: "humanId",
       al: "alerted",
       av: "assignedVehicles"
-    },
-    jsonToLlm: {
-      content: "t",
-      status: "s",
-      ort: "o",
-      description: "d",
-      latitude: "lat",
-      longitude: "lon",
-      typ: "typ",
-      humanId: "hid",
-      alerted: "al",
-      assignedVehicles: "av"
     }
   },
 
   // Aufgabenboards (Aufg_board_*.json)
   aufgaben: {
-    llmToJson: {
+    shortToFull: {
       t: "title",
       r: "responsible",
       s: "status",
@@ -48,39 +38,20 @@ const FIELD_MAPPING = {
       due: "dueDate",
       prio: "priority",
       ab: "assignedBy"
-    },
-    jsonToLlm: {
-      title: "t",
-      responsible: "r",
-      status: "s",
-      desc: "d",
-      relatedIncidentId: "inc",
-      dueDate: "due",
-      priority: "prio",
-      assignedBy: "ab"
     }
   },
 
   // Protokoll (protocol.json)
   protokoll: {
-    llmToJson: {
+    shortToFull: {
       i: "information",
       d: "datum",
       z: "zeit",
       av: "anvon",
-      von: "anvon",  // "von" als Alias für "av"
+      von: "anvon",  // "von" als Alias
       typ: "infoTyp",
       ea: "ergehtAn",
       ri: "richtung"
-    },
-    jsonToLlm: {
-      information: "i",
-      datum: "d",
-      zeit: "z",
-      anvon: "av",
-      infoTyp: "typ",
-      ergehtAn: "ea",
-      richtung: "ri"
     }
   }
 };
@@ -110,23 +81,28 @@ const MELDESTELLE = new Set([
 // ============================================================
 
 /**
- * Konvertiert ein Objekt von LLM-Feldnamen (kurz) zu JSON-Feldnamen (lang)
- * 
+ * Normalisiert Feldnamen in einem Objekt.
+ * Konvertiert kurze Feldnamen zu vollen Feldnamen (Fallback für Rückwärtskompatibilität).
+ *
+ * Das LLM verwendet jetzt primär die vollen Feldnamen.
+ * Diese Funktion dient nur als Fallback, falls das LLM doch kurze Feldnamen verwendet.
+ *
  * Beispiel:
- *   llmToJson({ t: "Brand", o: "Feldkirchen" }, "board")
+ *   normalizeFieldNames({ t: "Brand", ort: "Feldkirchen" }, "board")
  *   → { content: "Brand", ort: "Feldkirchen" }
- * 
- * @param {Object} obj - Das zu konvertierende Objekt
+ *
+ * @param {Object} obj - Das zu normalisierende Objekt
  * @param {string} type - Der Objekttyp: "board", "aufgaben", oder "protokoll"
- * @returns {Object} - Das konvertierte Objekt mit langen Feldnamen
+ * @returns {Object} - Das normalisierte Objekt mit vollen Feldnamen
  */
-export function llmToJson(obj, type) {
+export function normalizeFieldNames(obj, type) {
   if (!obj || typeof obj !== "object") return obj;
 
-  const map = FIELD_MAPPING[type]?.llmToJson || {};
+  const map = FIELD_MAPPING[type]?.shortToFull || {};
   const result = {};
 
   for (const [key, value] of Object.entries(obj)) {
+    // Wenn der kurze Feldname bekannt ist, konvertiere ihn
     const newKey = map[key] || key;
     result[newKey] = value;
   }
@@ -134,29 +110,15 @@ export function llmToJson(obj, type) {
   return result;
 }
 
+// Alias für Rückwärtskompatibilität
+export const llmToJson = normalizeFieldNames;
+
 /**
- * Konvertiert ein Objekt von JSON-Feldnamen (lang) zu LLM-Feldnamen (kurz)
- * 
- * Beispiel:
- *   jsonToLlm({ content: "Brand", ort: "Feldkirchen" }, "board")
- *   → { t: "Brand", o: "Feldkirchen" }
- * 
- * @param {Object} obj - Das zu konvertierende Objekt
- * @param {string} type - Der Objekttyp: "board", "aufgaben", oder "protokoll"
- * @returns {Object} - Das konvertierte Objekt mit kurzen Feldnamen
+ * @deprecated Diese Funktion wird nicht mehr benötigt, da das LLM jetzt volle Feldnamen verwendet
  */
 export function jsonToLlm(obj, type) {
-  if (!obj || typeof obj !== "object") return obj;
-
-  const map = FIELD_MAPPING[type]?.jsonToLlm || {};
-  const result = {};
-
-  for (const [key, value] of Object.entries(obj)) {
-    const newKey = map[key] || key;
-    result[newKey] = value;
-  }
-
-  return result;
+  // Gibt das Objekt unverändert zurück - keine Konvertierung mehr nötig
+  return obj;
 }
 
 // ============================================================
@@ -339,38 +301,15 @@ export function transformLlmOperationsToJson(operations) {
 }
 
 /**
- * Transformiert Kontext-Daten von JSON ins LLM-Format (kurze Feldnamen).
- * Wird verwendet um den LLM-Prompt zu optimieren und Tokens zu sparen.
- * 
+ * @deprecated Diese Funktion wird nicht mehr benötigt, da das LLM jetzt volle Feldnamen verwendet.
+ * Der Kontext wird unverändert übergeben.
+ *
  * @param {Object} context - Der Kontext mit board, aufgaben, protokoll
- * @returns {Object} - Der Kontext mit kurzen Feldnamen
+ * @returns {Object} - Der Kontext unverändert
  */
 export function transformJsonContextToLlm(context) {
-  if (!context) return context;
-
-  const result = {};
-
-  // Board-Einträge transformieren
-  if (Array.isArray(context.board)) {
-    result.board = context.board.map(item => jsonToLlm(item, "board"));
-  }
-
-  // Aufgaben transformieren
-  if (Array.isArray(context.aufgaben)) {
-    result.aufgaben = context.aufgaben.map(item => jsonToLlm(item, "aufgaben"));
-  }
-
-  // Protokoll transformieren
-  if (Array.isArray(context.protokoll)) {
-    result.protokoll = context.protokoll.map(item => jsonToLlm(item, "protokoll"));
-  }
-
-  // Rollen unverändert übernehmen
-  if (context.roles) {
-    result.roles = context.roles;
-  }
-
-  return result;
+  // Keine Transformation mehr nötig - LLM verwendet volle Feldnamen
+  return context;
 }
 
 // ============================================================
@@ -451,5 +390,6 @@ export const __test__ = {
   STABSSTELLEN,
   EXTERNE_STELLEN,
   MELDESTELLE,
-  addProtocolDefaults
+  addProtocolDefaults,
+  normalizeFieldNames
 };

@@ -35,7 +35,7 @@ AUFGABE:
 WICHTIGE REGELN:
 ═══════════════════════════════════════════════════════════════════════════════
 1. Verwende KEINE Rollen aus activeRoles
-2. Verwende die kurzen Feldnamen (t, s, o, d, i, av, ea, ri, etc.)
+2. Verwende die vollen Feldnamen (content, status, ort, description, information, anvon, ergehtAn, richtung, etc.)
 3. ALLE Textinhalte in korrektem, natürlichem Deutsch verfassen!
 4. Formuliere vollständige Sätze - keine Stichworte oder Abkürzungen im Freitext
 
