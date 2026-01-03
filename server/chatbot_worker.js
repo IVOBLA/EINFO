@@ -279,8 +279,9 @@ async function applyBoardOperations(boardOps, activeRoles, staffRoles) {
 
   // CREATE → neue Karte in Spalte "neu"
   for (const op of createOps) {
-    if (!isAllowedOperation(op, activeRoles, allowedOptions)) {
-      const reason = explainOperationRejection(op, activeRoles, allowedOptions);
+    const createOptions = { ...allowedOptions, operationType: "board.create" };
+    if (!isAllowedOperation(op, activeRoles, createOptions)) {
+      const reason = explainOperationRejection(op, activeRoles, createOptions);
       log("Board-Create verworfen:", { op, reason, activeRoles });
 
       appendOpsVerworfenLog({
@@ -339,8 +340,9 @@ async function applyBoardOperations(boardOps, activeRoles, staffRoles) {
   }
 
   for (const op of updateOps) {
-    if (!isAllowedOperation(op, activeRoles, allowedOptions)) {
-      const reason = explainOperationRejection(op, activeRoles, allowedOptions);
+    const updateOptions = { ...allowedOptions, operationType: "board.update" };
+    if (!isAllowedOperation(op, activeRoles, updateOptions)) {
+      const reason = explainOperationRejection(op, activeRoles, updateOptions);
       log("Board-Update verworfen:", { op, reason, activeRoles });
 
       appendOpsVerworfenLog({
@@ -470,8 +472,9 @@ async function applyAufgabenOperations(taskOps, activeRoles, staffRoles = []) {
 
   // CREATE → neue Aufgabe im S2-Board
   for (const op of createOps) {
-    if (!isAllowedOperation(op, activeRoles, allowedOptions)) {
-      const reason = explainOperationRejection(op, activeRoles, allowedOptions);
+    const createOptions = { ...allowedOptions, operationType: "aufgaben.create" };
+    if (!isAllowedOperation(op, activeRoles, createOptions)) {
+      const reason = explainOperationRejection(op, activeRoles, createOptions);
       log("Aufgaben-Create verworfen:", { op, reason, activeRoles });
 
       appendOpsVerworfenLog({
@@ -525,20 +528,7 @@ async function applyAufgabenOperations(taskOps, activeRoles, staffRoles = []) {
 
   // UPDATE → vorhandene Tasks aktualisieren
   for (const op of updateOps) {
-    if (!isAllowedOperation(op, activeRoles, allowedOptions)) {
-      const reason = explainOperationRejection(op, activeRoles, allowedOptions);
-      log("Aufgaben-Update verworfen:", { op, reason, activeRoles });
-
-      appendOpsVerworfenLog({
-        kind: "aufgaben.update",
-        op,
-        reason,
-        activeRoles
-      });
-
-      continue;
-    }
-
+    // Zuerst prüfen ob die Aufgabe existiert (Anforderung: aufgaben.update nur wenn Aufgabe existiert)
     let targetEntry = null;
     let idx = -1;
     for (const entry of boardsByRole.values()) {
@@ -549,7 +539,28 @@ async function applyAufgabenOperations(taskOps, activeRoles, staffRoles = []) {
       }
     }
     if (!targetEntry || idx === -1) {
-      log("Aufgabe-Update: Task nicht gefunden:", op.taskId);
+      log("Aufgabe-Update verworfen: Task existiert nicht:", op.taskId);
+      appendOpsVerworfenLog({
+        kind: "aufgaben.update",
+        op,
+        reason: `Aufgabe mit ID "${op.taskId}" existiert nicht`,
+        activeRoles
+      });
+      continue;
+    }
+
+    const updateOptions = { ...allowedOptions, operationType: "aufgaben.update" };
+    if (!isAllowedOperation(op, activeRoles, updateOptions)) {
+      const reason = explainOperationRejection(op, activeRoles, updateOptions);
+      log("Aufgaben-Update verworfen:", { op, reason, activeRoles });
+
+      appendOpsVerworfenLog({
+        kind: "aufgaben.update",
+        op,
+        reason,
+        activeRoles
+      });
+
       continue;
     }
     const changes = op.changes || {};
@@ -629,8 +640,9 @@ async function applyProtokollOperations(protoOps, activeRoles, staffRoles) {
   const createOps = protoOps?.create || [];
 
   for (const op of createOps) {
-    if (!isAllowedOperation(op, activeRoles, allowedOptions)) {
-      const reason = explainOperationRejection(op, activeRoles, allowedOptions);
+    const createOptions = { ...allowedOptions, operationType: "protokoll.create" };
+    if (!isAllowedOperation(op, activeRoles, createOptions)) {
+      const reason = explainOperationRejection(op, activeRoles, createOptions);
       log("Protokoll-Create verworfen:", { op, reason, activeRoles });
 
       appendOpsVerworfenLog({

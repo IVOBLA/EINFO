@@ -564,10 +564,59 @@ export async function deriveTasksFromProtocol(newProtocolEntries, activeRoles, d
 
 export function isAllowedOperation(op, activeRoles, options = {}) {
   if (!op) return false;
-  const { allowedRoles = [], allowExternal = false } = options;
+  const { allowedRoles = [], allowExternal = false, operationType = null } = options;
 
-  // Update-Operationen (Statuswechsel) brauchen keine Absenderrolle
+  const normalizedActive = Array.isArray(activeRoles)
+    ? activeRoles.map((role) => normalizeRole(role))
+    : [];
+
+  // ============================================================
+  // board.create: Keine Absenderrolle erforderlich
+  // ============================================================
+  if (operationType === "board.create") {
+    log("debug", "board.create erkannt - keine Absenderrolle erforderlich");
+    return true;
+  }
+
+  // ============================================================
+  // board.update: Nur S2 darf durchführen (wenn S2 nicht angemeldet)
+  // ============================================================
+  if (operationType === "board.update") {
+    // Wenn S2 angemeldet ist, darf das LLM kein board.update machen
+    if (normalizedActive.includes("S2")) {
+      log("debug", "board.update abgelehnt: S2 ist angemeldet", { activeRoles });
+      return false;
+    }
+    log("debug", "board.update erlaubt: S2 ist nicht angemeldet");
+    return true;
+  }
+
+  // ============================================================
+  // protokoll.create mit richtung:"ein": Keine Stabsrolle erforderlich
+  // ============================================================
+  if (operationType === "protokoll.create") {
+    const richtung = op.richtung || op.direction;
+    if (richtung === "ein" || richtung === "in") {
+      log("debug", "protokoll.create mit richtung:ein - keine Stabsrolle erforderlich");
+      return true;
+    }
+  }
+
+  // ============================================================
+  // aufgaben.update: Wird im Worker geprüft ob Aufgabe existiert
+  // Hier nur die Basis-Validierung (keine zusätzliche Rollenprüfung nötig)
+  // ============================================================
+  if (operationType === "aufgaben.update") {
+    // Die Existenzprüfung erfolgt im Worker nach dieser Funktion
+    // Update-Operationen benötigen keine spezielle Absenderrolle
+    log("debug", "aufgaben.update erkannt - Existenzprüfung erfolgt im Worker");
+    return true;
+  }
+
+  // ============================================================
+  // Legacy: Update-Operationen (Statuswechsel) brauchen keine Absenderrolle
   // Erkennung: hat "changes" und eine ID (id, incidentId, taskId)
+  // ============================================================
   const isUpdateOperation = op.changes && (op.id || op.incidentId || op.taskId);
   if (isUpdateOperation) {
     log("debug", "Update-Operation erkannt - keine Absenderrolle erforderlich", {
@@ -576,6 +625,10 @@ export function isAllowedOperation(op, activeRoles, options = {}) {
     });
     return true; // Updates sind immer erlaubt (stammen vom Bot)
   }
+
+  // ============================================================
+  // Standard-Prüfung für alle anderen Operationen
+  // ============================================================
 
   // Rolle aus verschiedenen möglichen Feldern extrahieren
   // Priorität basierend auf Zielstruktur der JSON-Dateien
@@ -605,9 +658,6 @@ export function isAllowedOperation(op, activeRoles, options = {}) {
   }
 
   // Rolle darf nicht in activeRoles sein
-  const normalizedActive = Array.isArray(activeRoles)
-    ? activeRoles.map((role) => normalizeRole(role))
-    : [];
   const normalizedExtracted = normalizeRole(extractedRole);
   const normalizedAllowed = Array.isArray(allowedRoles)
     ? allowedRoles.map((role) => normalizeRole(role)).filter(Boolean)
@@ -651,9 +701,39 @@ export function isAllowedOperation(op, activeRoles, options = {}) {
  */
 
 export function explainOperationRejection(op, activeRoles, options = {}) {
-  const { allowedRoles = [], allowExternal = false } = options;
+  const { allowedRoles = [], allowExternal = false, operationType = null } = options;
   if (!op) {
     return "Operation ist leer/undefined.";
+  }
+
+  const normalizedActive = Array.isArray(activeRoles)
+    ? activeRoles.map((role) => normalizeRole(role))
+    : [];
+
+  // board.create sollte nie abgelehnt werden
+  if (operationType === "board.create") {
+    return "board.create - sollte nicht abgelehnt werden (keine Absenderrolle erforderlich).";
+  }
+
+  // board.update: Nur S2 darf (wenn nicht angemeldet)
+  if (operationType === "board.update") {
+    if (normalizedActive.includes("S2")) {
+      return "board.update abgelehnt: S2 ist angemeldet und führt Updates selbst durch.";
+    }
+    return "board.update - sollte nicht abgelehnt werden (S2 nicht angemeldet).";
+  }
+
+  // protokoll.create mit richtung:ein sollte nicht abgelehnt werden
+  if (operationType === "protokoll.create") {
+    const richtung = op.richtung || op.direction;
+    if (richtung === "ein" || richtung === "in") {
+      return "protokoll.create mit richtung:ein - sollte nicht abgelehnt werden.";
+    }
+  }
+
+  // aufgaben.update: Prüfung ob Aufgabe existiert erfolgt im Worker
+  if (operationType === "aufgaben.update") {
+    return "aufgaben.update - Existenzprüfung erfolgt im Worker.";
   }
 
   // Update-Operationen sollten nie abgelehnt werden
@@ -681,9 +761,6 @@ export function explainOperationRejection(op, activeRoles, options = {}) {
     return `Rolle "${extractedRole}" ist Meldestelle - wird nicht simuliert.`;
   }
 
-  const normalizedActive = Array.isArray(activeRoles)
-    ? activeRoles.map((role) => normalizeRole(role))
-    : [];
   if (normalizedActive.includes(normalizeRole(extractedRole))) {
     return `Rolle "${extractedRole}" ist in activeRoles [${activeRoles.join(", ")}] und darf nicht simuliert werden.`;
   }
