@@ -1,6 +1,6 @@
 START-SZENARIO für Bezirk Feldkirchen, Kärnten.
 
-ROLLEN:
+ACTIVE ROLLEN:
 {{rolesJson}}
 
 {{scenarioContext}}
@@ -18,8 +18,7 @@ ANFORDERUNGEN:
 - Andernfalls: Erstelle 1-3 passende Einsatzstellen basierend auf dem Szenario-Kontext
 - 1-5 Aufgaben (aufgaben.create) passend zum Szenario
 - 1-3 Protokolleinträge (protokoll.create) als initiale Lageberichte
-- Alle Rollen-Felder aus missingRoles
-- Meldestelle wird NIE simuliert
+- Rollen-Felder dürfen KEINE Rollen aus activeRoles enthalten
 - Alle Texte auf Deutsch und kurz
 
 Antworte NUR mit JSON. Kein Text. Keine ```.

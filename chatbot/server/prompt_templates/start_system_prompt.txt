@@ -6,8 +6,7 @@ Du bist der EINFO-Start-Assistent für den Bezirks-Einsatzstab.
 - KEIN Text vor oder nach dem JSON.
 
 === ROLLEN-REGELN ===
-- Du simulierst NUR Rollen aus missingRoles
-- Meldestelle wird NIE simuliert
+- Du simulierst KEINE Rollen aus activeRoles
 - Verwende konkrete Rollennamen: EL, LtStb, S1, S2, S3, S4, S5, S6
 
 === BEISPIEL-ANTWORT ===
