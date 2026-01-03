@@ -566,9 +566,20 @@ export function isAllowedOperation(op, activeRoles, options = {}) {
   if (!op) return false;
   const { allowedRoles = [], allowExternal = false } = options;
 
+  // Update-Operationen (Statuswechsel) brauchen keine Absenderrolle
+  // Erkennung: hat "changes" und eine ID (id, incidentId, taskId)
+  const isUpdateOperation = op.changes && (op.id || op.incidentId || op.taskId);
+  if (isUpdateOperation) {
+    log("debug", "Update-Operation erkannt - keine Absenderrolle erforderlich", {
+      id: op.id || op.incidentId || op.taskId,
+      changes: Object.keys(op.changes || {})
+    });
+    return true; // Updates sind immer erlaubt (stammen vom Bot)
+  }
+
   // Rolle aus verschiedenen möglichen Feldern extrahieren
   // Priorität basierend auf Zielstruktur der JSON-Dateien
-  const extractedRole = 
+  const extractedRole =
     op.ab ||                          // Aufgaben: assignedBy (kurz)
     extractRoleFromAnvon(op.anvon) ||    // Protokoll: "Von: EL" → "EL"
     op.r ||                           // Aufgaben: responsible (kurz)
@@ -580,7 +591,7 @@ export function isAllowedOperation(op, activeRoles, options = {}) {
 
   // Wenn keine Rolle gefunden werden kann
   if (!extractedRole) {
-    log("debug", "Operation abgelehnt: Keine Absender-Rolle gefunden", { 
+    log("debug", "Operation abgelehnt: Keine Absender-Rolle gefunden", {
       op,
       checkedFields: ["ab", "av", "r", "assignedBy", "responsible", "createdBy"]
     });
@@ -645,8 +656,14 @@ export function explainOperationRejection(op, activeRoles, options = {}) {
     return "Operation ist leer/undefined.";
   }
 
+  // Update-Operationen sollten nie abgelehnt werden
+  const isUpdateOperation = op.changes && (op.id || op.incidentId || op.taskId);
+  if (isUpdateOperation) {
+    return "Update-Operation - sollte nicht abgelehnt werden (keine Absenderrolle erforderlich).";
+  }
+
   // Rolle extrahieren (gleiche Logik wie isAllowedOperation)
-  const extractedRole = 
+  const extractedRole =
     op.ab ||
     extractRoleFromAnvon(op.anvon) ||
     op.r ||

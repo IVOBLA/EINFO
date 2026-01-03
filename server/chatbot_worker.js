@@ -607,7 +607,8 @@ function resolveProtokollAnvon(op) {
       return candidate.trim();
     }
   }
-  return "Chatbot";
+  // Default bei Statuswechsel oder wenn keine Rolle gefunden
+  return "bot";
 }
 
 async function applyProtokollOperations(protoOps, activeRoles, staffRoles) {
