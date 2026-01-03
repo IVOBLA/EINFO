@@ -632,8 +632,11 @@ export function isAllowedOperation(op, activeRoles, options = {}) {
 
   // Rolle aus verschiedenen möglichen Feldern extrahieren
   // Priorität basierend auf Zielstruktur der JSON-Dateien
+  // "von" wird als Alias für "av" akzeptiert
   const extractedRole =
     op.ab ||                          // Aufgaben: assignedBy (kurz)
+    op.av ||                          // Protokoll: Absender (kurz)
+    op.von ||                         // Protokoll: Absender (Alias für av)
     extractRoleFromAnvon(op.anvon) ||    // Protokoll: "Von: EL" → "EL"
     op.r ||                           // Aufgaben: responsible (kurz)
     op.assignedBy ||                  // Aufgaben: assignedBy (lang)
@@ -646,7 +649,7 @@ export function isAllowedOperation(op, activeRoles, options = {}) {
   if (!extractedRole) {
     log("debug", "Operation abgelehnt: Keine Absender-Rolle gefunden", {
       op,
-      checkedFields: ["ab", "av", "r", "assignedBy", "responsible", "createdBy"]
+      checkedFields: ["ab", "av", "von", "r", "assignedBy", "responsible", "createdBy"]
     });
     return false;
   }
@@ -743,8 +746,11 @@ export function explainOperationRejection(op, activeRoles, options = {}) {
   }
 
   // Rolle extrahieren (gleiche Logik wie isAllowedOperation)
+  // "von" wird als Alias für "av" akzeptiert
   const extractedRole =
     op.ab ||
+    op.av ||
+    op.von ||                         // Alias für av
     extractRoleFromAnvon(op.anvon) ||
     op.r ||
     op.assignedBy ||
@@ -754,7 +760,7 @@ export function explainOperationRejection(op, activeRoles, options = {}) {
     op.fromRole;
 
   if (!extractedRole) {
-    return `Keine Absender-Rolle gefunden. Geprüfte Felder: ab, av, r, assignedBy, responsible, createdBy. Operation: ${JSON.stringify(op).slice(0, 200)}`;
+    return `Keine Absender-Rolle gefunden. Geprüfte Felder: ab, av, von, r, assignedBy, responsible, createdBy. Operation: ${JSON.stringify(op).slice(0, 200)}`;
   }
 
   if (isMeldestelle(extractedRole)) {

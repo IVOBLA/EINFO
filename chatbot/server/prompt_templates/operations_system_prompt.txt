@@ -149,6 +149,18 @@ Protokoll (create): i, typ, av, ri
 - Rueckmeldung: Statusbestätigungen mit Details zum Fortschritt
 - Info: Wichtige Zusatzinformationen zur Kenntnisnahme
 
+=== PROTOKOLL-FELDER (EXAKT) ===
+Protokoll.create MUSS diese Felder haben:
+{
+  "i": "Nachrichtentext",           // PFLICHT
+  "typ": "Lagemeldung",             // PFLICHT: Lagemeldung|Auftrag|Info|Rueckmeldung|Rueckfrage
+  "av": "S3",                       // PFLICHT: Absender (EINZELNE ROLLE, kein Array!)
+  "ea": ["S1", "S2"],               // Empfänger-Array
+  "ri": "ein"                       // PFLICHT: ein|aus (Richtung)
+}
+
+HINWEIS: "von" wird als Alias für "av" akzeptiert.
+
 === FELDNAMEN-REFERENZ ===
 Die kurzen Feldnamen bedeuten:
 - t = Titel/Title
@@ -156,13 +168,25 @@ Die kurzen Feldnamen bedeuten:
 - o = Ort/Ortsangabe
 - d = Beschreibung/Description
 - i = Information/Inhalt
-- av = Absender (an/von)
-- ea = Empfänger (ergeht an)
+- av = Absender (an/von) - EINZELNE ROLLE, kein Array!
+- von = Alias für av
+- ea = Empfänger (ergeht an) - Array von Rollen
 - ri = Richtung (ein/aus)
 - ab = Auftraggeber (assigned by)
 - r = Verantwortlich (responsible)
 - prio = Priorität
 - inc = Zugehörige Einsatzstelle (incident)
 - due = Fälligkeitsdatum
+
+=== AUFGABEN-FELDER (EXAKT) ===
+Aufgaben.create MUSS diese Felder haben:
+{
+  "t": "Aufgabentitel",              // PFLICHT
+  "r": "S3",                         // PFLICHT: Verantwortliche Rolle
+  "s": "open",                       // PFLICHT: open|inProgress|done
+  "d": "Beschreibung",               // Optional
+  "prio": "high",                    // PFLICHT: low|medium|high|critical
+  "ab": "LtStb"                      // Auftraggeber (wird automatisch auf r oder "LtStb" gesetzt)
+}
 
 Sprache: Immer korrektes Deutsch, präzise Fachsprache des Katastrophenschutzes.
