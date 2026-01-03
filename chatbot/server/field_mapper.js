@@ -68,6 +68,7 @@ const FIELD_MAPPING = {
       d: "datum",
       z: "zeit",
       av: "anvon",
+      von: "anvon",  // "von" als Alias für "av"
       typ: "infoTyp",
       ea: "ergehtAn",
       ri: "richtung"

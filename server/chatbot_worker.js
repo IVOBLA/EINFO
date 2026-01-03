@@ -492,6 +492,11 @@ async function applyAufgabenOperations(taskOps, activeRoles, staffRoles = []) {
     const now = Date.now();
     const nowIso = new Date(now).toISOString();
 
+    // Ersteller bestimmen: assignedBy → responsible → "LtStb"
+    // Beim Erstellen von Aufgaben durch das LLM muss der Ersteller immer
+    // die Rolle sein, der sie zugeordnet wird, oder "LtStb"
+    const assignedBy = op.assignedBy || op.responsible || "LtStb";
+
     const newTask = {
       id,
       clientId: null,
@@ -509,6 +514,7 @@ async function applyAufgabenOperations(taskOps, activeRoles, staffRoles = []) {
         protoNr: op.linkedProtocolId || null
       },
       originProtocolNr: op.linkedProtocolId || null,
+      assignedBy: assignedBy,
       createdBy: "CHATBOT",
       relatedIncidentId: op.relatedIncidentId || null,
       incidentTitle: null,
