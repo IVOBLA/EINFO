@@ -256,7 +256,7 @@ function ensureBoardStructure(boardRaw) {
   return boardRaw;
 }
 
-async function applyBoardOperations(boardOps, missingRoles) {
+async function applyBoardOperations(boardOps, activeRoles) {
   const boardPath = path.join(dataDir, FILES.board);
   let boardRaw = await safeReadJson(boardPath, { columns: {} });
   boardRaw = ensureBoardStructure(boardRaw);
@@ -316,15 +316,15 @@ async function applyBoardOperations(boardOps, missingRoles) {
   }
 
   for (const op of updateOps) {
-    if (!isAllowedOperation(op, missingRoles)) {
-      const reason = explainOperationRejection(op, missingRoles);
-      log("Board-Update verworfen:", { op, reason, missingRoles });
+    if (!isAllowedOperation(op, activeRoles)) {
+      const reason = explainOperationRejection(op, activeRoles);
+      log("Board-Update verworfen:", { op, reason, activeRoles });
 
       appendOpsVerworfenLog({
         kind: "board.update",
         op,
         reason,
-        missingRoles
+        activeRoles
       });
 
       continue;
@@ -420,10 +420,10 @@ async function loadAufgabenBoardsForRoles(roles) {
   return new Map(entries.map((entry) => [entry.roleId, entry]));
 }
 
-async function applyAufgabenOperations(taskOps, missingRoles) {
+async function applyAufgabenOperations(taskOps, activeRoles) {
   const createOps = taskOps?.create || [];
   const updateOps = taskOps?.update || [];
-  const { active: activeRoles = [] } = await loadRoles().catch(() => ({ active: [] }));
+  const { missing: missingRoles = [] } = await loadRoles().catch(() => ({ missing: [] }));
   const roleCandidates = [
     ...missingRoles,
     ...activeRoles,
@@ -437,15 +437,15 @@ async function applyAufgabenOperations(taskOps, missingRoles) {
 
   // CREATE → neue Aufgabe im S2-Board
   for (const op of createOps) {
-    if (!isAllowedOperation(op, missingRoles)) {
-      const reason = explainOperationRejection(op, missingRoles);
-      log("Aufgaben-Create verworfen:", { op, reason, missingRoles });
+    if (!isAllowedOperation(op, activeRoles)) {
+      const reason = explainOperationRejection(op, activeRoles);
+      log("Aufgaben-Create verworfen:", { op, reason, activeRoles });
 
       appendOpsVerworfenLog({
         kind: "aufgaben.create",
         op,
         reason,
-        missingRoles
+        activeRoles
       });
 
       continue;
@@ -492,15 +492,15 @@ async function applyAufgabenOperations(taskOps, missingRoles) {
 
   // UPDATE → vorhandene Tasks aktualisieren
   for (const op of updateOps) {
-    if (!isAllowedOperation(op, missingRoles)) {
-      const reason = explainOperationRejection(op, missingRoles);
-      log("Aufgaben-Update verworfen:", { op, reason, missingRoles });
+    if (!isAllowedOperation(op, activeRoles)) {
+      const reason = explainOperationRejection(op, activeRoles);
+      log("Aufgaben-Update verworfen:", { op, reason, activeRoles });
 
       appendOpsVerworfenLog({
         kind: "aufgaben.update",
         op,
         reason,
-        missingRoles
+        activeRoles
       });
 
       continue;
@@ -558,7 +558,7 @@ async function applyAufgabenOperations(taskOps, missingRoles) {
   };
 }
 
-async function applyProtokollOperations(protoOps, missingRoles) {
+async function applyProtokollOperations(protoOps, activeRoles) {
   const protPath = path.join(dataDir, FILES.protokoll);
   let prot = await safeReadJson(protPath, []);
 
@@ -567,15 +567,15 @@ async function applyProtokollOperations(protoOps, missingRoles) {
   const createOps = protoOps?.create || [];
 
   for (const op of createOps) {
-    if (!isAllowedOperation(op, missingRoles)) {
-      const reason = explainOperationRejection(op, missingRoles);
-      log("Protokoll-Create verworfen:", { op, reason, missingRoles });
+    if (!isAllowedOperation(op, activeRoles)) {
+      const reason = explainOperationRejection(op, activeRoles);
+      log("Protokoll-Create verworfen:", { op, reason, activeRoles });
 
       appendOpsVerworfenLog({
         kind: "protokoll.create",
         op,
         reason,
-        missingRoles
+        activeRoles
       });
 
       continue;
@@ -669,12 +669,8 @@ async function runOnce() {
     return;
   }
 
-// Zuerst roles.json synchronisieren
-const { active, missing } = await syncRolesFile();
-
-if (missing.length === 0) {
-  return { ok: true, skipped: true, reason: "Alle Stabsstellen besetzt" };
-}
+  // Zuerst roles.json synchronisieren
+  const { active } = await syncRolesFile();
 
   
   isRunning = true;
@@ -683,13 +679,7 @@ if (missing.length === 0) {
   try {
     await logGpuStatus();
     
-    const { missing } = await loadRoles();
-    if (!missing.length) {
-      log("Keine missingRoles – nichts zu tun.");
-      return;
-    }
-
-    log(`Starte Simulationsschritt mit ${missing.length} fehlenden Rollen`);
+    log(`Starte Simulationsschritt | aktive Rollen: ${active.length}`);
 
     const stateCounts = await readStateCounts();
     const memoryQuery = buildMemoryQueryFromState(stateCounts);
@@ -765,9 +755,9 @@ if (missing.length === 0) {
       };
 
       try {
-        applyResults.board = await applyBoardOperations(ops.board || {}, missing);
-        applyResults.aufgaben = await applyAufgabenOperations(ops.aufgaben || {}, missing);
-        applyResults.protokoll = await applyProtokollOperations(ops.protokoll || {}, missing);
+        applyResults.board = await applyBoardOperations(ops.board || {}, active);
+        applyResults.aufgaben = await applyAufgabenOperations(ops.aufgaben || {}, active);
+        applyResults.protokoll = await applyProtokollOperations(ops.protokoll || {}, active);
       } catch (err) {
         log("Fehler beim Anwenden:", err?.message || err);
         return;

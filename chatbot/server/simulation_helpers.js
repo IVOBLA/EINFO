@@ -77,18 +77,19 @@ const FEUERWEHR_STANDORTE = {
  * Laut Anforderung: "Jede Meldung muss von der Rolle LtStb (wenn sie 
  * simuliert wird) bestätigt werden. (otherRecipientConfirmation)"
  * 
- * @param {string[]} missingRoles - Die simulierten Rollen
+ * @param {string[]} activeRoles - Aktiv besetzte Rollen
  * @param {string} protokollPath - Pfad zur protocol.json
  * @returns {Promise<{ confirmedCount: number }>}
  */
-export async function confirmProtocolsByLtStb(missingRoles, protokollPath) {
-  const normalizedMissing = missingRoles.map(r => normalizeRole(r));
+export async function confirmProtocolsByLtStb(activeRoles, protokollPath) {
+  const normalizedActive = Array.isArray(activeRoles)
+    ? activeRoles.map(r => normalizeRole(r))
+    : [];
 
-  // Prüfen ob LtStb oder LtStbStv simuliert wird
-  const ltStbSimulated = normalizedMissing.includes("LTSTB") ||
-                         normalizedMissing.includes("LTSTBSTV");
+  const ltStbActive = normalizedActive.includes("LTSTB") ||
+                      normalizedActive.includes("LTSTBSTV");
 
-  if (!ltStbSimulated) {
+  if (ltStbActive) {
     log("debug", "LtStb-Bestätigung übersprungen: LtStb ist besetzt");
     return { confirmedCount: 0 };
   }
@@ -107,7 +108,7 @@ export async function confirmProtocolsByLtStb(missingRoles, protokollPath) {
   // Unbestätigte Einträge finden und bestätigen
   let confirmedCount = 0;
   const now = Date.now();
-  const confirmRole = normalizedMissing.includes("LTSTB") ? "LtStb" : "LtStbStv";
+  const confirmRole = "LtStb";
 
   for (const entry of protokoll) {
     const confirmation = entry.otherRecipientConfirmation;
@@ -162,26 +163,40 @@ const TASK_STATUS_ORDER = ["new", "in_progress", "done"];
  * Laut Anforderung: "Wird eine Stabsstelle simuliert, so sind auch die 
  * entsprechenden Statuswechsel in den Aufgaben nacheinander durchzuführen"
  * 
- * @param {string[]} missingRoles - Die simulierten Rollen
+ * @param {string[]} activeRoles - Aktiv besetzte Rollen
  * @param {string} dataDir - Pfad zum Datenverzeichnis
  * @returns {Promise<{ updatedTasks: number, roleUpdates: Object }>}
  */
-export async function updateTaskStatusForSimulatedRoles(missingRoles, dataDir) {
-  const normalizedMissing = missingRoles.map(r => normalizeRole(r));
+export async function updateTaskStatusForSimulatedRoles(activeRoles, dataDir) {
+  const normalizedActive = Array.isArray(activeRoles)
+    ? activeRoles.map(r => normalizeRole(r))
+    : [];
+  let roleIds = [];
+  try {
+    const files = await fs.readdir(dataDir);
+    roleIds = files
+      .filter((name) => name.startsWith("Aufg_board_") && name.endsWith(".json"))
+      .map((name) => name.replace(/^Aufg_board_/, "").replace(/\.json$/, ""));
+  } catch (err) {
+    log("debug", "Aufgabenboards konnten nicht gelesen werden", { error: err.message });
+    return { updatedTasks: 0, roleUpdates: {} };
+  }
   let totalUpdated = 0;
   const roleUpdates = {};
 
-  for (const role of normalizedMissing) {
+  for (const role of roleIds) {
+    const normalizedRole = normalizeRole(role);
+    if (!normalizedRole || normalizedActive.includes(normalizedRole)) continue;
     // Meldestelle überspringen
-    if (isMeldestelle(role)) continue;
+    if (isMeldestelle(normalizedRole)) continue;
 
     // Aufgabenboard für diese Rolle laden
-    const boardPath = path.join(dataDir, `Aufg_board_${role}.json`);
+    const boardPath = path.join(dataDir, `Aufg_board_${normalizedRole}.json`);
 
     let board;
     try {
       board = await readAufgBoardFile(boardPath, {
-        roleId: role,
+        roleId: normalizedRole,
         logError: (message, data) => log("error", message, data),
         writeBack: true,
         backupOnChange: true
@@ -208,7 +223,7 @@ export async function updateTaskStatusForSimulatedRoles(missingRoles, dataDir) {
         if (Math.random() < 0.3) {
           item.status = newStatus;
           item.statusUpdatedAt = new Date().toISOString();
-          item.statusUpdatedBy = `simulation-${role}`;
+          item.statusUpdatedBy = `simulation-${normalizedRole}`;
 
           // History hinzufügen
           if (!Array.isArray(item.history)) {
@@ -219,7 +234,7 @@ export async function updateTaskStatusForSimulatedRoles(missingRoles, dataDir) {
             from: currentStatus,
             to: newStatus,
             at: new Date().toISOString(),
-            by: `simulation-${role}`
+            by: `simulation-${normalizedRole}`
           });
 
           updated++;
@@ -233,7 +248,7 @@ export async function updateTaskStatusForSimulatedRoles(missingRoles, dataDir) {
     // Speichern wenn Änderungen
     if (updated > 0) {
       await writeAufgBoardFile(boardPath, board);
-      roleUpdates[role] = updated;
+      roleUpdates[normalizedRole] = updated;
       totalUpdated += updated;
     }
   }
@@ -257,15 +272,17 @@ export async function updateTaskStatusForSimulatedRoles(missingRoles, dataDir) {
  * Statuswechsel durch das LLM zu erfolgen, wobei bis zum Schluss zumindest 
  * eine Einsatzstelle 'In Bearbeitung' bleiben muss."
  * 
- * @param {string[]} missingRoles - Die simulierten Rollen
+ * @param {string[]} activeRoles - Aktiv besetzte Rollen
  * @param {string} boardPath - Pfad zur board.json
  * @returns {Promise<{ enforced: boolean, movedIncidentId: string|null }>}
  */
-export async function ensureOneIncidentInProgress(missingRoles, boardPath) {
-  const normalizedMissing = missingRoles.map(r => normalizeRole(r));
+export async function ensureOneIncidentInProgress(activeRoles, boardPath) {
+  const normalizedActive = Array.isArray(activeRoles)
+    ? activeRoles.map(r => normalizeRole(r))
+    : [];
 
-  // Nur wenn S2 simuliert wird
-  if (!normalizedMissing.includes("S2")) {
+  // Nur wenn S2 nicht aktiv besetzt ist
+  if (normalizedActive.includes("S2")) {
     return { enforced: false, movedIncidentId: null };
   }
 
@@ -434,23 +451,24 @@ export async function assignVehiclesByDistance(incident, vehiclesPath, overrides
  * Erstellt Aufgaben für Stabsstellen basierend auf neuen Protokolleinträgen,
  * wenn LtStb simuliert wird.
  * 
- * Laut Anforderung: "Ist der LtStb in den missingRoles, so kann bzw soll 
+ * Laut Anforderung: "Ist der LtStb nicht aktiv besetzt, so kann bzw soll 
  * das LLM beim Erstellen der Meldungstexte daraus auch Aufgaben für die 
  * Stabsstellen ableiten"
  * 
  * @param {Array} newProtocolEntries - Neue Protokolleinträge
- * @param {string[]} missingRoles - Die simulierten Rollen
+ * @param {string[]} activeRoles - Aktiv besetzte Rollen
  * @param {string} dataDir - Pfad zum Datenverzeichnis
  * @returns {Promise<{ createdTasks: number }>}
  */
-export async function deriveTasksFromProtocol(newProtocolEntries, missingRoles, dataDir) {
-  const normalizedMissing = missingRoles.map(r => normalizeRole(r));
+export async function deriveTasksFromProtocol(newProtocolEntries, activeRoles, dataDir) {
+  const normalizedActive = Array.isArray(activeRoles)
+    ? activeRoles.map(r => normalizeRole(r))
+    : [];
 
-  // Nur wenn LtStb simuliert wird
-  const ltStbSimulated = normalizedMissing.includes("LTSTB") ||
-                         normalizedMissing.includes("LTSTBSTV");
+  const ltStbActive = normalizedActive.includes("LTSTB") ||
+                      normalizedActive.includes("LTSTBSTV");
 
-  if (!ltStbSimulated) {
+  if (ltStbActive) {
     return { createdTasks: 0 };
   }
 
@@ -469,8 +487,8 @@ export async function deriveTasksFromProtocol(newProtocolEntries, missingRoles, 
       // Nur für Stabsstellen Aufgaben erstellen
       if (!isStabsstelle(normalizedRecipient)) continue;
 
-      // Nur wenn diese Stabsstelle simuliert wird
-      if (!normalizedMissing.includes(normalizedRecipient)) continue;
+      // Nur wenn diese Stabsstelle nicht aktiv besetzt ist
+      if (normalizedActive.includes(normalizedRecipient)) continue;
 
       // Aufgabe erstellen
       const task = {
@@ -529,17 +547,17 @@ export async function deriveTasksFromProtocol(newProtocolEntries, missingRoles, 
  * 
  * Regeln:
  * 1. Extrahiert die Absender-Rolle aus vorhandenen Feldern
- * 2. Rolle muss in missingRoles sein (wird simuliert)
+ * 2. Rolle darf nicht in activeRoles sein (wird simuliert)
  * 3. Meldestelle darf NIE simuliert werden
  * 
  * Feld-Priorität: ab > av > r > assignedBy > createdBy
  * 
  * @param {Object} op - Die Operation vom LLM
- * @param {string[]} missingRoles - Die simulierten Rollen
+ * @param {string[]} activeRoles - Aktiv besetzte Rollen
  * @returns {boolean} - true wenn Operation erlaubt
  */
 
-export function isAllowedOperation(op, missingRoles) {
+export function isAllowedOperation(op, activeRoles) {
   if (!op) return false;
 
   // Rolle aus verschiedenen möglichen Feldern extrahieren
@@ -569,15 +587,17 @@ export function isAllowedOperation(op, missingRoles) {
     return false;
   }
 
-  // Rolle muss in missingRoles sein
-  const normalizedMissing = missingRoles.map(r => normalizeRole(r));
+  // Rolle darf nicht in activeRoles sein
+  const normalizedActive = Array.isArray(activeRoles)
+    ? activeRoles.map(r => normalizeRole(r))
+    : [];
   const normalizedExtracted = normalizeRole(extractedRole);
 
-  if (!normalizedMissing.includes(normalizedExtracted)) {
-    log("debug", "Operation abgelehnt: Rolle nicht in missingRoles", {
+  if (normalizedActive.includes(normalizedExtracted)) {
+    log("debug", "Operation abgelehnt: Rolle in activeRoles", {
       extractedRole,
       normalized: normalizedExtracted,
-      missingRoles
+      activeRoles
     });
     return false;
   }
@@ -591,11 +611,11 @@ export function isAllowedOperation(op, missingRoles) {
  * Wird für Logging und Debugging verwendet.
  * 
  * @param {Object} op - Die abgelehnte Operation
- * @param {string[]} missingRoles - Die simulierten Rollen
+ * @param {string[]} activeRoles - Aktiv besetzte Rollen
  * @returns {string} - Erklärung der Ablehnung
  */
 
-export function explainOperationRejection(op, missingRoles) {
+export function explainOperationRejection(op, activeRoles) {
   if (!op) {
     return "Operation ist leer/undefined.";
   }
@@ -619,9 +639,11 @@ export function explainOperationRejection(op, missingRoles) {
     return `Rolle "${extractedRole}" ist Meldestelle - wird nicht simuliert.`;
   }
 
-  const normalizedMissing = missingRoles.map(r => normalizeRole(r));
-  if (!normalizedMissing.includes(normalizeRole(extractedRole))) {
-    return `Rolle "${extractedRole}" ist nicht in missingRoles [${missingRoles.join(", ")}].`;
+  const normalizedActive = Array.isArray(activeRoles)
+    ? activeRoles.map(r => normalizeRole(r))
+    : [];
+  if (normalizedActive.includes(normalizeRole(extractedRole))) {
+    return `Rolle "${extractedRole}" ist in activeRoles [${activeRoles.join(", ")}] und darf nicht simuliert werden.`;
   }
 
   return "Unbekannter Grund.";

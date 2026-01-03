@@ -38,7 +38,7 @@ const chatUserPromptTemplate = loadPromptTemplate("chat_user_prompt.txt");
 
 /**
  * System-Prompt:
- * - Rollenlogik (activeRoles / missingRoles)
+ * - Rollenlogik (activeRoles)
  * - Meldestelle-Pflicht
  * - Operations-Schema
  * - Kompaktheit / JSON-Disziplin
@@ -79,7 +79,11 @@ export function buildUserPrompt({
     safeMemorySnippets.length > 0
       ? safeMemorySnippets.map((m) => `- ${m}`).join("\n")
       : "(keine RAG-Erinnerungen gefunden)";
-  const rolesPart = JSON.stringify(llmInput.roles || {}, null, 2);
+  const rolesPart = JSON.stringify(
+    { active: llmInput.roles?.active || [] },
+    null,
+    2
+  );
 const taskSection = llmInput.firstStep
     ? `SPEZIALFALL: START DER SIMULATION
 - Board, Aufgaben und Protokoll sind komplett leer.
@@ -114,7 +118,7 @@ VERBOTEN - Diese Formate sind FALSCH:
 ✗ "einsatzstellen": [...]  ← FALSCH! Muss "operations.board.createIncidentSites" sein
 
 === DEINE AUFGABE ===
-Du simulierst die FEHLENDEN Stabsstellen (missingRoles). Handle JETZT aktiv!
+Du simulierst KEINE Rollen aus activeRoles. Handle JETZT aktiv!
 
 1. OFFENE AUFGABEN bearbeiten:
    → Erstelle Protokolleintrag in operations.protokoll.create
@@ -131,7 +135,7 @@ Du simulierst die FEHLENDEN Stabsstellen (missingRoles). Handle JETZT aktiv!
 
 PFLICHT:
 - MINDESTENS 1-2 Einträge in operations.protokoll.create
-- NUR Rollen aus missingRoles als Absender (av, ab)
+- Absender (av, ab) dürfen NICHT in activeRoles sein
 - ALLES unter "operations" verschachteln!`;
 // ============================================================
   // NEU: Formatiere Meldungen die Antwort benötigen
@@ -252,7 +256,7 @@ return fillTemplate(operationsUserPromptTemplate, {
 // (wird bei llmInput.firstStep über llm_client.js verwendet)
 // ----------------------------------------------------------
 export function buildStartPrompts({ roles, scenario = null }) {
-  const rolesJson = JSON.stringify(roles || {}, null, 2);
+  const rolesJson = JSON.stringify({ active: roles?.active || [] }, null, 2);
   const systemPrompt = defaultStartSystemPrompt.trim();
 
   // NEU: Wenn ein Szenario vorhanden ist, dieses in den Prompt einbauen
