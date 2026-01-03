@@ -13,7 +13,12 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { isMeldestelle, isStabsstelle, normalizeRole } from "./field_mapper.js";
+import {
+  isExterneStelle,
+  isMeldestelle,
+  isStabsstelle,
+  normalizeRole
+} from "./field_mapper.js";
 import { readAufgBoardFile, writeAufgBoardFile } from "./aufgaben_board_io.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -557,8 +562,9 @@ export async function deriveTasksFromProtocol(newProtocolEntries, activeRoles, d
  * @returns {boolean} - true wenn Operation erlaubt
  */
 
-export function isAllowedOperation(op, activeRoles) {
+export function isAllowedOperation(op, activeRoles, options = {}) {
   if (!op) return false;
+  const { allowedRoles = [], allowExternal = false } = options;
 
   // Rolle aus verschiedenen möglichen Feldern extrahieren
   // Priorität basierend auf Zielstruktur der JSON-Dateien
@@ -589,9 +595,27 @@ export function isAllowedOperation(op, activeRoles) {
 
   // Rolle darf nicht in activeRoles sein
   const normalizedActive = Array.isArray(activeRoles)
-    ? activeRoles.map(r => normalizeRole(r))
+    ? activeRoles.map((role) => normalizeRole(role))
     : [];
   const normalizedExtracted = normalizeRole(extractedRole);
+  const normalizedAllowed = Array.isArray(allowedRoles)
+    ? allowedRoles.map((role) => normalizeRole(role)).filter(Boolean)
+    : [];
+  const allowedRoleSet = new Set(normalizedAllowed);
+  const isAllowedStaffRole = allowedRoleSet.size
+    ? allowedRoleSet.has(normalizedExtracted)
+    : isStabsstelle(normalizedExtracted);
+  const isExternalRole = isExterneStelle(normalizedExtracted);
+
+  if (!isAllowedStaffRole && !(allowExternal && isExternalRole)) {
+    log("debug", "Operation abgelehnt: Rolle nicht im Stab", {
+      extractedRole,
+      normalized: normalizedExtracted,
+      allowedRoles: normalizedAllowed,
+      allowExternal
+    });
+    return false;
+  }
 
   if (normalizedActive.includes(normalizedExtracted)) {
     log("debug", "Operation abgelehnt: Rolle in activeRoles", {
@@ -615,7 +639,8 @@ export function isAllowedOperation(op, activeRoles) {
  * @returns {string} - Erklärung der Ablehnung
  */
 
-export function explainOperationRejection(op, activeRoles) {
+export function explainOperationRejection(op, activeRoles, options = {}) {
+  const { allowedRoles = [], allowExternal = false } = options;
   if (!op) {
     return "Operation ist leer/undefined.";
   }
@@ -640,10 +665,23 @@ export function explainOperationRejection(op, activeRoles) {
   }
 
   const normalizedActive = Array.isArray(activeRoles)
-    ? activeRoles.map(r => normalizeRole(r))
+    ? activeRoles.map((role) => normalizeRole(role))
     : [];
   if (normalizedActive.includes(normalizeRole(extractedRole))) {
     return `Rolle "${extractedRole}" ist in activeRoles [${activeRoles.join(", ")}] und darf nicht simuliert werden.`;
+  }
+
+  const normalizedAllowed = Array.isArray(allowedRoles)
+    ? allowedRoles.map((role) => normalizeRole(role)).filter(Boolean)
+    : [];
+  const allowedRoleSet = new Set(normalizedAllowed);
+  const normalizedExtracted = normalizeRole(extractedRole);
+  const isAllowedStaffRole = allowedRoleSet.size
+    ? allowedRoleSet.has(normalizedExtracted)
+    : isStabsstelle(normalizedExtracted);
+  const isExternalRole = isExterneStelle(normalizedExtracted);
+  if (!isAllowedStaffRole && !(allowExternal && isExternalRole)) {
+    return `Rolle "${extractedRole}" ist keine Stabsrolle${allowExternal ? " oder externe Rolle" : ""}.`;
   }
 
   return "Unbekannter Grund.";
