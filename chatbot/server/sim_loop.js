@@ -25,15 +25,15 @@ const INTERNAL_ROLES = new Set([
 // ============================================================
 /**
  * Findet alle ausgehenden Meldungen an Stellen, die nicht aktiv besetzt sind.
- * Das können interne Stabsrollen (in missingRoles) oder externe Stellen sein.
+ * Das können interne Stabsrollen oder externe Stellen sein.
  * 
  * @param {Array} protokoll - Alle Protokolleinträge (nicht nur Delta!)
  * @param {Array} protokollDelta - Neue/geänderte Protokolleinträge
- * @param {Object} roles - { active: [...], missing: [...] }
+ * @param {Object} roles - { active: [...] }
  * @returns {Array} Meldungen die eine Antwort benötigen
  */
 function identifyMessagesNeedingResponse(protokoll, protokollDelta, roles) {
-  const { active, missing } = roles;
+  const { active } = roles;
   const activeSet = new Set(active.map(r => String(r).toUpperCase()));
   const needingResponse = [];
 
@@ -105,14 +105,13 @@ function identifyMessagesNeedingResponse(protokoll, protokollDelta, roles) {
     if (nonActiveRecipients.length === 0) continue;
 
     // Unterscheide: Interne Stabsrollen vs. Externe Stellen
-    const missingSet = new Set(missing.map(r => String(r).toUpperCase()));
     const internalMissing = [];
     const externalRecipients = [];
     
     for (const r of nonActiveRecipients) {
       const upper = String(r).toUpperCase();
       // Ist es eine bekannte interne Rolle?
-      if (INTERNAL_ROLES.has(upper) || missingSet.has(upper)) {
+      if (INTERNAL_ROLES.has(upper)) {
         internalMissing.push(r);
       } else {
         // Externe Stelle (Leitstelle, Polizei, Bürgermeister, etc.)
@@ -136,35 +135,6 @@ function identifyMessagesNeedingResponse(protokoll, protokollDelta, roles) {
   }
 
   return needingResponse;
-}
-
-// ============================================================
-// Erweitert missingRoles um externe Stellen
-// ============================================================
-/**
- * Fügt externe Stellen temporär zu missingRoles hinzu,
- * damit das LLM auch für diese Antworten generieren kann.
- * 
- * @param {Array} messagesNeedingResponse 
- * @param {Array} currentMissingRoles 
- * @returns {Array} Erweiterte missingRoles Liste
- */
-function extendMissingRolesWithExternal(messagesNeedingResponse, currentMissingRoles) {
-  const extendedMissing = [...currentMissingRoles];
-  const alreadyIncluded = new Set(currentMissingRoles.map(r => String(r).toUpperCase()));
-  
-  for (const msg of messagesNeedingResponse) {
-    for (const recipient of msg.externalRecipients) {
-      const upper = String(recipient).toUpperCase();
-      if (!alreadyIncluded.has(upper)) {
-        extendedMissing.push(recipient);
-        alreadyIncluded.add(upper);
-        logDebug("Externe Stelle wird simuliert", { role: recipient });
-      }
-    }
-  }
-  
-  return extendedMissing;
 }
 
 // Merkt sich den letzten Stand der eingelesenen EINFO-Daten...
@@ -430,14 +400,7 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
       roles
     );
     
-    // Erweitere missingRoles um externe Stellen
-    let effectiveMissingRoles = roles.missing;
     if (messagesNeedingResponse.length > 0) {
-      effectiveMissingRoles = extendMissingRolesWithExternal(
-        messagesNeedingResponse, 
-        roles.missing
-      );
-      
       logInfo("Meldungen benötigen Antwort", { 
         count: messagesNeedingResponse.length,
         messages: messagesNeedingResponse.map(m => ({
@@ -495,11 +458,9 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
       lastComparableSnapshot?.board?.length === boardSnapshot.length &&
       boardDelta.length === 0;
 
-const opsContext = {
-      // NEU: Verwende erweiterte Rollen-Liste mit externen Stellen
+    const opsContext = {
       roles: {
-        active: roles.active,
-        missing: effectiveMissingRoles
+        active: roles.active
       },
       compressedBoard: boardUnchanged
         ? lastCompressedBoardJson
@@ -545,7 +506,7 @@ const opsContext = {
       memorySnippets = memoryHits.map((hit) => hit.text);
     }
 
-const { parsed: llmResponse } = await callLLMForOps({
+    const { parsed: llmResponse } = await callLLMForOps({
       llmInput: opsContext,
       memorySnippets,
       scenario: activeScenario  // NEU: Szenario an LLM übergeben
