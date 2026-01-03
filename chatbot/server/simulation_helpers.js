@@ -592,12 +592,40 @@ export function isAllowedOperation(op, activeRoles, options = {}) {
   }
 
   // ============================================================
-  // protokoll.create mit richtung:"ein": Keine Stabsrolle erforderlich
+  // protokoll.create mit richtung:"ein": Prüfe Absender auf Meldestelle/activeRoles
+  // Eingehende Nachrichten benötigen keine Stabsrolle, aber Meldestelle und
+  // activeRoles dürfen NICHT simuliert werden.
   // ============================================================
   if (operationType === "protokoll.create") {
     const richtung = op.richtung || op.direction;
     if (richtung === "ein" || richtung === "in") {
-      log("debug", "protokoll.create mit richtung:ein - keine Stabsrolle erforderlich");
+      // Absender-Rolle extrahieren (bei eingehenden Nachrichten ist "ab" der Absender)
+      const senderRole = op.ab || extractRoleFromAnvon(op.anvon);
+
+      if (!senderRole) {
+        log("debug", "protokoll.create richtung:ein abgelehnt: Keine Absender-Rolle (ab) gefunden", { op });
+        return false;
+      }
+
+      // Meldestelle darf NIEMALS simuliert werden
+      if (isMeldestelle(senderRole)) {
+        log("debug", "protokoll.create richtung:ein abgelehnt: Absender ist Meldestelle", { senderRole });
+        return false;
+      }
+
+      // activeRoles dürfen NICHT simuliert werden
+      const normalizedSender = normalizeRole(senderRole);
+      if (normalizedActive.includes(normalizedSender)) {
+        log("debug", "protokoll.create richtung:ein abgelehnt: Absender ist in activeRoles", {
+          senderRole,
+          normalized: normalizedSender,
+          activeRoles
+        });
+        return false;
+      }
+
+      // Eingehende Nachricht von erlaubtem Absender
+      log("debug", "protokoll.create richtung:ein erlaubt", { senderRole });
       return true;
     }
   }
@@ -723,11 +751,26 @@ export function explainOperationRejection(op, activeRoles, options = {}) {
     return "board.update - sollte nicht abgelehnt werden (S2 nicht angemeldet).";
   }
 
-  // protokoll.create mit richtung:ein sollte nicht abgelehnt werden
+  // protokoll.create mit richtung:ein - Erklärung für Ablehnung
   if (operationType === "protokoll.create") {
     const richtung = op.richtung || op.direction;
     if (richtung === "ein" || richtung === "in") {
-      return "protokoll.create mit richtung:ein - sollte nicht abgelehnt werden.";
+      const senderRole = op.ab || extractRoleFromAnvon(op.anvon);
+
+      if (!senderRole) {
+        return `protokoll.create richtung:ein abgelehnt: Keine Absender-Rolle (ab) gefunden. Operation: ${JSON.stringify(op).slice(0, 200)}`;
+      }
+
+      if (isMeldestelle(senderRole)) {
+        return `protokoll.create richtung:ein abgelehnt: Absender "${senderRole}" ist Meldestelle - Meldestelle darf NIEMALS simuliert werden.`;
+      }
+
+      const normalizedSender = normalizeRole(senderRole);
+      if (normalizedActive.includes(normalizedSender)) {
+        return `protokoll.create richtung:ein abgelehnt: Absender "${senderRole}" ist in activeRoles [${activeRoles.join(", ")}] - activeRoles dürfen nicht simuliert werden.`;
+      }
+
+      return "protokoll.create mit richtung:ein - sollte nicht abgelehnt werden (Absender ist weder Meldestelle noch activeRole).";
     }
   }
 
