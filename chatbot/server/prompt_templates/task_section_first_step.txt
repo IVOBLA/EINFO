@@ -1,0 +1,7 @@
+SPEZIALFALL: START DER SIMULATION
+- Board, Aufgaben und Protokoll sind komplett leer.
+- Du MUSST jetzt ein realistisches Start-Szenario erzeugen.
+- Erzeuge 1–3 neue Einsatzstellen (operations.board.createIncidentSites), z.B. Hochwasserbereiche, Sturm-/Vermurungsereignisse.
+- Erzeuge dazu passende Protokolleinträge (operations.protokoll.create).
+- Erzeuge Aufgaben für S2/S3/S4/S5 (operations.aufgaben.create), damit der Stab arbeiten kann.
+- Halte dich streng an das JSON-Schema und die Rollenregeln.

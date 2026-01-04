@@ -27,14 +27,24 @@ function fillTemplate(template, replacements) {
   }, template);
 }
 
+// ============================================================
+// Template Loading (einmalig beim Modulstart)
+// ============================================================
 const defaultStartSystemPrompt = loadPromptTemplate("start_system_prompt.txt");
 const operationsSystemPrompt = loadPromptTemplate("operations_system_prompt.txt");
-const operationsUserPromptTemplate = loadPromptTemplate(
-  "operations_user_prompt.txt"
-);
+const operationsUserPromptTemplate = loadPromptTemplate("operations_user_prompt.txt");
 const startUserPromptTemplate = loadPromptTemplate("start_user_prompt.txt");
 const chatSystemPromptTemplate = loadPromptTemplate("chat_system_prompt.txt");
 const chatUserPromptTemplate = loadPromptTemplate("chat_user_prompt.txt");
+
+// NEU: Task-Abschnitt Templates
+const taskSectionFirstStep = loadPromptTemplate("task_section_first_step.txt");
+const taskSectionOperations = loadPromptTemplate("task_section_operations.txt");
+const responseGuideTemplate = loadPromptTemplate("response_guide.txt");
+const scenarioContextTemplate = loadPromptTemplate("scenario_context.txt");
+
+// JSON-Reparatur Prompt (wird von llm_client.js verwendet)
+export const jsonRepairSystemPrompt = loadPromptTemplate("json_repair_system.txt");
 
 /**
  * System-Prompt:
@@ -84,33 +94,6 @@ export function buildUserPrompt({
     null,
     2
   );
-const taskSection = llmInput.firstStep
-    ? `SPEZIALFALL: START DER SIMULATION
-- Board, Aufgaben und Protokoll sind komplett leer.
-- Du MUSST jetzt ein realistisches Start-Szenario erzeugen.
-- Erzeuge 1–3 neue Einsatzstellen (operations.board.createIncidentSites), z.B. Hochwasserbereiche, Sturm-/Vermurungsereignisse.
-- Erzeuge dazu passende Protokolleinträge (operations.protokoll.create).
-- Erzeuge Aufgaben für S2/S3/S4/S5 (operations.aufgaben.create), damit der Stab arbeiten kann.
-- Halte dich streng an das JSON-Schema und die Rollenregeln.`
-: `=== KRITISCH: ANTWORTFORMAT ===
-Du MUSST exakt dieses JSON-Schema verwenden - KEINE Abweichung!
-
-{
-  "operations": {
-    "board": {
-      "createIncidentSites": [],
-      "updateIncidentSites": []
-    },
-    "aufgaben": {
-      "create": [],
-      "update": []
-    },
-    "protokoll": {
-      "create": []
-    }
-  },
-  "analysis": "Kurze Lagebeurteilung"
-}
 
 VERBOTEN - Diese Formate sind FALSCH:
 ✗ "protokolle": [...]     ← FALSCH! Muss "operations.protokoll.create" sein
@@ -138,18 +121,12 @@ PFLICHT:
 - Absender (anvon, assignedBy) dürfen NICHT in activeRoles sein
 - ALLES unter "operations" verschachteln!`;
 // ============================================================
-  // NEU: Formatiere Meldungen die Antwort benötigen
+  // Formatiere Meldungen die Antwort benötigen
   // ============================================================
   let responseRequests = "";
   if (messagesNeedingResponse && messagesNeedingResponse.length > 0) {
-    responseRequests = `
-
-═══════════════════════════════════════════════════════════════════════════════
-WICHTIG - MELDUNGEN DIE ANTWORT BENÖTIGEN
-═══════════════════════════════════════════════════════════════════════════════
-
-Die folgenden AUSGEHENDEN Meldungen wurden verschickt und benötigen JETZT eine 
-Antwort von den genannten Empfängern.
+    // Response-Guide aus Template laden
+    responseRequests = "\n\n" + responseGuideTemplate + "\n\n";
 
 Du MUSST für JEDE dieser Meldungen einen Protokolleintrag als Antwort erstellen:
   → operations.protokoll.create
@@ -218,12 +195,12 @@ ANTWORT-FORMAT für jeden Protokolleintrag:
 ├─────────────────────────────────────────────────────────────────────────────
 │ Von:     ${msg.anvon}
 │ An:      ${msg.allRecipients.join(", ")}`;
-      
+
       if (msg.externalRecipients.length > 0) {
         responseRequests += `
 │ ⚠️  EXTERNE: ${msg.externalRecipients.join(", ")}`;
       }
-      
+
       responseRequests += `
 │ Typ:     ${msg.infoTyp}
 │ Inhalt:  "${msg.information}"
@@ -232,10 +209,8 @@ ANTWORT-FORMAT für jeden Protokolleintrag:
 └─────────────────────────────────────────────────────────────────────────────
 `;
     }
-    
-    responseRequests += `
-═══════════════════════════════════════════════════════════════════════════════
-`;
+
+    responseRequests += "\n═══════════════════════════════════════════════════════════════════════════════\n";
   }
 return fillTemplate(operationsUserPromptTemplate, {
     rolesPart,
@@ -266,20 +241,16 @@ export function buildStartPrompts({ roles, scenario = null }) {
 
   if (scenario) {
     const ctx = scenario.scenario_context || {};
-    scenarioContext = `
-VORGEGEBENES SZENARIO: ${scenario.title || "Unbekannt"}
-═══════════════════════════════════════════════════════════════════════════════
-Ereignistyp: ${ctx.event_type || "Katastrophe"}
-Region: ${ctx.region || "Bezirk Feldkirchen"}
-Wetter: ${ctx.weather || ""}
-Ausgangslage: ${ctx.initial_situation || ""}
-
-Betroffene Gebiete:
-${(ctx.affected_areas || []).map(a => `  - ${a}`).join("\n")}
-
-Besondere Bedingungen:
-${(ctx.special_conditions || []).map(c => `  - ${c}`).join("\n")}
-═══════════════════════════════════════════════════════════════════════════════`;
+    // Szenario-Kontext aus Template generieren
+    scenarioContext = fillTemplate(scenarioContextTemplate, {
+      title: scenario.title || "Unbekannt",
+      eventType: ctx.event_type || "Katastrophe",
+      region: ctx.region || "Bezirk Feldkirchen",
+      weather: ctx.weather || "",
+      initialSituation: ctx.initial_situation || "",
+      affectedAreas: (ctx.affected_areas || []).map(a => `  - ${a}`).join("\n") || "  (keine angegeben)",
+      specialConditions: (ctx.special_conditions || []).map(c => `  - ${c}`).join("\n") || "  (keine angegeben)"
+    });
 
     // Initiale Einsatzstellen aus dem Szenario extrahieren
     const allItems = [];

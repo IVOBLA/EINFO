@@ -1,0 +1,13 @@
+VORGEGEBENES SZENARIO: {{title}}
+═══════════════════════════════════════════════════════════════════════════════
+Ereignistyp: {{eventType}}
+Region: {{region}}
+Wetter: {{weather}}
+Ausgangslage: {{initialSituation}}
+
+Betroffene Gebiete:
+{{affectedAreas}}
+
+Besondere Bedingungen:
+{{specialConditions}}
+═══════════════════════════════════════════════════════════════════════════════

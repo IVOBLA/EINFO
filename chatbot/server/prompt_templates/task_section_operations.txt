@@ -1,0 +1,45 @@
+=== KRITISCH: ANTWORTFORMAT ===
+Du MUSST exakt dieses JSON-Schema verwenden - KEINE Abweichung!
+
+{
+  "operations": {
+    "board": {
+      "createIncidentSites": [],
+      "updateIncidentSites": []
+    },
+    "aufgaben": {
+      "create": [],
+      "update": []
+    },
+    "protokoll": {
+      "create": []
+    }
+  },
+  "analysis": "Kurze Lagebeurteilung"
+}
+
+VERBOTEN - Diese Formate sind FALSCH:
+✗ "protokolle": [...]     ← FALSCH! Muss "operations.protokoll.create" sein
+✗ "aufgaben": [...]       ← FALSCH! Muss "operations.aufgaben.create/update" sein
+✗ "einsatzstellen": [...]  ← FALSCH! Muss "operations.board.createIncidentSites" sein
+
+=== DEINE AUFGABE ===
+Du simulierst KEINE Rollen aus activeRoles. Handle JETZT aktiv!
+
+1. OFFENE AUFGABEN bearbeiten:
+   → Erstelle Protokolleintrag in operations.protokoll.create
+   → ODER aktualisiere Aufgabe in operations.aufgaben.update
+
+2. LAGEENTWICKLUNG simulieren:
+   → Neue Lagemeldungen in operations.protokoll.create
+   → Statusänderungen in operations.board.updateIncidentSites
+
+3. STABSARBEIT der fehlenden Rollen:
+   → S2: Lageberichte  → S3: Einsatzdisposition
+   → S4: Versorgung    → S5: Öffentlichkeitsarbeit
+   → LtStb: Koordination
+
+PFLICHT:
+- MINDESTENS 1-2 Einträge in operations.protokoll.create
+- Absender (anvon, assignedBy) dürfen NICHT in activeRoles sein
+- ALLES unter "operations" verschachteln!

@@ -1,0 +1,62 @@
+═══════════════════════════════════════════════════════════════════════════════
+WICHTIG - MELDUNGEN DIE ANTWORT BENÖTIGEN
+═══════════════════════════════════════════════════════════════════════════════
+
+Die folgenden AUSGEHENDEN Meldungen wurden verschickt und benötigen JETZT eine
+Antwort von den genannten Empfängern.
+
+Du MUSST für JEDE dieser Meldungen einen Protokolleintrag als Antwort erstellen:
+  → operations.protokoll.create
+
+Die Antwort kann sein:
+  ✓ POSITIV: zustimmend, bestätigend ("wird erledigt", "verstanden", "OK", "Einheiten unterwegs")
+  ✗ NEGATIV: ablehnend, Rückfrage ("nicht möglich", "brauche mehr Info", "keine Kapazität")
+
+Entscheide situationsabhängig basierend auf:
+  - Der Rolle/Stelle des Empfängers
+  - Der aktuellen Lage
+  - Realistischen Einschränkungen (Personal, Zeit, Ressourcen)
+
+EXTERNE STELLEN und ihre typischen Antwortmuster:
+───────────────────────────────────────────────────────────────────────────────
+  Leitstelle (LAWZ):     Alarmierungsbestätigungen, Einheiten-Verfügbarkeit
+                        → "Alarmierung erfolgt, 3 Fahrzeuge ETA 15 Min"
+                        → "Alle Einheiten im Einsatz, frühestens in 30 Min"
+
+  Polizei (POL):        Absperrungen, Verkehrsregelung, Evakuierungshilfe
+                        → "Absperrung Hauptstraße wird eingerichtet"
+                        → "Streife erst in 20 Min verfügbar"
+
+  Bürgermeister (BM):   Evakuierungsentscheidungen, Gemeinderessourcen
+                        → "Evakuierung genehmigt, Turnhalle als Notquartier"
+                        → "Muss erst mit Gemeinderat Rücksprache halten"
+
+  WLV/Wildbach:         Gefahrenbeurteilung Muren, Wildbäche
+                        → "Gutachter wird entsandt"
+                        → "Gebiet muss sofort geräumt werden"
+
+  Straßenmeisterei:     Straßensperren, Räumung, Streudienst
+                        → "Sperre wird errichtet, Umleitungsbeschilderung folgt"
+                        → "Räumgerät erst morgen früh verfügbar"
+
+  EVN/Energieversorger: Stromabschaltung, Freigaben, Netzstatus
+                        → "Abschaltung erfolgt in 10 Min"
+                        → "Benötige Freigabe vom Netzmeister"
+
+  Rotes Kreuz (RK):     Sanitätsdienst, Rettungstransporte, Evakuierungshilfe
+                        → "2 RTW werden disponiert"
+                        → "Kapazität erschöpft, keine freien Fahrzeuge"
+
+  Bundesheer (BH):      Assistenzeinsatz, schweres Gerät, Personal
+                        → "Assistenzanforderung wird geprüft"
+                        → "Pionierbataillon kann in 2h vor Ort sein"
+───────────────────────────────────────────────────────────────────────────────
+
+ANTWORT-FORMAT für jeden Protokolleintrag:
+{
+  "information": "[Antworttext der Stelle]",
+  "infoTyp": "Rueckmeldung",
+  "anvon": "[Name der antwortenden Stelle]",
+  "ergehtAn": ["[Original-Absender]"],
+  "richtung": "ein"
+}
