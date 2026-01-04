@@ -20,6 +20,15 @@ import { setLLMHistoryMeta } from "./state_store.js";
 import { getDisasterContextSummary } from "./disaster_context.js";
 import { getLearnedResponsesContext } from "./llm_feedback.js";
 
+// ============================================================
+// Retry-Konfiguration
+// ============================================================
+const RETRY_CONFIG = {
+  maxRetries: 3,
+  baseDelay: 1000,        // 1s
+  maxDelay: 10000,        // 10s
+  timeoutMultiplier: 1.5  // Timeout erhöht sich bei jedem Retry
+};
 
 function fetchWithTimeout(url, options, timeoutMs) {
   const controller = new AbortController();
@@ -193,7 +202,7 @@ export async function callLLMForOps({
     messages
   };
 
-  const { parsed, rawText } = await doLLMCall(body, "ops", null, {
+  const { parsed, rawText } = await doLLMCallWithRetry(body, "ops", null, {
     returnFullResponse: true,
     timeoutMs: modelConfig.timeout || CONFIG.llmSimTimeoutMs || CONFIG.llmRequestTimeoutMs
   });
@@ -265,7 +274,7 @@ const modelConfig = model
     ]
   };
 
-  const answer = await doLLMCall(body, "chat", onToken, {
+  const answer = await doLLMCallWithRetry(body, "chat", onToken, {
     timeoutMs: modelConfig.timeout || CONFIG.llmChatTimeoutMs || CONFIG.llmRequestTimeoutMs
   });
   return answer;
@@ -393,6 +402,85 @@ async function requestJsonRepairFromLLM({
   return { parsed, rawText };
 }
 
+
+/**
+ * Wrapper für doLLMCall mit Retry-Logik
+ * @param {Object} body - Request Body
+ * @param {string} phaseLabel - Phase (ops/chat)
+ * @param {Function} onToken - Streaming Callback
+ * @param {Object} options - Optionen
+ * @param {number} maxRetries - Max Anzahl Retries (default: 3)
+ * @returns {Promise<any>}
+ */
+async function doLLMCallWithRetry(body, phaseLabel, onToken, options = {}, maxRetries = RETRY_CONFIG.maxRetries) {
+  let lastError;
+  let currentTimeout = options.timeoutMs || CONFIG.llmRequestTimeoutMs;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      logDebug("LLM-Call Versuch", {
+        attempt,
+        maxRetries,
+        phase: phaseLabel,
+        timeout: currentTimeout
+      });
+
+      return await doLLMCall(body, phaseLabel, onToken, {
+        ...options,
+        timeoutMs: currentTimeout
+      });
+    } catch (err) {
+      lastError = err;
+      const errorMsg = String(err);
+
+      // Prüfe ob Retry sinnvoll ist
+      const isRetryable =
+        errorMsg.includes('timeout') ||
+        errorMsg.includes('ECONNREFUSED') ||
+        errorMsg.includes('ECONNRESET') ||
+        errorMsg.includes('fetch failed') ||
+        errorMsg.includes('network') ||
+        errorMsg.includes('500') ||
+        errorMsg.includes('502') ||
+        errorMsg.includes('503') ||
+        errorMsg.includes('504');
+
+      if (!isRetryable || attempt >= maxRetries) {
+        logError("LLM-Call endgültig fehlgeschlagen", {
+          attempt,
+          maxRetries,
+          phase: phaseLabel,
+          error: errorMsg,
+          retryable: isRetryable
+        });
+        throw lastError;
+      }
+
+      // Exponential Backoff berechnen
+      const delay = Math.min(
+        RETRY_CONFIG.baseDelay * Math.pow(2, attempt - 1),
+        RETRY_CONFIG.maxDelay
+      );
+
+      // Timeout für nächsten Versuch erhöhen
+      currentTimeout = Math.floor(currentTimeout * RETRY_CONFIG.timeoutMultiplier);
+
+      logDebug("LLM-Call Retry", {
+        attempt,
+        maxRetries,
+        delayMs: delay,
+        nextTimeout: currentTimeout,
+        phase: phaseLabel,
+        error: errorMsg.slice(0, 100)
+      });
+
+      // Warten vor erneutem Versuch
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
+  throw lastError;
+}
 
 async function doLLMCall(body, phaseLabel, onToken, options = {}) {
   // JSON-Format nur für Ops/Simulation, NICHT für Chat

@@ -15,7 +15,7 @@ import pdfParse from "pdf-parse";
 import { CONFIG } from "../config.js";
 import { logInfo, logError } from "../logger.js";
 import { chunkText } from "./chunk.js";
-import { embedText } from "./embedding.js";
+import { embedText, embedTextBatch } from "./embedding.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -96,24 +96,45 @@ async function buildIndex() {
     const chunks = chunkText(text, 1000, 200);
     meta.files.push({ name: file.name, chunks: chunks.length });
 
-    for (const ch of chunks) {
+    // Performance-Optimierung: Batch-Embeddings statt einzeln
+    const BATCH_SIZE = 8; // 8 Chunks parallel embedden
+
+    for (let i = 0; i < chunks.length; i += BATCH_SIZE) {
       if (curId >= maxElements) {
         logInfo("MaxElements erreicht, breche ab", { maxElements });
         break;
       }
+
+      const batch = chunks.slice(i, Math.min(i + BATCH_SIZE, chunks.length));
+
       try {
-        const emb = await embedText(ch); // Float32Array
-        meta.chunks.push({
-          id: curId,
-          fileName: file.name,
-          text: ch
-        });
-        // Für JSON speichern wir einfach als Array von Numbers
-        vectors.push(Array.from(emb));
-        curId++;
-      } catch (err) {
-        logError("Fehler beim Embedding eines Chunks", {
+        logInfo("Embedde Batch", {
           file: file.name,
+          batch: `${i + 1}-${i + batch.length}/${chunks.length}`
+        });
+
+        const embeddings = await embedTextBatch(batch, BATCH_SIZE);
+
+        for (let j = 0; j < embeddings.length; j++) {
+          if (curId >= maxElements) break;
+
+          const emb = embeddings[j];
+          const ch = batch[j];
+
+          meta.chunks.push({
+            id: curId,
+            fileName: file.name,
+            text: ch
+          });
+
+          // Für JSON speichern wir einfach als Array von Numbers
+          vectors.push(Array.from(emb));
+          curId++;
+        }
+      } catch (err) {
+        logError("Fehler beim Batch-Embedding", {
+          file: file.name,
+          batch: `${i + 1}-${i + batch.length}`,
           error: String(err)
         });
       }
