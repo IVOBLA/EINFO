@@ -105,9 +105,9 @@ function identifyMessagesNeedingResponse(protokoll, protokollDelta, roles) {
     const externalRecipients = [];
     
     for (const r of nonActiveRecipients) {
-      const normalized = normalizeRole(r);
-      // Ist es eine bekannte interne Rolle? (Stabsstelle, Meldestelle oder EL)
-      if (isStabsstelle(normalized) || isMeldestelle(normalized) || normalized === "EL") {
+      const upper = String(r).toUpperCase();
+      // Ist es eine bekannte interne Rolle?
+      if (INTERNAL_ROLES.has(upper)) {
         internalMissing.push(r);
       } else {
         // Externe Stelle (Leitstelle, Polizei, Bürgermeister, etc.)

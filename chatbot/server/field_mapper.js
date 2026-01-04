@@ -113,6 +113,14 @@ export function normalizeFieldNames(obj, type) {
 // Alias für Rückwärtskompatibilität
 export const llmToJson = normalizeFieldNames;
 
+/**
+ * @deprecated Diese Funktion wird nicht mehr benötigt, da das LLM jetzt volle Feldnamen verwendet
+ */
+export function jsonToLlm(obj, type) {
+  // Gibt das Objekt unverändert zurück - keine Konvertierung mehr nötig
+  return obj;
+}
+
 // ============================================================
 // Protokoll-Standardwerte
 // ============================================================
@@ -290,6 +298,18 @@ export function transformLlmOperationsToJson(operations) {
   }
 
   return result;
+}
+
+/**
+ * @deprecated Diese Funktion wird nicht mehr benötigt, da das LLM jetzt volle Feldnamen verwendet.
+ * Der Kontext wird unverändert übergeben.
+ *
+ * @param {Object} context - Der Kontext mit board, aufgaben, protokoll
+ * @returns {Object} - Der Kontext unverändert
+ */
+export function transformJsonContextToLlm(context) {
+  // Keine Transformation mehr nötig - LLM verwendet volle Feldnamen
+  return context;
 }
 
 // ============================================================
