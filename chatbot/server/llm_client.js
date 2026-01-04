@@ -7,7 +7,8 @@ import {
   buildUserPrompt,
   buildStartPrompts,
   buildSystemPromptChat,
-  buildUserPromptChat
+  buildUserPromptChat,
+  jsonRepairSystemPrompt
 } from "./prompts.js";
 
 import { logDebug, logError, logLLMExchange } from "./logger.js";
@@ -335,8 +336,7 @@ async function requestJsonRepairFromLLM({
     messages: [
       {
         role: "system",
-        content:
-          "Du bist ein JSON-Reparatur-Assistent. Extrahiere aus dem folgenden Text das JSON-Objekt und repariere es falls nötig. Antworte NUR mit dem reparierten JSON, nichts anderes."
+        content: jsonRepairSystemPrompt
       },
       {
         role: "user",

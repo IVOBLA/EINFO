@@ -3,22 +3,18 @@
 import { CONFIG } from "./config.js";
 import { readEinfoInputs } from "./einfo_io.js";
 import { callLLMForOps } from "./llm_client.js";
-import { logInfo, logError, logDebug } from "./logger.js";  // NEU: logDebug
+import { logInfo, logError, logDebug } from "./logger.js";
 import { searchMemory } from "./memory_manager.js";
-import { logEvent } from "./audit_trail.js";  // NEU: Audit-Trail
+import { logEvent } from "./audit_trail.js";
 import {
   updateDisasterContextFromEinfo,
   incrementSimulationStep
-} from "./disaster_context.js";  // NEU: Disaster Context Integration
-
-// ============================================================
-// Konstanten für interne Stabsrollen
-// ============================================================
-const INTERNAL_ROLES = new Set([
-  "EL", "LTSTB", "LTSTBSTV", 
-  "S1", "S2", "S3", "S4", "S5", "S6",
-  "MELDESTELLE", "MS"
-]);
+} from "./disaster_context.js";
+import {
+  isStabsstelle,
+  isMeldestelle,
+  normalizeRole
+} from "./field_mapper.js";
 
 // ============================================================
 // Identifiziert ausgehende Protokolleinträge die Antworten benötigen
@@ -109,9 +105,9 @@ function identifyMessagesNeedingResponse(protokoll, protokollDelta, roles) {
     const externalRecipients = [];
     
     for (const r of nonActiveRecipients) {
-      const upper = String(r).toUpperCase();
-      // Ist es eine bekannte interne Rolle?
-      if (INTERNAL_ROLES.has(upper)) {
+      const normalized = normalizeRole(r);
+      // Ist es eine bekannte interne Rolle? (Stabsstelle, Meldestelle oder EL)
+      if (isStabsstelle(normalized) || isMeldestelle(normalized) || normalized === "EL") {
         internalMissing.push(r);
       } else {
         // Externe Stelle (Leitstelle, Polizei, Bürgermeister, etc.)

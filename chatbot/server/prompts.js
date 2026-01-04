@@ -27,14 +27,24 @@ function fillTemplate(template, replacements) {
   }, template);
 }
 
+// ============================================================
+// Template Loading (einmalig beim Modulstart)
+// ============================================================
 const defaultStartSystemPrompt = loadPromptTemplate("start_system_prompt.txt");
 const operationsSystemPrompt = loadPromptTemplate("operations_system_prompt.txt");
-const operationsUserPromptTemplate = loadPromptTemplate(
-  "operations_user_prompt.txt"
-);
+const operationsUserPromptTemplate = loadPromptTemplate("operations_user_prompt.txt");
 const startUserPromptTemplate = loadPromptTemplate("start_user_prompt.txt");
 const chatSystemPromptTemplate = loadPromptTemplate("chat_system_prompt.txt");
 const chatUserPromptTemplate = loadPromptTemplate("chat_user_prompt.txt");
+
+// NEU: Task-Abschnitt Templates
+const taskSectionFirstStep = loadPromptTemplate("task_section_first_step.txt");
+const taskSectionOperations = loadPromptTemplate("task_section_operations.txt");
+const responseGuideTemplate = loadPromptTemplate("response_guide.txt");
+const scenarioContextTemplate = loadPromptTemplate("scenario_context.txt");
+
+// JSON-Reparatur Prompt (wird von llm_client.js verwendet)
+export const jsonRepairSystemPrompt = loadPromptTemplate("json_repair_system.txt");
 
 /**
  * System-Prompt:
@@ -84,132 +94,20 @@ export function buildUserPrompt({
     null,
     2
   );
-const taskSection = llmInput.firstStep
-    ? `SPEZIALFALL: START DER SIMULATION
-- Board, Aufgaben und Protokoll sind komplett leer.
-- Du MUSST jetzt ein realistisches Start-Szenario erzeugen.
-- Erzeuge 1–3 neue Einsatzstellen (operations.board.createIncidentSites), z.B. Hochwasserbereiche, Sturm-/Vermurungsereignisse.
-- Erzeuge dazu passende Protokolleinträge (operations.protokoll.create).
-- Erzeuge Aufgaben für S2/S3/S4/S5 (operations.aufgaben.create), damit der Stab arbeiten kann.
-- Halte dich streng an das JSON-Schema und die Rollenregeln.`
-: `=== KRITISCH: ANTWORTFORMAT ===
-Du MUSST exakt dieses JSON-Schema verwenden - KEINE Abweichung!
 
-{
-  "operations": {
-    "board": {
-      "createIncidentSites": [],
-      "updateIncidentSites": []
-    },
-    "aufgaben": {
-      "create": [],
-      "update": []
-    },
-    "protokoll": {
-      "create": []
-    }
-  },
-  "analysis": "Kurze Lagebeurteilung"
-}
-
-VERBOTEN - Diese Formate sind FALSCH:
-✗ "protokolle": [...]     ← FALSCH! Muss "operations.protokoll.create" sein
-✗ "aufgaben": [...]       ← FALSCH! Muss "operations.aufgaben.create/update" sein
-✗ "einsatzstellen": [...]  ← FALSCH! Muss "operations.board.createIncidentSites" sein
-
-=== DEINE AUFGABE ===
-Du simulierst KEINE Rollen aus activeRoles. Handle JETZT aktiv!
-
-1. OFFENE AUFGABEN bearbeiten:
-   → Erstelle Protokolleintrag in operations.protokoll.create
-   → ODER aktualisiere Aufgabe in operations.aufgaben.update
-
-2. LAGEENTWICKLUNG simulieren:
-   → Neue Lagemeldungen in operations.protokoll.create
-   → Statusänderungen in operations.board.updateIncidentSites
-
-3. STABSARBEIT der fehlenden Rollen:
-   → S2: Lageberichte  → S3: Einsatzdisposition
-   → S4: Versorgung    → S5: Öffentlichkeitsarbeit
-   → LtStb: Koordination
-
-PFLICHT:
-- MINDESTENS 1-2 Einträge in operations.protokoll.create
-- Absender (anvon, assignedBy) dürfen NICHT in activeRoles sein
-- ALLES unter "operations" verschachteln!`;
+  // Task-Abschnitt aus Template laden
+  const taskSection = llmInput.firstStep
+    ? taskSectionFirstStep
+    : taskSectionOperations;
 // ============================================================
-  // NEU: Formatiere Meldungen die Antwort benötigen
+  // Formatiere Meldungen die Antwort benötigen
   // ============================================================
   let responseRequests = "";
   if (messagesNeedingResponse && messagesNeedingResponse.length > 0) {
-    responseRequests = `
+    // Response-Guide aus Template laden
+    responseRequests = "\n\n" + responseGuideTemplate + "\n\n";
 
-═══════════════════════════════════════════════════════════════════════════════
-WICHTIG - MELDUNGEN DIE ANTWORT BENÖTIGEN
-═══════════════════════════════════════════════════════════════════════════════
-
-Die folgenden AUSGEHENDEN Meldungen wurden verschickt und benötigen JETZT eine 
-Antwort von den genannten Empfängern.
-
-Du MUSST für JEDE dieser Meldungen einen Protokolleintrag als Antwort erstellen:
-  → operations.protokoll.create
-
-Die Antwort kann sein:
-  ✓ POSITIV: zustimmend, bestätigend ("wird erledigt", "verstanden", "OK", "Einheiten unterwegs")
-  ✗ NEGATIV: ablehnend, Rückfrage ("nicht möglich", "brauche mehr Info", "keine Kapazität")
-
-Entscheide situationsabhängig basierend auf:
-  - Der Rolle/Stelle des Empfängers
-  - Der aktuellen Lage
-  - Realistischen Einschränkungen (Personal, Zeit, Ressourcen)
-
-EXTERNE STELLEN und ihre typischen Antwortmuster:
-───────────────────────────────────────────────────────────────────────────────
-  Leitstelle (LAWZ):     Alarmierungsbestätigungen, Einheiten-Verfügbarkeit
-                        → "Alarmierung erfolgt, 3 Fahrzeuge ETA 15 Min"
-                        → "Alle Einheiten im Einsatz, frühestens in 30 Min"
-  
-  Polizei (POL):        Absperrungen, Verkehrsregelung, Evakuierungshilfe
-                        → "Absperrung Hauptstraße wird eingerichtet"
-                        → "Streife erst in 20 Min verfügbar"
-  
-  Bürgermeister (BM):   Evakuierungsentscheidungen, Gemeinderessourcen
-                        → "Evakuierung genehmigt, Turnhalle als Notquartier"
-                        → "Muss erst mit Gemeinderat Rücksprache halten"
-  
-  WLV/Wildbach:         Gefahrenbeurteilung Muren, Wildbäche
-                        → "Gutachter wird entsandt"
-                        → "Gebiet muss sofort geräumt werden"
-  
-  Straßenmeisterei:     Straßensperren, Räumung, Streudienst
-                        → "Sperre wird errichtet, Umleitungsbeschilderung folgt"
-                        → "Räumgerät erst morgen früh verfügbar"
-  
-  EVN/Energieversorger: Stromabschaltung, Freigaben, Netzstatus
-                        → "Abschaltung erfolgt in 10 Min"
-                        → "Benötige Freigabe vom Netzmeister"
-  
-  Rotes Kreuz (RK):     Sanitätsdienst, Rettungstransporte, Evakuierungshilfe
-                        → "2 RTW werden disponiert"
-                        → "Kapazität erschöpft, keine freien Fahrzeuge"
-  
-  Bundesheer (BH):      Assistenzeinsatz, schweres Gerät, Personal
-                        → "Assistenzanforderung wird geprüft"
-                        → "Pionierbataillon kann in 2h vor Ort sein"
-───────────────────────────────────────────────────────────────────────────────
-
-ANTWORT-FORMAT für jeden Protokolleintrag:
-{
-  "information": "[Antworttext der Stelle]",
-  "infoTyp": "Rueckmeldung",
-  "anvon": "[Name der antwortenden Stelle]",
-  "ergehtAn": ["[Original-Absender]"],
-  "richtung": "ein"
-}
-
-`;
-
-    // Einzelne Meldungen auflisten
+    // Einzelne Meldungen dynamisch formatieren
     for (let i = 0; i < messagesNeedingResponse.length; i++) {
       const msg = messagesNeedingResponse[i];
       responseRequests += `
@@ -218,12 +116,12 @@ ANTWORT-FORMAT für jeden Protokolleintrag:
 ├─────────────────────────────────────────────────────────────────────────────
 │ Von:     ${msg.anvon}
 │ An:      ${msg.allRecipients.join(", ")}`;
-      
+
       if (msg.externalRecipients.length > 0) {
         responseRequests += `
 │ ⚠️  EXTERNE: ${msg.externalRecipients.join(", ")}`;
       }
-      
+
       responseRequests += `
 │ Typ:     ${msg.infoTyp}
 │ Inhalt:  "${msg.information}"
@@ -232,10 +130,8 @@ ANTWORT-FORMAT für jeden Protokolleintrag:
 └─────────────────────────────────────────────────────────────────────────────
 `;
     }
-    
-    responseRequests += `
-═══════════════════════════════════════════════════════════════════════════════
-`;
+
+    responseRequests += "\n═══════════════════════════════════════════════════════════════════════════════\n";
   }
 return fillTemplate(operationsUserPromptTemplate, {
     rolesPart,
@@ -266,20 +162,16 @@ export function buildStartPrompts({ roles, scenario = null }) {
 
   if (scenario) {
     const ctx = scenario.scenario_context || {};
-    scenarioContext = `
-VORGEGEBENES SZENARIO: ${scenario.title || "Unbekannt"}
-═══════════════════════════════════════════════════════════════════════════════
-Ereignistyp: ${ctx.event_type || "Katastrophe"}
-Region: ${ctx.region || "Bezirk Feldkirchen"}
-Wetter: ${ctx.weather || ""}
-Ausgangslage: ${ctx.initial_situation || ""}
-
-Betroffene Gebiete:
-${(ctx.affected_areas || []).map(a => `  - ${a}`).join("\n")}
-
-Besondere Bedingungen:
-${(ctx.special_conditions || []).map(c => `  - ${c}`).join("\n")}
-═══════════════════════════════════════════════════════════════════════════════`;
+    // Szenario-Kontext aus Template generieren
+    scenarioContext = fillTemplate(scenarioContextTemplate, {
+      title: scenario.title || "Unbekannt",
+      eventType: ctx.event_type || "Katastrophe",
+      region: ctx.region || "Bezirk Feldkirchen",
+      weather: ctx.weather || "",
+      initialSituation: ctx.initial_situation || "",
+      affectedAreas: (ctx.affected_areas || []).map(a => `  - ${a}`).join("\n") || "  (keine angegeben)",
+      specialConditions: (ctx.special_conditions || []).map(c => `  - ${c}`).join("\n") || "  (keine angegeben)"
+    });
 
     // Initiale Einsatzstellen aus dem Szenario extrahieren
     const allItems = [];
