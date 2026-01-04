@@ -53,6 +53,8 @@ import {
   createExerciseFromTemplate
 } from "./template_manager.js";
 
+import { rateLimit, RateLimitProfiles, getRateLimitStats } from "./middleware/rate-limit.js";
+
 import fs from "fs/promises";
 
 // ============================================================
@@ -259,7 +261,7 @@ app.post("/api/sim/step", async (req, res) => {
 // Bestehende Chat-Route (nur wenn Simulation pausiert)
 // ============================================================
 
-app.post("/api/chat", async (req, res) => {
+app.post("/api/chat", rateLimit(RateLimitProfiles.GENEROUS), async (req, res) => {
   const { question } = req.body || {};
   if (!question || typeof question !== "string") {
     return res.status(400).json({ ok: false, error: "missing_question" });
@@ -307,7 +309,7 @@ app.get("/api/llm/gpu", async (_req, res) => {
   }
 });
 
-app.post("/api/llm/test", async (req, res) => {
+app.post("/api/llm/test", rateLimit(RateLimitProfiles.STRICT), async (req, res) => {
   const { question, model } = req.body || {};
   const gpuStatus = await getGpuStatus();
 
@@ -448,7 +450,7 @@ app.get("/api/llm/model/:taskType", (req, res) => {
 });
 
 // Schnelltest eines bestimmten Modell-Profils
-app.post("/api/llm/test-model", async (req, res) => {
+app.post("/api/llm/test-model", rateLimit(RateLimitProfiles.STRICT), async (req, res) => {
   const { modelKey } = req.body || {};
   
   if (!modelKey || !CONFIG.llm.models[modelKey]) {
@@ -1012,6 +1014,20 @@ app.post("/api/feedback/learned-context", async (req, res) => {
     res.json({ ok: true, context });
   } catch (err) {
     logError("Learned Context Fehler", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// ============================================================
+// Rate-Limit Stats API (Admin)
+// ============================================================
+
+app.get("/api/admin/rate-limit-stats", rateLimit(RateLimitProfiles.ADMIN), (req, res) => {
+  try {
+    const stats = getRateLimitStats();
+    res.json({ ok: true, stats });
+  } catch (err) {
+    logError("Rate-Limit-Stats Fehler", { error: String(err) });
     res.status(500).json({ ok: false, error: String(err) });
   }
 });

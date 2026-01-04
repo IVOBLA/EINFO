@@ -1,9 +1,20 @@
+/**
+ * @deprecated Diese Datei ist veraltet. Verwende stattdessen ./rag/rag_vector.js
+ *
+ * MIGRATION:
+ * - Alte keyword-basierte Suche → moderne Vector-RAG
+ * - retrieveContextChunks() → getKnowledgeContextVector() aus ./rag/rag_vector.js
+ *
+ * Diese Datei wird in einer zukünftigen Version entfernt.
+ */
+
 import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
 import { CONFIG } from "./config.js";
 import { logDebug, logError } from "./logger.js";
+import { getKnowledgeContextVector } from "./rag/rag_vector.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,6 +22,7 @@ const __dirname = path.dirname(__filename);
 const indexPath = path.resolve(__dirname, CONFIG.knowledgeIndexDir, "index.json");
 
 let indexCache = null;
+let deprecationWarningShown = false;
 
 async function loadIndex() {
   if (indexCache) return indexCache;
@@ -28,8 +40,21 @@ async function loadIndex() {
   return indexCache;
 }
 
-// Sehr einfache Volltext-Suche: Scoring nach Häufigkeit von Suchwörtern
+/**
+ * @deprecated Verwende stattdessen getKnowledgeContextVector() aus ./rag/rag_vector.js
+ * Diese Funktion nutzt veraltete keyword-basierte Suche statt moderner Vector-Embeddings
+ */
 export async function retrieveContextChunks({ stateBefore, einfoData }) {
+  // Deprecation Warning (nur einmal loggen)
+  if (!deprecationWarningShown) {
+    console.warn('\n⚠️  DEPRECATION WARNING ⚠️');
+    console.warn('retrieveContextChunks() ist veraltet!');
+    console.warn('Migration: Verwende getKnowledgeContextVector() aus ./rag/rag_vector.js');
+    console.warn('Diese Funktion nutzt modernere Vector-Embeddings statt Keyword-Suche.\n');
+    deprecationWarningShown = true;
+  }
+
+  // Fallback auf alte Implementierung (für Abwärtskompatibilität)
   const idx = await loadIndex();
   if (!idx.docs || idx.docs.length === 0) return [];
 
