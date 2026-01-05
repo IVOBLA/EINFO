@@ -64,13 +64,7 @@
               "content": "Baum auf Fahrbahn L87",
               "typ": "T1, Verkehrshindernis",
               "ort": "L87 km 3, Gnesau",
-              "latitude": 46.7650,
-              "longitude": 13.9420,
-              "description": "Großer Baum blockiert beide Fahrspuren",
-              "alerted": "FF Gnesau",
-              "assignedVehicles": [],
-              "createdAt": "2025-01-01T06:30:00.000Z",
-              "statusSince": "2025-01-01T06:30:00.000Z"
+              "description": "Großer Baum blockiert beide Fahrspuren"
             },
             {
               "id": "st-002",
@@ -78,13 +72,7 @@
               "content": "Dachschaden Wohnhaus",
               "typ": "T2, Gebäudesicherung",
               "ort": "Dorfstraße 12, Sirnitz",
-              "latitude": 46.8249,
-              "longitude": 14.0538,
-              "description": "Dachziegel abgedeckt, Regenwasser dringt ein",
-              "alerted": "FF Sirnitz",
-              "assignedVehicles": [],
-              "createdAt": "2025-01-01T06:45:00.000Z",
-              "statusSince": "2025-01-01T06:45:00.000Z"
+              "description": "Dachziegel abgedeckt, Regenwasser dringt ein"
             },
             {
               "id": "st-003",
@@ -92,13 +80,7 @@
               "content": "Stromleitung auf Straße",
               "typ": "T3, Gefahr durch Strom",
               "ort": "Albecker Straße, Albeck",
-              "latitude": 46.8200,
-              "longitude": 14.0600,
-              "description": "Freileitung liegt auf der Straße, Status unklar",
-              "alerted": "FF Albeck",
-              "assignedVehicles": [],
-              "createdAt": "2025-01-01T07:00:00.000Z",
-              "statusSince": "2025-01-01T07:00:00.000Z"
+              "description": "Freileitung liegt auf der Straße, Status unklar"
             }
           ]
         },
@@ -111,8 +93,7 @@
           "items": []
         }
       }
-    },
-    "protokoll": []
+    }
   },
   
   "triggers": [
@@ -144,8 +125,6 @@
           "content": "Person unter Baum eingeklemmt",
           "typ": "T3, Menschenrettung",
           "ort": "Waldweg, Steuerberg",
-          "latitude": 46.7800,
-          "longitude": 14.1200,
           "description": "Waldarbeiter wurde von umstürzendem Baum getroffen, bei Bewusstsein",
           "priority": "high"
         }
@@ -153,41 +132,9 @@
     }
   ],
   
-  "success_criteria": {
-    "min_incidents_resolved": 4,
-    "max_duration_minutes": 60,
-    "required_protocols": 3
-  },
-  
   "hints": [
     "Bei Stromleitung auf der Straße: Bereich absichern, Abstand halten",
     "KELAG für Freischaltung kontaktieren",
     "Kettensägen-Einsätze nur mit entsprechender Ausbildung"
-  ],
-  
-  "external_entities": {
-    "KELAG": {
-      "name": "KELAG Kärnten",
-      "response_style": "technisch, sicherheitsbewusst",
-      "typical_responses": [
-        "Freischaltung erfolgt, Bereich stromfrei",
-        "Monteur unterwegs, ETA 30 Minuten"
-      ]
-    },
-    "STM": {
-      "name": "Straßenmeisterei Feldkirchen",
-      "response_style": "praktisch, lösungsorientiert",
-      "typical_responses": [
-        "Räumfahrzeug entsandt",
-        "Umleitung wird eingerichtet"
-      ]
-    }
-  },
-  
-  "metadata": {
-    "created_at": "2025-01-01T00:00:00.000Z",
-    "created_by": "System",
-    "version": "1.0",
-    "tags": ["sturm", "naturereignis", "verkehr"]
-  }
+  ]
 }

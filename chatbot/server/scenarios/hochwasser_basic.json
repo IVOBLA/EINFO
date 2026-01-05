@@ -33,27 +33,47 @@
       }
     ]
   },
-  
+
+  "scenario_context": {
+    "event_type": "Hochwasser",
+    "region": "Musterstadt",
+    "affected_areas": [
+      "Innenstadt",
+      "Bachviertel"
+    ],
+    "weather": "Starkregen seit 24 Stunden, Pegelstände steigend",
+    "initial_situation": "Erste Überflutungen im Bachviertel gemeldet. Pegelstand der Muster steigt weiter.",
+    "special_conditions": [
+      "Sandsäcke am Bauhof verfügbar"
+    ]
+  },
+
   "initial_state": {
-    "board": [
-      {
-        "id": "inc_001",
-        "content": "Hochwasser Hauptstraße 45 - Keller unter Wasser",
-        "ort": "Hauptstraße 45, 3100 Musterstadt",
-        "typ": "Wasserschaden",
-        "column": "neu"
+    "board": {
+      "columns": {
+        "neu": {
+          "name": "Neu",
+          "items": [
+            {
+              "id": "inc_001",
+              "humanId": "E-1",
+              "content": "Hochwasser Hauptstraße 45 - Keller unter Wasser",
+              "typ": "T3, Wasserschaden",
+              "ort": "Hauptstraße 45, 3100 Musterstadt",
+              "description": "Keller steht unter Wasser, Heizungsanlage bedroht"
+            }
+          ]
+        },
+        "in-bearbeitung": {
+          "name": "In Bearbeitung",
+          "items": []
+        },
+        "erledigt": {
+          "name": "Erledigt",
+          "items": []
+        }
       }
-    ],
-    "protokoll": [
-      {
-        "id": "p_001",
-        "information": "Anruf Bürgermeister: Pegelstand steigt weiter, weitere Überflutungen erwartet",
-        "infoTyp": "Lagemeldung",
-        "ergehtAn": ["LtStb", "S2"],
-        "anvon": "Bürgermeister"
-      }
-    ],
-    "aufgaben": []
+    }
   },
   
   "triggers": [
@@ -86,9 +106,9 @@
     }
   ],
   
-  "success_criteria": {
-    "min_protocols": 5,
-    "min_tasks_assigned": 3,
-    "required_roles_active": ["LtStb", "S2", "S3"]
-  }
+  "hints": [
+    "Priorität hat die Menschenrettung",
+    "Sandsäcke können am Bauhof angefordert werden",
+    "Regelmäßige Lagemeldungen an die Einsatzleitung"
+  ]
 }
