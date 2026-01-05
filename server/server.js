@@ -1977,6 +1977,38 @@ app.get("/api/gps", async (_req,res)=>{
 
 app.get("/api/types", async (_req,res)=>{ try{ res.json(await readJson(TYPES_FILE,[])); }catch{ res.json([]); } });
 
+// --- NEU: API für LLM Action-History ---
+app.get("/api/llm/action-history", async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit, 10) || 100;
+    const offset = parseInt(req.query.offset, 10) || 0;
+    const category = req.query.category || null; // "protokoll", "aufgabe", "einsatz" oder null für alle
+
+    const historyPath = path.join(DATA_DIR, "llm_action_history.json");
+    let history = await readJson(historyPath, []);
+
+    // Nach Kategorie filtern
+    if (category) {
+      history = history.filter(entry => entry.category === category);
+    }
+
+    // Paginierung
+    const total = history.length;
+    const items = history.slice(offset, offset + limit);
+
+    res.json({
+      items,
+      total,
+      limit,
+      offset,
+      hasMore: offset + limit < total
+    });
+  } catch (err) {
+    console.error("[api] Fehler beim Laden der Action-History:", err);
+    res.status(500).json({ error: "Fehler beim Laden der Action-History" });
+  }
+});
+
 app.post("/api/vehicles", async (req,res)=>{
   const { ort, label, mannschaft=0, cloneOf="" } = req.body||{};
   if(!ort||!label) return res.status(400).json({ error:"ort und label sind erforderlich" });
