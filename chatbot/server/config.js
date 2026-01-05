@@ -105,9 +105,9 @@ const base = {
   rag: {
     dim: Number(process.env.RAG_DIM || "1024"),
     indexMaxElements: Number(process.env.RAG_MAX_ELEM || "50000"),
-    topK: Number(process.env.RAG_TOP_K || "5"),
-    maxContextChars: Number(process.env.RAG_MAX_CTX || "2500"),
-    scoreThreshold: Number(process.env.RAG_SCORE_THRESHOLD || "0.35")
+    topK: Number(process.env.RAG_TOP_K || "10"),
+    maxContextChars: Number(process.env.RAG_MAX_CTX || "4000"),
+    scoreThreshold: Number(process.env.RAG_SCORE_THRESHOLD || "0.2")
   },
 
   // Prompt-Limits
