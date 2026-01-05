@@ -28,7 +28,7 @@ function sanitizeActiveModel(value) {
 const base = {
   dataDir: "../../server/data",
 
-  // Verzeichnisse für Knowledge & Index (relativ zu chatbot/server/)
+  // Verzeichnisse für Knowledge & Index (relativ zu chatbot/server/rag/)
   knowledgeDir: "../../knowledge",
   knowledgeIndexDir: "../../knowledge_index",
 

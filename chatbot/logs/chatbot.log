@@ -2218,3 +2218,4 @@
 {"ts":"2026-01-05T16:32:10.553Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
 {"ts":"2026-01-05T16:32:40.578Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
 {"ts":"2026-01-05T16:33:10.600Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-05T16:40:10.900Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
