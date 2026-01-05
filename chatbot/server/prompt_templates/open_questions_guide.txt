@@ -1,0 +1,56 @@
+═══════════════════════════════════════════════════════════════════════════════
+WICHTIG - OFFENE RÜCKFRAGEN DIE BEANTWORTET WERDEN MÜSSEN
+═══════════════════════════════════════════════════════════════════════════════
+
+Die folgenden Protokolleinträge enthalten RÜCKFRAGEN von echten Benutzern
+(nicht vom Chatbot) die noch NICHT beantwortet wurden.
+
+Du MUSST für JEDE dieser Rückfragen einen Protokolleintrag als Antwort erstellen:
+  → operations.protokoll.create
+
+ANTWORT-REGELN:
+───────────────────────────────────────────────────────────────────────────────
+1. Der Absender (anvon) der Antwort MUSS einer der Empfänger (ergehtAn) der
+   ursprünglichen Frage sein - also derjenige der gefragt wurde.
+
+2. Der Empfänger (ergehtAn) der Antwort MUSS der ursprüngliche Fragesteller
+   (anvon) sein - also derjenige der die Frage gestellt hat.
+
+3. Der infoTyp MUSS "Rueckmeldung" sein.
+
+4. Die Antwort MUSS die gestellte Frage direkt beantworten - inhaltlich und
+   fachlich korrekt basierend auf dem Kontext der Katastrophenlage.
+
+5. Wenn die Frage an eine INTERNE STABSROLLE gerichtet ist (S1-S6, LTSTB):
+   → Beantworte die Frage aus Sicht dieser Stabsrolle
+   → Berücksichtige die Zuständigkeiten der jeweiligen Rolle
+
+6. Wenn die Frage an eine EXTERNE STELLE gerichtet ist:
+   → Beantworte die Frage realistisch aus Sicht dieser externen Stelle
+   → Nutze die Antwortmuster aus dem RESPONSE GUIDE
+
+BEISPIEL-ANTWORT für eine Rückfrage:
+───────────────────────────────────────────────────────────────────────────────
+Ursprüngliche Frage:
+  anvon: "S3"
+  ergehtAn: ["POL"]
+  information: "Wie ist der Status der Absperrung auf der B317?"
+
+Korrekte Antwort:
+{
+  "information": "Absperrung B317 zwischen Feldkirchen und Himmelberg ist eingerichtet. Zwei Streifen vor Ort, Umleitung über L78 ist beschildert.",
+  "infoTyp": "Rueckmeldung",
+  "anvon": "POL",
+  "ergehtAn": ["S3"],
+  "richtung": "ein"
+}
+───────────────────────────────────────────────────────────────────────────────
+
+ANTWORT-FORMAT für Rückfragen:
+{
+  "information": "[Inhaltliche Antwort auf die gestellte Frage]",
+  "infoTyp": "Rueckmeldung",
+  "anvon": "[Empfänger der ursprünglichen Frage - wer antwortet]",
+  "ergehtAn": ["[Ursprünglicher Fragesteller - wer bekommt die Antwort]"],
+  "richtung": "ein"
+}

@@ -42,6 +42,8 @@ const taskSectionFirstStep = loadPromptTemplate("task_section_first_step.txt");
 const taskSectionOperations = loadPromptTemplate("task_section_operations.txt");
 const responseGuideTemplate = loadPromptTemplate("response_guide.txt");
 const scenarioContextTemplate = loadPromptTemplate("scenario_context.txt");
+// NEU: Offene Rückfragen Template
+const openQuestionsGuideTemplate = loadPromptTemplate("open_questions_guide.txt");
 
 // JSON-Reparatur Prompt (wird von llm_client.js verwendet)
 export const jsonRepairSystemPrompt = loadPromptTemplate("json_repair_system.txt");
@@ -79,6 +81,7 @@ export function buildUserPrompt({
   knowledgeContext,
   memorySnippets,
   messagesNeedingResponse,  // NEU
+  openQuestions = null,      // NEU: Offene Rückfragen
   disasterContext = "",      // NEU
   learnedResponses = ""      // NEU
 }) {
@@ -135,6 +138,53 @@ export function buildUserPrompt({
     responseRequests += "\n═══════════════════════════════════════════════════════════════════════════════\n";
   }
 
+  // ============================================================
+  // Formatiere offene Rückfragen die beantwortet werden müssen
+  // ============================================================
+  let openQuestionsSection = "";
+  if (openQuestions && openQuestions.length > 0) {
+    // Guide für offene Rückfragen aus Template laden
+    openQuestionsSection = "\n\n" + openQuestionsGuideTemplate + "\n\n";
+
+    // Einzelne Rückfragen auflisten
+    for (let i = 0; i < openQuestions.length; i++) {
+      const q = openQuestions[i];
+      const recipients = Array.isArray(q.ergehtAn) ? q.ergehtAn.join(", ") : q.ergehtAn || "";
+
+      openQuestionsSection += `
+┌─────────────────────────────────────────────────────────────────────────────
+│ RÜCKFRAGE ${i + 1} - Protokoll-Nr. ${q.nr || "?"} (${q.datum || ""} ${q.zeit || ""})
+├─────────────────────────────────────────────────────────────────────────────
+│ Fragesteller:  ${q.anvon}
+│ Gefragt wurde: ${recipients}`;
+
+      if (q.hasQuestionMark) {
+        openQuestionsSection += `
+│ ❓ Enthält Fragezeichen`;
+      }
+      if (q.targetsNonActiveInternal) {
+        openQuestionsSection += `
+│ ⚠️  An nicht-aktive interne Rolle gerichtet`;
+      }
+      if (q.targetsExternal) {
+        openQuestionsSection += `
+│ 🌐 An externe Stelle gerichtet`;
+      }
+
+      openQuestionsSection += `
+│ Typ:     ${q.infoTyp}
+│ Frage:   "${q.information}"
+│
+│ → Erstelle Antwort VON: ${recipients}
+│ → Erstelle Antwort AN:  ${q.anvon}
+│ → Verwende infoTyp: "Rueckmeldung"
+└─────────────────────────────────────────────────────────────────────────────
+`;
+    }
+
+    openQuestionsSection += "\n═══════════════════════════════════════════════════════════════════════════════\n";
+  }
+
   return fillTemplate(operationsUserPromptTemplate, {
     rolesPart,
     compressedBoard,
@@ -144,6 +194,7 @@ export function buildUserPrompt({
     knowledgeContext: knowledgeContext || "(kein Knowledge-Kontext verfügbar)",
     taskSection,
     responseRequests,  // NEU
+    openQuestionsSection,  // NEU: Offene Rückfragen
     disasterContext: disasterContext || "(kein Katastrophen-Kontext verfügbar)",  // NEU
     learnedResponses: learnedResponses || "(keine gelernten Antworten verfügbar)"  // NEU
   });

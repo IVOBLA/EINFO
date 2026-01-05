@@ -149,6 +149,40 @@ Protokoll (create): information, infoTyp, anvon, richtung
 - Rueckmeldung: Statusbestätigungen mit Details zum Fortschritt
 - Info: Wichtige Zusatzinformationen zur Kenntnisnahme
 
+=== REGELN FÜR RÜCKFRAGEN-BEANTWORTUNG ===
+Wenn im User-Prompt OFFENE RÜCKFRAGEN aufgelistet werden, MUSST du diese beantworten:
+
+1. PRIORITÄT: Offene Rückfragen haben HÖCHSTE PRIORITÄT und müssen VOR anderen
+   Operationen beantwortet werden!
+
+2. ABSENDER-EMPFÄNGER-TAUSCH:
+   - Der Absender (anvon) der Antwort = Empfänger (ergehtAn) der ursprünglichen Frage
+   - Der Empfänger (ergehtAn) der Antwort = Absender (anvon) der ursprünglichen Frage
+   - Beispiel: Frage von S3 an POL → Antwort von POL an S3
+
+3. INFOTYP: Bei Antworten auf Rückfragen IMMER infoTyp: "Rueckmeldung" verwenden
+
+4. RICHTUNG: Antworten auf Rückfragen sind IMMER eingehend: richtung: "ein"
+
+5. INHALT: Die Antwort muss die gestellte Frage DIREKT und VOLLSTÄNDIG beantworten:
+   - Beziehe dich auf den aktuellen Katastrophen-Kontext
+   - Gib konkrete, realistische Informationen
+   - Vermeide ausweichende oder unklare Antworten
+
+6. STABSROLLEN (S1-S6, LTSTB) beantworten Fragen aus ihrer Fachperspektive:
+   - S1: Personal, Verwaltung, Rechtsfragen
+   - S2: Lage, Information, Erkundung
+   - S3: Einsatz, taktische Maßnahmen
+   - S4: Versorgung, Logistik
+   - S5: Öffentlichkeitsarbeit, Medien
+   - S6: Kommunikation, Technik
+
+7. EXTERNE STELLEN beantworten realistisch aus ihrer Perspektive:
+   - POL: Absperrungen, Verkehr, Sicherheit
+   - RK: Sanitätsdienst, Rettung, Betreuung
+   - BM: Gemeinde-Entscheidungen, lokale Ressourcen
+   - LST/LAWZ: Alarmierungen, Einheiten-Status
+
 === PROTOKOLL-FELDER (EXAKT) ===
 Protokoll.create MUSS diese Felder haben:
 {
