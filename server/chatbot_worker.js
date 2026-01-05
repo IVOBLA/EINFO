@@ -63,6 +63,10 @@ const WORKER_LOG_FILE = path.join(LOG_DIR, "chatbot_worker.log");
 // -------- NEU: zusätzliches Log für verworfene Operationen --------
 const OPS_VERWORFEN_LOG_FILE = path.join(LOG_DIR, "ops_verworfen.log");
 
+// -------- NEU: Action-History für erfolgreich durchgeführte LLM-Aktionen --------
+const ACTION_HISTORY_FILE = path.join(dataDir, "llm_action_history.json");
+const MAX_ACTION_HISTORY_ENTRIES = 500; // Maximal gespeicherte Einträge
+
 const RETRY_DELAY_MS = 5000;
 const MAX_RETRIES = 10;
 
@@ -77,6 +81,40 @@ function appendOpsVerworfenLog(entry) {
       err
     );
   });
+}
+
+// -------- NEU: Action-History für erfolgreich durchgeführte LLM-Aktionen --------
+async function appendActionHistory(actions) {
+  if (!Array.isArray(actions) || actions.length === 0) return;
+
+  try {
+    let history = await safeReadJson(ACTION_HISTORY_FILE, []);
+    if (!Array.isArray(history)) history = [];
+
+    // Neue Aktionen an den Anfang hinzufügen
+    history = [...actions, ...history];
+
+    // Auf maximale Einträge begrenzen
+    if (history.length > MAX_ACTION_HISTORY_ENTRIES) {
+      history = history.slice(0, MAX_ACTION_HISTORY_ENTRIES);
+    }
+
+    await safeWriteJson(ACTION_HISTORY_FILE, history);
+    log(`Action-History aktualisiert: ${actions.length} neue Einträge`);
+  } catch (err) {
+    console.error("[chatbot-worker] Fehler beim Schreiben der Action-History:", err);
+  }
+}
+
+function buildActionHistoryEntry(type, category, data, relatedId = null) {
+  return {
+    id: `action-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    timestamp: new Date().toISOString(),
+    type,      // "create" | "update"
+    category,  // "protokoll" | "aufgabe" | "einsatz"
+    data,      // Die vollständigen Daten der Aktion
+    relatedId  // ID des erstellten/bearbeiteten Objekts
+  };
 }
 // -----------------------------------------------------------
 
@@ -1053,6 +1091,87 @@ async function runOnce() {
           text: memoryText,
           meta: { type: "step_summary", ts: new Date().toISOString(), source: "worker" }
         });
+
+        // -------- NEU: Action-History speichern --------
+        const actionHistoryEntries = [];
+
+        // Einsatz-Creates
+        const boardCreates = applyResults.board.appliedOps?.createIncidentSites || [];
+        for (const op of boardCreates) {
+          actionHistoryEntries.push(buildActionHistoryEntry(
+            "create",
+            "einsatz",
+            {
+              content: op.content || "Einsatzstelle (KI)",
+              ort: op.ort || "",
+              description: op.description || ""
+            },
+            op.id || null
+          ));
+        }
+
+        // Einsatz-Updates
+        const boardUpdates = applyResults.board.appliedOps?.updateIncidentSites || [];
+        for (const op of boardUpdates) {
+          actionHistoryEntries.push(buildActionHistoryEntry(
+            "update",
+            "einsatz",
+            {
+              incidentId: op.incidentId,
+              changes: op.changes || {}
+            },
+            op.incidentId
+          ));
+        }
+
+        // Aufgaben-Creates
+        const taskCreates = applyResults.aufgaben.appliedOps?.create || [];
+        for (const op of taskCreates) {
+          actionHistoryEntries.push(buildActionHistoryEntry(
+            "create",
+            "aufgabe",
+            {
+              title: op.title || "Aufgabe (KI)",
+              type: op.type || "Auftrag",
+              responsible: op.responsible || "",
+              desc: op.desc || ""
+            },
+            op.id || null
+          ));
+        }
+
+        // Aufgaben-Updates
+        const taskUpdates = applyResults.aufgaben.appliedOps?.update || [];
+        for (const op of taskUpdates) {
+          actionHistoryEntries.push(buildActionHistoryEntry(
+            "update",
+            "aufgabe",
+            {
+              taskId: op.taskId,
+              changes: op.changes || {}
+            },
+            op.taskId
+          ));
+        }
+
+        // Protokoll-Creates
+        const protoCreates = applyResults.protokoll.appliedOps?.create || [];
+        for (const op of protoCreates) {
+          actionHistoryEntries.push(buildActionHistoryEntry(
+            "create",
+            "protokoll",
+            {
+              information: op.information || "",
+              infoTyp: op.infoTyp || "Info",
+              anvon: op.anvon || "",
+              ergehtAn: op.ergehtAn || []
+            },
+            op.id || null
+          ));
+        }
+
+        await appendActionHistory(actionHistoryEntries);
+        // -----------------------------------------------------------
       }
 
       const duration = Date.now() - startTime;

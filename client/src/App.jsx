@@ -17,6 +17,7 @@ import NewVehicleModal from "./components/NewVehicleModal";
 import AddIncidentModal from "./components/AddIncidentModal";
 import DroppableColumn from "./components/DroppableColumn.jsx";
 import IncidentInfoModal from "./components/IncidentInfoModal";
+import LlmActionHistory from "./components/LlmActionHistory";
 
 import { initSound, playGong } from "./sound";
 import ProtokollOverview from "./pages/ProtokollOverview.jsx";
@@ -2182,8 +2183,10 @@ if (route.startsWith("/protokoll")) {
 
 
 
+          {/* Linke Spalte: Einheiten + KI-Aktionen */}
+          <div className="flex flex-col gap-2 h-full min-h-0">
           {/* Einheiten (frei) */}
-          <section className="bg-white rounded-xl shadow p-3 h-full flex flex-col min-h-0">
+          <section className="bg-white rounded-xl shadow p-3 flex-1 flex flex-col min-h-0">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-sm font-semibold">
                 <button type="button" onClick={toggleAllFreeGroups} title="Alle Gruppen auf/zu klappen"
@@ -2299,6 +2302,10 @@ if (route.startsWith("/protokoll")) {
               })}
             </div>
           </section>
+
+          {/* KI-Aktionen */}
+          <LlmActionHistory className="shrink-0" />
+          </div>
 
           {/* Spalten */}
           {[

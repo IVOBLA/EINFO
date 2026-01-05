@@ -202,3 +202,12 @@ export async function setVehiclePosition(id, lat, lng, incidentId=null, source="
 export async function resetVehiclePosition(id){
   return j("DELETE", `/api/vehicles/${encodeURIComponent(id)}/position`);
 }
+
+// ---- NEU: LLM Action-History ----
+export async function fetchLlmActionHistory({ limit = 100, offset = 0, category = null } = {}) {
+  let url = `/api/llm/action-history?limit=${limit}&offset=${offset}`;
+  if (category) {
+    url += `&category=${encodeURIComponent(category)}`;
+  }
+  return j("GET", url);
+}
