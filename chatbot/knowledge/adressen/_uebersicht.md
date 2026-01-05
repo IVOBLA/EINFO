@@ -1,0 +1,205 @@
+# Adressverzeichnis Bezirk Feldkirchen
+
+Dieses Verzeichnis enthält alle Adressen im Bezirk Feldkirchen, Kärnten.
+
+## Statistik
+- **Dateien**: 190
+- **Gebäudeadressen**: 8383
+- **Weitere Adressen**: 420
+- **Gesamt**: 8803
+
+## Verwendung
+Für Adressabfragen im Einsatzfall. Koordinaten (LAT, LON) sind für 
+GPS-Navigation und Kartenintegration verfügbar.
+
+## Orte
+- 10" 9555
+- 102 9565
+- 11" 9560
+- 11" 9562
+- 11 12"
+- 12" Unbekannt
+- 14" Unbekannt
+- 14a" 9551
+- 14a" Unbekannt
+- 157" 9565
+- 17a" 9062
+- 17a" 9562
+- 18a" Unbekannt
+- 1a" 9551
+- 1a" 9560
+- 1a" Unbekannt
+- 20a" 9551
+- 22a" Unbekannt
+- 22a 22b"
+- 25a" Unbekannt
+- 27a" Unbekannt
+- 28a" Unbekannt
+- 29" Unbekannt
+- 2a" 9552
+- 3" Unbekannt
+- 30a" Unbekannt
+- 35a" 9551
+- 35a" Unbekannt
+- 39" 9565
+- 39a" 9552
+- 4" 9552
+- 4" 9560
+- 4" 9562
+- 40a" Unbekannt
+- 45a" 9551
+- 4a" 9560
+- 4b" 9560
+- 57b" Unbekannt
+- 5a" 9551
+- 5a" 9560
+- 6" Unbekannt
+- 74a" 9552
+- 78 9563
+- 7a" Unbekannt
+- 8864 Stadl-Predlitz
+- 9" Unbekannt
+- 9062 Albern
+- 9062 Moosburg
+- 9212 Techelsberg am Wörther See
+- 9241 Wernberg
+- 9345 Albeck
+- 9345 Weitensfeld im Gurktal
+- 9523 Villach
+- 9543 Arriach
+- 9551 Bodensdorf
+- 9551 Steindorf am Ossiacher See
+- 9551 Treffen am Ossiacher See
+- 9551 Unbekannt
+- 9552 Himmelberg
+- 9552 Steindorf am Ossiacher See
+- 9552 Unbekannt
+- 9554 Lawesen
+- 9554 Liebenfels
+- 9554 Sankt Urban
+- 9554 St. Urban
+- 9555 Galnegg
+- 9555 Glanegg
+- 9555 Liebenfels
+- 9555 Maria Feicht
+- 9555 Unbekannt
+- 9556 Frauenstein
+- 9556 Glanegg
+- 9556 Liebenfels
+- 9556 St. Urban
+- 9556 Unbekannt
+- 9560 Adriach
+- 9560 Agsdorf-Gegend
+- 9560 Aich
+- 9560 Albern
+- 9560 Alpen
+- 9560 Briefelsdorf
+- 9560 Buchscheiden
+- 9560 Bösenlacken
+- 9560 Debar
+- 9560 Dellach
+- 9560 Dietrichstein
+- 9560 Dobra
+- 9560 Dolintschig
+- 9560 Egg
+- 9560 Elbling
+- 9560 Farcha
+- 9560 Fasching
+- 9560 Feistritz
+- 9560 Feldkirchen
+- 9560 Feldkirchen in Kärnten
+- 9560 Feldkrichen
+- 9560 Glan
+- 9560 Glanblick
+- 9560 Glanegg
+- 9560 Glanhofen
+- 9560 Gradisch
+- 9560 Guttaring
+- 9560 Haiden
+- 9560 Hart
+- 9560 Himmelberg
+- 9560 Höfling
+- 9560 Ingelsdorf
+- 9560 Kallitsch
+- 9560 Klausen
+- 9560 Klein St. Veit
+- 9560 Krahberg
+- 9560 Kreuth
+- 9560 Laboisen
+- 9560 Lang
+- 9560 Leiten
+- 9560 Lendorf
+- 9560 Liebetig
+- 9560 Lindl
+- 9560 Maltschach
+- 9560 Markstein
+- 9560 Metzing
+- 9560 Micheldorf
+- 9560 Naßweg
+- 9560 Niederdorf
+- 9560 Oberglan
+- 9560 Ossiach
+- 9560 Pernegg
+- 9560 Persching
+- 9560 Poitschach
+- 9560 Powirtschach
+- 9560 Praschig
+- 9560 Prägrad
+- 9560 Rabensdorf
+- 9560 Radweg
+- 9560 Raunach
+- 9560 Rennweg
+- 9560 Rottendorf
+- 9560 Sonnrain
+- 9560 St. Martin
+- 9560 St. Nikolai
+- 9560 St. Ruprecht
+- 9560 St. Stefan
+- 9560 St. Ulrich
+- 9560 Steindorf am Ossiacher See
+- 9560 Steuerberg
+- 9560 Tramoitschig
+- 9560 Tschwarzen
+- 9560 Unbekannt
+- 9560 Unterberg
+- 9560 Untere Glan
+- 9560 Unterrain
+- 9560 Wachsenberg
+- 9560 Waiern
+- 9560 Weit
+- 9562 Himmelberg
+- 9562 Unbekannt
+- 9563 Gnesau
+- 9563 Himmelberg
+- 9563 Unbekannt
+- 9564 Patergassen
+- 9564 Reichenau
+- 9565 Ebene Reichenau
+- 9565 Reichenau
+- 9565 Unbekannt
+- 9570 Alt-Ossiach
+- 9570 Ossiach
+- 9570 Ostriach
+- 9570 Rappitsch
+- 9570 Unbekannt
+- 9571 Albeck
+- 9571 Deutsch-Griffen
+- 9571 Sirnitz
+- 9571 Unbekannt
+- 9a" Unbekannt
+-  Albern
+-  Alt-Ossiach
+-  Feldkirchen in Kärnten
+-  Glanblick
+-  Glanegg
+-  Grai
+-  Lendorf
+-  Mautbrücken
+-  Micheldorf
+-  Ossiach
+-  Ostriach
+-  Radweg
+-  Rappitsch
+-  Sankt Gandolf
+-  Tschwarzen
+-  Unbekannt

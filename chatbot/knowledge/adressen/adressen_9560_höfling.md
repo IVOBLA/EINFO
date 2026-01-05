@@ -1,0 +1,47 @@
+# Adressen in Höfling (PLZ 9560)
+
+Bezirk Feldkirchen, Kärnten, Österreich
+
+## Wichtige Gebäude und Einrichtungen
+
+- **KFZ-Tiffner**: Schwarze Straße 4, 9560 Höfling (46.69808162, 14.08868564)
+
+## Gebäudeadressen
+
+- Dorfstraße 5, 9560 Höfling (46.69757655555556, 14.088735855555555)
+- Dorfstraße 7, 9560 Höfling (46.6975828625, 14.089004475)
+- Schwarze Straße 10, 9560 Höfling (46.69786204285714, 14.089513657142858)
+- Schwarze Straße 8, 9560 Höfling (46.6976445, 14.089937759999998)
+- Schwarze Straße 14, 9560 Höfling (46.698208824999995, 14.090285025)
+- Schwarze Straße 16, 9560 Höfling (46.69793572, 14.09022604)
+- Dorfstraße 4a, 9560 Höfling (46.69696932, 14.089186739999999)
+- Dorfstraße 17, 9560 Höfling (46.69676419166667, 14.089333466666664)
+- Prägrader Weg 2, 9560 Höfling (46.69602916, 14.08779218)
+- Prägrader Weg 8, 9560 Höfling (46.696098559999996, 14.086117980000001)
+- Prägrader Weg 10, 9560 Höfling (46.69615142, 14.085778939999997)
+- Prägrader Weg 12, 9560 Höfling (46.696116079999996, 14.085392100000002)
+- Prägrader Weg 19, 9560 Höfling (46.695240739999996, 14.08406768)
+- Dorfstraße 14, 9560 Höfling (46.69523638571428, 14.089036957142858)
+- Dorfstraße 22, 9560 Höfling (46.6947006, 14.090005485714284)
+- Reitlerweg 7, 9560 Höfling (46.69515435999999, 14.09254)
+- Gerlitzenblick 14, 9560 Höfling (46.69775172, 14.087117760000002)
+- Gerlitzenblick 6, 9560 Höfling (46.69841088, 14.086891779999998)
+- Schwarze Straße 30, 9560 Höfling (46.69706334545454, 14.093246836363635)
+- Dorfstraße 19, 9560 Höfling (46.70045209999999, 14.069592539999999)
+- Unterer Rauthweg 2, 9560 Höfling (46.70155812, 14.083143439999997)
+- Unterer Rauthweg 6, 9560 Höfling (46.701856476923076, 14.082887884615387)
+- Unterer Rauthweg 4, 9560 Höfling (46.70173016, 14.083066239999999)
+- Schwarze Straße 46, 9560 Höfling (46.698424599999996, 14.102071140000001)
+- Tauernstraße 1a, 9560 Höfling (46.697984639999994, 14.102149399999998)
+- Tauernstraße 1, 9560 Höfling (46.69791122, 14.10166568)
+- Mühlwiesenweg 11, 9560 Höfling (46.694058628571426, 14.088673057142858)
+- Oberer Rauthweg 6, 9560 Höfling (46.70139004285714, 14.084199728571429)
+
+## Weitere Adressen
+
+- Dorfstraße 9, 9560 Höfling (46.6973107, 14.0895972)
+- Altmannweg 5, 9560 Höfling (46.6954854, 14.0903821)
+- Altmannweg 4, 9560 Höfling (46.6956021, 14.0903538)
+- Altmannweg 7a, 9560 Höfling (46.6951299, 14.090981)
+- Altmannweg 7, 9560 Höfling (46.695135, 14.0908073)
+

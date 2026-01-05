@@ -1,0 +1,20 @@
+# Adressen in Buchscheiden (PLZ 9560)
+
+Bezirk Feldkirchen, Kärnten, Österreich
+
+## Gebäudeadressen
+
+- Nr. 15, 9560 Buchscheiden (46.70559766, 14.080647840000001)
+- Nr. 8, 9560 Buchscheiden (46.70587506, 14.080604600000001)
+- Nr. 9, 9560 Buchscheiden (46.70620522857143, 14.080045942857142)
+- Nr. 7, 9560 Buchscheiden (46.70620134, 14.080433439999998)
+- Nr. 39, 9560 Buchscheiden (46.709764559999996, 14.081731940000001)
+- Nr. 18a, 9560 Buchscheiden (46.70472541818181, 14.08207280909091)
+- Nr. 37, 9560 Buchscheiden (46.70446794444444, 14.082630033333333)
+- Nr. 19, 9560 Buchscheiden (46.704679755555546, 14.080443433333333)
+
+## Weitere Adressen
+
+- Nr. 16, 9560 Buchscheiden (46.7110139, 14.0821767)
+- Nr. 13, 9560 Buchscheiden (46.7091145, 14.0815808)
+

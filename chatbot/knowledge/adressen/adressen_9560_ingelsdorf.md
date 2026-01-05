@@ -1,0 +1,51 @@
+# Adressen in Ingelsdorf (PLZ 9560)
+
+Bezirk Feldkirchen, Kärnten, Österreich
+
+## Gebäudeadressen
+
+- Oberingelsdorf 6, 9560 Ingelsdorf (46.7030109, 14.162435318181819)
+- Mattersdorfer Weg 7, 9560 Ingelsdorf (46.70508997692308, 14.158708676923075)
+- Mattersdorfer Weg 5, 9560 Ingelsdorf (46.70532401538462, 14.158557884615384)
+- Unteringelsdorf 7, 9560 Ingelsdorf (46.7039748, 14.16023906)
+- Unteringelsdorf 4, 9560 Ingelsdorf (46.705132080000006, 14.160277279999999)
+- Waldsteig 9, 9560 Ingelsdorf (46.70253276, 14.16448478)
+- Unteringelsdorf 2, 9560 Ingelsdorf (46.70476428, 14.16043684)
+- Oberingelsdorf 1, 9560 Ingelsdorf (46.7040638, 14.161973483333334)
+- Oberingelsdorf 16, 9560 Ingelsdorf (46.70283088000001, 14.163496700000001)
+- Mattersdorfer Weg 3, 9560 Ingelsdorf (46.70541858, 14.15908192)
+- Waldsteig 4, 9560 Ingelsdorf (46.70189726, 14.16410624)
+- Oberingelsdorf 12, 9560 Ingelsdorf (46.702386116666666, 14.163020316666666)
+- Mattersdorfer Weg 1, 9560 Ingelsdorf (46.70493322, 14.159492640000002)
+- Oberingelsdorf 10, 9560 Ingelsdorf (46.70256948333334, 14.162840833333334)
+- Unteringelsdorf 12, 9560 Ingelsdorf (46.70427186, 14.159092239999998)
+- Unteringelsdorf 8, 9560 Ingelsdorf (46.70481324, 14.159775980000001)
+- Oberingelsdorf 13, 9560 Ingelsdorf (46.7031406, 14.163412399999999)
+- Oberingelsdorf 9, 9560 Ingelsdorf (46.70311538, 14.162967040000002)
+- Unteringelsdorf 11, 9560 Ingelsdorf (46.7036987, 14.1600347)
+- Oberingelsdorf 3, 9560 Ingelsdorf (46.703702699999994, 14.16270422)
+- Unteringelsdorf 9, 9560 Ingelsdorf (46.70373697142857, 14.160499571428572)
+- Oberingelsdorf 11, 9560 Ingelsdorf (46.70296434285715, 14.16320337142857)
+- Oberingelsdorf 7, 9560 Ingelsdorf (46.7034776, 14.162956328571429)
+- Oberingelsdorf 4, 9560 Ingelsdorf (46.7032693, 14.161950625)
+- Waldsteig 5, 9560 Ingelsdorf (46.702511900000005, 14.163657985714284)
+- Waldsteig 2, 9560 Ingelsdorf (46.70194547142857, 14.163606457142858)
+- Waldsteig 1, 9560 Ingelsdorf (46.702128800000004, 14.163237642857144)
+- Klein St. Veiter Straße 47, 9560 Ingelsdorf (46.70437734285714, 14.161120114285714)
+- Unteringelsdorf 1, 9560 Ingelsdorf (46.704435733333334, 14.16025468888889)
+- Klein St. Veiter Straße 16, 9560 Ingelsdorf (46.7035953090909, 14.16082088181818)
+- Unteringelsdorf 6, 9560 Ingelsdorf (46.705764888888886, 14.160153133333333)
+- Klein St. Veiter Straße 45, 9560 Ingelsdorf (46.70466582222222, 14.160981933333332)
+- Oberingelsdorf 5, 9560 Ingelsdorf (46.70323312222222, 14.162776477777776)
+- Klein St. Veiter Straße 18, 9560 Ingelsdorf (46.70326204444445, 14.161072266666666)
+- Unteringelsdorf 14, 9560 Ingelsdorf (46.70436085555556, 14.158404677777776)
+- Klein St. Veiter Straße 43, 9560 Ingelsdorf (46.70496486, 14.16108744)
+- Mattersdorfer Weg 6, 9560 Ingelsdorf (46.70645168, 14.15817524)
+- Golkstraße 3, 9560 Ingelsdorf (46.705922542857145, 14.165389342857143)
+- Waldsteig 3, 9560 Ingelsdorf (46.70237913999999, 14.163854820000001)
+- Nr. 18, 9560 Ingelsdorf (46.7029879, 14.163724859999999)
+
+## Weitere Adressen
+
+- Golkstraße 1, 9560 Ingelsdorf (46.706313439999995, 14.165962239999999)
+
