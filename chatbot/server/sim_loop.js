@@ -17,6 +17,15 @@ import {
 } from "./field_mapper.js";
 
 // ============================================================
+// Interne Rollen-Konstanten
+// ============================================================
+// Alle bekannten internen Rollen (Stabsstellen)
+const INTERNAL_ROLES = new Set([
+  "LTSTB", "LTSTBSTV", "S1", "S2", "S3", "S4", "S5", "S6",
+  "MELDESTELLE", "MS", "MELDESTELLE/S6"
+]);
+
+// ============================================================
 // Identifiziert ausgehende Protokolleinträge die Antworten benötigen
 // ============================================================
 /**
@@ -131,6 +140,143 @@ function identifyMessagesNeedingResponse(protokoll, protokollDelta, roles) {
   }
 
   return needingResponse;
+}
+
+// ============================================================
+// Identifiziert offene Rückfragen im Protokoll
+// ============================================================
+/**
+ * Findet alle Protokolleinträge die NICHT vom CHATBOT erstellt wurden und
+ * eine Rückfrage darstellen, die noch nicht beantwortet wurde.
+ *
+ * Kriterien für eine Rückfrage:
+ * 1. NICHT vom CHATBOT erstellt (createdBy !== 'CHATBOT' UND kanalNr !== 'bot')
+ * 2. Die Information enthält ein Fragezeichen ODER
+ *    geht an eine interne Rolle die keine aktive Rolle ist ODER
+ *    geht an eine externe Rolle
+ * 3. Die Frage wurde noch nicht beantwortet (kein nachfolgender CHATBOT-Eintrag)
+ *
+ * @param {Array} protokoll - Alle Protokolleinträge
+ * @param {Object} roles - { active: [...] }
+ * @returns {Array} Offene Rückfragen die beantwortet werden müssen
+ */
+function identifyOpenQuestions(protokoll, roles) {
+  const { active } = roles;
+  const activeSet = new Set(active.map(r => String(r).toUpperCase()));
+  const openQuestions = [];
+
+  // Sortiere Protokoll nach Zeit (älteste zuerst für korrekte Antwort-Erkennung)
+  const sortedProtokoll = [...protokoll].sort((a, b) => {
+    const timeA = `${a.datum || ""} ${a.zeit || ""}`;
+    const timeB = `${b.datum || ""} ${b.zeit || ""}`;
+    return timeA.localeCompare(timeB);
+  });
+
+  for (let i = 0; i < sortedProtokoll.length; i++) {
+    const entry = sortedProtokoll[i];
+
+    // Kriterium 1: NICHT vom CHATBOT erstellt
+    const createdBy = entry.createdBy || entry.history?.[0]?.by || "";
+    const kanalNr = entry.uebermittlungsart?.kanalNr || "";
+    const isFromBot =
+      createdBy === "CHATBOT" ||
+      createdBy === "simulation-worker" ||
+      createdBy === "bot" ||
+      kanalNr === "bot";
+
+    if (isFromBot) continue;
+
+    // Kriterium 2: Ist dies eine Rückfrage?
+    const information = entry.information || "";
+    const hasQuestionMark = information.includes("?");
+
+    // Prüfe Empfänger: geht an interne nicht-aktive Rolle oder externe Rolle?
+    const ergehtAn = Array.isArray(entry.ergehtAn)
+      ? entry.ergehtAn
+      : (entry.ergehtAn ? [entry.ergehtAn] : []);
+
+    let targetsNonActiveInternal = false;
+    let targetsExternal = false;
+
+    for (const recipient of ergehtAn) {
+      const upper = String(recipient).toUpperCase();
+      if (INTERNAL_ROLES.has(upper)) {
+        // Interne Rolle - prüfe ob aktiv
+        if (!activeSet.has(upper)) {
+          targetsNonActiveInternal = true;
+        }
+      } else {
+        // Externe Rolle
+        targetsExternal = true;
+      }
+    }
+
+    // Ist dies eine Rückfrage?
+    const isQuestion = hasQuestionMark || targetsNonActiveInternal || targetsExternal;
+    if (!isQuestion) continue;
+
+    // Kriterium 3: Wurde die Frage bereits beantwortet?
+    // Suche nach nachfolgenden Bot-Einträgen die auf diese Frage antworten
+    const hasAnswer = sortedProtokoll.slice(i + 1).some(p => {
+      // Muss vom Bot erstellt worden sein
+      const pCreatedBy = p.createdBy || p.history?.[0]?.by || "";
+      const pKanalNr = p.uebermittlungsart?.kanalNr || "";
+      const pIsFromBot =
+        pCreatedBy === "CHATBOT" ||
+        pCreatedBy === "simulation-worker" ||
+        pCreatedBy === "bot" ||
+        pKanalNr === "bot";
+
+      if (!pIsFromBot) return false;
+
+      // Prüfe ob es eine Rückmeldung auf diese Nr ist
+      const refNr = p.bezugNr || p.referenzNr || p.antwortAuf;
+      if (refNr && String(refNr) === String(entry.nr)) return true;
+
+      // Oder ob der Absender der Antwort ein Empfänger der Original-Frage war
+      const pVon = String(p.anvon || "").toUpperCase();
+      const originalEmpfaenger = ergehtAn.map(e => String(e).toUpperCase());
+      if (originalEmpfaenger.includes(pVon)) {
+        // Prüfe ob der Inhalt auf die Frage Bezug nimmt
+        const pInfo = (p.information || "").toLowerCase();
+        const keywords = information.toLowerCase().split(/\s+/).slice(0, 5);
+        const hasRelevantContent = keywords.some(kw =>
+          kw.length > 3 && pInfo.includes(kw)
+        );
+        if (hasRelevantContent) return true;
+
+        // Oder zeitlich kurz danach (innerhalb von 30 Min)
+        const entryTime = `${entry.datum || ""} ${entry.zeit || ""}`;
+        const pTime = `${p.datum || ""} ${p.zeit || ""}`;
+        if (pTime > entryTime) {
+          // Einfache zeitliche Nähe als Indikator
+          return true;
+        }
+      }
+
+      return false;
+    });
+
+    if (hasAnswer) continue;
+
+    // Diese Rückfrage ist noch offen
+    openQuestions.push({
+      id: entry.id,
+      nr: entry.nr,
+      datum: entry.datum || "",
+      zeit: entry.zeit || "",
+      infoTyp: entry.infoTyp || entry.typ || "",
+      anvon: entry.anvon || "",
+      ergehtAn: ergehtAn,
+      information: information,
+      hasQuestionMark,
+      targetsNonActiveInternal,
+      targetsExternal,
+      originalEntry: entry
+    });
+  }
+
+  return openQuestions;
 }
 
 // Merkt sich den letzten Stand der eingelesenen EINFO-Daten...
@@ -400,7 +546,7 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
     );
     
     if (messagesNeedingResponse.length > 0) {
-      logInfo("Meldungen benötigen Antwort", { 
+      logInfo("Meldungen benötigen Antwort", {
         count: messagesNeedingResponse.length,
         messages: messagesNeedingResponse.map(m => ({
           nr: m.nr,
@@ -410,7 +556,7 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
           info: (m.information || "").slice(0, 50)
         }))
       });
-      
+
       // Audit-Event
       logEvent("simulation", "response_needed", {
         stepId,
@@ -418,6 +564,31 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
         externalEntities: [...new Set(
           messagesNeedingResponse.flatMap(m => m.externalRecipients)
         )]
+      });
+    }
+
+    // ============================================================
+    // NEU: Identifiziere offene Rückfragen von echten Benutzern
+    // ============================================================
+    const openQuestions = identifyOpenQuestions(protokoll, roles);
+
+    if (openQuestions.length > 0) {
+      logInfo("Offene Rückfragen gefunden", {
+        count: openQuestions.length,
+        questions: openQuestions.map(q => ({
+          nr: q.nr,
+          von: q.anvon,
+          an: q.ergehtAn,
+          frage: (q.information || "").slice(0, 50),
+          hatFragezeichen: q.hasQuestionMark
+        }))
+      });
+
+      // Audit-Event
+      logEvent("simulation", "open_questions_found", {
+        stepId,
+        questionCount: openQuestions.length,
+        questioners: [...new Set(openQuestions.map(q => q.anvon))]
       });
     }
 
@@ -468,8 +639,12 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
       compressedProtokoll: compressProtokoll(protokoll),
       firstStep: isFirstStep,
       // NEU: Meldungen die Antwort brauchen
-      messagesNeedingResponse: messagesNeedingResponse.length > 0 
-        ? messagesNeedingResponse 
+      messagesNeedingResponse: messagesNeedingResponse.length > 0
+        ? messagesNeedingResponse
+        : null,
+      // NEU: Offene Rückfragen von echten Benutzern
+      openQuestions: openQuestions.length > 0
+        ? openQuestions
         : null
     };
 
