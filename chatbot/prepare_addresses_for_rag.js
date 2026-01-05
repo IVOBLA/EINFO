@@ -10,8 +10,8 @@
 // - Kontext bleibt erhalten ("Adresse in Reichenau")
 // ============================================================
 
-import fs from 'fs';
-import path from 'path';
+import fs from 'node:fs';
+import path from 'node:path';
 
 // Konfiguration
 const INPUT_GEBAEUDE = './knowledge/gebaeude_mit_adresse_feldkirchen.txt';
