@@ -6,10 +6,10 @@
   "duration_minutes": 60,
   "mode": "free",
   "simulation": {
-    "llm_interval_minutes": 5,
-    "minutes_per_step": 5,
+    "llm_interval_minutes": 2,
+    "minutes_per_step": 2,
     "incident_limits": {
-      "max_new_per_step": 2,
+      "max_new_per_step": 5,
       "max_total": 12
     },
     "behavior_phases": [
