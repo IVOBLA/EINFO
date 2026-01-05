@@ -9,7 +9,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildScenarioControlSummary } from "./scenario_controls.js";
+import {
+  buildScenarioControlSummary,
+  buildScenarioTimelineSummary
+} from "./scenario_controls.js";
 
 
 
@@ -84,7 +87,8 @@ export function buildUserPrompt({
   messagesNeedingResponse,  // NEU
   openQuestions = null,      // NEU: Offene Rückfragen
   disasterContext = "",      // NEU
-  learnedResponses = ""      // NEU
+  learnedResponses = "",     // NEU
+  scenario = null
 }) {
   const safeMemorySnippets = Array.isArray(memorySnippets)
     ? memorySnippets
@@ -198,6 +202,7 @@ export function buildUserPrompt({
     openQuestionsSection,  // NEU: Offene Rückfragen
     disasterContext: disasterContext || "(kein Katastrophen-Kontext verfügbar)",  // NEU
     learnedResponses: learnedResponses || "(keine gelernten Antworten verfügbar)",  // NEU
+    scenarioTimeline: buildScenarioTimelineSummary(scenario),
     scenarioControl: llmInput.scenarioControl || "(keine Szenario-Steuerung definiert)"
   });
 }

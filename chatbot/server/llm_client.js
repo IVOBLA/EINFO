@@ -161,7 +161,8 @@ export async function callLLMForOps({
       messagesNeedingResponse: llmInput.messagesNeedingResponse || null,
       openQuestions: llmInput.openQuestions || null,  // NEU: Offene Rückfragen
       disasterContext,
-      learnedResponses
+      learnedResponses,
+      scenario
     });
   }
 
