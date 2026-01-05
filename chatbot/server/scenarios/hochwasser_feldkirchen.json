@@ -5,6 +5,34 @@
   "difficulty": "medium",
   "duration_minutes": 90,
   "mode": "free",
+  "simulation": {
+    "llm_interval_minutes": 5,
+    "minutes_per_step": 5,
+    "incident_limits": {
+      "max_new_per_step": 3,
+      "max_total": 18
+    },
+    "behavior_phases": [
+      {
+        "duration_minutes": 20,
+        "label": "Verschärfung",
+        "intensity": "steigend",
+        "guidance": "Steigende Pegelstände, mehrere neue Einsatzstellen in kurzer Folge."
+      },
+      {
+        "duration_minutes": 20,
+        "label": "Stabilisierung",
+        "intensity": "gleichbleibend",
+        "guidance": "Lage bleibt kritisch, Fokus auf Koordination und Schutzmaßnahmen."
+      },
+      {
+        "duration_minutes": 20,
+        "label": "Entspannung",
+        "intensity": "abnehmend",
+        "guidance": "Weniger neue Meldungen, Übergang zu Aufräum- und Sicherungsphase."
+      }
+    ]
+  },
   
   "scenario_context": {
     "event_type": "Hochwasser",

@@ -11,6 +11,10 @@ import {
   incrementSimulationStep
 } from "./disaster_context.js";
 import {
+  buildScenarioControlSummary,
+  getScenarioMinutesPerStep
+} from "./scenario_controls.js";
+import {
   isStabsstelle,
   isMeldestelle,
   normalizeRole
@@ -293,6 +297,7 @@ let stepInProgress = false;
 let simulationJustStarted = false;
 // NEU: Aktives Szenario für die Simulation
 let activeScenario = null;
+let simulationElapsedMinutes = 0;
 
 function buildMemoryQueryFromState(state = {}) {
   const incidentCount = state.boardCount ?? 0;
@@ -457,6 +462,7 @@ export async function startSimulation(scenario = null) {
   simulationJustStarted = !(hasSnapshotData || hasCompressedBoard);
   // NEU: Szenario speichern für die Simulation
   activeScenario = scenario;
+  simulationElapsedMinutes = 0;
 
   if (scenario) {
     logInfo("Simulation mit Szenario gestartet", {
@@ -628,10 +634,10 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
       lastComparableSnapshot?.board?.length === boardSnapshot.length &&
       boardDelta.length === 0;
 
-    const opsContext = {
-      roles: {
-        active: roles.active
-      },
+  const opsContext = {
+    roles: {
+      active: roles.active
+    },
       compressedBoard: boardUnchanged
         ? lastCompressedBoardJson
         : compressBoard(boardSnapshot),
@@ -645,7 +651,11 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
       // NEU: Offene Rückfragen von echten Benutzern
       openQuestions: openQuestions.length > 0
         ? openQuestions
-        : null
+        : null,
+      scenarioControl: buildScenarioControlSummary({
+        scenario: activeScenario,
+        elapsedMinutes: simulationElapsedMinutes
+      })
     };
 
     const estimatedDataTokens = Math.ceil(
@@ -737,6 +747,7 @@ lastCompressedBoardJson = opsContext.compressedBoard;
 
     // NEU: Simulationsschritt-Counter inkrementieren
     incrementSimulationStep();
+    simulationElapsedMinutes += getScenarioMinutesPerStep(activeScenario, 5);
 
     return { ok: true, operations, analysis };
   } catch (err) {

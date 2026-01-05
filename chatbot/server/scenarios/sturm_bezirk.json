@@ -5,6 +5,34 @@
   "difficulty": "easy",
   "duration_minutes": 60,
   "mode": "free",
+  "simulation": {
+    "llm_interval_minutes": 5,
+    "minutes_per_step": 5,
+    "incident_limits": {
+      "max_new_per_step": 2,
+      "max_total": 12
+    },
+    "behavior_phases": [
+      {
+        "duration_minutes": 15,
+        "label": "Verschärfung",
+        "intensity": "steigend",
+        "guidance": "In den ersten Minuten nimmt die Lage zu: mehr neue Schadenslagen, steigende Belastung."
+      },
+      {
+        "duration_minutes": 15,
+        "label": "Stabilisierung",
+        "intensity": "gleichbleibend",
+        "guidance": "Die Lage bleibt angespannt, wenige neue Einsätze, Fokus auf Koordination."
+      },
+      {
+        "duration_minutes": 15,
+        "label": "Entspannung",
+        "intensity": "abnehmend",
+        "guidance": "Weniger neue Einsätze, Schwerpunkt auf Abarbeitung und Rückführung."
+      }
+    ]
+  },
   
   "scenario_context": {
     "event_type": "Sturm",

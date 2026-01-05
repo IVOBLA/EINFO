@@ -9,6 +9,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildScenarioControlSummary } from "./scenario_controls.js";
 
 
 
@@ -196,7 +197,8 @@ export function buildUserPrompt({
     responseRequests,  // NEU
     openQuestionsSection,  // NEU: Offene Rückfragen
     disasterContext: disasterContext || "(kein Katastrophen-Kontext verfügbar)",  // NEU
-    learnedResponses: learnedResponses || "(keine gelernten Antworten verfügbar)"  // NEU
+    learnedResponses: learnedResponses || "(keine gelernten Antworten verfügbar)",  // NEU
+    scenarioControl: llmInput.scenarioControl || "(keine Szenario-Steuerung definiert)"
   });
 }
 
@@ -212,6 +214,7 @@ export function buildStartPrompts({ roles, scenario = null }) {
   let scenarioContext = "";
   let initialBoard = "";
   let scenarioHints = "";
+  let scenarioControl = "";
 
   if (scenario) {
     const ctx = scenario.scenario_context || {};
@@ -258,6 +261,11 @@ WICHTIG: Du MUSST diese Einsatzstellen mit genau diesen Daten anlegen!`;
 HINWEISE für dieses Szenario:
 ${scenario.hints.map(h => `  → ${h}`).join("\n")}`;
     }
+
+    scenarioControl = buildScenarioControlSummary({
+      scenario,
+      elapsedMinutes: 0
+    });
   }
 
   // Template mit Szenario-Kontext füllen
@@ -265,7 +273,8 @@ ${scenario.hints.map(h => `  → ${h}`).join("\n")}`;
     rolesJson,
     scenarioContext: scenarioContext || "(Kein Szenario vorgegeben - erstelle ein realistisches Katastrophenszenario)",
     initialBoard: initialBoard || "",
-    scenarioHints: scenarioHints || ""
+    scenarioHints: scenarioHints || "",
+    scenarioControl: scenarioControl || "(keine Szenario-Steuerung definiert)"
   });
 
   return { systemPrompt, userPrompt };

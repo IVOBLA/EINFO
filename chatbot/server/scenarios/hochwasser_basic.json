@@ -5,6 +5,34 @@
   "difficulty": "easy",
   "duration_minutes": 60,
   "mode": "guided",
+  "simulation": {
+    "llm_interval_minutes": 6,
+    "minutes_per_step": 6,
+    "incident_limits": {
+      "max_new_per_step": 2,
+      "max_total": 10
+    },
+    "behavior_phases": [
+      {
+        "duration_minutes": 15,
+        "label": "Verschärfung",
+        "intensity": "steigend",
+        "guidance": "Einfache Lage, aber Zunahme der Meldungen in kurzer Zeit."
+      },
+      {
+        "duration_minutes": 15,
+        "label": "Stabilisierung",
+        "intensity": "gleichbleibend",
+        "guidance": "Lage bleibt überschaubar, Fokus auf Abarbeitung."
+      },
+      {
+        "duration_minutes": 15,
+        "label": "Entspannung",
+        "intensity": "abnehmend",
+        "guidance": "Weniger neue Einsätze, Abschlussphase."
+      }
+    ]
+  },
   
   "initial_state": {
     "board": [
