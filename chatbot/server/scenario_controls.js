@@ -159,3 +159,65 @@ export function buildScenarioControlSummary({ scenario, elapsedMinutes = 0 } = {
 
   return lines.join("\n");
 }
+
+function describeTriggerCondition(condition = {}) {
+  if (!condition || typeof condition !== "object") {
+    return "wenn eine unbekannte Bedingung erfüllt ist";
+  }
+
+  switch (condition.type) {
+    case "time_elapsed": {
+      const minutes = toNumber(condition.minutes);
+      return minutes ? `nach ${minutes} Minuten` : "nach einer gewissen Zeit";
+    }
+    case "incident_count": {
+      const column = condition.column || "unbekannt";
+      const operator = condition.operator || "?";
+      const value = condition.value ?? "?";
+      return `wenn Einsatzstellen in "${column}" ${operator} ${value}`;
+    }
+    default:
+      return condition.description || `wenn Bedingung "${condition.type || "unbekannt"}" erfüllt ist`;
+  }
+}
+
+function describeTriggerAction(action = {}) {
+  if (!action || typeof action !== "object") {
+    return "tritt ein unbekanntes Ereignis auf";
+  }
+
+  switch (action.type) {
+    case "add_incident": {
+      const data = action.data || {};
+      const title = data.content || "neue Einsatzstelle";
+      const humanId = data.humanId ? ` (${data.humanId})` : "";
+      const ort = data.ort ? ` in ${data.ort}` : "";
+      const typ = data.typ ? `, Typ ${data.typ}` : "";
+      const priority = data.priority ? `, Priorität ${data.priority}` : "";
+      return `neue Einsatzstelle: ${title}${humanId}${ort}${typ}${priority}`;
+    }
+    case "external_message": {
+      const data = action.data || {};
+      const from = data.from ? `von ${data.from}` : "von externer Stelle";
+      const info = data.information ? `: "${data.information}"` : "";
+      return `externe Meldung ${from}${info}`;
+    }
+    default:
+      return action.description || `tritt Aktion "${action.type || "unbekannt"}" ein`;
+  }
+}
+
+export function buildScenarioTimelineSummary(scenario = null) {
+  const triggers = Array.isArray(scenario?.triggers) ? scenario.triggers : [];
+  if (!triggers.length) {
+    return "(kein Szenario-Verlauf definiert)";
+  }
+
+  const lines = triggers.map((trigger, index) => {
+    const condition = describeTriggerCondition(trigger.condition);
+    const action = describeTriggerAction(trigger.action);
+    return `${index + 1}. ${condition} → ${action}`;
+  });
+
+  return lines.join("\n");
+}
