@@ -179,6 +179,9 @@ function identifyOpenQuestions(protokoll, roles) {
   for (let i = 0; i < sortedProtokoll.length; i++) {
     const entry = sortedProtokoll[i];
 
+    const zuValue = typeof entry.zu === "string" ? entry.zu.trim() : entry.zu;
+    if (zuValue) continue;
+
     // Kriterium 1: NICHT vom CHATBOT erstellt
     const createdBy = entry.createdBy || entry.history?.[0]?.by || "";
     const kanalNr = entry.uebermittlungsart?.kanalNr || "";

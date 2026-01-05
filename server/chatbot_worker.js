@@ -700,6 +700,93 @@ function resolveProtokollAnvon(op) {
   return "bot";
 }
 
+function normalizeRecipients(value) {
+  if (Array.isArray(value)) {
+    return value.map((entry) => normalizeRole(entry)).filter(Boolean);
+  }
+  if (typeof value === "string") {
+    return value
+      .split(/[,;]/)
+      .map((entry) => normalizeRole(entry))
+      .filter(Boolean);
+  }
+  return [];
+}
+
+function hasZu(entry) {
+  if (!entry) return false;
+  if (typeof entry.zu === "string") return entry.zu.trim() !== "";
+  return entry.zu !== null && entry.zu !== undefined && String(entry.zu).trim() !== "";
+}
+
+function isBotEntry(entry) {
+  const createdBy = entry?.createdBy || entry?.history?.[0]?.by || "";
+  const kanalNr = entry?.uebermittlungsart?.kanalNr || "";
+  return (
+    createdBy === "CHATBOT" ||
+    createdBy === "simulation-worker" ||
+    createdBy === "bot" ||
+    kanalNr === "bot" ||
+    kanalNr === "CHATBOT"
+  );
+}
+
+function isQuestionEntry(entry) {
+  const infoTyp = String(entry?.infoTyp || entry?.typ || "");
+  const information = String(entry?.information || "");
+  return /rueckfrage|rückfrage/i.test(infoTyp) || information.includes("?");
+}
+
+function markAnsweredQuestion(protokoll, responseEntry) {
+  if (!responseEntry || !Array.isArray(protokoll)) return;
+  const infoTyp = String(responseEntry.infoTyp || responseEntry.typ || "");
+  if (!/rueckmeldung|rückmeldung/i.test(infoTyp)) return;
+
+  const responseSender = normalizeRole(responseEntry.anvon || "");
+  const responseRecipients = normalizeRecipients(
+    responseEntry.ergehtAn || responseEntry.ergehtAnText || []
+  );
+  if (!responseSender || responseRecipients.length === 0) return;
+
+  const refNr =
+    responseEntry.bezugNr || responseEntry.referenzNr || responseEntry.antwortAuf;
+  if (refNr) {
+    const directMatch = protokoll.find((entry) => String(entry.nr) === String(refNr));
+    if (directMatch && !hasZu(directMatch)) {
+      directMatch.zu = String(responseEntry.nr);
+    }
+    return;
+  }
+
+  const candidates = protokoll.filter((entry) => {
+    if (hasZu(entry) || isBotEntry(entry) || !isQuestionEntry(entry)) return false;
+    const questionSender = normalizeRole(entry.anvon || "");
+    const questionRecipients = normalizeRecipients(
+      entry.ergehtAn || entry.ergehtAnText || []
+    );
+    if (!questionSender || questionRecipients.length === 0) return false;
+    return (
+      questionRecipients.includes(responseSender) &&
+      responseRecipients.includes(questionSender)
+    );
+  });
+
+  if (!candidates.length) return;
+
+  const target = candidates.reduce((latest, entry) => {
+    const latestNr = Number(latest.nr);
+    const entryNr = Number(entry.nr);
+    if (Number.isFinite(latestNr) && Number.isFinite(entryNr)) {
+      return entryNr > latestNr ? entry : latest;
+    }
+    const latestTime = `${latest.datum || ""} ${latest.zeit || ""}`;
+    const entryTime = `${entry.datum || ""} ${entry.zeit || ""}`;
+    return entryTime > latestTime ? entry : latest;
+  });
+
+  target.zu = String(responseEntry.nr);
+}
+
 async function applyProtokollOperations(protoOps, activeRoles, staffRoles) {
   const protPath = path.join(dataDir, FILES.protokoll);
   let prot = await safeReadJson(protPath, []);
@@ -802,6 +889,7 @@ async function applyProtokollOperations(protoOps, activeRoles, staffRoles) {
       zu: ""
     };
 
+    markAnsweredQuestion(prot, entry);
     prot.push(entry);
     appliedCreate.push(op);
     log("Protokoll-Create angewandt:", id);
