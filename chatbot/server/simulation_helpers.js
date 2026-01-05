@@ -44,11 +44,17 @@ const log = (level, msg, data) => {
  * @returns {string|null}
  */
 function extractRoleFromAnvon(anvon) {
-  if (!anvon || typeof anvon !== 'string') return null;
-  const trimmed = anvon.trim();
-  // "Von: EL" oder "An: S2" → "EL" bzw "S2"
-  const match = trimmed.match(/^(?:Von|An):\s*(.+)$/i);
-  return match ? match[1].trim() : trimmed;
+  if (!anvon) return null;
+  const candidates = Array.isArray(anvon) ? anvon : [anvon];
+  for (const entry of candidates) {
+    if (typeof entry !== "string") continue;
+    const trimmed = entry.trim();
+    if (!trimmed) continue;
+    // "Von: EL" oder "An: S2" → "EL" bzw "S2"
+    const match = trimmed.match(/^(?:Von|An):\s*(.+)$/i);
+    return match ? match[1].trim() : trimmed;
+  }
+  return null;
 }
 
 // ============================================================
@@ -649,7 +655,7 @@ export function isAllowedOperation(op, activeRoles, options = {}) {
   if (!extractedRole) {
     log("debug", "Operation abgelehnt: Keine Absender-Rolle gefunden", {
       op,
-      checkedFields: ["ab", "av", "von", "r", "assignedBy", "responsible", "createdBy"]
+      checkedFields: ["ab", "av", "von", "anvon", "r", "assignedBy", "responsible", "createdBy"]
     });
     return false;
   }
@@ -760,7 +766,7 @@ export function explainOperationRejection(op, activeRoles, options = {}) {
     op.fromRole;
 
   if (!extractedRole) {
-    return `Keine Absender-Rolle gefunden. Geprüfte Felder: ab, av, von, r, assignedBy, responsible, createdBy. Operation: ${JSON.stringify(op).slice(0, 200)}`;
+    return `Keine Absender-Rolle gefunden. Geprüfte Felder: ab, av, von, anvon, r, assignedBy, responsible, createdBy. Operation: ${JSON.stringify(op).slice(0, 200)}`;
   }
 
   if (isMeldestelle(extractedRole)) {
