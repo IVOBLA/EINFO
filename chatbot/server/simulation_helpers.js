@@ -57,6 +57,18 @@ function extractRoleFromAnvon(anvon) {
   return null;
 }
 
+function isIncomingProtocol(op) {
+  if (!op) return false;
+  const direction = String(op.richtung || op.direction || op.ri || "").trim().toLowerCase();
+  if (direction) {
+    return direction === "ein" || direction === "in";
+  }
+  if (op.uebermittlungsart && typeof op.uebermittlungsart.ein === "boolean") {
+    return op.uebermittlungsart.ein;
+  }
+  return false;
+}
+
 // ============================================================
 // Feuerwehr-Standorte im Bezirk Feldkirchen
 // ============================================================
@@ -598,14 +610,41 @@ export function isAllowedOperation(op, activeRoles, options = {}) {
   }
 
   // ============================================================
-  // protokoll.create mit richtung:"ein": Keine Stabsrolle erforderlich
+  // protokoll.create eingehend: nur aktive Rollen prüfen
   // ============================================================
-  if (operationType === "protokoll.create") {
-    const richtung = op.richtung || op.direction;
-    if (richtung === "ein" || richtung === "in") {
-      log("debug", "protokoll.create mit richtung:ein - keine Stabsrolle erforderlich");
-      return true;
+  if (operationType === "protokoll.create" && isIncomingProtocol(op)) {
+    const extractedRole =
+      op.ab ||
+      op.av ||
+      op.von ||
+      extractRoleFromAnvon(op.anvon) ||
+      op.r ||
+      op.assignedBy ||
+      op.responsible ||
+      op.createdBy ||
+      op.originRole ||
+      op.fromRole;
+
+    if (!extractedRole) {
+      log("debug", "Eingehendes protokoll.create abgelehnt: Keine Absender-Rolle gefunden", {
+        op,
+        checkedFields: ["ab", "av", "von", "anvon", "r", "assignedBy", "responsible", "createdBy"]
+      });
+      return false;
     }
+
+    const normalizedExtracted = normalizeRole(extractedRole);
+    if (normalizedActive.includes(normalizedExtracted)) {
+      log("debug", "Eingehendes protokoll.create abgelehnt: Rolle in activeRoles", {
+        extractedRole,
+        normalized: normalizedExtracted,
+        activeRoles
+      });
+      return false;
+    }
+
+    log("debug", "protokoll.create eingehend - nur Aktivrolle geprüft");
+    return true;
   }
 
   // ============================================================
@@ -732,12 +771,29 @@ export function explainOperationRejection(op, activeRoles, options = {}) {
     return "board.update - sollte nicht abgelehnt werden (S2 nicht angemeldet).";
   }
 
-  // protokoll.create mit richtung:ein sollte nicht abgelehnt werden
-  if (operationType === "protokoll.create") {
-    const richtung = op.richtung || op.direction;
-    if (richtung === "ein" || richtung === "in") {
-      return "protokoll.create mit richtung:ein - sollte nicht abgelehnt werden.";
+  // protokoll.create eingehend: nur aktive Rollen prüfen
+  if (operationType === "protokoll.create" && isIncomingProtocol(op)) {
+    const extractedRole =
+      op.ab ||
+      op.av ||
+      op.von ||
+      extractRoleFromAnvon(op.anvon) ||
+      op.r ||
+      op.assignedBy ||
+      op.responsible ||
+      op.createdBy ||
+      op.originRole ||
+      op.fromRole;
+
+    if (!extractedRole) {
+      return `Keine Absender-Rolle gefunden. Geprüfte Felder: ab, av, von, anvon, r, assignedBy, responsible, createdBy. Operation: ${JSON.stringify(op).slice(0, 200)}`;
     }
+
+    if (normalizedActive.includes(normalizeRole(extractedRole))) {
+      return `Rolle "${extractedRole}" ist in activeRoles [${activeRoles.join(", ")}] und darf nicht simuliert werden.`;
+    }
+
+    return "protokoll.create eingehend - sollte nicht abgelehnt werden (nur Aktivrolle prüfen).";
   }
 
   // aufgaben.update: Prüfung ob Aufgabe existiert erfolgt im Worker
