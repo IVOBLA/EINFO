@@ -10,13 +10,13 @@
 // - Kontext bleibt erhalten ("Adresse in Reichenau")
 // ============================================================
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 // Konfiguration
-const INPUT_GEBAEUDE = './data/gebaeude_mit_adresse_feldkirchen.txt';
-const INPUT_PRIVAT = './data/privatadressen_feldkirchen.txt';
-const OUTPUT_DIR = './knowledge_base/adressen';
+const INPUT_GEBAEUDE = './knowledge/gebaeude_mit_adresse_feldkirchen.txt';
+const INPUT_PRIVAT = './knowledge/privatadressen_feldkirchen.txt';
+const OUTPUT_DIR = './knowledge/adressen';
 
 // CSV Parser (einfach, ohne externe Abhängigkeit)
 function parseCSV(content, hasHeader = true) {
