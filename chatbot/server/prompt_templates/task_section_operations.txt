@@ -34,7 +34,15 @@ Du simulierst KEINE Rollen aus activeRoles. Handle JETZT aktiv!
    → Neue Lagemeldungen in operations.protokoll.create
    → Statusänderungen in operations.board.updateIncidentSites
 
-3. STABSARBEIT der fehlenden Rollen:
+3. PHASENREGEL (Verschärfungsphase):
+   → Wenn in der SZENARIO-STEUERUNG die aktuelle Phase "Verschärfung" ist,
+     MUSST du in diesem Schritt mindestens 1 neue Einsatzstelle anlegen
+     (operations.board.createIncidentSites).
+   → Für JEDE neue Einsatzstelle MUSST du zusätzlich:
+     - mindestens 1 passende Meldung in operations.protokoll.create anlegen
+     - mindestens 1 passende Aufgabe in operations.aufgaben.create anlegen
+
+4. STABSARBEIT der fehlenden Rollen:
    → S2: Lageberichte  → S3: Einsatzdisposition
    → S4: Versorgung    → S5: Öffentlichkeitsarbeit
    → LtStb: Koordination
