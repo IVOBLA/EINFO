@@ -32,14 +32,27 @@ async function loadFiles() {
     logInfo("Knowledge-Verzeichnis existiert nicht", { dir: knowledgeDir });
     return [];
   }
-  const entries = await fsPromises.readdir(knowledgeDir, { withFileTypes: true });
+
+  const allowedExt = new Set([".txt", ".md", ".pdf", ".json"]);
   const files = [];
-  for (const e of entries) {
-    if (!e.isFile()) continue;
-    const ext = path.extname(e.name).toLowerCase();
-    if (![".txt", ".md", ".pdf", ".json"].includes(ext)) continue;
-    files.push({ name: e.name, path: path.join(knowledgeDir, e.name), ext });
+
+  async function walk(dir) {
+    const entries = await fsPromises.readdir(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        await walk(fullPath);
+        continue;
+      }
+      if (!entry.isFile()) continue;
+      const ext = path.extname(entry.name).toLowerCase();
+      if (!allowedExt.has(ext)) continue;
+      const relativeName = path.relative(knowledgeDir, fullPath);
+      files.push({ name: relativeName, path: fullPath, ext });
+    }
   }
+
+  await walk(knowledgeDir);
   return files;
 }
 
