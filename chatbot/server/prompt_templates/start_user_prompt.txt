@@ -9,6 +9,9 @@ ACTIVE ROLLEN:
 
 {{scenarioHints}}
 
+SZENARIO-STEUERUNG:
+{{scenarioControl}}
+
 AUSGANGSLAGE:
 - Board, Aufgaben und Protokoll sind leer.
 - Du musst das oben beschriebene Szenario initialisieren.

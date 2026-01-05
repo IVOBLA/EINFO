@@ -28,11 +28,18 @@ import {
   isAllowedOperation,
   explainOperationRejection
 } from "../chatbot/server/simulation_helpers.js";
+import {
+  getScenarioIntervalMs,
+  normalizeScenarioSimulation
+} from "../chatbot/server/scenario_controls.js";
 
 const CHATBOT_STEP_URL = "http://127.0.0.1:3100/api/sim/step";
+const CHATBOT_SCENARIO_URL = "http://127.0.0.1:3100/api/sim/scenario";
 const WORKER_INTERVAL_MS = 30000;
 let isRunning = false; // <--- NEU
 let workerIntervalId = null; // Store interval ID for cleanup
+let currentWorkerIntervalMs = WORKER_INTERVAL_MS;
+let cachedScenario = null;
 // Pfad zu deinen echten Daten:
 // Wir gehen davon aus, dass du den Worker IMMER aus dem server-Ordner startest:
 //   cd C:\kanban41\server
@@ -94,6 +101,71 @@ function log(...args) {
   console.log("[chatbot-worker]", ...args);
   // In Datei schreiben
   appendWorkerLog(line);
+}
+
+async function fetchActiveScenario() {
+  try {
+    const res = await fetch(CHATBOT_SCENARIO_URL);
+    if (!res.ok) {
+      log("Szenario-Check fehlgeschlagen:", res.status);
+      return null;
+    }
+    const data = await res.json();
+    return data?.scenario || null;
+  } catch (err) {
+    log("Fehler beim Laden des aktiven Szenarios:", err?.message || err);
+    return null;
+  }
+}
+
+function restartWorkerInterval(intervalMs) {
+  if (!intervalMs || intervalMs <= 0) return;
+  if (intervalMs === currentWorkerIntervalMs) return;
+  currentWorkerIntervalMs = intervalMs;
+  if (workerIntervalId !== null) {
+    clearInterval(workerIntervalId);
+  }
+  workerIntervalId = setInterval(runOnce, currentWorkerIntervalMs);
+  log("Worker-Intervall angepasst:", currentWorkerIntervalMs, "ms");
+}
+
+function limitIncidentCreates(ops, scenarioSimulation, boardCount) {
+  if (!scenarioSimulation) return ops;
+
+  const createOps = ops?.board?.createIncidentSites || [];
+  if (!createOps.length) return ops;
+
+  const maxNewPerStep = scenarioSimulation.incidentLimits?.maxNewPerStep;
+  const maxTotal = scenarioSimulation.incidentLimits?.maxTotal;
+
+  let allowed = null;
+  if (Number.isFinite(maxNewPerStep)) {
+    allowed = maxNewPerStep;
+  }
+
+  if (Number.isFinite(maxTotal)) {
+    const remaining = Math.max(0, maxTotal - boardCount);
+    allowed = allowed === null ? remaining : Math.min(allowed, remaining);
+  }
+
+  if (allowed === null) return ops;
+
+  const limited = createOps.slice(0, Math.max(0, allowed));
+  if (limited.length !== createOps.length) {
+    log("Einsatz-Limit aktiv:", {
+      allowed,
+      requested: createOps.length,
+      boardCount
+    });
+  }
+
+  return {
+    ...ops,
+    board: {
+      ...ops.board,
+      createIncidentSites: limited
+    }
+  };
 }
 
 // NEU: GPU-Status loggen
@@ -759,6 +831,17 @@ async function runOnce() {
   try {
     await logGpuStatus();
     
+    const scenario = await fetchActiveScenario();
+    if (scenario?.id !== cachedScenario?.id) {
+      log("Aktives Szenario geändert:", scenario?.id || "kein Szenario");
+      cachedScenario = scenario;
+    }
+
+    const intervalMs = getScenarioIntervalMs(scenario, WORKER_INTERVAL_MS);
+    if (intervalMs) {
+      restartWorkerInterval(intervalMs);
+    }
+
     log(`Starte Simulationsschritt | aktive Rollen: ${active.length}`);
 
     const stateCounts = await readStateCounts();
@@ -816,7 +899,11 @@ async function runOnce() {
 
       // Erfolgreich
       // Transform LLM short field names (t, d, o, r, i, ea) to JSON long names (title, desc, etc.)
-      const ops = transformLlmOperationsToJson(data.operations || {});
+      let ops = transformLlmOperationsToJson(data.operations || {});
+      const scenarioSimulation = scenario?.simulation
+        ? normalizeScenarioSimulation(scenario)
+        : null;
+      ops = limitIncidentCreates(ops, scenarioSimulation, stateCounts.boardCount);
 
       const counts = {
         boardCreate: (ops.board?.createIncidentSites || []).length,
@@ -897,9 +984,9 @@ async function runOnce() {
 }
 
 function startWorker() {
-  log("Chatbot-Worker gestartet, Intervall:", WORKER_INTERVAL_MS, "ms");
+  log("Chatbot-Worker gestartet, Intervall:", currentWorkerIntervalMs, "ms");
   runOnce();
-  workerIntervalId = setInterval(runOnce, WORKER_INTERVAL_MS);
+  workerIntervalId = setInterval(runOnce, currentWorkerIntervalMs);
 }
 
 function stopWorker() {
