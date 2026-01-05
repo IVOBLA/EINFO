@@ -28,9 +28,9 @@ function sanitizeActiveModel(value) {
 const base = {
   dataDir: "../../server/data",
 
-  // Verzeichnisse für Knowledge & Index
-  knowledgeDir: "/home/bfkdo/EINFO/chatbot/knowledge",
-  knowledgeIndexDir: "/home/bfkdo/EINFO/chatbot/knowledge_index",
+  // Verzeichnisse für Knowledge & Index (relativ zu chatbot/server/)
+  knowledgeDir: "../knowledge",
+  knowledgeIndexDir: "../knowledge_index",
 
   // HTTP/LLM Basis
   llmBaseUrl: process.env.LLM_BASE_URL || "http://127.0.0.1:11434",

@@ -95,96 +95,18 @@ export function buildUserPrompt({
     2
   );
 
-VERBOTEN - Diese Formate sind FALSCH:
-✗ "protokolle": [...]     ← FALSCH! Muss "operations.protokoll.create" sein
-✗ "aufgaben": [...]       ← FALSCH! Muss "operations.aufgaben.create/update" sein
-✗ "einsatzstellen": [...]  ← FALSCH! Muss "operations.board.createIncidentSites" sein
+  // Task-Section basierend auf Szenario-Zustand wählen
+  const taskSection = llmInput.firstStep
+    ? taskSectionFirstStep
+    : taskSectionOperations;
 
-=== DEINE AUFGABE ===
-Du simulierst KEINE Rollen aus activeRoles. Handle JETZT aktiv!
-
-1. OFFENE AUFGABEN bearbeiten:
-   → Erstelle Protokolleintrag in operations.protokoll.create
-   → ODER aktualisiere Aufgabe in operations.aufgaben.update
-
-2. LAGEENTWICKLUNG simulieren:
-   → Neue Lagemeldungen in operations.protokoll.create
-   → Statusänderungen in operations.board.updateIncidentSites
-
-3. STABSARBEIT der fehlenden Rollen:
-   → S2: Lageberichte  → S3: Einsatzdisposition
-   → S4: Versorgung    → S5: Öffentlichkeitsarbeit
-   → LtStb: Koordination
-
-PFLICHT:
-- MINDESTENS 1-2 Einträge in operations.protokoll.create
-- Absender (anvon, assignedBy) dürfen NICHT in activeRoles sein
-- ALLES unter "operations" verschachteln!`;
-// ============================================================
+  // ============================================================
   // Formatiere Meldungen die Antwort benötigen
   // ============================================================
   let responseRequests = "";
   if (messagesNeedingResponse && messagesNeedingResponse.length > 0) {
     // Response-Guide aus Template laden
     responseRequests = "\n\n" + responseGuideTemplate + "\n\n";
-
-Du MUSST für JEDE dieser Meldungen einen Protokolleintrag als Antwort erstellen:
-  → operations.protokoll.create
-
-Die Antwort kann sein:
-  ✓ POSITIV: zustimmend, bestätigend ("wird erledigt", "verstanden", "OK", "Einheiten unterwegs")
-  ✗ NEGATIV: ablehnend, Rückfrage ("nicht möglich", "brauche mehr Info", "keine Kapazität")
-
-Entscheide situationsabhängig basierend auf:
-  - Der Rolle/Stelle des Empfängers
-  - Der aktuellen Lage
-  - Realistischen Einschränkungen (Personal, Zeit, Ressourcen)
-
-EXTERNE STELLEN und ihre typischen Antwortmuster:
-───────────────────────────────────────────────────────────────────────────────
-  Leitstelle (LAWZ):     Alarmierungsbestätigungen, Einheiten-Verfügbarkeit
-                        → "Alarmierung erfolgt, 3 Fahrzeuge ETA 15 Min"
-                        → "Alle Einheiten im Einsatz, frühestens in 30 Min"
-  
-  Polizei (POL):        Absperrungen, Verkehrsregelung, Evakuierungshilfe
-                        → "Absperrung Hauptstraße wird eingerichtet"
-                        → "Streife erst in 20 Min verfügbar"
-  
-  Bürgermeister (BM):   Evakuierungsentscheidungen, Gemeinderessourcen
-                        → "Evakuierung genehmigt, Turnhalle als Notquartier"
-                        → "Muss erst mit Gemeinderat Rücksprache halten"
-  
-  WLV/Wildbach:         Gefahrenbeurteilung Muren, Wildbäche
-                        → "Gutachter wird entsandt"
-                        → "Gebiet muss sofort geräumt werden"
-  
-  Straßenmeisterei:     Straßensperren, Räumung, Streudienst
-                        → "Sperre wird errichtet, Umleitungsbeschilderung folgt"
-                        → "Räumgerät erst morgen früh verfügbar"
-  
-  EVN/Energieversorger: Stromabschaltung, Freigaben, Netzstatus
-                        → "Abschaltung erfolgt in 10 Min"
-                        → "Benötige Freigabe vom Netzmeister"
-  
-  Rotes Kreuz (RK):     Sanitätsdienst, Rettungstransporte, Evakuierungshilfe
-                        → "2 RTW werden disponiert"
-                        → "Kapazität erschöpft, keine freien Fahrzeuge"
-  
-  Bundesheer (BH):      Assistenzeinsatz, schweres Gerät, Personal
-                        → "Assistenzanforderung wird geprüft"
-                        → "Pionierbataillon kann in 2h vor Ort sein"
-───────────────────────────────────────────────────────────────────────────────
-
-ANTWORT-FORMAT für jeden Protokolleintrag:
-{
-  "information": "[Antworttext der Stelle]",
-  "infoTyp": "Rueckmeldung",
-  "anvon": "[Name der antwortenden Stelle]",
-  "ergehtAn": ["[Original-Absender]"],
-  "richtung": "ein"
-}
-
-`;
 
     // Einzelne Meldungen auflisten
     for (let i = 0; i < messagesNeedingResponse.length; i++) {
@@ -212,7 +134,8 @@ ANTWORT-FORMAT für jeden Protokolleintrag:
 
     responseRequests += "\n═══════════════════════════════════════════════════════════════════════════════\n";
   }
-return fillTemplate(operationsUserPromptTemplate, {
+
+  return fillTemplate(operationsUserPromptTemplate, {
     rolesPart,
     compressedBoard,
     compressedAufgaben,
