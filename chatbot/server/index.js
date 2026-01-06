@@ -1083,6 +1083,7 @@ app.get("/api/admin/rate-limit-stats", rateLimit(RateLimitProfiles.ADMIN), (req,
 
 // Speichert alle verbundenen SSE-Clients
 const sseClients = new Set();
+const sseHeartbeats = new Map();  // Map von res -> heartbeat interval
 
 // SSE-Endpoint für Echtzeit-Updates
 app.get("/api/events", (req, res) => {
@@ -1092,35 +1093,53 @@ app.get("/api/events", (req, res) => {
   res.setHeader("Connection", "keep-alive");
   res.setHeader("X-Accel-Buffering", "no"); // Für nginx
   res.flushHeaders();
-  
+
   // Client registrieren
   sseClients.add(res);
   logInfo("SSE-Client verbunden", { clientCount: sseClients.size });
-  
+
   // Initial-Status senden
   try {
     const status = getAuditStatus();
     res.write(`event: status\ndata: ${JSON.stringify(status)}\n\n`);
-    
+
     // Modell-Status senden
     const modelConfig = getActiveModelConfig();
     res.write(`event: model_status\ndata: ${JSON.stringify(modelConfig)}\n\n`);
   } catch {
     // Ignorieren wenn kein Audit aktiv
   }
-  
+
   // Heartbeat alle 30 Sekunden (hält Verbindung offen)
   const heartbeat = setInterval(() => {
+    // Prüfe ob Response noch beschreibbar ist
+    if (!res.writable || res.destroyed) {
+      clearInterval(heartbeat);
+      sseHeartbeats.delete(res);
+      sseClients.delete(res);
+      return;
+    }
+
     try {
       res.write(`: heartbeat\n\n`);
-    } catch {
-      // Client disconnected
+    } catch (err) {
+      // Client disconnected - cleanup
+      clearInterval(heartbeat);
+      sseHeartbeats.delete(res);
+      sseClients.delete(res);
     }
   }, 30000);
-  
+
+  // Speichere Heartbeat-Referenz
+  sseHeartbeats.set(res, heartbeat);
+
   // Aufräumen bei Disconnect
   req.on("close", () => {
-    clearInterval(heartbeat);
+    const intervalId = sseHeartbeats.get(res);
+    if (intervalId) {
+      clearInterval(intervalId);
+      sseHeartbeats.delete(res);
+    }
     sseClients.delete(res);
     logInfo("SSE-Client getrennt", { clientCount: sseClients.size });
   });
@@ -1134,18 +1153,59 @@ app.get("/api/events", (req, res) => {
  */
 function broadcastSSE(eventType, data) {
   const message = `event: ${eventType}\ndata: ${JSON.stringify(data)}\n\n`;
-  
+
+  // Bereinige ungültige Clients während des Broadcasts
+  const deadClients = [];
+
   for (const client of sseClients) {
+    if (!client.writable || client.destroyed) {
+      deadClients.push(client);
+      continue;
+    }
+
     try {
       client.write(message);
     } catch {
-      // Client wird beim nächsten Heartbeat entfernt
+      // Client konnte nicht erreicht werden
+      deadClients.push(client);
     }
+  }
+
+  // Entferne tote Clients
+  for (const dead of deadClients) {
+    const heartbeat = sseHeartbeats.get(dead);
+    if (heartbeat) {
+      clearInterval(heartbeat);
+      sseHeartbeats.delete(dead);
+    }
+    sseClients.delete(dead);
   }
 }
 
+// Cleanup-Funktion für Server-Shutdown
+function cleanupSSE() {
+  logInfo("Cleanup: Schließe alle SSE-Clients", { count: sseClients.size });
+
+  for (const client of sseClients) {
+    try {
+      const heartbeat = sseHeartbeats.get(client);
+      if (heartbeat) {
+        clearInterval(heartbeat);
+      }
+      if (client.writable) {
+        client.end();
+      }
+    } catch {
+      // Ignoriere Fehler beim Cleanup
+    }
+  }
+
+  sseClients.clear();
+  sseHeartbeats.clear();
+}
+
 // Export für andere Module (z.B. sim_loop.js)
-export { broadcastSSE };
+export { broadcastSSE, cleanupSSE };
 
 // ============================================================
 // Bootstrap & Server-Start
@@ -1206,3 +1266,18 @@ async function bootstrap() {
 }
 
 bootstrap();
+
+// ============================================================
+// Graceful Shutdown
+// ============================================================
+process.on("SIGINT", () => {
+  logInfo("SIGINT empfangen, fahre Server herunter...", null);
+  cleanupSSE();
+  process.exit(0);
+});
+
+process.on("SIGTERM", () => {
+  logInfo("SIGTERM empfangen, fahre Server herunter...", null);
+  cleanupSSE();
+  process.exit(0);
+});
