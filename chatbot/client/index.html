@@ -686,6 +686,14 @@
         addEventToLog("simulation", "Szenario geladen: " + data.title);
       });
 
+      eventSource.addEventListener("statistics_update", (e) => {
+        const data = JSON.parse(e.data);
+        if (data.statistics) {
+          statistics = { ...statistics, ...data.statistics };
+          updateStats();
+        }
+      });
+
       eventSource.onmessage = (e) => {
         try {
           const data = JSON.parse(e.data);

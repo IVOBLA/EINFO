@@ -41,7 +41,8 @@ import {
   pauseExercise,
   resumeExercise,
   getFilteredEvents,
-  logEvent
+  logEvent,
+  setStatisticsChangeCallback
 } from "./audit_trail.js";
 
 import {
@@ -539,6 +540,50 @@ app.get("/api/llm/profiles", async (_req, res) => {
   } catch (err) {
     logError("Fehler beim Laden der Modell-Profile", { error: String(err) });
     res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// ============================================================
+// API für LLM Action-History (KI-Aktionen)
+// ============================================================
+const ACTION_HISTORY_FILE = path.resolve(__dirname, "../../server/data/llm_action_history.json");
+
+async function readJsonFile(filePath, defaultValue = []) {
+  try {
+    const content = await fs.readFile(filePath, "utf-8");
+    return JSON.parse(content);
+  } catch {
+    return defaultValue;
+  }
+}
+
+app.get("/api/llm/action-history", async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit, 10) || 100;
+    const offset = parseInt(req.query.offset, 10) || 0;
+    const category = req.query.category || null; // "protokoll", "aufgabe", "einsatz" oder null für alle
+
+    let history = await readJsonFile(ACTION_HISTORY_FILE, []);
+
+    // Nach Kategorie filtern
+    if (category) {
+      history = history.filter(entry => entry.category === category);
+    }
+
+    // Paginierung
+    const total = history.length;
+    const items = history.slice(offset, offset + limit);
+
+    res.json({
+      items,
+      total,
+      limit,
+      offset,
+      hasMore: offset + limit < total
+    });
+  } catch (err) {
+    logError("Fehler beim Laden der Action-History", { error: String(err) });
+    res.status(500).json({ error: "Fehler beim Laden der Action-History" });
   }
 });
 
@@ -1115,6 +1160,11 @@ async function bootstrap() {
     });
     process.exit(1);
   }
+
+  // SSE-Broadcast für Statistik-Updates registrieren
+  setStatisticsChangeCallback((statistics) => {
+    broadcastSSE("statistics_update", { statistics });
+  });
 
   const PORT = process.env.CHATBOT_PORT || 3100;
   app.listen(PORT, () => {

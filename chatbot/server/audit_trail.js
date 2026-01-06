@@ -24,6 +24,25 @@ let statistics = {
   incidentsCreated: 0
 };
 
+// Callback für SSE-Broadcasts (wird von index.js gesetzt)
+let onStatisticsChange = null;
+
+/**
+ * Registriert einen Callback für Statistik-Änderungen
+ */
+export function setStatisticsChangeCallback(callback) {
+  onStatisticsChange = callback;
+}
+
+/**
+ * Benachrichtigt über Statistik-Änderungen
+ */
+function notifyStatisticsChange() {
+  if (onStatisticsChange && currentExerciseId) {
+    onStatisticsChange(statistics);
+  }
+}
+
 /**
  * Event-Kategorien:
  * - exercise: Start/Stop/Pause der Übung
@@ -94,28 +113,41 @@ export function logEvent(category, action, data = {}) {
   events.push(event);
   
   // Statistiken aktualisieren
+  let statsChanged = false;
+
   if (category === "simulation" && action === "step_complete") {
     statistics.simSteps++;
+    statsChanged = true;
   }
   if (category === "llm") {
     statistics.llmCalls++;
     if (data.durationMs) {
       statistics.totalLlmDurationMs += data.durationMs;
     }
+    statsChanged = true;
   }
   if (category === "user") {
     statistics.userActions++;
+    statsChanged = true;
   }
   if (data.protocolsCreated) {
     statistics.protocolsCreated += data.protocolsCreated;
+    statsChanged = true;
   }
   if (data.tasksCreated) {
     statistics.tasksCreated += data.tasksCreated;
+    statsChanged = true;
   }
   if (data.incidentsCreated) {
     statistics.incidentsCreated += data.incidentsCreated;
+    statsChanged = true;
   }
-  
+
+  // SSE-Broadcast bei Statistik-Änderungen
+  if (statsChanged) {
+    notifyStatisticsChange();
+  }
+
   return event;
 }
 
