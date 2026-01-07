@@ -30,10 +30,19 @@ let lastWorkerStart = null;
 
 function processIsAlive(proc) {
   if (!proc) return false;
+
+  // Prüfe zuerst ob der Prozess bereits als beendet markiert ist
+  if (proc.killed || proc.exitCode !== null) return false;
+
   try {
+    // Signal 0 sendet kein Signal, prüft nur ob Prozess existiert
+    // Funktioniert auf Unix-Systemen zuverlässig
     process.kill(proc.pid, 0);
     return true;
-  } catch {
+  } catch (err) {
+    // ESRCH: Prozess existiert nicht
+    // EPERM: Keine Berechtigung (Prozess existiert aber)
+    if (err.code === "EPERM") return true;
     return false;
   }
 }

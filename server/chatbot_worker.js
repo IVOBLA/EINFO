@@ -982,8 +982,9 @@ async function runOnce() {
     }
 
     let retries = 0;
-    
-    while (retries < MAX_RETRIES) {
+    let success = false;
+
+    while (retries < MAX_RETRIES && !success) {
       const res = await fetch(CHATBOT_STEP_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1007,7 +1008,7 @@ async function runOnce() {
         }
 
         log("HTTP-Fehler:", res.status, bodyText.slice(0, 200));
-        return;
+        break;  // Fehler: Verlasse Schleife korrekt
       }
 
       const data = await res.json();
@@ -1020,10 +1021,11 @@ async function runOnce() {
           continue;
         }
         log("Schritt nicht ok:", data.error || data.reason);
-        return;
+        break;  // Fehler: Verlasse Schleife korrekt
       }
 
       // Erfolgreich
+      success = true;
       // Transform LLM short field names (t, d, o, r, i, ea) to JSON long names (title, desc, etc.)
       let ops = transformLlmOperationsToJson(data.operations || {});
       const scenarioSimulation = scenario?.simulation
@@ -1176,12 +1178,13 @@ async function runOnce() {
 
       const duration = Date.now() - startTime;
       log(`Schritt abgeschlossen in ${duration}ms | Angewandt: ${totalApplied}`);
-      
+
       await logGpuStatus();
-      return;
     }
-    
-    log(`Max. Retries (${MAX_RETRIES}) erreicht.`);
+
+    if (!success) {
+      log(`Max. Retries (${MAX_RETRIES}) erreicht oder Fehler aufgetreten.`);
+    }
     
   } catch (err) {
     log("Fehler:", err.message);
