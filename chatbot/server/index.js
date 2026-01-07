@@ -27,6 +27,7 @@ import {
 import { logInfo, logError } from "./logger.js";
 import { initMemoryStore } from "./memory_manager.js";
 import { getGpuStatus } from "./gpu_status.js";
+import { getGeoIndex } from "./rag/geo_search.js";
 
 // ============================================================
 // Imports für Audit-Trail und Templates
@@ -1214,12 +1215,22 @@ export { broadcastSSE, cleanupSSE };
 async function bootstrap() {
   try {
     await initMemoryStore();
+    logInfo("Memory-Store initialisiert");
   } catch (err) {
     logError("Fehler beim Initialisieren des Memory-Stores", {
       error: String(err)
     });
     process.exit(1);
   }
+
+  // Geo-Index laden (async, blockiert nicht den Start)
+  getGeoIndex().then(geoIndex => {
+    geoIndex.getStats().then(stats => {
+      logInfo("Geo-Index geladen", stats);
+    });
+  }).catch(err => {
+    logError("Fehler beim Laden des Geo-Index", { error: String(err) });
+  });
 
   // SSE-Broadcast für Statistik-Updates registrieren
   setStatisticsChangeCallback((statistics) => {

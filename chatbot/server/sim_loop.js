@@ -7,6 +7,11 @@ import { logInfo, logError, logDebug } from "./logger.js";
 import { searchMemory } from "./memory_manager.js";
 import { logEvent } from "./audit_trail.js";
 import {
+  indexIncident,
+  indexTask,
+  indexProtocolEntry
+} from "./event_indexer.js";
+import {
   updateDisasterContextFromEinfo,
   incrementSimulationStep
 } from "./disaster_context.js";
@@ -747,6 +752,38 @@ lastCompressedBoardJson = opsContext.compressedBoard;
       incidentsCreated: operations.board?.createIncidentSites?.length || 0,
       responsesGenerated: messagesNeedingResponse.length
     });
+
+    // ============================================================
+    // NEU: Automatische Indizierung in RAG-Systeme
+    // ============================================================
+    try {
+      // Incidents indizieren
+      for (const incident of operations.board?.createIncidentSites || []) {
+        await indexIncident(incident, "created");
+      }
+      for (const incident of operations.board?.updateIncidentSites || []) {
+        await indexIncident(incident, "updated");
+      }
+
+      // Aufgaben indizieren
+      for (const task of operations.aufgaben?.create || []) {
+        await indexTask(task, "created");
+      }
+
+      // Protokolleinträge indizieren
+      for (const entry of operations.protokoll?.create || []) {
+        await indexProtocolEntry(entry);
+      }
+
+      logDebug("RAG-Indizierung abgeschlossen", {
+        incidents: (operations.board?.createIncidentSites?.length || 0) +
+                   (operations.board?.updateIncidentSites?.length || 0),
+        tasks: operations.aufgaben?.create?.length || 0,
+        protocols: operations.protokoll?.create?.length || 0
+      });
+    } catch (indexError) {
+      logError("Fehler bei RAG-Indizierung", { error: String(indexError) });
+    }
 
     // NEU: Simulationsschritt-Counter inkrementieren
     incrementSimulationStep();
