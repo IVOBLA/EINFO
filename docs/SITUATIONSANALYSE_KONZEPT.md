@@ -95,9 +95,12 @@ Dieses Dokument beschreibt die Implementierung einer KI-gestützten Situationsan
 
 ---
 
-## 3. UI-Design (Grafische Beispiele)
+## 3. UI-Design (Chrome-Style Slide Panel)
 
-### 3.1 Panel eingeklappt (Minimaler Zustand)
+Das Panel verwendet ein **Chrome-artiges Slide-In Design** mit einem kleinen Tab/Griff am unteren Rand,
+der beim Hover/Klick das Panel sanft nach oben ausfährt.
+
+### 3.1 Panel eingeklappt - Nur Tab sichtbar (wie Chrome Seitenleiste)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -112,11 +115,138 @@ Dieses Dokument beschreibt die Implementierung einer KI-gestützten Situationsan
 │  │  │ Aufgabe 2  │  │  │  │ Aufgabe 4   │  │  │                   │        │
 │  │  └────────────┘  │  │  └─────────────┘  │  │                   │        │
 │  │                  │  │                   │  │                   │        │
+│  │                  │  │                   │  │                   │        │
+│  │                  │  │                   │  │                   │        │
+│  └──────────────────┘  └───────────────────┘  └───────────────────┘        │
+│                                                                             │
+│                                                                             │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                    │
+                         ┌──────────┴──────────┐
+                         │  🤖 KI-Assistent    │  ← Kleiner Tab (immer sichtbar)
+                         │      ▲  (3)         │     Badge zeigt Anzahl neuer Vorschläge
+                         └─────────────────────┘
+```
+
+### 3.2 Tab-Hover-Zustand (Vorschau)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           AUFGABENBOARD                                      │
+│  ┌──────────────────┐  ┌───────────────────┐  ┌───────────────────┐        │
+│  │       NEU        │  │   IN BEARBEITUNG  │  │     ERLEDIGT      │        │
+│  │  ┌────────────┐  │  │  ┌─────────────┐  │  │  ┌─────────────┐  │        │
+│  │  │ Aufgabe 1  │  │  │  │ Aufgabe 3   │  │  │  │ Aufgabe 5   │  │        │
+│  │  └────────────┘  │  │  └─────────────┘  │  │  └─────────────┘  │        │
+│  │  ┌────────────┐  │  │  ┌─────────────┐  │  │                   │        │
+│  │  │ Aufgabe 2  │  │  │  │ Aufgabe 4   │  │  │                   │        │
+│  └──────────────────┘  └───────────────────┘  └───────────────────┘        │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ ╭─────────────────────────────────────────────────────────────────────────╮ │
+│ │  🤖 KI-Lageanalyse für S3                                          ▼   │ │ ← Preview bei Hover
+│ ├─────────────────────────────────────────────────────────────────────────┤ │
+│ │  • 3 neue Handlungsvorschläge verfügbar                                 │ │
+│ │  • Letzte Analyse: vor 5 Minuten                                        │ │
+│ │                                                                         │ │
+│ │  Klicken zum Öffnen                                                     │ │
+│ ╰─────────────────────────────────────────────────────────────────────────╯ │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 3.3 Panel vollständig ausgeklappt (Slide-Up Animation)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           AUFGABENBOARD                                      │
+│  ┌──────────────────┐  ┌───────────────────┐  ┌───────────────────┐        │
+│  │       NEU        │  │   IN BEARBEITUNG  │  │     ERLEDIGT      │        │
+│  │  ┌────────────┐  │  │  ┌─────────────┐  │  │  ┌─────────────┐  │        │
+│  │  │ Aufgabe 1  │  │  │  │ Aufgabe 3   │  │  │  │ Aufgabe 5   │  │        │
+│  │  └────────────┘  │  │  └─────────────┘  │  │  └─────────────┘  │        │
+│  └──────────────────┘  └───────────────────┘  └───────────────────┘        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ ╭── 🤖 KI-Lageanalyse für S3 ─────────────────────────────── [−] [✕] ────╮ │
+│ │                                                                         │ │
+│ │  ┌──────────────────────┐  ┌──────────────────────┐                     │ │
+│ │  │ 📋 Vorschläge  (3)   │  │ 💬 Fragen an KI      │      [🔄 Refresh]  │ │
+│ │  └──────────────────────┘  └──────────────────────┘                     │ │
+│ │                                                                         │ │
+│ │  ┌───────────────────────────────────────────────────────────────────┐  │ │
+│ │  │ 🔴 HOCH │ Zusätzliche Einsatzkräfte anfordern                     │  │ │
+│ │  │─────────────────────────────────────────────────────────────────  │  │ │
+│ │  │ Begründung: Auslastung Abschnitt Nord bei 87%                     │  │ │
+│ │  │                                                                   │  │ │
+│ │  │ [✏️ Bearbeiten] [✅ Umsetzen] [❌ Ablehnen]    ⭐⭐⭐⭐⭐        │  │ │
+│ │  └───────────────────────────────────────────────────────────────────┘  │ │
+│ │                                                                         │ │
+│ │  ┌───────────────────────────────────────────────────────────────────┐  │ │
+│ │  │ 🟡 MITTEL │ Evakuierungsroute B überprüfen                        │  │ │
+│ │  │─────────────────────────────────────────────────────────────────  │  │ │
+│ │  │ Mögliche Straßensperrung gemeldet...                              │  │ │
+│ │  └───────────────────────────────────────────────────────────────────┘  │ │
+│ │                                                                         │ │
+│ ╰─────────────────────────────────────────────────────────────────────────╯ │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 3.4 Panel minimiert (schneller Zugriff)
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           AUFGABENBOARD                                      │
+│                                                                             │
+│  ┌──────────────────┐  ┌───────────────────┐  ┌───────────────────┐        │
+│  │       NEU        │  │   IN BEARBEITUNG  │  │     ERLEDIGT      │        │
+│  │                  │  │                   │  │                   │        │
+│  │                  │  │                   │  │                   │        │
 │  └──────────────────┘  └───────────────────┘  └───────────────────┘        │
 │                                                                             │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│  ▲ KI-Lageanalyse   │  3 neue Vorschläge  │  Zuletzt: vor 5 Min  │  [💬 2] │
-└─────────────────────────────────────────────────────────────────────────────┘
+│ ╭── 🤖 KI-Lageanalyse ────────── 3 Vorschläge │ 14:32 Uhr ─── [+] [✕] ───╮ │
+╰─────────────────────────────────────────────────────────────────────────────╯
+         ↑ Minimierte Header-Leiste (Klick auf [+] expandiert wieder)
+```
+
+### 3.5 Animation & Interaktionszustände
+
+```css
+/* CSS Transitions für Chrome-artiges Verhalten */
+
+/* 1. Tab am unteren Rand */
+.panel-tab {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 2. Hover-Vorschau */
+.panel-tab:hover + .panel-preview {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* 3. Panel Slide-Up */
+.panel-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  transform: translateY(calc(100% - 48px)); /* Nur Tab sichtbar */
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.panel-container.expanded {
+  transform: translateY(0); /* Vollständig sichtbar */
+}
+
+.panel-container.minimized {
+  transform: translateY(calc(100% - 48px)); /* Header-Leiste sichtbar */
+}
 ```
 
 ### 3.2 Panel ausgeklappt - Vorschläge-Tab
@@ -217,9 +347,7 @@ Dieses Dokument beschreibt die Implementierung einer KI-gestützten Situationsan
 │  │  Quellen: Meldung #127, Lagebericht 14:15                           │   │
 │  │                                                                      │   │
 │  │  ┌──────────────────────────────────────────────────────────────┐   │   │
-│  │  │  Bewertung: ★ ★ ★ ★ ☆     [👍 Hilfreich] [👎 Nicht hilfreich]│   │   │
-│  │  │                                                               │   │   │
-│  │  │  [📝 Korrektur hinzufügen]                                    │   │   │
+│  │  │  [👍 Hilfreich]  [👎 Nicht hilfreich]  [📝 Korrektur]         │   │   │
 │  │  └──────────────────────────────────────────────────────────────┘   │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
@@ -228,7 +356,7 @@ Dieses Dokument beschreibt die Implementierung einer KI-gestützten Situationsan
 │  ├─────────────────────────────────────────────────────────────────────┤   │
 │  │  🤖 Der letzte Lagebericht wurde um 14:15 Uhr erstellt...          │   │
 │  │  [Mehr anzeigen...]                                                  │   │
-│  │  Bewertung: ★ ★ ★ ★ ★                                               │   │
+│  │  [👍 Hilfreich]  [👎 Nicht hilfreich]                                │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -276,7 +404,11 @@ Dieses Dokument beschreibt die Implementierung einer KI-gestützten Situationsan
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 3.5 Bewertungs-Feedback (expandiert)
+### 3.5 Vereinfachtes Feedback-System (Binär)
+
+**Prinzip:** Nur zwei Optionen - **Hilfreich** oder **Nicht hilfreich**
+- Bei "Hilfreich" → Automatisch ins RAG (inkl. Benutzeränderungen)
+- Bei "Nicht hilfreich" → Wird nicht ins RAG übernommen
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -284,34 +416,47 @@ Dieses Dokument beschreibt die Implementierung einer KI-gestützten Situationsan
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  Empfehlung: Zusätzliche Einsatzkräfte für Abschnitt Nord anfordern        │
-│  ...                                                                        │
 │                                                                             │
-│  ┌─ Bewertung & Feedback ──────────────────────────────────────────────┐   │
-│  │                                                                      │   │
-│  │  Gesamtbewertung:  ★ ★ ★ ★ ☆                                        │   │
-│  │                                                                      │   │
-│  │  War der Vorschlag...                                               │   │
-│  │  ☑ Hilfreich für die Situation                                      │   │
-│  │  ☑ Fachlich korrekt                                                 │   │
-│  │  ☐ Umsetzbar mit verfügbaren Mitteln                                │   │
-│  │  ☐ Zeitlich passend                                                 │   │
-│  │                                                                      │   │
-│  │  Kommentar (optional):                                              │   │
-│  │  ┌──────────────────────────────────────────────────────────────┐   │   │
-│  │  │ Grundsätzlich richtig, aber aktuell keine Verstärkung       │   │   │
-│  │  │ verfügbar. Alternativ Umschichtung aus Abschnitt Ost.       │   │   │
-│  │  └──────────────────────────────────────────────────────────────┘   │   │
-│  │                                                                      │   │
-│  │  Ergebnis der Umsetzung:                                            │   │
-│  │  ○ Vorschlag umgesetzt - erfolgreich                                │   │
-│  │  ○ Vorschlag umgesetzt - nicht erfolgreich                          │   │
-│  │  ○ Vorschlag angepasst umgesetzt                                    │   │
-│  │  ● Vorschlag nicht umgesetzt                                        │   │
-│  │                                                                      │   │
-│  │                                         [💾 Feedback speichern]     │   │
-│  └─────────────────────────────────────────────────────────────────────┘   │
+│  Begründung: Auslastung Abschnitt Nord bei 87%                             │
+│                                                                             │
+│  ┌──────────────────────────────────────────────────────────────────────┐  │
+│  │  [✏️ Bearbeiten]                                                     │  │
+│  │                                                                       │  │
+│  │  Eigene Ergänzung (optional):                                        │  │
+│  │  ┌────────────────────────────────────────────────────────────────┐  │  │
+│  │  │ Mindestens 2 Löschzüge anfordern. Mit EL abgestimmt.          │  │  │
+│  │  └────────────────────────────────────────────────────────────────┘  │  │
+│  │                                                                       │  │
+│  │  ┌─────────────────────┐   ┌─────────────────────┐                   │  │
+│  │  │  👍 HILFREICH       │   │  👎 NICHT HILFREICH │                   │  │
+│  │  │                     │   │                     │                   │  │
+│  │  │  → Speichert ins    │   │  → Wird verworfen   │                   │  │
+│  │  │    RAG für Lernen   │   │                     │                   │  │
+│  │  └─────────────────────┘   └─────────────────────┘                   │  │
+│  └──────────────────────────────────────────────────────────────────────┘  │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 3.6 Feedback-Flow (vereinfacht)
+
+```
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────────┐
+│   Vorschlag     │────►│ Benutzer prüft   │────►│  👍 Hilfreich?      │
+│   vom LLM       │     │ (ggf. bearbeitet)│     │                     │
+└─────────────────┘     └──────────────────┘     └──────────┬──────────┘
+                                                            │
+                              ┌──────────────────────────────┼──────────────────┐
+                              │                              │                  │
+                              ▼                              ▼                  │
+                    ┌─────────────────┐            ┌─────────────────┐         │
+                    │   JA (👍)       │            │   NEIN (👎)     │         │
+                    │                 │            │                 │         │
+                    │ → RAG speichern │            │ → Verwerfen     │         │
+                    │ → Mit Änderungen│            │ → Kein Lernen   │         │
+                    │ → Für Zukunft   │            │                 │         │
+                    │   verwenden     │            │                 │         │
+                    └─────────────────┘            └─────────────────┘         │
 ```
 
 ---
@@ -355,18 +500,13 @@ Dieses Dokument beschreibt die Implementierung einer KI-gestützten Situationsan
 }
 
 // POST /api/situation/suggestion/feedback
-// Speichert Feedback zu einem Vorschlag
+// Speichert Feedback zu einem Vorschlag (binäres System)
 {
   request: {
     suggestionId: "sug_001",
     analysisId: "analysis_1704625200000",
-    rating: 4,
-    helpful: true,
-    accurate: true,
-    actionable: false,
-    implemented: true,
-    outcome: "adapted",  // success, failure, adapted, rejected
-    userNotes: "Angepasst umgesetzt mit...",
+    helpful: true,                    // EINZIGE Bewertung: true/false
+    userNotes: "Ergänzung...",        // Optional: Benutzerkommentar
     editedContent: {     // Optional, wenn bearbeitet
       title: "...",
       description: "..."
@@ -394,16 +534,17 @@ Dieses Dokument beschreibt die Implementierung einer KI-gestützten Situationsan
 }
 
 // POST /api/situation/question/feedback
-// Speichert Feedback zu einer Frage/Antwort
+// Speichert Feedback zu einer Frage/Antwort (binäres System)
 {
   request: {
     questionId: "q_001",
-    rating: 4,
-    helpful: true,
-    correction: "Die richtige Anzahl ist 5, nicht 4",
+    helpful: true,                              // Binär: true/false
+    correction: "Die richtige Anzahl ist 5",   // Optional: Bei helpful=false
     userId: "user_123",
     userRole: "S3"
   }
+  // Bei helpful=true → Antwort ins RAG speichern
+  // Bei helpful=false + correction → Korrigierte Version speichern
 }
 
 // GET /api/situation/status
@@ -451,20 +592,17 @@ Dieses Dokument beschreibt die Implementierung einer KI-gestützten Situationsan
   viewedAt: Number,
   resolvedAt: Number,
 
-  // Feedback (nach Bewertung)
+  // Feedback (vereinfacht - binär)
   feedback: {
-    rating: Number,        // 1-5
-    helpful: Boolean,
-    accurate: Boolean,
-    actionable: Boolean,
-    implemented: Boolean,
-    outcome: String,       // success, failure, adapted, rejected
-    userNotes: String,
-    editedContent: {
+    helpful: Boolean,      // EINZIGE Bewertung: true = ins RAG, false = verwerfen
+    userNotes: String,     // Optionale Ergänzung/Kommentar
+    editedContent: {       // Falls Benutzer bearbeitet hat
       title: String,
       description: String
-    }
+    },
+    feedbackAt: Number     // Zeitstempel der Bewertung
   }
+  // Bei helpful=true wird Vorschlag (inkl. editedContent) automatisch ins RAG gespeichert
 }
 ```
 
@@ -487,13 +625,14 @@ Dieses Dokument beschreibt die Implementierung einer KI-gestützten Situationsan
   confidence: Number,      // 0-1
   answeredAt: Number,
 
-  // Feedback
+  // Feedback (vereinfacht - binär)
   feedback: {
-    rating: Number,        // 1-5
-    helpful: Boolean,
-    correction: String,    // User-Korrektur
+    helpful: Boolean,      // true = ins RAG, false = verwerfen
+    correction: String,    // Optional: Bei helpful=false kann User korrigieren
     feedbackAt: Number
   }
+  // Bei helpful=true → Original-Antwort ins RAG
+  // Bei helpful=false + correction → Korrigierte Version ins RAG
 }
 ```
 
@@ -1090,54 +1229,39 @@ const SuggestionCard = ({ suggestion, role, onFeedback }) => {
           )}
         </div>
 
-        {/* Quick Rating */}
+        {/* Binäres Feedback - Nur Hilfreich/Nicht Hilfreich */}
         {!showFeedback && (
           <div className="flex items-center gap-4 mt-4 pt-4 border-t">
-            <span className="text-sm text-gray-500">Bewertung:</span>
-            <div className="flex gap-1">
-              {[1, 2, 3, 4, 5].map(star => (
-                <button
-                  key={star}
-                  onClick={() => {
-                    setFeedback(prev => ({...prev, rating: star}));
-                    setShowFeedback(true);
-                  }}
-                  className="text-gray-300 hover:text-yellow-400 transition"
-                >
-                  <Star
-                    size={20}
-                    fill={feedback.rating >= star ? '#facc15' : 'none'}
-                    className={feedback.rating >= star ? 'text-yellow-400' : ''}
-                  />
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-2 ml-4">
-              <button
-                onClick={() => {
-                  setFeedback(prev => ({...prev, helpful: true}));
-                  setShowFeedback(true);
-                }}
-                className={`p-1.5 rounded transition
-                           ${feedback.helpful === true
-                             ? 'bg-green-100 text-green-600'
-                             : 'hover:bg-gray-100'}`}
-              >
-                <ThumbsUp size={16} />
-              </button>
-              <button
-                onClick={() => {
-                  setFeedback(prev => ({...prev, helpful: false}));
-                  setShowFeedback(true);
-                }}
-                className={`p-1.5 rounded transition
-                           ${feedback.helpful === false
-                             ? 'bg-red-100 text-red-600'
-                             : 'hover:bg-gray-100'}`}
-              >
-                <ThumbsDown size={16} />
-              </button>
-            </div>
+            <button
+              onClick={() => {
+                setFeedback(prev => ({...prev, helpful: true}));
+                handleSaveFeedback();  // Direkt speichern bei Hilfreich
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white
+                         rounded-lg hover:bg-green-700 transition font-medium"
+            >
+              <ThumbsUp size={18} />
+              Hilfreich
+            </button>
+            <button
+              onClick={() => {
+                setFeedback(prev => ({...prev, helpful: false}));
+                setShowFeedback(true);  // Zeige Formular für optionale Ergänzung
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-200
+                         rounded-lg hover:bg-gray-300 transition font-medium"
+            >
+              <ThumbsDown size={18} />
+              Nicht hilfreich
+            </button>
+            <button
+              onClick={() => setEditing(true)}
+              className="flex items-center gap-2 px-3 py-2 text-blue-600
+                         hover:bg-blue-50 rounded-lg transition text-sm"
+            >
+              <Edit2 size={16} />
+              Bearbeiten
+            </button>
           </div>
         )}
 
@@ -1155,109 +1279,44 @@ const SuggestionCard = ({ suggestion, role, onFeedback }) => {
   );
 };
 
-// Feedback Form Component
+// Vereinfachtes Feedback Form Component (nur bei "Nicht hilfreich")
 const FeedbackForm = ({ feedback, setFeedback, onSave, onCancel }) => {
   return (
-    <div className="mt-4 p-4 bg-white rounded-lg border">
-      <h4 className="font-semibold mb-4">Bewertung & Feedback</h4>
+    <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
+      <h4 className="font-semibold mb-4 text-gray-700">
+        {feedback.helpful === false
+          ? '👎 Als nicht hilfreich markiert'
+          : 'Feedback'}
+      </h4>
 
-      {/* Star Rating */}
-      <div className="flex items-center gap-2 mb-4">
-        <span className="text-sm">Gesamtbewertung:</span>
-        <div className="flex gap-1">
-          {[1, 2, 3, 4, 5].map(star => (
-            <button
-              key={star}
-              onClick={() => setFeedback(prev => ({...prev, rating: star}))}
-              className="text-gray-300 hover:text-yellow-400 transition"
-            >
-              <Star
-                size={24}
-                fill={feedback.rating >= star ? '#facc15' : 'none'}
-                className={feedback.rating >= star ? 'text-yellow-400' : ''}
-              />
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Checkboxes */}
-      <div className="space-y-2 mb-4">
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={feedback.helpful || false}
-            onChange={e => setFeedback(prev => ({...prev, helpful: e.target.checked}))}
-            className="rounded"
-          />
-          <span className="text-sm">Hilfreich für die Situation</span>
-        </label>
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={feedback.accurate || false}
-            onChange={e => setFeedback(prev => ({...prev, accurate: e.target.checked}))}
-            className="rounded"
-          />
-          <span className="text-sm">Fachlich korrekt</span>
-        </label>
-        <label className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            checked={feedback.actionable || false}
-            onChange={e => setFeedback(prev => ({...prev, actionable: e.target.checked}))}
-            className="rounded"
-          />
-          <span className="text-sm">Umsetzbar mit verfügbaren Mitteln</span>
-        </label>
-      </div>
-
-      {/* Outcome */}
+      {/* Optionale Ergänzung/Korrektur */}
       <div className="mb-4">
-        <span className="text-sm font-medium">Ergebnis der Umsetzung:</span>
-        <div className="mt-2 space-y-1">
-          {[
-            { value: 'success', label: 'Vorschlag umgesetzt - erfolgreich' },
-            { value: 'failure', label: 'Vorschlag umgesetzt - nicht erfolgreich' },
-            { value: 'adapted', label: 'Vorschlag angepasst umgesetzt' },
-            { value: 'rejected', label: 'Vorschlag nicht umgesetzt' }
-          ].map(opt => (
-            <label key={opt.value} className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="outcome"
-                checked={feedback.outcome === opt.value}
-                onChange={() => setFeedback(prev => ({...prev, outcome: opt.value}))}
-              />
-              <span className="text-sm">{opt.label}</span>
-            </label>
-          ))}
-        </div>
-      </div>
-
-      {/* Notes */}
-      <div className="mb-4">
-        <label className="text-sm font-medium">Kommentar (optional):</label>
+        <label className="text-sm font-medium text-gray-600">
+          Ergänzung oder Korrektur (optional):
+        </label>
         <textarea
-          value={feedback.userNotes}
+          value={feedback.userNotes || ''}
           onChange={e => setFeedback(prev => ({...prev, userNotes: e.target.value}))}
-          placeholder="Ihre Anmerkungen zum Vorschlag..."
+          placeholder="Was wäre besser gewesen? Ihre Verbesserungsvorschläge..."
           className="w-full mt-1 border rounded px-3 py-2 text-sm"
           rows={3}
         />
+        <p className="text-xs text-gray-500 mt-1">
+          Bei guter Korrektur wird diese für zukünftige Vorschläge verwendet.
+        </p>
       </div>
 
       {/* Actions */}
       <div className="flex gap-2">
         <button
           onClick={onCancel}
-          className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 transition"
+          className="px-4 py-2 bg-white border rounded hover:bg-gray-50 transition"
         >
           Abbrechen
         </button>
         <button
           onClick={onSave}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+          className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition"
         >
           Feedback speichern
         </button>
@@ -1518,7 +1577,7 @@ const defaultConfig = {
     intervalMinutes: 5,           // Analyse-Intervall
     maxSuggestionsPerRole: 5,     // Max. Vorschläge pro Analyse
     autoRefreshOnIncident: true,  // Bei neuem Ereignis sofort analysieren
-    feedbackThreshold: 4,         // Minimum Rating für RAG-Aufnahme
+    saveHelpfulToRAG: true,       // Hilfreich-Feedback automatisch ins RAG
     roles: ['LTSTB', 'S1', 'S2', 'S3', 'S4', 'S5', 'S6']
   }
 };
@@ -1526,15 +1585,15 @@ const defaultConfig = {
 
 ---
 
-## 10. RAG-Integration für Feedback
+## 10. RAG-Integration für Feedback (Vereinfacht)
 
 ### 10.1 Erweiterung llm_feedback.js
 
 ```javascript
-// Neue Funktion zum Extrahieren von Learned Suggestions
+// Neue Funktion zum Extrahieren von Learned Suggestions (binäres Feedback)
 async function extractLearnedSuggestion(feedbackData) {
-  if (feedbackData.rating < 4) return null;
-  if (!feedbackData.implemented) return null;
+  // Nur bei "Hilfreich" ins RAG speichern
+  if (!feedbackData.helpful) return null;
 
   const learnedSuggestion = {
     id: `learned_sug_${Date.now()}`,
@@ -1549,10 +1608,9 @@ async function extractLearnedSuggestion(feedbackData) {
     disasterPhase: feedbackData.disasterPhase,
     targetRole: feedbackData.userRole,
 
-    // Feedback-Daten
-    rating: feedbackData.rating,
-    outcome: feedbackData.outcome,
-    userNotes: feedbackData.userNotes,
+    // Feedback-Daten (binär)
+    helpful: true,  // Immer true (wird nur bei helpful=true aufgerufen)
+    userNotes: feedbackData.userNotes,  // Optionale Benutzerergänzung
 
     // Für Embedding
     searchText: `${feedbackData.editedContent?.title || feedbackData.originalTitle}
