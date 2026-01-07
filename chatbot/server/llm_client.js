@@ -13,6 +13,7 @@ import {
 
 import { logDebug, logError, logLLMExchange } from "./logger.js";
 import { getKnowledgeContextVector } from "./rag/rag_vector.js";
+import { getEnhancedContext } from "./rag/query_router.js";
 import { extractJsonObject, validateOperationsJson } from "./json_sanitizer.js";
 import { setLLMHistoryMeta } from "./state_store.js";
 
@@ -231,8 +232,21 @@ export async function callLLMForChat({
   onToken,
   model
 }) {
-  // Knowledge Context aus RAG
-  const knowledgeContext = await getKnowledgeContextVector(question);
+  // Enhanced Context via Query-Router (inkl. Geo, Session, Memory)
+  const { context: enhancedContext, intent, stats } = await getEnhancedContext(question, {
+    maxChars: 3000
+  });
+
+  logDebug("Chat: Enhanced Context", {
+    intentType: intent.type,
+    confidence: intent.confidence,
+    contextLength: stats.contextLength
+  });
+
+  // Falls Query-Router semantisch ist, zusätzlich statisches RAG
+  const knowledgeContext = intent.type === "semantic"
+    ? await getKnowledgeContextVector(question)
+    : enhancedContext;
 
   // Disaster Context abrufen
   const disasterContext = getDisasterContextSummary({ maxLength: 1000 });
