@@ -9,6 +9,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { CONFIG } from "./config.js";
 import { logDebug, logError, logInfo } from "./logger.js";
+import { getCurrentState } from "./state_store.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -361,61 +362,63 @@ export function getCurrentDisasterContext() {
  * Erstellt einen komprimierten Context-String für LLM-Prompts
  */
 export function getDisasterContextSummary({ maxLength = 1500 } = {}) {
+  let summary = "";
+
   if (!currentDisasterContext) {
-    return "Kein aktiver Katastrophen-Context.";
-  }
+    summary = buildFallbackContextSummary();
+  } else {
+    const {
+      type,
+      description,
+      startTime,
+      currentPhase,
+      activeIncidents,
+      statistics,
+      timeline,
+      patterns
+    } = currentDisasterContext;
 
-  const {
-    type,
-    description,
-    startTime,
-    currentPhase,
-    activeIncidents,
-    statistics,
-    timeline,
-    patterns
-  } = currentDisasterContext;
+    const duration = Math.floor((Date.now() - startTime) / 60000); // Minuten
+    const recentTimeline = timeline.slice(-10); // Letzte 10 Events
 
-  const duration = Math.floor((Date.now() - startTime) / 60000); // Minuten
-  const recentTimeline = timeline.slice(-10); // Letzte 10 Events
+    summary = `### AKTUELLER KATASTROPHEN-CONTEXT ###\n\n`;
+    summary += `Typ: ${type}\n`;
+    summary += `Beschreibung: ${description}\n`;
+    summary += `Phase: ${currentPhase}\n`;
+    summary += `Dauer: ${duration} Minuten\n\n`;
 
-  let summary = `### AKTUELLER KATASTROPHEN-CONTEXT ###\n\n`;
-  summary += `Typ: ${type}\n`;
-  summary += `Beschreibung: ${description}\n`;
-  summary += `Phase: ${currentPhase}\n`;
-  summary += `Dauer: ${duration} Minuten\n\n`;
+    summary += `### STATISTIKEN ###\n`;
+    summary += `Aktive Einsätze: ${statistics.activeIncidents}\n`;
+    summary += `Gesamt (abgeschlossen): ${statistics.resolvedIncidents}\n`;
+    summary += `LLM-Vorschläge akzeptiert: ${statistics.llmSuggestionsAccepted}\n`;
+    summary += `LLM-Vorschläge abgelehnt: ${statistics.llmSuggestionsRejected}\n\n`;
 
-  summary += `### STATISTIKEN ###\n`;
-  summary += `Aktive Einsätze: ${statistics.activeIncidents}\n`;
-  summary += `Gesamt (abgeschlossen): ${statistics.resolvedIncidents}\n`;
-  summary += `LLM-Vorschläge akzeptiert: ${statistics.llmSuggestionsAccepted}\n`;
-  summary += `LLM-Vorschläge abgelehnt: ${statistics.llmSuggestionsRejected}\n\n`;
+    if (patterns.length > 0) {
+      summary += `### ERKANNTE MUSTER ###\n`;
+      for (const pattern of patterns.slice(0, 3)) {
+        summary += `- ${pattern.description} (${pattern.frequency}x)\n`;
+      }
+      summary += `\n`;
+    }
 
-  if (patterns.length > 0) {
-    summary += `### ERKANNTE MUSTER ###\n`;
-    for (const pattern of patterns.slice(0, 3)) {
-      summary += `- ${pattern.description} (${pattern.frequency}x)\n`;
+    summary += `### AKTIVE EINSÄTZE (Top 5) ###\n`;
+    const topIncidents = activeIncidents
+      .sort((a, b) => {
+        const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+        return priorityOrder[a.priority] - priorityOrder[b.priority];
+      })
+      .slice(0, 5);
+
+    for (const incident of topIncidents) {
+      summary += `- [${incident.priority.toUpperCase()}] ${incident.type} @ ${incident.location}: ${incident.content.substring(0, 80)}...\n`;
     }
     summary += `\n`;
-  }
 
-  summary += `### AKTIVE EINSÄTZE (Top 5) ###\n`;
-  const topIncidents = activeIncidents
-    .sort((a, b) => {
-      const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
-      return priorityOrder[a.priority] - priorityOrder[b.priority];
-    })
-    .slice(0, 5);
-
-  for (const incident of topIncidents) {
-    summary += `- [${incident.priority.toUpperCase()}] ${incident.type} @ ${incident.location}: ${incident.content.substring(0, 80)}...\n`;
-  }
-  summary += `\n`;
-
-  summary += `### JÜNGSTE EREIGNISSE ###\n`;
-  for (const event of recentTimeline) {
-    const time = new Date(event.timestamp).toLocaleTimeString("de-DE");
-    summary += `- [${time}] ${event.event}\n`;
+    summary += `### JÜNGSTE EREIGNISSE ###\n`;
+    for (const event of recentTimeline) {
+      const time = new Date(event.timestamp).toLocaleTimeString("de-DE");
+      summary += `- [${time}] ${event.event}\n`;
+    }
   }
 
   // Kürze falls zu lang
@@ -424,6 +427,153 @@ export function getDisasterContextSummary({ maxLength = 1500 } = {}) {
   }
 
   return summary;
+}
+
+function buildFallbackContextSummary() {
+  const state = getCurrentState();
+  const incidents = Array.isArray(state?.incidents) ? state.incidents : [];
+  const aufgaben = Array.isArray(state?.einfoSnapshot?.aufgaben)
+    ? state.einfoSnapshot.aufgaben
+    : [];
+  const protokoll = Array.isArray(state?.einfoSnapshot?.protokoll)
+    ? state.einfoSnapshot.protokoll
+    : [];
+
+  if (incidents.length === 0 && aufgaben.length === 0 && protokoll.length === 0) {
+    return "Kein aktiver Katastrophen-Context.";
+  }
+
+  const normalized = incidents.map((incident) => ({
+    id: incident.id || incident.incidentId || "unbekannt",
+    type: incident.typ || incident.type || "unspecified",
+    location: incident.location || incident.ort || "Unbekannt",
+    status: incident.status || incident.column || "unbekannt",
+    title:
+      incident.title ||
+      incident.description ||
+      incident.content ||
+      incident.desc ||
+      "",
+    priority: incident.priority || "unbekannt"
+  }));
+
+  const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+  const topIncidents = normalized
+    .sort((a, b) => (priorityOrder[a.priority] ?? 99) - (priorityOrder[b.priority] ?? 99))
+    .slice(0, 5);
+
+  let summary = `### AKTUELLER LAGEAUSZUG (ohne Disaster-Context) ###\n\n`;
+  summary += "Hinweis: Kein aktiver Disaster Context, aber es liegen Einsätze, Aufgaben oder Protokolleinträge im Simulationszustand vor.\n\n";
+  summary += `Einsatzmeldungen: ${normalized.length}\n`;
+  summary += `Offene Aufgaben: ${countOpenTasks(aufgaben)}\n`;
+  summary += `Protokolleinträge: ${protokoll.length}\n\n`;
+
+  if (topIncidents.length > 0) {
+    summary += "### AKTIVE EINSÄTZE (Top 5) ###\n";
+
+    for (const incident of topIncidents) {
+      const details = incident.title ? `: ${incident.title.substring(0, 80)}...` : "";
+      summary += `- [${incident.priority.toUpperCase()}] ${incident.type} @ ${incident.location}${details}\n`;
+    }
+    summary += "\n";
+  }
+
+  const openTasks = buildOpenTasksSummary(aufgaben);
+  if (openTasks.length > 0) {
+    summary += "### OFFENE AUFGABEN (Top 5) ###\n";
+    for (const task of openTasks) {
+      const owner = task.responsible ? ` (${task.responsible})` : "";
+      const prio = task.priority ? ` [${task.priority.toUpperCase()}]` : "";
+      summary += `- ${task.title}${owner}${prio}\n`;
+    }
+    summary += "\n";
+  }
+
+  const recentProtocol = buildRecentProtocolSummary(protokoll);
+  if (recentProtocol.length > 0) {
+    summary += "### JÜNGSTE PROTOKOLLEINTRÄGE (Top 5) ###\n";
+    for (const entry of recentProtocol) {
+      const timeLabel = entry.timeLabel ? ` (${entry.timeLabel})` : "";
+      const sender = entry.anvon ? ` ${entry.anvon}` : "";
+      const info = entry.information ? `: ${entry.information.substring(0, 80)}...` : "";
+      summary += `- ${sender}${timeLabel}${info}\n`;
+    }
+  }
+
+  return summary;
+}
+
+function countOpenTasks(aufgaben) {
+  return aufgaben.filter((task) => isTaskOpen(task)).length;
+}
+
+function isTaskOpen(task) {
+  const status = String(task?.status || "").toLowerCase();
+  const closedStatuses = ["done", "erledigt", "abgeschlossen", "closed", "resolved"];
+  if (!status) return true;
+  return !closedStatuses.includes(status);
+}
+
+function buildOpenTasksSummary(aufgaben) {
+  const normalized = aufgaben
+    .filter((task) => isTaskOpen(task))
+    .map((task) => ({
+      title: task.title || task.description || task.desc || "Unbenannte Aufgabe",
+      responsible: task.responsible || task.assignedTo || "",
+      priority: task.priority || task.prio || ""
+    }));
+
+  const priorityOrder = {
+    critical: 0,
+    hoch: 1,
+    high: 1,
+    mittel: 2,
+    medium: 2,
+    low: 3,
+    niedrig: 3
+  };
+  return normalized
+    .sort(
+      (a, b) =>
+        (priorityOrder[String(a.priority).toLowerCase()] ?? 99) -
+        (priorityOrder[String(b.priority).toLowerCase()] ?? 99)
+    )
+    .slice(0, 5);
+}
+
+function buildRecentProtocolSummary(protokoll) {
+  const normalized = protokoll.map((entry) => ({
+    timestamp: resolveProtocolTimestamp(entry),
+    information: entry.information || entry.info || "",
+    anvon: entry.anvon || entry.von || "",
+    timeLabel: buildProtocolTimeLabel(entry)
+  }));
+
+  return normalized
+    .sort((a, b) => (b.timestamp ?? 0) - (a.timestamp ?? 0))
+    .slice(0, 5);
+}
+
+function resolveProtocolTimestamp(entry) {
+  if (typeof entry?.timestamp === "number") return entry.timestamp;
+  const date = entry?.datum || entry?.date;
+  const time = entry?.zeit || entry?.time;
+  if (date && time) {
+    const parsed = Date.parse(`${date} ${time}`);
+    if (!Number.isNaN(parsed)) return parsed;
+  }
+  if (date) {
+    const parsed = Date.parse(date);
+    if (!Number.isNaN(parsed)) return parsed;
+  }
+  return null;
+}
+
+function buildProtocolTimeLabel(entry) {
+  const date = entry?.datum || entry?.date;
+  const time = entry?.zeit || entry?.time;
+  if (date && time) return `${date} ${time}`;
+  return time || date || "";
 }
 
 /**

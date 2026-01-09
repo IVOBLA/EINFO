@@ -8,6 +8,10 @@ let currentState = {
   incidents: [],
   messages: [],
   staffDecisions: [],
+  einfoSnapshot: {
+    aufgaben: [],
+    protokoll: []
+  },
   meta: {}
 };
 
@@ -30,6 +34,10 @@ export function initState(scenarioConfig) {
     incidents: [],
     messages: [],
     staffDecisions: [],
+    einfoSnapshot: {
+      aufgaben: [],
+      protokoll: []
+    },
     meta: {}
   };
 
@@ -44,6 +52,16 @@ export function getCurrentState() {
 // Snapshot als plain JS-Objekt
 export function getCurrentStateSnapshot() {
   return JSON.parse(JSON.stringify(currentState));
+}
+
+export function setEinfoSnapshot({ aufgaben = [], protokoll = [] } = {}) {
+  currentState = {
+    ...currentState,
+    einfoSnapshot: {
+      aufgaben: Array.isArray(aufgaben) ? aufgaben : [],
+      protokoll: Array.isArray(protokoll) ? protokoll : []
+    }
+  };
 }
 
 // LLM-Antwort einspielen

@@ -11,6 +11,7 @@ import {
   indexTask,
   indexProtocolEntry
 } from "./event_indexer.js";
+import { setEinfoSnapshot } from "./state_store.js";
 import {
   updateDisasterContextFromEinfo,
   incrementSimulationStep
@@ -519,6 +520,7 @@ export async function stepSimulation(options = {}) {
   try {
     const einfoData = await readEinfoInputs();
     const { roles, board, aufgaben, protokoll } = einfoData;
+    setEinfoSnapshot({ aufgaben, protokoll });
 
     const { delta: boardDelta, snapshot: boardSnapshot } = buildDelta(
       board,
