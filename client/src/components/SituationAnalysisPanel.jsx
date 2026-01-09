@@ -245,7 +245,10 @@ function QuestionSection({ role, onQuestionAsked }) {
 export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled = true }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(true);
-  const [selectedRole, setSelectedRole] = useState(currentRole);
+  // Initialisiere mit currentRole oder Fallback auf "LTSTB" wenn leer
+  const [selectedRole, setSelectedRole] = useState(() =>
+    (currentRole && currentRole.trim()) ? currentRole.trim().toUpperCase() : "LTSTB"
+  );
   const [analysisData, setAnalysisData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -254,8 +257,8 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
 
   // Rolle aktualisieren wenn sich currentRole ändert - nur die Board-Rolle verwenden
   useEffect(() => {
-    if (currentRole) {
-      setSelectedRole(currentRole.toUpperCase());
+    if (currentRole && currentRole.trim()) {
+      setSelectedRole(currentRole.trim().toUpperCase());
     }
   }, [currentRole]);
 
