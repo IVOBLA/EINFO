@@ -187,6 +187,8 @@ function QuestionSection({ role, onQuestionAsked }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           questionId: answer.questionId,
+          question: answer.question || question,
+          answer: answer.answer, // Für RAG-Speicherung bei "Hilfreich"
           helpful,
           correction
         })
@@ -225,6 +227,25 @@ function QuestionSection({ role, onQuestionAsked }) {
           ) : (
             <>
               <p className="text-sm whitespace-pre-wrap">{answer.answer}</p>
+              {/* RAG-Quellenangabe */}
+              {answer.sources && answer.sources.length > 0 && (
+                <div className="mt-2 pt-2 border-t border-blue-200">
+                  <details className="text-xs text-gray-500">
+                    <summary className="cursor-pointer hover:text-gray-700">
+                      📚 {answer.sources.length} Quelle{answer.sources.length !== 1 ? "n" : ""} verwendet
+                      {answer.confidence && ` (${Math.round(answer.confidence * 100)}% Konfidenz)`}
+                    </summary>
+                    <ul className="mt-1 ml-4 list-disc">
+                      {answer.sources.map((src, i) => (
+                        <li key={i} className="text-gray-600">
+                          <span className="font-medium">{src.fileName}</span>
+                          {src.relevance && <span className="text-gray-400"> ({src.relevance}%)</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                </div>
+              )}
               {!questionFeedbackGiven && (
                 <div className="flex gap-2 mt-2 pt-2 border-t border-blue-200">
                   <button

@@ -15,6 +15,8 @@ import { callLLMForChat } from "./llm_client.js";
 import { saveFeedback, getLearnedResponsesContext } from "./llm_feedback.js";
 import { embedText } from "./rag/embedding.js";
 import { loadPromptTemplate, fillTemplate } from "./prompts.js";
+import { getKnowledgeContextWithSources, addToVectorRAG } from "./rag/rag_vector.js";
+import { getCurrentSession } from "./rag/session_rag.js";
 
 const __filename = fileURLToPath(import.meta.url);
 
@@ -366,6 +368,7 @@ export async function analyzeForRole(role, forceRefresh = false) {
 
 /**
  * Beantwortet eine direkte Frage zur Lage
+ * Nutzt RAG (Vector + Session) für fundierte Antworten mit Quellenangaben
  */
 export async function answerQuestion(question, role, context = "aufgabenboard") {
   if (!isAnalysisActive()) {
@@ -378,11 +381,42 @@ export async function answerQuestion(question, role, context = "aufgabenboard") 
   const normalizedRole = role.toUpperCase();
   const disasterSummary = await getDisasterContextSummary({ maxLength: 1500 });
 
+  // RAG-Context holen (parallel für Performance)
+  const [vectorRagResult, sessionContext] = await Promise.all([
+    getKnowledgeContextWithSources(question, { topK: 3, maxChars: 1500 }),
+    getCurrentSession().getContextForQuery(question, { maxChars: 1000, topK: 3 })
+  ]);
+
+  // RAG-Context zusammenbauen
+  let ragContextSection = "";
+  const allSources = [];
+
+  if (vectorRagResult.context) {
+    ragContextSection += "FACHLICHES WISSEN (Knowledge-Base):\n" + vectorRagResult.context + "\n\n";
+    allSources.push(...vectorRagResult.sources.map(s => ({
+      type: "knowledge",
+      fileName: s.fileName,
+      relevance: s.score,
+      preview: s.preview
+    })));
+  }
+
+  if (sessionContext) {
+    ragContextSection += sessionContext;
+    allSources.push({
+      type: "session",
+      fileName: "Aktuelle Einsatzdaten",
+      relevance: 100,
+      preview: "Live-Daten aus laufendem Einsatz"
+    });
+  }
+
   // System-Prompt aus Template generieren
   const systemPrompt = fillTemplate(situationQuestionSystemTemplate, {
     role: normalizedRole,
     roleDescription: ROLE_DESCRIPTIONS[normalizedRole] || "Stabsmitglied",
-    disasterSummary
+    disasterSummary,
+    ragContext: ragContextSection
   });
 
   try {
@@ -393,15 +427,30 @@ export async function answerQuestion(question, role, context = "aufgabenboard") 
 
     const questionId = `q_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
+    // Confidence basierend auf RAG-Quellen berechnen
+    const hasRagSources = allSources.length > 0;
+    const avgRelevance = hasRagSources
+      ? allSources.reduce((sum, s) => sum + s.relevance, 0) / allSources.length / 100
+      : 0.5;
+    const confidence = hasRagSources ? Math.min(0.95, 0.6 + avgRelevance * 0.35) : 0.6;
+
+    logInfo("Frage mit RAG beantwortet", {
+      questionId,
+      role: normalizedRole,
+      ragSourcesCount: allSources.length,
+      confidence: confidence.toFixed(2)
+    });
+
     return {
       questionId,
       question,
       answer: answer.trim(),
-      sources: [], // TODO: Quellen aus RAG extrahieren
-      confidence: 0.8,
+      sources: allSources,
+      confidence,
       timestamp: Date.now(),
       role: normalizedRole,
-      context
+      context,
+      ragUsed: hasRagSources
     };
 
   } catch (err) {
@@ -460,9 +509,13 @@ export async function saveSuggestionFeedback({
 
 /**
  * Speichert Feedback zu einer Frage/Antwort (binäres System)
+ * - Bei "Hilfreich": Frage+Antwort ins Session-RAG + Vector-RAG speichern
+ * - Bei "Nicht hilfreich" mit Korrektur: Korrigierte Antwort speichern
  */
 export async function saveQuestionFeedback({
   questionId,
+  question,
+  answer,
   helpful,
   correction,
   userId,
@@ -480,17 +533,84 @@ export async function saveQuestionFeedback({
     timestamp: Date.now()
   };
 
-  // Bei Korrektur und helpful=false -> Korrektur für RAG speichern
-  if (!helpful && correction) {
-    // TODO: Korrektur ins RAG aufnehmen
-    logInfo("Korrektur für zukünftige Antworten gespeichert", { questionId, correction });
+  // Bei "Hilfreich" -> Frage+Antwort ins Session-RAG + Vector-RAG speichern
+  if (helpful && question && answer) {
+    const ragEntryId = `qa_${questionId}`;
+    const ragText = `Frage: ${question}\nAntwort: ${answer}`;
+
+    try {
+      // 1. Ins Session-RAG speichern (für aktuelle Session)
+      const session = getCurrentSession();
+      await session.add(ragEntryId, ragText, {
+        type: "verified_qa",
+        questionId,
+        userId,
+        userRole,
+        source: "user_verified"
+      });
+
+      // 2. Ins Vector-RAG speichern (persistent für alle Sessions)
+      const vectorResult = await addToVectorRAG(ragText, {
+        fileName: "verified_answers",
+        id: ragEntryId
+      });
+
+      logInfo("Hilfreiche Antwort ins RAG aufgenommen", {
+        feedbackId,
+        questionId,
+        ragEntryId,
+        vectorSuccess: vectorResult.success
+      });
+    } catch (err) {
+      logError("Fehler beim Speichern ins RAG", {
+        feedbackId,
+        error: String(err)
+      });
+    }
+  }
+
+  // Bei "Nicht hilfreich" mit Korrektur -> Korrigierte Antwort speichern
+  if (!helpful && correction && question) {
+    const correctionId = `correction_${questionId}`;
+    const correctionText = `Frage: ${question}\nKorrigierte Antwort: ${correction}`;
+
+    try {
+      // Ins Session-RAG speichern
+      const session = getCurrentSession();
+      await session.add(correctionId, correctionText, {
+        type: "correction",
+        originalQuestionId: questionId,
+        userId,
+        userRole,
+        source: "user_correction"
+      });
+
+      // Ins Vector-RAG speichern (persistent)
+      const vectorResult = await addToVectorRAG(correctionText, {
+        fileName: "user_corrections",
+        id: correctionId
+      });
+
+      logInfo("Korrektur ins RAG aufgenommen", {
+        feedbackId,
+        questionId,
+        correctionId,
+        vectorSuccess: vectorResult.success
+      });
+    } catch (err) {
+      logError("Fehler beim Speichern der Korrektur ins RAG", {
+        feedbackId,
+        error: String(err)
+      });
+    }
   }
 
   logInfo("Frage-Feedback gespeichert", {
     feedbackId,
     questionId,
     helpful,
-    hasCorrection: !!correction
+    hasCorrection: !!correction,
+    hasAnswer: !!answer
   });
 
   return feedbackData;

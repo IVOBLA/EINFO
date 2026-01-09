@@ -1198,10 +1198,14 @@ app.post("/api/situation/suggestion/feedback", async (req, res) => {
 });
 
 // Feedback zu Frage/Antwort speichern (binäres System)
+// Bei "Hilfreich" wird Frage+Antwort ins RAG gespeichert
+// Bei "Nicht hilfreich" mit Korrektur wird die Korrektur gespeichert
 app.post("/api/situation/question/feedback", async (req, res) => {
   try {
     const {
       questionId,
+      question,  // Ursprüngliche Frage für RAG
+      answer,    // Ursprüngliche Antwort für RAG (bei "Hilfreich")
       helpful,
       correction,
       userId,
@@ -1217,6 +1221,8 @@ app.post("/api/situation/question/feedback", async (req, res) => {
 
     const feedback = await saveQuestionFeedback({
       questionId,
+      question,
+      answer,
       helpful,
       correction,
       userId,
