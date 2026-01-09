@@ -262,7 +262,6 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
   const [analysisData, setAnalysisData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [lastUpdate, setLastUpdate] = useState(null);
   const pollIntervalRef = useRef(null);
   const [analysisConfig, setAnalysisConfig] = useState({
     enabled: true,
@@ -297,7 +296,6 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
       }
 
       setAnalysisData(data);
-      setLastUpdate(new Date());
     } catch (err) {
       setError(String(err.message || err));
     } finally {
@@ -426,11 +424,18 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
               <span className="text-xl">📊</span>
               <div>
                 <h3 className="font-semibold">KI-Situationsanalyse</h3>
-                {situation && (
-                  <p className="text-xs opacity-90">
-                    Schweregrad: <span className="font-medium">{SEVERITY_LABELS[situation.severity]}</span>
-                  </p>
-                )}
+                <div className="flex flex-wrap items-center gap-x-3 text-xs opacity-90">
+                  {analysisData?.timestamp && (
+                    <span>
+                      Analyse vom: <span className="font-medium">{new Date(analysisData.timestamp).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                    </span>
+                  )}
+                  {situation && (
+                    <span>
+                      Schweregrad: <span className="font-medium">{SEVERITY_LABELS[situation.severity]}</span>
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-2">
@@ -540,13 +545,6 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
 
                 {/* Fragen-Sektion */}
                 <QuestionSection role={selectedRole} />
-
-                {/* Letzte Aktualisierung */}
-                {lastUpdate && (
-                  <p className="text-xs text-gray-400 mt-4 text-center">
-                    Letzte Aktualisierung: {lastUpdate.toLocaleTimeString()}
-                  </p>
-                )}
               </div>
             </div>
           )}
