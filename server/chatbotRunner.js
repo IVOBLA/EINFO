@@ -28,6 +28,9 @@ let workerStopping = false;
 let lastChatbotStart = null;
 let lastWorkerStart = null;
 
+const CHATBOT_BASE_URL = process.env.CHATBOT_BASE_URL
+  || `http://127.0.0.1:${process.env.CHATBOT_PORT || "3100"}`;
+
 function processIsAlive(proc) {
   if (!proc) return false;
 
@@ -269,6 +272,28 @@ export async function workerStop() {
 
 // ===================== BEIDE ZUSAMMEN =====================
 
+export async function syncAiAnalysisLoop() {
+  const status = chatbotStatus();
+  if (!status.chatbot.running || !status.worker.running) {
+    return { ok: false, skipped: "Chatbot oder Worker läuft nicht.", status };
+  }
+  try {
+    const res = await fetch(`${CHATBOT_BASE_URL}/api/situation/analysis-loop/sync`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({})
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      return { ok: false, error: text || `HTTP ${res.status}`, status };
+    }
+    const data = await res.json().catch(() => ({}));
+    return { ok: true, data, status };
+  } catch (err) {
+    return { ok: false, error: err?.message || String(err), status };
+  }
+}
+
 export async function startAll() {
   const results = { chatbot: null, worker: null };
 
@@ -295,6 +320,8 @@ export async function startAll() {
   } else {
     results.worker = { note: "Worker läuft bereits" };
   }
+
+  await syncAiAnalysisLoop();
 
   return { ok: true, results, status: chatbotStatus() };
 }

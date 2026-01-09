@@ -15,6 +15,7 @@ import {
   workerStop,
   startAll,
   stopAll,
+  syncAiAnalysisLoop,
   runIngest,
   listKnowledgeFiles,
   saveKnowledgeFile,
@@ -279,6 +280,7 @@ export default function createAdminMaintenanceRoutes({ baseDir }) {
   router.post("/chatbot/server/start", async (_req, res) => {
     try {
       const result = await chatbotServerStart();
+      await syncAiAnalysisLoop();
       res.json({ ok: true, ...result });
     } catch (err) {
       console.error("Chatbot server start error:", err);
@@ -301,6 +303,7 @@ export default function createAdminMaintenanceRoutes({ baseDir }) {
   router.post("/chatbot/worker/start", async (_req, res) => {
     try {
       const result = await workerStart();
+      await syncAiAnalysisLoop();
       res.json({ ok: true, ...result });
     } catch (err) {
       console.error("Worker start error:", err);

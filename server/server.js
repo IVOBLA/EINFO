@@ -52,6 +52,7 @@ import { User_update, User_getGlobalFetcher, User_hasGlobalFetcher } from "./Use
 
 // Fetcher Runner
 import { ffStart, ffStop, ffStatus, ffRunOnce } from "./ffRunner.js";
+import { syncAiAnalysisLoop } from "./chatbotRunner.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -3800,6 +3801,11 @@ app.post("/api/situation/analysis-config", User_requireAuth, async (req, res) =>
       update.intervalMinutes = Math.floor(minutes);
     }
     const next = await writeAiAnalysisCfg(update);
+    try {
+      await syncAiAnalysisLoop();
+    } catch (err) {
+      console.warn("[ai-analysis] Sync fehlgeschlagen:", err?.message || err);
+    }
     res.json(next);
   } catch (err) {
     res.status(400).json({ ok:false, error: err?.message || "Speichern fehlgeschlagen" });
