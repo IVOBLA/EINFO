@@ -1,5 +1,6 @@
 const ENV_API_BASE_URL = import.meta.env?.VITE_API_BASE_URL;
 const ENV_LOGIN_BASE_URL = import.meta.env?.VITE_LOGIN_BASE_URL;
+const ENV_CHATBOT_BASE_URL = import.meta.env?.VITE_CHATBOT_BASE_URL;
 
 export const DEFAULT_NETWORK_ERROR_MESSAGE = "Verbindung zum Server fehlgeschlagen. Bitte prüfen, ob das Backend erreichbar ist.";
 
@@ -38,6 +39,17 @@ export function resolveAppBaseUrl() {
   return "";
 }
 
+export function resolveChatbotBaseUrl() {
+  if (typeof window !== "undefined" && window.__APP_CHATBOT_BASE_URL__) {
+    return sanitizeBaseUrl(window.__APP_CHATBOT_BASE_URL__);
+  }
+  if (ENV_CHATBOT_BASE_URL) return sanitizeBaseUrl(ENV_CHATBOT_BASE_URL);
+  if (typeof window !== "undefined") {
+    return sanitizeBaseUrl(`${window.location.protocol}//${window.location.hostname}:3100`);
+  }
+  return "";
+}
+
 function normalizePath(path) {
   if (!path) return "";
   const str = String(path);
@@ -57,6 +69,10 @@ export function buildAppUrl(path, base = resolveAppBaseUrl()) {
 
 export function buildApiUrl(path, base = resolveAppBaseUrl()) {
   return buildAppUrl(path, base);
+}
+
+export function buildChatbotApiUrl(path, base = resolveChatbotBaseUrl()) {
+  return buildAppUrl(path, base || resolveAppBaseUrl());
 }
 
 export function createNetworkError(error, message = DEFAULT_NETWORK_ERROR_MESSAGE) {

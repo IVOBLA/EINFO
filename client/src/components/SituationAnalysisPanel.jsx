@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { buildApiUrl } from "../utils/http.js";
+import { buildChatbotApiUrl } from "../utils/http.js";
 
 const PRIORITY_COLORS = {
   high: "bg-red-100 border-red-300 text-red-800",
@@ -148,7 +148,7 @@ function QuestionSection({ role, onQuestionAsked }) {
     setQuestionFeedbackGiven(false);
 
     try {
-      const res = await fetch(buildApiUrl("/api/situation/question"), {
+      const res = await fetch(buildChatbotApiUrl("/api/situation/question"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: question.trim(), role })
@@ -172,7 +172,7 @@ function QuestionSection({ role, onQuestionAsked }) {
     setQuestionFeedbackGiven(true);
 
     try {
-      await fetch(buildApiUrl("/api/situation/question/feedback"), {
+      await fetch(buildChatbotApiUrl("/api/situation/question/feedback"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -268,7 +268,7 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
     setError(null);
 
     try {
-      const url = buildApiUrl(`/api/situation/analysis?role=${selectedRole}${forceRefresh ? "&forceRefresh=true" : ""}`);
+      const url = buildChatbotApiUrl(`/api/situation/analysis?role=${selectedRole}${forceRefresh ? "&forceRefresh=true" : ""}`);
       const res = await fetch(url);
       const data = await res.json();
 
@@ -313,7 +313,7 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
 
   const handleFeedback = async (suggestionId, helpful, userNotes, editedContent) => {
     try {
-      await fetch(buildApiUrl("/api/situation/suggestion/feedback"), {
+      await fetch(buildChatbotApiUrl("/api/situation/suggestion/feedback"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
