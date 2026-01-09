@@ -27,6 +27,9 @@ const __dirname = path.dirname(__filename);
 // Pfade für Analyse-Storage
 const ANALYSIS_DIR = path.resolve(__dirname, "../../server/data/situation_analysis");
 const LEARNED_SUGGESTIONS_FILE = path.resolve(ANALYSIS_DIR, "learned_suggestions.json");
+const AI_ANALYSIS_CFG_FILE = path.resolve(__dirname, CONFIG.dataDir, "conf", "ai-analysis.json");
+const AI_ANALYSIS_DEFAULT_INTERVAL_MINUTES = 5;
+const AI_ANALYSIS_MIN_INTERVAL_MINUTES = 1;
 
 // Rollen-Beschreibungen für kontextbezogene Analysen
 const ROLE_DESCRIPTIONS = {
@@ -48,6 +51,33 @@ let cacheLoaded = false;
 let analysisIntervalMs = 5 * 60 * 1000;
 let analysisIntervalId = null;
 
+function sanitizeAnalysisIntervalMinutes(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < AI_ANALYSIS_MIN_INTERVAL_MINUTES) {
+    return AI_ANALYSIS_DEFAULT_INTERVAL_MINUTES;
+  }
+  return Math.floor(parsed);
+}
+
+async function readAnalysisConfig() {
+  try {
+    const raw = await fsPromises.readFile(AI_ANALYSIS_CFG_FILE, "utf8");
+    const parsed = JSON.parse(raw);
+    return {
+      enabled: parsed?.enabled !== false,
+      intervalMinutes: sanitizeAnalysisIntervalMinutes(parsed?.intervalMinutes)
+    };
+  } catch (err) {
+    if (err?.code !== "ENOENT") {
+      logError("Fehler beim Lesen der Analyse-Konfiguration", { error: String(err) });
+    }
+    return {
+      enabled: true,
+      intervalMinutes: AI_ANALYSIS_DEFAULT_INTERVAL_MINUTES
+    };
+  }
+}
+
 /**
  * Initialisiert das Situationsanalyse-System
  */
@@ -63,9 +93,13 @@ export async function initSituationAnalyzer() {
       learnedSuggestions = [];
     }
 
+    const cfg = await readAnalysisConfig();
+    setAnalysisInterval(cfg.intervalMinutes);
+
     cacheLoaded = true;
     logInfo("Situationsanalyse-System initialisiert", {
-      learnedSuggestionsCount: learnedSuggestions.length
+      learnedSuggestionsCount: learnedSuggestions.length,
+      analysisIntervalMinutes: cfg.intervalMinutes
     });
   } catch (err) {
     logError("Fehler beim Initialisieren des Situationsanalyse-Systems", {
@@ -111,8 +145,15 @@ export function getAnalysisStatus() {
  * Setzt das Analyse-Intervall
  */
 export function setAnalysisInterval(minutes) {
-  analysisIntervalMs = minutes * 60 * 1000;
-  logInfo("Analyse-Intervall geändert", { intervalMinutes: minutes });
+  const normalizedMinutes = sanitizeAnalysisIntervalMinutes(minutes);
+  analysisIntervalMs = normalizedMinutes * 60 * 1000;
+  logInfo("Analyse-Intervall geändert", { intervalMinutes: normalizedMinutes });
+
+  if (analysisIntervalId) {
+    clearInterval(analysisIntervalId);
+    analysisIntervalId = null;
+    startAnalysisLoop();
+  }
 }
 
 /**
