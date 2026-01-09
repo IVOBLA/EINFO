@@ -226,12 +226,54 @@ export async function callLLMForOps({
 
 
 /** LLM für QA-Chat (auch Streaming) */
-export async function callLLMForChat({
-  question,
-  stream = false,
-  onToken,
-  model
-}) {
+export async function callLLMForChat(arg1, arg2, arg3) {
+  if (typeof arg1 === "string" && typeof arg2 === "string") {
+    const systemPrompt = arg1;
+    const userPrompt = arg2;
+    const overrides = arg3 || {};
+    const temperature = overrides.temperature ?? 0.4;
+    const maxTokens = overrides.maxTokens ?? 2048;
+    const explicitModel = overrides.model;
+    const modelConfig = explicitModel
+      ? {
+          key: "explicit",
+          name: explicitModel,
+          timeout: 120000,
+          numGpu: 20,
+          temperature
+        }
+      : getModelForTask("chat");
+
+    logModelSelection("chat", modelConfig);
+
+    const body = {
+      model: modelConfig.name,
+      stream: false,
+      options: buildModelOptions(modelConfig, {
+        temperature,
+        numPredict: maxTokens,
+        topP: 0.9,
+        topK: 40,
+        repeatPenalty: 1.1,
+        stop: []
+      }),
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt }
+      ]
+    };
+
+    return await doLLMCallWithRetry(body, "chat", null, {
+      timeoutMs: modelConfig.timeout || CONFIG.llmChatTimeoutMs || CONFIG.llmRequestTimeoutMs
+    });
+  }
+
+  const {
+    question,
+    stream = false,
+    onToken,
+    model
+  } = arg1 || {};
   // Enhanced Context via Query-Router (inkl. Geo, Session, Memory)
   const { context: enhancedContext, intent, stats } = await getEnhancedContext(question, {
     maxChars: 3000
