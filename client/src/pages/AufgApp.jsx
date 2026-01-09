@@ -1048,11 +1048,13 @@ export default function AufgApp() {
           setProtocolPrefillPayload(null);
         }}
       />
-      {/* KI-Situationsanalyse Panel */}
-      <SituationAnalysisPanel
-        currentRole={roleId}
-        enabled={true}
-      />
+      {/* KI-Situationsanalyse Panel - nur anzeigen wenn eine Rolle ausgewählt ist */}
+      {roleId && (
+        <SituationAnalysisPanel
+          currentRole={roleId}
+          enabled={true}
+        />
+      )}
     </div>
   );
 }
