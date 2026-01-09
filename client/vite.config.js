@@ -9,8 +9,14 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
-    // Optional: API-Proxy auf deinen Express-Server (http://localhost:4040)
+    // API-Proxies für verschiedene Server
     proxy: {
+      // Situationsanalyse-API direkt zum Chatbot-Server (Port 3100)
+      '/api/situation': {
+        target: 'http://localhost:3100',
+        changeOrigin: true,
+      },
+      // Alle anderen API-Routen zum Haupt-Server (Port 4040)
       '/api': {
         target: 'http://localhost:4040',
         changeOrigin: true,

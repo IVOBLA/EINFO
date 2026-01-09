@@ -1471,6 +1471,60 @@ app.use(compression({
  }));
 app.use(cors({ origin:true, credentials:true }));
 app.use(express.json({ limit:"10mb" }));
+
+// ===========================================
+// = Proxy für Situationsanalyse-API (Chatbot-Server Port 3100) =
+// ===========================================
+const CHATBOT_BASE_URL = `http://127.0.0.1:${process.env.CHATBOT_PORT || 3100}`;
+
+app.use("/api/situation", async (req, res) => {
+  const targetUrl = `${CHATBOT_BASE_URL}${req.originalUrl}`;
+  try {
+    const axiosConfig = {
+      method: req.method,
+      url: targetUrl,
+      headers: {
+        ...req.headers,
+        host: undefined, // Remove host header to avoid conflicts
+      },
+      timeout: 60000, // 60s timeout for LLM calls
+    };
+
+    // Forward body for POST/PUT/PATCH requests
+    if (["POST", "PUT", "PATCH"].includes(req.method) && req.body) {
+      axiosConfig.data = req.body;
+    }
+
+    // Forward query params
+    if (req.query && Object.keys(req.query).length > 0) {
+      axiosConfig.params = req.query;
+    }
+
+    const response = await axios(axiosConfig);
+    res.status(response.status).json(response.data);
+  } catch (err) {
+    if (err.response) {
+      // Chatbot server responded with an error
+      res.status(err.response.status).json(err.response.data);
+    } else if (err.code === "ECONNREFUSED") {
+      // Chatbot server not running
+      res.status(503).json({
+        ok: false,
+        error: "Chatbot-Server nicht erreichbar. Bitte starten Sie den Chatbot-Server.",
+        isActive: false
+      });
+    } else {
+      // Other errors
+      console.error("[situation-proxy] Fehler:", err.message);
+      res.status(500).json({
+        ok: false,
+        error: "Fehler bei der Kommunikation mit dem Chatbot-Server",
+        details: err.message
+      });
+    }
+  }
+});
+
 app.use("/api/protocol", protocolRouter);
 
 app.use("/api/user", userRolesRouter({ dataDir: DATA_DIR }));
@@ -1530,11 +1584,12 @@ app.get("/api/activity/status", async (_req,res)=>{
   });
 });
 
-// 🔒 Ab hier alle /api-Routen (außer /api/user/* & /api/activity/status) nur mit Login
+// 🔒 Ab hier alle /api-Routen (außer /api/user/* & /api/activity/status & /api/situation) nur mit Login
 app.use((req,res,next)=>{
   if (!req.path?.startsWith("/api")) return next();
   if (req.path.startsWith("/api/user/")) return next();
   if (req.path === "/api/activity/status") return next();
+  if (req.path.startsWith("/api/situation")) return next(); // Situationsanalyse - wird vom Proxy behandelt
   if (req.path.startsWith("/api/print/server") && isInternalAutoPrintRequest(req)) return next();
   if (req.path === FELDKIRCHEN_MAP_PATH && isLoopbackAddress(req?.socket?.remoteAddress)) return next();
   if (!req.user) return res.status(401).json({ ok:false, error:"UNAUTHORIZED" });
