@@ -86,12 +86,10 @@ export function logLLMExchange(payload = {}) {
     extra: payload.extra || null
   };
 
-  // REQUEST-LOG
+  // REQUEST-LOG (vollständiger Request inkl. Prompts in rawRequest)
   if (phase === "request") {
     const entry = {
       ...base,
-      systemPrompt: payload.systemPrompt ?? null,
-      userPrompt: payload.userPrompt ?? null,
       rawRequest: payload.rawRequest ?? null
     };
     return appendLine(LLM_REQUEST_LOG_FILE, JSON.stringify(entry));

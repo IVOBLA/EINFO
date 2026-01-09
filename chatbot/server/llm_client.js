@@ -547,23 +547,15 @@ async function doLLMCall(body, phaseLabel, onToken, options = {}) {
   }
   const messages = Array.isArray(body.messages) ? body.messages : [];
   const serializedRequest = JSON.stringify(body);
-  const systemPrompt =
-    messages.find((m) => m.role === "system")?.content || messages[0]?.content || "";
-  const userPrompt =
-    [...messages].reverse().find((m) => m.role === "user")?.content || "";
   const messageCount = messages.length;
 
   logDebug("LLM-Request", { model: body.model, phase: phaseLabel });
 
-  // Anfrage IMMER in LLM.log protokollieren
+  // Anfrage IMMER in LLM.log protokollieren (vollständiger Request inkl. Prompts in rawRequest)
   logLLMExchange({
     phase: "request",
     model: body.model,
-    systemPrompt,
-    userPrompt,
     rawRequest: serializedRequest,
-    rawResponse: null,
-    parsedResponse: null,
     extra: { phase: phaseLabel, messageCount }
   });
 
@@ -589,11 +581,8 @@ async function doLLMCall(body, phaseLabel, onToken, options = {}) {
     logLLMExchange({
       phase: "response_error",
       model: body.model,
-      systemPrompt,
-      userPrompt,
       rawRequest: serializedRequest,
       rawResponse: errorStr,
-      parsedResponse: null,
       extra: { phase: phaseLabel, error: errorStr, messageCount }
     });
 
@@ -623,11 +612,8 @@ async function doLLMCall(body, phaseLabel, onToken, options = {}) {
     logLLMExchange({
       phase: "response_error",
       model: body.model,
-      systemPrompt,
-      userPrompt,
       rawRequest: serializedRequest,
       rawResponse: rawText,
-      parsedResponse: null,
       extra: {
         httpStatus: resp.status,
         httpStatusText: resp.statusText,
@@ -690,8 +676,6 @@ async function doLLMCall(body, phaseLabel, onToken, options = {}) {
     logLLMExchange({
       phase: "response_stream",
       model: body.model,
-      systemPrompt,
-      userPrompt,
       rawRequest: serializedRequest,
       rawResponse: rawStream,
       parsedResponse: content,
@@ -747,8 +731,6 @@ async function doLLMCall(body, phaseLabel, onToken, options = {}) {
   logLLMExchange({
     phase: "response",
     model: body.model,
-    systemPrompt,
-    userPrompt,
     rawRequest: serializedRequest,
     rawResponse: rawText,
     parsedResponse: parsed,
