@@ -1,7 +1,7 @@
 // chatbot/server/situation_analyzer.js
 //
 // Situationsanalyse-System: Generiert rollenspezifische Handlungsvorschläge
-// basierend auf der aktuellen Lage (nur aktiv wenn keine Simulation läuft)
+// basierend auf der aktuellen Lage (funktioniert unabhängig vom Simulationsstatus)
 
 import fsPromises from "fs/promises";
 import fs from "fs";
@@ -9,7 +9,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { CONFIG } from "./config.js";
 import { logDebug, logError, logInfo } from "./logger.js";
-import { isSimulationRunning } from "./sim_loop.js";
+// isSimulationRunning nicht mehr benötigt - KI-Analyse ist immer verfügbar
 import { getDisasterContextSummary, getCurrentDisasterContext } from "./disaster_context.js";
 import { callLLMForChat } from "./llm_client.js";
 import { saveFeedback, getLearnedResponsesContext } from "./llm_feedback.js";
@@ -76,10 +76,10 @@ export async function initSituationAnalyzer() {
 
 /**
  * Prüft ob Situationsanalyse aktiv sein soll
- * (Nur wenn KEINE Simulation läuft)
+ * (Immer aktiv - unabhängig vom Simulationsstatus)
  */
 export function isAnalysisActive() {
-  return !isSimulationRunning();
+  return true; // KI-Analyse ist immer verfügbar
 }
 
 /**
