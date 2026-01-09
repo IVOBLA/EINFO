@@ -15,6 +15,8 @@ import { callLLMForChat } from "./llm_client.js";
 import { saveFeedback, getLearnedResponsesContext } from "./llm_feedback.js";
 import { embedText } from "./rag/embedding.js";
 import { loadPromptTemplate, fillTemplate } from "./prompts.js";
+import { getKnowledgeContextWithSources } from "./rag/rag_vector.js";
+import { getCurrentSession } from "./rag/session_rag.js";
 
 const __filename = fileURLToPath(import.meta.url);
 
@@ -366,6 +368,7 @@ export async function analyzeForRole(role, forceRefresh = false) {
 
 /**
  * Beantwortet eine direkte Frage zur Lage
+ * Nutzt RAG (Vector + Session) für fundierte Antworten mit Quellenangaben
  */
 export async function answerQuestion(question, role, context = "aufgabenboard") {
   if (!isAnalysisActive()) {
@@ -378,11 +381,42 @@ export async function answerQuestion(question, role, context = "aufgabenboard") 
   const normalizedRole = role.toUpperCase();
   const disasterSummary = await getDisasterContextSummary({ maxLength: 1500 });
 
+  // RAG-Context holen (parallel für Performance)
+  const [vectorRagResult, sessionContext] = await Promise.all([
+    getKnowledgeContextWithSources(question, { topK: 3, maxChars: 1500 }),
+    getCurrentSession().getContextForQuery(question, { maxChars: 1000, topK: 3 })
+  ]);
+
+  // RAG-Context zusammenbauen
+  let ragContextSection = "";
+  const allSources = [];
+
+  if (vectorRagResult.context) {
+    ragContextSection += "FACHLICHES WISSEN (Knowledge-Base):\n" + vectorRagResult.context + "\n\n";
+    allSources.push(...vectorRagResult.sources.map(s => ({
+      type: "knowledge",
+      fileName: s.fileName,
+      relevance: s.score,
+      preview: s.preview
+    })));
+  }
+
+  if (sessionContext) {
+    ragContextSection += sessionContext;
+    allSources.push({
+      type: "session",
+      fileName: "Aktuelle Einsatzdaten",
+      relevance: 100,
+      preview: "Live-Daten aus laufendem Einsatz"
+    });
+  }
+
   // System-Prompt aus Template generieren
   const systemPrompt = fillTemplate(situationQuestionSystemTemplate, {
     role: normalizedRole,
     roleDescription: ROLE_DESCRIPTIONS[normalizedRole] || "Stabsmitglied",
-    disasterSummary
+    disasterSummary,
+    ragContext: ragContextSection
   });
 
   try {
@@ -393,15 +427,30 @@ export async function answerQuestion(question, role, context = "aufgabenboard") 
 
     const questionId = `q_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
+    // Confidence basierend auf RAG-Quellen berechnen
+    const hasRagSources = allSources.length > 0;
+    const avgRelevance = hasRagSources
+      ? allSources.reduce((sum, s) => sum + s.relevance, 0) / allSources.length / 100
+      : 0.5;
+    const confidence = hasRagSources ? Math.min(0.95, 0.6 + avgRelevance * 0.35) : 0.6;
+
+    logInfo("Frage mit RAG beantwortet", {
+      questionId,
+      role: normalizedRole,
+      ragSourcesCount: allSources.length,
+      confidence: confidence.toFixed(2)
+    });
+
     return {
       questionId,
       question,
       answer: answer.trim(),
-      sources: [], // TODO: Quellen aus RAG extrahieren
-      confidence: 0.8,
+      sources: allSources,
+      confidence,
       timestamp: Date.now(),
       role: normalizedRole,
-      context
+      context,
+      ragUsed: hasRagSources
     };
 
   } catch (err) {
@@ -460,9 +509,11 @@ export async function saveSuggestionFeedback({
 
 /**
  * Speichert Feedback zu einer Frage/Antwort (binäres System)
+ * Bei Korrekturen wird das Session-RAG aktualisiert
  */
 export async function saveQuestionFeedback({
   questionId,
+  question,
   helpful,
   correction,
   userId,
@@ -480,10 +531,36 @@ export async function saveQuestionFeedback({
     timestamp: Date.now()
   };
 
-  // Bei Korrektur und helpful=false -> Korrektur für RAG speichern
+  // Bei Korrektur und helpful=false -> Korrektur ins Session-RAG aufnehmen
   if (!helpful && correction) {
-    // TODO: Korrektur ins RAG aufnehmen
-    logInfo("Korrektur für zukünftige Antworten gespeichert", { questionId, correction });
+    try {
+      const session = getCurrentSession();
+      const correctionId = `correction_${feedbackId}`;
+
+      // Korrektur als durchsuchbares Item ins Session-RAG aufnehmen
+      const correctionText = question
+        ? `Frage: ${question}\nKorrigierte Antwort: ${correction}`
+        : correction;
+
+      await session.add(correctionId, correctionText, {
+        type: "correction",
+        originalQuestionId: questionId,
+        userId,
+        userRole,
+        source: "user_feedback"
+      });
+
+      logInfo("Korrektur ins Session-RAG aufgenommen", {
+        feedbackId,
+        questionId,
+        correctionId
+      });
+    } catch (err) {
+      logError("Fehler beim Speichern der Korrektur ins RAG", {
+        feedbackId,
+        error: String(err)
+      });
+    }
   }
 
   logInfo("Frage-Feedback gespeichert", {
