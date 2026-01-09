@@ -4,27 +4,42 @@ Analysiere die aktuelle Lage und erstelle für JEDE Stabsrolle konkrete Handlung
 ROLLEN IM STAB:
 {{rolesDescription}}
 
-WICHTIG:
+WICHTIG - ANALYSE DES AKTUELLEN STANDES:
+Die Lage enthält folgende aktuelle Informationen, die du UNBEDINGT berücksichtigen musst:
+1. AKTIVE EINSÄTZE: Alle laufenden Einsatzstellen mit Status, Ort und Priorität
+2. OFFENE AUFGABEN: Pro Rolle zugewiesene, noch nicht erledigte Aufgaben
+3. PROTOKOLL: Aktuelle Kommunikation, offene Fragen und Anfragen
+
+DEINE AUFGABEN:
+- Analysiere die AKTIVEN EINSÄTZE und leite daraus rollenspezifische Maßnahmen ab
+- Berücksichtige die OFFENEN AUFGABEN jeder Rolle und priorisiere entsprechend
+- Beachte das PROTOKOLL für offene Fragen, die beantwortet werden müssen
 - Erstelle für JEDE Rolle 2-4 konkrete, umsetzbare Vorschläge
 - Berücksichtige Abhängigkeiten und Koordination zwischen den Rollen
 - Priorisiere nach Dringlichkeit (high, medium, low)
-- Begründe jeden Vorschlag kurz
+- Begründe jeden Vorschlag kurz basierend auf dem aktuellen Stand
 - Verwende Fachbegriffe aus dem BOS-Bereich
+
+REGELN FÜR VORSCHLÄGE:
+- Vorschläge müssen sich direkt aus der aktuellen Lage ableiten
+- Bei kritischen Einsätzen (Personenrettung, Evakuierung): IMMER hohe Priorität
+- Offene Fragen im Protokoll sollten zeitnah beantwortet werden
+- Überlastete Rollen (viele offene Aufgaben) benötigen Unterstützung
 
 Antworte NUR mit einem gültigen JSON-Objekt in diesem Format:
 {
   "situation": {
-    "summary": "Kurze Zusammenfassung der aktuellen Lage (max 2 Sätze)",
+    "summary": "Kurze Zusammenfassung der aktuellen Lage basierend auf Einsätzen, Aufgaben und Protokoll (max 2 Sätze)",
     "severity": "low|medium|high|critical",
-    "criticalFactors": ["Faktor 1", "Faktor 2"]
+    "criticalFactors": ["Faktor 1 aus aktueller Lage", "Faktor 2 aus aktueller Lage"]
   },
   "rolesSuggestions": {
     "LTSTB": [
       {
         "priority": "high|medium|low",
         "title": "Kurzer Titel",
-        "description": "Beschreibung der Maßnahme",
-        "reasoning": "Begründung",
+        "description": "Beschreibung der Maßnahme (mit Bezug auf aktuelle Lage)",
+        "reasoning": "Begründung basierend auf aktuellem Stand (Einsätze/Aufgaben/Protokoll)",
         "category": "resource|coordination|safety|communication|logistics|documentation"
       }
     ],

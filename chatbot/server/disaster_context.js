@@ -17,6 +17,15 @@ const __dirname = path.dirname(__filename);
 // Pfad für Disaster History
 const DISASTER_HISTORY_DIR = path.resolve(__dirname, "../../server/data/disaster_history");
 
+// Pfade für EINFO-Daten (für direkten Zugriff auf aktuelle Daten)
+const EINFO_DATA_DIR = path.resolve(__dirname, "../../server/data");
+const PROTOCOL_FILE = path.join(EINFO_DATA_DIR, "protocol.json");
+const BOARD_FILE = path.join(EINFO_DATA_DIR, "board.json");
+const AUFG_PREFIX = "Aufg";
+
+// Stabsrollen für Aufgaben
+const STAFF_ROLES = ["LTSTB", "S1", "S2", "S3", "S4", "S5", "S6"];
+
 /**
  * Disaster Context Struktur:
  * {
@@ -352,6 +361,68 @@ function determinePriority(item) {
 }
 
 /**
+ * Lädt aktuelle EINFO-Daten direkt aus den Dateien
+ * (Protokolle, Aufgaben, Einsätze)
+ */
+export async function loadCurrentEinfoData() {
+  const result = {
+    protokoll: [],
+    aufgaben: [],
+    board: [],
+    loadedAt: Date.now()
+  };
+
+  // 1. Protokolle laden
+  try {
+    const raw = await fsPromises.readFile(PROTOCOL_FILE, "utf8");
+    const parsed = JSON.parse(raw);
+    result.protokoll = Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    if (err?.code !== "ENOENT") {
+      logError("Fehler beim Laden der Protokolle", { error: String(err) });
+    }
+  }
+
+  // 2. Board/Einsätze laden
+  try {
+    const raw = await fsPromises.readFile(BOARD_FILE, "utf8");
+    const parsed = JSON.parse(raw);
+    result.board = Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    if (err?.code !== "ENOENT") {
+      logError("Fehler beim Laden des Boards", { error: String(err) });
+    }
+  }
+
+  // 3. Aufgaben für alle Rollen laden
+  for (const role of STAFF_ROLES) {
+    try {
+      const aufgFile = path.join(EINFO_DATA_DIR, `${AUFG_PREFIX}_board_${role}.json`);
+      const raw = await fsPromises.readFile(aufgFile, "utf8");
+      const parsed = JSON.parse(raw);
+      const items = Array.isArray(parsed?.items) ? parsed.items : [];
+      // Rolle zu jeder Aufgabe hinzufügen
+      for (const item of items) {
+        result.aufgaben.push({ ...item, _role: role });
+      }
+    } catch (err) {
+      // Datei existiert möglicherweise nicht - das ist OK
+      if (err?.code !== "ENOENT") {
+        logDebug("Fehler beim Laden der Aufgaben für Rolle", { role, error: String(err) });
+      }
+    }
+  }
+
+  logDebug("EINFO-Daten geladen", {
+    protokollCount: result.protokoll.length,
+    aufgabenCount: result.aufgaben.length,
+    boardCount: result.board.length
+  });
+
+  return result;
+}
+
+/**
  * Gibt den aktuellen Disaster Context zurück
  */
 export function getCurrentDisasterContext() {
@@ -360,19 +431,23 @@ export function getCurrentDisasterContext() {
 
 /**
  * Erstellt einen komprimierten Context-String für LLM-Prompts
+ * WICHTIG: Diese Funktion lädt immer die aktuellen EINFO-Daten
+ * (Protokolle, offene Aufgaben, offene Einsätze) direkt aus den Dateien
  */
-export function getDisasterContextSummary({ maxLength = 1500 } = {}) {
+export async function getDisasterContextSummary({ maxLength = 1500 } = {}) {
+  // Immer aktuelle EINFO-Daten laden
+  const einfoData = await loadCurrentEinfoData();
+
   let summary = "";
 
   if (!currentDisasterContext) {
-    summary = buildFallbackContextSummary();
+    summary = buildFallbackContextSummaryFromData(einfoData);
   } else {
     const {
       type,
       description,
       startTime,
       currentPhase,
-      activeIncidents,
       statistics,
       timeline,
       patterns
@@ -388,8 +463,6 @@ export function getDisasterContextSummary({ maxLength = 1500 } = {}) {
     summary += `Dauer: ${duration} Minuten\n\n`;
 
     summary += `### STATISTIKEN ###\n`;
-    summary += `Aktive Einsätze: ${statistics.activeIncidents}\n`;
-    summary += `Gesamt (abgeschlossen): ${statistics.resolvedIncidents}\n`;
     summary += `LLM-Vorschläge akzeptiert: ${statistics.llmSuggestionsAccepted}\n`;
     summary += `LLM-Vorschläge abgelehnt: ${statistics.llmSuggestionsRejected}\n\n`;
 
@@ -401,20 +474,16 @@ export function getDisasterContextSummary({ maxLength = 1500 } = {}) {
       summary += `\n`;
     }
 
-    summary += `### AKTIVE EINSÄTZE (Top 5) ###\n`;
-    const topIncidents = activeIncidents
-      .sort((a, b) => {
-        const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
-        return priorityOrder[a.priority] - priorityOrder[b.priority];
-      })
-      .slice(0, 5);
+    // Aktuelle Einsätze aus EINFO-Daten (nicht aus Disaster-Context)
+    summary += buildCurrentIncidentsSummary(einfoData.board);
 
-    for (const incident of topIncidents) {
-      summary += `- [${incident.priority.toUpperCase()}] ${incident.type} @ ${incident.location}: ${incident.content.substring(0, 80)}...\n`;
-    }
-    summary += `\n`;
+    // Aktuelle offene Aufgaben aus EINFO-Daten
+    summary += buildCurrentTasksSummary(einfoData.aufgaben);
 
-    summary += `### JÜNGSTE EREIGNISSE ###\n`;
+    // Aktuelle Protokolleinträge aus EINFO-Daten
+    summary += buildCurrentProtocolSummary(einfoData.protokoll);
+
+    summary += `### JÜNGSTE EREIGNISSE (Timeline) ###\n`;
     for (const event of recentTimeline) {
       const time = new Date(event.timestamp).toLocaleTimeString("de-DE");
       summary += `- [${time}] ${event.event}\n`;
@@ -429,6 +498,164 @@ export function getDisasterContextSummary({ maxLength = 1500 } = {}) {
   return summary;
 }
 
+/**
+ * Baut Zusammenfassung der aktuellen Einsätze (Board)
+ */
+function buildCurrentIncidentsSummary(board) {
+  const activeIncidents = board.filter(item => {
+    const status = String(item?.column || item?.status || "").toLowerCase();
+    return status !== "erledigt" && status !== "done" && status !== "closed";
+  });
+
+  if (activeIncidents.length === 0) {
+    return "### AKTIVE EINSÄTZE ###\nKeine aktiven Einsätze.\n\n";
+  }
+
+  const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3, medium: 2 };
+  const sorted = activeIncidents
+    .map(item => ({
+      id: item.id,
+      type: item.typ || item.type || "Unbekannt",
+      location: item.ort || item.location || "Unbekannt",
+      content: item.content || item.desc || item.description || "",
+      status: item.column || item.status || "Neu",
+      priority: determinePriority(item),
+      alerted: item.alerted || ""
+    }))
+    .sort((a, b) => (priorityOrder[a.priority] ?? 99) - (priorityOrder[b.priority] ?? 99))
+    .slice(0, 10);
+
+  let summary = `### AKTIVE EINSÄTZE (${activeIncidents.length} gesamt) ###\n`;
+  for (const incident of sorted) {
+    const alertInfo = incident.alerted ? ` [Alarmiert: ${incident.alerted}]` : "";
+    const contentPreview = incident.content ? `: ${incident.content.substring(0, 60)}...` : "";
+    summary += `- [${incident.priority.toUpperCase()}] ${incident.type} @ ${incident.location}${contentPreview}${alertInfo}\n`;
+  }
+  summary += "\n";
+  return summary;
+}
+
+/**
+ * Baut Zusammenfassung der offenen Aufgaben
+ */
+function buildCurrentTasksSummary(aufgaben) {
+  const openTasks = aufgaben.filter(task => {
+    const status = String(task?.status || "").toLowerCase();
+    return status !== "erledigt" && status !== "done" && status !== "closed" && status !== "abgeschlossen";
+  });
+
+  if (openTasks.length === 0) {
+    return "### OFFENE AUFGABEN ###\nKeine offenen Aufgaben.\n\n";
+  }
+
+  // Gruppiere nach Rolle
+  const byRole = {};
+  for (const task of openTasks) {
+    const role = task._role || task.responsible || "Unbekannt";
+    if (!byRole[role]) byRole[role] = [];
+    byRole[role].push(task);
+  }
+
+  let summary = `### OFFENE AUFGABEN (${openTasks.length} gesamt) ###\n`;
+
+  for (const [role, tasks] of Object.entries(byRole)) {
+    summary += `\n**${role}** (${tasks.length} Aufgaben):\n`;
+    const topTasks = tasks.slice(0, 3);
+    for (const task of topTasks) {
+      const title = task.title || task.desc || task.description || "Unbenannte Aufgabe";
+      const statusLabel = task.status ? ` [${task.status}]` : "";
+      const dueInfo = task.dueAt ? ` (Frist: ${new Date(task.dueAt).toLocaleString("de-DE")})` : "";
+      summary += `  - ${title.substring(0, 50)}${statusLabel}${dueInfo}\n`;
+    }
+    if (tasks.length > 3) {
+      summary += `  - ... und ${tasks.length - 3} weitere\n`;
+    }
+  }
+  summary += "\n";
+  return summary;
+}
+
+/**
+ * Baut Zusammenfassung der aktuellen Protokolleinträge
+ */
+function buildCurrentProtocolSummary(protokoll) {
+  if (protokoll.length === 0) {
+    return "### PROTOKOLL ###\nKeine Protokolleinträge.\n\n";
+  }
+
+  // Sortiere nach Datum/Zeit (neueste zuerst)
+  const sorted = [...protokoll]
+    .map(entry => ({
+      ...entry,
+      _timestamp: resolveProtocolTimestamp(entry)
+    }))
+    .sort((a, b) => (b._timestamp ?? 0) - (a._timestamp ?? 0));
+
+  // Finde offene Fragen und unbeantwortete Nachrichten
+  const openQuestions = sorted.filter(entry => {
+    const info = String(entry.information || "").toLowerCase();
+    const hasQuestion = info.includes("?");
+    // Prüfe ob es eine Antwort gibt (gleiche Protokollnummer mit "ZU")
+    return hasQuestion;
+  });
+
+  const recentEntries = sorted.slice(0, 10);
+
+  let summary = `### PROTOKOLL (${protokoll.length} Einträge) ###\n`;
+
+  // Offene Fragen zuerst
+  if (openQuestions.length > 0) {
+    summary += `\n**Offene Fragen/Anfragen (${openQuestions.length}):**\n`;
+    for (const q of openQuestions.slice(0, 5)) {
+      const timeLabel = buildProtocolTimeLabel(q);
+      const sender = q.anvon || "Unbekannt";
+      const info = (q.information || "").substring(0, 60);
+      summary += `  - [${timeLabel}] ${sender}: ${info}...\n`;
+    }
+  }
+
+  summary += `\n**Letzte Protokolleinträge:**\n`;
+  for (const entry of recentEntries) {
+    const timeLabel = buildProtocolTimeLabel(entry);
+    const sender = entry.anvon || "";
+    const recipient = Array.isArray(entry.ergehtAn) ? entry.ergehtAn.join(", ") : (entry.ergehtAn || "");
+    const infoType = entry.infoTyp || "";
+    const info = (entry.information || "").substring(0, 50);
+    summary += `  - [${timeLabel}] ${sender}→${recipient} (${infoType}): ${info}...\n`;
+  }
+  summary += "\n";
+  return summary;
+}
+
+/**
+ * Baut Fallback-Zusammenfassung aus den geladenen EINFO-Daten
+ */
+function buildFallbackContextSummaryFromData(einfoData) {
+  const { protokoll, aufgaben, board } = einfoData;
+
+  if (board.length === 0 && aufgaben.length === 0 && protokoll.length === 0) {
+    return "Kein aktiver Lage-Context. Keine Einsätze, Aufgaben oder Protokolleinträge vorhanden.";
+  }
+
+  let summary = `### AKTUELLER LAGEAUSZUG ###\n\n`;
+  summary += `Stand: ${new Date().toLocaleString("de-DE")}\n\n`;
+
+  // Aktuelle Einsätze
+  summary += buildCurrentIncidentsSummary(board);
+
+  // Offene Aufgaben
+  summary += buildCurrentTasksSummary(aufgaben);
+
+  // Protokoll
+  summary += buildCurrentProtocolSummary(protokoll);
+
+  return summary;
+}
+
+/**
+ * Legacy-Fallback-Funktion (verwendet In-Memory-State)
+ * @deprecated Verwende stattdessen buildFallbackContextSummaryFromData
+ */
 function buildFallbackContextSummary() {
   const state = getCurrentState();
   const incidents = Array.isArray(state?.incidents) ? state.incidents : [];
