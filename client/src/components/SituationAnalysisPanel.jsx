@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { buildApiUrl } from "../utils/http.js";
 
-const ROLES = ["LTSTB", "S1", "S2", "S3", "S4", "S5", "S6"];
 const PRIORITY_COLORS = {
   high: "bg-red-100 border-red-300 text-red-800",
   medium: "bg-yellow-100 border-yellow-300 text-yellow-800",
@@ -253,9 +252,9 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
   const [lastUpdate, setLastUpdate] = useState(null);
   const pollIntervalRef = useRef(null);
 
-  // Rolle aktualisieren wenn sich currentRole ändert
+  // Rolle aktualisieren wenn sich currentRole ändert - nur die Board-Rolle verwenden
   useEffect(() => {
-    if (currentRole && ROLES.includes(currentRole.toUpperCase())) {
+    if (currentRole) {
       setSelectedRole(currentRole.toUpperCase());
     }
   }, [currentRole]);
@@ -418,26 +417,11 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
           {/* Content - nur sichtbar wenn nicht minimiert */}
           {!isMinimized && (
             <div className="flex-1 overflow-hidden flex flex-col">
-              {/* Rollen-Tabs */}
-              <div className="flex border-b border-gray-200 overflow-x-auto bg-gray-50 px-2">
-                {ROLES.map((role) => (
-                  <button
-                    key={role}
-                    onClick={() => setSelectedRole(role)}
-                    className={`px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
-                      selectedRole === role
-                        ? "border-b-2 border-blue-600 text-blue-600 bg-white"
-                        : "text-gray-600 hover:text-gray-800 hover:bg-gray-100"
-                    }`}
-                  >
-                    {role}
-                    {analysisData?.roles?.[role]?.suggestions?.length > 0 && (
-                      <span className="ml-1 text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded-full">
-                        {analysisData.roles[role].suggestions.length}
-                      </span>
-                    )}
-                  </button>
-                ))}
+              {/* Aktuelle Rolle anzeigen */}
+              <div className="flex border-b border-gray-200 bg-gray-50 px-4 py-2">
+                <span className="text-sm font-medium text-gray-700">
+                  Analyse für Rolle: <span className="text-blue-600 font-semibold">{selectedRole}</span>
+                </span>
               </div>
 
               {/* Lage-Zusammenfassung */}
