@@ -330,10 +330,12 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
     }
   };
 
+  // API gibt die Rollen-Daten direkt zurück (nicht in einem roles-Objekt)
   const currentRoleData = useMemo(() => {
-    if (!analysisData?.roles) return null;
-    return analysisData.roles[selectedRole];
-  }, [analysisData, selectedRole]);
+    if (!analysisData) return null;
+    // Die API gibt die Analyse für die angefragte Rolle direkt zurück
+    return analysisData;
+  }, [analysisData]);
 
   const situation = useMemo(() => {
     return analysisData?.situation || currentRoleData?.situation;
