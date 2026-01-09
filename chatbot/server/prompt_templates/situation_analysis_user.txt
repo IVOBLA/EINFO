@@ -1,0 +1,4 @@
+Aktuelle Lage:
+{{disasterSummary}}
+
+Erstelle Handlungsvorschläge für alle Stabsrollen basierend auf dieser Lage.

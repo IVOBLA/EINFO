@@ -20,12 +20,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const TEMPLATE_DIR = path.join(__dirname, "prompt_templates");
 
-function loadPromptTemplate(fileName) {
+export function loadPromptTemplate(fileName) {
   const fullPath = path.join(TEMPLATE_DIR, fileName);
   return fs.readFileSync(fullPath, "utf8").trim();
 }
 
-function fillTemplate(template, replacements) {
+export function fillTemplate(template, replacements) {
   return Object.entries(replacements).reduce((acc, [key, value]) => {
     return acc.replaceAll(`{{${key}}}`, value);
   }, template);

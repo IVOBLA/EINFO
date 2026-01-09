@@ -57,6 +57,19 @@ import {
 
 import { rateLimit, RateLimitProfiles, getRateLimitStats } from "./middleware/rate-limit.js";
 
+// ============================================================
+// Imports für Situationsanalyse
+// ============================================================
+import {
+  initSituationAnalyzer,
+  isAnalysisActive,
+  getAnalysisStatus,
+  analyzeForRole,
+  answerQuestion,
+  saveSuggestionFeedback,
+  saveQuestionFeedback
+} from "./situation_analyzer.js";
+
 import fs from "fs/promises";
 
 // ============================================================
@@ -1065,6 +1078,148 @@ app.post("/api/feedback/learned-context", async (req, res) => {
 });
 
 // ============================================================
+// API-Routen für Situationsanalyse
+// ============================================================
+
+// Status der Situationsanalyse
+app.get("/api/situation/status", (req, res) => {
+  try {
+    const status = getAnalysisStatus();
+    res.json({ ok: true, ...status });
+  } catch (err) {
+    logError("Situationsanalyse-Status Fehler", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// Analyse für eine Rolle abrufen
+app.get("/api/situation/analysis", async (req, res) => {
+  try {
+    const { role, forceRefresh } = req.query;
+
+    if (!role) {
+      return res.status(400).json({ ok: false, error: "role Parameter fehlt" });
+    }
+
+    const analysis = await analyzeForRole(role, forceRefresh === "true");
+
+    if (analysis.error) {
+      return res.status(analysis.isActive === false ? 503 : 400).json({
+        ok: false,
+        error: analysis.error,
+        ...analysis
+      });
+    }
+
+    res.json({ ok: true, ...analysis });
+  } catch (err) {
+    logError("Situationsanalyse Fehler", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// Frage an KI stellen
+app.post("/api/situation/question", rateLimit(RateLimitProfiles.GENEROUS), async (req, res) => {
+  try {
+    const { question, role, context } = req.body || {};
+
+    if (!question) {
+      return res.status(400).json({ ok: false, error: "question fehlt" });
+    }
+    if (!role) {
+      return res.status(400).json({ ok: false, error: "role fehlt" });
+    }
+
+    const answer = await answerQuestion(question, role, context || "aufgabenboard");
+
+    if (answer.error) {
+      return res.status(answer.isActive === false ? 503 : 500).json({
+        ok: false,
+        ...answer
+      });
+    }
+
+    res.json({ ok: true, ...answer });
+  } catch (err) {
+    logError("Situationsfrage Fehler", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// Feedback zu Vorschlag speichern (binäres System)
+app.post("/api/situation/suggestion/feedback", async (req, res) => {
+  try {
+    const {
+      suggestionId,
+      analysisId,
+      helpful,
+      userNotes,
+      editedContent,
+      userId,
+      userRole
+    } = req.body || {};
+
+    if (!suggestionId) {
+      return res.status(400).json({ ok: false, error: "suggestionId fehlt" });
+    }
+    if (typeof helpful !== "boolean") {
+      return res.status(400).json({ ok: false, error: "helpful (boolean) fehlt" });
+    }
+
+    const feedback = await saveSuggestionFeedback({
+      suggestionId,
+      analysisId,
+      helpful,
+      userNotes,
+      editedContent,
+      userId,
+      userRole
+    });
+
+    // SSE-Broadcast für Feedback
+    broadcastSSE("suggestion_feedback", { feedback });
+
+    res.json({ ok: true, feedback });
+  } catch (err) {
+    logError("Vorschlags-Feedback Fehler", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// Feedback zu Frage/Antwort speichern (binäres System)
+app.post("/api/situation/question/feedback", async (req, res) => {
+  try {
+    const {
+      questionId,
+      helpful,
+      correction,
+      userId,
+      userRole
+    } = req.body || {};
+
+    if (!questionId) {
+      return res.status(400).json({ ok: false, error: "questionId fehlt" });
+    }
+    if (typeof helpful !== "boolean") {
+      return res.status(400).json({ ok: false, error: "helpful (boolean) fehlt" });
+    }
+
+    const feedback = await saveQuestionFeedback({
+      questionId,
+      helpful,
+      correction,
+      userId,
+      userRole
+    });
+
+    res.json({ ok: true, feedback });
+  } catch (err) {
+    logError("Fragen-Feedback Fehler", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// ============================================================
 // Rate-Limit Stats API (Admin)
 // ============================================================
 
@@ -1223,6 +1378,17 @@ async function bootstrap() {
     process.exit(1);
   }
 
+  // Situationsanalyse initialisieren
+  try {
+    await initSituationAnalyzer();
+    logInfo("Situationsanalyse-System initialisiert");
+  } catch (err) {
+    logError("Fehler beim Initialisieren der Situationsanalyse", {
+      error: String(err)
+    });
+    // Nicht kritisch, weiter starten
+  }
+
   // Geo-Index laden (async, blockiert nicht den Start)
   getGeoIndex().then(geoIndex => {
     geoIndex.getStats().then(stats => {
@@ -1248,6 +1414,7 @@ async function bootstrap() {
       templates: ["/api/templates"],
       disaster: ["/api/disaster/current", "/api/disaster/summary", "/api/disaster/init"],
       feedback: ["/api/feedback", "/api/feedback/list", "/api/feedback/stats"],
+      situation: ["/api/situation/status", "/api/situation/analysis", "/api/situation/question"],
       sse: ["/api/events"]
     });
     
