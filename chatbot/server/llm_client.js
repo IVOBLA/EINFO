@@ -234,6 +234,8 @@ export async function callLLMForChat(arg1, arg2, arg3) {
     const temperature = overrides.temperature ?? 0.4;
     const maxTokens = overrides.maxTokens ?? 2048;
     const explicitModel = overrides.model;
+    // Streaming standardmäßig aktiviert um Timeouts zu vermeiden
+    const useStreaming = overrides.stream !== false;
     const modelConfig = explicitModel
       ? {
           key: "explicit",
@@ -248,7 +250,7 @@ export async function callLLMForChat(arg1, arg2, arg3) {
 
     const body = {
       model: modelConfig.name,
-      stream: false,
+      stream: useStreaming,
       options: buildModelOptions(modelConfig, {
         temperature,
         numPredict: maxTokens,
@@ -263,9 +265,18 @@ export async function callLLMForChat(arg1, arg2, arg3) {
       ]
     };
 
-    return await doLLMCallWithRetry(body, "chat", null, {
+    // Bei Streaming: Tokens intern sammeln und am Ende zurückgeben
+    let collectedResponse = "";
+    const tokenCollector = useStreaming ? (token) => {
+      collectedResponse += token;
+    } : null;
+
+    const result = await doLLMCallWithRetry(body, "chat", tokenCollector, {
       timeoutMs: modelConfig.timeout || CONFIG.llmChatTimeoutMs || CONFIG.llmRequestTimeoutMs
     });
+
+    // Bei Streaming ist result leer, daher gesammelten Response zurückgeben
+    return useStreaming ? collectedResponse : result;
   }
 
   const {
@@ -494,6 +505,8 @@ async function doLLMCallWithRetry(body, phaseLabel, onToken, options = {}, maxRe
       // Prüfe ob Retry sinnvoll ist
       const isRetryable =
         errorMsg.includes('timeout') ||
+        errorMsg.includes('abort') ||
+        errorMsg.includes('AbortError') ||
         errorMsg.includes('ECONNREFUSED') ||
         errorMsg.includes('ECONNRESET') ||
         errorMsg.includes('fetch failed') ||
