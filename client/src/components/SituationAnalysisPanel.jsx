@@ -331,7 +331,10 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
     let active = true;
     const loadConfig = async () => {
       try {
-        const res = await fetch("/api/situation/analysis-config", { credentials: "include", cache: "no-store" });
+        const res = await fetch(buildChatbotApiUrl("/api/situation/analysis-config"), {
+          credentials: "include",
+          cache: "no-store"
+        });
         if (!res.ok) return;
         const cfg = await res.json().catch(() => ({}));
         const intervalMinutes = sanitizeAnalysisIntervalMinutes(cfg?.intervalMinutes, 5);
