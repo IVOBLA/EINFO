@@ -854,12 +854,12 @@ app.get("/api/disaster/current", (req, res) => {
   }
 });
 
-// Disaster Context Summary abrufen
-app.get("/api/disaster/summary", (req, res) => {
+// Disaster Context Summary abrufen (immer aktuelle EINFO-Daten)
+app.get("/api/disaster/summary", async (req, res) => {
   try {
     const { maxLength } = req.query;
-    const summary = getDisasterContextSummary({ 
-      maxLength: maxLength ? parseInt(maxLength, 10) : 1500 
+    const summary = await getDisasterContextSummary({
+      maxLength: maxLength ? parseInt(maxLength, 10) : 1500
     });
     res.json({ ok: true, summary });
   } catch (err) {

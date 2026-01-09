@@ -218,8 +218,8 @@ export async function analyzeAllRoles(forceRefresh = false) {
     }
   }
 
-  // Aktuellen Kontext holen
-  const disasterSummary = getDisasterContextSummary({ maxLength: 2500 });
+  // Aktuellen Kontext holen (immer aktuelle EINFO-Daten)
+  const disasterSummary = await getDisasterContextSummary({ maxLength: 2500 });
 
   // Gelernte Vorschläge sammeln
   const learnedByRole = {};
@@ -376,7 +376,7 @@ export async function answerQuestion(question, role, context = "aufgabenboard") 
   }
 
   const normalizedRole = role.toUpperCase();
-  const disasterSummary = getDisasterContextSummary({ maxLength: 1500 });
+  const disasterSummary = await getDisasterContextSummary({ maxLength: 1500 });
 
   // System-Prompt aus Template generieren
   const systemPrompt = fillTemplate(situationQuestionSystemTemplate, {
