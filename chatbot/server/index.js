@@ -67,7 +67,8 @@ import {
   analyzeForRole,
   answerQuestion,
   saveSuggestionFeedback,
-  saveQuestionFeedback
+  saveQuestionFeedback,
+  syncAnalysisLoop
 } from "./situation_analyzer.js";
 
 import fs from "fs/promises";
@@ -1088,6 +1089,16 @@ app.get("/api/situation/status", (req, res) => {
     res.json({ ok: true, ...status });
   } catch (err) {
     logError("Situationsanalyse-Status Fehler", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+app.post("/api/situation/analysis-loop/sync", async (_req, res) => {
+  try {
+    const status = await syncAnalysisLoop();
+    res.json({ ok: true, ...status });
+  } catch (err) {
+    logError("Situationsanalyse-Sync Fehler", { error: String(err) });
     res.status(500).json({ ok: false, error: String(err) });
   }
 });

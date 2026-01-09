@@ -597,5 +597,20 @@ export function stopAnalysisLoop() {
   }
 }
 
+export async function syncAnalysisLoop() {
+  const cfg = await readAnalysisConfig();
+  setAnalysisInterval(cfg.intervalMinutes);
+  if (cfg.enabled) {
+    startAnalysisLoop();
+  } else {
+    stopAnalysisLoop();
+  }
+  return {
+    enabled: cfg.enabled,
+    intervalMinutes: cfg.intervalMinutes,
+    running: Boolean(analysisIntervalId)
+  };
+}
+
 // Export des aktuellen Disaster-Contexts
 export { getCurrentDisasterContext } from "./disaster_context.js";
