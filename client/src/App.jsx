@@ -17,8 +17,6 @@ import NewVehicleModal from "./components/NewVehicleModal";
 import AddIncidentModal from "./components/AddIncidentModal";
 import DroppableColumn from "./components/DroppableColumn.jsx";
 import IncidentInfoModal from "./components/IncidentInfoModal";
-import LlmActionHistory from "./components/LlmActionHistory";
-
 import { initSound, playGong } from "./sound";
 import ProtokollOverview from "./pages/ProtokollOverview.jsx";
 import ProtokollPage from "./pages/ProtokollPage.jsx";
@@ -2183,7 +2181,7 @@ if (route.startsWith("/protokoll")) {
 
 
 
-          {/* Linke Spalte: Einheiten + KI-Aktionen */}
+          {/* Linke Spalte: Einheiten */}
           <div className="flex flex-col gap-2 h-full min-h-0">
           {/* Einheiten (frei) */}
           <section className="bg-white rounded-xl shadow p-3 flex-1 flex flex-col min-h-0">
@@ -2303,8 +2301,6 @@ if (route.startsWith("/protokoll")) {
             </div>
           </section>
 
-          {/* KI-Aktionen */}
-          <LlmActionHistory className="shrink-0" />
           </div>
 
           {/* Spalten */}
