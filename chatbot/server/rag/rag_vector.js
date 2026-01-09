@@ -289,14 +289,133 @@ export async function getKnowledgeContextVector(query) {
   }
 
   const ctx = parts.join("\n\n");
-  
+
   logDebug("Vector-Knowledge-Kontext erzeugt", {
     length: ctx.length,
     parts: parts.length,
     topScore: sims[0]?.s?.toFixed(3) || "N/A"
   });
-  
+
   return ctx;
 }
 
+// ============================================================
+// Funktion zum Hinzufügen von Einträgen ins Vector-RAG
+// ============================================================
 
+/**
+ * Fügt einen neuen Eintrag zum Vector-RAG hinzu (persistiert in meta.json + embeddings.json)
+ * @param {string} text - Der Text für das Embedding
+ * @param {object} options - Optionen
+ * @param {string} options.fileName - Quellenname (z.B. "user_feedback")
+ * @param {string} options.id - Optionale eindeutige ID zur Duplikat-Erkennung
+ * @returns {Promise<{success: boolean, id?: string, error?: string}>}
+ */
+export async function addToVectorRAG(text, { fileName = "user_feedback", id = null } = {}) {
+  if (!text || !text.trim()) {
+    return { success: false, error: "Leerer Text" };
+  }
+
+  try {
+    await ensureLoaded();
+
+    // Embedding generieren
+    const embedding = await embedText(text.trim());
+    if (!embedding || !Array.isArray(embedding)) {
+      return { success: false, error: "Embedding fehlgeschlagen" };
+    }
+
+    // Duplikat-Check falls ID angegeben
+    if (id) {
+      const existingIndex = meta.chunks.findIndex(c => c.id === id);
+      if (existingIndex >= 0) {
+        logDebug("Vector-RAG: Eintrag existiert bereits", { id });
+        return { success: true, id, duplicate: true };
+      }
+    }
+
+    const entryId = id || `vrag_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // Zum Memory-Cache hinzufügen
+    meta.chunks.push({
+      id: entryId,
+      text: text.trim(),
+      fileName,
+      addedAt: Date.now()
+    });
+    vectors.push(Array.from(embedding));
+
+    // Persistieren
+    await Promise.all([
+      fsPromises.writeFile(metaPath, JSON.stringify(meta, null, 2), "utf8"),
+      fsPromises.writeFile(embeddingsPath, JSON.stringify({ vectors }, null, 2), "utf8")
+    ]);
+
+    // Cache-Zeiten aktualisieren
+    const [metaStat, embStat] = await Promise.all([
+      fsPromises.stat(metaPath),
+      fsPromises.stat(embeddingsPath)
+    ]);
+    lastMetaMtimeMs = metaStat.mtimeMs;
+    lastEmbeddingsMtimeMs = embStat.mtimeMs;
+
+    logDebug("Vector-RAG: Eintrag hinzugefügt", {
+      id: entryId,
+      fileName,
+      totalChunks: meta.chunks.length
+    });
+
+    return { success: true, id: entryId };
+
+  } catch (error) {
+    logError("Vector-RAG: Fehler beim Hinzufügen", { error: String(error) });
+    return { success: false, error: String(error) };
+  }
+}
+
+/**
+ * Entfernt einen Eintrag aus dem Vector-RAG anhand der ID
+ * @param {string} id - Die ID des Eintrags
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export async function removeFromVectorRAG(id) {
+  if (!id) {
+    return { success: false, error: "Keine ID angegeben" };
+  }
+
+  try {
+    await ensureLoaded();
+
+    const index = meta.chunks.findIndex(c => c.id === id);
+    if (index < 0) {
+      logDebug("Vector-RAG: Eintrag nicht gefunden", { id });
+      return { success: false, error: "Eintrag nicht gefunden" };
+    }
+
+    // Aus Memory-Cache entfernen
+    meta.chunks.splice(index, 1);
+    vectors.splice(index, 1);
+
+    // Persistieren
+    await Promise.all([
+      fsPromises.writeFile(metaPath, JSON.stringify(meta, null, 2), "utf8"),
+      fsPromises.writeFile(embeddingsPath, JSON.stringify({ vectors }, null, 2), "utf8")
+    ]);
+
+    // Cache-Zeiten aktualisieren
+    const [metaStat, embStat] = await Promise.all([
+      fsPromises.stat(metaPath),
+      fsPromises.stat(embeddingsPath)
+    ]);
+    lastMetaMtimeMs = metaStat.mtimeMs;
+    lastEmbeddingsMtimeMs = embStat.mtimeMs;
+
+    logDebug("Vector-RAG: Eintrag entfernt", { id });
+
+    return { success: true };
+
+  } catch (error) {
+    logError("Vector-RAG: Fehler beim Entfernen", { error: String(error) });
+    return { success: false, error: String(error) };
+  }
+}

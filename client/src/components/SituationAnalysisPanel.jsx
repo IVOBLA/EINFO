@@ -187,7 +187,8 @@ function QuestionSection({ role, onQuestionAsked }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           questionId: answer.questionId,
-          question: answer.question || question, // Für RAG-Korrektur
+          question: answer.question || question,
+          answer: answer.answer, // Für RAG-Speicherung bei "Hilfreich"
           helpful,
           correction
         })

@@ -15,7 +15,7 @@ import { callLLMForChat } from "./llm_client.js";
 import { saveFeedback, getLearnedResponsesContext } from "./llm_feedback.js";
 import { embedText } from "./rag/embedding.js";
 import { loadPromptTemplate, fillTemplate } from "./prompts.js";
-import { getKnowledgeContextWithSources } from "./rag/rag_vector.js";
+import { getKnowledgeContextWithSources, addToVectorRAG } from "./rag/rag_vector.js";
 import { getCurrentSession } from "./rag/session_rag.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -509,11 +509,13 @@ export async function saveSuggestionFeedback({
 
 /**
  * Speichert Feedback zu einer Frage/Antwort (binäres System)
- * Bei Korrekturen wird das Session-RAG aktualisiert
+ * - Bei "Hilfreich": Frage+Antwort ins Session-RAG + Vector-RAG speichern
+ * - Bei "Nicht hilfreich" mit Korrektur: Korrigierte Antwort speichern
  */
 export async function saveQuestionFeedback({
   questionId,
   question,
+  answer,
   helpful,
   correction,
   userId,
@@ -531,29 +533,69 @@ export async function saveQuestionFeedback({
     timestamp: Date.now()
   };
 
-  // Bei Korrektur und helpful=false -> Korrektur ins Session-RAG aufnehmen
-  if (!helpful && correction) {
+  // Bei "Hilfreich" -> Frage+Antwort ins Session-RAG + Vector-RAG speichern
+  if (helpful && question && answer) {
+    const ragEntryId = `qa_${questionId}`;
+    const ragText = `Frage: ${question}\nAntwort: ${answer}`;
+
     try {
+      // 1. Ins Session-RAG speichern (für aktuelle Session)
       const session = getCurrentSession();
-      const correctionId = `correction_${feedbackId}`;
+      await session.add(ragEntryId, ragText, {
+        type: "verified_qa",
+        questionId,
+        userId,
+        userRole,
+        source: "user_verified"
+      });
 
-      // Korrektur als durchsuchbares Item ins Session-RAG aufnehmen
-      const correctionText = question
-        ? `Frage: ${question}\nKorrigierte Antwort: ${correction}`
-        : correction;
+      // 2. Ins Vector-RAG speichern (persistent für alle Sessions)
+      const vectorResult = await addToVectorRAG(ragText, {
+        fileName: "verified_answers",
+        id: ragEntryId
+      });
 
+      logInfo("Hilfreiche Antwort ins RAG aufgenommen", {
+        feedbackId,
+        questionId,
+        ragEntryId,
+        vectorSuccess: vectorResult.success
+      });
+    } catch (err) {
+      logError("Fehler beim Speichern ins RAG", {
+        feedbackId,
+        error: String(err)
+      });
+    }
+  }
+
+  // Bei "Nicht hilfreich" mit Korrektur -> Korrigierte Antwort speichern
+  if (!helpful && correction && question) {
+    const correctionId = `correction_${questionId}`;
+    const correctionText = `Frage: ${question}\nKorrigierte Antwort: ${correction}`;
+
+    try {
+      // Ins Session-RAG speichern
+      const session = getCurrentSession();
       await session.add(correctionId, correctionText, {
         type: "correction",
         originalQuestionId: questionId,
         userId,
         userRole,
-        source: "user_feedback"
+        source: "user_correction"
       });
 
-      logInfo("Korrektur ins Session-RAG aufgenommen", {
+      // Ins Vector-RAG speichern (persistent)
+      const vectorResult = await addToVectorRAG(correctionText, {
+        fileName: "user_corrections",
+        id: correctionId
+      });
+
+      logInfo("Korrektur ins RAG aufgenommen", {
         feedbackId,
         questionId,
-        correctionId
+        correctionId,
+        vectorSuccess: vectorResult.success
       });
     } catch (err) {
       logError("Fehler beim Speichern der Korrektur ins RAG", {
@@ -567,7 +609,8 @@ export async function saveQuestionFeedback({
     feedbackId,
     questionId,
     helpful,
-    hasCorrection: !!correction
+    hasCorrection: !!correction,
+    hasAnswer: !!answer
   });
 
   return feedbackData;
