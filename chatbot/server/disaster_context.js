@@ -387,7 +387,26 @@ export async function loadCurrentEinfoData() {
   try {
     const raw = await fsPromises.readFile(BOARD_FILE, "utf8");
     const parsed = JSON.parse(raw);
-    result.board = Array.isArray(parsed) ? parsed : [];
+
+    // board.json kann entweder ein Array oder eine columns-Struktur sein
+    if (Array.isArray(parsed)) {
+      result.board = parsed;
+    } else if (parsed?.columns && typeof parsed.columns === "object") {
+      // Extrahiere Items aus allen Spalten und füge column-Info hinzu
+      const allItems = [];
+      for (const [columnKey, columnData] of Object.entries(parsed.columns)) {
+        const items = Array.isArray(columnData?.items) ? columnData.items : [];
+        for (const item of items) {
+          allItems.push({
+            ...item,
+            column: columnKey // z.B. "neu", "in-bearbeitung", "erledigt"
+          });
+        }
+      }
+      result.board = allItems;
+    } else {
+      result.board = [];
+    }
   } catch (err) {
     if (err?.code !== "ENOENT") {
       logError("Fehler beim Laden des Boards", { error: String(err) });
