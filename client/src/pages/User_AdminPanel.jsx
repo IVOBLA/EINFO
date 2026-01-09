@@ -109,6 +109,9 @@ export default function User_AdminPanel() {
   const [autoPrintConfig, setAutoPrintConfig] = useState({ enabled:false, intervalMinutes:10, lastRunAt:null, entryScope:"interval", scope:"interval" });
   const [autoPrintDraft, setAutoPrintDraft] = useState({ enabled:false, intervalMinutes:"10", entryScope:"interval" });
   const [savingAutoPrintConfig, setSavingAutoPrintConfig] = useState(false);
+  const [analysisConfig, setAnalysisConfig] = useState({ enabled: true, intervalMinutes: 5 });
+  const [analysisConfigDraft, setAnalysisConfigDraft] = useState({ enabled: true, intervalMinutes: "5" });
+  const [savingAnalysisConfig, setSavingAnalysisConfig] = useState(false);
   const [mailSchedules, setMailSchedules] = useState([]);
   const [mailScheduleDraft, setMailScheduleDraft] = useState(createEmptyMailSchedule());
   const [savingMailSchedule, setSavingMailSchedule] = useState(false);
@@ -334,6 +337,21 @@ export default function User_AdminPanel() {
         }
       } catch (_) {/* optional */}
       try {
+        const analysisRes = await fetch("/api/situation/analysis-config", { credentials: "include", cache: "no-store" });
+        if (analysisRes.ok) {
+          const cfg = await analysisRes.json().catch(() => ({}));
+          const sanitizedInterval = sanitizeAnalysisIntervalMinutes(cfg.intervalMinutes, 5);
+          setAnalysisConfig({
+            enabled: !!cfg.enabled,
+            intervalMinutes: sanitizedInterval,
+          });
+          setAnalysisConfigDraft({
+            enabled: !!cfg.enabled,
+            intervalMinutes: String(sanitizedInterval),
+          });
+        }
+      } catch (_) {/* optional */}
+      try {
         await loadMailSchedules();
         await loadApiSchedules();
       } catch (_) {/* optional */}
@@ -554,6 +572,13 @@ export default function User_AdminPanel() {
     return Math.max(5, Math.min(3600, Math.floor(parsed)));
   }
 
+  function sanitizeAnalysisIntervalMinutes(value, fallback = 5) {
+    const fallbackValue = Number.isFinite(Number(fallback)) ? Number(fallback) : 5;
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed <= 0) return Math.max(1, Math.floor(fallbackValue));
+    return Math.max(1, Math.floor(parsed));
+  }
+
   function applyAutoConfig(cfg) {
     const sanitizedInterval = sanitizeIntervalSec(cfg?.intervalSec, autoConfig.intervalSec || 30);
     const normalized = {
@@ -613,6 +638,47 @@ export default function User_AdminPanel() {
   const saveAutoImportInterval = async () => {
     await saveAutoConfig(autoConfigDraft);
   };
+
+  async function onSaveAnalysisConfig() {
+    if (savingAnalysisConfig) return;
+    const parsedMinutes = Number.parseInt(analysisConfigDraft.intervalMinutes, 10);
+    if (!Number.isFinite(parsedMinutes) || parsedMinutes <= 0) {
+      setErr("Intervall für die KI-Analyse muss eine Zahl ≥ 1 sein.");
+      return;
+    }
+    const intervalMinutes = Math.max(1, parsedMinutes);
+    setErr("");
+    setMsg("");
+    setSavingAnalysisConfig(true);
+    try {
+      const res = await fetch("/api/situation/analysis-config", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          enabled: !!analysisConfigDraft.enabled,
+          intervalMinutes,
+        }),
+      });
+      const js = await res.json().catch(() => ({}));
+      if (!res.ok || js?.error) throw new Error(js?.error || "Speichern fehlgeschlagen");
+      const savedInterval = sanitizeAnalysisIntervalMinutes(js.intervalMinutes, intervalMinutes);
+      const sanitized = {
+        enabled: !!js.enabled,
+        intervalMinutes: savedInterval,
+      };
+      setAnalysisConfig(sanitized);
+      setAnalysisConfigDraft({
+        enabled: sanitized.enabled,
+        intervalMinutes: String(sanitized.intervalMinutes || ""),
+      });
+      setMsg("KI-Analyse Einstellungen gespeichert.");
+    } catch (ex) {
+      setErr(ex.message || "Speichern fehlgeschlagen");
+    } finally {
+      setSavingAnalysisConfig(false);
+    }
+  }
 
   async function onSaveAutoPrintConfig() {
     if (savingAutoPrintConfig) return;
@@ -1244,7 +1310,53 @@ export default function User_AdminPanel() {
         </div>
       </details>
 
-      {/* 5c) Zeitgesteuerte Mails */}
+      {/* 5c) KI-Analyse */}
+      <details className="border rounded p-3" open>
+        <summary className="cursor-pointer font-medium">KI-Analyse</summary>
+        <div className="mt-3 space-y-3 text-sm">
+          <label className="inline-flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={!!analysisConfigDraft.enabled}
+              onChange={(e) => setAnalysisConfigDraft((prev) => ({ ...prev, enabled: e.target.checked }))}
+              disabled={locked || savingAnalysisConfig}
+            />
+            KI-Analyse aktivieren
+          </label>
+          <div className="flex items-center gap-3">
+            <label htmlFor="analysisInterval" className="text-sm text-gray-700">
+              Intervall (Minuten)
+            </label>
+            <input
+              id="analysisInterval"
+              type="number"
+              min={1}
+              className="border px-2 py-1 rounded w-24"
+              value={analysisConfigDraft.intervalMinutes}
+              onChange={(e) => {
+                const value = e.target.value.replace(/[^0-9]/g, "");
+                setAnalysisConfigDraft((prev) => ({ ...prev, intervalMinutes: value }));
+              }}
+              disabled={locked || savingAnalysisConfig}
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              className="border rounded px-3 py-1"
+              onClick={onSaveAnalysisConfig}
+              disabled={locked || savingAnalysisConfig}
+            >
+              Einstellungen speichern
+            </button>
+          </div>
+          <div className="text-xs text-gray-500">
+            Aktuell: {analysisConfig.enabled ? "aktiv" : "deaktiviert"} · {analysisConfig.intervalMinutes} min
+          </div>
+        </div>
+      </details>
+
+      {/* 5d) Zeitgesteuerte Mails */}
       <details className="border rounded p-3" open>
         <summary className="cursor-pointer font-medium">Zeitgesteuerter Mailversand</summary>
         <div className="mt-3 space-y-3 text-sm">

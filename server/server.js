@@ -91,6 +91,7 @@ const GROUP_ALERTED_FILE = path.join(DATA_DIR, "conf", "group-alerted.json");
 const PROTOCOL_JSON_FILE = path.join(DATA_DIR, "protocol.json");
 const PROTOCOL_CSV_FILE = path.join(DATA_DIR, "protocol.csv");
 const AUTO_PRINT_CFG_FILE = path.join(DATA_DIR, "conf", "auto-print.json");
+const AI_ANALYSIS_CFG_FILE = path.join(DATA_DIR, "conf", "ai-analysis.json");
 const AUTO_PRINT_OUTPUT_DIR = path.resolve(
   process.env.KANBAN_PROTOKOLL_PRINT_DIR || path.join(DATA_DIR, "prints", "protokoll"),
 );
@@ -120,6 +121,8 @@ const VEHICLE_CACHE_TTL_MS = parseIntervalEnv("VEHICLE_CACHE_TTL_MS", 10_000, { 
 const AUTO_IMPORT_DEFAULT_INTERVAL_SEC = parseIntervalEnv("AUTO_IMPORT_DEFAULT_INTERVAL_SEC", 30);
 const AUTO_PRINT_DEFAULT_INTERVAL_MINUTES = parseIntervalEnv("AUTO_PRINT_DEFAULT_INTERVAL_MINUTES", 10);
 const AUTO_PRINT_MIN_INTERVAL_MINUTES = parseIntervalEnv("AUTO_PRINT_MIN_INTERVAL_MINUTES", 1);
+const AI_ANALYSIS_DEFAULT_INTERVAL_MINUTES = parseIntervalEnv("AI_ANALYSIS_DEFAULT_INTERVAL_MINUTES", 5);
+const AI_ANALYSIS_MIN_INTERVAL_MINUTES = parseIntervalEnv("AI_ANALYSIS_MIN_INTERVAL_MINUTES", 1, { min: 1 });
 const FF_ACTIVITY_SWEEP_INTERVAL_MS = parseIntervalEnv("FF_ACTIVITY_SWEEP_INTERVAL_MS", 60_000);
 const MAIL_INBOX_POLL_INTERVAL_SEC = parseIntervalEnv("MAIL_INBOX_POLL_INTERVAL_SEC", null);
 const MAIL_INBOX_POLL_LIMIT = parseIntervalEnv("MAIL_INBOX_POLL_LIMIT", 50);
@@ -2984,6 +2987,42 @@ async function writeAutoCfg(next){
 }
 
 // ===================================================================
+// =                 KI-Analyse (Situationsanalyse)                   =
+// ===================================================================
+const AI_ANALYSIS_DEFAULT = {
+  enabled: true,
+  intervalMinutes: AI_ANALYSIS_DEFAULT_INTERVAL_MINUTES,
+};
+
+function sanitizeAiAnalysisInterval(value, fallback = AI_ANALYSIS_DEFAULT.intervalMinutes) {
+  const fallbackValue = Number.isFinite(Number(fallback)) ? Number(fallback) : AI_ANALYSIS_DEFAULT.intervalMinutes;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < AI_ANALYSIS_MIN_INTERVAL_MINUTES) {
+    return Math.max(AI_ANALYSIS_MIN_INTERVAL_MINUTES, Math.floor(fallbackValue));
+  }
+  return Math.max(AI_ANALYSIS_MIN_INTERVAL_MINUTES, Math.floor(parsed));
+}
+
+async function readAiAnalysisCfg() {
+  const cfg = await readJson(AI_ANALYSIS_CFG_FILE, AI_ANALYSIS_DEFAULT);
+  return {
+    enabled: !!cfg?.enabled,
+    intervalMinutes: sanitizeAiAnalysisInterval(cfg?.intervalMinutes, AI_ANALYSIS_DEFAULT.intervalMinutes),
+  };
+}
+
+async function writeAiAnalysisCfg(next) {
+  const current = await readAiAnalysisCfg();
+  const merged = { ...current, ...next };
+  const sanitized = {
+    enabled: !!merged.enabled,
+    intervalMinutes: sanitizeAiAnalysisInterval(merged.intervalMinutes, current.intervalMinutes),
+  };
+  await writeJson(AI_ANALYSIS_CFG_FILE, sanitized);
+  return sanitized;
+}
+
+// ===================================================================
 // =                   AUTO-DRUCK (PROTOKOLL)                        =
 // ===================================================================
 function parseAutoPrintEnabled(value){
@@ -3734,6 +3773,36 @@ app.post("/api/import/auto-config", async (req,res)=>{
     res.json(next);
   }catch(err){
     res.status(400).json({ ok:false, error:err?.message||"Speichern fehlgeschlagen" });
+  }
+});
+
+app.get("/api/situation/analysis-config", User_requireAuth, async (_req, res) => {
+  const cfg = await readAiAnalysisCfg();
+  res.json(cfg);
+});
+
+app.post("/api/situation/analysis-config", User_requireAuth, async (req, res) => {
+  if (!User_hasRole(req?.user, "Admin")) {
+    return res.status(403).json({ ok:false, error:"FORBIDDEN" });
+  }
+  try {
+    const body = req.body || {};
+    const update = {};
+    if (body.enabled !== undefined) update.enabled = !!body.enabled;
+    if (body.intervalMinutes !== undefined) {
+      const minutes = Number(body.intervalMinutes);
+      if (!Number.isFinite(minutes) || minutes < AI_ANALYSIS_MIN_INTERVAL_MINUTES) {
+        return res.status(400).json({
+          ok: false,
+          error: `Intervall muss mindestens ${AI_ANALYSIS_MIN_INTERVAL_MINUTES} Minute betragen.`,
+        });
+      }
+      update.intervalMinutes = Math.floor(minutes);
+    }
+    const next = await writeAiAnalysisCfg(update);
+    res.json(next);
+  } catch (err) {
+    res.status(400).json({ ok:false, error: err?.message || "Speichern fehlgeschlagen" });
   }
 });
 
