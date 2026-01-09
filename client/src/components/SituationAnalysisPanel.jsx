@@ -18,6 +18,16 @@ const SEVERITY_COLORS = {
   high: "text-orange-600",
   critical: "text-red-600"
 };
+const MIN_ANALYSIS_INTERVAL_MINUTES = 1;
+
+function sanitizeAnalysisIntervalMinutes(value, fallback = 5) {
+  const fallbackValue = Number.isFinite(Number(fallback)) ? Number(fallback) : 5;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < MIN_ANALYSIS_INTERVAL_MINUTES) {
+    return Math.max(MIN_ANALYSIS_INTERVAL_MINUTES, Math.floor(fallbackValue));
+  }
+  return Math.max(MIN_ANALYSIS_INTERVAL_MINUTES, Math.floor(parsed));
+}
 
 function SuggestionCard({ suggestion, onFeedback, onEdit }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -254,6 +264,11 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
   const [error, setError] = useState(null);
   const [lastUpdate, setLastUpdate] = useState(null);
   const pollIntervalRef = useRef(null);
+  const [analysisConfig, setAnalysisConfig] = useState({
+    enabled: true,
+    intervalMinutes: 5,
+  });
+  const resolvedEnabled = enabled && analysisConfig.enabled;
 
   // Rolle aktualisieren wenn sich currentRole ändert - nur die Board-Rolle verwenden
   useEffect(() => {
@@ -263,7 +278,7 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
   }, [currentRole]);
 
   const fetchAnalysis = useCallback(async (forceRefresh = false) => {
-    if (!enabled) return;
+    if (!resolvedEnabled) return;
     setLoading(true);
     setError(null);
 
@@ -288,11 +303,11 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
     } finally {
       setLoading(false);
     }
-  }, [selectedRole, enabled]);
+  }, [selectedRole, resolvedEnabled]);
 
   // Auto-Refresh alle 5 Minuten wenn Panel offen ist
   useEffect(() => {
-    if (!isOpen || !enabled) {
+    if (!isOpen || !resolvedEnabled) {
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
         pollIntervalRef.current = null;
@@ -301,7 +316,8 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
     }
 
     fetchAnalysis();
-    pollIntervalRef.current = setInterval(() => fetchAnalysis(), 5 * 60 * 1000);
+    const intervalMinutes = sanitizeAnalysisIntervalMinutes(analysisConfig.intervalMinutes, 5);
+    pollIntervalRef.current = setInterval(() => fetchAnalysis(), intervalMinutes * 60 * 1000);
 
     return () => {
       if (pollIntervalRef.current) {
@@ -309,7 +325,30 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
         pollIntervalRef.current = null;
       }
     };
-  }, [isOpen, enabled, fetchAnalysis]);
+  }, [analysisConfig.intervalMinutes, isOpen, resolvedEnabled, fetchAnalysis]);
+
+  useEffect(() => {
+    let active = true;
+    const loadConfig = async () => {
+      try {
+        const res = await fetch("/api/situation/analysis-config", { credentials: "include", cache: "no-store" });
+        if (!res.ok) return;
+        const cfg = await res.json().catch(() => ({}));
+        const intervalMinutes = sanitizeAnalysisIntervalMinutes(cfg?.intervalMinutes, 5);
+        if (!active) return;
+        setAnalysisConfig({
+          enabled: !!cfg?.enabled,
+          intervalMinutes,
+        });
+      } catch {
+        // Optional: Konfig-Fehler ignorieren
+      }
+    };
+    loadConfig();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleFeedback = async (suggestionId, helpful, userNotes, editedContent) => {
     try {
@@ -341,7 +380,7 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
     return analysisData?.situation || currentRoleData?.situation;
   }, [analysisData, currentRoleData]);
 
-  if (!enabled) return null;
+  if (!resolvedEnabled) return null;
 
   return (
     <>
