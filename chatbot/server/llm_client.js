@@ -494,6 +494,8 @@ async function doLLMCallWithRetry(body, phaseLabel, onToken, options = {}, maxRe
       // Prüfe ob Retry sinnvoll ist
       const isRetryable =
         errorMsg.includes('timeout') ||
+        errorMsg.includes('abort') ||
+        errorMsg.includes('AbortError') ||
         errorMsg.includes('ECONNREFUSED') ||
         errorMsg.includes('ECONNRESET') ||
         errorMsg.includes('fetch failed') ||
