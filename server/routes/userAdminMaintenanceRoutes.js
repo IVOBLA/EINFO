@@ -9,6 +9,7 @@ import { promisify } from "util";
 import multer from "multer";
 import {
   chatbotStatus,
+  chatbotStatusWithHealth,
   chatbotServerStart,
   chatbotServerStop,
   workerStart,
@@ -244,10 +245,10 @@ export default function createAdminMaintenanceRoutes({ baseDir }) {
   // CHATBOT & WORKER KONTROLLE
   // ===========================================================================
 
-  // Status abrufen
-  router.get("/chatbot/status", (_req, res) => {
+  // Status abrufen (mit Health-Check ob Port 3100 erreichbar ist)
+  router.get("/chatbot/status", async (_req, res) => {
     try {
-      const status = chatbotStatus();
+      const status = await chatbotStatusWithHealth();
       res.json({ ok: true, ...status });
     } catch (err) {
       res.status(500).json({ ok: false, error: err.message });
