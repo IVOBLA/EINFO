@@ -6,12 +6,21 @@
   "main": "server/index.js",
   "scripts": {
     "start": "node server/index.js",
-    "build-index": "node server/rag/index_builder.js"
+    "build-index": "node server/rag/index_builder.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:ui": "vitest --ui"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.21.0",
     "glob": "^13.0.0",
     "pdf-parse": "^1.1.1"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^1.1.0",
+    "@vitest/ui": "^1.1.0",
+    "vitest": "^1.1.0"
   }
 }
