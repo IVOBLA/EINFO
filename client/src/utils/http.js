@@ -3,6 +3,7 @@ const ENV_LOGIN_BASE_URL = import.meta.env?.VITE_LOGIN_BASE_URL;
 const ENV_CHATBOT_BASE_URL = import.meta.env?.VITE_CHATBOT_BASE_URL;
 
 export const DEFAULT_NETWORK_ERROR_MESSAGE = "Verbindung zum Server fehlgeschlagen. Bitte prüfen, ob das Backend erreichbar ist.";
+export const CHATBOT_SERVER_ERROR_MESSAGE = "Chatbot-Server nicht erreichbar (Port 3100). Bitte sicherstellen, dass der Chatbot-Server läuft.";
 
 export function sanitizeBaseUrl(value) {
   if (value === undefined || value === null) return "";

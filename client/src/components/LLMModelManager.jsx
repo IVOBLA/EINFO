@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { buildChatbotApiUrl } from "../utils/http.js";
+import { buildChatbotApiUrl, CHATBOT_SERVER_ERROR_MESSAGE } from "../utils/http.js";
 
 /**
  * LLMModelManager - Task-basierte LLM-Konfiguration mit GPU-Monitoring
@@ -64,7 +64,13 @@ export default function LLMModelManager() {
       // GPU-Status initial laden
       await loadGpuStatus();
     } catch (ex) {
-      setErr(ex.message || "Fehler beim Laden der Daten");
+      // NetworkError / TypeError indicates server not reachable
+      if (ex instanceof TypeError || ex.name === "TypeError" ||
+          (ex.message && ex.message.toLowerCase().includes("network"))) {
+        setErr(CHATBOT_SERVER_ERROR_MESSAGE);
+      } else {
+        setErr(ex.message || "Fehler beim Laden der Daten");
+      }
     } finally {
       setLoading(false);
     }
@@ -100,7 +106,12 @@ export default function LLMModelManager() {
       setMsg(data.message || "Globales Modell gespeichert");
       await loadAll();
     } catch (ex) {
-      setErr(ex.message || "Fehler beim Speichern");
+      if (ex instanceof TypeError || ex.name === "TypeError" ||
+          (ex.message && ex.message.toLowerCase().includes("network"))) {
+        setErr(CHATBOT_SERVER_ERROR_MESSAGE);
+      } else {
+        setErr(ex.message || "Fehler beim Speichern");
+      }
     } finally {
       setSaving(null);
     }
@@ -124,7 +135,12 @@ export default function LLMModelManager() {
       setMsg(`Task "${taskType}" gespeichert`);
       await loadAll();
     } catch (ex) {
-      setErr(ex.message || "Fehler beim Speichern");
+      if (ex instanceof TypeError || ex.name === "TypeError" ||
+          (ex.message && ex.message.toLowerCase().includes("network"))) {
+        setErr(CHATBOT_SERVER_ERROR_MESSAGE);
+      } else {
+        setErr(ex.message || "Fehler beim Speichern");
+      }
     } finally {
       setSaving(null);
     }
@@ -145,7 +161,12 @@ export default function LLMModelManager() {
 
       setTestResult(data);
     } catch (ex) {
-      setTestResult({ error: ex.message || "Test fehlgeschlagen" });
+      if (ex instanceof TypeError || ex.name === "TypeError" ||
+          (ex.message && ex.message.toLowerCase().includes("network"))) {
+        setTestResult({ error: CHATBOT_SERVER_ERROR_MESSAGE });
+      } else {
+        setTestResult({ error: ex.message || "Test fehlgeschlagen" });
+      }
     } finally {
       setTestRunning(false);
     }
