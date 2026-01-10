@@ -69,6 +69,7 @@ const base = {
       start: process.env.LLM_TASK_START || "balanced",      // Erstes Szenario
       operations: process.env.LLM_TASK_OPS || "balanced",   // Laufende Simulation
       chat: process.env.LLM_TASK_CHAT || "balanced",        // QA-Chat
+      analysis: process.env.LLM_TASK_ANALYSIS || "balanced", // KI-Situationsanalyse
       default: process.env.LLM_TASK_DEFAULT || "balanced"
     },
 

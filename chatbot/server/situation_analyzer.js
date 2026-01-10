@@ -246,7 +246,8 @@ export async function analyzeAllRoles(forceRefresh = false) {
 
     const llmResponse = await callLLMForChat(systemPrompt, userPrompt, {
       temperature: 0.3,
-      maxTokens: 4000
+      maxTokens: 4000,
+      taskType: "analysis" // NEU: Verwende analysis-Task-Typ für Modellauswahl
     });
 
     // JSON parsen
@@ -422,7 +423,8 @@ export async function answerQuestion(question, role, context = "aufgabenboard") 
   try {
     const answer = await callLLMForChat(systemPrompt, question, {
       temperature: 0.2,
-      maxTokens: 500
+      maxTokens: 500,
+      taskType: "analysis" // NEU: Verwende analysis-Task-Typ für Modellauswahl
     });
 
     const questionId = `q_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;

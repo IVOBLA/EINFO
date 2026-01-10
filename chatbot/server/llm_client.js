@@ -234,6 +234,7 @@ export async function callLLMForChat(arg1, arg2, arg3) {
     const temperature = overrides.temperature ?? 0.4;
     const maxTokens = overrides.maxTokens ?? 2048;
     const explicitModel = overrides.model;
+    const taskType = overrides.taskType || "chat"; // NEU: Task-Typ für Modellauswahl
     // Streaming standardmäßig aktiviert um Timeouts zu vermeiden
     const useStreaming = overrides.stream !== false;
     const modelConfig = explicitModel
@@ -244,9 +245,9 @@ export async function callLLMForChat(arg1, arg2, arg3) {
           numGpu: 20,
           temperature
         }
-      : getModelForTask("chat");
+      : getModelForTask(taskType); // GEÄNDERT: Verwende taskType statt "chat"
 
-    logModelSelection("chat", modelConfig);
+    logModelSelection(taskType, modelConfig); // GEÄNDERT: Logge korrekten Task-Typ
 
     const body = {
       model: modelConfig.name,
