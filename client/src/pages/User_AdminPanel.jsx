@@ -1852,8 +1852,14 @@ export default function User_AdminPanel() {
         <div className="mt-3 space-y-3 text-sm">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
-              <span className={`inline-block w-3 h-3 rounded-full ${chatbotStatus.chatbot?.running ? "bg-green-500" : "bg-gray-400"}`} />
-              <span>Chatbot: <b>{chatbotStatus.chatbot?.running ? "Läuft" : "Gestoppt"}</b></span>
+              <span className={`inline-block w-3 h-3 rounded-full ${
+                chatbotStatus.chatbot?.ready ? "bg-green-500" :
+                chatbotStatus.chatbot?.running ? "bg-yellow-500" : "bg-gray-400"
+              }`} />
+              <span>Chatbot: <b>{
+                chatbotStatus.chatbot?.ready ? "Läuft" :
+                chatbotStatus.chatbot?.running ? "Startet..." : "Gestoppt"
+              }</b></span>
               {chatbotStatus.chatbot?.pid && <span className="text-xs text-gray-500">(PID: {chatbotStatus.chatbot.pid})</span>}
             </div>
             <div className="flex items-center gap-2">
@@ -1883,7 +1889,7 @@ export default function User_AdminPanel() {
             <button
               type="button"
               className="px-4 py-2 rounded bg-green-600 hover:bg-green-700 text-white disabled:opacity-60"
-              disabled={locked || chatbotLoading || (chatbotStatus.chatbot?.running && chatbotStatus.worker?.running)}
+              disabled={locked || chatbotLoading || (chatbotStatus.chatbot?.ready && chatbotStatus.worker?.running)}
               onClick={async () => {
                 setErr(""); setMsg(""); setChatbotLoading(true);
                 try {

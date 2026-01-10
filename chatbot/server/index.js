@@ -1403,8 +1403,9 @@ async function bootstrap() {
   });
 
   const PORT = process.env.CHATBOT_PORT || 3100;
-  app.listen(PORT, () => {
-    logInfo(`Chatbot läuft auf http://localhost:${PORT} (GUI: /gui)`, null);
+  const HOST = process.env.CHATBOT_HOST || "0.0.0.0";
+  app.listen(PORT, HOST, () => {
+    logInfo(`Chatbot läuft auf http://${HOST}:${PORT} (GUI: /gui)`, null);
     logInfo("Verfügbare Endpoints:", {
       simulation: ["/api/sim/start", "/api/sim/pause", "/api/sim/step"],
       chat: ["/api/chat"],

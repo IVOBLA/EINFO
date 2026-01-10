@@ -31,6 +31,22 @@ let lastWorkerStart = null;
 const CHATBOT_BASE_URL = process.env.CHATBOT_BASE_URL
   || `http://127.0.0.1:${process.env.CHATBOT_PORT || "3100"}`;
 
+// Health-Check: Prüft ob der Chatbot-Server tatsächlich auf Port 3100 antwortet
+async function checkChatbotHealth() {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 2000);
+    const res = await fetch(`${CHATBOT_BASE_URL}/api/llm/models`, {
+      method: "GET",
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 function processIsAlive(proc) {
   if (!proc) return false;
 
@@ -69,6 +85,13 @@ export function chatbotStatus() {
       lastStart: lastWorkerStart,
     },
   };
+}
+
+// Async version mit Health-Check
+export async function chatbotStatusWithHealth() {
+  const status = chatbotStatus();
+  status.chatbot.ready = status.chatbot.running ? await checkChatbotHealth() : false;
+  return status;
 }
 
 // ===================== CHATBOT SERVER =====================
