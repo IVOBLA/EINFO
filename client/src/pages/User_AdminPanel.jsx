@@ -3,6 +3,7 @@ import { useUserAuth } from "../components/User_AuthProvider.jsx";
 import CornerHelpLogout from "../components/CornerHelpLogout.jsx";
 import { FORBIDDEN_MESSAGE, notifyForbidden } from "../../forbidden.js";
 import { resetBoard } from "../api.js";
+import LLMModelManager from "../components/LLMModelManager.jsx";
 
 function collectUserRoleIds(u) {
   const out = [];
@@ -2081,6 +2082,15 @@ export default function User_AdminPanel() {
           </div>
         </div>
       </details>
+
+      {/* 10) KI-Modell-Verwaltung */}
+      <details className="border rounded p-3" open>
+        <summary className="cursor-pointer font-medium">KI-Modell-Verwaltung</summary>
+        <div className="mt-3">
+          <LLMModelManager />
+        </div>
+      </details>
+
       {loading && <div className="text-sm text-gray-500">Lade…</div>}
     </div>
   );

@@ -46,36 +46,37 @@ function fetchWithTimeout(url, options, timeoutMs) {
 // ============================================================
 
 /**
- * Baut die Ollama-Options basierend auf Modell-Config
- * @param {Object} modelConfig - Modell-Konfiguration aus CONFIG.llm.models
- * @param {Object} overrides - Optionale Überschreibungen
+ * Baut die Ollama-Options basierend auf Task-Config
+ * @param {Object} taskConfig - Task-Konfiguration aus CONFIG.llm.tasks
+ * @param {Object} overrides - Optionale Überschreibungen (für spezielle Fälle)
  * @returns {Object} - Ollama options
  */
-function buildModelOptions(modelConfig, overrides = {}) {
+function buildModelOptions(taskConfig, overrides = {}) {
   return {
-    temperature: overrides.temperature ?? modelConfig.temperature ?? 0.05,
+    temperature: overrides.temperature ?? taskConfig.temperature,
     seed: overrides.seed ?? Math.floor(Math.random() * 1000000),
-    num_ctx: overrides.numCtx ?? modelConfig.numCtx ?? CONFIG.llmNumCtx ?? 4096,
+    num_ctx: overrides.numCtx ?? taskConfig.numCtx,
     num_batch: CONFIG.llmNumBatch || 512,
-    num_gpu: modelConfig.numGpu ?? 99,
-    num_predict: overrides.numPredict ?? 4000,
-    top_p: overrides.topP ?? 0.92,
-    top_k: overrides.topK ?? 50,
-    repeat_penalty: overrides.repeatPenalty ?? 1.15,
+    num_gpu: overrides.numGpu ?? taskConfig.numGpu,
+    num_predict: overrides.maxTokens ?? taskConfig.maxTokens,
+    top_p: overrides.topP ?? taskConfig.topP,
+    top_k: overrides.topK ?? taskConfig.topK,
+    repeat_penalty: overrides.repeatPenalty ?? taskConfig.repeatPenalty,
     stop: overrides.stop ?? ["```", "<|eot_id|>", "</s>"]
   };
 }
 
 /**
- * Loggt Modell-Auswahl für Debugging
+ * Loggt Task-Konfiguration für Debugging
  */
-function logModelSelection(taskType, modelConfig) {
-  logDebug("Modell ausgewählt", {
+function logTaskSelection(taskType, taskConfig) {
+  logDebug("Task-Config ausgewählt", {
     taskType,
-    modelKey: modelConfig.key,
-    modelName: modelConfig.name,
-    timeout: modelConfig.timeout,
-    numGpu: modelConfig.numGpu
+    model: taskConfig.model,
+    temperature: taskConfig.temperature,
+    maxTokens: taskConfig.maxTokens,
+    timeout: taskConfig.timeout,
+    numGpu: taskConfig.numGpu
   });
 }
 
@@ -188,26 +189,22 @@ export async function callLLMForOps({
   }
 
   // ============================================================
-  // Multi-Modell Auswahl basierend auf Task-Typ
+  // Task-Config holen (alle Parameter aus zentraler Config)
   // ============================================================
   const taskType = llmInput.firstStep ? "start" : "operations";
-  const modelConfig = getModelForTask(taskType);
-  logModelSelection(taskType, modelConfig);
+  const taskConfig = getModelForTask(taskType);  // Gibt jetzt Task-Config zurück
+  logTaskSelection(taskType, taskConfig);
 
   const body = {
-    model: modelConfig.name,
+    model: taskConfig.model,
     stream: false,
-    options: buildModelOptions(modelConfig, {
-      temperature: taskType === "start" ? 0.1 : 0.2,  // Start braucht mehr Konsistenz
-      numPredict: 6000,
-      stop: ["```", "<|eot_id|>", "</s>"]
-    }),
+    options: buildModelOptions(taskConfig),  // Alle Werte aus Task-Config
     messages
   };
 
   const { parsed, rawText } = await doLLMCallWithRetry(body, "ops", null, {
     returnFullResponse: true,
-    timeoutMs: modelConfig.timeout || CONFIG.llmSimTimeoutMs || CONFIG.llmRequestTimeoutMs
+    timeoutMs: taskConfig.timeout
   });
 
   // Validierung
@@ -231,34 +228,23 @@ export async function callLLMForChat(arg1, arg2, arg3) {
     const systemPrompt = arg1;
     const userPrompt = arg2;
     const overrides = arg3 || {};
-    const temperature = overrides.temperature ?? 0.4;
-    const maxTokens = overrides.maxTokens ?? 2048;
-    const explicitModel = overrides.model;
-    // Streaming standardmäßig aktiviert um Timeouts zu vermeiden
+    const taskType = overrides.taskType || "chat";
     const useStreaming = overrides.stream !== false;
-    const modelConfig = explicitModel
-      ? {
-          key: "explicit",
-          name: explicitModel,
-          timeout: 120000,
-          numGpu: 20,
-          temperature
-        }
-      : getModelForTask("chat");
 
-    logModelSelection("chat", modelConfig);
+    // Task-Config holen (alle Defaults aus zentraler Config)
+    const taskConfig = getModelForTask(taskType);
+
+    // Wenn explizites Modell angegeben, nur Modellname überschreiben
+    if (overrides.model) {
+      taskConfig.model = overrides.model;
+    }
+
+    logTaskSelection(taskType, taskConfig);
 
     const body = {
-      model: modelConfig.name,
+      model: taskConfig.model,
       stream: useStreaming,
-      options: buildModelOptions(modelConfig, {
-        temperature,
-        numPredict: maxTokens,
-        topP: 0.9,
-        topK: 40,
-        repeatPenalty: 1.1,
-        stop: []
-      }),
+      options: buildModelOptions(taskConfig, overrides),  // overrides nur für Spezialfälle
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }
@@ -272,7 +258,7 @@ export async function callLLMForChat(arg1, arg2, arg3) {
     } : null;
 
     const result = await doLLMCallWithRetry(body, "chat", tokenCollector, {
-      timeoutMs: modelConfig.timeout || CONFIG.llmChatTimeoutMs || CONFIG.llmRequestTimeoutMs
+      timeoutMs: taskConfig.timeout
     });
 
     // Bei Streaming ist result leer, daher gesammelten Response zurückgeben
@@ -311,32 +297,21 @@ export async function callLLMForChat(arg1, arg2, arg3) {
   const userPrompt = buildUserPromptChat(question, knowledgeContext, disasterContext, learnedResponses);
 
   // ============================================================
-  // Multi-Modell Auswahl für Chat
+  // Task-Config holen (alle Parameter aus zentraler Config)
   // ============================================================
-// Bei explizitem Modell: numGpu aus Config ermitteln oder Default 20 für Offloading
-const modelConfig = model 
-  ? { 
-      key: "explicit", 
-      name: model, 
-      timeout: 120000,  // GEÄNDERT: 120s statt 60s
-      numGpu: 20,
-      temperature: 0.4 
-    }
-  : getModelForTask("chat");
-  
-  logModelSelection("chat", modelConfig);
+  const taskConfig = getModelForTask("chat");
+
+  // Wenn explizites Modell angegeben, nur Modellname überschreiben
+  if (model) {
+    taskConfig.model = model;
+  }
+
+  logTaskSelection("chat", taskConfig);
 
   const body = {
-    model: modelConfig.name,
+    model: taskConfig.model,
     stream,
-    options: buildModelOptions(modelConfig, {
-      temperature: 0.4,           // Höher für natürlichere Sprache
-      numPredict: 2048,
-      topP: 0.9,
-      topK: 40,
-      repeatPenalty: 1.1,
-      stop: []                    // Keine stop-Tokens für natürlichen Textfluss
-    }),
+    options: buildModelOptions(taskConfig),  // Alle Werte aus Task-Config
     messages: [
       { role: "system", content: systemPrompt },
       { role: "user", content: userPrompt }
@@ -344,7 +319,7 @@ const modelConfig = model
   };
 
   const answer = await doLLMCallWithRetry(body, "chat", onToken, {
-    timeoutMs: modelConfig.timeout || CONFIG.llmChatTimeoutMs || CONFIG.llmRequestTimeoutMs
+    timeoutMs: taskConfig.timeout
   });
   return answer;
 }

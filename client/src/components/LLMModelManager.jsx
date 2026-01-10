@@ -1,0 +1,589 @@
+import React, { useEffect, useState } from "react";
+
+/**
+ * LLMModelManager - Task-basierte LLM-Konfiguration mit GPU-Monitoring
+ *
+ * Features:
+ * - Task-spezifische Parameter (model, temperature, maxTokens, timeout, numGpu, numCtx, topP, topK, repeatPenalty)
+ * - Globales Modell-Override
+ * - Live GPU-Monitoring (Auslastung, Temperatur, VRAM)
+ * - Verfügbare Ollama-Modelle
+ * - Modell-Testing
+ */
+export default function LLMModelManager() {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(null); // taskType beim Speichern
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+
+  // Config-Daten
+  const [globalModelOverride, setGlobalModelOverride] = useState(null);
+  const [tasks, setTasks] = useState({});
+  const [ollamaModels, setOllamaModels] = useState([]);
+
+  // GPU-Status
+  const [gpuStatus, setGpuStatus] = useState(null);
+  const [gpuLoading, setGpuLoading] = useState(false);
+
+  // Lokale Änderungen (Draft)
+  const [taskDrafts, setTaskDrafts] = useState({});
+
+  // Test-Dialog
+  const [testingModel, setTestingModel] = useState(null);
+  const [testQuestion, setTestQuestion] = useState("Was ist 2+2?");
+  const [testResult, setTestResult] = useState(null);
+  const [testRunning, setTestRunning] = useState(false);
+
+  // Daten laden
+  useEffect(() => {
+    loadAll();
+    const interval = setInterval(loadGpuStatus, 5000); // GPU-Status alle 5s
+    return () => clearInterval(interval);
+  }, []);
+
+  async function loadAll() {
+    setLoading(true);
+    setErr("");
+    try {
+      // Config laden
+      const configRes = await fetch("/api/llm/config", { credentials: "include" });
+      const configData = await configRes.json();
+      if (!configRes.ok) throw new Error(configData.error || "Fehler beim Laden der Config");
+
+      setGlobalModelOverride(configData.globalModelOverride);
+      setTasks(configData.tasks || {});
+      setTaskDrafts(configData.tasks || {}); // Initialisiere Drafts
+
+      // Ollama-Modelle laden
+      const modelsRes = await fetch("/api/llm/models", { credentials: "include" });
+      const modelsData = await modelsRes.json();
+      if (!modelsRes.ok) throw new Error(modelsData.error || "Fehler beim Laden der Modelle");
+      setOllamaModels(modelsData.models || []);
+
+      // GPU-Status initial laden
+      await loadGpuStatus();
+    } catch (ex) {
+      setErr(ex.message || "Fehler beim Laden der Daten");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadGpuStatus() {
+    setGpuLoading(true);
+    try {
+      const res = await fetch("/api/llm/gpu", { credentials: "include" });
+      const data = await res.json();
+      if (res.ok) setGpuStatus(data);
+    } catch {
+      // Ignoriere Fehler beim GPU-Status
+    } finally {
+      setGpuLoading(false);
+    }
+  }
+
+  async function saveGlobalModel() {
+    setSaving("global");
+    setErr("");
+    setMsg("");
+    try {
+      const res = await fetch("/api/llm/global-model", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: globalModelOverride })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Fehler beim Speichern");
+
+      setMsg(data.message || "Globales Modell gespeichert");
+      await loadAll();
+    } catch (ex) {
+      setErr(ex.message || "Fehler beim Speichern");
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  async function saveTaskConfig(taskType) {
+    setSaving(taskType);
+    setErr("");
+    setMsg("");
+    try {
+      const draft = taskDrafts[taskType];
+      const res = await fetch("/api/llm/task-config", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskType, updates: draft })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Fehler beim Speichern");
+
+      setMsg(`Task "${taskType}" gespeichert`);
+      await loadAll();
+    } catch (ex) {
+      setErr(ex.message || "Fehler beim Speichern");
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  async function testModel(modelName) {
+    setTestRunning(true);
+    setTestResult(null);
+    try {
+      const res = await fetch("/api/llm/test-model", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model: modelName, question: testQuestion })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Test fehlgeschlagen");
+
+      setTestResult(data);
+    } catch (ex) {
+      setTestResult({ error: ex.message || "Test fehlgeschlagen" });
+    } finally {
+      setTestRunning(false);
+    }
+  }
+
+  function updateTaskDraft(taskType, field, value) {
+    setTaskDrafts((prev) => ({
+      ...prev,
+      [taskType]: {
+        ...prev[taskType],
+        [field]: value
+      }
+    }));
+  }
+
+  function hasChanges(taskType) {
+    const original = tasks[taskType];
+    const draft = taskDrafts[taskType];
+    if (!original || !draft) return false;
+    return JSON.stringify(original) !== JSON.stringify(draft);
+  }
+
+  if (loading) {
+    return <div className="p-4 text-gray-500">Lade Konfiguration…</div>;
+  }
+
+  const taskList = [
+    { key: "start", label: "Start", description: "Erstes Szenario" },
+    { key: "operations", label: "Operations", description: "Laufende Simulation" },
+    { key: "chat", label: "Chat", description: "QA-Chat" },
+    { key: "analysis", label: "Analysis", description: "KI-Situationsanalyse" },
+    { key: "default", label: "Default", description: "Fallback" }
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Status-Meldungen */}
+      {err && <div className="text-rose-700 text-sm bg-rose-50 p-3 rounded border border-rose-200">{err}</div>}
+      {msg && <div className="text-emerald-700 text-sm bg-emerald-50 p-3 rounded border border-emerald-200">{msg}</div>}
+
+      {/* GPU-Status */}
+      <div className="border rounded p-4 bg-gradient-to-r from-gray-50 to-blue-50">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-medium flex items-center gap-2">
+            <span className="text-xl">🖥️</span> GPU-Status
+          </h3>
+          <button
+            type="button"
+            className="text-xs px-2 py-1 border rounded hover:bg-white"
+            onClick={loadGpuStatus}
+            disabled={gpuLoading}
+          >
+            {gpuLoading ? "⟳" : "↻"} Aktualisieren
+          </button>
+        </div>
+
+        {gpuStatus && gpuStatus.available && gpuStatus.gpus ? (
+          <div className="space-y-3">
+            {gpuStatus.gpus.map((gpu, idx) => (
+              <div key={idx} className="bg-white rounded p-3 border">
+                <div className="font-medium text-sm mb-2">{gpu.name}</div>
+                <div className="grid grid-cols-3 gap-3 text-xs">
+                  <div>
+                    <div className="text-gray-500">GPU-Auslastung</div>
+                    <div className="text-lg font-bold" style={{ color: gpu.utilizationPercent > 80 ? "#dc2626" : "#10b981" }}>
+                      {gpu.utilizationPercent ?? "–"}%
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-gray-500">Temperatur</div>
+                    <div className="text-lg font-bold" style={{ color: gpu.temperatureCelsius > 75 ? "#dc2626" : "#10b981" }}>
+                      {gpu.temperatureCelsius ?? "–"}°C
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-gray-500">VRAM</div>
+                    <div className="text-lg font-bold">
+                      {gpu.memoryUsedMb && gpu.memoryTotalMb
+                        ? `${(gpu.memoryUsedMb / 1024).toFixed(1)} / ${(gpu.memoryTotalMb / 1024).toFixed(1)} GB`
+                        : "–"}
+                    </div>
+                    {gpu.memoryUsedMb && gpu.memoryTotalMb && (
+                      <div className="mt-1 w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="h-2 rounded-full"
+                          style={{
+                            width: `${(gpu.memoryUsedMb / gpu.memoryTotalMb) * 100}%`,
+                            backgroundColor: (gpu.memoryUsedMb / gpu.memoryTotalMb) > 0.9 ? "#dc2626" : "#10b981"
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+            {gpuStatus.warning && (
+              <div className="text-amber-700 text-xs bg-amber-50 p-2 rounded">⚠️ {gpuStatus.warning}</div>
+            )}
+          </div>
+        ) : (
+          <div className="text-sm text-gray-500">
+            {gpuStatus?.error || "GPU-Status nicht verfügbar"}
+          </div>
+        )}
+      </div>
+
+      {/* Globales Modell-Override */}
+      <div className="border rounded p-4 bg-gray-50">
+        <h3 className="font-medium mb-3">Globales Modell-Override</h3>
+        <div className="text-xs text-gray-600 mb-3">
+          Optional: Überschreibt alle task-spezifischen Modelle. Leer lassen für task-spezifische Konfiguration.
+        </div>
+        <div className="flex items-center gap-3">
+          <input
+            type="text"
+            className="border rounded px-3 py-2 flex-1 font-mono text-sm"
+            value={globalModelOverride || ""}
+            onChange={(e) => setGlobalModelOverride(e.target.value || null)}
+            placeholder="z.B. einfo-balanced (leer = deaktiviert)"
+            disabled={saving === "global"}
+          />
+          <button
+            type="button"
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
+            onClick={saveGlobalModel}
+            disabled={saving === "global"}
+          >
+            {saving === "global" ? "Speichere..." : "Speichern"}
+          </button>
+        </div>
+        {globalModelOverride && (
+          <div className="mt-2 text-sm text-amber-700">
+            ⚠️ Aktiv: Alle Tasks verwenden <b>{globalModelOverride}</b>
+          </div>
+        )}
+      </div>
+
+      {/* Task-Konfigurationen */}
+      <div className="border rounded p-4">
+        <h3 className="font-medium mb-3">Task-Konfigurationen</h3>
+        <div className="text-xs text-gray-600 mb-4">
+          Jeder Task kann individuelle Parameter haben. Nur aktiv wenn globales Override leer ist.
+        </div>
+
+        <div className="space-y-6">
+          {taskList.map((task) => {
+            const draft = taskDrafts[task.key] || {};
+            const changed = hasChanges(task.key);
+
+            return (
+              <details key={task.key} className="border rounded bg-white" open={task.key === "chat"}>
+                <summary className="cursor-pointer p-3 font-medium hover:bg-gray-50 flex items-center justify-between">
+                  <span>
+                    {task.label} <span className="text-xs text-gray-500">({task.description})</span>
+                  </span>
+                  {changed && <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded">Ungespeichert</span>}
+                </summary>
+
+                <div className="p-4 border-t space-y-3">
+                  {/* Modell */}
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Modell</label>
+                    <input
+                      type="text"
+                      className="w-full border rounded px-3 py-2 font-mono text-sm"
+                      value={draft.model || ""}
+                      onChange={(e) => updateTaskDraft(task.key, "model", e.target.value)}
+                      placeholder="z.B. einfo-balanced"
+                    />
+                  </div>
+
+                  {/* Parameter-Grid */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Temperature */}
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Temperature</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="2"
+                        className="w-full border rounded px-3 py-2"
+                        value={draft.temperature ?? 0}
+                        onChange={(e) => updateTaskDraft(task.key, "temperature", Number(e.target.value))}
+                      />
+                      <div className="text-xs text-gray-500 mt-1">0.0 = deterministisch, 1.0 = kreativ</div>
+                    </div>
+
+                    {/* Max Tokens */}
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Max Tokens</label>
+                      <input
+                        type="number"
+                        step="100"
+                        min="100"
+                        max="8000"
+                        className="w-full border rounded px-3 py-2"
+                        value={draft.maxTokens ?? 0}
+                        onChange={(e) => updateTaskDraft(task.key, "maxTokens", Number(e.target.value))}
+                      />
+                    </div>
+
+                    {/* Timeout */}
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Timeout (ms)</label>
+                      <input
+                        type="number"
+                        step="1000"
+                        min="10000"
+                        max="600000"
+                        className="w-full border rounded px-3 py-2"
+                        value={draft.timeout ?? 0}
+                        onChange={(e) => updateTaskDraft(task.key, "timeout", Number(e.target.value))}
+                      />
+                      <div className="text-xs text-gray-500 mt-1">{((draft.timeout || 0) / 1000).toFixed(0)}s</div>
+                    </div>
+
+                    {/* Num GPU */}
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Num GPU (Layers)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="99"
+                        className="w-full border rounded px-3 py-2"
+                        value={draft.numGpu ?? 0}
+                        onChange={(e) => updateTaskDraft(task.key, "numGpu", Number(e.target.value))}
+                      />
+                      <div className="text-xs text-gray-500 mt-1">0 = CPU, 20+ = GPU</div>
+                    </div>
+
+                    {/* Num Ctx */}
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Context Size</label>
+                      <input
+                        type="number"
+                        step="512"
+                        min="512"
+                        max="32768"
+                        className="w-full border rounded px-3 py-2"
+                        value={draft.numCtx ?? 0}
+                        onChange={(e) => updateTaskDraft(task.key, "numCtx", Number(e.target.value))}
+                      />
+                    </div>
+
+                    {/* Top P */}
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Top P</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="1"
+                        className="w-full border rounded px-3 py-2"
+                        value={draft.topP ?? 0}
+                        onChange={(e) => updateTaskDraft(task.key, "topP", Number(e.target.value))}
+                      />
+                    </div>
+
+                    {/* Top K */}
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Top K</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="100"
+                        className="w-full border rounded px-3 py-2"
+                        value={draft.topK ?? 0}
+                        onChange={(e) => updateTaskDraft(task.key, "topK", Number(e.target.value))}
+                      />
+                    </div>
+
+                    {/* Repeat Penalty */}
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Repeat Penalty</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="1"
+                        max="2"
+                        className="w-full border rounded px-3 py-2"
+                        value={draft.repeatPenalty ?? 0}
+                        onChange={(e) => updateTaskDraft(task.key, "repeatPenalty", Number(e.target.value))}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Aktionen */}
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      type="button"
+                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
+                      onClick={() => saveTaskConfig(task.key)}
+                      disabled={saving === task.key || !changed}
+                    >
+                      {saving === task.key ? "Speichere..." : "Speichern"}
+                    </button>
+                    <button
+                      type="button"
+                      className="px-4 py-2 border rounded hover:bg-gray-50"
+                      onClick={() => setTaskDrafts((prev) => ({ ...prev, [task.key]: tasks[task.key] }))}
+                      disabled={!changed}
+                    >
+                      Zurücksetzen
+                    </button>
+                    <button
+                      type="button"
+                      className="ml-auto px-4 py-2 border rounded hover:bg-gray-50 text-blue-600"
+                      onClick={() => setTestingModel(draft.model)}
+                    >
+                      Modell testen
+                    </button>
+                  </div>
+                </div>
+              </details>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Verfügbare Ollama-Modelle */}
+      <div className="border rounded p-4">
+        <h3 className="font-medium mb-3">Verfügbare Ollama-Modelle</h3>
+        {ollamaModels.length === 0 ? (
+          <div className="text-sm text-gray-500">Keine Modelle gefunden oder Ollama nicht erreichbar</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-3 py-2 text-left">Name</th>
+                  <th className="px-3 py-2 text-left">Größe</th>
+                  <th className="px-3 py-2 text-left">Geändert</th>
+                  <th className="px-3 py-2"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {ollamaModels.map((model) => (
+                  <tr key={model.name} className="border-t hover:bg-gray-50">
+                    <td className="px-3 py-2 font-mono text-xs">{model.name}</td>
+                    <td className="px-3 py-2 text-xs text-gray-600">
+                      {model.size ? `${(model.size / 1024 / 1024 / 1024).toFixed(2)} GB` : "–"}
+                    </td>
+                    <td className="px-3 py-2 text-xs text-gray-600">
+                      {model.modified_at ? new Date(model.modified_at).toLocaleString("de-AT", { hour12: false }) : "–"}
+                    </td>
+                    <td className="px-3 py-2">
+                      <button
+                        type="button"
+                        className="text-blue-600 hover:text-blue-800 text-xs"
+                        onClick={() => setTestingModel(model.name)}
+                      >
+                        Testen
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Test-Dialog */}
+      {testingModel && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium text-lg">Modell testen: {testingModel}</h3>
+                <button
+                  type="button"
+                  className="text-gray-500 hover:text-gray-700"
+                  onClick={() => {
+                    setTestingModel(null);
+                    setTestResult(null);
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-2">Testfrage</label>
+                <input
+                  type="text"
+                  className="w-full border rounded px-3 py-2"
+                  value={testQuestion}
+                  onChange={(e) => setTestQuestion(e.target.value)}
+                  disabled={testRunning}
+                />
+              </div>
+
+              <button
+                type="button"
+                className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
+                onClick={() => testModel(testingModel)}
+                disabled={testRunning || !testQuestion.trim()}
+              >
+                {testRunning ? "Teste..." : "Test starten"}
+              </button>
+
+              {testResult && (
+                <div className="border rounded p-4 bg-gray-50">
+                  {testResult.error ? (
+                    <div className="text-red-600">
+                      <div className="font-medium">Fehler:</div>
+                      <div className="text-sm mt-1">{testResult.error}</div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div>
+                        <div className="text-xs text-gray-600 mb-1">Antwort:</div>
+                        <div className="text-sm whitespace-pre-wrap">{testResult.answer}</div>
+                      </div>
+                      {testResult.duration && (
+                        <div className="text-xs text-gray-500">Dauer: {testResult.duration}ms</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Aktions-Buttons */}
+      <div className="flex gap-3">
+        <button
+          type="button"
+          className="px-4 py-2 border rounded hover:bg-gray-50"
+          onClick={loadAll}
+          disabled={loading || saving}
+        >
+          Neu laden
+        </button>
+      </div>
+    </div>
+  );
+}

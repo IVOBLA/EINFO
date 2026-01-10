@@ -40,41 +40,71 @@ const base = {
   llmEmbedModel: process.env.LLM_EMBED_MODEL || "mxbai-embed-large",
 
   // ============================================================
-  // Multi-Modell Konfiguration
+  // Task-basierte LLM-Konfiguration
   // ============================================================
   llm: {
-    // Verfügbare Modelle mit ihren Eigenschaften
-    models: {
-      fast: {
-        name: process.env.LLM_MODEL_FAST || "llama3.1:8b",
-        timeout: Number(process.env.LLM_TIMEOUT_FAST || "30000"),
-        description: "Schnell, für einfache Tasks",
-        numGpu: 20,           // Alle Layer auf GPU
-        numCtx: 4096,
-        temperature: 0.05
+    // Globales Override (wenn gesetzt, überschreibt alle task-spezifischen Modelle)
+    // Werte: null = task-spezifisch | <modelname> = für alle Tasks verwenden
+    globalModelOverride: process.env.LLM_GLOBAL_MODEL || null,
+
+    // Task-spezifische Konfigurationen
+    tasks: {
+      start: {
+        model: process.env.LLM_TASK_START_MODEL || "einfo-balanced",
+        temperature: Number(process.env.LLM_TASK_START_TEMPERATURE || "0.1"),
+        maxTokens: Number(process.env.LLM_TASK_START_MAX_TOKENS || "4000"),
+        timeout: Number(process.env.LLM_TASK_START_TIMEOUT || "220000"),
+        numGpu: Number(process.env.LLM_TASK_START_NUM_GPU || "20"),
+        numCtx: Number(process.env.LLM_TASK_START_NUM_CTX || "4096"),
+        topP: Number(process.env.LLM_TASK_START_TOP_P || "0.92"),
+        topK: Number(process.env.LLM_TASK_START_TOP_K || "50"),
+        repeatPenalty: Number(process.env.LLM_TASK_START_REPEAT_PENALTY || "1.15")
       },
-      balanced: {
-        name: process.env.LLM_MODEL_BALANCED || "einfo-balanced",
-        timeout: Number(process.env.LLM_TIMEOUT_BALANCED || "220000"),
-        description: "Ausgewogen, gute JSON-Qualität",
-        numGpu: 20,
-        numCtx: 4096,
-        temperature: 0.1
+      operations: {
+        model: process.env.LLM_TASK_OPS_MODEL || "einfo-balanced",
+        temperature: Number(process.env.LLM_TASK_OPS_TEMPERATURE || "0.05"),
+        maxTokens: Number(process.env.LLM_TASK_OPS_MAX_TOKENS || "4000"),
+        timeout: Number(process.env.LLM_TASK_OPS_TIMEOUT || "300000"),
+        numGpu: Number(process.env.LLM_TASK_OPS_NUM_GPU || "20"),
+        numCtx: Number(process.env.LLM_TASK_OPS_NUM_CTX || "4096"),
+        topP: Number(process.env.LLM_TASK_OPS_TOP_P || "0.92"),
+        topK: Number(process.env.LLM_TASK_OPS_TOP_K || "50"),
+        repeatPenalty: Number(process.env.LLM_TASK_OPS_REPEAT_PENALTY || "1.15")
+      },
+      chat: {
+        model: process.env.LLM_TASK_CHAT_MODEL || "llama3.1:8b",
+        temperature: Number(process.env.LLM_TASK_CHAT_TEMPERATURE || "0.4"),
+        maxTokens: Number(process.env.LLM_TASK_CHAT_MAX_TOKENS || "2048"),
+        timeout: Number(process.env.LLM_TASK_CHAT_TIMEOUT || "120000"),
+        numGpu: Number(process.env.LLM_TASK_CHAT_NUM_GPU || "20"),
+        numCtx: Number(process.env.LLM_TASK_CHAT_NUM_CTX || "4096"),
+        topP: Number(process.env.LLM_TASK_CHAT_TOP_P || "0.9"),
+        topK: Number(process.env.LLM_TASK_CHAT_TOP_K || "40"),
+        repeatPenalty: Number(process.env.LLM_TASK_CHAT_REPEAT_PENALTY || "1.1")
+      },
+      analysis: {
+        model: process.env.LLM_TASK_ANALYSIS_MODEL || "einfo-balanced",
+        temperature: Number(process.env.LLM_TASK_ANALYSIS_TEMPERATURE || "0.3"),
+        maxTokens: Number(process.env.LLM_TASK_ANALYSIS_MAX_TOKENS || "4000"),
+        timeout: Number(process.env.LLM_TASK_ANALYSIS_TIMEOUT || "220000"),
+        numGpu: Number(process.env.LLM_TASK_ANALYSIS_NUM_GPU || "20"),
+        numCtx: Number(process.env.LLM_TASK_ANALYSIS_NUM_CTX || "4096"),
+        topP: Number(process.env.LLM_TASK_ANALYSIS_TOP_P || "0.92"),
+        topK: Number(process.env.LLM_TASK_ANALYSIS_TOP_K || "50"),
+        repeatPenalty: Number(process.env.LLM_TASK_ANALYSIS_REPEAT_PENALTY || "1.15")
+      },
+      default: {
+        model: process.env.LLM_TASK_DEFAULT_MODEL || "einfo-balanced",
+        temperature: Number(process.env.LLM_TASK_DEFAULT_TEMPERATURE || "0.1"),
+        maxTokens: Number(process.env.LLM_TASK_DEFAULT_MAX_TOKENS || "2048"),
+        timeout: Number(process.env.LLM_TASK_DEFAULT_TIMEOUT || "120000"),
+        numGpu: Number(process.env.LLM_TASK_DEFAULT_NUM_GPU || "20"),
+        numCtx: Number(process.env.LLM_TASK_DEFAULT_NUM_CTX || "4096"),
+        topP: Number(process.env.LLM_TASK_DEFAULT_TOP_P || "0.92"),
+        topK: Number(process.env.LLM_TASK_DEFAULT_TOP_K || "50"),
+        repeatPenalty: Number(process.env.LLM_TASK_DEFAULT_REPEAT_PENALTY || "1.15")
       }
-    },
-
-    // Welches Modell für welchen Task-Typ
-    // Werte: "fast" | "balanced"
-    taskModels: {
-      start: process.env.LLM_TASK_START || "balanced",      // Erstes Szenario
-      operations: process.env.LLM_TASK_OPS || "balanced",   // Laufende Simulation
-      chat: process.env.LLM_TASK_CHAT || "balanced",        // QA-Chat
-      default: process.env.LLM_TASK_DEFAULT || "balanced"
-    },
-
-    // Globales Override (überschreibt taskModels wenn nicht "auto")
-    // Werte: "auto" | "fast" | "balanced"
-    activeModel: sanitizeActiveModel(process.env.LLM_MODEL)
+    }
   },
   
   // Differenzierte Timeouts (Fallbacks wenn Modell-Config keine hat)
@@ -201,85 +231,89 @@ export const CONFIG = {
 
 
 // ============================================================
-// Runtime-Modell-Management (zur Laufzeit änderbar)
+// Runtime-Task-Management (zur Laufzeit änderbar)
 // ============================================================
 
 /**
- * Ändert das aktive Modell zur Laufzeit
- * @param {string} modelKey - "fast" | "balanced" | "auto"
+ * Setzt globales Modell-Override (überschreibt alle task-spezifischen Modelle)
+ * @param {string|null} modelName - Modellname oder null für task-spezifisch
  */
-export function setActiveModel(modelKey) {
-  if (modelKey !== "auto" && !CONFIG.llm.models[modelKey]) {
-    throw new Error(`Unbekanntes Modell: ${modelKey}. Erlaubt: fast, balanced, auto`);
-  }
-  CONFIG.llm.activeModel = modelKey;
-  console.log(`[CONFIG] Aktives Modell gewechselt zu: ${modelKey}`);
+export function setGlobalModelOverride(modelName) {
+  CONFIG.llm.globalModelOverride = modelName;
+  console.log(`[CONFIG] Globales Modell-Override: ${modelName || "deaktiviert (task-spezifisch)"}`);
 }
 
 /**
- * Gibt die aktuelle Modell-Konfiguration zurück
+ * Gibt die Task-Konfiguration für einen bestimmten Task-Typ zurück
+ * @param {string} taskType - "start" | "operations" | "chat" | "analysis" | "default"
+ * @returns {Object} - { model, temperature, maxTokens, timeout, numGpu, ... }
+ */
+export function getTaskConfig(taskType) {
+  const llmConfig = CONFIG.llm;
+
+  // Task-Config holen (mit fallback auf default)
+  const taskConfig = llmConfig.tasks[taskType] || llmConfig.tasks.default;
+
+  if (!taskConfig) {
+    console.warn(`[CONFIG] Task "${taskType}" nicht gefunden, verwende default`);
+    return { ...llmConfig.tasks.default };
+  }
+
+  // Wenn globales Override gesetzt, nur Modellname überschreiben
+  if (llmConfig.globalModelOverride) {
+    return {
+      ...taskConfig,
+      model: llmConfig.globalModelOverride
+    };
+  }
+
+  return { ...taskConfig };
+}
+
+// Legacy-Alias für Abwärtskompatibilität
+export const getModelForTask = getTaskConfig;
+
+/**
+ * Aktualisiert Task-Konfiguration zur Laufzeit
+ * @param {string} taskType - Task-Typ
+ * @param {Object} updates - Zu aktualisierende Werte (model, temperature, etc.)
+ */
+export function updateTaskConfig(taskType, updates) {
+  if (!CONFIG.llm.tasks[taskType]) {
+    throw new Error(`Unbekannter Task-Typ: ${taskType}`);
+  }
+
+  // Nur erlaubte Felder aktualisieren
+  const allowedFields = ["model", "temperature", "maxTokens", "timeout", "numGpu", "numCtx", "topP", "topK", "repeatPenalty"];
+  const validUpdates = {};
+
+  for (const [key, value] of Object.entries(updates)) {
+    if (allowedFields.includes(key)) {
+      validUpdates[key] = value;
+    }
+  }
+
+  CONFIG.llm.tasks[taskType] = {
+    ...CONFIG.llm.tasks[taskType],
+    ...validUpdates
+  };
+
+  console.log(`[CONFIG] Task "${taskType}" aktualisiert:`, validUpdates);
+}
+
+/**
+ * Gibt alle Task-Konfigurationen zurück
  * @returns {Object}
  */
-export function getActiveModelConfig() {
-  const activeKey = CONFIG.llm.activeModel;
-  if (activeKey === "auto") {
-    return { key: "auto", mode: "task-based", taskModels: CONFIG.llm.taskModels };
-  }
+export function getAllTaskConfigs() {
   return {
-    key: activeKey,
-    mode: "fixed",
-    ...CONFIG.llm.models[activeKey]
+    globalModelOverride: CONFIG.llm.globalModelOverride,
+    tasks: { ...CONFIG.llm.tasks }
   };
 }
 
-/**
- * Gibt das Modell für einen bestimmten Task-Typ zurück
- * @param {string} taskType - "start" | "operations" | "chat"
- * @returns {Object} - { key, name, timeout, numGpu, ... }
- */
-export function getModelForTask(taskType) {
-  const llmConfig = CONFIG.llm;
-  
-  // Wenn globales Override aktiv (nicht "auto")
-  if (llmConfig.activeModel && llmConfig.activeModel !== "auto") {
-    const model = llmConfig.models[llmConfig.activeModel];
-    if (model) {
-      return { key: llmConfig.activeModel, ...model };
-    }
-  }
-  
-  // Task-basierte Auswahl
-  const modelKey = llmConfig.taskModels[taskType] || llmConfig.taskModels.default;
-  const model = llmConfig.models[modelKey];
-  
-  if (!model) {
-    console.warn(`[CONFIG] Modell "${modelKey}" nicht gefunden, verwende balanced`);
-    return { key: "balanced", ...llmConfig.models.balanced };
-  }
-  
-  return { key: modelKey, ...model };
-}
-
-/**
- * Setzt die Task-Modell-Zuordnung zur Laufzeit
- * @param {string} taskType - "start" | "operations" | "chat" | "default"
- * @param {string} modelKey - "fast" | "balanced"
- */
-export function setTaskModel(taskType, modelKey) {
-  if (!CONFIG.llm.models[modelKey]) {
-    throw new Error(`Unbekanntes Modell: ${modelKey}`);
-  }
-  if (!CONFIG.llm.taskModels.hasOwnProperty(taskType)) {
-    throw new Error(`Unbekannter Task-Typ: ${taskType}`);
-  }
-  CONFIG.llm.taskModels[taskType] = modelKey;
-  console.log(`[CONFIG] Task "${taskType}" verwendet jetzt Modell: ${modelKey}`);
-}
-
-/**
- * Gibt alle konfigurierten Modelle zurück
- * @returns {Object}
- */
-export function getAllModels() {
-  return { ...CONFIG.llm.models };
-}
+// Legacy-Kompatibilität
+export const setTaskModel = (taskType, modelKey) => updateTaskConfig(taskType, { model: modelKey });
+export const getAllModels = () => ({ tasks: getAllTaskConfigs().tasks });
+export const setActiveModel = setGlobalModelOverride;
+export const getActiveModelConfig = getAllTaskConfigs;
