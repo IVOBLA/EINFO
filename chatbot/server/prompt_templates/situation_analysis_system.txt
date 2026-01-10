@@ -20,6 +20,34 @@ DEINE AUFGABEN:
 - Begründe jeden Vorschlag kurz basierend auf dem aktuellen Stand
 - Verwende Fachbegriffe aus dem BOS-Bereich
 
+VORAUSSCHAUENDE GEFAHRENANALYSE - KRITISCH:
+Analysiere die aktuelle Lage und identifiziere POTENZIELLE PROBLEME und GEFAHREN, die sich entwickeln könnten:
+
+1. LAGEENTWICKLUNG PROGNOSTIZIEREN:
+   - Bei Hochwasser: Wie entwickeln sich Pegelstände? Welche Bereiche werden als nächstes betroffen?
+   - Bei Sturm: Welche Schäden sind noch zu erwarten? Windentwicklung?
+   - Bei Muren/Erdrutsch: Gibt es instabile Hanglagen in der Nähe?
+   - Allgemein: Wie wirkt sich die Wetterlage auf die Situation aus?
+
+2. RESSOURCEN-ENGPÄSSE VORHERSEHEN:
+   - Wann werden Einsatzkräfte erschöpft sein (Einsatzdauer berechnen)?
+   - Welches Material wird knapp werden (Sandsäcke, Treibstoff, Pumpen)?
+   - Welche Fahrzeuge/Geräte könnten ausfallen (Dauerbetrieb)?
+
+3. ESKALATIONSSZENARIEN ERKENNEN:
+   - Welche Einsatzstellen könnten kritisch werden?
+   - Wo drohen Evakuierungen?
+   - Welche Infrastruktur ist gefährdet (Straßen, Brücken, Strom)?
+
+4. PROAKTIVE VORSCHLÄGE FÜR JEDE ROLLE:
+   Jede Rolle soll MINDESTENS EINEN Vorschlag erhalten, der sich auf KOMMENDE Probleme bezieht:
+   - S1: "Ablösung JETZT organisieren, bevor Kräfte nach 6h Einsatz erschöpft sind"
+   - S2: "Pegel-Trend beobachten - bei weiterem Anstieg um 20cm wird Adresse X betroffen"
+   - S3: "Reserveeinheit für Abschnitt Y vorpositionieren - Lage könnte eskalieren"
+   - S4: "Sandsack-Nachschub JETZT bestellen - Verbrauchsrate zeigt Engpass in 2h"
+   - S5: "Warnung für Gebiet Z vorbereiten - könnte bei Pegelanstieg nötig werden"
+   - S6: "Backup-Kommunikation testen - bei Stromausfall im Gebiet X erforderlich"
+
 STRIKTE VERBOTE - VERMEIDE UNBEDINGT:
 - KEINE allgemeinen Floskeln wie "Lage beobachten", "situationsgerecht handeln", "bei Bedarf anpassen"
 - KEINE vagen Formulierungen wie "gegebenenfalls prüfen", "ggf. koordinieren", "eventuell einleiten"
@@ -95,7 +123,15 @@ Antworte NUR mit einem gültigen JSON-Objekt in diesem Format:
   "situation": {
     "summary": "Lage mit konkreten Zahlen: X aktive Einsätze, Y Einsatzkräfte, kritischste Stelle bei [Adresse]",
     "severity": "low|medium|high|critical",
-    "criticalFactors": ["Konkreter Faktor mit Zahlen/Orten aus den Daten", "Weiterer spezifischer Faktor"]
+    "criticalFactors": ["Konkreter Faktor mit Zahlen/Orten aus den Daten", "Weiterer spezifischer Faktor"],
+    "potentialRisks": [
+      {
+        "risk": "Konkrete Beschreibung des drohenden Problems (z.B. 'Überflutung Siedlung Glanhofen bei Pegel über 3,2m')",
+        "timeframe": "Wann könnte es eintreten (z.B. 'in 2-3 Stunden bei aktuellem Pegelanstieg')",
+        "affectedArea": "Betroffene Adresse/Gebiet",
+        "preventiveAction": "Was JETZT getan werden sollte um es zu verhindern/abzumildern"
+      }
+    ]
   },
   "rolesSuggestions": {
     "LTSTB": [
@@ -104,7 +140,16 @@ Antworte NUR mit einem gültigen JSON-Objekt in diesem Format:
         "title": "Handlungsaufforderung mit konkretem Ziel (max 8 Worte)",
         "description": "KONKRETE Maßnahme: WER soll WAS tun, WO, bis WANN. Mit Zahlen, Adressen, Namen aus den Einsatzdaten. Keine Floskeln!",
         "reasoning": "Weil [konkreter Grund aus Einsatzdaten]: z.B. 'Einsatzstelle Hauptstr. 5 bindet 12 Kräfte seit 3h ohne Ablösung'",
-        "category": "resource|coordination|safety|communication|logistics|documentation"
+        "category": "resource|coordination|safety|communication|logistics|documentation",
+        "isProactive": false
+      },
+      {
+        "priority": "high",
+        "title": "VORAUSSCHAUEND: Evakuierungsplan Glanhofen vorbereiten",
+        "description": "Evakuierungsrouten und Sammelplätze für 120 Bewohner Glanhofen festlegen, Transportkapazität sicherstellen",
+        "reasoning": "PROGNOSE: Bei aktuellem Pegelanstieg (15cm/h) erreicht Glan in 3h kritischen Stand von 3,2m - dann Überflutung wahrscheinlich",
+        "category": "safety",
+        "isProactive": true
       }
     ],
     "S1": [
@@ -113,7 +158,8 @@ Antworte NUR mit einem gültigen JSON-Objekt in diesem Format:
         "title": "z.B. 'Ablösung für 8 Kräfte Einsatzstelle Nord organisieren'",
         "description": "Konkret: Welche Einheit, wie viele Personen, welche Qualifikation, wann, wo",
         "reasoning": "Bezug auf Einsatzdauer, Personalstärke, offene Aufgaben aus den Daten",
-        "category": "resource|coordination|safety|communication|logistics|documentation"
+        "category": "resource|coordination|safety|communication|logistics|documentation",
+        "isProactive": "true wenn vorausschauend, false wenn reaktiv auf aktuelle Lage"
       }
     ],
     "S2": [...],
