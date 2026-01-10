@@ -34,14 +34,42 @@ const AI_ANALYSIS_DEFAULT_INTERVAL_MINUTES = 5;
 const AI_ANALYSIS_MIN_INTERVAL_MINUTES = 1;
 
 // Rollen-Beschreibungen für kontextbezogene Analysen
+// Erweiterte Beschreibungen mit konkreten Aufgabenbereichen für präzise Vorschläge
 const ROLE_DESCRIPTIONS = {
-  "LTSTB": "Leiter Technischer Einsatzleitung - Gesamtverantwortung, strategische Entscheidungen, Koordination aller Stabsstellen",
-  "S1": "Stabsstelle 1 - Personal und Innerer Dienst, Personalverwaltung, Verpflegung, Unterkunft",
-  "S2": "Stabsstelle 2 - Lage, Lagebild, Lagekarte, Dokumentation, Auswertung",
-  "S3": "Stabsstelle 3 - Einsatz, Taktische Planung, Einsatzführung, Ressourcensteuerung",
-  "S4": "Stabsstelle 4 - Versorgung, Logistik, Material, Fahrzeuge, Nachschub",
-  "S5": "Stabsstelle 5 - Presse und Medien, Öffentlichkeitsarbeit, Kommunikation nach außen",
-  "S6": "Stabsstelle 6 - Kommunikation und IT, Fernmeldetechnik, Datenverarbeitung"
+  "LTSTB": `Leiter Technischer Einsatzleitung - Gesamtverantwortung und strategische Führung.
+    KERNAUFGABEN: Lagebesprechungen einberufen, Einsatzschwerpunkte festlegen, Ressourcenverteilung zwischen Abschnitten entscheiden,
+    Eskalation an übergeordnete Stellen (BH, LWZ), Koordination mit externen Stellen (Gemeinde, Polizei, Rettung).
+    ENTSCHEIDUNGEN: Evakuierungsanordnungen, Alarmstufen-Änderungen, Anforderung Katastrophenhilfe Bundesheer`,
+
+  "S1": `Stabsstelle 1 - Personal und Innerer Dienst.
+    KERNAUFGABEN: Personalstärke erfassen (Anzahl Kräfte pro Einheit), Ablöseplanung mit konkreten Uhrzeiten erstellen,
+    Verpflegung organisieren (Mengen, Ausgabeorte, Zeiten), Unterkünfte für Bereitschaft einrichten.
+    MESSBARE ERGEBNISSE: X Einsatzkräfte im Einsatz, Y in Bereitschaft, Ablösung um HH:MM, Essen für Z Personen`,
+
+  "S2": `Stabsstelle 2 - Lage und Dokumentation.
+    KERNAUFGABEN: Lagekarte mit allen Einsatzstellen führen, Pegelstände/Messwerte dokumentieren,
+    Lagemeldungen zu festen Zeiten erstellen, Einsatztagebuch führen, Wetterdaten abfragen.
+    MESSBARE ERGEBNISSE: Lagemeldung Nr. X erstellt, Pegel bei Y cm, Z aktive Einsatzstellen dokumentiert`,
+
+  "S3": `Stabsstelle 3 - Einsatz und Taktik.
+    KERNAUFGABEN: Einsatzbefehle formulieren (WER macht WAS, WO, bis WANN), Fahrzeuge/Geräte zuweisen,
+    Einsatzabschnitte gliedern, taktische Maßnahmen anordnen (Pumpenstrecken, Sandsackverbau, Evakuierungsrouten).
+    MESSBARE ERGEBNISSE: Einsatzbefehl für Adresse X, Y Fahrzeuge zugewiesen, Pumpenstrecke A nach B aktiv`,
+
+  "S4": `Stabsstelle 4 - Versorgung und Logistik.
+    KERNAUFGABEN: Material beschaffen (Sandsäcke, Pumpen, Treibstoff mit Mengenangaben), Nachschub organisieren,
+    Gerätewartung koordinieren, Betankung sicherstellen, Materiallager einrichten.
+    MESSBARE ERGEBNISSE: X Sandsäcke bestellt/geliefert, Y Liter Diesel verfügbar, Materiallager bei Adresse Z`,
+
+  "S5": `Stabsstelle 5 - Presse und Öffentlichkeitsarbeit.
+    KERNAUFGABEN: Pressemitteilungen mit konkreten Fakten erstellen, Warndurchsagen formulieren (Inhalt, Gebiet),
+    Social-Media-Updates, Bürgertelefon koordinieren, Pressekonferenzen organisieren.
+    MESSBARE ERGEBNISSE: Pressemeldung um HH:MM, Warnung für Gebiet X, Bürgertelefon erreichbar unter Y`,
+
+  "S6": `Stabsstelle 6 - Kommunikation und IT.
+    KERNAUFGABEN: Funkverkehr organisieren (Kanäle, Rufgruppen), IT-Systeme betreuen, Relaisstationen aufbauen,
+    Kommunikationsausfälle beheben, Einsatzleitsystem-Support.
+    MESSBARE ERGEBNISSE: Funkkanal X aktiv, Relaisstation bei Y aufgebaut, IT-Problem Z behoben`
 };
 
 // In-Memory Cache
