@@ -17,9 +17,14 @@ import {
   checkConfiguredModels,
   getModelForTask
 } from "./llm_client.js";
-import { 
-  CONFIG, 
-  setActiveModel, 
+import {
+  CONFIG,
+  getTaskConfig,
+  updateTaskConfig,
+  setGlobalModelOverride,
+  getAllTaskConfigs,
+  // Legacy-Kompatibilität
+  setActiveModel,
   getActiveModelConfig,
   setTaskModel,
   getAllModels
@@ -361,90 +366,67 @@ app.post("/api/llm/test", rateLimit(RateLimitProfiles.STRICT), async (req, res) 
 app.get("/api/llm/config", async (_req, res) => {
   try {
     const modelStatus = await checkConfiguredModels();
-    const taskModels = CONFIG.llm.taskModels;
-    
-    // Welches Modell wird für welchen Task verwendet?
-    const taskModelDetails = {};
-    for (const [task, modelKey] of Object.entries(taskModels)) {
-      const model = CONFIG.llm.models[modelKey];
-      taskModelDetails[task] = {
-        key: modelKey,
-        name: model?.name || "unknown",
-        timeout: model?.timeout || 0,
-        description: model?.description || ""
-      };
-    }
-    
+    const allTaskConfigs = getAllTaskConfigs();
+
     res.json({
       ok: true,
-      activeModel: modelStatus.activeConfig,
-      configuredModels: CONFIG.llm.models,
-      taskModels: taskModelDetails,
+      globalModelOverride: allTaskConfigs.globalModelOverride,
+      tasks: allTaskConfigs.tasks,
       installedModels: modelStatus.installed,
       available: modelStatus.available,
       missing: modelStatus.missing
     });
   } catch (err) {
-    logError("Fehler beim Laden der Modell-Konfiguration", { error: String(err) });
+    logError("Fehler beim Laden der Task-Konfiguration", { error: String(err) });
     res.status(500).json({ ok: false, error: String(err) });
   }
 });
 
-// Aktives Modell wechseln (global)
-app.post("/api/llm/model", (req, res) => {
+// Globales Modell-Override setzen
+app.post("/api/llm/global-model", (req, res) => {
   const { model } = req.body || {};
-  
-  if (!model) {
-    return res.status(400).json({ 
-      ok: false, 
-      error: "model fehlt. Erlaubte Werte: fast, balanced, auto" 
-    });
-  }
-  
+
   try {
-    setActiveModel(model);
-    
-    const newConfig = getActiveModelConfig();
-    logInfo("Modell gewechselt", { model, config: newConfig });
-    
-    // SSE-Broadcast für Dashboard-Updates
-    broadcastSSE("model_changed", { model, config: newConfig });
-    
+    setGlobalModelOverride(model || null);
+
+    logInfo("Globales Modell-Override gesetzt", { model: model || "deaktiviert" });
+    broadcastSSE("global_model_changed", { model });
+
     res.json({
       ok: true,
-      message: `Modell gewechselt zu: ${model}`,
-      activeModel: newConfig
+      message: model ? `Globales Modell: ${model}` : "Task-spezifische Modelle aktiv",
+      globalModelOverride: model || null
     });
   } catch (err) {
-    logError("Fehler beim Modell-Wechsel", { error: String(err), model });
+    logError("Fehler beim Setzen des globalen Modells", { error: String(err), model });
     res.status(400).json({ ok: false, error: String(err) });
   }
 });
 
-// Task-spezifisches Modell setzen
-app.post("/api/llm/task-model", (req, res) => {
-  const { taskType, model } = req.body || {};
-  
-  if (!taskType || !model) {
-    return res.status(400).json({ 
-      ok: false, 
-      error: "taskType und model erforderlich. taskType: start|operations|chat|default, model: fast|balanced" 
+// Task-Konfiguration aktualisieren (alle Parameter)
+app.post("/api/llm/task-config", (req, res) => {
+  const { taskType, updates } = req.body || {};
+
+  if (!taskType || !updates) {
+    return res.status(400).json({
+      ok: false,
+      error: "taskType und updates erforderlich"
     });
   }
-  
+
   try {
-    setTaskModel(taskType, model);
-    
-    logInfo("Task-Modell gesetzt", { taskType, model });
-    broadcastSSE("task_model_changed", { taskType, model });
-    
+    updateTaskConfig(taskType, updates);
+
+    logInfo("Task-Config aktualisiert", { taskType, updates });
+    broadcastSSE("task_config_changed", { taskType, updates });
+
     res.json({
       ok: true,
-      message: `Task "${taskType}" verwendet jetzt Modell: ${model}`,
-      taskModels: CONFIG.llm.taskModels
+      message: `Task "${taskType}" aktualisiert`,
+      taskConfig: getTaskConfig(taskType)
     });
   } catch (err) {
-    logError("Fehler beim Setzen des Task-Modells", { error: String(err), taskType, model });
+    logError("Fehler beim Aktualisieren der Task-Config", { error: String(err), taskType });
     res.status(400).json({ ok: false, error: String(err) });
   }
 });

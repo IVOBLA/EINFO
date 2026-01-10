@@ -1,33 +1,32 @@
 import React, { useEffect, useState } from "react";
 
 /**
- * LLMModelManager - Komponente zur Verwaltung der KI-Modellzuordnung
+ * LLMModelManager - Task-basierte LLM-Konfiguration mit GPU-Monitoring
  *
- * Ermöglicht:
- * - Anzeige verfügbarer Modelle und deren Konfiguration
- * - Task-spezifische Modellzuordnung (start, operations, chat, default)
+ * Features:
+ * - Task-spezifische Parameter (model, temperature, maxTokens, timeout, numGpu, numCtx, topP, topK, repeatPenalty)
  * - Globales Modell-Override
+ * - Live GPU-Monitoring (Auslastung, Temperatur, VRAM)
+ * - Verfügbare Ollama-Modelle
  * - Modell-Testing
  */
 export default function LLMModelManager() {
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving] = useState(null); // taskType beim Speichern
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
 
-  // Modell-Daten
-  const [config, setConfig] = useState(null);
+  // Config-Daten
+  const [globalModelOverride, setGlobalModelOverride] = useState(null);
+  const [tasks, setTasks] = useState({});
   const [ollamaModels, setOllamaModels] = useState([]);
-  const [profiles, setProfiles] = useState([]);
 
-  // Lokale Änderungen
-  const [taskModels, setTaskModels] = useState({
-    start: "",
-    operations: "",
-    chat: "",
-    default: ""
-  });
-  const [activeModel, setActiveModel] = useState("auto");
+  // GPU-Status
+  const [gpuStatus, setGpuStatus] = useState(null);
+  const [gpuLoading, setGpuLoading] = useState(false);
+
+  // Lokale Änderungen (Draft)
+  const [taskDrafts, setTaskDrafts] = useState({});
 
   // Test-Dialog
   const [testingModel, setTestingModel] = useState(null);
@@ -38,6 +37,8 @@ export default function LLMModelManager() {
   // Daten laden
   useEffect(() => {
     loadAll();
+    const interval = setInterval(loadGpuStatus, 5000); // GPU-Status alle 5s
+    return () => clearInterval(interval);
   }, []);
 
   async function loadAll() {
@@ -48,11 +49,10 @@ export default function LLMModelManager() {
       const configRes = await fetch("/api/llm/config", { credentials: "include" });
       const configData = await configRes.json();
       if (!configRes.ok) throw new Error(configData.error || "Fehler beim Laden der Config");
-      setConfig(configData);
 
-      // Lokale States mit Server-Daten synchronisieren
-      setTaskModels(configData.taskModels || {});
-      setActiveModel(configData.activeModel || "auto");
+      setGlobalModelOverride(configData.globalModelOverride);
+      setTasks(configData.tasks || {});
+      setTaskDrafts(configData.tasks || {}); // Initialisiere Drafts
 
       // Ollama-Modelle laden
       const modelsRes = await fetch("/api/llm/models", { credentials: "include" });
@@ -60,12 +60,8 @@ export default function LLMModelManager() {
       if (!modelsRes.ok) throw new Error(modelsData.error || "Fehler beim Laden der Modelle");
       setOllamaModels(modelsData.models || []);
 
-      // Profile laden
-      const profilesRes = await fetch("/api/llm/profiles", { credentials: "include" });
-      const profilesData = await profilesRes.json();
-      if (!profilesRes.ok) throw new Error(profilesData.error || "Fehler beim Laden der Profile");
-      setProfiles(profilesData.profiles || []);
-
+      // GPU-Status initial laden
+      await loadGpuStatus();
     } catch (ex) {
       setErr(ex.message || "Fehler beim Laden der Daten");
     } finally {
@@ -73,49 +69,63 @@ export default function LLMModelManager() {
     }
   }
 
-  async function saveTaskModel(taskType, modelKey) {
-    setSaving(true);
-    setErr("");
-    setMsg("");
+  async function loadGpuStatus() {
+    setGpuLoading(true);
     try {
-      const res = await fetch("/api/llm/task-model", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskType, modelKey })
-      });
+      const res = await fetch("/api/llm/gpu", { credentials: "include" });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Fehler beim Speichern");
-
-      setMsg(`Task "${taskType}" → Modell "${modelKey}" gespeichert`);
-      await loadAll();
-    } catch (ex) {
-      setErr(ex.message || "Fehler beim Speichern");
+      if (res.ok) setGpuStatus(data);
+    } catch {
+      // Ignoriere Fehler beim GPU-Status
     } finally {
-      setSaving(false);
+      setGpuLoading(false);
     }
   }
 
-  async function saveActiveModel(modelKey) {
-    setSaving(true);
+  async function saveGlobalModel() {
+    setSaving("global");
     setErr("");
     setMsg("");
     try {
-      const res = await fetch("/api/llm/model", {
+      const res = await fetch("/api/llm/global-model", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ modelKey })
+        body: JSON.stringify({ model: globalModelOverride })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Fehler beim Speichern");
 
-      setMsg(`Globales Modell auf "${modelKey}" gesetzt`);
+      setMsg(data.message || "Globales Modell gespeichert");
       await loadAll();
     } catch (ex) {
       setErr(ex.message || "Fehler beim Speichern");
     } finally {
-      setSaving(false);
+      setSaving(null);
+    }
+  }
+
+  async function saveTaskConfig(taskType) {
+    setSaving(taskType);
+    setErr("");
+    setMsg("");
+    try {
+      const draft = taskDrafts[taskType];
+      const res = await fetch("/api/llm/task-config", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskType, updates: draft })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Fehler beim Speichern");
+
+      setMsg(`Task "${taskType}" gespeichert`);
+      await loadAll();
+    } catch (ex) {
+      setErr(ex.message || "Fehler beim Speichern");
+    } finally {
+      setSaving(null);
     }
   }
 
@@ -127,10 +137,7 @@ export default function LLMModelManager() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: modelName,
-          question: testQuestion
-        })
+        body: JSON.stringify({ model: modelName, question: testQuestion })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Test fehlgeschlagen");
@@ -143,152 +150,325 @@ export default function LLMModelManager() {
     }
   }
 
+  function updateTaskDraft(taskType, field, value) {
+    setTaskDrafts((prev) => ({
+      ...prev,
+      [taskType]: {
+        ...prev[taskType],
+        [field]: value
+      }
+    }));
+  }
+
+  function hasChanges(taskType) {
+    const original = tasks[taskType];
+    const draft = taskDrafts[taskType];
+    if (!original || !draft) return false;
+    return JSON.stringify(original) !== JSON.stringify(draft);
+  }
+
   if (loading) {
-    return <div className="p-4 text-gray-500">Lade Modell-Konfiguration…</div>;
+    return <div className="p-4 text-gray-500">Lade Konfiguration…</div>;
   }
 
-  if (!config) {
-    return <div className="p-4 text-red-600">Fehler: Keine Konfiguration geladen</div>;
-  }
-
-  const availableModels = config.models || {};
-  const modelKeys = Object.keys(availableModels);
+  const taskList = [
+    { key: "start", label: "Start", description: "Erstes Szenario" },
+    { key: "operations", label: "Operations", description: "Laufende Simulation" },
+    { key: "chat", label: "Chat", description: "QA-Chat" },
+    { key: "analysis", label: "Analysis", description: "KI-Situationsanalyse" },
+    { key: "default", label: "Default", description: "Fallback" }
+  ];
 
   return (
     <div className="space-y-6">
       {/* Status-Meldungen */}
-      {err && <div className="text-rose-700 text-sm">{err}</div>}
-      {msg && <div className="text-emerald-700 text-sm">{msg}</div>}
+      {err && <div className="text-rose-700 text-sm bg-rose-50 p-3 rounded border border-rose-200">{err}</div>}
+      {msg && <div className="text-emerald-700 text-sm bg-emerald-50 p-3 rounded border border-emerald-200">{msg}</div>}
 
-      {/* 1. Globales Modell-Override */}
-      <div className="border rounded p-4 bg-gray-50">
-        <h3 className="font-medium mb-3">Globales Modell-Override</h3>
-        <div className="text-xs text-gray-600 mb-3">
-          Wenn nicht "auto", wird dieses Modell für ALLE Tasks verwendet (überschreibt task-spezifische Zuordnung).
-        </div>
-        <div className="flex items-center gap-3">
-          <select
-            className="border rounded px-3 py-2 flex-1"
-            value={activeModel}
-            onChange={(e) => setActiveModel(e.target.value)}
-            disabled={saving}
-          >
-            <option value="auto">auto (task-spezifisch)</option>
-            {modelKeys.map((key) => (
-              <option key={key} value={key}>
-                {key} ({availableModels[key].name})
-              </option>
-            ))}
-          </select>
+      {/* GPU-Status */}
+      <div className="border rounded p-4 bg-gradient-to-r from-gray-50 to-blue-50">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-medium flex items-center gap-2">
+            <span className="text-xl">🖥️</span> GPU-Status
+          </h3>
           <button
             type="button"
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
-            onClick={() => saveActiveModel(activeModel)}
-            disabled={saving || activeModel === config.activeModel}
+            className="text-xs px-2 py-1 border rounded hover:bg-white"
+            onClick={loadGpuStatus}
+            disabled={gpuLoading}
           >
-            Speichern
+            {gpuLoading ? "⟳" : "↻"} Aktualisieren
           </button>
         </div>
-        {config.activeModel !== "auto" && (
-          <div className="mt-2 text-sm text-amber-700">
-            ⚠️ Aktuell aktiv: <b>{config.activeModel}</b> - Task-spezifische Zuordnungen werden ignoriert!
+
+        {gpuStatus && gpuStatus.available && gpuStatus.gpus ? (
+          <div className="space-y-3">
+            {gpuStatus.gpus.map((gpu, idx) => (
+              <div key={idx} className="bg-white rounded p-3 border">
+                <div className="font-medium text-sm mb-2">{gpu.name}</div>
+                <div className="grid grid-cols-3 gap-3 text-xs">
+                  <div>
+                    <div className="text-gray-500">GPU-Auslastung</div>
+                    <div className="text-lg font-bold" style={{ color: gpu.utilizationPercent > 80 ? "#dc2626" : "#10b981" }}>
+                      {gpu.utilizationPercent ?? "–"}%
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-gray-500">Temperatur</div>
+                    <div className="text-lg font-bold" style={{ color: gpu.temperatureCelsius > 75 ? "#dc2626" : "#10b981" }}>
+                      {gpu.temperatureCelsius ?? "–"}°C
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-gray-500">VRAM</div>
+                    <div className="text-lg font-bold">
+                      {gpu.memoryUsedMb && gpu.memoryTotalMb
+                        ? `${(gpu.memoryUsedMb / 1024).toFixed(1)} / ${(gpu.memoryTotalMb / 1024).toFixed(1)} GB`
+                        : "–"}
+                    </div>
+                    {gpu.memoryUsedMb && gpu.memoryTotalMb && (
+                      <div className="mt-1 w-full bg-gray-200 rounded-full h-2">
+                        <div
+                          className="h-2 rounded-full"
+                          style={{
+                            width: `${(gpu.memoryUsedMb / gpu.memoryTotalMb) * 100}%`,
+                            backgroundColor: (gpu.memoryUsedMb / gpu.memoryTotalMb) > 0.9 ? "#dc2626" : "#10b981"
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+            {gpuStatus.warning && (
+              <div className="text-amber-700 text-xs bg-amber-50 p-2 rounded">⚠️ {gpuStatus.warning}</div>
+            )}
+          </div>
+        ) : (
+          <div className="text-sm text-gray-500">
+            {gpuStatus?.error || "GPU-Status nicht verfügbar"}
           </div>
         )}
       </div>
 
-      {/* 2. Task-spezifische Modellzuordnung */}
-      <div className="border rounded p-4">
-        <h3 className="font-medium mb-3">Task-spezifische Modellzuordnung</h3>
+      {/* Globales Modell-Override */}
+      <div className="border rounded p-4 bg-gray-50">
+        <h3 className="font-medium mb-3">Globales Modell-Override</h3>
         <div className="text-xs text-gray-600 mb-3">
-          Ordne jedem Task-Typ ein Modell-Profil zu. Nur aktiv wenn globales Override = "auto".
+          Optional: Überschreibt alle task-spezifischen Modelle. Leer lassen für task-spezifische Konfiguration.
         </div>
-
-        <div className="space-y-3">
-          {[
-            { key: "start", label: "Start (Erstes Szenario)", description: "Wird beim Erstellen eines neuen Szenarios verwendet" },
-            { key: "operations", label: "Operations (Laufende Simulation)", description: "Wird während der Simulation für Operationen verwendet" },
-            { key: "chat", label: "Chat (QA-Chat)", description: "Wird für Fragen & Antworten im Chat verwendet" },
-            { key: "analysis", label: "Analysis (KI-Situationsanalyse)", description: "Wird für die automatische Situationsanalyse und Handlungsempfehlungen verwendet" },
-            { key: "default", label: "Default (Fallback)", description: "Fallback für alle nicht-spezifizierten Tasks" }
-          ].map((task) => (
-            <div key={task.key} className="flex items-start gap-3 pb-3 border-b last:border-b-0">
-              <div className="flex-1">
-                <div className="font-medium text-sm">{task.label}</div>
-                <div className="text-xs text-gray-500">{task.description}</div>
-              </div>
-              <select
-                className="border rounded px-3 py-2 min-w-[200px]"
-                value={taskModels[task.key] || "balanced"}
-                onChange={(e) => setTaskModels((prev) => ({ ...prev, [task.key]: e.target.value }))}
-                disabled={saving}
-              >
-                {modelKeys.map((key) => (
-                  <option key={key} value={key}>
-                    {key} ({availableModels[key].name})
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 text-sm"
-                onClick={() => saveTaskModel(task.key, taskModels[task.key])}
-                disabled={saving || taskModels[task.key] === config.taskModels[task.key]}
-              >
-                Speichern
-              </button>
-            </div>
-          ))}
+        <div className="flex items-center gap-3">
+          <input
+            type="text"
+            className="border rounded px-3 py-2 flex-1 font-mono text-sm"
+            value={globalModelOverride || ""}
+            onChange={(e) => setGlobalModelOverride(e.target.value || null)}
+            placeholder="z.B. einfo-balanced (leer = deaktiviert)"
+            disabled={saving === "global"}
+          />
+          <button
+            type="button"
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
+            onClick={saveGlobalModel}
+            disabled={saving === "global"}
+          >
+            {saving === "global" ? "Speichere..." : "Speichern"}
+          </button>
         </div>
+        {globalModelOverride && (
+          <div className="mt-2 text-sm text-amber-700">
+            ⚠️ Aktiv: Alle Tasks verwenden <b>{globalModelOverride}</b>
+          </div>
+        )}
       </div>
 
-      {/* 3. Verfügbare Modell-Profile */}
+      {/* Task-Konfigurationen */}
       <div className="border rounded p-4">
-        <h3 className="font-medium mb-3">Verfügbare Modell-Profile</h3>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-3 py-2 text-left">Profil-Key</th>
-                <th className="px-3 py-2 text-left">Modellname</th>
-                <th className="px-3 py-2 text-left">Beschreibung</th>
-                <th className="px-3 py-2 text-left">Temperatur</th>
-                <th className="px-3 py-2 text-left">Timeout</th>
-                <th className="px-3 py-2"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {modelKeys.map((key) => {
-                const model = availableModels[key];
-                return (
-                  <tr key={key} className="border-t hover:bg-gray-50">
-                    <td className="px-3 py-2 font-mono font-medium">{key}</td>
-                    <td className="px-3 py-2 font-mono text-xs">{model.name}</td>
-                    <td className="px-3 py-2 text-xs text-gray-600">{model.description || "–"}</td>
-                    <td className="px-3 py-2 text-xs">{model.temperature ?? "–"}</td>
-                    <td className="px-3 py-2 text-xs">{model.timeout ? `${model.timeout / 1000}s` : "–"}</td>
-                    <td className="px-3 py-2">
-                      <button
-                        type="button"
-                        className="text-blue-600 hover:text-blue-800 text-xs"
-                        onClick={() => setTestingModel(model.name)}
-                      >
-                        Testen
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <h3 className="font-medium mb-3">Task-Konfigurationen</h3>
+        <div className="text-xs text-gray-600 mb-4">
+          Jeder Task kann individuelle Parameter haben. Nur aktiv wenn globales Override leer ist.
+        </div>
+
+        <div className="space-y-6">
+          {taskList.map((task) => {
+            const draft = taskDrafts[task.key] || {};
+            const changed = hasChanges(task.key);
+
+            return (
+              <details key={task.key} className="border rounded bg-white" open={task.key === "chat"}>
+                <summary className="cursor-pointer p-3 font-medium hover:bg-gray-50 flex items-center justify-between">
+                  <span>
+                    {task.label} <span className="text-xs text-gray-500">({task.description})</span>
+                  </span>
+                  {changed && <span className="text-xs bg-amber-100 text-amber-700 px-2 py-1 rounded">Ungespeichert</span>}
+                </summary>
+
+                <div className="p-4 border-t space-y-3">
+                  {/* Modell */}
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Modell</label>
+                    <input
+                      type="text"
+                      className="w-full border rounded px-3 py-2 font-mono text-sm"
+                      value={draft.model || ""}
+                      onChange={(e) => updateTaskDraft(task.key, "model", e.target.value)}
+                      placeholder="z.B. einfo-balanced"
+                    />
+                  </div>
+
+                  {/* Parameter-Grid */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Temperature */}
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Temperature</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="2"
+                        className="w-full border rounded px-3 py-2"
+                        value={draft.temperature ?? 0}
+                        onChange={(e) => updateTaskDraft(task.key, "temperature", Number(e.target.value))}
+                      />
+                      <div className="text-xs text-gray-500 mt-1">0.0 = deterministisch, 1.0 = kreativ</div>
+                    </div>
+
+                    {/* Max Tokens */}
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Max Tokens</label>
+                      <input
+                        type="number"
+                        step="100"
+                        min="100"
+                        max="8000"
+                        className="w-full border rounded px-3 py-2"
+                        value={draft.maxTokens ?? 0}
+                        onChange={(e) => updateTaskDraft(task.key, "maxTokens", Number(e.target.value))}
+                      />
+                    </div>
+
+                    {/* Timeout */}
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Timeout (ms)</label>
+                      <input
+                        type="number"
+                        step="1000"
+                        min="10000"
+                        max="600000"
+                        className="w-full border rounded px-3 py-2"
+                        value={draft.timeout ?? 0}
+                        onChange={(e) => updateTaskDraft(task.key, "timeout", Number(e.target.value))}
+                      />
+                      <div className="text-xs text-gray-500 mt-1">{((draft.timeout || 0) / 1000).toFixed(0)}s</div>
+                    </div>
+
+                    {/* Num GPU */}
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Num GPU (Layers)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="99"
+                        className="w-full border rounded px-3 py-2"
+                        value={draft.numGpu ?? 0}
+                        onChange={(e) => updateTaskDraft(task.key, "numGpu", Number(e.target.value))}
+                      />
+                      <div className="text-xs text-gray-500 mt-1">0 = CPU, 20+ = GPU</div>
+                    </div>
+
+                    {/* Num Ctx */}
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Context Size</label>
+                      <input
+                        type="number"
+                        step="512"
+                        min="512"
+                        max="32768"
+                        className="w-full border rounded px-3 py-2"
+                        value={draft.numCtx ?? 0}
+                        onChange={(e) => updateTaskDraft(task.key, "numCtx", Number(e.target.value))}
+                      />
+                    </div>
+
+                    {/* Top P */}
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Top P</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="1"
+                        className="w-full border rounded px-3 py-2"
+                        value={draft.topP ?? 0}
+                        onChange={(e) => updateTaskDraft(task.key, "topP", Number(e.target.value))}
+                      />
+                    </div>
+
+                    {/* Top K */}
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Top K</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="100"
+                        className="w-full border rounded px-3 py-2"
+                        value={draft.topK ?? 0}
+                        onChange={(e) => updateTaskDraft(task.key, "topK", Number(e.target.value))}
+                      />
+                    </div>
+
+                    {/* Repeat Penalty */}
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Repeat Penalty</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="1"
+                        max="2"
+                        className="w-full border rounded px-3 py-2"
+                        value={draft.repeatPenalty ?? 0}
+                        onChange={(e) => updateTaskDraft(task.key, "repeatPenalty", Number(e.target.value))}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Aktionen */}
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      type="button"
+                      className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
+                      onClick={() => saveTaskConfig(task.key)}
+                      disabled={saving === task.key || !changed}
+                    >
+                      {saving === task.key ? "Speichere..." : "Speichern"}
+                    </button>
+                    <button
+                      type="button"
+                      className="px-4 py-2 border rounded hover:bg-gray-50"
+                      onClick={() => setTaskDrafts((prev) => ({ ...prev, [task.key]: tasks[task.key] }))}
+                      disabled={!changed}
+                    >
+                      Zurücksetzen
+                    </button>
+                    <button
+                      type="button"
+                      className="ml-auto px-4 py-2 border rounded hover:bg-gray-50 text-blue-600"
+                      onClick={() => setTestingModel(draft.model)}
+                    >
+                      Modell testen
+                    </button>
+                  </div>
+                </div>
+              </details>
+            );
+          })}
         </div>
       </div>
 
-      {/* 4. Ollama-Modelle */}
+      {/* Verfügbare Ollama-Modelle */}
       <div className="border rounded p-4">
         <h3 className="font-medium mb-3">Verfügbare Ollama-Modelle</h3>
-        <div className="text-xs text-gray-600 mb-3">
-          Diese Modelle sind in Ollama verfügbar. Um sie zu verwenden, müssen sie in der .env Datei konfiguriert werden.
-        </div>
         {ollamaModels.length === 0 ? (
           <div className="text-sm text-gray-500">Keine Modelle gefunden oder Ollama nicht erreichbar</div>
         ) : (
@@ -382,14 +562,7 @@ export default function LLMModelManager() {
                         <div className="text-sm whitespace-pre-wrap">{testResult.answer}</div>
                       </div>
                       {testResult.duration && (
-                        <div className="text-xs text-gray-500">
-                          Dauer: {testResult.duration}ms
-                        </div>
-                      )}
-                      {testResult.gpuStatus && (
-                        <div className="text-xs text-gray-500">
-                          GPU: {testResult.gpuStatus.available ? "✓ Verfügbar" : "✗ Nicht verfügbar"}
-                        </div>
+                        <div className="text-xs text-gray-500">Dauer: {testResult.duration}ms</div>
                       )}
                     </div>
                   )}
