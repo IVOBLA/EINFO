@@ -193,6 +193,11 @@ export async function callLLMForOps({
   // ============================================================
   const taskType = llmInput.firstStep ? "start" : "operations";
   const taskConfig = getModelForTask(taskType);  // Gibt jetzt Task-Config zurück
+
+  if (!taskConfig || !taskConfig.model) {
+    throw new Error(`Keine gültige Task-Konfiguration für Task-Typ: ${taskType}`);
+  }
+
   logTaskSelection(taskType, taskConfig);
 
   const body = {
@@ -217,7 +222,7 @@ export async function callLLMForOps({
 
   setLLMHistoryMeta(parsed?.meta || {});
 
-  return { parsed, rawText, systemPrompt, userMessage: userPrompt, messages, model: modelConfig.name };
+  return { parsed, rawText, systemPrompt, userMessage: userPrompt, messages, model: taskConfig.model };
 }
 
 
@@ -300,6 +305,10 @@ export async function callLLMForChat(arg1, arg2, arg3) {
   // Task-Config holen (alle Parameter aus zentraler Config)
   // ============================================================
   const taskConfig = getModelForTask("chat");
+
+  if (!taskConfig || !taskConfig.model) {
+    throw new Error("Keine gültige Task-Konfiguration für Chat");
+  }
 
   // Wenn explizites Modell angegeben, nur Modellname überschreiben
   if (model) {

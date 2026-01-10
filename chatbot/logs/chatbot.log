@@ -2219,3 +2219,117 @@
 {"ts":"2026-01-05T16:32:40.578Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
 {"ts":"2026-01-05T16:33:10.600Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
 {"ts":"2026-01-05T16:40:10.900Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-10T16:44:09.636Z","level":"INFO","msg":"LLM Feedback System initialisiert","extra":{"learnedResponsesCount":0}}
+{"ts":"2026-01-10T16:44:09.695Z","level":"ERROR","msg":"LLM-Modelle konnten nicht geladen werden","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.702Z","level":"ERROR","msg":"LLM-Modelle konnten nicht geladen werden","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.705Z","level":"ERROR","msg":"LLM-Modelle konnten nicht geladen werden","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.755Z","level":"ERROR","msg":"LLM-Modelle konnten nicht geladen werden","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.756Z","level":"ERROR","msg":"Fehler beim Prüfen der Modelle","extra":{"error":"Error: Ollama-Modelle nicht erreichbar"}}
+{"ts":"2026-01-10T16:44:09.771Z","level":"ERROR","msg":"LLM-Modelle konnten nicht geladen werden","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.771Z","level":"ERROR","msg":"Fehler beim Prüfen der Modelle","extra":{"error":"Error: Ollama-Modelle nicht erreichbar"}}
+{"ts":"2026-01-10T16:44:09.774Z","level":"ERROR","msg":"LLM-Modelle konnten nicht geladen werden","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.775Z","level":"ERROR","msg":"Fehler beim Prüfen der Modelle","extra":{"error":"Error: Ollama-Modelle nicht erreichbar"}}
+{"ts":"2026-01-10T16:44:09.778Z","level":"ERROR","msg":"LLM-Modelle konnten nicht geladen werden","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.797Z","level":"ERROR","msg":"LLM-Modelle konnten nicht geladen werden","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.808Z","level":"ERROR","msg":"LLM-Modelle konnten nicht geladen werden","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.809Z","level":"ERROR","msg":"LLM-Modelle konnten nicht geladen werden","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.810Z","level":"ERROR","msg":"LLM-Modelle konnten nicht geladen werden","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.813Z","level":"ERROR","msg":"LLM-Modelle konnten nicht geladen werden","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.815Z","level":"ERROR","msg":"LLM-Modelle konnten nicht geladen werden","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.897Z","level":"DEBUG","msg":"Vector-Index (JS) geladen","extra":{"elements":1207,"dim":1024}}
+{"ts":"2026-01-10T16:44:09.913Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.914Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.918Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.919Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.921Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.922Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.924Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.925Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.928Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.928Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.932Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.944Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.947Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.952Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.955Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.959Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.960Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.960Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.960Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.967Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.967Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.968Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.968Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.968Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.968Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.969Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.969Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.969Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.969Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.970Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.970Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.974Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.974Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.977Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.977Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.981Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.982Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.985Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:44:09.985Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.268Z","level":"INFO","msg":"LLM Feedback System initialisiert","extra":{"learnedResponsesCount":0}}
+{"ts":"2026-01-10T16:45:18.401Z","level":"ERROR","msg":"LLM-Modelle konnten nicht geladen werden","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.411Z","level":"ERROR","msg":"LLM-Modelle konnten nicht geladen werden","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.415Z","level":"ERROR","msg":"LLM-Modelle konnten nicht geladen werden","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.419Z","level":"ERROR","msg":"LLM-Modelle konnten nicht geladen werden","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.419Z","level":"ERROR","msg":"Fehler beim Prüfen der Modelle","extra":{"error":"Error: Ollama-Modelle nicht erreichbar"}}
+{"ts":"2026-01-10T16:45:18.423Z","level":"ERROR","msg":"LLM-Modelle konnten nicht geladen werden","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.423Z","level":"ERROR","msg":"Fehler beim Prüfen der Modelle","extra":{"error":"Error: Ollama-Modelle nicht erreichbar"}}
+{"ts":"2026-01-10T16:45:18.426Z","level":"ERROR","msg":"LLM-Modelle konnten nicht geladen werden","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.427Z","level":"ERROR","msg":"Fehler beim Prüfen der Modelle","extra":{"error":"Error: Ollama-Modelle nicht erreichbar"}}
+{"ts":"2026-01-10T16:45:18.429Z","level":"ERROR","msg":"LLM-Modelle konnten nicht geladen werden","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.432Z","level":"ERROR","msg":"LLM-Modelle konnten nicht geladen werden","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.437Z","level":"ERROR","msg":"LLM-Modelle konnten nicht geladen werden","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.437Z","level":"ERROR","msg":"LLM-Modelle konnten nicht geladen werden","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.438Z","level":"ERROR","msg":"LLM-Modelle konnten nicht geladen werden","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.440Z","level":"ERROR","msg":"LLM-Modelle konnten nicht geladen werden","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.442Z","level":"ERROR","msg":"LLM-Modelle konnten nicht geladen werden","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.511Z","level":"DEBUG","msg":"Vector-Index (JS) geladen","extra":{"elements":1207,"dim":1024}}
+{"ts":"2026-01-10T16:45:18.526Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.527Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.531Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.531Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.534Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.535Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.537Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.537Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.541Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.541Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.545Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.557Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.560Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.565Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.568Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.572Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.573Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.574Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.574Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.580Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.580Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.581Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.581Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.581Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.581Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.582Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.582Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.582Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.582Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.583Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.583Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.587Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.587Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.590Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.590Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.593Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.593Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.596Z","level":"ERROR","msg":"Embedding-HTTP-Fehler","extra":{"error":"TypeError: fetch failed"}}
+{"ts":"2026-01-10T16:45:18.596Z","level":"ERROR","msg":"Embedding für Query fehlgeschlagen","extra":{"error":"TypeError: fetch failed"}}

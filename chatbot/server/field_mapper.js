@@ -361,6 +361,22 @@ export function normalizeRole(role) {
   return String(role).trim().toUpperCase();
 }
 
+/**
+ * Normalisiert ein Array von Rollen (entfernt Duplikate und leere Einträge)
+ * @param {string[]} roles - Array von Rollen
+ * @returns {string[]} - Normalisiertes Array
+ */
+export function normalizeRoleArray(roles) {
+  if (!Array.isArray(roles)) return [];
+
+  const normalized = roles
+    .map(role => normalizeRole(role))
+    .filter(role => role && role.length > 0);
+
+  // Duplikate entfernen
+  return [...new Set(normalized)];
+}
+
 // ============================================================
 // Export für Tests
 // ============================================================
