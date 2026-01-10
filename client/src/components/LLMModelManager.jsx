@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { buildChatbotApiUrl } from "../utils/http.js";
 
 /**
  * LLMModelManager - Task-basierte LLM-Konfiguration mit GPU-Monitoring
@@ -46,7 +47,7 @@ export default function LLMModelManager() {
     setErr("");
     try {
       // Config laden
-      const configRes = await fetch("/api/llm/config", { credentials: "include" });
+      const configRes = await fetch(buildChatbotApiUrl("/api/llm/config"), { credentials: "include" });
       const configData = await configRes.json();
       if (!configRes.ok) throw new Error(configData.error || "Fehler beim Laden der Config");
 
@@ -55,7 +56,7 @@ export default function LLMModelManager() {
       setTaskDrafts(configData.tasks || {}); // Initialisiere Drafts
 
       // Ollama-Modelle laden
-      const modelsRes = await fetch("/api/llm/models", { credentials: "include" });
+      const modelsRes = await fetch(buildChatbotApiUrl("/api/llm/models"), { credentials: "include" });
       const modelsData = await modelsRes.json();
       if (!modelsRes.ok) throw new Error(modelsData.error || "Fehler beim Laden der Modelle");
       setOllamaModels(modelsData.models || []);
@@ -72,7 +73,7 @@ export default function LLMModelManager() {
   async function loadGpuStatus() {
     setGpuLoading(true);
     try {
-      const res = await fetch("/api/llm/gpu", { credentials: "include" });
+      const res = await fetch(buildChatbotApiUrl("/api/llm/gpu"), { credentials: "include" });
       const data = await res.json();
       if (res.ok) setGpuStatus(data);
     } catch {
@@ -87,7 +88,7 @@ export default function LLMModelManager() {
     setErr("");
     setMsg("");
     try {
-      const res = await fetch("/api/llm/global-model", {
+      const res = await fetch(buildChatbotApiUrl("/api/llm/global-model"), {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -111,7 +112,7 @@ export default function LLMModelManager() {
     setMsg("");
     try {
       const draft = taskDrafts[taskType];
-      const res = await fetch("/api/llm/task-config", {
+      const res = await fetch(buildChatbotApiUrl("/api/llm/task-config"), {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -133,7 +134,7 @@ export default function LLMModelManager() {
     setTestRunning(true);
     setTestResult(null);
     try {
-      const res = await fetch("/api/llm/test-model", {
+      const res = await fetch(buildChatbotApiUrl("/api/llm/test-model"), {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
