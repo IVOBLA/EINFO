@@ -1475,6 +1475,45 @@ app.use(compression({
  }));
 app.use(cors({ origin:true, credentials:true }));
 app.use(express.json({ limit:"10mb" }));
+
+// ============================================================
+// Chatbot-API-Proxy: Leitet alle /api/llm/* Anfragen an Port 3100
+// ============================================================
+app.use("/api/llm", async (req, res) => {
+  const CHATBOT_BASE_URL = process.env.CHATBOT_BASE_URL || "http://127.0.0.1:3100";
+  const targetUrl = `${CHATBOT_BASE_URL}${req.originalUrl}`;
+
+  try {
+    const headers = { ...req.headers };
+    delete headers.host; // Remove host header to avoid conflicts
+    delete headers["content-length"]; // Will be recalculated
+
+    const fetchOptions = {
+      method: req.method,
+      headers: {
+        ...headers,
+        "Content-Type": req.headers["content-type"] || "application/json"
+      }
+    };
+
+    // Forward body for POST/PUT/PATCH requests
+    if (["POST", "PUT", "PATCH"].includes(req.method) && req.body) {
+      fetchOptions.body = JSON.stringify(req.body);
+    }
+
+    const response = await fetch(targetUrl, fetchOptions);
+    const data = await response.json();
+
+    res.status(response.status).json(data);
+  } catch (error) {
+    console.error(`[Chatbot Proxy] Error forwarding request to ${targetUrl}:`, error.message);
+    res.status(503).json({
+      ok: false,
+      error: "Chatbot-Server nicht erreichbar. Bitte sicherstellen, dass der Chatbot-Server läuft."
+    });
+  }
+});
+
 app.use("/api/protocol", protocolRouter);
 
 app.use("/api/user", userRolesRouter({ dataDir: DATA_DIR }));
