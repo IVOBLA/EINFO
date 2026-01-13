@@ -16,6 +16,7 @@ export default function LLMModelManager() {
   const [saving, setSaving] = useState(null); // taskType beim Speichern
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
+  const [retrying, setRetrying] = useState(false); // Retry-Status bei Netzwerkfehlern
 
   // Config-Daten
   const [globalModelOverride, setGlobalModelOverride] = useState(null);
@@ -35,15 +36,30 @@ export default function LLMModelManager() {
   const [testResult, setTestResult] = useState(null);
   const [testRunning, setTestRunning] = useState(false);
 
-  // Daten laden
+  // Daten laden mit Auto-Retry bei Netzwerkfehlern
   useEffect(() => {
     loadAll();
-    const interval = setInterval(loadGpuStatus, 5000); // GPU-Status alle 5s
-    return () => clearInterval(interval);
-  }, []);
+    const gpuInterval = setInterval(loadGpuStatus, 5000); // GPU-Status alle 5s
+
+    // Retry-Mechanismus: Versuche alle 3 Sekunden neu zu laden wenn Netzwerkfehler
+    const retryInterval = setInterval(() => {
+      if (retrying) {
+        loadAll();
+      }
+    }, 3000);
+
+    return () => {
+      clearInterval(gpuInterval);
+      clearInterval(retryInterval);
+    };
+  }, [retrying]);
 
   async function loadAll() {
-    setLoading(true);
+    // Beim ersten Laden oder manuellen Reload: zeige Loading-Spinner
+    // Bei Auto-Retry: zeige nur Retry-Meldung, kein Loading-Spinner
+    if (!retrying) {
+      setLoading(true);
+    }
     setErr("");
     try {
       // Config laden
@@ -63,13 +79,18 @@ export default function LLMModelManager() {
 
       // GPU-Status initial laden
       await loadGpuStatus();
+
+      // Erfolgreich geladen - stoppe Retry
+      setRetrying(false);
     } catch (ex) {
       // NetworkError / TypeError indicates server not reachable
       if (ex instanceof TypeError || ex.name === "TypeError" ||
           (ex.message && ex.message.toLowerCase().includes("network"))) {
         setErr(CHATBOT_SERVER_ERROR_MESSAGE);
+        setRetrying(true); // Aktiviere Auto-Retry
       } else {
         setErr(ex.message || "Fehler beim Laden der Daten");
+        setRetrying(false); // Kein Auto-Retry bei anderen Fehlern
       }
     } finally {
       setLoading(false);
@@ -204,7 +225,17 @@ export default function LLMModelManager() {
   return (
     <div className="space-y-6">
       {/* Status-Meldungen */}
-      {err && <div className="text-rose-700 text-sm bg-rose-50 p-3 rounded border border-rose-200">{err}</div>}
+      {err && (
+        <div className="text-rose-700 text-sm bg-rose-50 p-3 rounded border border-rose-200">
+          {err}
+          {retrying && (
+            <div className="mt-2 text-amber-700 flex items-center gap-2">
+              <span className="animate-spin">⟳</span>
+              <span>Versuche automatisch erneut, Verbindung herzustellen...</span>
+            </div>
+          )}
+        </div>
+      )}
       {msg && <div className="text-emerald-700 text-sm bg-emerald-50 p-3 rounded border border-emerald-200">{msg}</div>}
 
       {/* GPU-Status */}
