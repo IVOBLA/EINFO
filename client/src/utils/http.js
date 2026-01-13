@@ -45,10 +45,9 @@ export function resolveChatbotBaseUrl() {
     return sanitizeBaseUrl(window.__APP_CHATBOT_BASE_URL__);
   }
   if (ENV_CHATBOT_BASE_URL) return sanitizeBaseUrl(ENV_CHATBOT_BASE_URL);
-  if (typeof window !== "undefined") {
-    return sanitizeBaseUrl(`${window.location.protocol}//${window.location.hostname}:3100`);
-  }
-  return "";
+  // Use main server as proxy instead of direct port 3100 access
+  // The main server will forward /api/llm/* requests to the chatbot server
+  return resolveAppBaseUrl();
 }
 
 function normalizePath(path) {
