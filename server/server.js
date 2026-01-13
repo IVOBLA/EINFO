@@ -1477,7 +1477,21 @@ app.use(cors({ origin:true, credentials:true }));
 app.use(express.json({ limit:"10mb" }));
 
 // ============================================================
-// Chatbot-API-Proxy: Leitet alle /api/llm/* Anfragen an Port 3100
+// Chatbot-API-Proxy: CRITICAL für Admin Panel Funktionalität
+// ============================================================
+// WARUM NOTWENDIG:
+// 1. Browser Same-Origin Policy (CORS): Frontend kann nicht direkt Port 3100 ansprechen
+//    -> Alle Requests müssen vom gleichen Origin kommen (Port 4040)
+// 2. Netzwerk-Isolation: Port 3100 oft nicht erreichbar (Docker, Firewall, Reverse Proxy)
+//    -> Nur Port 4040 muss exponiert werden
+// 3. Deployment-Flexibilität: Chatbot-Server URL konfigurierbar via CHATBOT_BASE_URL
+//
+// BETROFFENE FEATURES (ohne Proxy nicht funktionsfähig):
+// - LLM Model Manager: Modellkonfiguration, GPU-Monitoring, Model Testing
+// - Situation Analysis Panel: KI-gestützte Lageanalyse
+// - LLM Action History: Protokoll aller LLM-Aktionen
+//
+// Leitet alle /api/llm/* Anfragen an Chatbot Server weiter (Standard: http://127.0.0.1:3100)
 // ============================================================
 app.use("/api/llm", async (req, res) => {
   const CHATBOT_BASE_URL = process.env.CHATBOT_BASE_URL || "http://127.0.0.1:3100";
@@ -2020,37 +2034,8 @@ app.get("/api/gps", async (_req,res)=>{
 
 app.get("/api/types", async (_req,res)=>{ try{ res.json(await readJson(TYPES_FILE,[])); }catch{ res.json([]); } });
 
-// --- NEU: API für LLM Action-History ---
-app.get("/api/llm/action-history", async (req, res) => {
-  try {
-    const limit = parseInt(req.query.limit, 10) || 100;
-    const offset = parseInt(req.query.offset, 10) || 0;
-    const category = req.query.category || null; // "protokoll", "aufgabe", "einsatz" oder null für alle
-
-    const historyPath = path.join(DATA_DIR, "llm_action_history.json");
-    let history = await readJson(historyPath, []);
-
-    // Nach Kategorie filtern
-    if (category) {
-      history = history.filter(entry => entry.category === category);
-    }
-
-    // Paginierung
-    const total = history.length;
-    const items = history.slice(offset, offset + limit);
-
-    res.json({
-      items,
-      total,
-      limit,
-      offset,
-      hasMore: offset + limit < total
-    });
-  } catch (err) {
-    console.error("[api] Fehler beim Laden der Action-History:", err);
-    res.status(500).json({ error: "Fehler beim Laden der Action-History" });
-  }
-});
+// Note: /api/llm/action-history is handled by the chatbot server via proxy
+// See server.js:1479-1515 for proxy implementation
 
 app.post("/api/vehicles", async (req,res)=>{
   const { ort, label, mannschaft=0, cloneOf="" } = req.body||{};
