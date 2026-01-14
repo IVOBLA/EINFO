@@ -756,16 +756,35 @@ export async function checkConfiguredModels() {
   try {
     const installedModels = await listAvailableLlmModels();
     const installedSet = new Set(installedModels.map(m => m.split(":")[0]));
-    
-    const configuredModels = Object.entries(CONFIG.llm.models).map(([key, config]) => ({
-      key,
-      name: config.name,
-      baseName: config.name.split(":")[0]
+
+    // CONFIG.llm.models existiert nicht mehr - stattdessen aus tasks extrahieren
+    if (!CONFIG.llm || !CONFIG.llm.tasks) {
+      return {
+        available: [],
+        missing: [],
+        installed: installedModels,
+        activeConfig: getActiveModelConfig(),
+        error: "CONFIG.llm.tasks nicht definiert"
+      };
+    }
+
+    // Modelle aus allen Tasks sammeln (dedupliziert)
+    const modelSet = new Set();
+    for (const [taskKey, taskConfig] of Object.entries(CONFIG.llm.tasks)) {
+      if (taskConfig && taskConfig.model) {
+        modelSet.add(taskConfig.model);
+      }
+    }
+
+    const configuredModels = Array.from(modelSet).map(modelName => ({
+      key: modelName,  // Verwende Modellname als Key für Kompatibilität
+      name: modelName,
+      baseName: modelName.split(":")[0]
     }));
-    
+
     const available = [];
     const missing = [];
-    
+
     for (const model of configuredModels) {
       if (installedSet.has(model.baseName) || installedSet.has(model.name)) {
         available.push(model);
@@ -773,7 +792,7 @@ export async function checkConfiguredModels() {
         missing.push(model);
       }
     }
-    
+
     return {
       available,
       missing,
