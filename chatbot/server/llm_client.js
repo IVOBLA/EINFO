@@ -108,19 +108,25 @@ export async function listAvailableLlmModels() {
 
   const data = await resp.json().catch(() => null);
   const models = Array.isArray(data?.models) ? data.models : [];
-  const names = Array.from(
-    new Set(
-      models
-        .map((entry) => entry?.name)
-        .filter((name) => typeof name === "string" && name.trim())
-    )
-  );
 
-  if (!names.length) {
+  // Filtere ungültige Modelle und entferne Duplikate
+  const seenNames = new Set();
+  const validModels = models.filter((entry) => {
+    if (!entry?.name || typeof entry.name !== "string" || !entry.name.trim()) {
+      return false;
+    }
+    if (seenNames.has(entry.name)) {
+      return false; // Duplikat überspringen
+    }
+    seenNames.add(entry.name);
+    return true;
+  });
+
+  if (!validModels.length) {
     throw new Error("Keine Ollama-Modelle gefunden");
   }
 
-  return names;
+  return validModels;
 }
 
 
@@ -755,7 +761,7 @@ export { getModelForTask };
 export async function checkConfiguredModels() {
   try {
     const installedModels = await listAvailableLlmModels();
-    const installedSet = new Set(installedModels.map(m => m.split(":")[0]));
+    const installedSet = new Set(installedModels.map(m => m.name.split(":")[0]));
 
     // CONFIG.llm.models existiert nicht mehr - stattdessen aus tasks extrahieren
     if (!CONFIG.llm || !CONFIG.llm.tasks) {

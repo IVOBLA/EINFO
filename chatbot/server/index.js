@@ -344,7 +344,8 @@ app.post("/api/llm/test", rateLimit(RateLimitProfiles.STRICT), async (req, res) 
 
   try {
     const models = await listAvailableLlmModels();
-    if (!models.includes(model)) {
+    const modelNames = models.map(m => m.name);
+    if (!modelNames.includes(model)) {
       return res
         .status(400)
         .json({ ok: false, error: "invalid_model", gpuStatus });
