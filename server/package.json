@@ -7,7 +7,8 @@
     "fetcher": "node index.mjs",
     "fetcher:ca": "node fetch-ca.mjs",
     "wms": "node wms-board.mjs",
-    "wms:lite": "node wms-board-lite.mjs"
+    "wms:lite": "node wms-board-lite.mjs",
+    "test": "node --test test/**/*.test.js test/**/*.test.mjs"
   },
   "dependencies": {
     "@napi-rs/canvas": "^0.1.80",
