@@ -1,8 +1,29 @@
 #!/usr/bin/env bash
 #===============================================================================
 # EINFO Deployment Script
+#
 # Holt den neuesten Code von Git, installiert Dependencies, baut das Projekt
 # und startet den Service neu.
+#
+# WICHTIG: Das Deployment erfolgt immer in das übergeordnete Verzeichnis
+# dieses Skripts (also eine Ebene über script/).
+#
+# Beispiel:
+#   Skript liegt in:    /opt/kanban/script/deploy.sh
+#   Deployment in:      /opt/kanban/
+#
+# VERWENDUNG:
+#   ./script/deploy.sh              # Vom Projektverzeichnis aus
+#   /opt/kanban/script/deploy.sh    # Absoluter Pfad (von überall)
+#
+# OPTIONEN:
+#   -h, --help       Hilfe anzeigen
+#   -b, --branch     Git-Branch (Standard: main)
+#   -s, --skip-git   Git pull überspringen
+#   -n, --skip-build Build überspringen
+#   -c, --chatbot    Chatbot-Service auch neu starten
+#   -d, --dry-run    Nur anzeigen, was gemacht würde
+#
 #===============================================================================
 
 set -euo pipefail
