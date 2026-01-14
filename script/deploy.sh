@@ -14,19 +14,46 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Konfiguration
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-SERVICE_NAME="kanban"
-CHATBOT_SERVICE_NAME="chatbot"
+#===============================================================================
+# KONFIGURATION - Hier anpassen!
+#===============================================================================
+
+# Git Repository URL (HTTPS oder SSH)
+GIT_REPO_URL="${GIT_REPO_URL:-https://github.com/IVOBLA/EINFO.git}"
+
+# Installations-Verzeichnis (wo das Projekt installiert werden soll)
+INSTALL_DIR="${INSTALL_DIR:-/opt/kanban}"
+
+# Service-Namen
+SERVICE_NAME="${SERVICE_NAME:-kanban}"
+CHATBOT_SERVICE_NAME="${CHATBOT_SERVICE_NAME:-chatbot}"
+
+# Git Branch
 GIT_BRANCH="${GIT_BRANCH:-main}"
+
+# Port für manuellen Start
+PORT="${PORT:-4000}"
+
+#===============================================================================
+
+# Dynamische Pfade
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# Wenn das Skript im Repo ausgeführt wird, nutze das aktuelle Verzeichnis
+# Sonst nutze INSTALL_DIR
+if [[ -f "$SCRIPT_DIR/../package.json" ]]; then
+    PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+else
+    PROJECT_DIR="$INSTALL_DIR"
+fi
 BACKUP_DIR="/tmp/einfo-backup-$(date +%Y%m%d-%H%M%S)"
+CONFIG_FILE="${CONFIG_FILE:-/etc/einfo/deploy.conf}"
 
 # Optionen
 SKIP_GIT=false
 SKIP_BUILD=false
 RESTART_CHATBOT=false
 DRY_RUN=false
+FRESH_INSTALL=false
 
 #-------------------------------------------------------------------------------
 # Hilfsfunktionen
@@ -48,6 +75,15 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+load_config() {
+    # Lade Konfigurationsdatei, falls vorhanden
+    if [[ -f "$CONFIG_FILE" ]]; then
+        log_info "Lade Konfiguration aus $CONFIG_FILE"
+        # shellcheck source=/dev/null
+        source "$CONFIG_FILE"
+    fi
+}
+
 show_help() {
     cat << EOF
 Verwendung: $(basename "$0") [OPTIONEN]
@@ -56,17 +92,41 @@ EINFO Deployment Script - Aktualisiert und startet den Service neu.
 
 Optionen:
     -h, --help          Diese Hilfe anzeigen
+    -r, --repo URL      Git Repository URL
+    -p, --path DIR      Installations-Verzeichnis
     -b, --branch NAME   Git-Branch (Standard: main)
+    -i, --install       Frische Installation (klont das Repo)
     -s, --skip-git      Git pull überspringen
     -n, --skip-build    Build überspringen (nur Restart)
     -c, --chatbot       Chatbot-Service auch neu starten
     -d, --dry-run       Nur anzeigen, was gemacht würde
 
+Umgebungsvariablen (alternativ zu Optionen):
+    GIT_REPO_URL        Repository URL (Standard: $GIT_REPO_URL)
+    INSTALL_DIR         Installations-Verzeichnis (Standard: $INSTALL_DIR)
+    GIT_BRANCH          Git Branch (Standard: $GIT_BRANCH)
+    SERVICE_NAME        Systemd Service Name (Standard: $SERVICE_NAME)
+    PORT                Server Port (Standard: $PORT)
+
+Konfigurationsdatei:
+    $CONFIG_FILE
+    Alle Umgebungsvariablen können dort definiert werden.
+
 Beispiele:
-    $(basename "$0")                    # Standard-Deployment
-    $(basename "$0") -b develop         # Von develop-Branch deployen
-    $(basename "$0") -c                 # Mit Chatbot-Restart
-    $(basename "$0") -n                 # Nur Service neu starten
+    # Standard-Deployment (wenn im Repo-Verzeichnis)
+    $(basename "$0")
+
+    # Frische Installation auf neuem Server
+    $(basename "$0") -i -r https://github.com/IVOBLA/EINFO.git -p /opt/kanban
+
+    # Von develop-Branch deployen
+    $(basename "$0") -b develop
+
+    # Mit Chatbot-Restart
+    $(basename "$0") -c
+
+    # Nur Service neu starten (kein Git, kein Build)
+    $(basename "$0") -n -s
 
 EOF
 }
@@ -115,9 +175,45 @@ backup_data() {
     fi
 }
 
+clone_repo() {
+    if [[ "$FRESH_INSTALL" != true ]]; then
+        return
+    fi
+
+    log_info "Klone Repository von $GIT_REPO_URL nach $PROJECT_DIR..."
+
+    # Prüfe ob Verzeichnis existiert
+    if [[ -d "$PROJECT_DIR/.git" ]]; then
+        log_warn "Repository existiert bereits in $PROJECT_DIR"
+        read -p "Überspringen und mit git pull fortfahren? (Y/n) " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Nn]$ ]]; then
+            log_error "Abgebrochen"
+            exit 1
+        fi
+        return
+    fi
+
+    # Erstelle Verzeichnis falls nötig
+    mkdir -p "$(dirname "$PROJECT_DIR")"
+
+    # Klone Repository
+    git clone --branch "$GIT_BRANCH" "$GIT_REPO_URL" "$PROJECT_DIR"
+
+    log_success "Repository geklont nach $PROJECT_DIR"
+
+    # Update PROJECT_DIR für nachfolgende Schritte
+    cd "$PROJECT_DIR"
+}
+
 git_pull() {
     if [[ "$SKIP_GIT" == true ]]; then
         log_warn "Git pull übersprungen (--skip-git)"
+        return
+    fi
+
+    # Bei frischer Installation wurde bereits geklont
+    if [[ "$FRESH_INSTALL" == true ]] && [[ ! -d "$PROJECT_DIR/.git" ]]; then
         return
     fi
 
@@ -265,9 +361,22 @@ while [[ $# -gt 0 ]]; do
             show_help
             exit 0
             ;;
+        -r|--repo)
+            GIT_REPO_URL="$2"
+            shift 2
+            ;;
+        -p|--path)
+            INSTALL_DIR="$2"
+            PROJECT_DIR="$2"
+            shift 2
+            ;;
         -b|--branch)
             GIT_BRANCH="$2"
             shift 2
+            ;;
+        -i|--install)
+            FRESH_INSTALL=true
+            shift
             ;;
         -s|--skip-git)
             SKIP_GIT=true
@@ -293,6 +402,9 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Lade Config (nach Argument-Parsing, damit CLI-Argumente Vorrang haben)
+load_config
+
 # Header
 echo ""
 echo "==============================================="
@@ -303,20 +415,28 @@ echo ""
 if [[ "$DRY_RUN" == true ]]; then
     log_warn "DRY-RUN Modus - keine Änderungen werden durchgeführt"
     echo ""
+    echo "Konfiguration:"
+    echo "  Repository:    $GIT_REPO_URL"
+    echo "  Zielverz.:     $PROJECT_DIR"
+    echo "  Branch:        $GIT_BRANCH"
+    echo "  Service:       $SERVICE_NAME"
+    echo ""
     echo "Geplante Aktionen:"
     echo "  1. Voraussetzungen prüfen"
-    [[ "$SKIP_GIT" != true ]] && echo "  2. Git pull von Branch: $GIT_BRANCH"
-    echo "  3. Backup der Daten erstellen"
-    echo "  4. npm ci --workspaces ausführen"
-    [[ "$SKIP_BUILD" != true ]] && echo "  5. Client bauen (npm run build)"
-    echo "  6. $SERVICE_NAME Service neu starten"
-    [[ "$RESTART_CHATBOT" == true ]] && echo "  7. Chatbot Service neu starten"
+    [[ "$FRESH_INSTALL" == true ]] && echo "  2. Repository klonen nach $PROJECT_DIR"
+    [[ "$SKIP_GIT" != true ]] && echo "  3. Git pull von Branch: $GIT_BRANCH"
+    echo "  4. Backup der Daten erstellen"
+    echo "  5. npm ci --workspaces ausführen"
+    [[ "$SKIP_BUILD" != true ]] && echo "  6. Client bauen (npm run build)"
+    echo "  7. $SERVICE_NAME Service neu starten"
+    [[ "$RESTART_CHATBOT" == true ]] && echo "  8. Chatbot Service neu starten"
     echo ""
     exit 0
 fi
 
 # Deployment durchführen
 check_prerequisites
+clone_repo
 git_pull
 backup_data
 install_dependencies

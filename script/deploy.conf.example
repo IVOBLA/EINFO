@@ -1,0 +1,27 @@
+#===============================================================================
+# EINFO Deployment Konfiguration
+#
+# Kopiere diese Datei nach /etc/einfo/deploy.conf und passe sie an:
+#   sudo mkdir -p /etc/einfo
+#   sudo cp deploy.conf.example /etc/einfo/deploy.conf
+#   sudo nano /etc/einfo/deploy.conf
+#===============================================================================
+
+# Git Repository URL (HTTPS oder SSH)
+# Für private Repos mit SSH: git@github.com:IVOBLA/EINFO.git
+GIT_REPO_URL="https://github.com/IVOBLA/EINFO.git"
+
+# Installations-Verzeichnis
+INSTALL_DIR="/opt/kanban"
+
+# Git Branch (main, develop, etc.)
+GIT_BRANCH="main"
+
+# Systemd Service Name für die Hauptanwendung
+SERVICE_NAME="kanban"
+
+# Systemd Service Name für den Chatbot (optional)
+CHATBOT_SERVICE_NAME="chatbot"
+
+# Server Port (falls kein systemd Service verwendet wird)
+PORT="4000"
