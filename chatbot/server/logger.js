@@ -30,6 +30,22 @@ function appendLine(filePath, line) {
   });
 }
 
+function toPrettyJsonValue(value) {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return value;
+    }
+  }
+
+  return value;
+}
+
 // --------- Standard-Logs (Info / Debug / Error) ---------------------------
 
 function baseEntry(level, msg, extra) {
@@ -90,20 +106,20 @@ export function logLLMExchange(payload = {}) {
   if (phase === "request") {
     const entry = {
       ...base,
-      rawRequest: payload.rawRequest ?? null
+      rawRequest: toPrettyJsonValue(payload.rawRequest ?? null)
     };
-    return appendLine(LLM_REQUEST_LOG_FILE, JSON.stringify(entry));
+    return appendLine(LLM_REQUEST_LOG_FILE, JSON.stringify(entry, null, 2));
   }
 
   // RESPONSE-/ERROR-/STREAM-LOG
   const entry = {
     ...base,
     // Wichtig: hier KEINE Request-Daten mehr mitschleppen
-    rawResponse: payload.rawResponse ?? null,
-    parsedResponse: payload.parsedResponse ?? null
+    rawResponse: toPrettyJsonValue(payload.rawResponse ?? null),
+    parsedResponse: toPrettyJsonValue(payload.parsedResponse ?? null)
   };
 
-  return appendLine(LLM_RESPONSE_LOG_FILE, JSON.stringify(entry));
+  return appendLine(LLM_RESPONSE_LOG_FILE, JSON.stringify(entry, null, 2));
 }
 
 
