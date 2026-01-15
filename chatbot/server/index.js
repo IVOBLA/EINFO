@@ -34,6 +34,7 @@ import { initMemoryStore } from "./memory_manager.js";
 import { getGpuStatus } from "./gpu_status.js";
 import { getSystemStatus, getCpuTimesSnapshot, collectSystemMetrics } from "./system_status.js";
 import { getGeoIndex } from "./rag/geo_search.js";
+import { createJsonBodyParser } from "./middleware/jsonBodyParser.js";
 
 // ============================================================
 // Imports für Audit-Trail und Templates
@@ -62,6 +63,7 @@ import {
 } from "./template_manager.js";
 
 import { rateLimit, RateLimitProfiles, getRateLimitStats } from "./middleware/rate-limit.js";
+import { createSituationQuestionHandler } from "./routes/situationQuestion.js";
 
 // ============================================================
 // Imports für Situationsanalyse
@@ -180,7 +182,7 @@ async function streamAnswer({ res, question }) {
 // ============================================================
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(createJsonBodyParser());
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1310,42 +1312,11 @@ app.get("/api/situation/analysis", async (req, res) => {
 });
 
 // Frage an KI stellen
-app.post("/api/situation/question", rateLimit(RateLimitProfiles.GENEROUS), async (req, res) => {
-  try {
-    const { question, role, context } = req.body || {};
-
-    // Enhanced error response with debug info for troubleshooting
-    if (!question) {
-      return res.status(400).json({
-        ok: false,
-        error: "question fehlt",
-        debug: {
-          bodyType: typeof req.body,
-          bodyKeys: req.body ? Object.keys(req.body) : [],
-          hasQuestion: "question" in (req.body || {}),
-          contentType: req.headers?.["content-type"]
-        }
-      });
-    }
-    if (!role) {
-      return res.status(400).json({ ok: false, error: "role fehlt" });
-    }
-
-    const answer = await answerQuestion(question, role, context || "aufgabenboard");
-
-    if (answer.error) {
-      return res.status(answer.isActive === false ? 503 : 500).json({
-        ok: false,
-        ...answer
-      });
-    }
-
-    res.json({ ok: true, ...answer });
-  } catch (err) {
-    logError("Situationsfrage Fehler", { error: String(err) });
-    res.status(500).json({ ok: false, error: String(err) });
-  }
-});
+app.post(
+  "/api/situation/question",
+  rateLimit(RateLimitProfiles.GENEROUS),
+  createSituationQuestionHandler({ answerQuestion, logError })
+);
 
 // Feedback zu Vorschlag speichern (binäres System)
 app.post("/api/situation/suggestion/feedback", async (req, res) => {

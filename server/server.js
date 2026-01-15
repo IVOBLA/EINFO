@@ -1508,16 +1508,22 @@ async function proxyChatbotRequest(req, res) {
     ];
 
     for (const [key, value] of Object.entries(req.headers)) {
-      if (!hopByHopHeaders.includes(key.toLowerCase())) {
+      const lowerKey = key.toLowerCase();
+      if (!hopByHopHeaders.includes(lowerKey) && lowerKey !== "content-type") {
         safeHeaders[key] = value;
       }
     }
+
+    const rawContentType = req.headers["content-type"];
+    const contentType = Array.isArray(rawContentType)
+      ? rawContentType[0]
+      : String(rawContentType || "application/json").split(",")[0].trim();
 
     const fetchOptions = {
       method: req.method,
       headers: {
         ...safeHeaders,
-        "Content-Type": req.headers["content-type"] || "application/json"
+        "Content-Type": contentType || "application/json"
       }
     };
 
