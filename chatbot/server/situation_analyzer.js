@@ -389,6 +389,80 @@ export async function analyzeAllRoles(forceRefresh = false) {
       };
     }
 
+    // Fallback: Malformed LLM response format detection and conversion
+    // Some models output formats like: { ".": { "1)": "summary", "2)": { "\"S1\"": "..." } } }
+    // This tries to convert such formats to the expected structure
+    if (parsed && !parsed.situation && !parsed.rolesSuggestions) {
+      const convertMalformedResponse = (obj) => {
+        // Check for the weird "." key pattern
+        const dotContent = obj["."] || obj[""] || Object.values(obj)[0];
+        if (!dotContent || typeof dotContent !== "object") return null;
+
+        // Try to extract summary from numbered key like "1)"
+        let summaryText = "";
+        let rolesData = null;
+        for (const [key, value] of Object.entries(dotContent)) {
+          if (key.match(/^1\)?$/)) {
+            summaryText = typeof value === "string" ? value : "";
+          } else if (key.match(/^2\)?$/) && typeof value === "object") {
+            rolesData = value;
+          }
+        }
+
+        if (!rolesData) return null;
+
+        // Convert role suggestions from format { "\"S1\"": "text", ... } to expected format
+        const rolesSuggestions = {};
+        const validRoles = ["LTSTB", "S1", "S2", "S3", "S4", "S5", "S6"];
+
+        for (const [key, value] of Object.entries(rolesData)) {
+          // Remove extra quotes from keys like "\"S1\"" -> "S1"
+          const cleanKey = key.replace(/^["']|["']$/g, "").toUpperCase();
+          const matchedRole = validRoles.find(r => cleanKey.includes(r));
+          if (!matchedRole) continue;
+
+          // Parse suggestion text into structured format
+          const suggestionText = typeof value === "string" ? value : "";
+          const suggestions = suggestionText
+            .split(/\\n|-\s+/)
+            .filter(line => line.trim().length > 10)
+            .map((line, i) => ({
+              priority: "medium",
+              title: line.trim().substring(0, 60) + (line.length > 60 ? "..." : ""),
+              description: line.trim(),
+              reasoning: "Automatisch aus LLM-Antwort extrahiert",
+              category: "coordination",
+              isProactive: false
+            }));
+
+          if (suggestions.length > 0) {
+            rolesSuggestions[matchedRole] = suggestions;
+          }
+        }
+
+        if (Object.keys(rolesSuggestions).length === 0) return null;
+
+        logDebug("Malformed LLM response converted to expected format", {
+          originalKeys: Object.keys(obj),
+          convertedRoles: Object.keys(rolesSuggestions)
+        });
+
+        return {
+          situation: {
+            summary: summaryText || "Automatisch konvertierte Analyse",
+            severity: "medium",
+            criticalFactors: []
+          },
+          rolesSuggestions
+        };
+      };
+
+      const converted = convertMalformedResponse(parsed);
+      if (converted) {
+        parsed = converted;
+      }
+    }
+
     // Analyse-ID für diese Runde
     const analysisId = `analysis_${now}_${Math.random().toString(36).substr(2, 9)}`;
     const situation = parsed.situation || { summary: "Keine Zusammenfassung", severity: "medium", criticalFactors: [] };
