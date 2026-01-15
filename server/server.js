@@ -1493,7 +1493,8 @@ app.use(express.json({ limit:"10mb" }));
 //
 // Leitet alle /api/llm/* Anfragen an Chatbot Server weiter (Standard: http://127.0.0.1:3100)
 // ============================================================
-app.use("/api/llm", async (req, res) => {
+// Generische Proxy-Funktion für Chatbot-Server Anfragen
+async function proxyChatbotRequest(req, res) {
   const CHATBOT_BASE_URL = process.env.CHATBOT_BASE_URL || "http://127.0.0.1:3100";
   const targetUrl = `${CHATBOT_BASE_URL}${req.originalUrl}`;
 
@@ -1526,7 +1527,19 @@ app.use("/api/llm", async (req, res) => {
       error: "Chatbot-Server nicht erreichbar. Bitte sicherstellen, dass der Chatbot-Server läuft."
     });
   }
-});
+}
+
+// Proxy für /api/llm/* Anfragen an Chatbot Server
+app.use("/api/llm", proxyChatbotRequest);
+
+// Proxy für spezifische /api/situation/* Anfragen an Chatbot Server (KI-Situationsanalyse)
+// Hinweis: /api/situation/analysis-config wird lokal im Main-Server verarbeitet (Zeile ~3811)
+app.get("/api/situation/status", proxyChatbotRequest);
+app.post("/api/situation/analysis-loop/sync", proxyChatbotRequest);
+app.get("/api/situation/analysis", proxyChatbotRequest);
+app.post("/api/situation/question", proxyChatbotRequest);
+app.post("/api/situation/suggestion/feedback", proxyChatbotRequest);
+app.post("/api/situation/question/feedback", proxyChatbotRequest);
 
 app.use("/api/protocol", protocolRouter);
 
