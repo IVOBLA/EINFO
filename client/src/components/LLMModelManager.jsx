@@ -192,6 +192,10 @@ export default function LLMModelManager() {
   // System-Status (CPU + RAM)
   const [systemStatus, setSystemStatus] = useState(null);
 
+  // GPU-Historie für Liniendiagramme (max 60 Datenpunkte = 5 Minuten bei 5s Intervall)
+  const [gpuHistory, setGpuHistory] = useState([]);
+  const [historyStartTime, setHistoryStartTime] = useState(null);
+
   // Lokale Änderungen (Draft)
   const [taskDrafts, setTaskDrafts] = useState({});
 
@@ -268,7 +272,38 @@ export default function LLMModelManager() {
       // GPU-Status laden
       const gpuRes = await fetch(buildChatbotApiUrl("/api/llm/gpu"), { credentials: "include" });
       const gpuData = await gpuRes.json();
-      if (gpuRes.ok) setGpuStatus(gpuData.gpuStatus);
+      if (gpuRes.ok) {
+        setGpuStatus(gpuData.gpuStatus);
+
+        // Historie-Daten sammeln (nur wenn GPU verfügbar)
+        if (gpuData.gpuStatus?.available && gpuData.gpuStatus?.gpus?.length > 0) {
+          const gpu = gpuData.gpuStatus.gpus[0]; // Erste GPU
+
+          setGpuHistory((prev) => {
+            const now = Date.now();
+
+            // Wenn Historie leer ist, setze Start-Zeit
+            let startTime = historyStartTime;
+            if (prev.length === 0 || startTime === null) {
+              startTime = now;
+              setHistoryStartTime(now);
+            }
+
+            const timestamp = now - startTime;
+
+            const newPoint = {
+              timestamp,
+              utilizationPercent: gpu.utilizationPercent,
+              memoryUsedMb: gpu.memoryUsedMb,
+              temperatureCelsius: gpu.temperatureCelsius
+            };
+
+            // Neue Daten hinzufügen und auf max 60 Punkte begrenzen (5 Minuten)
+            const updated = [...prev, newPoint];
+            return updated.slice(-60);
+          });
+        }
+      }
 
       // System-Status laden (CPU + RAM)
       const sysRes = await fetch(buildChatbotApiUrl("/api/llm/system"), { credentials: "include" });
@@ -522,6 +557,61 @@ export default function LLMModelManager() {
           ) : (
             <div className="text-sm text-gray-500 bg-white rounded p-3 border">
               System: {systemStatus?.error || "Nicht verfügbar"}
+            </div>
+          )}
+
+          {/* Liniendiagramme für GPU-Metriken über Zeit */}
+          {gpuStatus?.available && gpuHistory.length > 0 && (
+            <div className="space-y-3 mt-4">
+              <div className="text-sm font-medium text-gray-700 mb-2 flex justify-between items-center">
+                <span>Verlauf (letzte {Math.floor((gpuHistory[gpuHistory.length - 1]?.timestamp || 0) / 1000)}s)</span>
+                <button
+                  type="button"
+                  className="text-xs px-2 py-1 border rounded hover:bg-white text-gray-600"
+                  onClick={() => {
+                    setGpuHistory([]);
+                    setHistoryStartTime(null);
+                  }}
+                >
+                  Historie löschen
+                </button>
+              </div>
+
+              {/* GPU-Auslastung */}
+              <MetricsGraph
+                data={gpuHistory}
+                dataKey="utilizationPercent"
+                label="GPU-Auslastung"
+                unit="%"
+                color="#10B981"
+                minY={0}
+                maxY={100}
+                height={120}
+              />
+
+              {/* VRAM-Nutzung (MiB) */}
+              <MetricsGraph
+                data={gpuHistory}
+                dataKey="memoryUsedMb"
+                label="VRAM-Nutzung"
+                unit=" MiB"
+                color="#8B5CF6"
+                minY={0}
+                maxY={gpuStatus.gpus?.[0]?.memoryTotalMb || 8192}
+                height={120}
+              />
+
+              {/* GPU-Temperatur */}
+              <MetricsGraph
+                data={gpuHistory}
+                dataKey="temperatureCelsius"
+                label="GPU-Temperatur"
+                unit="°C"
+                color="#F59E0B"
+                minY={0}
+                maxY={100}
+                height={120}
+              />
             </div>
           )}
         </div>
