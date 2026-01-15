@@ -1,10 +1,9 @@
 #===============================================================================
 # EINFO Deployment Konfiguration
 #
-# Kopiere diese Datei nach /etc/einfo/deploy.conf und passe sie an:
-#   sudo mkdir -p /etc/einfo
-#   sudo cp deploy.conf.example /etc/einfo/deploy.conf
-#   sudo nano /etc/einfo/deploy.conf
+# Kopiere diese Datei nach /home/bfkdo/deploy.conf und passe sie an:
+#   cp deploy.conf.example /home/bfkdo/deploy.conf
+#   nano /home/bfkdo/deploy.conf
 #
 # Das Deployment erfolgt immer in das Verzeichnis, aus dem das Skript
 # gestartet wird (also das übergeordnete Verzeichnis von script/).
