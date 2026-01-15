@@ -829,6 +829,14 @@ export default function LLMModelManager() {
                     <div className="text-red-600">
                       <div className="font-medium">Fehler:</div>
                       <div className="text-sm mt-1">{testResult.error}</div>
+                      {testResult.debug && (
+                        <details className="mt-2 text-xs text-gray-500">
+                          <summary className="cursor-pointer hover:text-gray-700">Debug-Info</summary>
+                          <pre className="mt-1 p-2 bg-gray-100 rounded overflow-auto text-gray-700">
+                            {JSON.stringify(testResult.debug, null, 2)}
+                          </pre>
+                        </details>
+                      )}
                     </div>
                   ) : (
                     <div className="space-y-4">
