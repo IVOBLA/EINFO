@@ -577,6 +577,81 @@ export default function LLMModelManager() {
                 </button>
               </div>
 
+              {/* Statistik-Übersicht für GPU-Metriken */}
+              {(() => {
+                const gpuValues = gpuHistory.map(d => d.utilizationPercent).filter(v => v !== null && v !== undefined);
+                const vramValues = gpuHistory.map(d => d.memoryUsedMb).filter(v => v !== null && v !== undefined);
+                const tempValues = gpuHistory.map(d => d.temperatureCelsius).filter(v => v !== null && v !== undefined);
+
+                return (
+                  <div className="grid grid-cols-3 gap-3 mb-3">
+                    {/* GPU-Auslastung Stats */}
+                    {gpuValues.length > 0 && (
+                      <div className="bg-emerald-50 rounded p-3 border border-emerald-200">
+                        <div className="text-xs text-emerald-700 font-medium mb-2">GPU-Auslastung</div>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div>
+                            <div className="text-gray-600">Min</div>
+                            <div className="text-lg font-bold text-emerald-700">{Math.round(Math.min(...gpuValues))}%</div>
+                          </div>
+                          <div>
+                            <div className="text-gray-600">Max</div>
+                            <div className="text-lg font-bold text-emerald-700">{Math.round(Math.max(...gpuValues))}%</div>
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-600 mt-2">
+                          Ø {Math.round(gpuValues.reduce((a, b) => a + b, 0) / gpuValues.length)}%
+                        </div>
+                      </div>
+                    )}
+
+                    {/* VRAM Stats */}
+                    {vramValues.length > 0 && (
+                      <div className="bg-purple-50 rounded p-3 border border-purple-200">
+                        <div className="text-xs text-purple-700 font-medium mb-2">VRAM-Nutzung</div>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div>
+                            <div className="text-gray-600">Min</div>
+                            <div className="text-lg font-bold text-purple-700">
+                              {(Math.min(...vramValues) / 1024).toFixed(1)} GB
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-gray-600">Max</div>
+                            <div className="text-lg font-bold text-purple-700">
+                              {(Math.max(...vramValues) / 1024).toFixed(1)} GB
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-600 mt-2">
+                          Ø {(vramValues.reduce((a, b) => a + b, 0) / vramValues.length / 1024).toFixed(1)} GB
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Temperatur Stats */}
+                    {tempValues.length > 0 && (
+                      <div className="bg-amber-50 rounded p-3 border border-amber-200">
+                        <div className="text-xs text-amber-700 font-medium mb-2">GPU-Temperatur</div>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div>
+                            <div className="text-gray-600">Min</div>
+                            <div className="text-lg font-bold text-amber-700">{Math.round(Math.min(...tempValues))}°C</div>
+                          </div>
+                          <div>
+                            <div className="text-gray-600">Max</div>
+                            <div className="text-lg font-bold text-amber-700">{Math.round(Math.max(...tempValues))}°C</div>
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-600 mt-2">
+                          Ø {Math.round(tempValues.reduce((a, b) => a + b, 0) / tempValues.length)}°C
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
               {/* GPU-Auslastung */}
               <MetricsGraph
                 data={gpuHistory}
