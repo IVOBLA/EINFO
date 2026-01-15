@@ -71,13 +71,8 @@ echo -e "${YELLOW}[3/5] Erstelle einfo-balanced.Modelfile...${NC}"
 cat > "$MODELFILE_DIR/einfo-balanced.Modelfile" << 'EOF'
 FROM qwen2.5:14b
 
-# BEWÄHRTE KONFIGURATION
-# Getestet am 26.12.2025: 5405 MB VRAM (66%), 6.4s Antwortzeit
-PARAMETER num_gpu 20
-PARAMETER num_ctx 4096
-PARAMETER temperature 0.1
-PARAMETER top_p 0.9
-PARAMETER repeat_penalty 1.1
+# Parameter werden zur Laufzeit aus .env übernommen (LLM_TASK_*_NUM_GPU, etc.)
+# Keine PARAMETER-Zeilen nötig - diese würden ohnehin überschrieben
 
 SYSTEM """Du bist ein Assistent für Feuerwehr-Einsatzstab-Simulationen im Bezirk Feldkirchen, Kärnten.
 Du antwortest immer auf Deutsch und verwendest österreichische Feuerwehr-Terminologie.
@@ -95,12 +90,8 @@ cat > "$MODELFILE_DIR/einfo-analysis.Modelfile" << 'EOF'
 FROM qwen2.5:14b
 
 # Optimiert für Situationsanalyse und strukturierte JSON-Ausgabe
-# Größerer Context für komplexe Analysen
-PARAMETER num_gpu 20
-PARAMETER num_ctx 8192
-PARAMETER temperature 0.2
-PARAMETER top_p 0.9
-PARAMETER repeat_penalty 1.1
+# Parameter werden zur Laufzeit aus .env übernommen (LLM_TASK_ANALYSIS_NUM_GPU, etc.)
+# Keine PARAMETER-Zeilen nötig - diese würden ohnehin überschrieben
 
 SYSTEM """Du bist ein Experte für Einsatzleitung und Katastrophenmanagement im deutschsprachigen Raum.
 Du antwortest immer auf Deutsch und verwendest österreichische Feuerwehr-Terminologie.
