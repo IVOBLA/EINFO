@@ -95,6 +95,33 @@ load_config() {
     fi
 }
 
+ensure_git_repo() {
+    if [[ -d "$PROJECT_DIR/.git" ]]; then
+        return
+    fi
+
+    log_warn "Kein Git-Repository in $PROJECT_DIR gefunden, führe Erstinstallation durch..."
+
+    local target_dir="${HOME}/kanban"
+    local ts
+    ts="$(date +%Y%m%d-%H%M%S)"
+
+    cd "$HOME"
+
+    if [[ -d "$target_dir" ]]; then
+        log_info "Sichere vorhandenes Verzeichnis nach ${target_dir}_backup_${ts}"
+        mv "$target_dir" "${target_dir}_backup_${ts}"
+    fi
+
+    log_info "Klone Repository nach $target_dir (Branch: $GIT_BRANCH)"
+    git clone --branch "$GIT_BRANCH" --single-branch "$GIT_REPO_URL" "$target_dir"
+
+    rsync -a "${target_dir}_backup_${ts}/server/data/" "$target_dir/server/data/" 2>/dev/null || true
+
+    PROJECT_DIR="$target_dir"
+    log_success "Repository neu geklont: $PROJECT_DIR"
+}
+
 show_help() {
     cat << EOF
 Verwendung: $(basename "$0") [OPTIONEN]
@@ -396,6 +423,7 @@ if [[ "$DRY_RUN" == true ]]; then
 fi
 
 # Deployment durchführen
+ensure_git_repo
 check_prerequisites
 git_pull
 backup_data
