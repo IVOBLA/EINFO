@@ -2,6 +2,167 @@ import React, { useEffect, useState } from "react";
 import { buildChatbotApiUrl, CHATBOT_SERVER_ERROR_MESSAGE } from "../utils/http.js";
 
 /**
+ * SVG-basierter Linien-Graph für GPU-Metriken
+ */
+function MetricsGraph({ data, dataKey, label, unit, color, minY = 0, maxY = 100, height = 120 }) {
+  if (!data || data.length === 0) {
+    return (
+      <div className="text-xs text-gray-500 text-center py-4">
+        Keine Daten verfügbar
+      </div>
+    );
+  }
+
+  const width = 400;
+  const padding = { top: 20, right: 50, bottom: 30, left: 50 };
+  const graphWidth = width - padding.left - padding.right;
+  const graphHeight = height - padding.top - padding.bottom;
+
+  // Zeitbereich berechnen
+  const maxTime = Math.max(...data.map(d => d.timestamp));
+  const minTime = 0;
+  const timeRange = maxTime - minTime || 1;
+
+  // Y-Bereich aus Daten berechnen (mit Puffer)
+  const values = data.map(d => d[dataKey]).filter(v => v !== null && v !== undefined);
+  if (values.length === 0) {
+    return (
+      <div className="text-xs text-gray-500 text-center py-4">
+        Keine {label}-Daten
+      </div>
+    );
+  }
+
+  const dataMin = Math.min(...values);
+  const dataMax = Math.max(...values);
+  const yMin = Math.min(minY, dataMin * 0.9);
+  const yMax = Math.max(maxY, dataMax * 1.1);
+  const yRange = yMax - yMin || 1;
+
+  // Koordinaten berechnen
+  const points = data
+    .filter(d => d[dataKey] !== null && d[dataKey] !== undefined)
+    .map(d => {
+      const x = padding.left + (d.timestamp - minTime) / timeRange * graphWidth;
+      const y = padding.top + graphHeight - ((d[dataKey] - yMin) / yRange * graphHeight);
+      return { x, y, value: d[dataKey], time: d.timestamp };
+    });
+
+  // SVG-Pfad erstellen
+  const pathData = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+
+  // Bereich unter der Linie füllen
+  const areaPath = pathData + ` L ${points[points.length - 1].x} ${padding.top + graphHeight} L ${points[0].x} ${padding.top + graphHeight} Z`;
+
+  // Y-Achsen-Ticks
+  const yTicks = [yMin, yMin + yRange / 2, yMax].map(v => ({
+    value: Math.round(v),
+    y: padding.top + graphHeight - ((v - yMin) / yRange * graphHeight)
+  }));
+
+  // X-Achsen-Ticks (Zeit in Sekunden)
+  const xTicks = [];
+  const tickInterval = Math.ceil(maxTime / 4000) * 1000; // Runde auf Sekunden
+  for (let t = 0; t <= maxTime; t += tickInterval || 2000) {
+    xTicks.push({
+      value: (t / 1000).toFixed(0) + "s",
+      x: padding.left + (t - minTime) / timeRange * graphWidth
+    });
+  }
+
+  return (
+    <div className="bg-gray-900 rounded p-2">
+      <div className="text-xs text-gray-400 mb-1 flex justify-between">
+        <span>{label}</span>
+        <span>
+          Min: {Math.round(dataMin)}{unit} | Max: {Math.round(dataMax)}{unit}
+        </span>
+      </div>
+      <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet">
+        {/* Hintergrund-Gitter */}
+        {yTicks.map((tick, i) => (
+          <line
+            key={`grid-y-${i}`}
+            x1={padding.left}
+            y1={tick.y}
+            x2={width - padding.right}
+            y2={tick.y}
+            stroke="#374151"
+            strokeWidth="1"
+            strokeDasharray="4,4"
+          />
+        ))}
+
+        {/* Fläche unter der Linie */}
+        <path d={areaPath} fill={color} fillOpacity="0.2" />
+
+        {/* Hauptlinie */}
+        <path d={pathData} fill="none" stroke={color} strokeWidth="2" />
+
+        {/* Datenpunkte */}
+        {points.map((p, i) => (
+          <circle
+            key={i}
+            cx={p.x}
+            cy={p.y}
+            r="4"
+            fill={color}
+            stroke="#1f2937"
+            strokeWidth="1"
+          >
+            <title>{p.value}{unit} @ {(p.time / 1000).toFixed(1)}s</title>
+          </circle>
+        ))}
+
+        {/* Y-Achse */}
+        <line
+          x1={padding.left}
+          y1={padding.top}
+          x2={padding.left}
+          y2={padding.top + graphHeight}
+          stroke="#4B5563"
+          strokeWidth="1"
+        />
+        {yTicks.map((tick, i) => (
+          <text
+            key={`y-${i}`}
+            x={padding.left - 8}
+            y={tick.y + 4}
+            fontSize="10"
+            fill="#9CA3AF"
+            textAnchor="end"
+          >
+            {tick.value}{unit}
+          </text>
+        ))}
+
+        {/* X-Achse */}
+        <line
+          x1={padding.left}
+          y1={padding.top + graphHeight}
+          x2={width - padding.right}
+          y2={padding.top + graphHeight}
+          stroke="#4B5563"
+          strokeWidth="1"
+        />
+        {xTicks.map((tick, i) => (
+          <text
+            key={`x-${i}`}
+            x={tick.x}
+            y={padding.top + graphHeight + 15}
+            fontSize="10"
+            fill="#9CA3AF"
+            textAnchor="middle"
+          >
+            {tick.value}
+          </text>
+        ))}
+      </svg>
+    </div>
+  );
+}
+
+/**
  * LLMModelManager - Task-basierte LLM-Konfiguration mit GPU-Monitoring
  *
  * Features:
@@ -9,7 +170,7 @@ import { buildChatbotApiUrl, CHATBOT_SERVER_ERROR_MESSAGE } from "../utils/http.
  * - Globales Modell-Override
  * - Live GPU-Monitoring (Auslastung, Temperatur, VRAM)
  * - Verfügbare Ollama-Modelle
- * - Modell-Testing
+ * - Modell-Testing mit GPU-Metriken-Verlauf
  */
 export default function LLMModelManager() {
   const [loading, setLoading] = useState(true);
@@ -171,7 +332,8 @@ export default function LLMModelManager() {
     setTestRunning(true);
     setTestResult(null);
     try {
-      const res = await fetch(buildChatbotApiUrl("/api/llm/test-model"), {
+      // Verwende neuen Endpunkt mit GPU-Metriken-Verlauf
+      const res = await fetch(buildChatbotApiUrl("/api/llm/test-with-metrics"), {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
@@ -565,7 +727,7 @@ export default function LLMModelManager() {
       {/* Test-Dialog */}
       {testingModel && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-medium text-lg">Modell testen: {testingModel}</h3>
@@ -602,20 +764,117 @@ export default function LLMModelManager() {
               </button>
 
               {testResult && (
-                <div className="border rounded p-4 bg-gray-50">
+                <div className="border rounded p-4 bg-gray-50 space-y-4">
                   {testResult.error ? (
                     <div className="text-red-600">
                       <div className="font-medium">Fehler:</div>
                       <div className="text-sm mt-1">{testResult.error}</div>
                     </div>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-4">
+                      {/* Antwort */}
                       <div>
                         <div className="text-xs text-gray-600 mb-1">Antwort:</div>
-                        <div className="text-sm whitespace-pre-wrap">{testResult.answer}</div>
+                        <div className="text-sm whitespace-pre-wrap bg-white p-2 rounded border">
+                          {testResult.answer}
+                        </div>
                       </div>
-                      {testResult.duration && (
-                        <div className="text-xs text-gray-500">Dauer: {testResult.duration}ms</div>
+
+                      {/* Statistik-Übersicht */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {/* Dauer */}
+                        <div className="bg-blue-50 rounded p-2 text-center">
+                          <div className="text-xs text-gray-600">Dauer</div>
+                          <div className="text-lg font-bold text-blue-700">
+                            {testResult.duration ? `${(testResult.duration / 1000).toFixed(2)}s` : "–"}
+                          </div>
+                        </div>
+
+                        {/* GPU Min/Max */}
+                        {testResult.stats?.gpuUtilization && (
+                          <>
+                            <div className="bg-emerald-50 rounded p-2 text-center">
+                              <div className="text-xs text-gray-600">GPU Min</div>
+                              <div className="text-lg font-bold text-emerald-700">
+                                {testResult.stats.gpuUtilization.min ?? "–"}%
+                              </div>
+                            </div>
+                            <div className="bg-rose-50 rounded p-2 text-center">
+                              <div className="text-xs text-gray-600">GPU Max</div>
+                              <div className="text-lg font-bold text-rose-700">
+                                {testResult.stats.gpuUtilization.max ?? "–"}%
+                              </div>
+                            </div>
+                          </>
+                        )}
+
+                        {/* VRAM Peak */}
+                        {testResult.stats?.memoryUsedMb && (
+                          <div className="bg-purple-50 rounded p-2 text-center">
+                            <div className="text-xs text-gray-600">VRAM Peak</div>
+                            <div className="text-lg font-bold text-purple-700">
+                              {testResult.stats.memoryUsedMb.max
+                                ? `${(testResult.stats.memoryUsedMb.max / 1024).toFixed(1)} GB`
+                                : "–"}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* GPU-Auslastung Graph */}
+                      {testResult.metrics && testResult.metrics.length > 0 && (
+                        <div className="space-y-3">
+                          <div className="text-sm font-medium text-gray-700">GPU-Metriken Verlauf</div>
+
+                          {/* GPU Utilization Graph */}
+                          <MetricsGraph
+                            data={testResult.metrics}
+                            dataKey="utilizationPercent"
+                            label="GPU-Auslastung"
+                            unit="%"
+                            color="#10B981"
+                            minY={0}
+                            maxY={100}
+                            height={140}
+                          />
+
+                          {/* VRAM Usage Graph */}
+                          <MetricsGraph
+                            data={testResult.metrics}
+                            dataKey="memoryUsedMb"
+                            label="VRAM-Nutzung"
+                            unit=" MiB"
+                            color="#8B5CF6"
+                            minY={0}
+                            maxY={testResult.stats?.memoryTotalMb || 8192}
+                            height={140}
+                          />
+
+                          {/* Messpunkte Info */}
+                          <div className="text-xs text-gray-500 text-center">
+                            {testResult.metrics.length} Messpunkte (2s Intervall)
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Detaillierte Statistiken */}
+                      {testResult.stats && (
+                        <div className="text-xs text-gray-600 bg-gray-100 rounded p-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <span className="font-medium">GPU:</span>{" "}
+                              Min {testResult.stats.gpuUtilization?.min ?? "–"}% |{" "}
+                              Max {testResult.stats.gpuUtilization?.max ?? "–"}% |{" "}
+                              Avg {testResult.stats.gpuUtilization?.avg ?? "–"}%
+                            </div>
+                            <div>
+                              <span className="font-medium">VRAM:</span>{" "}
+                              Min {testResult.stats.memoryUsedMb?.min ? (testResult.stats.memoryUsedMb.min / 1024).toFixed(1) : "–"} GB |{" "}
+                              Max {testResult.stats.memoryUsedMb?.max ? (testResult.stats.memoryUsedMb.max / 1024).toFixed(1) : "–"} GB |{" "}
+                              Total {testResult.stats.memoryTotalMb ? (testResult.stats.memoryTotalMb / 1024).toFixed(1) : "–"} GB
+                            </div>
+                          </div>
+                        </div>
                       )}
                     </div>
                   )}

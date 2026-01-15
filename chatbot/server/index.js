@@ -451,35 +451,35 @@ app.get("/api/llm/model/:taskType", (req, res) => {
 // Schnelltest eines bestimmten Modell-Profils
 app.post("/api/llm/test-model", rateLimit(RateLimitProfiles.STRICT), async (req, res) => {
   const { modelKey } = req.body || {};
-  
+
   if (!modelKey || !CONFIG.llm.models[modelKey]) {
-    return res.status(400).json({ 
-      ok: false, 
-      error: `Ungültiger modelKey. Erlaubt: ${Object.keys(CONFIG.llm.models).join(", ")}` 
+    return res.status(400).json({
+      ok: false,
+      error: `Ungültiger modelKey. Erlaubt: ${Object.keys(CONFIG.llm.models).join(", ")}`
     });
   }
-  
+
   const modelConfig = CONFIG.llm.models[modelKey];
   const testPrompt = 'Antworte kurz auf Deutsch: Was ist 2+2? Gib nur die Zahl zurück.';
-  
+
   const startTime = Date.now();
-  
+
   try {
     // GPU-Status vorher
     const gpuBefore = await getGpuStatus();
-    
-    const answer = await callLLMForChat({ 
-      question: testPrompt, 
-      model: modelConfig.name 
+
+    const answer = await callLLMForChat({
+      question: testPrompt,
+      model: modelConfig.name
     });
-    
+
     const duration = Date.now() - startTime;
-    
+
     // GPU-Status nachher
     const gpuAfter = await getGpuStatus();
-    
+
     logInfo("Modell-Test erfolgreich", { modelKey, duration });
-    
+
     res.json({
       ok: true,
       modelKey,
@@ -494,20 +494,135 @@ app.post("/api/llm/test-model", rateLimit(RateLimitProfiles.STRICT), async (req,
     });
   } catch (err) {
     const duration = Date.now() - startTime;
-    logError("Modell-Test fehlgeschlagen", { 
-      modelKey, 
-      modelName: modelConfig.name, 
+    logError("Modell-Test fehlgeschlagen", {
+      modelKey,
+      modelName: modelConfig.name,
       error: String(err),
-      duration 
+      duration
     });
-    
-    res.status(500).json({ 
-      ok: false, 
+
+    res.status(500).json({
+      ok: false,
       error: String(err),
       modelKey,
       modelName: modelConfig.name,
       duration,
       timeout: modelConfig.timeout
+    });
+  }
+});
+
+// LLM-Test mit GPU-Metriken-Verlauf (2-Sekunden-Intervall)
+app.post("/api/llm/test-with-metrics", rateLimit(RateLimitProfiles.STRICT), async (req, res) => {
+  const { model, question } = req.body || {};
+
+  if (!question || typeof question !== "string") {
+    return res.status(400).json({ ok: false, error: "missing_question" });
+  }
+
+  if (!model || typeof model !== "string") {
+    return res.status(400).json({ ok: false, error: "missing_model" });
+  }
+
+  // Validiere Modell
+  try {
+    const models = await listAvailableLlmModels();
+    const modelNames = models.map(m => m.name);
+    if (!modelNames.includes(model)) {
+      return res.status(400).json({ ok: false, error: "invalid_model" });
+    }
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: "model_check_failed" });
+  }
+
+  const startTime = Date.now();
+  const gpuMetrics = [];
+  let metricsInterval = null;
+  let llmFinished = false;
+
+  // GPU-Metriken im 2-Sekunden-Intervall sammeln
+  const collectMetrics = async () => {
+    if (llmFinished) return;
+    try {
+      const status = await getGpuStatus();
+      const timestamp = Date.now() - startTime;
+      if (status.available && status.gpus && status.gpus[0]) {
+        const gpu = status.gpus[0];
+        gpuMetrics.push({
+          timestamp,
+          utilizationPercent: gpu.utilizationPercent,
+          memoryUsedMb: gpu.memoryUsedMb,
+          memoryTotalMb: gpu.memoryTotalMb,
+          temperatureCelsius: gpu.temperatureCelsius
+        });
+      }
+    } catch {
+      // Ignoriere Fehler beim Metriken-Sammeln
+    }
+  };
+
+  // Initiale Messung
+  await collectMetrics();
+
+  // Starte Intervall
+  metricsInterval = setInterval(collectMetrics, 2000);
+
+  try {
+    const answer = await callLLMForChat({ question, model });
+    llmFinished = true;
+    clearInterval(metricsInterval);
+
+    // Finale Messung nach Abschluss
+    await collectMetrics();
+
+    const duration = Date.now() - startTime;
+
+    // Berechne Min/Max-Werte
+    const utilizationValues = gpuMetrics.map(m => m.utilizationPercent).filter(v => v !== null);
+    const memoryValues = gpuMetrics.map(m => m.memoryUsedMb).filter(v => v !== null);
+
+    const stats = {
+      duration,
+      gpuUtilization: {
+        min: utilizationValues.length > 0 ? Math.min(...utilizationValues) : null,
+        max: utilizationValues.length > 0 ? Math.max(...utilizationValues) : null,
+        avg: utilizationValues.length > 0
+          ? Math.round(utilizationValues.reduce((a, b) => a + b, 0) / utilizationValues.length)
+          : null
+      },
+      memoryUsedMb: {
+        min: memoryValues.length > 0 ? Math.min(...memoryValues) : null,
+        max: memoryValues.length > 0 ? Math.max(...memoryValues) : null,
+        avg: memoryValues.length > 0
+          ? Math.round(memoryValues.reduce((a, b) => a + b, 0) / memoryValues.length)
+          : null
+      },
+      memoryTotalMb: gpuMetrics.length > 0 ? gpuMetrics[0].memoryTotalMb : null
+    };
+
+    logInfo("LLM-Test mit Metriken erfolgreich", { model, duration, metricsCount: gpuMetrics.length });
+
+    res.json({
+      ok: true,
+      answer: typeof answer === "string" ? answer.slice(0, 2000) : answer,
+      duration,
+      model,
+      metrics: gpuMetrics,
+      stats
+    });
+  } catch (err) {
+    llmFinished = true;
+    clearInterval(metricsInterval);
+
+    const duration = Date.now() - startTime;
+    logError("LLM-Test mit Metriken fehlgeschlagen", { model, error: String(err), duration });
+
+    res.status(500).json({
+      ok: false,
+      error: String(err),
+      duration,
+      model,
+      metrics: gpuMetrics
     });
   }
 });
