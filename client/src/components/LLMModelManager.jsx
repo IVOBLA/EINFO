@@ -163,14 +163,15 @@ function MetricsGraph({ data, dataKey, label, unit, color, minY = 0, maxY = 100,
 }
 
 /**
- * LLMModelManager - Task-basierte LLM-Konfiguration mit GPU-Monitoring
+ * LLMModelManager - Task-basierte LLM-Konfiguration mit GPU/CPU/RAM-Monitoring
  *
  * Features:
  * - Task-spezifische Parameter (model, temperature, maxTokens, timeout, numGpu, numCtx, topP, topK, repeatPenalty)
  * - Globales Modell-Override
  * - Live GPU-Monitoring (Auslastung, Temperatur, VRAM)
+ * - Live System-Monitoring (CPU-Auslastung, Arbeitsspeicher)
  * - Verfügbare Ollama-Modelle
- * - Modell-Testing mit GPU-Metriken-Verlauf
+ * - Modell-Testing mit GPU/CPU/RAM-Metriken-Verlauf
  */
 export default function LLMModelManager() {
   const [loading, setLoading] = useState(true);
@@ -187,6 +188,9 @@ export default function LLMModelManager() {
   // GPU-Status
   const [gpuStatus, setGpuStatus] = useState(null);
   const [gpuLoading, setGpuLoading] = useState(false);
+
+  // System-Status (CPU + RAM)
+  const [systemStatus, setSystemStatus] = useState(null);
 
   // Lokale Änderungen (Draft)
   const [taskDrafts, setTaskDrafts] = useState({});
@@ -261,11 +265,17 @@ export default function LLMModelManager() {
   async function loadGpuStatus() {
     setGpuLoading(true);
     try {
-      const res = await fetch(buildChatbotApiUrl("/api/llm/gpu"), { credentials: "include" });
-      const data = await res.json();
-      if (res.ok) setGpuStatus(data);
+      // GPU-Status laden
+      const gpuRes = await fetch(buildChatbotApiUrl("/api/llm/gpu"), { credentials: "include" });
+      const gpuData = await gpuRes.json();
+      if (gpuRes.ok) setGpuStatus(gpuData);
+
+      // System-Status laden (CPU + RAM)
+      const sysRes = await fetch(buildChatbotApiUrl("/api/llm/system"), { credentials: "include" });
+      const sysData = await sysRes.json();
+      if (sysRes.ok) setSystemStatus(sysData.systemStatus);
     } catch {
-      // Ignoriere Fehler beim GPU-Status
+      // Ignoriere Fehler beim Status-Laden
     } finally {
       setGpuLoading(false);
     }
@@ -400,11 +410,11 @@ export default function LLMModelManager() {
       )}
       {msg && <div className="text-emerald-700 text-sm bg-emerald-50 p-3 rounded border border-emerald-200">{msg}</div>}
 
-      {/* GPU-Status */}
+      {/* System-Status (GPU + CPU + RAM) */}
       <div className="border rounded p-4 bg-gradient-to-r from-gray-50 to-blue-50">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-medium flex items-center gap-2">
-            <span className="text-xl">🖥️</span> GPU-Status
+            <span className="text-xl">🖥️</span> System-Status
           </h3>
           <button
             type="button"
@@ -416,55 +426,105 @@ export default function LLMModelManager() {
           </button>
         </div>
 
-        {gpuStatus && gpuStatus.available && gpuStatus.gpus ? (
-          <div className="space-y-3">
-            {gpuStatus.gpus.map((gpu, idx) => (
-              <div key={idx} className="bg-white rounded p-3 border">
-                <div className="font-medium text-sm mb-2">{gpu.name}</div>
-                <div className="grid grid-cols-3 gap-3 text-xs">
-                  <div>
-                    <div className="text-gray-500">GPU-Auslastung</div>
-                    <div className="text-lg font-bold" style={{ color: gpu.utilizationPercent > 80 ? "#dc2626" : "#10b981" }}>
-                      {gpu.utilizationPercent ?? "–"}%
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-gray-500">Temperatur</div>
-                    <div className="text-lg font-bold" style={{ color: gpu.temperatureCelsius > 75 ? "#dc2626" : "#10b981" }}>
-                      {gpu.temperatureCelsius ?? "–"}°C
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-gray-500">VRAM</div>
-                    <div className="text-lg font-bold">
-                      {gpu.memoryUsedMb && gpu.memoryTotalMb
-                        ? `${(gpu.memoryUsedMb / 1024).toFixed(1)} / ${(gpu.memoryTotalMb / 1024).toFixed(1)} GB`
-                        : "–"}
-                    </div>
-                    {gpu.memoryUsedMb && gpu.memoryTotalMb && (
-                      <div className="mt-1 w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className="h-2 rounded-full"
-                          style={{
-                            width: `${(gpu.memoryUsedMb / gpu.memoryTotalMb) * 100}%`,
-                            backgroundColor: (gpu.memoryUsedMb / gpu.memoryTotalMb) > 0.9 ? "#dc2626" : "#10b981"
-                          }}
-                        />
+        <div className="space-y-3">
+          {/* GPU-Status */}
+          {gpuStatus && gpuStatus.available && gpuStatus.gpus ? (
+            <>
+              {gpuStatus.gpus.map((gpu, idx) => (
+                <div key={idx} className="bg-white rounded p-3 border">
+                  <div className="font-medium text-sm mb-2">{gpu.name}</div>
+                  <div className="grid grid-cols-3 gap-3 text-xs">
+                    <div>
+                      <div className="text-gray-500">GPU-Auslastung</div>
+                      <div className="text-lg font-bold" style={{ color: gpu.utilizationPercent > 80 ? "#dc2626" : "#10b981" }}>
+                        {gpu.utilizationPercent ?? "–"}%
                       </div>
-                    )}
+                    </div>
+                    <div>
+                      <div className="text-gray-500">Temperatur</div>
+                      <div className="text-lg font-bold" style={{ color: gpu.temperatureCelsius > 75 ? "#dc2626" : "#10b981" }}>
+                        {gpu.temperatureCelsius ?? "–"}°C
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-gray-500">VRAM</div>
+                      <div className="text-lg font-bold">
+                        {gpu.memoryUsedMb && gpu.memoryTotalMb
+                          ? `${(gpu.memoryUsedMb / 1024).toFixed(1)} / ${(gpu.memoryTotalMb / 1024).toFixed(1)} GB`
+                          : "–"}
+                      </div>
+                      {gpu.memoryUsedMb && gpu.memoryTotalMb && (
+                        <div className="mt-1 w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="h-2 rounded-full"
+                            style={{
+                              width: `${(gpu.memoryUsedMb / gpu.memoryTotalMb) * 100}%`,
+                              backgroundColor: (gpu.memoryUsedMb / gpu.memoryTotalMb) > 0.9 ? "#dc2626" : "#10b981"
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
+              ))}
+              {gpuStatus.warning && (
+                <div className="text-amber-700 text-xs bg-amber-50 p-2 rounded">⚠️ {gpuStatus.warning}</div>
+              )}
+            </>
+          ) : (
+            <div className="text-sm text-gray-500 bg-white rounded p-3 border">
+              GPU: {gpuStatus?.error || "Nicht verfügbar"}
+            </div>
+          )}
+
+          {/* CPU + RAM Status */}
+          {systemStatus && systemStatus.available ? (
+            <div className="bg-white rounded p-3 border">
+              <div className="font-medium text-sm mb-2">System ({systemStatus.hostname})</div>
+              <div className="grid grid-cols-3 gap-3 text-xs">
+                <div>
+                  <div className="text-gray-500">CPU-Auslastung</div>
+                  <div className="text-lg font-bold" style={{ color: systemStatus.cpu.usagePercent > 80 ? "#dc2626" : "#3b82f6" }}>
+                    {systemStatus.cpu.usagePercent ?? "–"}%
+                  </div>
+                  <div className="text-xs text-gray-400 mt-1">
+                    {systemStatus.cpu.count} Kerne
+                  </div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Load Avg (1/5/15)</div>
+                  <div className="text-sm font-medium mt-1">
+                    {systemStatus.cpu.loadAverage?.oneMin ?? "–"} / {systemStatus.cpu.loadAverage?.fiveMin ?? "–"} / {systemStatus.cpu.loadAverage?.fifteenMin ?? "–"}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-gray-500">Arbeitsspeicher</div>
+                  <div className="text-lg font-bold">
+                    {systemStatus.memory.usedMb && systemStatus.memory.totalMb
+                      ? `${(systemStatus.memory.usedMb / 1024).toFixed(1)} / ${(systemStatus.memory.totalMb / 1024).toFixed(1)} GB`
+                      : "–"}
+                  </div>
+                  {systemStatus.memory.usedMb && systemStatus.memory.totalMb && (
+                    <div className="mt-1 w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="h-2 rounded-full"
+                        style={{
+                          width: `${systemStatus.memory.usagePercent}%`,
+                          backgroundColor: systemStatus.memory.usagePercent > 90 ? "#dc2626" : "#3b82f6"
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
-            ))}
-            {gpuStatus.warning && (
-              <div className="text-amber-700 text-xs bg-amber-50 p-2 rounded">⚠️ {gpuStatus.warning}</div>
-            )}
-          </div>
-        ) : (
-          <div className="text-sm text-gray-500">
-            {gpuStatus?.error || "GPU-Status nicht verfügbar"}
-          </div>
-        )}
+            </div>
+          ) : (
+            <div className="text-sm text-gray-500 bg-white rounded p-3 border">
+              System: {systemStatus?.error || "Nicht verfügbar"}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Globales Modell-Override */}
@@ -790,22 +850,14 @@ export default function LLMModelManager() {
                           </div>
                         </div>
 
-                        {/* GPU Min/Max */}
+                        {/* GPU Max */}
                         {testResult.stats?.gpuUtilization && (
-                          <>
-                            <div className="bg-emerald-50 rounded p-2 text-center">
-                              <div className="text-xs text-gray-600">GPU Min</div>
-                              <div className="text-lg font-bold text-emerald-700">
-                                {testResult.stats.gpuUtilization.min ?? "–"}%
-                              </div>
+                          <div className="bg-emerald-50 rounded p-2 text-center">
+                            <div className="text-xs text-gray-600">GPU Max</div>
+                            <div className="text-lg font-bold text-emerald-700">
+                              {testResult.stats.gpuUtilization.max ?? "–"}%
                             </div>
-                            <div className="bg-rose-50 rounded p-2 text-center">
-                              <div className="text-xs text-gray-600">GPU Max</div>
-                              <div className="text-lg font-bold text-rose-700">
-                                {testResult.stats.gpuUtilization.max ?? "–"}%
-                              </div>
-                            </div>
-                          </>
+                          </div>
                         )}
 
                         {/* VRAM Peak */}
@@ -819,12 +871,34 @@ export default function LLMModelManager() {
                             </div>
                           </div>
                         )}
+
+                        {/* CPU Max */}
+                        {testResult.stats?.cpuUsage && (
+                          <div className="bg-sky-50 rounded p-2 text-center">
+                            <div className="text-xs text-gray-600">CPU Max</div>
+                            <div className="text-lg font-bold text-sky-700">
+                              {testResult.stats.cpuUsage.max ?? "–"}%
+                            </div>
+                          </div>
+                        )}
+
+                        {/* RAM Peak */}
+                        {testResult.stats?.ramUsedMb && (
+                          <div className="bg-amber-50 rounded p-2 text-center">
+                            <div className="text-xs text-gray-600">RAM Peak</div>
+                            <div className="text-lg font-bold text-amber-700">
+                              {testResult.stats.ramUsedMb.max
+                                ? `${(testResult.stats.ramUsedMb.max / 1024).toFixed(1)} GB`
+                                : "–"}
+                            </div>
+                          </div>
+                        )}
                       </div>
 
-                      {/* GPU-Auslastung Graph */}
+                      {/* Metriken-Graphen */}
                       {testResult.metrics && testResult.metrics.length > 0 && (
                         <div className="space-y-3">
-                          <div className="text-sm font-medium text-gray-700">GPU-Metriken Verlauf</div>
+                          <div className="text-sm font-medium text-gray-700">Metriken-Verlauf</div>
 
                           {/* GPU Utilization Graph */}
                           <MetricsGraph
@@ -850,6 +924,30 @@ export default function LLMModelManager() {
                             height={140}
                           />
 
+                          {/* CPU Usage Graph */}
+                          <MetricsGraph
+                            data={testResult.metrics}
+                            dataKey="cpuUsagePercent"
+                            label="CPU-Auslastung"
+                            unit="%"
+                            color="#0EA5E9"
+                            minY={0}
+                            maxY={100}
+                            height={140}
+                          />
+
+                          {/* RAM Usage Graph */}
+                          <MetricsGraph
+                            data={testResult.metrics}
+                            dataKey="ramUsedMb"
+                            label="Arbeitsspeicher"
+                            unit=" MiB"
+                            color="#F59E0B"
+                            minY={0}
+                            maxY={testResult.stats?.ramTotalMb || 32768}
+                            height={140}
+                          />
+
                           {/* Messpunkte Info */}
                           <div className="text-xs text-gray-500 text-center">
                             {testResult.metrics.length} Messpunkte (2s Intervall)
@@ -872,6 +970,18 @@ export default function LLMModelManager() {
                               Min {testResult.stats.memoryUsedMb?.min ? (testResult.stats.memoryUsedMb.min / 1024).toFixed(1) : "–"} GB |{" "}
                               Max {testResult.stats.memoryUsedMb?.max ? (testResult.stats.memoryUsedMb.max / 1024).toFixed(1) : "–"} GB |{" "}
                               Total {testResult.stats.memoryTotalMb ? (testResult.stats.memoryTotalMb / 1024).toFixed(1) : "–"} GB
+                            </div>
+                            <div>
+                              <span className="font-medium">CPU:</span>{" "}
+                              Min {testResult.stats.cpuUsage?.min ?? "–"}% |{" "}
+                              Max {testResult.stats.cpuUsage?.max ?? "–"}% |{" "}
+                              Avg {testResult.stats.cpuUsage?.avg ?? "–"}%
+                            </div>
+                            <div>
+                              <span className="font-medium">RAM:</span>{" "}
+                              Min {testResult.stats.ramUsedMb?.min ? (testResult.stats.ramUsedMb.min / 1024).toFixed(1) : "–"} GB |{" "}
+                              Max {testResult.stats.ramUsedMb?.max ? (testResult.stats.ramUsedMb.max / 1024).toFixed(1) : "–"} GB |{" "}
+                              Total {testResult.stats.ramTotalMb ? (testResult.stats.ramTotalMb / 1024).toFixed(1) : "–"} GB
                             </div>
                           </div>
                         </div>

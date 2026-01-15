@@ -32,6 +32,7 @@ import {
 import { logInfo, logError } from "./logger.js";
 import { initMemoryStore } from "./memory_manager.js";
 import { getGpuStatus } from "./gpu_status.js";
+import { getSystemStatus, getCpuTimesSnapshot, collectSystemMetrics } from "./system_status.js";
 import { getGeoIndex } from "./rag/geo_search.js";
 
 // ============================================================
@@ -330,6 +331,16 @@ app.get("/api/llm/gpu", async (_req, res) => {
   }
 });
 
+app.get("/api/llm/system", (_req, res) => {
+  try {
+    const systemStatus = getSystemStatus();
+    res.json({ ok: true, systemStatus });
+  } catch (err) {
+    logError("Fehler beim Lesen des System-Status", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
 app.post("/api/llm/test", rateLimit(RateLimitProfiles.STRICT), async (req, res) => {
   const { question, model } = req.body || {};
   const gpuStatus = await getGpuStatus();
@@ -512,7 +523,7 @@ app.post("/api/llm/test-model", rateLimit(RateLimitProfiles.STRICT), async (req,
   }
 });
 
-// LLM-Test mit GPU-Metriken-Verlauf (2-Sekunden-Intervall)
+// LLM-Test mit GPU-, CPU- und RAM-Metriken-Verlauf (2-Sekunden-Intervall)
 app.post("/api/llm/test-with-metrics", rateLimit(RateLimitProfiles.STRICT), async (req, res) => {
   const { model, question } = req.body || {};
 
@@ -536,36 +547,61 @@ app.post("/api/llm/test-with-metrics", rateLimit(RateLimitProfiles.STRICT), asyn
   }
 
   const startTime = Date.now();
-  const gpuMetrics = [];
+  const metrics = [];
   let metricsInterval = null;
   let llmFinished = false;
+  let previousCpuSnapshot = getCpuTimesSnapshot();
 
-  // GPU-Metriken im 2-Sekunden-Intervall sammeln
-  const collectMetrics = async () => {
+  // Alle Metriken im 2-Sekunden-Intervall sammeln (GPU + CPU + RAM)
+  const collectAllMetrics = async () => {
     if (llmFinished) return;
     try {
-      const status = await getGpuStatus();
       const timestamp = Date.now() - startTime;
-      if (status.available && status.gpus && status.gpus[0]) {
-        const gpu = status.gpus[0];
-        gpuMetrics.push({
-          timestamp,
+
+      // GPU-Metriken
+      const gpuStatus = await getGpuStatus();
+      let gpuData = {
+        utilizationPercent: null,
+        memoryUsedMb: null,
+        memoryTotalMb: null,
+        temperatureCelsius: null
+      };
+      if (gpuStatus.available && gpuStatus.gpus && gpuStatus.gpus[0]) {
+        const gpu = gpuStatus.gpus[0];
+        gpuData = {
           utilizationPercent: gpu.utilizationPercent,
           memoryUsedMb: gpu.memoryUsedMb,
           memoryTotalMb: gpu.memoryTotalMb,
           temperatureCelsius: gpu.temperatureCelsius
-        });
+        };
       }
+
+      // System-Metriken (CPU + RAM)
+      const systemMetrics = collectSystemMetrics(timestamp, previousCpuSnapshot);
+      previousCpuSnapshot = systemMetrics._cpuSnapshot;
+
+      metrics.push({
+        timestamp,
+        // GPU-Daten
+        utilizationPercent: gpuData.utilizationPercent,
+        memoryUsedMb: gpuData.memoryUsedMb,
+        memoryTotalMb: gpuData.memoryTotalMb,
+        temperatureCelsius: gpuData.temperatureCelsius,
+        // System-Daten (CPU + RAM)
+        cpuUsagePercent: systemMetrics.cpuUsagePercent,
+        ramUsedMb: systemMetrics.memoryUsedMb,
+        ramTotalMb: systemMetrics.memoryTotalMb
+      });
     } catch {
       // Ignoriere Fehler beim Metriken-Sammeln
     }
   };
 
   // Initiale Messung
-  await collectMetrics();
+  await collectAllMetrics();
 
   // Starte Intervall
-  metricsInterval = setInterval(collectMetrics, 2000);
+  metricsInterval = setInterval(collectAllMetrics, 2000);
 
   try {
     const answer = await callLLMForChat({ question, model });
@@ -573,41 +609,61 @@ app.post("/api/llm/test-with-metrics", rateLimit(RateLimitProfiles.STRICT), asyn
     clearInterval(metricsInterval);
 
     // Finale Messung nach Abschluss
-    await collectMetrics();
+    await collectAllMetrics();
 
     const duration = Date.now() - startTime;
 
-    // Berechne Min/Max-Werte
-    const utilizationValues = gpuMetrics.map(m => m.utilizationPercent).filter(v => v !== null);
-    const memoryValues = gpuMetrics.map(m => m.memoryUsedMb).filter(v => v !== null);
+    // Berechne Min/Max/Avg-Werte für alle Metriken
+    const gpuUtilizationValues = metrics.map(m => m.utilizationPercent).filter(v => v !== null);
+    const gpuMemoryValues = metrics.map(m => m.memoryUsedMb).filter(v => v !== null);
+    const cpuUsageValues = metrics.map(m => m.cpuUsagePercent).filter(v => v !== null);
+    const ramUsageValues = metrics.map(m => m.ramUsedMb).filter(v => v !== null);
 
     const stats = {
       duration,
+      // GPU-Statistiken
       gpuUtilization: {
-        min: utilizationValues.length > 0 ? Math.min(...utilizationValues) : null,
-        max: utilizationValues.length > 0 ? Math.max(...utilizationValues) : null,
-        avg: utilizationValues.length > 0
-          ? Math.round(utilizationValues.reduce((a, b) => a + b, 0) / utilizationValues.length)
+        min: gpuUtilizationValues.length > 0 ? Math.min(...gpuUtilizationValues) : null,
+        max: gpuUtilizationValues.length > 0 ? Math.max(...gpuUtilizationValues) : null,
+        avg: gpuUtilizationValues.length > 0
+          ? Math.round(gpuUtilizationValues.reduce((a, b) => a + b, 0) / gpuUtilizationValues.length)
           : null
       },
       memoryUsedMb: {
-        min: memoryValues.length > 0 ? Math.min(...memoryValues) : null,
-        max: memoryValues.length > 0 ? Math.max(...memoryValues) : null,
-        avg: memoryValues.length > 0
-          ? Math.round(memoryValues.reduce((a, b) => a + b, 0) / memoryValues.length)
+        min: gpuMemoryValues.length > 0 ? Math.min(...gpuMemoryValues) : null,
+        max: gpuMemoryValues.length > 0 ? Math.max(...gpuMemoryValues) : null,
+        avg: gpuMemoryValues.length > 0
+          ? Math.round(gpuMemoryValues.reduce((a, b) => a + b, 0) / gpuMemoryValues.length)
           : null
       },
-      memoryTotalMb: gpuMetrics.length > 0 ? gpuMetrics[0].memoryTotalMb : null
+      memoryTotalMb: metrics.length > 0 ? metrics[0].memoryTotalMb : null,
+      // CPU-Statistiken
+      cpuUsage: {
+        min: cpuUsageValues.length > 0 ? Math.min(...cpuUsageValues) : null,
+        max: cpuUsageValues.length > 0 ? Math.max(...cpuUsageValues) : null,
+        avg: cpuUsageValues.length > 0
+          ? Math.round(cpuUsageValues.reduce((a, b) => a + b, 0) / cpuUsageValues.length)
+          : null
+      },
+      // RAM-Statistiken
+      ramUsedMb: {
+        min: ramUsageValues.length > 0 ? Math.min(...ramUsageValues) : null,
+        max: ramUsageValues.length > 0 ? Math.max(...ramUsageValues) : null,
+        avg: ramUsageValues.length > 0
+          ? Math.round(ramUsageValues.reduce((a, b) => a + b, 0) / ramUsageValues.length)
+          : null
+      },
+      ramTotalMb: metrics.length > 0 ? metrics[0].ramTotalMb : null
     };
 
-    logInfo("LLM-Test mit Metriken erfolgreich", { model, duration, metricsCount: gpuMetrics.length });
+    logInfo("LLM-Test mit Metriken erfolgreich", { model, duration, metricsCount: metrics.length });
 
     res.json({
       ok: true,
       answer: typeof answer === "string" ? answer.slice(0, 2000) : answer,
       duration,
       model,
-      metrics: gpuMetrics,
+      metrics,
       stats
     });
   } catch (err) {
@@ -622,7 +678,7 @@ app.post("/api/llm/test-with-metrics", rateLimit(RateLimitProfiles.STRICT), asyn
       error: String(err),
       duration,
       model,
-      metrics: gpuMetrics
+      metrics
     });
   }
 });
