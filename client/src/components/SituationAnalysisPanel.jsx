@@ -163,6 +163,22 @@ function QuestionSection({ role, onQuestionAsked }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question: question.trim(), role })
       });
+
+      // Prüfe Content-Type und Status vor JSON-Parsing
+      const contentType = res.headers.get("content-type") || "";
+      if (!res.ok) {
+        const errorText = contentType.includes("application/json")
+          ? (await res.json().catch(() => ({}))).error || `HTTP ${res.status}`
+          : `Server-Fehler: ${res.status} ${res.statusText}`;
+        setAnswer({ error: errorText });
+        return;
+      }
+
+      if (!contentType.includes("application/json")) {
+        setAnswer({ error: "Server hat keine gültige JSON-Antwort geliefert" });
+        return;
+      }
+
       const data = await res.json();
       if (data.error) {
         setAnswer({ error: data.error });
@@ -305,6 +321,22 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
     try {
       const url = buildChatbotApiUrl(`/api/situation/analysis?role=${selectedRole}${forceRefresh ? "&forceRefresh=true" : ""}`);
       const res = await fetch(url);
+
+      // Prüfe Content-Type und Status vor JSON-Parsing
+      const contentType = res.headers.get("content-type") || "";
+      if (!res.ok) {
+        const errorText = contentType.includes("application/json")
+          ? (await res.json().catch(() => ({}))).error || `HTTP ${res.status}`
+          : `Server-Fehler: ${res.status} ${res.statusText}`;
+        setError(errorText);
+        return;
+      }
+
+      if (!contentType.includes("application/json")) {
+        setError("Server hat keine gültige JSON-Antwort geliefert");
+        return;
+      }
+
       const data = await res.json();
 
       if (data.error) {
