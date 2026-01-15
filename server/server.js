@@ -1497,6 +1497,20 @@ app.use(express.json({ limit:"10mb" }));
 async function proxyChatbotRequest(req, res) {
   const CHATBOT_BASE_URL = process.env.CHATBOT_BASE_URL || "http://127.0.0.1:3100";
   const targetUrl = `${CHATBOT_BASE_URL}${req.originalUrl}`;
+  const proxyLogPath = path.resolve(process.cwd(), "Proxy.log");
+
+  async function logProxyDebug(lines) {
+    if (process.env.DEBUG_PROXY !== "1") return;
+    const timestamp = new Date().toISOString();
+    const entries = Array.isArray(lines) ? lines : [lines];
+    const payload = `${entries.map((line) => `[${timestamp}] ${line}`).join("\n")}\n`;
+
+    try {
+      await fs.appendFile(proxyLogPath, payload, "utf8");
+    } catch (error) {
+      console.error(`[Chatbot Proxy] Failed to write ${proxyLogPath}:`, error.message);
+    }
+  }
 
   try {
     // Nur sichere Headers weiterleiten (keine hop-by-hop Headers)
@@ -1535,10 +1549,12 @@ async function proxyChatbotRequest(req, res) {
 
       // Debug logging for troubleshooting body issues
       if (process.env.DEBUG_PROXY === "1") {
-        console.log(`[Chatbot Proxy] ${req.method} ${req.originalUrl}`);
-        console.log(`[Chatbot Proxy] req.body type: ${typeof req.body}`);
-        console.log(`[Chatbot Proxy] req.body keys: ${req.body ? Object.keys(req.body).join(", ") : "undefined"}`);
-        console.log(`[Chatbot Proxy] Forwarding body: ${fetchOptions.body.substring(0, 200)}`);
+        await logProxyDebug([
+          `[Chatbot Proxy] ${req.method} ${req.originalUrl}`,
+          `[Chatbot Proxy] req.body type: ${typeof req.body}`,
+          `[Chatbot Proxy] req.body keys: ${req.body ? Object.keys(req.body).join(", ") : "undefined"}`,
+          `[Chatbot Proxy] Forwarding body: ${fetchOptions.body.substring(0, 200)}`
+        ]);
       }
     }
 
@@ -1547,7 +1563,7 @@ async function proxyChatbotRequest(req, res) {
 
     // Debug logging for response
     if (process.env.DEBUG_PROXY === "1" && !data.ok) {
-      console.log(`[Chatbot Proxy] Response error: ${JSON.stringify(data)}`);
+      await logProxyDebug(`[Chatbot Proxy] Response error: ${JSON.stringify(data)}`);
     }
 
     res.status(response.status).json(data);
