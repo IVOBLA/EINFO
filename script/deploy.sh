@@ -58,7 +58,7 @@ PORT="${PORT:-4000}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 BACKUP_DIR="/tmp/einfo-backup-$(date +%Y%m%d-%H%M%S)"
-CONFIG_FILE="${CONFIG_FILE:-/etc/einfo/deploy.conf}"
+CONFIG_FILE="${CONFIG_FILE:-/home/bfkdo/deploy.conf}"
 
 # Optionen
 SKIP_GIT=false
