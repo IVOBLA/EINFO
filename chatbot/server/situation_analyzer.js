@@ -272,9 +272,32 @@ export async function analyzeAllRoles(forceRefresh = false) {
   try {
     logInfo("Starte Gesamtanalyse für alle Rollen");
 
-    const llmResponse = await callLLMForChat(systemPrompt, userPrompt, {
-      taskType: "analysis" // Verwendet alle Parameter aus analysis-Task-Config
-    });
+    let llmResponse;
+    try {
+      llmResponse = await callLLMForChat(systemPrompt, userPrompt, {
+        taskType: "analysis" // Verwendet alle Parameter aus analysis-Task-Config
+      });
+    } catch (llmErr) {
+      logError("LLM-Aufruf fehlgeschlagen bei Gesamtanalyse", {
+        error: String(llmErr)
+      });
+      return {
+        error: "KI-Modell nicht erreichbar oder Anfrage fehlgeschlagen",
+        details: String(llmErr)
+      };
+    }
+
+    // Prüfe ob LLM-Antwort gültig ist
+    if (!llmResponse || typeof llmResponse !== "string" || !llmResponse.trim()) {
+      logError("LLM gab leere Antwort bei Gesamtanalyse", {
+        responseType: typeof llmResponse,
+        responseLength: llmResponse?.length || 0
+      });
+      return {
+        error: "KI-Modell hat keine gültige Antwort geliefert",
+        details: "Leere oder ungültige Antwort vom Modell"
+      };
+    }
 
     // JSON parsen
     let parsed;
@@ -283,7 +306,7 @@ export async function analyzeAllRoles(forceRefresh = false) {
       if (jsonMatch) {
         parsed = JSON.parse(jsonMatch[0]);
       } else {
-        throw new Error("Kein JSON gefunden");
+        throw new Error("Kein JSON in der Antwort gefunden");
       }
     } catch (parseErr) {
       logError("JSON-Parse-Fehler bei Gesamtanalyse", {
@@ -292,7 +315,7 @@ export async function analyzeAllRoles(forceRefresh = false) {
       });
       return {
         error: "Analyse-Ergebnis konnte nicht verarbeitet werden",
-        rawResponse: llmResponse.substring(0, 500)
+        details: String(parseErr)
       };
     }
 
@@ -447,9 +470,37 @@ export async function answerQuestion(question, role, context = "aufgabenboard") 
   });
 
   try {
-    const answer = await callLLMForChat(systemPrompt, question, {
-      taskType: "analysis" // Verwendet alle Parameter aus analysis-Task-Config
-    });
+    let answer;
+    try {
+      answer = await callLLMForChat(systemPrompt, question, {
+        taskType: "analysis", // Verwendet alle Parameter aus analysis-Task-Config
+        requireJson: false    // Antworten sollen Text sein, kein JSON
+      });
+    } catch (llmErr) {
+      logError("LLM-Aufruf fehlgeschlagen bei Fragebeantwortung", {
+        question,
+        role: normalizedRole,
+        error: String(llmErr)
+      });
+      return {
+        error: "KI-Modell nicht erreichbar oder Anfrage fehlgeschlagen",
+        details: String(llmErr)
+      };
+    }
+
+    // Prüfe ob LLM-Antwort gültig ist
+    if (!answer || typeof answer !== "string" || !answer.trim()) {
+      logError("LLM gab leere Antwort bei Fragebeantwortung", {
+        question,
+        role: normalizedRole,
+        responseType: typeof answer,
+        responseLength: answer?.length || 0
+      });
+      return {
+        error: "KI-Modell hat keine gültige Antwort geliefert",
+        details: "Leere oder ungültige Antwort vom Modell"
+      };
+    }
 
     const questionId = `q_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 

@@ -242,6 +242,9 @@ export async function callLLMForChat(arg1, arg2, arg3) {
     const taskType = overrides.taskType || "chat";
     const useStreaming = overrides.stream !== false;
 
+    // JSON-Format erzwingen für analysis Task-Typ (außer explizit deaktiviert)
+    const requireJsonFormat = overrides.requireJson !== false && taskType === "analysis";
+
     // Task-Config holen (alle Defaults aus zentraler Config)
     const taskConfig = getModelForTask(taskType);
 
@@ -261,6 +264,11 @@ export async function callLLMForChat(arg1, arg2, arg3) {
         { role: "user", content: userPrompt }
       ]
     };
+
+    // JSON-Format für analysis erzwingen
+    if (requireJsonFormat) {
+      body.format = "json";
+    }
 
     // Bei Streaming: Tokens intern sammeln und am Ende zurückgeben
     let collectedResponse = "";
