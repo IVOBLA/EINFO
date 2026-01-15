@@ -192,6 +192,12 @@ export default function LLMModelManager() {
   // System-Status (CPU + RAM)
   const [systemStatus, setSystemStatus] = useState(null);
 
+  // GPU-Historie für Liniendiagramme
+  const [gpuHistory, setGpuHistory] = useState([]);
+  const [historyStartTime, setHistoryStartTime] = useState(null);
+  const [historyTimeRange, setHistoryTimeRange] = useState(300); // in Sekunden (default: 5 Min)
+  const [updateInterval, setUpdateInterval] = useState(5000); // in Millisekunden (default: 5s)
+
   // Lokale Änderungen (Draft)
   const [taskDrafts, setTaskDrafts] = useState({});
 
@@ -204,7 +210,7 @@ export default function LLMModelManager() {
   // Daten laden mit Auto-Retry bei Netzwerkfehlern
   useEffect(() => {
     loadAll();
-    const gpuInterval = setInterval(loadGpuStatus, 5000); // GPU-Status alle 5s
+    const gpuInterval = setInterval(loadGpuStatus, updateInterval); // GPU-Status mit gewähltem Intervall
 
     // Retry-Mechanismus: Versuche alle 3 Sekunden neu zu laden wenn Netzwerkfehler
     const retryInterval = setInterval(() => {
@@ -217,7 +223,7 @@ export default function LLMModelManager() {
       clearInterval(gpuInterval);
       clearInterval(retryInterval);
     };
-  }, [retrying]);
+  }, [retrying, updateInterval]);
 
   async function loadAll() {
     // Beim ersten Laden oder manuellen Reload: zeige Loading-Spinner
@@ -268,7 +274,41 @@ export default function LLMModelManager() {
       // GPU-Status laden
       const gpuRes = await fetch(buildChatbotApiUrl("/api/llm/gpu"), { credentials: "include" });
       const gpuData = await gpuRes.json();
-      if (gpuRes.ok) setGpuStatus(gpuData.gpuStatus);
+      if (gpuRes.ok) {
+        setGpuStatus(gpuData.gpuStatus);
+
+        // Historie-Daten sammeln (nur wenn GPU verfügbar)
+        if (gpuData.gpuStatus?.available && gpuData.gpuStatus?.gpus?.length > 0) {
+          const gpu = gpuData.gpuStatus.gpus[0]; // Erste GPU
+
+          setGpuHistory((prev) => {
+            const now = Date.now();
+
+            // Wenn Historie leer ist, setze Start-Zeit
+            let startTime = historyStartTime;
+            if (prev.length === 0 || startTime === null) {
+              startTime = now;
+              setHistoryStartTime(now);
+            }
+
+            const timestamp = now - startTime;
+
+            const newPoint = {
+              timestamp,
+              utilizationPercent: gpu.utilizationPercent,
+              memoryUsedMb: gpu.memoryUsedMb,
+              temperatureCelsius: gpu.temperatureCelsius
+            };
+
+            // Neue Daten hinzufügen und auf gewählten Zeitraum begrenzen
+            // maxPoints = timeRange (in Sekunden) / Intervall (in Sekunden)
+            const intervalSeconds = updateInterval / 1000;
+            const maxPoints = Math.ceil(historyTimeRange / intervalSeconds);
+            const updated = [...prev, newPoint];
+            return updated.slice(-maxPoints);
+          });
+        }
+      }
 
       // System-Status laden (CPU + RAM)
       const sysRes = await fetch(buildChatbotApiUrl("/api/llm/system"), { credentials: "include" });
@@ -522,6 +562,190 @@ export default function LLMModelManager() {
           ) : (
             <div className="text-sm text-gray-500 bg-white rounded p-3 border">
               System: {systemStatus?.error || "Nicht verfügbar"}
+            </div>
+          )}
+
+          {/* Liniendiagramme für GPU-Metriken über Zeit */}
+          {gpuStatus?.available && gpuHistory.length > 0 && (
+            <div className="space-y-3 mt-4">
+              <div className="text-sm font-medium text-gray-700 mb-2 flex justify-between items-center">
+                <span>
+                  Verlauf (
+                  {(() => {
+                    const seconds = Math.floor((gpuHistory[gpuHistory.length - 1]?.timestamp || 0) / 1000);
+                    if (seconds >= 3600) return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+                    if (seconds >= 60) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+                    return `${seconds}s`;
+                  })()}
+                  )
+                </span>
+                <div className="flex gap-2 items-center flex-wrap">
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-gray-600">Intervall:</span>
+                    <select
+                      className="text-xs px-2 py-1 border rounded bg-white text-gray-700"
+                      value={updateInterval}
+                      onChange={(e) => {
+                        const newInterval = Number(e.target.value);
+                        setUpdateInterval(newInterval);
+                        // Historie zurücksetzen bei Intervall-Änderung
+                        setGpuHistory([]);
+                        setHistoryStartTime(null);
+                      }}
+                    >
+                      <option value={2000}>2s</option>
+                      <option value={5000}>5s</option>
+                      <option value={10000}>10s</option>
+                      <option value={30000}>30s</option>
+                      <option value={60000}>60s</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-gray-600">Zeitraum:</span>
+                    <select
+                      className="text-xs px-2 py-1 border rounded bg-white text-gray-700"
+                      value={historyTimeRange}
+                      onChange={(e) => {
+                        const newRange = Number(e.target.value);
+                        setHistoryTimeRange(newRange);
+                        // Schneide Historie auf neue Länge zu
+                        const intervalSeconds = updateInterval / 1000;
+                        const maxPoints = Math.ceil(newRange / intervalSeconds);
+                        setGpuHistory((prev) => prev.slice(-maxPoints));
+                      }}
+                    >
+                      <option value={300}>5 Min</option>
+                      <option value={900}>15 Min</option>
+                      <option value={1800}>30 Min</option>
+                      <option value={3600}>1 Std</option>
+                      <option value={7200}>2 Std</option>
+                      <option value={14400}>4 Std</option>
+                      <option value={28800}>8 Std</option>
+                    </select>
+                  </div>
+                  <button
+                    type="button"
+                    className="text-xs px-2 py-1 border rounded hover:bg-white text-gray-600"
+                    onClick={() => {
+                      setGpuHistory([]);
+                      setHistoryStartTime(null);
+                    }}
+                  >
+                    Löschen
+                  </button>
+                </div>
+              </div>
+
+              {/* Statistik-Übersicht für GPU-Metriken */}
+              {(() => {
+                const gpuValues = gpuHistory.map(d => d.utilizationPercent).filter(v => v !== null && v !== undefined);
+                const vramValues = gpuHistory.map(d => d.memoryUsedMb).filter(v => v !== null && v !== undefined);
+                const tempValues = gpuHistory.map(d => d.temperatureCelsius).filter(v => v !== null && v !== undefined);
+
+                return (
+                  <div className="grid grid-cols-3 gap-3 mb-3">
+                    {/* GPU-Auslastung Stats */}
+                    {gpuValues.length > 0 && (
+                      <div className="bg-emerald-50 rounded p-3 border border-emerald-200">
+                        <div className="text-xs text-emerald-700 font-medium mb-2">GPU-Auslastung</div>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div>
+                            <div className="text-gray-600">Min</div>
+                            <div className="text-lg font-bold text-emerald-700">{Math.round(Math.min(...gpuValues))}%</div>
+                          </div>
+                          <div>
+                            <div className="text-gray-600">Max</div>
+                            <div className="text-lg font-bold text-emerald-700">{Math.round(Math.max(...gpuValues))}%</div>
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-600 mt-2">
+                          Ø {Math.round(gpuValues.reduce((a, b) => a + b, 0) / gpuValues.length)}%
+                        </div>
+                      </div>
+                    )}
+
+                    {/* VRAM Stats */}
+                    {vramValues.length > 0 && (
+                      <div className="bg-purple-50 rounded p-3 border border-purple-200">
+                        <div className="text-xs text-purple-700 font-medium mb-2">VRAM-Nutzung</div>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div>
+                            <div className="text-gray-600">Min</div>
+                            <div className="text-lg font-bold text-purple-700">
+                              {(Math.min(...vramValues) / 1024).toFixed(1)} GB
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-gray-600">Max</div>
+                            <div className="text-lg font-bold text-purple-700">
+                              {(Math.max(...vramValues) / 1024).toFixed(1)} GB
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-600 mt-2">
+                          Ø {(vramValues.reduce((a, b) => a + b, 0) / vramValues.length / 1024).toFixed(1)} GB
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Temperatur Stats */}
+                    {tempValues.length > 0 && (
+                      <div className="bg-amber-50 rounded p-3 border border-amber-200">
+                        <div className="text-xs text-amber-700 font-medium mb-2">GPU-Temperatur</div>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div>
+                            <div className="text-gray-600">Min</div>
+                            <div className="text-lg font-bold text-amber-700">{Math.round(Math.min(...tempValues))}°C</div>
+                          </div>
+                          <div>
+                            <div className="text-gray-600">Max</div>
+                            <div className="text-lg font-bold text-amber-700">{Math.round(Math.max(...tempValues))}°C</div>
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-600 mt-2">
+                          Ø {Math.round(tempValues.reduce((a, b) => a + b, 0) / tempValues.length)}°C
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* GPU-Auslastung */}
+              <MetricsGraph
+                data={gpuHistory}
+                dataKey="utilizationPercent"
+                label="GPU-Auslastung"
+                unit="%"
+                color="#10B981"
+                minY={0}
+                maxY={100}
+                height={120}
+              />
+
+              {/* VRAM-Nutzung (MiB) */}
+              <MetricsGraph
+                data={gpuHistory}
+                dataKey="memoryUsedMb"
+                label="VRAM-Nutzung"
+                unit=" MiB"
+                color="#8B5CF6"
+                minY={0}
+                maxY={gpuStatus.gpus?.[0]?.memoryTotalMb || 8192}
+                height={120}
+              />
+
+              {/* GPU-Temperatur */}
+              <MetricsGraph
+                data={gpuHistory}
+                dataKey="temperatureCelsius"
+                label="GPU-Temperatur"
+                unit="°C"
+                color="#F59E0B"
+                minY={0}
+                maxY={100}
+                height={120}
+              />
             </div>
           )}
         </div>
