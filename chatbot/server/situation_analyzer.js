@@ -84,6 +84,57 @@ let analysisIntervalId = null;
 // Flag um gleichzeitige Analysen zu verhindern (Stream muss fertig sein bevor nächste Analyse startet)
 let analysisInProgress = false;
 
+// Callback für SSE-Broadcast wenn Analyse fertig ist
+let onAnalysisCompleteCallback = null;
+
+/**
+ * Setzt den Callback für SSE-Broadcast wenn eine Analyse abgeschlossen ist
+ */
+export function setOnAnalysisComplete(callback) {
+  onAnalysisCompleteCallback = callback;
+}
+
+/**
+ * Gibt zurück ob gerade eine Analyse läuft
+ */
+export function isAnalysisInProgress() {
+  return analysisInProgress;
+}
+
+/**
+ * Holt gecachte Analyse für eine Rolle OHNE neue Analyse zu triggern
+ * Gibt null zurück wenn kein Cache vorhanden ist
+ */
+export function getCachedAnalysisForRole(role) {
+  const normalizedRole = role.toUpperCase();
+  if (!ROLE_DESCRIPTIONS[normalizedRole]) {
+    return {
+      error: `Unbekannte Rolle: ${role}`,
+      validRoles: Object.keys(ROLE_DESCRIPTIONS)
+    };
+  }
+
+  const cached = analysisCache.get(normalizedRole);
+  if (!cached) {
+    return {
+      noCache: true,
+      role: normalizedRole,
+      message: "Noch keine Analyse durchgeführt"
+    };
+  }
+
+  const now = Date.now();
+  const cacheAge = now - cached.timestamp;
+
+  return {
+    ...cached.analysis,
+    fromCache: true,
+    cacheAge,
+    nextAnalysisIn: Math.max(0, analysisIntervalMs - cacheAge),
+    analysisInProgress
+  };
+}
+
 function sanitizeAnalysisIntervalMinutes(value) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed < AI_ANALYSIS_MIN_INTERVAL_MINUTES) {
@@ -373,6 +424,21 @@ export async function analyzeAllRoles(forceRefresh = false) {
       totalSuggestions: Object.values(results).reduce((sum, r) => sum + r.suggestions.length, 0),
       severity: situation.severity
     });
+
+    // SSE-Broadcast dass Analyse fertig ist
+    if (onAnalysisCompleteCallback) {
+      try {
+        onAnalysisCompleteCallback({
+          analysisId,
+          timestamp: now,
+          situation,
+          roles: Object.keys(results),
+          nextAnalysisIn: analysisIntervalMs
+        });
+      } catch (callbackErr) {
+        logError("Fehler beim SSE-Broadcast", { error: String(callbackErr) });
+      }
+    }
 
     return {
       analysisId,

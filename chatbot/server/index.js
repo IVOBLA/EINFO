@@ -71,6 +71,9 @@ import {
   isAnalysisActive,
   getAnalysisStatus,
   analyzeForRole,
+  getCachedAnalysisForRole,
+  isAnalysisInProgress,
+  setOnAnalysisComplete,
   answerQuestion,
   saveSuggestionFeedback,
   saveQuestionFeedback,
@@ -1268,12 +1271,25 @@ app.post("/api/situation/analysis-loop/sync", async (_req, res) => {
 });
 
 // Analyse für eine Rolle abrufen
+// cacheOnly=true: Nur gecachte Daten abrufen, keine neue Analyse starten
+// forceRefresh=true: Neue Analyse erzwingen (ignoriert cacheOnly)
 app.get("/api/situation/analysis", async (req, res) => {
   try {
-    const { role, forceRefresh } = req.query;
+    const { role, forceRefresh, cacheOnly } = req.query;
 
     if (!role) {
       return res.status(400).json({ ok: false, error: "role Parameter fehlt" });
+    }
+
+    // Bei cacheOnly=true nur gecachte Daten zurückgeben (keine neue Analyse)
+    if (cacheOnly === "true" && forceRefresh !== "true") {
+      const cached = getCachedAnalysisForRole(role);
+      // Füge auch den Status hinzu ob gerade eine Analyse läuft
+      return res.json({
+        ok: true,
+        ...cached,
+        analysisInProgress: isAnalysisInProgress()
+      });
     }
 
     const analysis = await analyzeForRole(role, forceRefresh === "true");
@@ -1572,6 +1588,14 @@ async function bootstrap() {
   // Situationsanalyse initialisieren
   try {
     await initSituationAnalyzer();
+    // SSE-Callback registrieren um Clients zu benachrichtigen wenn Analyse fertig ist
+    setOnAnalysisComplete((analysisResult) => {
+      broadcastSSE("analysis_complete", analysisResult);
+      logInfo("SSE: Analyse-Fertigstellung gebroadcastet", {
+        analysisId: analysisResult.analysisId,
+        roles: analysisResult.roles
+      });
+    });
     logInfo("Situationsanalyse-System initialisiert");
   } catch (err) {
     logError("Fehler beim Initialisieren der Situationsanalyse", {
