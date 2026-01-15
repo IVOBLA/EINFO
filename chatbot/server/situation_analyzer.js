@@ -81,6 +81,10 @@ let cacheLoaded = false;
 let analysisIntervalMs = 5 * 60 * 1000;
 let analysisIntervalId = null;
 
+// Tracking für laufende Analysen
+let analysisInProgress = false;
+let analysisStartedAt = null;
+
 function sanitizeAnalysisIntervalMinutes(value) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed < AI_ANALYSIS_MIN_INTERVAL_MINUTES) {
@@ -163,6 +167,9 @@ export function getAnalysisStatus() {
   return {
     isActive: isAnalysisActive(),
     analysisInterval: analysisIntervalMs,
+    analysisIntervalMinutes: Math.round(analysisIntervalMs / 60000),
+    analysisInProgress,
+    analysisStartedAt,
     lastAnalysisTimes: Object.fromEntries(
       Array.from(analysisCache.entries()).map(([role, data]) => [role, data.timestamp])
     ),
@@ -248,6 +255,10 @@ export async function analyzeAllRoles(forceRefresh = false) {
     }
   }
 
+  // Markiere Analyse als laufend
+  analysisInProgress = true;
+  analysisStartedAt = now;
+
   // Aktuellen Kontext holen (immer aktuelle EINFO-Daten)
   const disasterSummary = await getDisasterContextSummary({ maxLength: 2500 });
 
@@ -278,6 +289,8 @@ export async function analyzeAllRoles(forceRefresh = false) {
         taskType: "analysis" // Verwendet alle Parameter aus analysis-Task-Config
       });
     } catch (llmErr) {
+      analysisInProgress = false;
+      analysisStartedAt = null;
       logError("LLM-Aufruf fehlgeschlagen bei Gesamtanalyse", {
         error: String(llmErr)
       });
@@ -289,6 +302,8 @@ export async function analyzeAllRoles(forceRefresh = false) {
 
     // Prüfe ob LLM-Antwort gültig ist
     if (!llmResponse || typeof llmResponse !== "string" || !llmResponse.trim()) {
+      analysisInProgress = false;
+      analysisStartedAt = null;
       logError("LLM gab leere Antwort bei Gesamtanalyse", {
         responseType: typeof llmResponse,
         responseLength: llmResponse?.length || 0
@@ -309,6 +324,8 @@ export async function analyzeAllRoles(forceRefresh = false) {
         throw new Error("Kein JSON in der Antwort gefunden");
       }
     } catch (parseErr) {
+      analysisInProgress = false;
+      analysisStartedAt = null;
       logError("JSON-Parse-Fehler bei Gesamtanalyse", {
         error: String(parseErr),
         response: llmResponse.substring(0, 500)
@@ -355,6 +372,10 @@ export async function analyzeAllRoles(forceRefresh = false) {
       severity: situation.severity
     });
 
+    // Analyse beendet
+    analysisInProgress = false;
+    analysisStartedAt = null;
+
     return {
       analysisId,
       timestamp: now,
@@ -364,12 +385,55 @@ export async function analyzeAllRoles(forceRefresh = false) {
     };
 
   } catch (err) {
+    // Analyse beendet (auch bei Fehler)
+    analysisInProgress = false;
+    analysisStartedAt = null;
+
     logError("Fehler bei Gesamtanalyse", { error: String(err) });
     return {
       error: "Analyse fehlgeschlagen",
       details: String(err)
     };
   }
+}
+
+/**
+ * Holt nur die gecachte Analyse für eine Rolle (kein LLM-Aufruf)
+ * Gibt null zurück, wenn keine Analyse im Cache ist
+ */
+export function getCachedAnalysisForRole(role) {
+  const normalizedRole = role.toUpperCase();
+  if (!ROLE_DESCRIPTIONS[normalizedRole]) {
+    return {
+      error: `Unbekannte Rolle: ${role}`,
+      validRoles: Object.keys(ROLE_DESCRIPTIONS)
+    };
+  }
+
+  const cached = analysisCache.get(normalizedRole);
+  const now = Date.now();
+
+  if (!cached) {
+    return {
+      noCache: true,
+      analysisInProgress,
+      analysisStartedAt,
+      message: "Keine Analyse im Cache"
+    };
+  }
+
+  const cacheAge = now - cached.timestamp;
+  const isStale = cacheAge >= analysisIntervalMs;
+
+  return {
+    ...cached.analysis,
+    fromCache: true,
+    cacheAge,
+    isStale,
+    analysisInProgress,
+    analysisStartedAt,
+    nextAnalysisIn: isStale ? 0 : analysisIntervalMs - cacheAge
+  };
 }
 
 /**

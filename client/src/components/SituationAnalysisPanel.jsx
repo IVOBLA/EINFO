@@ -309,7 +309,9 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
   const [analysisData, setAnalysisData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [analysisInProgress, setAnalysisInProgress] = useState(false);
   const pollIntervalRef = useRef(null);
+  const statusPollRef = useRef(null);
   const [analysisConfig, setAnalysisConfig] = useState({
     enabled: true,
     intervalMinutes: 5,
@@ -323,6 +325,55 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
     }
   }, [currentRole]);
 
+  // Holt nur die gecachte Analyse (kein LLM-Aufruf)
+  const fetchCachedAnalysis = useCallback(async () => {
+    if (!resolvedEnabled) return;
+    setLoading(true);
+    setError(null);
+
+    try {
+      const url = buildChatbotApiUrl(`/api/situation/analysis/cached?role=${selectedRole}`);
+      const res = await fetch(url);
+
+      const contentType = res.headers.get("content-type") || "";
+      if (!res.ok) {
+        const errorText = contentType.includes("application/json")
+          ? (await res.json().catch(() => ({}))).error || `HTTP ${res.status}`
+          : `Server-Fehler: ${res.status} ${res.statusText}`;
+        setError(errorText);
+        return;
+      }
+
+      if (!contentType.includes("application/json")) {
+        setError("Server hat keine gültige JSON-Antwort geliefert");
+        return;
+      }
+
+      const data = await res.json();
+
+      // Setze analysisInProgress Status
+      setAnalysisInProgress(!!data.analysisInProgress);
+
+      if (data.noCache) {
+        // Keine gecachte Analyse vorhanden - zeige entsprechende Meldung
+        setAnalysisData(null);
+        return;
+      }
+
+      if (data.error) {
+        setError(data.error);
+        return;
+      }
+
+      setAnalysisData(data);
+    } catch (err) {
+      setError(String(err.message || err));
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedRole, resolvedEnabled]);
+
+  // Triggert eine neue Analyse (mit LLM-Aufruf)
   const fetchAnalysis = useCallback(async (forceRefresh = false) => {
     if (!resolvedEnabled) return;
     setLoading(true);
@@ -349,6 +400,9 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
 
       const data = await res.json();
 
+      // Setze analysisInProgress Status
+      setAnalysisInProgress(!!data.analysisInProgress);
+
       if (data.error) {
         if (data.isActive === false) {
           setError("Analyse nicht verfügbar (Simulation läuft)");
@@ -366,17 +420,25 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
     }
   }, [selectedRole, resolvedEnabled]);
 
-  // Auto-Refresh alle 5 Minuten wenn Panel offen ist
+  // Beim Öffnen des Panels: Nur gecachte Analyse laden (kein LLM-Trigger)
+  // Auto-Refresh erfolgt nur nach dem eingestellten Intervall
   useEffect(() => {
     if (!isOpen || !resolvedEnabled) {
       if (pollIntervalRef.current) {
         clearInterval(pollIntervalRef.current);
         pollIntervalRef.current = null;
       }
+      if (statusPollRef.current) {
+        clearInterval(statusPollRef.current);
+        statusPollRef.current = null;
+      }
       return;
     }
 
-    fetchAnalysis();
+    // Beim Öffnen: Nur gecachte Analyse laden (KEIN neuer LLM-Aufruf)
+    fetchCachedAnalysis();
+
+    // Auto-Refresh nach dem eingestellten Intervall (triggert LLM-Aufruf)
     const intervalMinutes = sanitizeAnalysisIntervalMinutes(analysisConfig.intervalMinutes, 5);
     pollIntervalRef.current = setInterval(() => fetchAnalysis(), intervalMinutes * 60 * 1000);
 
@@ -385,8 +447,51 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
         clearInterval(pollIntervalRef.current);
         pollIntervalRef.current = null;
       }
+      if (statusPollRef.current) {
+        clearInterval(statusPollRef.current);
+        statusPollRef.current = null;
+      }
     };
-  }, [analysisConfig.intervalMinutes, isOpen, resolvedEnabled, fetchAnalysis]);
+  }, [analysisConfig.intervalMinutes, isOpen, resolvedEnabled, fetchAnalysis, fetchCachedAnalysis]);
+
+  // Status-Polling: Prüfe ob Analyse läuft und aktualisiere Panel wenn fertig
+  useEffect(() => {
+    if (!isOpen || !resolvedEnabled || !analysisInProgress) {
+      if (statusPollRef.current) {
+        clearInterval(statusPollRef.current);
+        statusPollRef.current = null;
+      }
+      return;
+    }
+
+    // Polling alle 3 Sekunden während eine Analyse läuft
+    statusPollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(buildChatbotApiUrl("/api/situation/status"));
+        if (res.ok) {
+          const status = await res.json();
+          if (!status.analysisInProgress) {
+            // Analyse fertig - lade neue Daten
+            setAnalysisInProgress(false);
+            fetchCachedAnalysis();
+            if (statusPollRef.current) {
+              clearInterval(statusPollRef.current);
+              statusPollRef.current = null;
+            }
+          }
+        }
+      } catch {
+        // Status-Polling-Fehler ignorieren
+      }
+    }, 3000);
+
+    return () => {
+      if (statusPollRef.current) {
+        clearInterval(statusPollRef.current);
+        statusPollRef.current = null;
+      }
+    };
+  }, [isOpen, resolvedEnabled, analysisInProgress, fetchCachedAnalysis]);
 
   useEffect(() => {
     let active = true;
@@ -502,13 +607,17 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
               </div>
             </div>
             <div className="flex items-center gap-2">
-              {loading && (
+              {analysisInProgress && (
+                <span className="text-xs animate-pulse bg-yellow-500 text-yellow-900 px-2 py-0.5 rounded">Analyse läuft...</span>
+              )}
+              {loading && !analysisInProgress && (
                 <span className="text-xs animate-pulse">Lade...</span>
               )}
               <button
                 onClick={(e) => { e.stopPropagation(); fetchAnalysis(true); }}
                 className="p-1 hover:bg-white/20 rounded"
                 title="Neu analysieren"
+                disabled={analysisInProgress}
               >
                 🔄
               </button>
@@ -572,14 +681,21 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
                     <button
                       onClick={() => fetchAnalysis(true)}
                       className="text-sm text-blue-600 hover:underline"
+                      disabled={analysisInProgress}
                     >
                       Erneut versuchen
                     </button>
                   </div>
+                ) : analysisInProgress && !currentRoleData ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin text-3xl mb-2">⏳</div>
+                    <p className="text-gray-500">Analyse läuft...</p>
+                    <p className="text-xs text-gray-400 mt-1">Das Panel wird automatisch aktualisiert, sobald die Analyse abgeschlossen ist.</p>
+                  </div>
                 ) : loading && !currentRoleData ? (
                   <div className="text-center py-8">
                     <div className="animate-spin text-3xl mb-2">⏳</div>
-                    <p className="text-gray-500">Analysiere Situation...</p>
+                    <p className="text-gray-500">Lade Analyse...</p>
                   </div>
                 ) : currentRoleData?.suggestions?.length > 0 ? (
                   <div>
@@ -596,13 +712,24 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
                   </div>
                 ) : (
                   <div className="text-center py-8 text-gray-500">
-                    <p>Keine Vorschläge für {selectedRole} verfügbar.</p>
-                    <button
-                      onClick={() => fetchAnalysis(true)}
-                      className="mt-2 text-sm text-blue-600 hover:underline"
-                    >
-                      Analyse starten
-                    </button>
+                    {analysisInProgress ? (
+                      <>
+                        <div className="animate-spin text-3xl mb-2">⏳</div>
+                        <p>Analyse läuft...</p>
+                        <p className="text-xs text-gray-400 mt-1">Das Panel wird automatisch aktualisiert.</p>
+                      </>
+                    ) : (
+                      <>
+                        <p>Noch keine Analyse für {selectedRole} vorhanden.</p>
+                        <p className="text-xs text-gray-400 mt-1">Die nächste Analyse wird automatisch nach dem eingestellten Intervall durchgeführt.</p>
+                        <button
+                          onClick={() => fetchAnalysis(true)}
+                          className="mt-3 text-sm text-blue-600 hover:underline"
+                        >
+                          Jetzt analysieren
+                        </button>
+                      </>
+                    )}
                   </div>
                 )}
 

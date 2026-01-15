@@ -71,6 +71,7 @@ import {
   isAnalysisActive,
   getAnalysisStatus,
   analyzeForRole,
+  getCachedAnalysisForRole,
   answerQuestion,
   saveSuggestionFeedback,
   saveQuestionFeedback,
@@ -1289,6 +1290,32 @@ app.get("/api/situation/analysis", async (req, res) => {
     res.json({ ok: true, ...analysis });
   } catch (err) {
     logError("Situationsanalyse Fehler", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// Gecachte Analyse für eine Rolle abrufen (kein LLM-Aufruf)
+app.get("/api/situation/analysis/cached", (req, res) => {
+  try {
+    const { role } = req.query;
+
+    if (!role) {
+      return res.status(400).json({ ok: false, error: "role Parameter fehlt" });
+    }
+
+    const analysis = getCachedAnalysisForRole(role);
+
+    if (analysis.error) {
+      return res.status(400).json({
+        ok: false,
+        error: analysis.error,
+        ...analysis
+      });
+    }
+
+    res.json({ ok: true, ...analysis });
+  } catch (err) {
+    logError("Gecachte Situationsanalyse Fehler", { error: String(err) });
     res.status(500).json({ ok: false, error: String(err) });
   }
 });
