@@ -394,20 +394,28 @@ export async function analyzeAllRoles(forceRefresh = false) {
     const situation = parsed.situation || { summary: "Keine Zusammenfassung", severity: "medium", criticalFactors: [] };
 
     const normalizeRoleSuggestions = (raw) => {
+      const unwrapSuggestions = (value) => {
+        if (Array.isArray(value)) return value;
+        if (value && typeof value === "object" && Array.isArray(value.suggestions)) {
+          return value.suggestions;
+        }
+        return [];
+      };
+
       if (!raw) return {};
       if (Array.isArray(raw)) {
         return raw.reduce((acc, entry) => {
           if (!entry || typeof entry !== "object") return acc;
           const key = String(entry.role || entry.roleId || "").toUpperCase();
-          if (key && Array.isArray(entry.suggestions)) {
-            acc[key] = entry.suggestions;
+          if (key) {
+            acc[key] = unwrapSuggestions(entry.suggestions);
           }
           return acc;
         }, {});
       }
       if (typeof raw === "object") {
         return Object.fromEntries(
-          Object.entries(raw).map(([key, value]) => [String(key).toUpperCase(), value])
+          Object.entries(raw).map(([key, value]) => [String(key).toUpperCase(), unwrapSuggestions(value)])
         );
       }
       return {};
