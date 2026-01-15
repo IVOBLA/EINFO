@@ -1,5 +1,7 @@
 #!/bin/bash
-# Setup einfo-balanced Modelfile im Kanban-Projekt
+# Setup EINFO Modelfiles im Kanban-Projekt
+# - einfo-balanced: Für Operations/Simulation
+# - einfo-analysis: Für KI-Situationsanalyse (optimiert für JSON-Ausgabe)
 # Config.js bleibt unverändert!
 
 set -e
@@ -83,10 +85,35 @@ Bei JSON-Anfragen antwortest du NUR mit validem JSON ohne zusätzlichen Text.
 Alle Operationen MÜSSEN die Felder originRole und fromRole enthalten."""
 EOF
 
-echo -e "${GREEN}✅ Modelfile erstellt${NC}"
+echo -e "${GREEN}✅ einfo-balanced.Modelfile erstellt${NC}"
+
+# einfo-analysis: Optimiert für Situationsanalyse mit strukturierter JSON-Ausgabe
 echo ""
-echo "Inhalt:"
-cat "$MODELFILE_DIR/einfo-balanced.Modelfile"
+echo -e "${YELLOW}Erstelle einfo-analysis.Modelfile...${NC}"
+
+cat > "$MODELFILE_DIR/einfo-analysis.Modelfile" << 'EOF'
+FROM qwen2.5:14b
+
+# Optimiert für Situationsanalyse und strukturierte JSON-Ausgabe
+# Größerer Context für komplexe Analysen
+PARAMETER num_gpu 20
+PARAMETER num_ctx 8192
+PARAMETER temperature 0.2
+PARAMETER top_p 0.9
+PARAMETER repeat_penalty 1.1
+
+SYSTEM """Du bist ein Experte für Einsatzleitung und Katastrophenmanagement im deutschsprachigen Raum.
+Du antwortest immer auf Deutsch und verwendest österreichische Feuerwehr-Terminologie.
+Bei JSON-Anfragen antwortest du AUSSCHLIESSLICH mit dem exakten JSON-Format, das in der Anfrage spezifiziert ist.
+Füge NIEMALS zusätzlichen Text vor oder nach dem JSON hinzu.
+Halte dich strikt an das vorgegebene JSON-Schema mit den exakten Feldnamen."""
+EOF
+
+echo -e "${GREEN}✅ einfo-analysis.Modelfile erstellt${NC}"
+echo ""
+echo "Modelfiles erstellt:"
+echo "  - einfo-balanced.Modelfile (Operations/Simulation)"
+echo "  - einfo-analysis.Modelfile (KI-Situationsanalyse)"
 
 # ============================================================
 # 4. BASE-MODELLE LADEN
@@ -113,22 +140,36 @@ else
 fi
 
 # ============================================================
-# 5. CUSTOM-MODELL ERSTELLEN
+# 5. CUSTOM-MODELLE ERSTELLEN
 # ============================================================
 echo ""
-echo -e "${YELLOW}[5/5] Erstelle einfo-balanced in Ollama...${NC}"
+echo -e "${YELLOW}[5/5] Erstelle Custom-Modelle in Ollama...${NC}"
 
 # VRAM freigeben
 curl -s http://localhost:11434/api/generate -d '{"model": "einfo-balanced", "keep_alive": 0}' >/dev/null 2>&1 || true
+curl -s http://localhost:11434/api/generate -d '{"model": "einfo-analysis", "keep_alive": 0}' >/dev/null 2>&1 || true
 
-# Modell erstellen
+# einfo-balanced erstellen
+echo ""
 echo "  Erstelle einfo-balanced aus Modelfile..."
 ollama create einfo-balanced -f "$MODELFILE_DIR/einfo-balanced.Modelfile"
 
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}✅ einfo-balanced erfolgreich erstellt${NC}"
 else
-    echo -e "${RED}❌ Fehler beim Erstellen${NC}"
+    echo -e "${RED}❌ Fehler beim Erstellen von einfo-balanced${NC}"
+    exit 1
+fi
+
+# einfo-analysis erstellen
+echo ""
+echo "  Erstelle einfo-analysis aus Modelfile..."
+ollama create einfo-analysis -f "$MODELFILE_DIR/einfo-analysis.Modelfile"
+
+if [ $? -eq 0 ]; then
+    echo -e "${GREEN}✅ einfo-analysis erfolgreich erstellt${NC}"
+else
+    echo -e "${RED}❌ Fehler beim Erstellen von einfo-analysis${NC}"
     exit 1
 fi
 
@@ -145,6 +186,17 @@ else
     echo -e "${RED}❌ Test fehlgeschlagen${NC}"
 fi
 
+echo ""
+echo -e "${YELLOW}Teste einfo-analysis (JSON-Ausgabe)...${NC}"
+RESPONSE=$(ollama run einfo-analysis 'Antworte nur mit JSON: {"test": "ok"}' 2>&1 | head -1)
+if echo "$RESPONSE" | grep -q "test"; then
+    echo -e "${GREEN}✅ Test erfolgreich${NC}"
+    echo "   Antwort: $RESPONSE"
+else
+    echo -e "${RED}❌ Test fehlgeschlagen${NC}"
+    echo "   Antwort: $RESPONSE"
+fi
+
 # ============================================================
 # ABSCHLUSS
 # ============================================================
@@ -154,27 +206,25 @@ echo -e "${GREEN}✅ INSTALLATION ABGESCHLOSSEN${NC}"
 echo "=================================================="
 echo ""
 echo "Installierte Modelle:"
-ollama list | grep -E "llama3.1:8b|qwen2.5:14b|einfo-balanced"
+ollama list | grep -E "llama3.1:8b|qwen2.5:14b|einfo-balanced|einfo-analysis"
 echo ""
-echo "Modelfile in:"
-echo "  $MODELFILE_DIR/einfo-balanced.Modelfile"
+echo "Modelfiles in:"
+echo "  $MODELFILE_DIR/einfo-balanced.Modelfile  (Operations/Simulation)"
+echo "  $MODELFILE_DIR/einfo-analysis.Modelfile  (KI-Situationsanalyse)"
 echo ""
 echo "=================================================="
-echo "WICHTIG: Config.js wurde NICHT geändert!"
+echo "MODELL-VERWENDUNG:"
 echo "=================================================="
 echo ""
-echo "Deine config.js verwendet bereits die richtigen Namen:"
-echo "  • start.model: 'einfo-balanced' ✅"
-echo "  • operations.model: 'einfo-balanced' ✅"
-echo "  • chat.model: 'llama3.1:8b' ✅"
-echo ""
-echo "Keine weiteren Änderungen nötig!"
+echo "  • einfo-balanced:  Operations, Simulation, Start-Tasks"
+echo "  • einfo-analysis:  KI-Situationsanalyse (strukturierte JSON-Ausgabe)"
+echo "  • llama3.1:8b:     Chat"
 echo ""
 echo "=================================================="
 echo "NÄCHSTE SCHRITTE:"
 echo "=================================================="
 echo ""
-echo "1. Server starten (falls nicht läuft):"
+echo "1. Server neu starten (um .env-Änderungen zu laden):"
 echo "   cd $PROJECT_DIR"
 echo "   npm start"
 echo ""
@@ -184,9 +234,9 @@ echo ""
 echo "3. Modell-Test:"
 echo "   curl -X POST http://localhost:3100/api/llm/test \\"
 echo "     -H 'Content-Type: application/json' \\"
-echo "     -d '{\"question\":\"Test\",\"model\":\"einfo-balanced\"}'"
+echo "     -d '{\"question\":\"Test\",\"model\":\"einfo-analysis\"}'"
 echo ""
 echo "ERWARTETE PERFORMANCE:"
-echo "  • VRAM: ~5.4 GB (66% von 8GB)"
-echo "  • Antwortzeit: 6-8 Sekunden"
+echo "  • VRAM: ~5-6 GB pro Modell"
+echo "  • Antwortzeit: 6-10 Sekunden"
 echo "  • Status: Bewährt und getestet ✅"
