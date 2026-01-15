@@ -6,6 +6,7 @@ export function isJsonContentType(contentType) {
   return raw
     .split(",")
     .map((entry) => entry.trim().toLowerCase())
+    .map((entry) => entry.split(";")[0].trim())
     .some((entry) => entry === "application/json" || entry.endsWith("+json"));
 }
 
