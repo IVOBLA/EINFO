@@ -30,20 +30,20 @@ function appendLine(filePath, line) {
   });
 }
 
-function toPrettyJsonValue(value) {
+function toPrettyPrintedString(value) {
   if (value === null || value === undefined) {
-    return null;
+    return "null";
   }
 
   if (typeof value === "string") {
     try {
-      return JSON.parse(value);
+      return JSON.stringify(JSON.parse(value), null, 2);
     } catch {
       return value;
     }
   }
 
-  return value;
+  return JSON.stringify(value, null, 2);
 }
 
 // --------- Standard-Logs (Info / Debug / Error) ---------------------------
@@ -106,20 +106,53 @@ export function logLLMExchange(payload = {}) {
   if (phase === "request") {
     const entry = {
       ...base,
-      rawRequest: toPrettyJsonValue(payload.rawRequest ?? null)
+      rawRequest: toPrettyPrintedString(payload.rawRequest ?? null)
     };
-    return appendLine(LLM_REQUEST_LOG_FILE, JSON.stringify(entry, null, 2));
+    const entryText = [
+      JSON.stringify(
+        {
+          ts: entry.ts,
+          type: entry.type,
+          phase: entry.phase,
+          model: entry.model,
+          extra: entry.extra
+        },
+        null,
+        2
+      ),
+      "rawRequest:",
+      entry.rawRequest
+    ].join("\n");
+    return appendLine(LLM_REQUEST_LOG_FILE, entryText);
   }
 
   // RESPONSE-/ERROR-/STREAM-LOG
   const entry = {
     ...base,
     // Wichtig: hier KEINE Request-Daten mehr mitschleppen
-    rawResponse: toPrettyJsonValue(payload.rawResponse ?? null),
-    parsedResponse: toPrettyJsonValue(payload.parsedResponse ?? null)
+    rawResponse: toPrettyPrintedString(payload.rawResponse ?? null),
+    parsedResponse: toPrettyPrintedString(payload.parsedResponse ?? null)
   };
 
-  return appendLine(LLM_RESPONSE_LOG_FILE, JSON.stringify(entry, null, 2));
+  const entryText = [
+    JSON.stringify(
+      {
+        ts: entry.ts,
+        type: entry.type,
+        phase: entry.phase,
+        model: entry.model,
+        extra: entry.extra
+      },
+      null,
+      2
+    ),
+    "rawResponse:",
+    entry.rawResponse,
+    "parsedResponse:",
+    entry.parsedResponse
+  ].join("\n");
+
+  return appendLine(LLM_RESPONSE_LOG_FILE, entryText);
 }
 
 
