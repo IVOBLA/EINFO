@@ -315,32 +315,32 @@ export async function analyzeAllRoles(forceRefresh = false) {
     }
   }
 
-  // Aktuellen Kontext holen (immer aktuelle EINFO-Daten)
-  const disasterSummary = await getDisasterContextSummary({ maxLength: 2500 });
-
-  // Gelernte Vorschläge sammeln
-  const learnedByRole = {};
-  for (const role of roles) {
-    learnedByRole[role] = await getLearnedSuggestionsForContext(role, disasterSummary);
-  }
-
-  // Rollen-Beschreibungen für Prompt
-  const rolesDescription = roles.map(r => `- ${r}: ${ROLE_DESCRIPTIONS[r]}`).join("\n");
-
-  // LLM-Prompts aus Templates generieren
-  const systemPrompt = fillTemplate(situationAnalysisSystemTemplate, {
-    rolesDescription
-  });
-
-  const userPrompt = fillTemplate(situationAnalysisUserTemplate, {
-    disasterSummary
-  });
-
-  // Flag setzen BEVOR der LLM-Aufruf startet
+  // Flag setzen BEVOR die Analyse startet (inkl. Datenaufbereitung)
   analysisInProgress = true;
   logInfo("Starte Gesamtanalyse für alle Rollen (Stream wird abgewartet)");
 
   try {
+    // Aktuellen Kontext holen (immer aktuelle EINFO-Daten)
+    const disasterSummary = await getDisasterContextSummary({ maxLength: 2500 });
+
+    // Gelernte Vorschläge sammeln
+    const learnedByRole = {};
+    for (const role of roles) {
+      learnedByRole[role] = await getLearnedSuggestionsForContext(role, disasterSummary);
+    }
+
+    // Rollen-Beschreibungen für Prompt
+    const rolesDescription = roles.map(r => `- ${r}: ${ROLE_DESCRIPTIONS[r]}`).join("\n");
+
+    // LLM-Prompts aus Templates generieren
+    const systemPrompt = fillTemplate(situationAnalysisSystemTemplate, {
+      rolesDescription
+    });
+
+    const userPrompt = fillTemplate(situationAnalysisUserTemplate, {
+      disasterSummary
+    });
+
     let llmResponse;
     try {
       // LLM-Stream wird vollständig abgewartet bevor die Funktion zurückkehrt
