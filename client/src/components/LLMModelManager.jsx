@@ -268,7 +268,7 @@ export default function LLMModelManager() {
       // GPU-Status laden
       const gpuRes = await fetch(buildChatbotApiUrl("/api/llm/gpu"), { credentials: "include" });
       const gpuData = await gpuRes.json();
-      if (gpuRes.ok) setGpuStatus(gpuData);
+      if (gpuRes.ok) setGpuStatus(gpuData.gpuStatus);
 
       // System-Status laden (CPU + RAM)
       const sysRes = await fetch(buildChatbotApiUrl("/api/llm/system"), { credentials: "include" });
