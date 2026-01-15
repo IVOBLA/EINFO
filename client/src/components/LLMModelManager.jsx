@@ -196,6 +196,7 @@ export default function LLMModelManager() {
   const [gpuHistory, setGpuHistory] = useState([]);
   const [historyStartTime, setHistoryStartTime] = useState(null);
   const [historyTimeRange, setHistoryTimeRange] = useState(300); // in Sekunden (default: 5 Min)
+  const [updateInterval, setUpdateInterval] = useState(5000); // in Millisekunden (default: 5s)
 
   // Lokale Änderungen (Draft)
   const [taskDrafts, setTaskDrafts] = useState({});
@@ -209,7 +210,7 @@ export default function LLMModelManager() {
   // Daten laden mit Auto-Retry bei Netzwerkfehlern
   useEffect(() => {
     loadAll();
-    const gpuInterval = setInterval(loadGpuStatus, 5000); // GPU-Status alle 5s
+    const gpuInterval = setInterval(loadGpuStatus, updateInterval); // GPU-Status mit gewähltem Intervall
 
     // Retry-Mechanismus: Versuche alle 3 Sekunden neu zu laden wenn Netzwerkfehler
     const retryInterval = setInterval(() => {
@@ -222,7 +223,7 @@ export default function LLMModelManager() {
       clearInterval(gpuInterval);
       clearInterval(retryInterval);
     };
-  }, [retrying]);
+  }, [retrying, updateInterval]);
 
   async function loadAll() {
     // Beim ersten Laden oder manuellen Reload: zeige Loading-Spinner
@@ -300,8 +301,9 @@ export default function LLMModelManager() {
             };
 
             // Neue Daten hinzufügen und auf gewählten Zeitraum begrenzen
-            // Bei 5s Intervall: maxPoints = timeRange / 5
-            const maxPoints = Math.ceil(historyTimeRange / 5);
+            // maxPoints = timeRange (in Sekunden) / Intervall (in Sekunden)
+            const intervalSeconds = updateInterval / 1000;
+            const maxPoints = Math.ceil(historyTimeRange / intervalSeconds);
             const updated = [...prev, newPoint];
             return updated.slice(-maxPoints);
           });
@@ -577,24 +579,50 @@ export default function LLMModelManager() {
                   })()}
                   )
                 </span>
-                <div className="flex gap-2 items-center">
-                  <select
-                    className="text-xs px-2 py-1 border rounded bg-white text-gray-700"
-                    value={historyTimeRange}
-                    onChange={(e) => {
-                      const newRange = Number(e.target.value);
-                      setHistoryTimeRange(newRange);
-                      // Schneide Historie auf neue Länge zu
-                      const maxPoints = Math.ceil(newRange / 5);
-                      setGpuHistory((prev) => prev.slice(-maxPoints));
-                    }}
-                  >
-                    <option value={300}>5 Minuten</option>
-                    <option value={900}>15 Minuten</option>
-                    <option value={1800}>30 Minuten</option>
-                    <option value={3600}>1 Stunde</option>
-                    <option value={7200}>2 Stunden</option>
-                  </select>
+                <div className="flex gap-2 items-center flex-wrap">
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-gray-600">Intervall:</span>
+                    <select
+                      className="text-xs px-2 py-1 border rounded bg-white text-gray-700"
+                      value={updateInterval}
+                      onChange={(e) => {
+                        const newInterval = Number(e.target.value);
+                        setUpdateInterval(newInterval);
+                        // Historie zurücksetzen bei Intervall-Änderung
+                        setGpuHistory([]);
+                        setHistoryStartTime(null);
+                      }}
+                    >
+                      <option value={2000}>2s</option>
+                      <option value={5000}>5s</option>
+                      <option value={10000}>10s</option>
+                      <option value={30000}>30s</option>
+                      <option value={60000}>60s</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-gray-600">Zeitraum:</span>
+                    <select
+                      className="text-xs px-2 py-1 border rounded bg-white text-gray-700"
+                      value={historyTimeRange}
+                      onChange={(e) => {
+                        const newRange = Number(e.target.value);
+                        setHistoryTimeRange(newRange);
+                        // Schneide Historie auf neue Länge zu
+                        const intervalSeconds = updateInterval / 1000;
+                        const maxPoints = Math.ceil(newRange / intervalSeconds);
+                        setGpuHistory((prev) => prev.slice(-maxPoints));
+                      }}
+                    >
+                      <option value={300}>5 Min</option>
+                      <option value={900}>15 Min</option>
+                      <option value={1800}>30 Min</option>
+                      <option value={3600}>1 Std</option>
+                      <option value={7200}>2 Std</option>
+                      <option value={14400}>4 Std</option>
+                      <option value={28800}>8 Std</option>
+                    </select>
+                  </div>
                   <button
                     type="button"
                     className="text-xs px-2 py-1 border rounded hover:bg-white text-gray-600"
@@ -603,7 +631,7 @@ export default function LLMModelManager() {
                       setHistoryStartTime(null);
                     }}
                   >
-                    Historie löschen
+                    Löschen
                   </button>
                 </div>
               </div>
