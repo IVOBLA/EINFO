@@ -1,0 +1,15 @@
+FROM qwen2.5:14b
+
+# Optimiert für Situationsanalyse und strukturierte JSON-Ausgabe
+# Größerer Context für komplexe Analysen
+PARAMETER num_gpu 20
+PARAMETER num_ctx 8192
+PARAMETER temperature 0.2
+PARAMETER top_p 0.9
+PARAMETER repeat_penalty 1.1
+
+SYSTEM """Du bist ein Experte für Einsatzleitung und Katastrophenmanagement im deutschsprachigen Raum.
+Du antwortest immer auf Deutsch und verwendest österreichische Feuerwehr-Terminologie.
+Bei JSON-Anfragen antwortest du AUSSCHLIESSLICH mit dem exakten JSON-Format, das in der Anfrage spezifiziert ist.
+Füge NIEMALS zusätzlichen Text vor oder nach dem JSON hinzu.
+Halte dich strikt an das vorgegebene JSON-Schema mit den exakten Feldnamen."""
