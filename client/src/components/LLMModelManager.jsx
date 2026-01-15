@@ -192,9 +192,10 @@ export default function LLMModelManager() {
   // System-Status (CPU + RAM)
   const [systemStatus, setSystemStatus] = useState(null);
 
-  // GPU-Historie für Liniendiagramme (max 60 Datenpunkte = 5 Minuten bei 5s Intervall)
+  // GPU-Historie für Liniendiagramme
   const [gpuHistory, setGpuHistory] = useState([]);
   const [historyStartTime, setHistoryStartTime] = useState(null);
+  const [historyTimeRange, setHistoryTimeRange] = useState(300); // in Sekunden (default: 5 Min)
 
   // Lokale Änderungen (Draft)
   const [taskDrafts, setTaskDrafts] = useState({});
@@ -298,9 +299,11 @@ export default function LLMModelManager() {
               temperatureCelsius: gpu.temperatureCelsius
             };
 
-            // Neue Daten hinzufügen und auf max 60 Punkte begrenzen (5 Minuten)
+            // Neue Daten hinzufügen und auf gewählten Zeitraum begrenzen
+            // Bei 5s Intervall: maxPoints = timeRange / 5
+            const maxPoints = Math.ceil(historyTimeRange / 5);
             const updated = [...prev, newPoint];
-            return updated.slice(-60);
+            return updated.slice(-maxPoints);
           });
         }
       }
@@ -564,17 +567,45 @@ export default function LLMModelManager() {
           {gpuStatus?.available && gpuHistory.length > 0 && (
             <div className="space-y-3 mt-4">
               <div className="text-sm font-medium text-gray-700 mb-2 flex justify-between items-center">
-                <span>Verlauf (letzte {Math.floor((gpuHistory[gpuHistory.length - 1]?.timestamp || 0) / 1000)}s)</span>
-                <button
-                  type="button"
-                  className="text-xs px-2 py-1 border rounded hover:bg-white text-gray-600"
-                  onClick={() => {
-                    setGpuHistory([]);
-                    setHistoryStartTime(null);
-                  }}
-                >
-                  Historie löschen
-                </button>
+                <span>
+                  Verlauf (
+                  {(() => {
+                    const seconds = Math.floor((gpuHistory[gpuHistory.length - 1]?.timestamp || 0) / 1000);
+                    if (seconds >= 3600) return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+                    if (seconds >= 60) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+                    return `${seconds}s`;
+                  })()}
+                  )
+                </span>
+                <div className="flex gap-2 items-center">
+                  <select
+                    className="text-xs px-2 py-1 border rounded bg-white text-gray-700"
+                    value={historyTimeRange}
+                    onChange={(e) => {
+                      const newRange = Number(e.target.value);
+                      setHistoryTimeRange(newRange);
+                      // Schneide Historie auf neue Länge zu
+                      const maxPoints = Math.ceil(newRange / 5);
+                      setGpuHistory((prev) => prev.slice(-maxPoints));
+                    }}
+                  >
+                    <option value={300}>5 Minuten</option>
+                    <option value={900}>15 Minuten</option>
+                    <option value={1800}>30 Minuten</option>
+                    <option value={3600}>1 Stunde</option>
+                    <option value={7200}>2 Stunden</option>
+                  </select>
+                  <button
+                    type="button"
+                    className="text-xs px-2 py-1 border rounded hover:bg-white text-gray-600"
+                    onClick={() => {
+                      setGpuHistory([]);
+                      setHistoryStartTime(null);
+                    }}
+                  >
+                    Historie löschen
+                  </button>
+                </div>
               </div>
 
               {/* Statistik-Übersicht für GPU-Metriken */}
