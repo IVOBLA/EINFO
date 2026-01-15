@@ -393,10 +393,34 @@ export async function analyzeAllRoles(forceRefresh = false) {
     const analysisId = `analysis_${now}_${Math.random().toString(36).substr(2, 9)}`;
     const situation = parsed.situation || { summary: "Keine Zusammenfassung", severity: "medium", criticalFactors: [] };
 
+    const normalizeRoleSuggestions = (raw) => {
+      if (!raw) return {};
+      if (Array.isArray(raw)) {
+        return raw.reduce((acc, entry) => {
+          if (!entry || typeof entry !== "object") return acc;
+          const key = String(entry.role || entry.roleId || "").toUpperCase();
+          if (key && Array.isArray(entry.suggestions)) {
+            acc[key] = entry.suggestions;
+          }
+          return acc;
+        }, {});
+      }
+      if (typeof raw === "object") {
+        return Object.fromEntries(
+          Object.entries(raw).map(([key, value]) => [String(key).toUpperCase(), value])
+        );
+      }
+      return {};
+    };
+
+    const normalizedRoleSuggestions = normalizeRoleSuggestions(
+      parsed.rolesSuggestions || parsed.roleSuggestions || parsed.roles || parsed.suggestions
+    );
+
     // Für jede Rolle Cache aktualisieren
     const results = {};
     for (const role of roles) {
-      const roleSuggestions = parsed.rolesSuggestions?.[role] || [];
+      const roleSuggestions = normalizedRoleSuggestions[role] || [];
 
       const analysis = {
         analysisId,
