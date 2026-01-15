@@ -473,7 +473,8 @@ export async function answerQuestion(question, role, context = "aufgabenboard") 
     let answer;
     try {
       answer = await callLLMForChat(systemPrompt, question, {
-        taskType: "analysis" // Verwendet alle Parameter aus analysis-Task-Config
+        taskType: "analysis", // Verwendet alle Parameter aus analysis-Task-Config
+        requireJson: false    // Antworten sollen Text sein, kein JSON
       });
     } catch (llmErr) {
       logError("LLM-Aufruf fehlgeschlagen bei Fragebeantwortung", {
