@@ -81,6 +81,9 @@ let cacheLoaded = false;
 let analysisIntervalMs = 5 * 60 * 1000;
 let analysisIntervalId = null;
 
+// Flag um gleichzeitige Analysen zu verhindern (Stream muss fertig sein bevor nächste Analyse startet)
+let analysisInProgress = false;
+
 function sanitizeAnalysisIntervalMinutes(value) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed < AI_ANALYSIS_MIN_INTERVAL_MINUTES) {
@@ -215,12 +218,25 @@ async function getLearnedSuggestionsForContext(role, contextSummary) {
 /**
  * Führt eine Gesamtanalyse für ALLE Rollen in einem LLM-Aufruf durch
  * Effizienter und konsistenter als einzelne Aufrufe pro Rolle
+ *
+ * WICHTIG: Diese Funktion wartet den LLM-Stream vollständig ab,
+ * bevor weitere Schritte erfolgen. Das analysisInProgress-Flag
+ * verhindert gleichzeitige Analysen.
  */
 export async function analyzeAllRoles(forceRefresh = false) {
   if (!isAnalysisActive()) {
     return {
       error: "Analyse nicht aktiv (Simulation läuft)",
       isActive: false
+    };
+  }
+
+  // Verhindere gleichzeitige Analysen - Stream muss erst fertig sein
+  if (analysisInProgress) {
+    logDebug("Analyse übersprungen - vorherige Analyse läuft noch (Stream nicht fertig)");
+    return {
+      error: "Analyse läuft bereits",
+      inProgress: true
     };
   }
 
@@ -269,11 +285,14 @@ export async function analyzeAllRoles(forceRefresh = false) {
     disasterSummary
   });
 
-  try {
-    logInfo("Starte Gesamtanalyse für alle Rollen");
+  // Flag setzen BEVOR der LLM-Aufruf startet
+  analysisInProgress = true;
+  logInfo("Starte Gesamtanalyse für alle Rollen (Stream wird abgewartet)");
 
+  try {
     let llmResponse;
     try {
+      // LLM-Stream wird vollständig abgewartet bevor die Funktion zurückkehrt
       llmResponse = await callLLMForChat(systemPrompt, userPrompt, {
         taskType: "analysis" // Verwendet alle Parameter aus analysis-Task-Config
       });
@@ -287,7 +306,7 @@ export async function analyzeAllRoles(forceRefresh = false) {
       };
     }
 
-    // Prüfe ob LLM-Antwort gültig ist
+    // Prüfe ob LLM-Antwort gültig ist (erst nach vollständigem Stream)
     if (!llmResponse || typeof llmResponse !== "string" || !llmResponse.trim()) {
       logError("LLM gab leere Antwort bei Gesamtanalyse", {
         responseType: typeof llmResponse,
@@ -369,6 +388,10 @@ export async function analyzeAllRoles(forceRefresh = false) {
       error: "Analyse fehlgeschlagen",
       details: String(err)
     };
+  } finally {
+    // Flag IMMER zurücksetzen, egal ob Erfolg oder Fehler
+    analysisInProgress = false;
+    logDebug("Gesamtanalyse beendet, Flag zurückgesetzt");
   }
 }
 
@@ -754,6 +777,13 @@ async function addLearnedSuggestion(feedbackData) {
 /**
  * Startet den automatischen Analyse-Loop
  * Analysiert alle Rollen in einem einzigen LLM-Aufruf
+ *
+ * Der Loop wird gestartet wenn:
+ * - KI-Analyse aktiviert ist UND Chatbot gestartet wird (via syncAnalysisLoop)
+ * - Chatbot bereits läuft UND Checkbox für KI-Analyse im Admin Panel gesetzt wird
+ *
+ * WICHTIG: Der LLM-Stream wird bei jeder Analyse vollständig abgewartet
+ * bevor die nächste Analyse gestartet werden kann (analysisInProgress-Flag)
  */
 export function startAnalysisLoop() {
   if (analysisIntervalId) {
@@ -767,10 +797,9 @@ export function startAnalysisLoop() {
       return;
     }
 
-    logInfo("Starte automatische Situationsanalyse für alle Rollen");
-
+    // analysisInProgress wird in analyzeAllRoles() geprüft
+    // Falls vorherige Analyse noch läuft (Stream nicht fertig), wird übersprungen
     try {
-      // Ein Aufruf für alle Rollen
       await analyzeAllRoles(true);
     } catch (err) {
       logError("Fehler bei automatischer Gesamtanalyse", { error: String(err) });
@@ -785,6 +814,10 @@ export function startAnalysisLoop() {
 
 /**
  * Stoppt den automatischen Analyse-Loop
+ *
+ * Der Loop wird gestoppt wenn:
+ * - Chatbot gestoppt wird (Prozess beendet sich -> Timer wird automatisch gestoppt)
+ * - Checkbox für KI-Analyse im Admin Panel entfernt wird (via syncAnalysisLoop)
  */
 export function stopAnalysisLoop() {
   if (analysisIntervalId) {
