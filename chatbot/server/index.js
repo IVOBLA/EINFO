@@ -527,8 +527,18 @@ app.post("/api/llm/test-model", rateLimit(RateLimitProfiles.STRICT), async (req,
 app.post("/api/llm/test-with-metrics", rateLimit(RateLimitProfiles.STRICT), async (req, res) => {
   const { model, question } = req.body || {};
 
+  // Enhanced error response with debug info for troubleshooting
   if (!question || typeof question !== "string") {
-    return res.status(400).json({ ok: false, error: "missing_question" });
+    return res.status(400).json({
+      ok: false,
+      error: "missing_question",
+      debug: {
+        bodyType: typeof req.body,
+        bodyKeys: req.body ? Object.keys(req.body) : [],
+        hasQuestion: "question" in (req.body || {}),
+        questionType: typeof (req.body?.question)
+      }
+    });
   }
 
   if (!model || typeof model !== "string") {
@@ -1288,8 +1298,18 @@ app.post("/api/situation/question", rateLimit(RateLimitProfiles.GENEROUS), async
   try {
     const { question, role, context } = req.body || {};
 
+    // Enhanced error response with debug info for troubleshooting
     if (!question) {
-      return res.status(400).json({ ok: false, error: "question fehlt" });
+      return res.status(400).json({
+        ok: false,
+        error: "question fehlt",
+        debug: {
+          bodyType: typeof req.body,
+          bodyKeys: req.body ? Object.keys(req.body) : [],
+          hasQuestion: "question" in (req.body || {}),
+          contentType: req.headers?.["content-type"]
+        }
+      });
     }
     if (!role) {
       return res.status(400).json({ ok: false, error: "role fehlt" });

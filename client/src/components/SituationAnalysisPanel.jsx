@@ -239,7 +239,17 @@ function QuestionSection({ role, onQuestionAsked }) {
       {answer && (
         <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
           {answer.error ? (
-            <p className="text-sm text-red-600">{answer.error}</p>
+            <div>
+              <p className="text-sm text-red-600">{answer.error}</p>
+              {answer.debug && (
+                <details className="mt-2 text-xs text-gray-500">
+                  <summary className="cursor-pointer hover:text-gray-700">Debug-Info</summary>
+                  <pre className="mt-1 p-2 bg-gray-100 rounded overflow-auto">
+                    {JSON.stringify(answer.debug, null, 2)}
+                  </pre>
+                </details>
+              )}
+            </div>
           ) : (
             <>
               <p className="text-sm whitespace-pre-wrap">{answer.answer}</p>

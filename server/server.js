@@ -1499,25 +1499,50 @@ async function proxyChatbotRequest(req, res) {
   const targetUrl = `${CHATBOT_BASE_URL}${req.originalUrl}`;
 
   try {
-    const headers = { ...req.headers };
-    delete headers.host; // Remove host header to avoid conflicts
-    delete headers["content-length"]; // Will be recalculated
+    // Nur sichere Headers weiterleiten (keine hop-by-hop Headers)
+    const safeHeaders = {};
+    const hopByHopHeaders = [
+      "host", "connection", "keep-alive", "proxy-authenticate",
+      "proxy-authorization", "te", "trailer", "transfer-encoding", "upgrade",
+      "content-length" // Will be recalculated by fetch
+    ];
+
+    for (const [key, value] of Object.entries(req.headers)) {
+      if (!hopByHopHeaders.includes(key.toLowerCase())) {
+        safeHeaders[key] = value;
+      }
+    }
 
     const fetchOptions = {
       method: req.method,
       headers: {
-        ...headers,
+        ...safeHeaders,
         "Content-Type": req.headers["content-type"] || "application/json"
       }
     };
 
     // Forward body for POST/PUT/PATCH requests
-    if (["POST", "PUT", "PATCH"].includes(req.method) && req.body) {
-      fetchOptions.body = JSON.stringify(req.body);
+    if (["POST", "PUT", "PATCH"].includes(req.method)) {
+      // Always serialize body, even if empty (ensures Content-Length is set correctly)
+      const bodyData = req.body && Object.keys(req.body).length > 0 ? req.body : {};
+      fetchOptions.body = JSON.stringify(bodyData);
+
+      // Debug logging for troubleshooting body issues
+      if (process.env.DEBUG_PROXY === "1") {
+        console.log(`[Chatbot Proxy] ${req.method} ${req.originalUrl}`);
+        console.log(`[Chatbot Proxy] req.body type: ${typeof req.body}`);
+        console.log(`[Chatbot Proxy] req.body keys: ${req.body ? Object.keys(req.body).join(", ") : "undefined"}`);
+        console.log(`[Chatbot Proxy] Forwarding body: ${fetchOptions.body.substring(0, 200)}`);
+      }
     }
 
     const response = await fetch(targetUrl, fetchOptions);
     const data = await response.json();
+
+    // Debug logging for response
+    if (process.env.DEBUG_PROXY === "1" && !data.ok) {
+      console.log(`[Chatbot Proxy] Response error: ${JSON.stringify(data)}`);
+    }
 
     res.status(response.status).json(data);
   } catch (error) {
