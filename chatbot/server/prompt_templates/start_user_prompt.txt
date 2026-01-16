@@ -1,4 +1,4 @@
-START-SZENARIO für Bezirk Feldkirchen, Kärnten.
+START-SZENARIO Bezirk Feldkirchen, Kärnten
 
 ACTIVE ROLLEN:
 {{rolesJson}}
@@ -12,16 +12,7 @@ ACTIVE ROLLEN:
 SZENARIO-STEUERUNG:
 {{scenarioControl}}
 
-AUSGANGSLAGE:
-- Board, Aufgaben und Protokoll sind leer.
-- Du musst das oben beschriebene Szenario initialisieren.
-
 ANFORDERUNGEN:
-- Wenn oben INITIALE EINSATZSTELLEN definiert sind: Lege GENAU diese Einsatzstellen an (board.createIncidentSites)
-- Andernfalls: Erstelle 1-3 passende Einsatzstellen basierend auf dem Szenario-Kontext
-- 1-5 Aufgaben (aufgaben.create) passend zum Szenario
-- 1-3 Protokolleinträge (protokoll.create) als initiale Lageberichte
-- Rollen-Felder dürfen KEINE Rollen aus activeRoles enthalten
-- Alle Texte auf Deutsch und kurz
+Wenn INITIALE EINSATZSTELLEN definiert: Lege GENAU diese an. Sonst: 1-3 Einsatzstellen, 1-5 Aufgaben, 1-3 Protokolleinträge. KEINE activeRoles verwenden. Deutsch.
 
-Antworte NUR mit JSON. Kein Text. Keine ```.
+Nur JSON. Keine ```.

@@ -1,33 +1,25 @@
 ROLLEN:
 {{rolesPart}}
 
-EINSATZSTELLEN (kompakt):
+EINSATZSTELLEN:
 {{compressedBoard}}
 
-AUFGABEN (kompakt):
+AUFGABEN:
 {{compressedAufgaben}}
 
-PROTOKOLL (kompakt):
+PROTOKOLL:
 {{compressedProtokoll}}
 
-═══════════════════════════════════════════════════════════════════════════════
-KATASTROPHEN-KONTEXT (Verlauf der aktuellen Lage):
-═══════════════════════════════════════════════════════════════════════════════
+KATASTROPHEN-KONTEXT:
 {{disasterContext}}
 
-═══════════════════════════════════════════════════════════════════════════════
-GELERNTE ANTWORTEN (aus positiv bewerteten Erfahrungen):
-═══════════════════════════════════════════════════════════════════════════════
+GELERNTE ANTWORTEN:
 {{learnedResponses}}
 
-═══════════════════════════════════════════════════════════════════════════════
-SZENARIO-VERLAUF (aus Template):
-═══════════════════════════════════════════════════════════════════════════════
+SZENARIO-VERLAUF:
 {{scenarioTimeline}}
 
-═══════════════════════════════════════════════════════════════════════════════
-SZENARIO-STEUERUNG (aus Template):
-═══════════════════════════════════════════════════════════════════════════════
+SZENARIO-STEUERUNG:
 {{scenarioControl}}
 
 ERINNERUNGEN:
@@ -43,18 +35,4 @@ AUFGABE:
 
 {{openQuestionsSection}}
 
-═══════════════════════════════════════════════════════════════════════════════
-WICHTIGE REGELN:
-═══════════════════════════════════════════════════════════════════════════════
-1. Verwende KEINE Rollen aus activeRoles
-2. Verwende die vollen Feldnamen (content, status, ort, description, information, anvon, ergehtAn, richtung, etc.)
-3. ALLE Textinhalte in korrektem, natürlichem Deutsch verfassen!
-4. Formuliere vollständige Sätze - keine Stichworte oder Abkürzungen im Freitext
-
-QUALITÄTSANFORDERUNG:
-- Schreibe wie ein erfahrener Stabsoffizier
-- Verwende Fachsprache der Feuerwehr/des Katastrophenschutzes
-- Liefere konkrete, informative Beschreibungen
-- Die Texte werden von echten Einsatzkräften gelesen!
-
-Antworte NUR mit JSON. Kein Text davor oder danach. Keine ```.
+Antworte NUR mit JSON. Keine ```.
