@@ -360,8 +360,10 @@ app.post("/api/llm/test", rateLimit(RateLimitProfiles.STRICT), async (req, res) 
 
   try {
     const models = await listAvailableLlmModels();
-    const modelNames = models.map(m => m.name);
-    if (!modelNames.includes(model)) {
+    // Vergleiche Basis-Namen (ohne :tag) für flexiblere Modell-Validierung
+    const modelBaseNames = new Set(models.map(m => m.name.split(":")[0]));
+    const requestedBaseName = model.split(":")[0];
+    if (!modelBaseNames.has(requestedBaseName)) {
       return res
         .status(400)
         .json({ ok: false, error: "invalid_model", gpuStatus });
@@ -553,8 +555,10 @@ app.post("/api/llm/test-with-metrics", rateLimit(RateLimitProfiles.STRICT), asyn
   // Validiere Modell
   try {
     const models = await listAvailableLlmModels();
-    const modelNames = models.map(m => m.name);
-    if (!modelNames.includes(model)) {
+    // Vergleiche Basis-Namen (ohne :tag) für flexiblere Modell-Validierung
+    const modelBaseNames = new Set(models.map(m => m.name.split(":")[0]));
+    const requestedBaseName = model.split(":")[0];
+    if (!modelBaseNames.has(requestedBaseName)) {
       return res.status(400).json({ ok: false, error: "invalid_model" });
     }
   } catch (err) {
@@ -713,8 +717,10 @@ app.post("/api/llm/test-with-metrics-stream", rateLimit(RateLimitProfiles.STRICT
   // Validiere Modell
   try {
     const models = await listAvailableLlmModels();
-    const modelNames = models.map(m => m.name);
-    if (!modelNames.includes(model)) {
+    // Vergleiche Basis-Namen (ohne :tag) für flexiblere Modell-Validierung
+    const modelBaseNames = new Set(models.map(m => m.name.split(":")[0]));
+    const requestedBaseName = model.split(":")[0];
+    if (!modelBaseNames.has(requestedBaseName)) {
       return res.status(400).json({ ok: false, error: "invalid_model" });
     }
   } catch (err) {
