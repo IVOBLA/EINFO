@@ -59,7 +59,6 @@ const __dirname = path.dirname(__filename);
 
 const app  = express();
 const PORT = process.env.PORT || 4040;
-const HOST = process.env.HOST || "0.0.0.0";
 const SECURE_COOKIES = process.env.KANBAN_COOKIE_SECURE === "1";
 
 const ROOT      = path.join(__dirname);
@@ -4170,8 +4169,8 @@ process.on("unhandledRejection", async (reason)=>{
   console.error(reason);
 });
 
-app.listen(PORT, HOST, async ()=>{
-  console.log(`[kanban] Server auf http://${HOST}:${PORT}`);
+app.listen(PORT, async ()=>{
+  console.log(`[kanban] Server auf http://localhost:${PORT}`);
   // Beim Start IMMER Auto-Import deaktivieren (Sicherheits-Default)
   await writeAutoCfg({ enabled:false });
   clearAutoTimer(); autoNextAt = null;
