@@ -1559,6 +1559,34 @@ async function proxyChatbotRequest(req, res) {
     }
 
     const response = await fetch(targetUrl, fetchOptions);
+
+    // Check if response is SSE stream (Server-Sent Events)
+    const contentType = response.headers.get("content-type") || "";
+    if (contentType.includes("text/event-stream")) {
+      // SSE streaming: pipe the response directly without parsing
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      res.setHeader("X-Accel-Buffering", "no");
+      res.flushHeaders();
+
+      // Pipe the stream from chatbot server to client
+      const reader = response.body.getReader();
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          res.write(value);
+        }
+        res.end();
+      } catch (streamError) {
+        console.error(`[Chatbot Proxy] SSE stream error:`, streamError.message);
+        res.end();
+      }
+      return;
+    }
+
+    // Normal JSON response handling
     const data = await response.json();
 
     // Debug logging for response
