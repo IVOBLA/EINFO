@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { buildChatbotApiUrl, CHATBOT_SERVER_ERROR_MESSAGE } from "../utils/http.js";
 
 /**
@@ -194,9 +194,15 @@ export default function LLMModelManager() {
 
   // GPU-Historie für Liniendiagramme
   const [gpuHistory, setGpuHistory] = useState([]);
-  const [historyStartTime, setHistoryStartTime] = useState(null);
+  const historyStartTimeRef = useRef(null); // useRef statt useState für Closure-Problem
   const [historyTimeRange, setHistoryTimeRange] = useState(300); // in Sekunden (default: 5 Min)
   const [updateInterval, setUpdateInterval] = useState(5000); // in Millisekunden (default: 5s)
+
+  // Refs für aktuelle Werte in Closures
+  const updateIntervalRef = useRef(updateInterval);
+  const historyTimeRangeRef = useRef(historyTimeRange);
+  useEffect(() => { updateIntervalRef.current = updateInterval; }, [updateInterval]);
+  useEffect(() => { historyTimeRangeRef.current = historyTimeRange; }, [historyTimeRange]);
 
   // Lokale Änderungen (Draft)
   const [taskDrafts, setTaskDrafts] = useState({});
@@ -281,30 +287,27 @@ export default function LLMModelManager() {
         // Historie-Daten sammeln (nur wenn GPU verfügbar)
         if (gpuData.gpuStatus?.available && gpuData.gpuStatus?.gpus?.length > 0) {
           const gpu = gpuData.gpuStatus.gpus[0]; // Erste GPU
+          const now = Date.now();
+
+          // Wenn Historie noch nicht gestartet, setze Start-Zeit
+          if (historyStartTimeRef.current === null) {
+            historyStartTimeRef.current = now;
+          }
+
+          const timestamp = now - historyStartTimeRef.current;
+
+          const newPoint = {
+            timestamp,
+            utilizationPercent: gpu.utilizationPercent,
+            memoryUsedMb: gpu.memoryUsedMb,
+            temperatureCelsius: gpu.temperatureCelsius
+          };
 
           setGpuHistory((prev) => {
-            const now = Date.now();
-
-            // Wenn Historie leer ist, setze Start-Zeit
-            let startTime = historyStartTime;
-            if (prev.length === 0 || startTime === null) {
-              startTime = now;
-              setHistoryStartTime(now);
-            }
-
-            const timestamp = now - startTime;
-
-            const newPoint = {
-              timestamp,
-              utilizationPercent: gpu.utilizationPercent,
-              memoryUsedMb: gpu.memoryUsedMb,
-              temperatureCelsius: gpu.temperatureCelsius
-            };
-
             // Neue Daten hinzufügen und auf gewählten Zeitraum begrenzen
             // maxPoints = timeRange (in Sekunden) / Intervall (in Sekunden)
-            const intervalSeconds = updateInterval / 1000;
-            const maxPoints = Math.ceil(historyTimeRange / intervalSeconds);
+            const intervalSeconds = updateIntervalRef.current / 1000;
+            const maxPoints = Math.ceil(historyTimeRangeRef.current / intervalSeconds);
             const updated = [...prev, newPoint];
             return updated.slice(-maxPoints);
           });
@@ -638,7 +641,7 @@ export default function LLMModelManager() {
                         setUpdateInterval(newInterval);
                         // Historie zurücksetzen bei Intervall-Änderung
                         setGpuHistory([]);
-                        setHistoryStartTime(null);
+                        historyStartTimeRef.current = null;
                       }}
                     >
                       <option value={2000}>2s</option>
@@ -676,7 +679,7 @@ export default function LLMModelManager() {
                     className="text-xs px-2 py-1 border rounded hover:bg-white text-gray-600"
                     onClick={() => {
                       setGpuHistory([]);
-                      setHistoryStartTime(null);
+                      historyStartTimeRef.current = null;
                     }}
                   >
                     Löschen
