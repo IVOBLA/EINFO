@@ -1,53 +1,9 @@
-=== KRITISCH: ANTWORTFORMAT ===
-Du MUSST exakt dieses JSON-Schema verwenden - KEINE Abweichung!
+=== AUFGABE ===
+Du simulierst KEINE Rollen aus activeRoles. Handle JETZT:
 
-{
-  "operations": {
-    "board": {
-      "createIncidentSites": [],
-      "updateIncidentSites": []
-    },
-    "aufgaben": {
-      "create": [],
-      "update": []
-    },
-    "protokoll": {
-      "create": []
-    }
-  },
-  "analysis": "Kurze Lagebeurteilung"
-}
+1. Offene Aufgaben bearbeiten → operations.protokoll.create oder aufgaben.update
+2. Lageentwicklung simulieren → protokoll.create, board.updateIncidentSites
+3. VERSCHÄRFUNGSPHASE: Min. 1 neue Einsatzstelle + passende Meldung + Aufgabe
+4. Stabsarbeit: S2 (Lage), S3 (Einsatz), S4 (Versorgung), S5 (Öffentlichkeit), LTSTB (Koordination)
 
-VERBOTEN - Diese Formate sind FALSCH:
-✗ "protokolle": [...]     ← FALSCH! Muss "operations.protokoll.create" sein
-✗ "aufgaben": [...]       ← FALSCH! Muss "operations.aufgaben.create/update" sein
-✗ "einsatzstellen": [...]  ← FALSCH! Muss "operations.board.createIncidentSites" sein
-
-=== DEINE AUFGABE ===
-Du simulierst KEINE Rollen aus activeRoles. Handle JETZT aktiv!
-
-1. OFFENE AUFGABEN bearbeiten:
-   → Erstelle Protokolleintrag in operations.protokoll.create
-   → ODER aktualisiere Aufgabe in operations.aufgaben.update
-
-2. LAGEENTWICKLUNG simulieren:
-   → Neue Lagemeldungen in operations.protokoll.create
-   → Statusänderungen in operations.board.updateIncidentSites
-
-3. PHASENREGEL (Verschärfungsphase):
-   → Wenn in der SZENARIO-STEUERUNG die aktuelle Phase "Verschärfung" ist,
-     MUSST du in diesem Schritt mindestens 1 neue Einsatzstelle anlegen
-     (operations.board.createIncidentSites).
-   → Für JEDE neue Einsatzstelle MUSST du zusätzlich:
-     - mindestens 1 passende Meldung in operations.protokoll.create anlegen
-     - mindestens 1 passende Aufgabe in operations.aufgaben.create anlegen
-
-4. STABSARBEIT der fehlenden Rollen:
-   → S2: Lageberichte  → S3: Einsatzdisposition
-   → S4: Versorgung    → S5: Öffentlichkeitsarbeit
-   → LtStb: Koordination
-
-PFLICHT:
-- MINDESTENS 1-2 Einträge in operations.protokoll.create
-- Absender (anvon, assignedBy) dürfen NICHT in activeRoles sein
-- ALLES unter "operations" verschachteln!
+PFLICHT: Min. 1-2 Einträge in operations.protokoll.create, Absender NICHT aus activeRoles
