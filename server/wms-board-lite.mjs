@@ -494,8 +494,9 @@ app.get("/tiles/:layer/:z/:x/:y.png", async (req, res) => {
 });
 
 /* ---------- Start ---------- */
-app.listen(PORT, () => {
-  console.log(`[WMS-lite] Capabilities: http://localhost:${PORT}/wms?service=WMS&request=GetCapabilities`);
-  console.log(`[WMS-lite] Tiles Einsatz: http://localhost:${PORT}/tiles/Einsatz/{z}/{x}/{y}.png`);
-  console.log(`[WMS-lite] Tiles FZG    : http://localhost:${PORT}/tiles/FZG/{z}/{x}/{y}.png`);
+const HOST = process.env.HOST || "0.0.0.0";
+app.listen(PORT, HOST, () => {
+  console.log(`[WMS-lite] Capabilities: http://${HOST}:${PORT}/wms?service=WMS&request=GetCapabilities`);
+  console.log(`[WMS-lite] Tiles Einsatz: http://${HOST}:${PORT}/tiles/Einsatz/{z}/{x}/{y}.png`);
+  console.log(`[WMS-lite] Tiles FZG    : http://${HOST}:${PORT}/tiles/FZG/{z}/{x}/{y}.png`);
 });

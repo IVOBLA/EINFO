@@ -431,7 +431,8 @@ app.get("/wms", async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`[WMS] http://localhost:${PORT}/wms?service=WMS&request=GetCapabilities`);
+const HOST = process.env.HOST || "0.0.0.0";
+app.listen(PORT, HOST, () => {
+  console.log(`[WMS] http://${HOST}:${PORT}/wms?service=WMS&request=GetCapabilities`);
   console.log(`[WMS] DATA_DIR = ${DATA_DIR}`);
 });

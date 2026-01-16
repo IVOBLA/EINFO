@@ -33,8 +33,9 @@ import {
   normalizeScenarioSimulation
 } from "../chatbot/server/scenario_controls.js";
 
-const CHATBOT_STEP_URL = "http://127.0.0.1:3100/api/sim/step";
-const CHATBOT_SCENARIO_URL = "http://127.0.0.1:3100/api/sim/scenario";
+const CHATBOT_BASE_URL = process.env.CHATBOT_BASE_URL || "http://127.0.0.1:3100";
+const CHATBOT_STEP_URL = `${CHATBOT_BASE_URL}/api/sim/step`;
+const CHATBOT_SCENARIO_URL = `${CHATBOT_BASE_URL}/api/sim/scenario`;
 const WORKER_INTERVAL_MS = 30000;
 let isRunning = false; // <--- NEU
 let workerIntervalId = null; // Store interval ID for cleanup
