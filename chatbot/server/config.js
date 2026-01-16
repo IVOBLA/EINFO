@@ -1,8 +1,128 @@
 // chatbot/server/config.js
 // Zentrale Konfiguration für den EINFO-Chatbot mit Multi-Modell Unterstützung
 
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const profileName = process.env.CHATBOT_PROFILE || "default";
 const supportedModelKeys = new Set(["fast", "balanced"]);
+
+// ============================================================
+// Task-Config Persistenz (JSON-Datei als einzige Quelle)
+// ============================================================
+const TASK_CONFIG_PATH = path.join(__dirname, "data", "task-config.json");
+
+/**
+ * Standard-Task-Konfiguration (wird verwendet wenn task-config.json nicht existiert)
+ */
+const DEFAULT_TASK_CONFIG = {
+  globalModelOverride: null,
+  tasks: {
+    start: {
+      model: "einfo-balanced",
+      temperature: 0.1,
+      maxTokens: 4000,
+      timeout: 220000,
+      numGpu: 20,
+      numCtx: 4096,
+      topP: 0.92,
+      topK: 50,
+      repeatPenalty: 1.15
+    },
+    operations: {
+      model: "einfo-balanced",
+      temperature: 0.05,
+      maxTokens: 4000,
+      timeout: 300000,
+      numGpu: 20,
+      numCtx: 4096,
+      topP: 0.92,
+      topK: 50,
+      repeatPenalty: 1.15
+    },
+    chat: {
+      model: "llama3.1:8b",
+      temperature: 0.4,
+      maxTokens: 2048,
+      timeout: 120000,
+      numGpu: 20,
+      numCtx: 4096,
+      topP: 0.9,
+      topK: 40,
+      repeatPenalty: 1.1
+    },
+    analysis: {
+      model: "einfo-analysis",
+      temperature: 0.2,
+      maxTokens: 4000,
+      timeout: 220000,
+      numGpu: 20,
+      numCtx: 8192,
+      topP: 0.9,
+      topK: 50,
+      repeatPenalty: 1.1
+    },
+    default: {
+      model: "einfo-balanced",
+      temperature: 0.1,
+      maxTokens: 2048,
+      timeout: 120000,
+      numGpu: 20,
+      numCtx: 4096,
+      topP: 0.92,
+      topK: 50,
+      repeatPenalty: 1.15
+    }
+  }
+};
+
+/**
+ * Lädt Task-Konfiguration aus JSON-Datei
+ * @returns {Object} - Task-Konfiguration
+ */
+function loadTaskConfigFromFile() {
+  try {
+    if (fs.existsSync(TASK_CONFIG_PATH)) {
+      const data = fs.readFileSync(TASK_CONFIG_PATH, "utf8");
+      const parsed = JSON.parse(data);
+      console.log("[CONFIG] Task-Konfiguration aus task-config.json geladen");
+      return {
+        globalModelOverride: parsed.globalModelOverride ?? null,
+        tasks: { ...DEFAULT_TASK_CONFIG.tasks, ...parsed.tasks }
+      };
+    }
+  } catch (err) {
+    console.error("[CONFIG] Fehler beim Laden von task-config.json:", err.message);
+  }
+  console.log("[CONFIG] Verwende Standard-Task-Konfiguration");
+  return { ...DEFAULT_TASK_CONFIG };
+}
+
+/**
+ * Speichert Task-Konfiguration in JSON-Datei
+ * @param {Object} taskConfig - Task-Konfiguration zum Speichern
+ */
+function saveTaskConfigToFile(taskConfig) {
+  try {
+    const dir = path.dirname(TASK_CONFIG_PATH);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(TASK_CONFIG_PATH, JSON.stringify(taskConfig, null, 2), "utf8");
+    console.log("[CONFIG] Task-Konfiguration in task-config.json gespeichert");
+    return true;
+  } catch (err) {
+    console.error("[CONFIG] Fehler beim Speichern von task-config.json:", err.message);
+    return false;
+  }
+}
+
+// Lade Task-Config beim Start
+const loadedTaskConfig = loadTaskConfigFromFile();
 
 function sanitizeActiveModel(value) {
   if (!value) {
@@ -40,72 +160,9 @@ const base = {
   llmEmbedModel: process.env.LLM_EMBED_MODEL || "mxbai-embed-large",
 
   // ============================================================
-  // Task-basierte LLM-Konfiguration
+  // Task-basierte LLM-Konfiguration (aus task-config.json geladen)
   // ============================================================
-  llm: {
-    // Globales Override (wenn gesetzt, überschreibt alle task-spezifischen Modelle)
-    // Werte: null = task-spezifisch | <modelname> = für alle Tasks verwenden
-    globalModelOverride: process.env.LLM_GLOBAL_MODEL || null,
-
-    // Task-spezifische Konfigurationen
-    tasks: {
-      start: {
-        model: process.env.LLM_TASK_START_MODEL || "einfo-balanced",
-        temperature: Number(process.env.LLM_TASK_START_TEMPERATURE || "0.1"),
-        maxTokens: Number(process.env.LLM_TASK_START_MAX_TOKENS || "4000"),
-        timeout: Number(process.env.LLM_TASK_START_TIMEOUT || "220000"),
-        numGpu: Number(process.env.LLM_TASK_START_NUM_GPU || "20"),
-        numCtx: Number(process.env.LLM_TASK_START_NUM_CTX || "4096"),
-        topP: Number(process.env.LLM_TASK_START_TOP_P || "0.92"),
-        topK: Number(process.env.LLM_TASK_START_TOP_K || "50"),
-        repeatPenalty: Number(process.env.LLM_TASK_START_REPEAT_PENALTY || "1.15")
-      },
-      operations: {
-        model: process.env.LLM_TASK_OPS_MODEL || "einfo-balanced",
-        temperature: Number(process.env.LLM_TASK_OPS_TEMPERATURE || "0.05"),
-        maxTokens: Number(process.env.LLM_TASK_OPS_MAX_TOKENS || "4000"),
-        timeout: Number(process.env.LLM_TASK_OPS_TIMEOUT || "300000"),
-        numGpu: Number(process.env.LLM_TASK_OPS_NUM_GPU || "20"),
-        numCtx: Number(process.env.LLM_TASK_OPS_NUM_CTX || "4096"),
-        topP: Number(process.env.LLM_TASK_OPS_TOP_P || "0.92"),
-        topK: Number(process.env.LLM_TASK_OPS_TOP_K || "50"),
-        repeatPenalty: Number(process.env.LLM_TASK_OPS_REPEAT_PENALTY || "1.15")
-      },
-      chat: {
-        model: process.env.LLM_TASK_CHAT_MODEL || "llama3.1:8b",
-        temperature: Number(process.env.LLM_TASK_CHAT_TEMPERATURE || "0.4"),
-        maxTokens: Number(process.env.LLM_TASK_CHAT_MAX_TOKENS || "2048"),
-        timeout: Number(process.env.LLM_TASK_CHAT_TIMEOUT || "120000"),
-        numGpu: Number(process.env.LLM_TASK_CHAT_NUM_GPU || "20"),
-        numCtx: Number(process.env.LLM_TASK_CHAT_NUM_CTX || "4096"),
-        topP: Number(process.env.LLM_TASK_CHAT_TOP_P || "0.9"),
-        topK: Number(process.env.LLM_TASK_CHAT_TOP_K || "40"),
-        repeatPenalty: Number(process.env.LLM_TASK_CHAT_REPEAT_PENALTY || "1.1")
-      },
-      analysis: {
-        model: process.env.LLM_TASK_ANALYSIS_MODEL || "einfo-balanced",
-        temperature: Number(process.env.LLM_TASK_ANALYSIS_TEMPERATURE || "0.3"),
-        maxTokens: Number(process.env.LLM_TASK_ANALYSIS_MAX_TOKENS || "4000"),
-        timeout: Number(process.env.LLM_TASK_ANALYSIS_TIMEOUT || "220000"),
-        numGpu: Number(process.env.LLM_TASK_ANALYSIS_NUM_GPU || "20"),
-        numCtx: Number(process.env.LLM_TASK_ANALYSIS_NUM_CTX || "4096"),
-        topP: Number(process.env.LLM_TASK_ANALYSIS_TOP_P || "0.92"),
-        topK: Number(process.env.LLM_TASK_ANALYSIS_TOP_K || "50"),
-        repeatPenalty: Number(process.env.LLM_TASK_ANALYSIS_REPEAT_PENALTY || "1.15")
-      },
-      default: {
-        model: process.env.LLM_TASK_DEFAULT_MODEL || "einfo-balanced",
-        temperature: Number(process.env.LLM_TASK_DEFAULT_TEMPERATURE || "0.1"),
-        maxTokens: Number(process.env.LLM_TASK_DEFAULT_MAX_TOKENS || "2048"),
-        timeout: Number(process.env.LLM_TASK_DEFAULT_TIMEOUT || "120000"),
-        numGpu: Number(process.env.LLM_TASK_DEFAULT_NUM_GPU || "20"),
-        numCtx: Number(process.env.LLM_TASK_DEFAULT_NUM_CTX || "4096"),
-        topP: Number(process.env.LLM_TASK_DEFAULT_TOP_P || "0.92"),
-        topK: Number(process.env.LLM_TASK_DEFAULT_TOP_K || "50"),
-        repeatPenalty: Number(process.env.LLM_TASK_DEFAULT_REPEAT_PENALTY || "1.15")
-      }
-    }
-  },
+  llm: loadedTaskConfig,
   
   // Differenzierte Timeouts (Fallbacks wenn Modell-Config keine hat)
   llmChatTimeoutMs: Number(process.env.LLM_CHAT_TIMEOUT_MS || "60000"),
@@ -237,10 +294,18 @@ export const CONFIG = {
 /**
  * Setzt globales Modell-Override (überschreibt alle task-spezifischen Modelle)
  * @param {string|null} modelName - Modellname oder null für task-spezifisch
+ * @param {boolean} persist - Ob in Datei gespeichert werden soll (default: true)
  */
-export function setGlobalModelOverride(modelName) {
+export function setGlobalModelOverride(modelName, persist = true) {
   CONFIG.llm.globalModelOverride = modelName;
   console.log(`[CONFIG] Globales Modell-Override: ${modelName || "deaktiviert (task-spezifisch)"}`);
+
+  if (persist) {
+    saveTaskConfigToFile({
+      globalModelOverride: CONFIG.llm.globalModelOverride,
+      tasks: CONFIG.llm.tasks
+    });
+  }
 }
 
 /**
@@ -277,8 +342,9 @@ export const getModelForTask = getTaskConfig;
  * Aktualisiert Task-Konfiguration zur Laufzeit
  * @param {string} taskType - Task-Typ
  * @param {Object} updates - Zu aktualisierende Werte (model, temperature, etc.)
+ * @param {boolean} persist - Ob in Datei gespeichert werden soll (default: true)
  */
-export function updateTaskConfig(taskType, updates) {
+export function updateTaskConfig(taskType, updates, persist = true) {
   if (!CONFIG.llm.tasks[taskType]) {
     throw new Error(`Unbekannter Task-Typ: ${taskType}`);
   }
@@ -299,6 +365,13 @@ export function updateTaskConfig(taskType, updates) {
   };
 
   console.log(`[CONFIG] Task "${taskType}" aktualisiert:`, validUpdates);
+
+  if (persist) {
+    saveTaskConfigToFile({
+      globalModelOverride: CONFIG.llm.globalModelOverride,
+      tasks: CONFIG.llm.tasks
+    });
+  }
 }
 
 /**
