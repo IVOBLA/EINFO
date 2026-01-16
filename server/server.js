@@ -1562,8 +1562,8 @@ async function proxyChatbotRequest(req, res) {
     const response = await fetch(targetUrl, fetchOptions);
 
     // Check if response is SSE stream (Server-Sent Events)
-    const contentType = response.headers.get("content-type") || "";
-    if (contentType.includes("text/event-stream")) {
+    const responseContentType = response.headers.get("content-type") || "";
+    if (responseContentType.includes("text/event-stream")) {
       // SSE streaming: pipe the response directly without parsing
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
