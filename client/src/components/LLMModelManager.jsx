@@ -1284,6 +1284,31 @@ export default function LLMModelManager() {
                           </div>
                         </div>
                       )}
+
+                      {/* RAW Request/Response - Aufklappbare Bereiche */}
+                      <div className="space-y-2 mt-4">
+                        {testResult.rawRequest && (
+                          <details className="border rounded">
+                            <summary className="px-3 py-2 bg-gray-100 cursor-pointer hover:bg-gray-200 text-sm font-medium text-gray-700">
+                              RAW Request (Ollama API)
+                            </summary>
+                            <pre className="p-3 text-xs bg-gray-50 overflow-auto max-h-60 text-gray-800">
+                              {JSON.stringify(testResult.rawRequest, null, 2)}
+                            </pre>
+                          </details>
+                        )}
+
+                        {testResult.rawResponse && (
+                          <details className="border rounded">
+                            <summary className="px-3 py-2 bg-gray-100 cursor-pointer hover:bg-gray-200 text-sm font-medium text-gray-700">
+                              RAW Response (Ollama API)
+                            </summary>
+                            <pre className="p-3 text-xs bg-gray-50 overflow-auto max-h-60 text-gray-800">
+                              {JSON.stringify(testResult.rawResponse, null, 2)}
+                            </pre>
+                          </details>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

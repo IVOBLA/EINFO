@@ -739,6 +739,26 @@ app.post("/api/llm/test-with-metrics-stream", rateLimit(RateLimitProfiles.STRICT
   let previousCpuSnapshot = getCpuTimesSnapshot();
   let fullAnswer = "";
 
+  // Task-Config für RAW-Request-Anzeige holen
+  const taskConfig = getModelForTask("chat");
+  const rawRequest = {
+    model: model,
+    stream: true,
+    options: {
+      temperature: taskConfig.temperature,
+      num_ctx: taskConfig.numCtx,
+      num_gpu: taskConfig.numGpu,
+      num_predict: taskConfig.maxTokens,
+      top_p: taskConfig.topP,
+      top_k: taskConfig.topK,
+      repeat_penalty: taskConfig.repeatPenalty
+    },
+    messages: [
+      { role: "system", content: "(System-Prompt wird vom Server generiert)" },
+      { role: "user", content: question }
+    ]
+  };
+
   // Metriken sammeln
   const collectAllMetrics = async () => {
     if (llmFinished) return;
@@ -843,6 +863,19 @@ app.post("/api/llm/test-with-metrics-stream", rateLimit(RateLimitProfiles.STRICT
 
     logInfo("LLM-Streaming-Test erfolgreich", { model, duration, metricsCount: metrics.length });
 
+    // RAW Response zusammenstellen
+    const rawResponse = {
+      model: model,
+      created_at: new Date().toISOString(),
+      message: {
+        role: "assistant",
+        content: fullAnswer
+      },
+      done: true,
+      total_duration: duration * 1000000, // in Nanosekunden wie Ollama
+      eval_count: fullAnswer.length // Approximation
+    };
+
     // Finale Zusammenfassung senden
     sendSSE("done", {
       ok: true,
@@ -850,7 +883,9 @@ app.post("/api/llm/test-with-metrics-stream", rateLimit(RateLimitProfiles.STRICT
       duration,
       model,
       metrics,
-      stats
+      stats,
+      rawRequest,
+      rawResponse
     });
 
     res.end();
