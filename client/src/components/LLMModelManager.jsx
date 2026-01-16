@@ -206,6 +206,7 @@ export default function LLMModelManager() {
   const [testQuestion, setTestQuestion] = useState("Was ist 2+2?");
   const [testResult, setTestResult] = useState(null);
   const [testRunning, setTestRunning] = useState(false);
+  const [streamingAnswer, setStreamingAnswer] = useState(""); // Live-gestreamte Antwort
 
   // Daten laden mit Auto-Retry bei Netzwerkfehlern
   useEffect(() => {
@@ -381,18 +382,65 @@ export default function LLMModelManager() {
   async function testModel(modelName) {
     setTestRunning(true);
     setTestResult(null);
+    setStreamingAnswer("");
+
     try {
-      // Verwende neuen Endpunkt mit GPU-Metriken-Verlauf
-      const res = await fetch(buildChatbotApiUrl("/api/llm/test-with-metrics"), {
+      // Verwende SSE-Streaming-Endpunkt für Live-Antwort
+      const res = await fetch(buildChatbotApiUrl("/api/llm/test-with-metrics-stream"), {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ model: modelName, question: testQuestion })
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Test fehlgeschlagen");
 
-      setTestResult(data);
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Test fehlgeschlagen");
+      }
+
+      // SSE-Stream verarbeiten
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (line.startsWith("event: ")) {
+            const eventType = line.slice(7).trim();
+            continue;
+          }
+          if (line.startsWith("data: ")) {
+            const dataStr = line.slice(6);
+            try {
+              const data = JSON.parse(dataStr);
+
+              // Token-Event: Live-Antwort aktualisieren
+              if (data.token !== undefined) {
+                setStreamingAnswer(prev => prev + data.token);
+              }
+
+              // Done-Event: Finale Ergebnisse setzen
+              if (data.ok !== undefined && data.answer !== undefined) {
+                setTestResult(data);
+              }
+
+              // Error-Event
+              if (data.error !== undefined && data.ok === false) {
+                setTestResult(data);
+              }
+            } catch {
+              // Ignoriere ungültiges JSON
+            }
+          }
+        }
+      }
     } catch (ex) {
       if (ex instanceof TypeError || ex.name === "TypeError" ||
           (ex.message && ex.message.toLowerCase().includes("network"))) {
@@ -1021,6 +1069,7 @@ export default function LLMModelManager() {
                   onClick={() => {
                     setTestingModel(null);
                     setTestResult(null);
+                    setStreamingAnswer("");
                   }}
                 >
                   ✕
@@ -1046,6 +1095,20 @@ export default function LLMModelManager() {
               >
                 {testRunning ? "Teste..." : "Test starten"}
               </button>
+
+              {/* Live-Streaming-Anzeige während des Tests */}
+              {testRunning && streamingAnswer && (
+                <div className="border rounded p-4 bg-gray-50">
+                  <div className="text-xs text-gray-600 mb-1 flex items-center gap-2">
+                    <span className="animate-pulse">●</span>
+                    Antwort wird generiert...
+                  </div>
+                  <div className="text-sm whitespace-pre-wrap bg-white p-2 rounded border min-h-[60px]">
+                    {streamingAnswer}
+                    <span className="animate-pulse text-blue-500">▌</span>
+                  </div>
+                </div>
+              )}
 
               {testResult && (
                 <div className="border rounded p-4 bg-gray-50 space-y-4">

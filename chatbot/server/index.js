@@ -698,6 +698,181 @@ app.post("/api/llm/test-with-metrics", rateLimit(RateLimitProfiles.STRICT), asyn
   }
 });
 
+// LLM-Test mit Streaming (SSE) - Tokens werden live gesendet
+app.post("/api/llm/test-with-metrics-stream", rateLimit(RateLimitProfiles.STRICT), async (req, res) => {
+  const { model, question } = req.body || {};
+
+  if (!question || typeof question !== "string") {
+    return res.status(400).json({ ok: false, error: "missing_question" });
+  }
+
+  if (!model || typeof model !== "string") {
+    return res.status(400).json({ ok: false, error: "missing_model" });
+  }
+
+  // Validiere Modell
+  try {
+    const models = await listAvailableLlmModels();
+    const modelNames = models.map(m => m.name);
+    if (!modelNames.includes(model)) {
+      return res.status(400).json({ ok: false, error: "invalid_model" });
+    }
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: "model_check_failed" });
+  }
+
+  // SSE-Header setzen
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+  res.flushHeaders();
+
+  const sendSSE = (event, data) => {
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  };
+
+  const startTime = Date.now();
+  const metrics = [];
+  let metricsInterval = null;
+  let llmFinished = false;
+  let previousCpuSnapshot = getCpuTimesSnapshot();
+  let fullAnswer = "";
+
+  // Metriken sammeln
+  const collectAllMetrics = async () => {
+    if (llmFinished) return;
+    try {
+      const timestamp = Date.now() - startTime;
+      const gpuStatus = await getGpuStatus();
+      let gpuData = {
+        utilizationPercent: null,
+        memoryUsedMb: null,
+        memoryTotalMb: null,
+        temperatureCelsius: null
+      };
+      if (gpuStatus.available && gpuStatus.gpus && gpuStatus.gpus[0]) {
+        const gpu = gpuStatus.gpus[0];
+        gpuData = {
+          utilizationPercent: gpu.utilizationPercent,
+          memoryUsedMb: gpu.memoryUsedMb,
+          memoryTotalMb: gpu.memoryTotalMb,
+          temperatureCelsius: gpu.temperatureCelsius
+        };
+      }
+
+      const systemMetrics = collectSystemMetrics(timestamp, previousCpuSnapshot);
+      previousCpuSnapshot = systemMetrics._cpuSnapshot;
+
+      const metricPoint = {
+        timestamp,
+        utilizationPercent: gpuData.utilizationPercent,
+        memoryUsedMb: gpuData.memoryUsedMb,
+        memoryTotalMb: gpuData.memoryTotalMb,
+        temperatureCelsius: gpuData.temperatureCelsius,
+        cpuUsagePercent: systemMetrics.cpuUsagePercent,
+        ramUsedMb: systemMetrics.memoryUsedMb,
+        ramTotalMb: systemMetrics.memoryTotalMb
+      };
+      metrics.push(metricPoint);
+
+      // Metriken live senden
+      sendSSE("metrics", metricPoint);
+    } catch {
+      // Ignoriere Fehler
+    }
+  };
+
+  // Token-Callback für Streaming
+  const onToken = (token) => {
+    fullAnswer += token;
+    sendSSE("token", { token });
+  };
+
+  await collectAllMetrics();
+  metricsInterval = setInterval(collectAllMetrics, 2000);
+
+  try {
+    await callLLMForChat({ question, model, stream: true, onToken });
+    llmFinished = true;
+    clearInterval(metricsInterval);
+
+    await collectAllMetrics();
+
+    const duration = Date.now() - startTime;
+
+    // Statistiken berechnen
+    const gpuUtilizationValues = metrics.map(m => m.utilizationPercent).filter(v => v !== null);
+    const gpuMemoryValues = metrics.map(m => m.memoryUsedMb).filter(v => v !== null);
+    const cpuUsageValues = metrics.map(m => m.cpuUsagePercent).filter(v => v !== null);
+    const ramUsageValues = metrics.map(m => m.ramUsedMb).filter(v => v !== null);
+
+    const stats = {
+      duration,
+      gpuUtilization: {
+        min: gpuUtilizationValues.length > 0 ? Math.min(...gpuUtilizationValues) : null,
+        max: gpuUtilizationValues.length > 0 ? Math.max(...gpuUtilizationValues) : null,
+        avg: gpuUtilizationValues.length > 0
+          ? Math.round(gpuUtilizationValues.reduce((a, b) => a + b, 0) / gpuUtilizationValues.length)
+          : null
+      },
+      memoryUsedMb: {
+        min: gpuMemoryValues.length > 0 ? Math.min(...gpuMemoryValues) : null,
+        max: gpuMemoryValues.length > 0 ? Math.max(...gpuMemoryValues) : null,
+        avg: gpuMemoryValues.length > 0
+          ? Math.round(gpuMemoryValues.reduce((a, b) => a + b, 0) / gpuMemoryValues.length)
+          : null
+      },
+      memoryTotalMb: metrics.length > 0 ? metrics[0].memoryTotalMb : null,
+      cpuUsage: {
+        min: cpuUsageValues.length > 0 ? Math.min(...cpuUsageValues) : null,
+        max: cpuUsageValues.length > 0 ? Math.max(...cpuUsageValues) : null,
+        avg: cpuUsageValues.length > 0
+          ? Math.round(cpuUsageValues.reduce((a, b) => a + b, 0) / cpuUsageValues.length)
+          : null
+      },
+      ramUsedMb: {
+        min: ramUsageValues.length > 0 ? Math.min(...ramUsageValues) : null,
+        max: ramUsageValues.length > 0 ? Math.max(...ramUsageValues) : null,
+        avg: ramUsageValues.length > 0
+          ? Math.round(ramUsageValues.reduce((a, b) => a + b, 0) / ramUsageValues.length)
+          : null
+      },
+      ramTotalMb: metrics.length > 0 ? metrics[0].ramTotalMb : null
+    };
+
+    logInfo("LLM-Streaming-Test erfolgreich", { model, duration, metricsCount: metrics.length });
+
+    // Finale Zusammenfassung senden
+    sendSSE("done", {
+      ok: true,
+      answer: fullAnswer.slice(0, 2000),
+      duration,
+      model,
+      metrics,
+      stats
+    });
+
+    res.end();
+  } catch (err) {
+    llmFinished = true;
+    clearInterval(metricsInterval);
+
+    const duration = Date.now() - startTime;
+    logError("LLM-Streaming-Test fehlgeschlagen", { model, error: String(err), duration });
+
+    sendSSE("error", {
+      ok: false,
+      error: String(err),
+      duration,
+      model,
+      metrics
+    });
+
+    res.end();
+  }
+});
+
 // Alle Modell-Profile mit aktuellem Status
 app.get("/api/llm/profiles", async (_req, res) => {
   try {
