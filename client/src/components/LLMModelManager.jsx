@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { buildChatbotApiUrl, CHATBOT_SERVER_ERROR_MESSAGE } from "../utils/http.js";
 
 /**
@@ -194,9 +194,15 @@ export default function LLMModelManager() {
 
   // GPU-Historie für Liniendiagramme
   const [gpuHistory, setGpuHistory] = useState([]);
-  const [historyStartTime, setHistoryStartTime] = useState(null);
+  const historyStartTimeRef = useRef(null); // useRef statt useState für Closure-Problem
   const [historyTimeRange, setHistoryTimeRange] = useState(300); // in Sekunden (default: 5 Min)
   const [updateInterval, setUpdateInterval] = useState(5000); // in Millisekunden (default: 5s)
+
+  // Refs für aktuelle Werte in Closures
+  const updateIntervalRef = useRef(updateInterval);
+  const historyTimeRangeRef = useRef(historyTimeRange);
+  useEffect(() => { updateIntervalRef.current = updateInterval; }, [updateInterval]);
+  useEffect(() => { historyTimeRangeRef.current = historyTimeRange; }, [historyTimeRange]);
 
   // Lokale Änderungen (Draft)
   const [taskDrafts, setTaskDrafts] = useState({});
@@ -206,6 +212,7 @@ export default function LLMModelManager() {
   const [testQuestion, setTestQuestion] = useState("Was ist 2+2?");
   const [testResult, setTestResult] = useState(null);
   const [testRunning, setTestRunning] = useState(false);
+  const [streamingAnswer, setStreamingAnswer] = useState(""); // Live-gestreamte Antwort
 
   // Daten laden mit Auto-Retry bei Netzwerkfehlern
   useEffect(() => {
@@ -280,30 +287,27 @@ export default function LLMModelManager() {
         // Historie-Daten sammeln (nur wenn GPU verfügbar)
         if (gpuData.gpuStatus?.available && gpuData.gpuStatus?.gpus?.length > 0) {
           const gpu = gpuData.gpuStatus.gpus[0]; // Erste GPU
+          const now = Date.now();
+
+          // Wenn Historie noch nicht gestartet, setze Start-Zeit
+          if (historyStartTimeRef.current === null) {
+            historyStartTimeRef.current = now;
+          }
+
+          const timestamp = now - historyStartTimeRef.current;
+
+          const newPoint = {
+            timestamp,
+            utilizationPercent: gpu.utilizationPercent,
+            memoryUsedMb: gpu.memoryUsedMb,
+            temperatureCelsius: gpu.temperatureCelsius
+          };
 
           setGpuHistory((prev) => {
-            const now = Date.now();
-
-            // Wenn Historie leer ist, setze Start-Zeit
-            let startTime = historyStartTime;
-            if (prev.length === 0 || startTime === null) {
-              startTime = now;
-              setHistoryStartTime(now);
-            }
-
-            const timestamp = now - startTime;
-
-            const newPoint = {
-              timestamp,
-              utilizationPercent: gpu.utilizationPercent,
-              memoryUsedMb: gpu.memoryUsedMb,
-              temperatureCelsius: gpu.temperatureCelsius
-            };
-
             // Neue Daten hinzufügen und auf gewählten Zeitraum begrenzen
             // maxPoints = timeRange (in Sekunden) / Intervall (in Sekunden)
-            const intervalSeconds = updateInterval / 1000;
-            const maxPoints = Math.ceil(historyTimeRange / intervalSeconds);
+            const intervalSeconds = updateIntervalRef.current / 1000;
+            const maxPoints = Math.ceil(historyTimeRangeRef.current / intervalSeconds);
             const updated = [...prev, newPoint];
             return updated.slice(-maxPoints);
           });
@@ -381,18 +385,65 @@ export default function LLMModelManager() {
   async function testModel(modelName) {
     setTestRunning(true);
     setTestResult(null);
+    setStreamingAnswer("");
+
     try {
-      // Verwende neuen Endpunkt mit GPU-Metriken-Verlauf
-      const res = await fetch(buildChatbotApiUrl("/api/llm/test-with-metrics"), {
+      // Verwende SSE-Streaming-Endpunkt für Live-Antwort
+      const res = await fetch(buildChatbotApiUrl("/api/llm/test-with-metrics-stream"), {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ model: modelName, question: testQuestion })
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Test fehlgeschlagen");
 
-      setTestResult(data);
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Test fehlgeschlagen");
+      }
+
+      // SSE-Stream verarbeiten
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (line.startsWith("event: ")) {
+            const eventType = line.slice(7).trim();
+            continue;
+          }
+          if (line.startsWith("data: ")) {
+            const dataStr = line.slice(6);
+            try {
+              const data = JSON.parse(dataStr);
+
+              // Token-Event: Live-Antwort aktualisieren
+              if (data.token !== undefined) {
+                setStreamingAnswer(prev => prev + data.token);
+              }
+
+              // Done-Event: Finale Ergebnisse setzen
+              if (data.ok !== undefined && data.answer !== undefined) {
+                setTestResult(data);
+              }
+
+              // Error-Event
+              if (data.error !== undefined && data.ok === false) {
+                setTestResult(data);
+              }
+            } catch {
+              // Ignoriere ungültiges JSON
+            }
+          }
+        }
+      }
     } catch (ex) {
       if (ex instanceof TypeError || ex.name === "TypeError" ||
           (ex.message && ex.message.toLowerCase().includes("network"))) {
@@ -590,7 +641,7 @@ export default function LLMModelManager() {
                         setUpdateInterval(newInterval);
                         // Historie zurücksetzen bei Intervall-Änderung
                         setGpuHistory([]);
-                        setHistoryStartTime(null);
+                        historyStartTimeRef.current = null;
                       }}
                     >
                       <option value={2000}>2s</option>
@@ -628,7 +679,7 @@ export default function LLMModelManager() {
                     className="text-xs px-2 py-1 border rounded hover:bg-white text-gray-600"
                     onClick={() => {
                       setGpuHistory([]);
-                      setHistoryStartTime(null);
+                      historyStartTimeRef.current = null;
                     }}
                   >
                     Löschen
@@ -1021,6 +1072,7 @@ export default function LLMModelManager() {
                   onClick={() => {
                     setTestingModel(null);
                     setTestResult(null);
+                    setStreamingAnswer("");
                   }}
                 >
                   ✕
@@ -1046,6 +1098,20 @@ export default function LLMModelManager() {
               >
                 {testRunning ? "Teste..." : "Test starten"}
               </button>
+
+              {/* Live-Streaming-Anzeige während des Tests */}
+              {testRunning && streamingAnswer && (
+                <div className="border rounded p-4 bg-gray-50">
+                  <div className="text-xs text-gray-600 mb-1 flex items-center gap-2">
+                    <span className="animate-pulse">●</span>
+                    Antwort wird generiert...
+                  </div>
+                  <div className="text-sm whitespace-pre-wrap bg-white p-2 rounded border min-h-[60px]">
+                    {streamingAnswer}
+                    <span className="animate-pulse text-blue-500">▌</span>
+                  </div>
+                </div>
+              )}
 
               {testResult && (
                 <div className="border rounded p-4 bg-gray-50 space-y-4">
@@ -1218,6 +1284,31 @@ export default function LLMModelManager() {
                           </div>
                         </div>
                       )}
+
+                      {/* RAW Request/Response - Aufklappbare Bereiche */}
+                      <div className="space-y-2 mt-4">
+                        {testResult.rawRequest && (
+                          <details className="border rounded">
+                            <summary className="px-3 py-2 bg-gray-100 cursor-pointer hover:bg-gray-200 text-sm font-medium text-gray-700">
+                              RAW Request (Ollama API)
+                            </summary>
+                            <pre className="p-3 text-xs bg-gray-50 overflow-auto max-h-60 text-gray-800">
+                              {JSON.stringify(testResult.rawRequest, null, 2)}
+                            </pre>
+                          </details>
+                        )}
+
+                        {testResult.rawResponse && (
+                          <details className="border rounded">
+                            <summary className="px-3 py-2 bg-gray-100 cursor-pointer hover:bg-gray-200 text-sm font-medium text-gray-700">
+                              RAW Response (Ollama API)
+                            </summary>
+                            <pre className="p-3 text-xs bg-gray-50 overflow-auto max-h-60 text-gray-800">
+                              {JSON.stringify(testResult.rawResponse, null, 2)}
+                            </pre>
+                          </details>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
