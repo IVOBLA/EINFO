@@ -4,6 +4,7 @@ import CornerHelpLogout from "../components/CornerHelpLogout.jsx";
 import { FORBIDDEN_MESSAGE, notifyForbidden } from "../../forbidden.js";
 import { resetBoard } from "../api.js";
 import LLMModelManager from "../components/LLMModelManager.jsx";
+import FilteringRulesPanel from "../components/FilteringRulesPanel.jsx";
 
 function collectUserRoleIds(u) {
   const out = [];
@@ -2089,7 +2090,15 @@ export default function User_AdminPanel() {
         </div>
       </details>
 
-      {/* 10) KI-Modell-Verwaltung */}
+      {/* 10) Hybrid-Filtersystem */}
+      <details className="border rounded p-3" open>
+        <summary className="cursor-pointer font-medium">Hybrid-Filtersystem (Regeln + Context-Fingerprint + Lernen)</summary>
+        <div className="mt-3">
+          <FilteringRulesPanel locked={locked} />
+        </div>
+      </details>
+
+      {/* 11) KI-Modell-Verwaltung */}
       <details className="border rounded p-3" open>
         <summary className="cursor-pointer font-medium">KI-Modell-Verwaltung</summary>
         <div className="mt-3">

@@ -4189,3 +4189,7 @@ app.use("/api/aufgaben", User_requireAuth, aufgabenRoutes);
  process.env.DATA_DIR = DATA_DIR;
 import createAdminMaintenanceRoutes from "./routes/userAdminMaintenanceRoutes.js";
 app.use("/api/user/admin", createAdminMaintenanceRoutes({ baseDir: DATA_DIR }));
+
+// Admin-Filtering: Hybrid-Filtersystem (Regeln + Context-Fingerprint + Lernen)
+import adminFilteringRouter from "./routes/admin_filtering.js";
+app.use("/api/admin/filtering-rules", User_requireAuth, adminFilteringRouter);
