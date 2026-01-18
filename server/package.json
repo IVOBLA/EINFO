@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "dev": "node server.js",
     "start": "node server.js",
     "fetcher": "node index.mjs",
     "fetcher:ca": "node fetch-ca.mjs",

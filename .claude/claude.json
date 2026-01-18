@@ -1,0 +1,7 @@
+{
+  "name": "EINFO",
+  "description": "Emergency Information System - Einsatzlagekarte für Feuerwehr",
+  "hooks": {
+    "SessionStart": ".claude/hooks/SessionStart.sh"
+  }
+}
