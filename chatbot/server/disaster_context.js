@@ -972,12 +972,44 @@ export async function getFilteredDisasterContextSummary({ maxLength = 2500 } = {
     // Baue kompakten Summary
     let summary = buildFilteredSummary(filtered, fingerprint, rules);
 
+    // Token-Zählung (grobe Schätzung: ~4 Zeichen pro Token)
+    const tokensUsed = Math.ceil(summary.length / 4);
+    const tokensLimit = rules.limits?.max_total_tokens || 2500;
+
+    // NEU: Erstelle Metadaten über angewendete Regeln
+    const appliedRules = {
+      R1_ABSCHNITTE: {
+        enabled: rules.rules.R1_ABSCHNITTE_PRIORITAET?.enabled || false,
+        items_shown: filtered.abschnitte?.length || 0,
+        max_items: rules.rules.R1_ABSCHNITTE_PRIORITAET?.output?.max_items || 0
+      },
+      R2_PROTOKOLL: {
+        enabled: rules.rules.R2_PROTOKOLL_RELEVANZ?.enabled || false,
+        items_shown: filtered.protocol?.length || 0,
+        max_items: rules.rules.R2_PROTOKOLL_RELEVANZ?.output?.max_entries || 0
+      },
+      R3_TRENDS: {
+        enabled: rules.rules.R3_TRENDS_ERKENNUNG?.enabled || false,
+        direction: filtered.trends?.direction || "unknown",
+        strength: filtered.trends?.strength || "unknown"
+      },
+      R4_RESSOURCEN: {
+        enabled: rules.rules.R4_RESSOURCEN_STATUS?.enabled || false,
+        shortage: filtered.resources?.resource_shortage || false,
+        utilization: filtered.resources?.utilization || 0
+      },
+      R5_STABS_FOKUS: {
+        enabled: rules.rules.R5_STABS_FOKUS?.enabled || false,
+        individual_incidents_shown: filtered.incidents?.length || 0
+      }
+    };
+
     // Kürze falls nötig
     if (summary.length > maxLength) {
       summary = summary.substring(0, maxLength) + "\n... (gekürzt)";
     }
 
-    return { summary, fingerprint, filtered };
+    return { summary, fingerprint, filtered, appliedRules, tokensUsed, tokensLimit };
   } catch (err) {
     logError("Fehler bei gefiltertem Context-Summary", {
       error: String(err)
@@ -985,7 +1017,7 @@ export async function getFilteredDisasterContextSummary({ maxLength = 2500 } = {
 
     // Fallback auf alte Methode
     const summary = await getDisasterContextSummary({ maxLength });
-    return { summary, fingerprint: null, filtered: null };
+    return { summary, fingerprint: null, filtered: null, appliedRules: null };
   }
 }
 
