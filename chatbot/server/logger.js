@@ -21,6 +21,7 @@ if (!fs.existsSync(LOG_DIR)) {
 const MAIN_LOG_FILE = path.join(LOG_DIR, "chatbot.log");
 const LLM_REQUEST_LOG_FILE = path.join(LOG_DIR, "LLM_request.log");
 const LLM_RESPONSE_LOG_FILE = path.join(LOG_DIR, "LLM_response.log");
+const PROMPT_COMPOSITION_LOG_FILE = path.join(LOG_DIR, "LLM_prompt_composition.log");
 
 
 function appendLine(filePath, line) {
@@ -177,11 +178,120 @@ export function logLLMResponse(model, rawResponse, parsedResponse = null) {
   });
 }
 
+// --------- Prompt-Composition-Log ------------------------------------------
+//
+// Dokumentiert detailliert, welche Regeln angewendet wurden und
+// welche Komponenten in den finalen Prompt geflossen sind.
+//
+
+/**
+ * Loggt die Prompt-Zusammenstellung mit Regel-Debug-Informationen.
+ *
+ * @param {object} composition - Objekt mit allen Komponenten
+ * @param {object} composition.rules - Debug-Info zu angewendeten Regeln
+ * @param {object} composition.components - Prompt-Komponenten mit Größen
+ * @param {object} composition.filtering - Was wurde gefiltert (vorher/nachher)
+ */
+export function logPromptComposition(composition = {}) {
+  const entry = {
+    ts: new Date().toISOString(),
+    type: "PROMPT_COMPOSITION",
+    ...composition
+  };
+
+  // Formatiere als lesbaren Text
+  const lines = [
+    "═══════════════════════════════════════════════════════════════════════════════",
+    `PROMPT-KOMPOSITION @ ${entry.ts}`,
+    "═══════════════════════════════════════════════════════════════════════════════",
+    ""
+  ];
+
+  // Regeln-Übersicht
+  if (entry.rules) {
+    lines.push("┌─────────────────────────────────────────────────────────────────────────────");
+    lines.push("│ ANGEWENDETE FILTERREGELN");
+    lines.push("├─────────────────────────────────────────────────────────────────────────────");
+
+    for (const [ruleName, ruleInfo] of Object.entries(entry.rules)) {
+      const status = ruleInfo.enabled ? "✅ AKTIV" : "❌ DEAKTIVIERT";
+      lines.push(`│ ${ruleName}: ${status}`);
+      if (ruleInfo.enabled && ruleInfo.details) {
+        lines.push(`│   └─ ${ruleInfo.details}`);
+      }
+    }
+    lines.push("└─────────────────────────────────────────────────────────────────────────────");
+    lines.push("");
+  }
+
+  // Filterung-Details
+  if (entry.filtering) {
+    lines.push("┌─────────────────────────────────────────────────────────────────────────────");
+    lines.push("│ FILTERUNG (vorher → nachher)");
+    lines.push("├─────────────────────────────────────────────────────────────────────────────");
+
+    for (const [category, stats] of Object.entries(entry.filtering)) {
+      const before = stats.before ?? "?";
+      const after = stats.after ?? "?";
+      const filtered = stats.filtered ?? (before - after);
+      lines.push(`│ ${category}: ${before} → ${after} (${filtered} gefiltert)`);
+      if (stats.reason) {
+        lines.push(`│   └─ Grund: ${stats.reason}`);
+      }
+    }
+    lines.push("└─────────────────────────────────────────────────────────────────────────────");
+    lines.push("");
+  }
+
+  // Prompt-Komponenten
+  if (entry.components) {
+    lines.push("┌─────────────────────────────────────────────────────────────────────────────");
+    lines.push("│ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)");
+    lines.push("├─────────────────────────────────────────────────────────────────────────────");
+
+    let totalChars = 0;
+    let totalTokens = 0;
+
+    for (const [name, info] of Object.entries(entry.components)) {
+      const chars = info.chars ?? 0;
+      const tokens = info.tokens ?? Math.ceil(chars / 4);
+      const included = info.included !== false;
+      const marker = included ? "✓" : "✗";
+
+      lines.push(`│ ${marker} ${name.padEnd(25)} ${String(chars).padStart(6)} chars  (~${String(tokens).padStart(5)} tokens)`);
+
+      if (info.preview) {
+        const preview = info.preview.substring(0, 80).replace(/\n/g, "↵");
+        lines.push(`│   └─ "${preview}${info.preview.length > 80 ? "..." : ""}"`);
+      }
+
+      if (included) {
+        totalChars += chars;
+        totalTokens += tokens;
+      }
+    }
+
+    lines.push("├─────────────────────────────────────────────────────────────────────────────");
+    lines.push(`│ GESAMT: ${totalChars} chars (~${totalTokens} tokens)`);
+    lines.push("└─────────────────────────────────────────────────────────────────────────────");
+    lines.push("");
+  }
+
+  // JSON-Dump für maschinelle Auswertung
+  lines.push("───────────────────────────────────────────────────────────────────────────────");
+  lines.push("RAW JSON:");
+  lines.push(JSON.stringify(entry, null, 2));
+  lines.push("");
+
+  return appendLine(PROMPT_COMPOSITION_LOG_FILE, lines.join("\n"));
+}
+
 export default {
   logInfo,
   logDebug,
   logError,
   logLLMExchange,
   logLLMRequest,
-  logLLMResponse
+  logLLMResponse,
+  logPromptComposition
 };
