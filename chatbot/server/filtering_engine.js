@@ -13,10 +13,16 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const RULES_FILE = path.resolve(__dirname, CONFIG.dataDir, "conf", "filtering_rules.json");
+const VEHICLES_FILE = path.resolve(__dirname, CONFIG.dataDir, "conf", "vehicles.json");
+const VEHICLES_EXTRA_FILE = path.resolve(__dirname, CONFIG.dataDir, "vehicles-extra.json");
 
 let cachedRules = null;
 let cacheTimestamp = null;
 const CACHE_TTL_MS = 60000; // 1 Minute
+
+// Fahrzeug-Cache
+let cachedVehicles = null;
+let vehiclesCacheTimestamp = null;
 
 // Leere Fallback-Regeln (nur wenn Datei nicht lesbar)
 const EMPTY_RULES = {
@@ -66,6 +72,68 @@ export function invalidateRulesCache() {
   cachedRules = null;
   cacheTimestamp = null;
   logInfo("Filterregeln-Cache invalidiert");
+}
+
+/**
+ * Lädt Fahrzeugdaten aus vehicles.json und vehicles-extra.json
+ * Gibt ein Map von Fahrzeug-ID zu Mannschaftsstärke zurück
+ */
+async function loadVehicles() {
+  // Cache-Check
+  if (cachedVehicles && vehiclesCacheTimestamp && (Date.now() - vehiclesCacheTimestamp) < CACHE_TTL_MS) {
+    return cachedVehicles;
+  }
+
+  const vehicleMap = new Map();
+  let totalMannschaft = 0;
+
+  // Lade vehicles.json
+  try {
+    const raw = await fsPromises.readFile(VEHICLES_FILE, "utf8");
+    const vehicles = JSON.parse(raw);
+    if (Array.isArray(vehicles)) {
+      for (const v of vehicles) {
+        if (v.id && typeof v.mannschaft === "number") {
+          vehicleMap.set(v.id, v.mannschaft);
+          vehicleMap.set(v.label, v.mannschaft); // Auch nach Label matchen
+          totalMannschaft += v.mannschaft;
+        }
+      }
+    }
+  } catch (err) {
+    if (err?.code !== "ENOENT") {
+      logError("Fehler beim Laden von vehicles.json", { error: String(err) });
+    }
+  }
+
+  // Lade vehicles-extra.json
+  try {
+    const raw = await fsPromises.readFile(VEHICLES_EXTRA_FILE, "utf8");
+    const vehicles = JSON.parse(raw);
+    if (Array.isArray(vehicles)) {
+      for (const v of vehicles) {
+        if (v.id && typeof v.mannschaft === "number") {
+          vehicleMap.set(v.id, v.mannschaft);
+          vehicleMap.set(v.label, v.mannschaft);
+          totalMannschaft += v.mannschaft;
+        }
+      }
+    }
+  } catch (err) {
+    if (err?.code !== "ENOENT") {
+      logError("Fehler beim Laden von vehicles-extra.json", { error: String(err) });
+    }
+  }
+
+  cachedVehicles = { vehicleMap, totalMannschaft };
+  vehiclesCacheTimestamp = Date.now();
+
+  logDebug("Fahrzeugdaten geladen", {
+    vehicleCount: vehicleMap.size / 2, // Geteilt durch 2 wegen ID+Label
+    totalMannschaft
+  });
+
+  return cachedVehicles;
 }
 
 /**
@@ -155,11 +223,15 @@ export async function applyAllFilteringRules(rawData, learnedWeights = {}) {
       : null
   };
   if (r4Enabled) {
-    filtered.resources = applyRule_R4(rawData.board, rules.rules.R4_RESSOURCEN_STATUS);
+    // Lade Fahrzeugdaten für Personal-Berechnung
+    const vehicleData = await loadVehicles();
+    filtered.resources = applyRule_R4(rawData.board, rules.rules.R4_RESSOURCEN_STATUS, vehicleData);
     debug.filtering.resources = {
       before: rawIncidentsCount,
       after: filtered.resources.per_area?.length || 0,
-      reason: `Auslastung: ${filtered.resources.utilization || 0}%, Engpass: ${filtered.resources.resource_shortage ? "JA" : "NEIN"}`
+      reason: `Auslastung: ${filtered.resources.utilization || 0}%, Engpass: ${filtered.resources.resource_shortage ? "JA" : "NEIN"}`,
+      deployed_personnel: filtered.resources.deployed_personnel,
+      total_personnel: filtered.resources.total_personnel
     };
   }
 
@@ -337,38 +409,75 @@ function applyRule_R3(board, rule) {
 
 /**
  * R4: Ressourcen-Status
+ * Berechnet Personal aus:
+ * - Gesamt-Personal: Summe der "mannschaft" aus vehicles.json + vehicles-extra.json
+ * - Eingesetztes Personal: Aus assignedVehicles der aktiven Einsätze (neu + in-bearbeitung)
  */
-function applyRule_R4(board, rule) {
+function applyRule_R4(board, rule, vehicleData = null) {
   if (!board || !board.columns) return {};
 
   const areas = getAreas(board);
   const incidents = getAllIncidents(board);
 
-  // Gesamt-Ressourcen
-  const totalPersonnel = incidents.reduce((sum, i) => sum + (i.personnel || 0), 0);
-  const totalIncidents = incidents.filter(i => i.column !== "erledigt").length;
+  // Aktive Einsätze (nur "neu" und "in-bearbeitung")
+  const activeIncidents = incidents.filter(i => i.column === "neu" || i.column === "in-bearbeitung");
 
-  // Schätze verfügbare Einheiten (Heuristik: 1 Einheit = ~5 Personen)
-  const deployedUnits = Math.ceil(totalPersonnel / 5);
-  const totalUnits = 50; // TODO: Aus Konfiguration
+  // Fahrzeug-Map für Mannschaftsstärke
+  const vehicleMap = vehicleData?.vehicleMap || new Map();
+  const totalMannschaft = vehicleData?.totalMannschaft || 0;
+
+  // Berechne eingesetztes Personal aus assignedVehicles
+  let deployedPersonnel = 0;
+  const deployedVehicleIds = new Set();
+
+  for (const incident of activeIncidents) {
+    const assignedVehicles = incident.assignedVehicles || [];
+    for (const vehicleId of assignedVehicles) {
+      if (!deployedVehicleIds.has(vehicleId)) {
+        deployedVehicleIds.add(vehicleId);
+        // Suche Mannschaft für dieses Fahrzeug
+        const mannschaft = vehicleMap.get(vehicleId) || 0;
+        deployedPersonnel += mannschaft;
+      }
+    }
+  }
+
+  // Anzahl Einheiten (Fahrzeuge)
+  const deployedUnits = deployedVehicleIds.size;
+  const totalUnits = vehicleMap.size / 2; // Geteilt durch 2 wegen ID+Label Mapping
   const availableUnits = Math.max(0, totalUnits - deployedUnits);
-  const utilization = totalUnits > 0 ? (deployedUnits / totalUnits) * 100 : 0;
+
+  // Auslastung basierend auf Personal
+  const utilization = totalMannschaft > 0 ? (deployedPersonnel / totalMannschaft) * 100 : 0;
 
   const resources = {
-    total_units: totalUnits,
+    total_units: Math.round(totalUnits),
     deployed_units: deployedUnits,
-    available_units: availableUnits,
+    available_units: Math.round(availableUnits),
     utilization: Math.round(utilization),
     resource_shortage: utilization > (rule.aggregation?.highlight_threshold?.utilization_percent || 80),
 
-    total_personnel: totalPersonnel,
-    deployed_personnel: totalPersonnel,
-    available_personnel: 0, // TODO: Berechnen
+    total_personnel: totalMannschaft,
+    deployed_personnel: deployedPersonnel,
+    available_personnel: Math.max(0, totalMannschaft - deployedPersonnel),
 
     per_area: areas.map(area => {
-      const areaIncidents = getIncidentsInArea(board, area.id);
-      const areaPersonnel = areaIncidents.reduce((sum, i) => sum + (i.personnel || 0), 0);
-      const areaUnits = Math.ceil(areaPersonnel / 5);
+      const areaIncidents = getIncidentsInArea(board, area.id).filter(
+        i => i.column === "neu" || i.column === "in-bearbeitung"
+      );
+      let areaPersonnel = 0;
+      let areaUnits = 0;
+      const areaVehicles = new Set();
+
+      for (const incident of areaIncidents) {
+        for (const vehicleId of incident.assignedVehicles || []) {
+          if (!areaVehicles.has(vehicleId)) {
+            areaVehicles.add(vehicleId);
+            areaPersonnel += vehicleMap.get(vehicleId) || 0;
+            areaUnits++;
+          }
+        }
+      }
 
       return {
         area_id: area.id,
