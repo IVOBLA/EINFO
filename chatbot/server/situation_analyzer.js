@@ -17,7 +17,7 @@ import { embedText } from "./rag/embedding.js";
 import { loadPromptTemplate, fillTemplate } from "./prompts.js";
 import { getKnowledgeContextWithSources, addToVectorRAG } from "./rag/rag_vector.js";
 import { getCurrentSession } from "./rag/session_rag.js";
-import { filterSuggestionsForRole, dismissSuggestion, initSuggestionFilter, getExcludeContextForPrompt } from "./suggestion_filter.js";
+import { filterSuggestionsForRole, dismissSuggestion, acceptSuggestion, initSuggestionFilter, getExcludeContextForPrompt } from "./suggestion_filter.js";
 
 const __filename = fileURLToPath(import.meta.url);
 
@@ -827,9 +827,19 @@ export async function saveSuggestionFeedback({
     timestamp: Date.now()
   };
 
-  // Bei "Hilfreich" -> In Learned Suggestions aufnehmen
+  // Bei "Hilfreich" -> In Learned Suggestions aufnehmen UND als akzeptiert markieren
   if (helpful) {
     await addLearnedSuggestion(feedbackData);
+
+    // NEU: Als akzeptiert markieren (verhindert erneutes Vorschlagen)
+    await acceptSuggestion({
+      suggestionId,
+      title: suggestionTitle || editedContent?.title || "",
+      description: suggestionDescription || editedContent?.description || "",
+      targetRole: targetRole || userRole || "unknown",
+      taskId: feedbackData.feedbackId, // Verknüpfung zum Feedback
+      userId: userId || "anonymous"
+    });
   } else {
     // Bei "Nicht hilfreich" -> Als dismissed speichern (verhindert erneutes Vorschlagen)
     await dismissSuggestion({

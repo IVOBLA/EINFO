@@ -19,18 +19,24 @@ const __dirname = path.dirname(__filename);
 // Pfade für Storage
 const DATA_DIR = path.resolve(__dirname, "../../server/data");
 const DISMISSED_FILE = path.resolve(DATA_DIR, "situation_analysis/dismissed_suggestions.json");
+const ACCEPTED_FILE = path.resolve(DATA_DIR, "situation_analysis/accepted_suggestions.json");
 
 // In-Memory Cache für dismissed suggestions
 let dismissedSuggestions = [];
 let dismissedLoaded = false;
 
+// NEU: In-Memory Cache für akzeptierte Vorschläge (die in Tasks konvertiert wurden)
+let acceptedSuggestions = [];
+let acceptedLoaded = false;
+
 /**
- * Initialisiert den Filter (lädt dismissed suggestions)
+ * Initialisiert den Filter (lädt dismissed und accepted suggestions)
  */
 export async function initSuggestionFilter() {
   try {
     await fsPromises.mkdir(path.dirname(DISMISSED_FILE), { recursive: true });
 
+    // Dismissed Suggestions laden
     if (fs.existsSync(DISMISSED_FILE)) {
       const raw = await fsPromises.readFile(DISMISSED_FILE, "utf8");
       dismissedSuggestions = JSON.parse(raw);
@@ -38,16 +44,28 @@ export async function initSuggestionFilter() {
       dismissedSuggestions = [];
     }
 
+    // NEU: Accepted Suggestions laden (in Tasks konvertierte Vorschläge)
+    if (fs.existsSync(ACCEPTED_FILE)) {
+      const raw = await fsPromises.readFile(ACCEPTED_FILE, "utf8");
+      acceptedSuggestions = JSON.parse(raw);
+    } else {
+      acceptedSuggestions = [];
+    }
+
     dismissedLoaded = true;
+    acceptedLoaded = true;
     logInfo("Suggestion-Filter initialisiert", {
-      dismissedCount: dismissedSuggestions.length
+      dismissedCount: dismissedSuggestions.length,
+      acceptedCount: acceptedSuggestions.length
     });
   } catch (err) {
     logError("Fehler beim Initialisieren des Suggestion-Filters", {
       error: String(err)
     });
     dismissedSuggestions = [];
+    acceptedSuggestions = [];
     dismissedLoaded = true;
+    acceptedLoaded = true;
   }
 }
 
@@ -81,25 +99,71 @@ function textSimilarity(text1, text2) {
 
 /**
  * Prüft ob ein Vorschlag zu ähnlich zu einem existierenden Task ist
+ * NEU: Niedrigerer Threshold (0.35) und zusätzliche Keyword-Prüfung
  */
-function isSimilarToTask(suggestion, tasks, threshold = 0.5) {
-  const suggestionText = `${suggestion.title || ""} ${suggestion.description || ""}`;
+function isSimilarToTask(suggestion, tasks, threshold = 0.35) {
+  const suggestionText = `${suggestion.title || ""} ${suggestion.description || ""}`.toLowerCase();
+  const suggestionKeywords = extractKeywords(suggestionText);
 
   for (const task of tasks) {
-    const taskText = `${task.title || ""} ${task.desc || ""}`;
+    const taskText = `${task.title || ""} ${task.desc || task.description || ""}`.toLowerCase();
+    const taskKeywords = extractKeywords(taskText);
+
+    // Jaccard-Ähnlichkeit
     const similarity = textSimilarity(suggestionText, taskText);
 
-    if (similarity >= threshold) {
+    // Zusätzlich: Keyword-Overlap (z.B. Adressen, Zahlen, spezifische Begriffe)
+    const keywordOverlap = suggestionKeywords.filter(k => taskKeywords.includes(k)).length;
+    const keywordScore = keywordOverlap / Math.max(suggestionKeywords.length, 1);
+
+    // Kombinierter Score
+    const combinedScore = similarity * 0.6 + keywordScore * 0.4;
+
+    if (combinedScore >= threshold || similarity >= threshold + 0.1) {
       logDebug("Vorschlag ähnelt existierendem Task", {
         suggestionTitle: suggestion.title,
         taskTitle: task.title,
-        similarity: similarity.toFixed(2)
+        similarity: similarity.toFixed(2),
+        keywordOverlap,
+        combinedScore: combinedScore.toFixed(2)
       });
       return true;
     }
   }
 
   return false;
+}
+
+/**
+ * Extrahiert wichtige Keywords aus einem Text (Adressen, Zahlen, spezifische Begriffe)
+ */
+function extractKeywords(text) {
+  if (!text) return [];
+
+  // Extrahiere: Zahlen, Adressen (Straßennamen), spezifische Begriffe
+  const keywords = [];
+
+  // Zahlen (z.B. "12 Kräfte", "3 Fahrzeuge")
+  const numbers = text.match(/\d+/g) || [];
+  keywords.push(...numbers);
+
+  // Wörter mit Großbuchstaben (potenzielle Namen/Orte) - nur wenn > 3 Zeichen
+  const properNouns = text.match(/[A-ZÄÖÜ][a-zäöüß]{3,}/g) || [];
+  keywords.push(...properNouns.map(w => w.toLowerCase()));
+
+  // Wichtige Begriffe für Einsatzleitung
+  const importantTerms = [
+    "ablösung", "verpflegung", "pumpe", "sandsack", "evakuierung",
+    "lagemeldung", "presseinfo", "funkkanal", "materiallager",
+    "bereitschaft", "einsatzstelle", "transport", "koordination"
+  ];
+  for (const term of importantTerms) {
+    if (text.includes(term)) {
+      keywords.push(term);
+    }
+  }
+
+  return [...new Set(keywords)]; // Deduplizieren
 }
 
 /**
@@ -161,6 +225,7 @@ async function loadTasksForRole(role) {
  * Entfernt:
  * - Vorschläge die zu ähnlich zu existierenden Tasks sind
  * - Vorschläge die als "nicht hilfreich" bewertet wurden
+ * - NEU: Vorschläge die bereits in Tasks konvertiert wurden (akzeptiert)
  *
  * @param {Array} suggestions - Die generierten Vorschläge
  * @param {string} role - Die Rolle (z.B. "S1", "LTSTB")
@@ -171,7 +236,7 @@ export async function filterSuggestionsForRole(suggestions, role) {
     return [];
   }
 
-  if (!dismissedLoaded) {
+  if (!dismissedLoaded || !acceptedLoaded) {
     await initSuggestionFilter();
   }
 
@@ -181,6 +246,7 @@ export async function filterSuggestionsForRole(suggestions, role) {
   const filteredSuggestions = [];
   let filteredByTask = 0;
   let filteredByDismissed = 0;
+  let filteredByAccepted = 0;
 
   for (const suggestion of suggestions) {
     // Prüfe Ähnlichkeit zu existierenden Tasks
@@ -195,16 +261,23 @@ export async function filterSuggestionsForRole(suggestions, role) {
       continue;
     }
 
+    // NEU: Prüfe Ähnlichkeit zu bereits akzeptierten Vorschlägen
+    if (isSimilarToAccepted(suggestion, role)) {
+      filteredByAccepted++;
+      continue;
+    }
+
     filteredSuggestions.push(suggestion);
   }
 
-  if (filteredByTask > 0 || filteredByDismissed > 0) {
+  if (filteredByTask > 0 || filteredByDismissed > 0 || filteredByAccepted > 0) {
     logInfo("Vorschläge gefiltert", {
       role,
       original: suggestions.length,
       filtered: filteredSuggestions.length,
       byExistingTask: filteredByTask,
-      byDismissed: filteredByDismissed
+      byDismissed: filteredByDismissed,
+      byAccepted: filteredByAccepted
     });
   }
 
@@ -298,15 +371,13 @@ export async function undismissSuggestion(suggestionId) {
 }
 
 /**
- * Erstellt eine kompakte Zusammenfassung für den LLM-Prompt
- * Enthält: Existierende Tasks + Abgelehnte Vorschläge (nur Titel)
+ * Erstellt eine detaillierte Zusammenfassung für den LLM-Prompt
+ * Enthält: Existierende Tasks + Abgelehnte Vorschläge
  *
- * Format (sehr kompakt, ca. 200-400 Zeichen):
- * BEREITS IN ARBEIT: S1: Ablösung planen, Verpflegung | S3: Pumpenstrecke
- * ABGELEHNT: Wetterbericht (S2), Funktest (S6)
+ * NEU: Detaillierter mit Beschreibungen für besseres Matching
  *
  * @param {Array} roles - Die Rollen für die Zusammenfassung erstellt werden soll
- * @returns {string} - Kompakte Zusammenfassung für den Prompt
+ * @returns {string} - Zusammenfassung für den Prompt
  */
 export async function getExcludeContextForPrompt(roles) {
   if (!dismissedLoaded) {
@@ -315,44 +386,66 @@ export async function getExcludeContextForPrompt(roles) {
 
   const lines = [];
 
-  // 1. Existierende Tasks pro Rolle (nur Titel, max 3 pro Rolle)
-  const tasksByRole = {};
+  // 1. Existierende Tasks pro Rolle (mit Beschreibung für besseres Matching)
+  const allTasks = [];
   for (const role of roles) {
     const tasks = await loadTasksForRole(role);
-    if (tasks.length > 0) {
-      // Nur die ersten 3 Task-Titel, gekürzt auf max 40 Zeichen
-      const titles = tasks
-        .slice(0, 3)
-        .map(t => (t.title || "").substring(0, 40))
-        .filter(t => t.length > 0);
-      if (titles.length > 0) {
-        tasksByRole[role] = titles;
-      }
+    for (const task of tasks) {
+      allTasks.push({
+        role,
+        title: task.title || "",
+        desc: task.desc || task.description || ""
+      });
     }
   }
 
-  if (Object.keys(tasksByRole).length > 0) {
-    const taskParts = Object.entries(tasksByRole)
-      .map(([role, titles]) => `${role}: ${titles.join(", ")}`)
-      .join(" | ");
-    lines.push(`BEREITS ALS AUFGABE VORHANDEN (nicht vorschlagen): ${taskParts}`);
+  if (allTasks.length > 0) {
+    lines.push("BEREITS ALS AUFGABE VORHANDEN - NICHT ERNEUT VORSCHLAGEN:");
+    // Gruppiere nach Rolle und zeige Details
+    const byRole = {};
+    for (const task of allTasks) {
+      if (!byRole[task.role]) byRole[task.role] = [];
+      byRole[task.role].push(task);
+    }
+
+    for (const [role, tasks] of Object.entries(byRole)) {
+      const taskList = tasks.slice(0, 5).map(t => {
+        const title = (t.title || "").substring(0, 50);
+        const desc = (t.desc || "").substring(0, 80);
+        return desc ? `• "${title}" (${desc})` : `• "${title}"`;
+      }).join("\n");
+      lines.push(`[${role}]\n${taskList}`);
+    }
+    lines.push(""); // Leerzeile
   }
 
-  // 2. Abgelehnte Vorschläge (nur Titel, max 5 insgesamt, aktuellste zuerst)
+  // 2. Abgelehnte Vorschläge (mit Details)
   const recentDismissed = [...dismissedSuggestions]
     .sort((a, b) => (b.dismissedAt || 0) - (a.dismissedAt || 0))
-    .slice(0, 5);
+    .slice(0, 10);
 
   if (recentDismissed.length > 0) {
-    const dismissedParts = recentDismissed
-      .map(d => {
-        const title = (d.title || "").substring(0, 30);
-        return `${title} (${d.targetRole || "?"})`;
-      })
-      .filter(t => t.length > 5)
-      .join(", ");
-    if (dismissedParts) {
-      lines.push(`ABGELEHNTE VORSCHLÄGE (nicht erneut vorschlagen): ${dismissedParts}`);
+    lines.push("ABGELEHNTE VORSCHLÄGE - NICHT ERNEUT VORSCHLAGEN:");
+    for (const d of recentDismissed) {
+      const title = (d.title || "").substring(0, 50);
+      const desc = (d.description || "").substring(0, 80);
+      const role = d.targetRole || "?";
+      lines.push(desc ? `• [${role}] "${title}" (${desc})` : `• [${role}] "${title}"`);
+    }
+  }
+
+  // 3. NEU: Akzeptierte Vorschläge (die bereits in Tasks konvertiert wurden)
+  const recentAccepted = [...acceptedSuggestions]
+    .sort((a, b) => (b.acceptedAt || 0) - (a.acceptedAt || 0))
+    .slice(0, 10);
+
+  if (recentAccepted.length > 0) {
+    lines.push("");
+    lines.push("BEREITS IN AUFGABE KONVERTIERT - NICHT ERNEUT VORSCHLAGEN:");
+    for (const a of recentAccepted) {
+      const title = (a.title || "").substring(0, 50);
+      const role = a.targetRole || "?";
+      lines.push(`• [${role}] "${title}"`);
     }
   }
 
@@ -360,11 +453,94 @@ export async function getExcludeContextForPrompt(roles) {
 
   if (result) {
     logDebug("Exclude-Kontext für Prompt erstellt", {
-      taskRoles: Object.keys(tasksByRole).length,
+      taskCount: allTasks.length,
       dismissedCount: recentDismissed.length,
+      acceptedCount: recentAccepted.length,
       totalChars: result.length
     });
   }
 
   return result;
+}
+
+/**
+ * NEU: Markiert einen Vorschlag als akzeptiert (in Task konvertiert)
+ * Wird aufgerufen wenn der Benutzer "Als Aufgabe übernehmen" klickt
+ */
+export async function acceptSuggestion({
+  suggestionId,
+  title,
+  description,
+  targetRole,
+  taskId,
+  userId
+}) {
+  if (!acceptedLoaded) {
+    await initSuggestionFilter();
+  }
+
+  const acceptedEntry = {
+    id: suggestionId,
+    title: title || "",
+    description: description || "",
+    targetRole: targetRole || "unknown",
+    taskId: taskId || null,
+    userId: userId || "anonymous",
+    acceptedAt: Date.now()
+  };
+
+  // Prüfe ob bereits vorhanden (exakte ID)
+  const existingIndex = acceptedSuggestions.findIndex(a => a.id === suggestionId);
+  if (existingIndex >= 0) {
+    acceptedSuggestions[existingIndex] = acceptedEntry;
+  } else {
+    acceptedSuggestions.push(acceptedEntry);
+  }
+
+  // Persistieren
+  try {
+    await fsPromises.writeFile(
+      ACCEPTED_FILE,
+      JSON.stringify(acceptedSuggestions, null, 2),
+      "utf8"
+    );
+    logInfo("Vorschlag als akzeptiert markiert", {
+      suggestionId,
+      title,
+      targetRole,
+      taskId
+    });
+  } catch (err) {
+    logError("Fehler beim Speichern des akzeptierten Vorschlags", {
+      error: String(err)
+    });
+  }
+
+  return acceptedEntry;
+}
+
+/**
+ * Prüft ob ein Vorschlag zu ähnlich zu einem akzeptierten Vorschlag ist
+ */
+function isSimilarToAccepted(suggestion, role, threshold = 0.5) {
+  const suggestionText = `${suggestion.title || ""} ${suggestion.description || ""}`;
+
+  // Nur accepted suggestions für diese Rolle prüfen
+  const roleAccepted = acceptedSuggestions.filter(a => a.targetRole === role);
+
+  for (const accepted of roleAccepted) {
+    const acceptedText = `${accepted.title || ""} ${accepted.description || ""}`;
+    const similarity = textSimilarity(suggestionText, acceptedText);
+
+    if (similarity >= threshold) {
+      logDebug("Vorschlag ähnelt akzeptiertem Vorschlag", {
+        suggestionTitle: suggestion.title,
+        acceptedTitle: accepted.title,
+        similarity: similarity.toFixed(2)
+      });
+      return true;
+    }
+  }
+
+  return false;
 }
