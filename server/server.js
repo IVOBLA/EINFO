@@ -3107,13 +3107,18 @@ const AI_ANALYSIS_DEFAULT = {
   intervalMinutes: AI_ANALYSIS_DEFAULT_INTERVAL_MINUTES,
 };
 
+// Intervall 0 = nur manuelle Auslösung (kein automatischer Loop)
 function sanitizeAiAnalysisInterval(value, fallback = AI_ANALYSIS_DEFAULT.intervalMinutes) {
   const fallbackValue = Number.isFinite(Number(fallback)) ? Number(fallback) : AI_ANALYSIS_DEFAULT.intervalMinutes;
   const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed < AI_ANALYSIS_MIN_INTERVAL_MINUTES) {
-    return Math.max(AI_ANALYSIS_MIN_INTERVAL_MINUTES, Math.floor(fallbackValue));
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return Math.max(0, Math.floor(fallbackValue));
   }
-  return Math.max(AI_ANALYSIS_MIN_INTERVAL_MINUTES, Math.floor(parsed));
+  // 0 ist erlaubt (nur manuelle Auslösung), sonst Minimum 1 Minute
+  if (parsed > 0 && parsed < AI_ANALYSIS_MIN_INTERVAL_MINUTES) {
+    return AI_ANALYSIS_MIN_INTERVAL_MINUTES;
+  }
+  return Math.floor(parsed);
 }
 
 async function readAiAnalysisCfg() {
@@ -3904,10 +3909,17 @@ app.post("/api/situation/analysis-config", User_requireAuth, async (req, res) =>
     if (body.enabled !== undefined) update.enabled = !!body.enabled;
     if (body.intervalMinutes !== undefined) {
       const minutes = Number(body.intervalMinutes);
-      if (!Number.isFinite(minutes) || minutes < AI_ANALYSIS_MIN_INTERVAL_MINUTES) {
+      // 0 = nur manuelle Auslösung, sonst min. 1 Minute
+      if (!Number.isFinite(minutes) || minutes < 0) {
         return res.status(400).json({
           ok: false,
-          error: `Intervall muss mindestens ${AI_ANALYSIS_MIN_INTERVAL_MINUTES} Minute betragen.`,
+          error: `Intervall muss 0 (nur manuell) oder mindestens ${AI_ANALYSIS_MIN_INTERVAL_MINUTES} Minute betragen.`,
+        });
+      }
+      if (minutes > 0 && minutes < AI_ANALYSIS_MIN_INTERVAL_MINUTES) {
+        return res.status(400).json({
+          ok: false,
+          error: `Intervall muss 0 (nur manuell) oder mindestens ${AI_ANALYSIS_MIN_INTERVAL_MINUTES} Minute betragen.`,
         });
       }
       update.intervalMinutes = Math.floor(minutes);
