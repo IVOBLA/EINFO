@@ -17,7 +17,7 @@ import { embedText } from "./rag/embedding.js";
 import { loadPromptTemplate, fillTemplate } from "./prompts.js";
 import { getKnowledgeContextWithSources, addToVectorRAG } from "./rag/rag_vector.js";
 import { getCurrentSession } from "./rag/session_rag.js";
-import { filterSuggestionsForRole, dismissSuggestion, initSuggestionFilter } from "./suggestion_filter.js";
+import { filterSuggestionsForRole, dismissSuggestion, initSuggestionFilter, getExcludeContextForPrompt } from "./suggestion_filter.js";
 
 const __filename = fileURLToPath(import.meta.url);
 
@@ -363,13 +363,18 @@ export async function analyzeAllRoles(forceRefresh = false) {
     // Rollen-Beschreibungen für Prompt
     const rolesDescription = roles.map(r => `- ${r}: ${ROLE_DESCRIPTIONS[r]}`).join("\n");
 
+    // Exclude-Kontext: Existierende Tasks + abgelehnte Vorschläge (kompakt)
+    // Damit das LLM weiß, was es NICHT vorschlagen soll
+    const excludeContext = await getExcludeContextForPrompt(roles);
+
     // LLM-Prompts aus Templates generieren
     const systemPrompt = fillTemplate(situationAnalysisSystemTemplate, {
       rolesDescription
     });
 
     const userPrompt = fillTemplate(situationAnalysisUserTemplate, {
-      disasterSummary
+      disasterSummary,
+      excludeContext: excludeContext || "" // Leer wenn keine Ausschlüsse
     });
 
     let llmResponse;

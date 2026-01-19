@@ -296,3 +296,75 @@ export async function undismissSuggestion(suggestionId) {
     return false;
   }
 }
+
+/**
+ * Erstellt eine kompakte Zusammenfassung für den LLM-Prompt
+ * Enthält: Existierende Tasks + Abgelehnte Vorschläge (nur Titel)
+ *
+ * Format (sehr kompakt, ca. 200-400 Zeichen):
+ * BEREITS IN ARBEIT: S1: Ablösung planen, Verpflegung | S3: Pumpenstrecke
+ * ABGELEHNT: Wetterbericht (S2), Funktest (S6)
+ *
+ * @param {Array} roles - Die Rollen für die Zusammenfassung erstellt werden soll
+ * @returns {string} - Kompakte Zusammenfassung für den Prompt
+ */
+export async function getExcludeContextForPrompt(roles) {
+  if (!dismissedLoaded) {
+    await initSuggestionFilter();
+  }
+
+  const lines = [];
+
+  // 1. Existierende Tasks pro Rolle (nur Titel, max 3 pro Rolle)
+  const tasksByRole = {};
+  for (const role of roles) {
+    const tasks = await loadTasksForRole(role);
+    if (tasks.length > 0) {
+      // Nur die ersten 3 Task-Titel, gekürzt auf max 40 Zeichen
+      const titles = tasks
+        .slice(0, 3)
+        .map(t => (t.title || "").substring(0, 40))
+        .filter(t => t.length > 0);
+      if (titles.length > 0) {
+        tasksByRole[role] = titles;
+      }
+    }
+  }
+
+  if (Object.keys(tasksByRole).length > 0) {
+    const taskParts = Object.entries(tasksByRole)
+      .map(([role, titles]) => `${role}: ${titles.join(", ")}`)
+      .join(" | ");
+    lines.push(`BEREITS ALS AUFGABE VORHANDEN (nicht vorschlagen): ${taskParts}`);
+  }
+
+  // 2. Abgelehnte Vorschläge (nur Titel, max 5 insgesamt, aktuellste zuerst)
+  const recentDismissed = [...dismissedSuggestions]
+    .sort((a, b) => (b.dismissedAt || 0) - (a.dismissedAt || 0))
+    .slice(0, 5);
+
+  if (recentDismissed.length > 0) {
+    const dismissedParts = recentDismissed
+      .map(d => {
+        const title = (d.title || "").substring(0, 30);
+        return `${title} (${d.targetRole || "?"})`;
+      })
+      .filter(t => t.length > 5)
+      .join(", ");
+    if (dismissedParts) {
+      lines.push(`ABGELEHNTE VORSCHLÄGE (nicht erneut vorschlagen): ${dismissedParts}`);
+    }
+  }
+
+  const result = lines.join("\n");
+
+  if (result) {
+    logDebug("Exclude-Kontext für Prompt erstellt", {
+      taskRoles: Object.keys(tasksByRole).length,
+      dismissedCount: recentDismissed.length,
+      totalChars: result.length
+    });
+  }
+
+  return result;
+}
