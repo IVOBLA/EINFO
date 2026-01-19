@@ -1,0 +1,3416 @@
+[
+  {
+    "id": "142f543b-4618-4e99-8f46-cdd3dd41b163",
+    "nr": 1,
+    "datum": "2025-11-19",
+    "zeit": "09:03",
+    "infoTyp": "Lagemeldung",
+    "anvon": "An: Von Horst Blaha <horst.blaha@uniquare.com>",
+    "uebermittlungsart": {
+      "kanalNr": "MAIL",
+      "ein": true,
+      "aus": false
+    },
+    "information": " Sehr geehrter Herr Blaha!\n\n Ich wünsche Ihnen einen guten Morgen!\n\n Für den Bezirk Feldkirchen ist heute mit einer markanten Wetterentwicklung\n zu rechnen – zunächst am Vormittag, dann erneut am Abend und in der Nacht.\n Hier die Details:\n\n\n ⏰ Zeitlicher Ablauf\n Bis 15:00 Uhr\n\n Wiederholt kräftiger Regen\n Danach vorübergehende Niederschlagspause\n 18:00 Uhr – Durchzug Kaltfront (KRITISCHER ZEITRAUM)\n\n Neuerlicher Regen- und Schneefallbeginn\n Schneefallgrenze sinkt bis 19:00 Uhr auf unter 1.000m\n Nach 19:00 Uhr weiteres Absinken auf 800m (kurzzeitig auch tiefer)\n 18:00 – 24:00 Uhr\n\n Durchgehender Niederschlag\n Morgen früh rasche Wetterberuhigung\n ❄️ Schneefall\n Betroffene Gebiete:\n\n Reichenau: ~5cm Neuschnee erwartet\n Gnesau: ~5cm Neuschnee erwartet\n Oberhalb von ca. 800 Meter Seehöhe: Schneefall ist hier ab den Abend\n überall im Bezirk zumindest theoretisch möglich\n Höhere Lagen generell stärker betroffen\n Schneefallgrenze:\n\n Ab 18:00 Uhr: 1100m (kurzzeitig auch darunter möglich)\n Ab 19:00 Uhr: 900-1000m (kurzzeitig auch",
+    "ergehtAn": [
+      "LtStb",
+      "S2"
+    ],
+    "verantwortliche": [
+      "S2"
+    ],
+    "bemerkung": "",
+    "vermerk": "",
+    "erstelltAm": "2025-11-19T09:03:09.000Z",
+    "erstelltVon": "MAIL-AUTO",
+    "geaendertAm": "2025-11-19T09:03:09.000Z",
+    "geaendertVon": "MAIL-AUTO",
+    "createdBy": "MAIL-AUTO",
+    "lastBy": "S2",
+    "printCount": 6,
+    "history": [
+      {
+        "ts": 1763546418126,
+        "action": "create",
+        "by": "MAIL-AUTO",
+        "after": {
+          "id": "142f543b-4618-4e99-8f46-cdd3dd41b163",
+          "nr": "1",
+          "datum": "2025-11-19",
+          "zeit": "09:03",
+          "infoTyp": "Lagemeldung",
+          "anvon": "Von Horst Blaha <horst.blaha@uniquare.com>",
+          "uebermittlungsart": {
+            "kanalNr": "MAIL",
+            "kanal": "Mail",
+            "art": "eingehend",
+            "ein": true,
+            "aus": false
+          },
+          "information": "----- Ursprüngliche Nachricht -----\r\n Von: Horst Blaha/UNIQUARE/AT\r\n An: stab@bfkdo-fe.at\r\n Betreff: WL: Wetter\r\n Datum: Di, 18. Nov 2025 18:55\r\n\r\n\r\n\r\n ----- Ursprüngliche Nachricht -----\r\n Von: Horst Blaha/UNIQUARE/AT\r\n An: stab@bfkdo-fe.at\r\n Betreff: Wetter\r\n Datum: Di, 18. Nov 2025 16:51\r\n\r\n\r\n\r\n Markante Wetterlage Bezirk Feldkirchen – Schwellen für niedrigste\r\n Warnstufe (Regen, Wind und Schnee) stellenweise erreicht\r\n Mag. David Kaufmann<info@tauernwetter.at>\r\n ​\r\n\r\n Warnung für:19.11.2025,20.11.2025\r\n\r\n\r\n wetter@bfkdo-fe.at​\r\n\r\n\r\n                                                                           \r\n  Einige Personen, die diese Nachricht erhalten haben, erhalten nicht oft  \r\n  eine E-Mail von info@tauernwetter.at. Erfahren Sie, warum dies wichtig   \r\n  ist                                                                      \r\n                                                                           \r\n\r\n\r\n Sehr geehrter Herr Blaha!\r\n\r\n Ich wünsche Ihnen einen guten Morgen!\r\n\r\n Für den Bezirk Feldkirchen ist heute mit einer markanten Wetterentwicklung\r\n zu rechnen – zunächst am Vormittag, dann erneut am Abend und in der Nacht.\r\n Hier die Details:\r\n\r\n\r\n ⏰ Zeitlicher Ablauf\r\n Bis 15:00 Uhr\r\n\r\n Wiederholt kräftiger Regen\r\n Danach vorübergehende Niederschlagspause\r\n 18:00 Uhr – Durchzug Kaltfront (KRITISCHER ZEITRAUM)\r\n\r\n Neuerlicher Regen- und Schneefallbeginn\r\n Schneefallgrenze sinkt bis 19:00 Uhr auf unter 1.000m\r\n Nach 19:00 Uhr weiteres Absinken auf 800m (kurzzeitig auch tiefer)\r\n 18:00 – 24:00 Uhr\r\n\r\n Durchgehender Niederschlag\r\n Morgen früh rasche Wetterberuhigung\r\n ❄️ Schneefall\r\n Betroffene Gebiete:\r\n\r\n Reichenau: ~5cm Neuschnee erwartet\r\n Gnesau: ~5cm Neuschnee erwartet\r\n Oberhalb von ca. 800 Meter Seehöhe: Schneefall ist hier ab den Abend\r\n überall im Bezirk zumindest theoretisch möglich\r\n Höhere Lagen generell stärker betroffen\r\n Schneefallgrenze:\r\n\r\n Ab 18:00 Uhr: 1100m (kurzzeitig auch darunter möglich)\r\n Ab 19:00 Uhr: 900-1000m (kurzzeitig auch",
+          "ergehtAn": [
+            "LtStb",
+            "S2"
+          ],
+          "verantwortliche": [
+            "S2"
+          ],
+          "bemerkung": "",
+          "vermerk": "",
+          "erstelltAm": "2025-11-19T09:03:09.000Z",
+          "erstelltVon": "MAIL-AUTO",
+          "geaendertAm": "2025-11-19T09:03:09.000Z",
+          "geaendertVon": "MAIL-AUTO",
+          "createdBy": "MAIL-AUTO",
+          "lastBy": "MAIL-AUTO",
+          "printCount": 0,
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "meta": {
+            "createdVia": "weather-mail"
+          },
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "S2",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ]
+        }
+      },
+      {
+        "ts": 1763546808843,
+        "action": "update",
+        "by": "S2",
+        "changes": [
+          {
+            "path": "anvon",
+            "before": "Von Horst Blaha <horst.blaha@uniquare.com>",
+            "after": "An: Von Horst Blaha <horst.blaha@uniquare.com>"
+          },
+          {
+            "path": "uebermittlungsart.kanal",
+            "before": "Mail",
+            "after": null
+          },
+          {
+            "path": "uebermittlungsart.art",
+            "before": "eingehend",
+            "after": null
+          },
+          {
+            "path": "information",
+            "before": "----- Ursprüngliche Nachricht -----\r\n Von: Horst Blaha/UNIQUARE/AT\r\n An: stab@bfkdo-fe.at\r\n Betreff: WL: Wetter\r\n Datum: Di, 18. Nov 2025 18:55\r\n\r\n\r\n\r\n ----- Ursprüngliche Nachricht -----\r\n Von: Horst Blaha/UNIQUARE/AT\r\n An: stab@bfkdo-fe.at\r\n Betreff: Wetter\r\n Datum: Di, 18. Nov 2025 16:51\r\n\r\n\r\n\r\n Markante Wetterlage Bezirk Feldkirchen – Schwellen für niedrigste\r\n Warnstufe (Regen, Wind und Schnee) stellenweise erreicht\r\n Mag. David Kaufmann<info@tauernwetter.at>\r\n ​\r\n\r\n Warnung für:19.11.2025,20.11.2025\r\n\r\n\r\n wetter@bfkdo-fe.at​\r\n\r\n\r\n                                                                           \r\n  Einige Personen, die diese Nachricht erhalten haben, erhalten nicht oft  \r\n  eine E-Mail von info@tauernwetter.at. Erfahren Sie, warum dies wichtig   \r\n  ist                                                                      \r\n                                                                           \r\n\r\n\r\n Sehr geehrter Herr Blaha!\r\n\r\n Ich wünsche Ihnen einen guten Morgen!\r\n\r\n Für den Bezirk Feldkirchen ist heute mit einer markanten Wetterentwicklung\r\n zu rechnen – zunächst am Vormittag, dann erneut am Abend und in der Nacht.\r\n Hier die Details:\r\n\r\n\r\n ⏰ Zeitlicher Ablauf\r\n Bis 15:00 Uhr\r\n\r\n Wiederholt kräftiger Regen\r\n Danach vorübergehende Niederschlagspause\r\n 18:00 Uhr – Durchzug Kaltfront (KRITISCHER ZEITRAUM)\r\n\r\n Neuerlicher Regen- und Schneefallbeginn\r\n Schneefallgrenze sinkt bis 19:00 Uhr auf unter 1.000m\r\n Nach 19:00 Uhr weiteres Absinken auf 800m (kurzzeitig auch tiefer)\r\n 18:00 – 24:00 Uhr\r\n\r\n Durchgehender Niederschlag\r\n Morgen früh rasche Wetterberuhigung\r\n ❄️ Schneefall\r\n Betroffene Gebiete:\r\n\r\n Reichenau: ~5cm Neuschnee erwartet\r\n Gnesau: ~5cm Neuschnee erwartet\r\n Oberhalb von ca. 800 Meter Seehöhe: Schneefall ist hier ab den Abend\r\n überall im Bezirk zumindest theoretisch möglich\r\n Höhere Lagen generell stärker betroffen\r\n Schneefallgrenze:\r\n\r\n Ab 18:00 Uhr: 1100m (kurzzeitig auch darunter möglich)\r\n Ab 19:00 Uhr: 900-1000m (kurzzeitig auch",
+            "after": "----- Ursprüngliche Nachricht -----\n Von: Horst Blaha/UNIQUARE/AT\n An: stab@bfkdo-fe.at\n Betreff: WL: Wetter\n Datum: Di, 18. Nov 2025 18:55\n\n\n\n ----- Ursprüngliche Nachricht -----\n Von: Horst Blaha/UNIQUARE/AT\n An: stab@bfkdo-fe.at\n Betreff: Wetter\n Datum: Di, 18. Nov 2025 16:51\n\n\n\n Markante Wetterlage Bezirk Feldkirchen – Schwellen für niedrigste\n Warnstufe (Regen, Wind und Schnee) stellenweise erreicht\n Mag. David Kaufmann<info@tauernwetter.at>\n ​\n\n Warnung für:19.11.2025,20.11.2025\n\n\n wetter@bfkdo-fe.at​\n\n\n                                                                           \n  Einige Personen, die diese Nachricht erhalten haben, erhalten nicht oft  \n  eine E-Mail von info@tauernwetter.at. Erfahren Sie, warum dies wichtig   \n  ist                                                                      \n                                                                           \n\n\n Sehr geehrter Herr Blaha!\n\n Ich wünsche Ihnen einen guten Morgen!\n\n Für den Bezirk Feldkirchen ist heute mit einer markanten Wetterentwicklung\n zu rechnen – zunächst am Vormittag, dann erneut am Abend und in der Nacht.\n Hier die Details:\n\n\n ⏰ Zeitlicher Ablauf\n Bis 15:00 Uhr\n\n Wiederholt kräftiger Regen\n Danach vorübergehende Niederschlagspause\n 18:00 Uhr – Durchzug Kaltfront (KRITISCHER ZEITRAUM)\n\n Neuerlicher Regen- und Schneefallbeginn\n Schneefallgrenze sinkt bis 19:00 Uhr auf unter 1.000m\n Nach 19:00 Uhr weiteres Absinken auf 800m (kurzzeitig auch tiefer)\n 18:00 – 24:00 Uhr\n\n Durchgehender Niederschlag\n Morgen früh rasche Wetterberuhigung\n ❄️ Schneefall\n Betroffene Gebiete:\n\n Reichenau: ~5cm Neuschnee erwartet\n Gnesau: ~5cm Neuschnee erwartet\n Oberhalb von ca. 800 Meter Seehöhe: Schneefall ist hier ab den Abend\n überall im Bezirk zumindest theoretisch möglich\n Höhere Lagen generell stärker betroffen\n Schneefallgrenze:\n\n Ab 18:00 Uhr: 1100m (kurzzeitig auch darunter möglich)\n Ab 19:00 Uhr: 900-1000m (kurzzeitig auch"
+          },
+          {
+            "path": "rueckmeldung1",
+            "before": null,
+            "after": ""
+          },
+          {
+            "path": "rueckmeldung2",
+            "before": null,
+            "after": ""
+          },
+          {
+            "path": "ergehtAnText",
+            "before": null,
+            "after": ""
+          },
+          {
+            "path": "lagebericht",
+            "before": null,
+            "after": ""
+          }
+        ],
+        "after": {
+          "id": "142f543b-4618-4e99-8f46-cdd3dd41b163",
+          "nr": 1,
+          "datum": "2025-11-19",
+          "zeit": "09:03",
+          "infoTyp": "Lagemeldung",
+          "anvon": "An: Von Horst Blaha <horst.blaha@uniquare.com>",
+          "uebermittlungsart": {
+            "kanalNr": "MAIL",
+            "ein": true,
+            "aus": false
+          },
+          "information": "----- Ursprüngliche Nachricht -----\n Von: Horst Blaha/UNIQUARE/AT\n An: stab@bfkdo-fe.at\n Betreff: WL: Wetter\n Datum: Di, 18. Nov 2025 18:55\n\n\n\n ----- Ursprüngliche Nachricht -----\n Von: Horst Blaha/UNIQUARE/AT\n An: stab@bfkdo-fe.at\n Betreff: Wetter\n Datum: Di, 18. Nov 2025 16:51\n\n\n\n Markante Wetterlage Bezirk Feldkirchen – Schwellen für niedrigste\n Warnstufe (Regen, Wind und Schnee) stellenweise erreicht\n Mag. David Kaufmann<info@tauernwetter.at>\n ​\n\n Warnung für:19.11.2025,20.11.2025\n\n\n wetter@bfkdo-fe.at​\n\n\n                                                                           \n  Einige Personen, die diese Nachricht erhalten haben, erhalten nicht oft  \n  eine E-Mail von info@tauernwetter.at. Erfahren Sie, warum dies wichtig   \n  ist                                                                      \n                                                                           \n\n\n Sehr geehrter Herr Blaha!\n\n Ich wünsche Ihnen einen guten Morgen!\n\n Für den Bezirk Feldkirchen ist heute mit einer markanten Wetterentwicklung\n zu rechnen – zunächst am Vormittag, dann erneut am Abend und in der Nacht.\n Hier die Details:\n\n\n ⏰ Zeitlicher Ablauf\n Bis 15:00 Uhr\n\n Wiederholt kräftiger Regen\n Danach vorübergehende Niederschlagspause\n 18:00 Uhr – Durchzug Kaltfront (KRITISCHER ZEITRAUM)\n\n Neuerlicher Regen- und Schneefallbeginn\n Schneefallgrenze sinkt bis 19:00 Uhr auf unter 1.000m\n Nach 19:00 Uhr weiteres Absinken auf 800m (kurzzeitig auch tiefer)\n 18:00 – 24:00 Uhr\n\n Durchgehender Niederschlag\n Morgen früh rasche Wetterberuhigung\n ❄️ Schneefall\n Betroffene Gebiete:\n\n Reichenau: ~5cm Neuschnee erwartet\n Gnesau: ~5cm Neuschnee erwartet\n Oberhalb von ca. 800 Meter Seehöhe: Schneefall ist hier ab den Abend\n überall im Bezirk zumindest theoretisch möglich\n Höhere Lagen generell stärker betroffen\n Schneefallgrenze:\n\n Ab 18:00 Uhr: 1100m (kurzzeitig auch darunter möglich)\n Ab 19:00 Uhr: 900-1000m (kurzzeitig auch",
+          "ergehtAn": [
+            "LtStb",
+            "S2"
+          ],
+          "verantwortliche": [
+            "S2"
+          ],
+          "bemerkung": "",
+          "vermerk": "",
+          "erstelltAm": "2025-11-19T09:03:09.000Z",
+          "erstelltVon": "MAIL-AUTO",
+          "geaendertAm": "2025-11-19T09:03:09.000Z",
+          "geaendertVon": "MAIL-AUTO",
+          "createdBy": "MAIL-AUTO",
+          "lastBy": "MAIL-AUTO",
+          "printCount": 0,
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "meta": {
+            "createdVia": "weather-mail"
+          },
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "S2",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "zu": "",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAnText": "",
+          "lagebericht": ""
+        }
+      },
+      {
+        "ts": 1763546810245,
+        "action": "print",
+        "by": "S2",
+        "recipients": [
+          "LtStb",
+          "S2"
+        ],
+        "pages": 3,
+        "printCount": 3,
+        "fileName": "protokoll_1_1763546808888.pdf",
+        "after": {
+          "id": "142f543b-4618-4e99-8f46-cdd3dd41b163",
+          "nr": 1,
+          "datum": "2025-11-19",
+          "zeit": "09:03",
+          "infoTyp": "Lagemeldung",
+          "anvon": "An: Von Horst Blaha <horst.blaha@uniquare.com>",
+          "uebermittlungsart": {
+            "kanalNr": "MAIL",
+            "ein": true,
+            "aus": false
+          },
+          "information": "----- Ursprüngliche Nachricht -----\n Von: Horst Blaha/UNIQUARE/AT\n An: stab@bfkdo-fe.at\n Betreff: WL: Wetter\n Datum: Di, 18. Nov 2025 18:55\n\n\n\n ----- Ursprüngliche Nachricht -----\n Von: Horst Blaha/UNIQUARE/AT\n An: stab@bfkdo-fe.at\n Betreff: Wetter\n Datum: Di, 18. Nov 2025 16:51\n\n\n\n Markante Wetterlage Bezirk Feldkirchen – Schwellen für niedrigste\n Warnstufe (Regen, Wind und Schnee) stellenweise erreicht\n Mag. David Kaufmann<info@tauernwetter.at>\n ​\n\n Warnung für:19.11.2025,20.11.2025\n\n\n wetter@bfkdo-fe.at​\n\n\n                                                                           \n  Einige Personen, die diese Nachricht erhalten haben, erhalten nicht oft  \n  eine E-Mail von info@tauernwetter.at. Erfahren Sie, warum dies wichtig   \n  ist                                                                      \n                                                                           \n\n\n Sehr geehrter Herr Blaha!\n\n Ich wünsche Ihnen einen guten Morgen!\n\n Für den Bezirk Feldkirchen ist heute mit einer markanten Wetterentwicklung\n zu rechnen – zunächst am Vormittag, dann erneut am Abend und in der Nacht.\n Hier die Details:\n\n\n ⏰ Zeitlicher Ablauf\n Bis 15:00 Uhr\n\n Wiederholt kräftiger Regen\n Danach vorübergehende Niederschlagspause\n 18:00 Uhr – Durchzug Kaltfront (KRITISCHER ZEITRAUM)\n\n Neuerlicher Regen- und Schneefallbeginn\n Schneefallgrenze sinkt bis 19:00 Uhr auf unter 1.000m\n Nach 19:00 Uhr weiteres Absinken auf 800m (kurzzeitig auch tiefer)\n 18:00 – 24:00 Uhr\n\n Durchgehender Niederschlag\n Morgen früh rasche Wetterberuhigung\n ❄️ Schneefall\n Betroffene Gebiete:\n\n Reichenau: ~5cm Neuschnee erwartet\n Gnesau: ~5cm Neuschnee erwartet\n Oberhalb von ca. 800 Meter Seehöhe: Schneefall ist hier ab den Abend\n überall im Bezirk zumindest theoretisch möglich\n Höhere Lagen generell stärker betroffen\n Schneefallgrenze:\n\n Ab 18:00 Uhr: 1100m (kurzzeitig auch darunter möglich)\n Ab 19:00 Uhr: 900-1000m (kurzzeitig auch",
+          "ergehtAn": [
+            "LtStb",
+            "S2"
+          ],
+          "verantwortliche": [
+            "S2"
+          ],
+          "bemerkung": "",
+          "vermerk": "",
+          "erstelltAm": "2025-11-19T09:03:09.000Z",
+          "erstelltVon": "MAIL-AUTO",
+          "geaendertAm": "2025-11-19T09:03:09.000Z",
+          "geaendertVon": "MAIL-AUTO",
+          "createdBy": "MAIL-AUTO",
+          "lastBy": "S2",
+          "printCount": 3,
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "meta": {
+            "createdVia": "weather-mail"
+          },
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "S2",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "zu": "",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAnText": "",
+          "lagebericht": ""
+        }
+      },
+      {
+        "ts": 1763547461132,
+        "action": "update",
+        "by": "S2",
+        "changes": [
+          {
+            "path": "massnahmen",
+            "before": [
+              {
+                "massnahme": "",
+                "verantwortlich": "S2",
+                "done": false
+              },
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              },
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              },
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              },
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              }
+            ],
+            "after": [
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              },
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              },
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              },
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              },
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              }
+            ]
+          }
+        ],
+        "after": {
+          "id": "142f543b-4618-4e99-8f46-cdd3dd41b163",
+          "nr": 1,
+          "datum": "2025-11-19",
+          "zeit": "09:03",
+          "infoTyp": "Lagemeldung",
+          "anvon": "An: Von Horst Blaha <horst.blaha@uniquare.com>",
+          "uebermittlungsart": {
+            "kanalNr": "MAIL",
+            "ein": true,
+            "aus": false
+          },
+          "information": "----- Ursprüngliche Nachricht -----\n Von: Horst Blaha/UNIQUARE/AT\n An: stab@bfkdo-fe.at\n Betreff: WL: Wetter\n Datum: Di, 18. Nov 2025 18:55\n\n\n\n ----- Ursprüngliche Nachricht -----\n Von: Horst Blaha/UNIQUARE/AT\n An: stab@bfkdo-fe.at\n Betreff: Wetter\n Datum: Di, 18. Nov 2025 16:51\n\n\n\n Markante Wetterlage Bezirk Feldkirchen – Schwellen für niedrigste\n Warnstufe (Regen, Wind und Schnee) stellenweise erreicht\n Mag. David Kaufmann<info@tauernwetter.at>\n ​\n\n Warnung für:19.11.2025,20.11.2025\n\n\n wetter@bfkdo-fe.at​\n\n\n                                                                           \n  Einige Personen, die diese Nachricht erhalten haben, erhalten nicht oft  \n  eine E-Mail von info@tauernwetter.at. Erfahren Sie, warum dies wichtig   \n  ist                                                                      \n                                                                           \n\n\n Sehr geehrter Herr Blaha!\n\n Ich wünsche Ihnen einen guten Morgen!\n\n Für den Bezirk Feldkirchen ist heute mit einer markanten Wetterentwicklung\n zu rechnen – zunächst am Vormittag, dann erneut am Abend und in der Nacht.\n Hier die Details:\n\n\n ⏰ Zeitlicher Ablauf\n Bis 15:00 Uhr\n\n Wiederholt kräftiger Regen\n Danach vorübergehende Niederschlagspause\n 18:00 Uhr – Durchzug Kaltfront (KRITISCHER ZEITRAUM)\n\n Neuerlicher Regen- und Schneefallbeginn\n Schneefallgrenze sinkt bis 19:00 Uhr auf unter 1.000m\n Nach 19:00 Uhr weiteres Absinken auf 800m (kurzzeitig auch tiefer)\n 18:00 – 24:00 Uhr\n\n Durchgehender Niederschlag\n Morgen früh rasche Wetterberuhigung\n ❄️ Schneefall\n Betroffene Gebiete:\n\n Reichenau: ~5cm Neuschnee erwartet\n Gnesau: ~5cm Neuschnee erwartet\n Oberhalb von ca. 800 Meter Seehöhe: Schneefall ist hier ab den Abend\n überall im Bezirk zumindest theoretisch möglich\n Höhere Lagen generell stärker betroffen\n Schneefallgrenze:\n\n Ab 18:00 Uhr: 1100m (kurzzeitig auch darunter möglich)\n Ab 19:00 Uhr: 900-1000m (kurzzeitig auch",
+          "ergehtAn": [
+            "LtStb",
+            "S2"
+          ],
+          "verantwortliche": [
+            "S2"
+          ],
+          "bemerkung": "",
+          "vermerk": "",
+          "erstelltAm": "2025-11-19T09:03:09.000Z",
+          "erstelltVon": "MAIL-AUTO",
+          "geaendertAm": "2025-11-19T09:03:09.000Z",
+          "geaendertVon": "MAIL-AUTO",
+          "createdBy": "MAIL-AUTO",
+          "lastBy": "S2",
+          "printCount": 3,
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "meta": {
+            "createdVia": "weather-mail"
+          },
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "zu": "",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAnText": "",
+          "lagebericht": ""
+        }
+      },
+      {
+        "ts": 1763547467612,
+        "action": "update",
+        "by": "S2",
+        "changes": [
+          {
+            "path": "massnahmen",
+            "before": [
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              },
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              },
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              },
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              },
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              }
+            ],
+            "after": [
+              {
+                "massnahme": "",
+                "verantwortlich": "S2",
+                "done": false
+              },
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              },
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              },
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              },
+              {
+                "massnahme": "",
+                "verantwortlich": "",
+                "done": false
+              }
+            ]
+          }
+        ],
+        "after": {
+          "id": "142f543b-4618-4e99-8f46-cdd3dd41b163",
+          "nr": 1,
+          "datum": "2025-11-19",
+          "zeit": "09:03",
+          "infoTyp": "Lagemeldung",
+          "anvon": "An: Von Horst Blaha <horst.blaha@uniquare.com>",
+          "uebermittlungsart": {
+            "kanalNr": "MAIL",
+            "ein": true,
+            "aus": false
+          },
+          "information": "----- Ursprüngliche Nachricht -----\n Von: Horst Blaha/UNIQUARE/AT\n An: stab@bfkdo-fe.at\n Betreff: WL: Wetter\n Datum: Di, 18. Nov 2025 18:55\n\n\n\n ----- Ursprüngliche Nachricht -----\n Von: Horst Blaha/UNIQUARE/AT\n An: stab@bfkdo-fe.at\n Betreff: Wetter\n Datum: Di, 18. Nov 2025 16:51\n\n\n\n Markante Wetterlage Bezirk Feldkirchen – Schwellen für niedrigste\n Warnstufe (Regen, Wind und Schnee) stellenweise erreicht\n Mag. David Kaufmann<info@tauernwetter.at>\n ​\n\n Warnung für:19.11.2025,20.11.2025\n\n\n wetter@bfkdo-fe.at​\n\n\n                                                                           \n  Einige Personen, die diese Nachricht erhalten haben, erhalten nicht oft  \n  eine E-Mail von info@tauernwetter.at. Erfahren Sie, warum dies wichtig   \n  ist                                                                      \n                                                                           \n\n\n Sehr geehrter Herr Blaha!\n\n Ich wünsche Ihnen einen guten Morgen!\n\n Für den Bezirk Feldkirchen ist heute mit einer markanten Wetterentwicklung\n zu rechnen – zunächst am Vormittag, dann erneut am Abend und in der Nacht.\n Hier die Details:\n\n\n ⏰ Zeitlicher Ablauf\n Bis 15:00 Uhr\n\n Wiederholt kräftiger Regen\n Danach vorübergehende Niederschlagspause\n 18:00 Uhr – Durchzug Kaltfront (KRITISCHER ZEITRAUM)\n\n Neuerlicher Regen- und Schneefallbeginn\n Schneefallgrenze sinkt bis 19:00 Uhr auf unter 1.000m\n Nach 19:00 Uhr weiteres Absinken auf 800m (kurzzeitig auch tiefer)\n 18:00 – 24:00 Uhr\n\n Durchgehender Niederschlag\n Morgen früh rasche Wetterberuhigung\n ❄️ Schneefall\n Betroffene Gebiete:\n\n Reichenau: ~5cm Neuschnee erwartet\n Gnesau: ~5cm Neuschnee erwartet\n Oberhalb von ca. 800 Meter Seehöhe: Schneefall ist hier ab den Abend\n überall im Bezirk zumindest theoretisch möglich\n Höhere Lagen generell stärker betroffen\n Schneefallgrenze:\n\n Ab 18:00 Uhr: 1100m (kurzzeitig auch darunter möglich)\n Ab 19:00 Uhr: 900-1000m (kurzzeitig auch",
+          "ergehtAn": [
+            "LtStb",
+            "S2"
+          ],
+          "verantwortliche": [
+            "S2"
+          ],
+          "bemerkung": "",
+          "vermerk": "",
+          "erstelltAm": "2025-11-19T09:03:09.000Z",
+          "erstelltVon": "MAIL-AUTO",
+          "geaendertAm": "2025-11-19T09:03:09.000Z",
+          "geaendertVon": "MAIL-AUTO",
+          "createdBy": "MAIL-AUTO",
+          "lastBy": "S2",
+          "printCount": 3,
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "meta": {
+            "createdVia": "weather-mail"
+          },
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "S2",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "zu": "",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAnText": "",
+          "lagebericht": ""
+        }
+      },
+      {
+        "ts": 1763709079285,
+        "action": "update",
+        "by": "S2",
+        "changes": [
+          {
+            "path": "massnahmen[].done",
+            "before": false,
+            "after": true
+          }
+        ],
+        "after": {
+          "id": "142f543b-4618-4e99-8f46-cdd3dd41b163",
+          "nr": 1,
+          "datum": "2025-11-19",
+          "zeit": "09:03",
+          "infoTyp": "Lagemeldung",
+          "anvon": "An: Von Horst Blaha <horst.blaha@uniquare.com>",
+          "uebermittlungsart": {
+            "kanalNr": "MAIL",
+            "ein": true,
+            "aus": false
+          },
+          "information": "----- Ursprüngliche Nachricht -----\n Von: Horst Blaha/UNIQUARE/AT\n An: stab@bfkdo-fe.at\n Betreff: WL: Wetter\n Datum: Di, 18. Nov 2025 18:55\n\n\n\n ----- Ursprüngliche Nachricht -----\n Von: Horst Blaha/UNIQUARE/AT\n An: stab@bfkdo-fe.at\n Betreff: Wetter\n Datum: Di, 18. Nov 2025 16:51\n\n\n\n Markante Wetterlage Bezirk Feldkirchen – Schwellen für niedrigste\n Warnstufe (Regen, Wind und Schnee) stellenweise erreicht\n Mag. David Kaufmann<info@tauernwetter.at>\n ​\n\n Warnung für:19.11.2025,20.11.2025\n\n\n wetter@bfkdo-fe.at​\n\n\n                                                                           \n  Einige Personen, die diese Nachricht erhalten haben, erhalten nicht oft  \n  eine E-Mail von info@tauernwetter.at. Erfahren Sie, warum dies wichtig   \n  ist                                                                      \n                                                                           \n\n\n Sehr geehrter Herr Blaha!\n\n Ich wünsche Ihnen einen guten Morgen!\n\n Für den Bezirk Feldkirchen ist heute mit einer markanten Wetterentwicklung\n zu rechnen – zunächst am Vormittag, dann erneut am Abend und in der Nacht.\n Hier die Details:\n\n\n ⏰ Zeitlicher Ablauf\n Bis 15:00 Uhr\n\n Wiederholt kräftiger Regen\n Danach vorübergehende Niederschlagspause\n 18:00 Uhr – Durchzug Kaltfront (KRITISCHER ZEITRAUM)\n\n Neuerlicher Regen- und Schneefallbeginn\n Schneefallgrenze sinkt bis 19:00 Uhr auf unter 1.000m\n Nach 19:00 Uhr weiteres Absinken auf 800m (kurzzeitig auch tiefer)\n 18:00 – 24:00 Uhr\n\n Durchgehender Niederschlag\n Morgen früh rasche Wetterberuhigung\n ❄️ Schneefall\n Betroffene Gebiete:\n\n Reichenau: ~5cm Neuschnee erwartet\n Gnesau: ~5cm Neuschnee erwartet\n Oberhalb von ca. 800 Meter Seehöhe: Schneefall ist hier ab den Abend\n überall im Bezirk zumindest theoretisch möglich\n Höhere Lagen generell stärker betroffen\n Schneefallgrenze:\n\n Ab 18:00 Uhr: 1100m (kurzzeitig auch darunter möglich)\n Ab 19:00 Uhr: 900-1000m (kurzzeitig auch",
+          "ergehtAn": [
+            "LtStb",
+            "S2"
+          ],
+          "verantwortliche": [
+            "S2"
+          ],
+          "bemerkung": "",
+          "vermerk": "",
+          "erstelltAm": "2025-11-19T09:03:09.000Z",
+          "erstelltVon": "MAIL-AUTO",
+          "geaendertAm": "2025-11-19T09:03:09.000Z",
+          "geaendertVon": "MAIL-AUTO",
+          "createdBy": "MAIL-AUTO",
+          "lastBy": "S2",
+          "printCount": 3,
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "meta": {
+            "createdVia": "weather-mail"
+          },
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "S2",
+              "done": true
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "zu": "",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAnText": "",
+          "lagebericht": ""
+        }
+      },
+      {
+        "ts": 1763728023477,
+        "action": "update",
+        "by": "S2",
+        "changes": [
+          {
+            "path": "information",
+            "before": "----- Ursprüngliche Nachricht -----\n Von: Horst Blaha/UNIQUARE/AT\n An: stab@bfkdo-fe.at\n Betreff: WL: Wetter\n Datum: Di, 18. Nov 2025 18:55\n\n\n\n ----- Ursprüngliche Nachricht -----\n Von: Horst Blaha/UNIQUARE/AT\n An: stab@bfkdo-fe.at\n Betreff: Wetter\n Datum: Di, 18. Nov 2025 16:51\n\n\n\n Markante Wetterlage Bezirk Feldkirchen – Schwellen für niedrigste\n Warnstufe (Regen, Wind und Schnee) stellenweise erreicht\n Mag. David Kaufmann<info@tauernwetter.at>\n ​\n\n Warnung für:19.11.2025,20.11.2025\n\n\n wetter@bfkdo-fe.at​\n\n\n                                                                           \n  Einige Personen, die diese Nachricht erhalten haben, erhalten nicht oft  \n  eine E-Mail von info@tauernwetter.at. Erfahren Sie, warum dies wichtig   \n  ist                                                                      \n                                                                           \n\n\n Sehr geehrter Herr Blaha!\n\n Ich wünsche Ihnen einen guten Morgen!\n\n Für den Bezirk Feldkirchen ist heute mit einer markanten Wetterentwicklung\n zu rechnen – zunächst am Vormittag, dann erneut am Abend und in der Nacht.\n Hier die Details:\n\n\n ⏰ Zeitlicher Ablauf\n Bis 15:00 Uhr\n\n Wiederholt kräftiger Regen\n Danach vorübergehende Niederschlagspause\n 18:00 Uhr – Durchzug Kaltfront (KRITISCHER ZEITRAUM)\n\n Neuerlicher Regen- und Schneefallbeginn\n Schneefallgrenze sinkt bis 19:00 Uhr auf unter 1.000m\n Nach 19:00 Uhr weiteres Absinken auf 800m (kurzzeitig auch tiefer)\n 18:00 – 24:00 Uhr\n\n Durchgehender Niederschlag\n Morgen früh rasche Wetterberuhigung\n ❄️ Schneefall\n Betroffene Gebiete:\n\n Reichenau: ~5cm Neuschnee erwartet\n Gnesau: ~5cm Neuschnee erwartet\n Oberhalb von ca. 800 Meter Seehöhe: Schneefall ist hier ab den Abend\n überall im Bezirk zumindest theoretisch möglich\n Höhere Lagen generell stärker betroffen\n Schneefallgrenze:\n\n Ab 18:00 Uhr: 1100m (kurzzeitig auch darunter möglich)\n Ab 19:00 Uhr: 900-1000m (kurzzeitig auch",
+            "after": " Sehr geehrter Herr Blaha!\n\n Ich wünsche Ihnen einen guten Morgen!\n\n Für den Bezirk Feldkirchen ist heute mit einer markanten Wetterentwicklung\n zu rechnen – zunächst am Vormittag, dann erneut am Abend und in der Nacht.\n Hier die Details:\n\n\n ⏰ Zeitlicher Ablauf\n Bis 15:00 Uhr\n\n Wiederholt kräftiger Regen\n Danach vorübergehende Niederschlagspause\n 18:00 Uhr – Durchzug Kaltfront (KRITISCHER ZEITRAUM)\n\n Neuerlicher Regen- und Schneefallbeginn\n Schneefallgrenze sinkt bis 19:00 Uhr auf unter 1.000m\n Nach 19:00 Uhr weiteres Absinken auf 800m (kurzzeitig auch tiefer)\n 18:00 – 24:00 Uhr\n\n Durchgehender Niederschlag\n Morgen früh rasche Wetterberuhigung\n ❄️ Schneefall\n Betroffene Gebiete:\n\n Reichenau: ~5cm Neuschnee erwartet\n Gnesau: ~5cm Neuschnee erwartet\n Oberhalb von ca. 800 Meter Seehöhe: Schneefall ist hier ab den Abend\n überall im Bezirk zumindest theoretisch möglich\n Höhere Lagen generell stärker betroffen\n Schneefallgrenze:\n\n Ab 18:00 Uhr: 1100m (kurzzeitig auch darunter möglich)\n Ab 19:00 Uhr: 900-1000m (kurzzeitig auch"
+          }
+        ],
+        "after": {
+          "id": "142f543b-4618-4e99-8f46-cdd3dd41b163",
+          "nr": 1,
+          "datum": "2025-11-19",
+          "zeit": "09:03",
+          "infoTyp": "Lagemeldung",
+          "anvon": "An: Von Horst Blaha <horst.blaha@uniquare.com>",
+          "uebermittlungsart": {
+            "kanalNr": "MAIL",
+            "ein": true,
+            "aus": false
+          },
+          "information": " Sehr geehrter Herr Blaha!\n\n Ich wünsche Ihnen einen guten Morgen!\n\n Für den Bezirk Feldkirchen ist heute mit einer markanten Wetterentwicklung\n zu rechnen – zunächst am Vormittag, dann erneut am Abend und in der Nacht.\n Hier die Details:\n\n\n ⏰ Zeitlicher Ablauf\n Bis 15:00 Uhr\n\n Wiederholt kräftiger Regen\n Danach vorübergehende Niederschlagspause\n 18:00 Uhr – Durchzug Kaltfront (KRITISCHER ZEITRAUM)\n\n Neuerlicher Regen- und Schneefallbeginn\n Schneefallgrenze sinkt bis 19:00 Uhr auf unter 1.000m\n Nach 19:00 Uhr weiteres Absinken auf 800m (kurzzeitig auch tiefer)\n 18:00 – 24:00 Uhr\n\n Durchgehender Niederschlag\n Morgen früh rasche Wetterberuhigung\n ❄️ Schneefall\n Betroffene Gebiete:\n\n Reichenau: ~5cm Neuschnee erwartet\n Gnesau: ~5cm Neuschnee erwartet\n Oberhalb von ca. 800 Meter Seehöhe: Schneefall ist hier ab den Abend\n überall im Bezirk zumindest theoretisch möglich\n Höhere Lagen generell stärker betroffen\n Schneefallgrenze:\n\n Ab 18:00 Uhr: 1100m (kurzzeitig auch darunter möglich)\n Ab 19:00 Uhr: 900-1000m (kurzzeitig auch",
+          "ergehtAn": [
+            "LtStb",
+            "S2"
+          ],
+          "verantwortliche": [
+            "S2"
+          ],
+          "bemerkung": "",
+          "vermerk": "",
+          "erstelltAm": "2025-11-19T09:03:09.000Z",
+          "erstelltVon": "MAIL-AUTO",
+          "geaendertAm": "2025-11-19T09:03:09.000Z",
+          "geaendertVon": "MAIL-AUTO",
+          "createdBy": "MAIL-AUTO",
+          "lastBy": "S2",
+          "printCount": 3,
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "meta": {
+            "createdVia": "weather-mail"
+          },
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "S2",
+              "done": true
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "zu": "",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAnText": "",
+          "lagebericht": ""
+        }
+      },
+      {
+        "ts": 1763728028481,
+        "action": "print",
+        "by": "S2",
+        "recipients": [
+          "LtStb",
+          "S2"
+        ],
+        "pages": 3,
+        "printCount": 3,
+        "fileName": "protokoll_1_1763728023702.pdf",
+        "after": {
+          "id": "142f543b-4618-4e99-8f46-cdd3dd41b163",
+          "nr": 1,
+          "datum": "2025-11-19",
+          "zeit": "09:03",
+          "infoTyp": "Lagemeldung",
+          "anvon": "An: Von Horst Blaha <horst.blaha@uniquare.com>",
+          "uebermittlungsart": {
+            "kanalNr": "MAIL",
+            "ein": true,
+            "aus": false
+          },
+          "information": " Sehr geehrter Herr Blaha!\n\n Ich wünsche Ihnen einen guten Morgen!\n\n Für den Bezirk Feldkirchen ist heute mit einer markanten Wetterentwicklung\n zu rechnen – zunächst am Vormittag, dann erneut am Abend und in der Nacht.\n Hier die Details:\n\n\n ⏰ Zeitlicher Ablauf\n Bis 15:00 Uhr\n\n Wiederholt kräftiger Regen\n Danach vorübergehende Niederschlagspause\n 18:00 Uhr – Durchzug Kaltfront (KRITISCHER ZEITRAUM)\n\n Neuerlicher Regen- und Schneefallbeginn\n Schneefallgrenze sinkt bis 19:00 Uhr auf unter 1.000m\n Nach 19:00 Uhr weiteres Absinken auf 800m (kurzzeitig auch tiefer)\n 18:00 – 24:00 Uhr\n\n Durchgehender Niederschlag\n Morgen früh rasche Wetterberuhigung\n ❄️ Schneefall\n Betroffene Gebiete:\n\n Reichenau: ~5cm Neuschnee erwartet\n Gnesau: ~5cm Neuschnee erwartet\n Oberhalb von ca. 800 Meter Seehöhe: Schneefall ist hier ab den Abend\n überall im Bezirk zumindest theoretisch möglich\n Höhere Lagen generell stärker betroffen\n Schneefallgrenze:\n\n Ab 18:00 Uhr: 1100m (kurzzeitig auch darunter möglich)\n Ab 19:00 Uhr: 900-1000m (kurzzeitig auch",
+          "ergehtAn": [
+            "LtStb",
+            "S2"
+          ],
+          "verantwortliche": [
+            "S2"
+          ],
+          "bemerkung": "",
+          "vermerk": "",
+          "erstelltAm": "2025-11-19T09:03:09.000Z",
+          "erstelltVon": "MAIL-AUTO",
+          "geaendertAm": "2025-11-19T09:03:09.000Z",
+          "geaendertVon": "MAIL-AUTO",
+          "createdBy": "MAIL-AUTO",
+          "lastBy": "S2",
+          "printCount": 6,
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "meta": {
+            "createdVia": "weather-mail"
+          },
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "S2",
+              "done": true
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "zu": "",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAnText": "",
+          "lagebericht": ""
+        }
+      }
+    ],
+    "otherRecipientConfirmation": {
+      "confirmed": false,
+      "by": null,
+      "byRole": null,
+      "at": null
+    },
+    "meta": {
+      "createdVia": "weather-mail"
+    },
+    "massnahmen": [
+      {
+        "massnahme": "",
+        "verantwortlich": "S2",
+        "done": true
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      }
+    ],
+    "zu": "",
+    "rueckmeldung1": "",
+    "rueckmeldung2": "",
+    "ergehtAnText": "",
+    "lagebericht": ""
+  },
+  {
+    "datum": "",
+    "zeit": "",
+    "infoTyp": "__blank__",
+    "uebermittlungsart": {
+      "kanalNr": "",
+      "ein": false,
+      "aus": false
+    },
+    "anvon": "",
+    "zu": "",
+    "information": "",
+    "rueckmeldung1": "",
+    "rueckmeldung2": "",
+    "ergehtAn": [],
+    "ergehtAnText": "",
+    "massnahmen": [
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      }
+    ],
+    "nr": null,
+    "id": "6cff9474-0286-43fa-89a1-ae330f3f9823",
+    "history": [
+      {
+        "ts": 1763546793979,
+        "action": "print",
+        "by": "S2",
+        "recipients": [
+          ""
+        ],
+        "pages": 1,
+        "printCount": 1,
+        "fileName": "protokoll_blank_1763546790379.pdf",
+        "after": {
+          "datum": "",
+          "zeit": "",
+          "infoTyp": "__blank__",
+          "uebermittlungsart": {
+            "kanalNr": "",
+            "ein": false,
+            "aus": false
+          },
+          "anvon": "",
+          "zu": "",
+          "information": "",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAn": [],
+          "ergehtAnText": "",
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "nr": null,
+          "id": "6cff9474-0286-43fa-89a1-ae330f3f9823",
+          "printCount": 1
+        }
+      }
+    ],
+    "printCount": 1,
+    "createdBy": null
+  },
+  {
+    "datum": "2025-11-19",
+    "zeit": "11:08",
+    "uebermittlungsart": {
+      "kanalNr": "MAIL",
+      "ein": true,
+      "aus": false
+    },
+    "anvon": "An: Von Horst Blaha <horst.blaha@uniquare.com>",
+    "infoTyp": "Information",
+    "information": "AAAAAAA",
+    "rueckmeldung1": "",
+    "rueckmeldung2": "",
+    "ergehtAn": [
+      "S4"
+    ],
+    "ergehtAnText": "",
+    "otherRecipientConfirmation": {
+      "confirmed": false,
+      "by": null,
+      "byRole": null,
+      "at": null
+    },
+    "lagebericht": "",
+    "massnahmen": [
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      }
+    ],
+    "zu": "",
+    "nr": 2,
+    "id": "765c6449-51c3-437a-b96e-eab80b487b6c",
+    "printCount": 4,
+    "history": [
+      {
+        "ts": 1763546930330,
+        "action": "create",
+        "by": "S2",
+        "after": {
+          "datum": "2025-11-19",
+          "zeit": "11:08",
+          "uebermittlungsart": {
+            "kanalNr": "MAIL",
+            "ein": true,
+            "aus": false
+          },
+          "anvon": "An: Von Horst Blaha <horst.blaha@uniquare.com>",
+          "infoTyp": "Information",
+          "information": "qwqwqw",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAn": [
+            "S4"
+          ],
+          "ergehtAnText": "",
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "lagebericht": "",
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "zu": "",
+          "nr": 2,
+          "id": "765c6449-51c3-437a-b96e-eab80b487b6c",
+          "printCount": 0,
+          "createdBy": "S2"
+        }
+      },
+      {
+        "ts": 1763546931604,
+        "action": "print",
+        "by": "S2",
+        "recipients": [
+          "S4"
+        ],
+        "pages": 2,
+        "printCount": 2,
+        "fileName": "protokoll_2_1763546930369.pdf",
+        "after": {
+          "datum": "2025-11-19",
+          "zeit": "11:08",
+          "uebermittlungsart": {
+            "kanalNr": "MAIL",
+            "ein": true,
+            "aus": false
+          },
+          "anvon": "An: Von Horst Blaha <horst.blaha@uniquare.com>",
+          "infoTyp": "Information",
+          "information": "qwqwqw",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAn": [
+            "S4"
+          ],
+          "ergehtAnText": "",
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "lagebericht": "",
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "zu": "",
+          "nr": 2,
+          "id": "765c6449-51c3-437a-b96e-eab80b487b6c",
+          "printCount": 2,
+          "createdBy": "S2",
+          "lastBy": "S2"
+        }
+      },
+      {
+        "ts": 1763547089168,
+        "action": "print",
+        "by": "S2",
+        "recipients": [
+          "S4"
+        ],
+        "pages": 2,
+        "printCount": 2,
+        "fileName": "protokoll_2_1763547087854.pdf",
+        "after": {
+          "datum": "2025-11-19",
+          "zeit": "11:08",
+          "uebermittlungsart": {
+            "kanalNr": "MAIL",
+            "ein": true,
+            "aus": false
+          },
+          "anvon": "An: Von Horst Blaha <horst.blaha@uniquare.com>",
+          "infoTyp": "Information",
+          "information": "qwqwqw",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAn": [
+            "S4"
+          ],
+          "ergehtAnText": "",
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "lagebericht": "",
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "zu": "",
+          "nr": 2,
+          "id": "765c6449-51c3-437a-b96e-eab80b487b6c",
+          "printCount": 4,
+          "createdBy": "S2",
+          "lastBy": "S2"
+        }
+      },
+      {
+        "ts": 1763633058608,
+        "action": "update",
+        "by": "Meldestelle",
+        "changes": [
+          {
+            "path": "information",
+            "before": "qwqwqw",
+            "after": "AAAAAAA"
+          }
+        ],
+        "after": {
+          "datum": "2025-11-19",
+          "zeit": "11:08",
+          "uebermittlungsart": {
+            "kanalNr": "MAIL",
+            "ein": true,
+            "aus": false
+          },
+          "anvon": "An: Von Horst Blaha <horst.blaha@uniquare.com>",
+          "infoTyp": "Information",
+          "information": "AAAAAAA",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAn": [
+            "S4"
+          ],
+          "ergehtAnText": "",
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "lagebericht": "",
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "zu": "",
+          "nr": 2,
+          "id": "765c6449-51c3-437a-b96e-eab80b487b6c",
+          "printCount": 4,
+          "createdBy": "S2",
+          "lastBy": "S2"
+        }
+      }
+    ],
+    "createdBy": "S2",
+    "lastBy": "Meldestelle"
+  },
+  {
+    "datum": "",
+    "zeit": "",
+    "infoTyp": "__blank__",
+    "uebermittlungsart": {
+      "kanalNr": "",
+      "ein": false,
+      "aus": false
+    },
+    "anvon": "",
+    "zu": "",
+    "information": "",
+    "rueckmeldung1": "",
+    "rueckmeldung2": "",
+    "ergehtAn": [],
+    "ergehtAnText": "",
+    "massnahmen": [
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      }
+    ],
+    "nr": null,
+    "id": "5c70f1c9-d188-409a-a538-d7bf8eb8e97b",
+    "history": [
+      {
+        "ts": 1763547120186,
+        "action": "print",
+        "by": "S2",
+        "recipients": [
+          ""
+        ],
+        "pages": 1,
+        "printCount": 1,
+        "fileName": "protokoll_blank_1763547118945.pdf",
+        "after": {
+          "datum": "",
+          "zeit": "",
+          "infoTyp": "__blank__",
+          "uebermittlungsart": {
+            "kanalNr": "",
+            "ein": false,
+            "aus": false
+          },
+          "anvon": "",
+          "zu": "",
+          "information": "",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAn": [],
+          "ergehtAnText": "",
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "nr": null,
+          "id": "5c70f1c9-d188-409a-a538-d7bf8eb8e97b",
+          "printCount": 1
+        }
+      }
+    ],
+    "printCount": 1,
+    "createdBy": null
+  },
+  {
+    "datum": "2025-11-19",
+    "zeit": "11:18",
+    "uebermittlungsart": {
+      "kanalNr": "MAIL",
+      "ein": true,
+      "aus": false
+    },
+    "anvon": "An: Von Horst Blaha <horst.blaha@uniquare.com>",
+    "infoTyp": "Lagemeldung",
+    "information": "wqeqwe",
+    "rueckmeldung1": "",
+    "rueckmeldung2": "",
+    "ergehtAn": [
+      "EL"
+    ],
+    "ergehtAnText": "",
+    "otherRecipientConfirmation": {
+      "confirmed": false,
+      "by": null,
+      "byRole": null,
+      "at": null
+    },
+    "lagebericht": "",
+    "massnahmen": [
+      {
+        "massnahme": "",
+        "verantwortlich": "S2",
+        "done": true
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      }
+    ],
+    "zu": "",
+    "nr": 3,
+    "id": "eddca0b6-ebae-4f72-8f55-56b5bfbc47b8",
+    "printCount": 28,
+    "history": [
+      {
+        "ts": 1763547497884,
+        "action": "create",
+        "by": "S2",
+        "after": {
+          "datum": "2025-11-19",
+          "zeit": "11:18",
+          "uebermittlungsart": {
+            "kanalNr": "MAIL",
+            "ein": true,
+            "aus": false
+          },
+          "anvon": "An: Von Horst Blaha <horst.blaha@uniquare.com>",
+          "infoTyp": "Lagemeldung",
+          "information": "wqeqwe",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAn": [
+            "EL"
+          ],
+          "ergehtAnText": "",
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "lagebericht": "",
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "S2",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "zu": "",
+          "nr": 3,
+          "id": "eddca0b6-ebae-4f72-8f55-56b5bfbc47b8",
+          "printCount": 0,
+          "createdBy": "S2"
+        }
+      },
+      {
+        "ts": 1763549552265,
+        "action": "print",
+        "by": "S2",
+        "recipients": [
+          "EL"
+        ],
+        "pages": 2,
+        "printCount": 2,
+        "fileName": "protokoll_3_1763549550531.pdf",
+        "after": {
+          "datum": "2025-11-19",
+          "zeit": "11:18",
+          "uebermittlungsart": {
+            "kanalNr": "MAIL",
+            "ein": true,
+            "aus": false
+          },
+          "anvon": "An: Von Horst Blaha <horst.blaha@uniquare.com>",
+          "infoTyp": "Lagemeldung",
+          "information": "wqeqwe",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAn": [
+            "EL"
+          ],
+          "ergehtAnText": "",
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "lagebericht": "",
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "S2",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "zu": "",
+          "nr": 3,
+          "id": "eddca0b6-ebae-4f72-8f55-56b5bfbc47b8",
+          "printCount": 2,
+          "createdBy": "S2",
+          "lastBy": "S2"
+        }
+      },
+      {
+        "ts": 1763553907628,
+        "action": "print",
+        "by": "S2",
+        "recipients": [
+          "EL"
+        ],
+        "pages": 2,
+        "printCount": 2,
+        "fileName": "protokoll_3_1763553905999.pdf",
+        "after": {
+          "datum": "2025-11-19",
+          "zeit": "11:18",
+          "uebermittlungsart": {
+            "kanalNr": "MAIL",
+            "ein": true,
+            "aus": false
+          },
+          "anvon": "An: Von Horst Blaha <horst.blaha@uniquare.com>",
+          "infoTyp": "Lagemeldung",
+          "information": "wqeqwe",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAn": [
+            "EL"
+          ],
+          "ergehtAnText": "",
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "lagebericht": "",
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "S2",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "zu": "",
+          "nr": 3,
+          "id": "eddca0b6-ebae-4f72-8f55-56b5bfbc47b8",
+          "printCount": 4,
+          "createdBy": "S2",
+          "lastBy": "S2"
+        }
+      },
+      {
+        "ts": 1763554289762,
+        "action": "print",
+        "by": "S2",
+        "recipients": [
+          "EL"
+        ],
+        "pages": 2,
+        "printCount": 2,
+        "fileName": "protokoll_3_1763554288383.pdf",
+        "after": {
+          "datum": "2025-11-19",
+          "zeit": "11:18",
+          "uebermittlungsart": {
+            "kanalNr": "MAIL",
+            "ein": true,
+            "aus": false
+          },
+          "anvon": "An: Von Horst Blaha <horst.blaha@uniquare.com>",
+          "infoTyp": "Lagemeldung",
+          "information": "wqeqwe",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAn": [
+            "EL"
+          ],
+          "ergehtAnText": "",
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "lagebericht": "",
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "S2",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "zu": "",
+          "nr": 3,
+          "id": "eddca0b6-ebae-4f72-8f55-56b5bfbc47b8",
+          "printCount": 6,
+          "createdBy": "S2",
+          "lastBy": "S2"
+        }
+      },
+      {
+        "ts": 1763554377954,
+        "action": "print",
+        "by": "S2",
+        "recipients": [
+          "EL"
+        ],
+        "pages": 2,
+        "printCount": 2,
+        "fileName": "protokoll_3_1763554376049.pdf",
+        "after": {
+          "datum": "2025-11-19",
+          "zeit": "11:18",
+          "uebermittlungsart": {
+            "kanalNr": "MAIL",
+            "ein": true,
+            "aus": false
+          },
+          "anvon": "An: Von Horst Blaha <horst.blaha@uniquare.com>",
+          "infoTyp": "Lagemeldung",
+          "information": "wqeqwe",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAn": [
+            "EL"
+          ],
+          "ergehtAnText": "",
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "lagebericht": "",
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "S2",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "zu": "",
+          "nr": 3,
+          "id": "eddca0b6-ebae-4f72-8f55-56b5bfbc47b8",
+          "printCount": 8,
+          "createdBy": "S2",
+          "lastBy": "S2"
+        }
+      },
+      {
+        "ts": 1763565184416,
+        "action": "print",
+        "by": "S2",
+        "recipients": [
+          "EL"
+        ],
+        "pages": 2,
+        "printCount": 2,
+        "fileName": "protokoll_3_1763565182787.pdf",
+        "after": {
+          "datum": "2025-11-19",
+          "zeit": "11:18",
+          "uebermittlungsart": {
+            "kanalNr": "MAIL",
+            "ein": true,
+            "aus": false
+          },
+          "anvon": "An: Von Horst Blaha <horst.blaha@uniquare.com>",
+          "infoTyp": "Lagemeldung",
+          "information": "wqeqwe",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAn": [
+            "EL"
+          ],
+          "ergehtAnText": "",
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "lagebericht": "",
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "S2",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "zu": "",
+          "nr": 3,
+          "id": "eddca0b6-ebae-4f72-8f55-56b5bfbc47b8",
+          "printCount": 10,
+          "createdBy": "S2",
+          "lastBy": "S2"
+        }
+      },
+      {
+        "ts": 1763569197651,
+        "action": "print",
+        "by": "S2",
+        "recipients": [
+          "EL"
+        ],
+        "pages": 2,
+        "printCount": 2,
+        "fileName": "protokoll_3_1763569195116.pdf",
+        "after": {
+          "datum": "2025-11-19",
+          "zeit": "11:18",
+          "uebermittlungsart": {
+            "kanalNr": "MAIL",
+            "ein": true,
+            "aus": false
+          },
+          "anvon": "An: Von Horst Blaha <horst.blaha@uniquare.com>",
+          "infoTyp": "Lagemeldung",
+          "information": "wqeqwe",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAn": [
+            "EL"
+          ],
+          "ergehtAnText": "",
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "lagebericht": "",
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "S2",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "zu": "",
+          "nr": 3,
+          "id": "eddca0b6-ebae-4f72-8f55-56b5bfbc47b8",
+          "printCount": 12,
+          "createdBy": "S2",
+          "lastBy": "S2"
+        }
+      },
+      {
+        "ts": 1763569247598,
+        "action": "print",
+        "by": "S2",
+        "recipients": [
+          "EL"
+        ],
+        "pages": 2,
+        "printCount": 2,
+        "fileName": "protokoll_3_1763569245629.pdf",
+        "after": {
+          "datum": "2025-11-19",
+          "zeit": "11:18",
+          "uebermittlungsart": {
+            "kanalNr": "MAIL",
+            "ein": true,
+            "aus": false
+          },
+          "anvon": "An: Von Horst Blaha <horst.blaha@uniquare.com>",
+          "infoTyp": "Lagemeldung",
+          "information": "wqeqwe",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAn": [
+            "EL"
+          ],
+          "ergehtAnText": "",
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "lagebericht": "",
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "S2",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "zu": "",
+          "nr": 3,
+          "id": "eddca0b6-ebae-4f72-8f55-56b5bfbc47b8",
+          "printCount": 14,
+          "createdBy": "S2",
+          "lastBy": "S2"
+        }
+      },
+      {
+        "ts": 1763571621370,
+        "action": "print",
+        "by": "S2",
+        "recipients": [
+          "EL"
+        ],
+        "pages": 2,
+        "printCount": 2,
+        "fileName": "protokoll_3_1763571619537.pdf",
+        "after": {
+          "datum": "2025-11-19",
+          "zeit": "11:18",
+          "uebermittlungsart": {
+            "kanalNr": "MAIL",
+            "ein": true,
+            "aus": false
+          },
+          "anvon": "An: Von Horst Blaha <horst.blaha@uniquare.com>",
+          "infoTyp": "Lagemeldung",
+          "information": "wqeqwe",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAn": [
+            "EL"
+          ],
+          "ergehtAnText": "",
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "lagebericht": "",
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "S2",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "zu": "",
+          "nr": 3,
+          "id": "eddca0b6-ebae-4f72-8f55-56b5bfbc47b8",
+          "printCount": 16,
+          "createdBy": "S2",
+          "lastBy": "S2"
+        }
+      },
+      {
+        "ts": 1763571700342,
+        "action": "print",
+        "by": "S2",
+        "recipients": [
+          "EL"
+        ],
+        "pages": 2,
+        "printCount": 2,
+        "fileName": "protokoll_3_1763571699063.pdf",
+        "after": {
+          "datum": "2025-11-19",
+          "zeit": "11:18",
+          "uebermittlungsart": {
+            "kanalNr": "MAIL",
+            "ein": true,
+            "aus": false
+          },
+          "anvon": "An: Von Horst Blaha <horst.blaha@uniquare.com>",
+          "infoTyp": "Lagemeldung",
+          "information": "wqeqwe",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAn": [
+            "EL"
+          ],
+          "ergehtAnText": "",
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "lagebericht": "",
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "S2",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "zu": "",
+          "nr": 3,
+          "id": "eddca0b6-ebae-4f72-8f55-56b5bfbc47b8",
+          "printCount": 18,
+          "createdBy": "S2",
+          "lastBy": "S2"
+        }
+      },
+      {
+        "ts": 1763571722059,
+        "action": "print",
+        "by": "S2",
+        "recipients": [
+          "EL"
+        ],
+        "pages": 2,
+        "printCount": 2,
+        "fileName": "protokoll_3_1763571720673.pdf",
+        "after": {
+          "datum": "2025-11-19",
+          "zeit": "11:18",
+          "uebermittlungsart": {
+            "kanalNr": "MAIL",
+            "ein": true,
+            "aus": false
+          },
+          "anvon": "An: Von Horst Blaha <horst.blaha@uniquare.com>",
+          "infoTyp": "Lagemeldung",
+          "information": "wqeqwe",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAn": [
+            "EL"
+          ],
+          "ergehtAnText": "",
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "lagebericht": "",
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "S2",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "zu": "",
+          "nr": 3,
+          "id": "eddca0b6-ebae-4f72-8f55-56b5bfbc47b8",
+          "printCount": 20,
+          "createdBy": "S2",
+          "lastBy": "S2"
+        }
+      },
+      {
+        "ts": 1763571740965,
+        "action": "print",
+        "by": "S2",
+        "recipients": [
+          "EL"
+        ],
+        "pages": 2,
+        "printCount": 2,
+        "fileName": "protokoll_3_1763571739684.pdf",
+        "after": {
+          "datum": "2025-11-19",
+          "zeit": "11:18",
+          "uebermittlungsart": {
+            "kanalNr": "MAIL",
+            "ein": true,
+            "aus": false
+          },
+          "anvon": "An: Von Horst Blaha <horst.blaha@uniquare.com>",
+          "infoTyp": "Lagemeldung",
+          "information": "wqeqwe",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAn": [
+            "EL"
+          ],
+          "ergehtAnText": "",
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "lagebericht": "",
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "S2",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "zu": "",
+          "nr": 3,
+          "id": "eddca0b6-ebae-4f72-8f55-56b5bfbc47b8",
+          "printCount": 22,
+          "createdBy": "S2",
+          "lastBy": "S2"
+        }
+      },
+      {
+        "ts": 1763571787358,
+        "action": "print",
+        "by": "S2",
+        "recipients": [
+          "EL"
+        ],
+        "pages": 2,
+        "printCount": 2,
+        "fileName": "protokoll_3_1763571786096.pdf",
+        "after": {
+          "datum": "2025-11-19",
+          "zeit": "11:18",
+          "uebermittlungsart": {
+            "kanalNr": "MAIL",
+            "ein": true,
+            "aus": false
+          },
+          "anvon": "An: Von Horst Blaha <horst.blaha@uniquare.com>",
+          "infoTyp": "Lagemeldung",
+          "information": "wqeqwe",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAn": [
+            "EL"
+          ],
+          "ergehtAnText": "",
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "lagebericht": "",
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "S2",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "zu": "",
+          "nr": 3,
+          "id": "eddca0b6-ebae-4f72-8f55-56b5bfbc47b8",
+          "printCount": 24,
+          "createdBy": "S2",
+          "lastBy": "S2"
+        }
+      },
+      {
+        "ts": 1763572396200,
+        "action": "print",
+        "by": "S2",
+        "recipients": [
+          "EL"
+        ],
+        "pages": 2,
+        "printCount": 2,
+        "fileName": "protokoll_3_1763572394852.pdf",
+        "after": {
+          "datum": "2025-11-19",
+          "zeit": "11:18",
+          "uebermittlungsart": {
+            "kanalNr": "MAIL",
+            "ein": true,
+            "aus": false
+          },
+          "anvon": "An: Von Horst Blaha <horst.blaha@uniquare.com>",
+          "infoTyp": "Lagemeldung",
+          "information": "wqeqwe",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAn": [
+            "EL"
+          ],
+          "ergehtAnText": "",
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "lagebericht": "",
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "S2",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "zu": "",
+          "nr": 3,
+          "id": "eddca0b6-ebae-4f72-8f55-56b5bfbc47b8",
+          "printCount": 26,
+          "createdBy": "S2",
+          "lastBy": "S2"
+        }
+      },
+      {
+        "ts": 1763624529747,
+        "action": "update",
+        "by": "S2",
+        "changes": [
+          {
+            "path": "massnahmen[].done",
+            "before": false,
+            "after": true
+          }
+        ],
+        "after": {
+          "datum": "2025-11-19",
+          "zeit": "11:18",
+          "uebermittlungsart": {
+            "kanalNr": "MAIL",
+            "ein": true,
+            "aus": false
+          },
+          "anvon": "An: Von Horst Blaha <horst.blaha@uniquare.com>",
+          "infoTyp": "Lagemeldung",
+          "information": "wqeqwe",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAn": [
+            "EL"
+          ],
+          "ergehtAnText": "",
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "lagebericht": "",
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "S2",
+              "done": true
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "zu": "",
+          "nr": 3,
+          "id": "eddca0b6-ebae-4f72-8f55-56b5bfbc47b8",
+          "printCount": 26,
+          "createdBy": "S2",
+          "lastBy": "S2"
+        }
+      },
+      {
+        "ts": 1763624549440,
+        "action": "print",
+        "by": "S2",
+        "recipients": [
+          "EL"
+        ],
+        "pages": 2,
+        "printCount": 2,
+        "fileName": "protokoll_3_1763624544563.pdf",
+        "after": {
+          "datum": "2025-11-19",
+          "zeit": "11:18",
+          "uebermittlungsart": {
+            "kanalNr": "MAIL",
+            "ein": true,
+            "aus": false
+          },
+          "anvon": "An: Von Horst Blaha <horst.blaha@uniquare.com>",
+          "infoTyp": "Lagemeldung",
+          "information": "wqeqwe",
+          "rueckmeldung1": "",
+          "rueckmeldung2": "",
+          "ergehtAn": [
+            "EL"
+          ],
+          "ergehtAnText": "",
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "lagebericht": "",
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "S2",
+              "done": true
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "zu": "",
+          "nr": 3,
+          "id": "eddca0b6-ebae-4f72-8f55-56b5bfbc47b8",
+          "printCount": 28,
+          "createdBy": "S2",
+          "lastBy": "S2"
+        }
+      }
+    ],
+    "createdBy": "S2",
+    "lastBy": "S2"
+  },
+  {
+    "id": "1d2d46a8-3f93-4dff-93b2-3bbc9fc3de3e",
+    "nr": 4,
+    "datum": "2025-11-20",
+    "zeit": "09:27",
+    "infoTyp": "Lagemeldung",
+    "anvon": "Von Horst Blaha <horst.blaha@uniquare.com>",
+    "uebermittlungsart": {
+      "kanalNr": "MAIL",
+      "kanal": "Mail",
+      "art": "eingehend",
+      "ein": true,
+      "aus": false
+    },
+    "information": "----- Ursprüngliche Nachricht -----\r\n Von: Horst Blaha/UNIQUARE/AT\r\n An: stab@bfkdo-fe.at\r\n Betreff: WL: Wetter\r\n Datum: Di, 18. Nov 2025 19:58\r\n\r\n\r\n\r\n ----- Ursprüngliche Nachricht -----\r\n Von: Horst Blaha/UNIQUARE/AT\r\n An: stab@bfkdo-fe.at\r\n Betreff: WL: Wetter\r\n Datum: Di, 18. Nov 2025 18:55\r\n\r\n\r\n\r\n  ----- Ursprüngliche Nachricht -----\r\n  Von: Horst Blaha/UNIQUARE/AT\r\n  An: stab@bfkdo-fe.at\r\n  Betreff: Wetter\r\n  Datum: Di, 18. Nov 2025 16:51\r\n\r\n\r\n\r\n  Markante Wetterlage Bezirk Feldkirchen – Schwellen für niedrigste\r\n  Warnstufe (Regen, Wind und Schnee) stellenweise erreicht\r\n  Mag. David Kaufmann<info@tauernwetter.at>\r\n  ​\r\n\r\n  Warnung für:18.11.2025\r\n\r\n\r\n  wetter@bfkdo-fe.at​\r\n\r\n\r\n                                                                           \r\n  Einige Personen, die diese Nachricht erhalten haben, erhalten nicht oft  \r\n  eine E-Mail von info@tauernwetter.at. Erfahren Sie, warum dies wichtig   \r\n  ist                                                                      \r\n                                                                           \r\n\r\n\r\n  Sehr geehrter Herr Blaha!\r\n\r\n  Ich wünsche Ihnen einen guten Morgen!\r\n\r\n  Für den Bezirk Feldkirchen ist heute mit einer markanten\r\n  Wetterentwicklung zu rechnen – zunächst am Vormittag, dann erneut am\r\n  Abend und in der Nacht. Hier die Details:\r\n\r\n\r\n  ⏰ Zeitlicher Ablauf\r\n  Bis 15:00 Uhr\r\n\r\n  Wiederholt kräftiger Regen\r\n  Danach vorübergehende Niederschlagspause\r\n  18:00 Uhr – Durchzug Kaltfront (KRITISCHER ZEITRAUM)\r\n\r\n  Neuerlicher Regen- und Schneefallbeginn\r\n  Schneefallgrenze sinkt bis 19:00 Uhr auf unter 1.000m\r\n  Nach 19:00 Uhr weiteres Absinken auf 800m (kurzzeitig auch tiefer)\r\n  18:00 – 24:00 Uhr\r\n\r\n  Durchgehender Niederschlag\r\n  Morgen früh rasche Wetterberuhigung\r\n  ❄️ Schneefall\r\n  Betroffene Gebiete:\r\n\r\n  Reichenau: ~5cm Neuschnee erwartet\r\n  Gnesau: ~5cm Neuschnee erwartet\r\n  Oberhalb von ca. 800 Meter Seehöhe: Schneefall ist hier ab den Abend\r\n  überall im Bezirk zumindest theoretis",
+    "ergehtAn": [
+      "LtStb",
+      "S2"
+    ],
+    "verantwortliche": [
+      "S2"
+    ],
+    "bemerkung": "",
+    "vermerk": "",
+    "erstelltAm": "2025-11-20T09:27:58.000Z",
+    "erstelltVon": "MAIL-AUTO",
+    "geaendertAm": "2025-11-20T09:27:58.000Z",
+    "geaendertVon": "MAIL-AUTO",
+    "createdBy": "MAIL-AUTO",
+    "lastBy": "S2",
+    "printCount": 0,
+    "history": [
+      {
+        "ts": 1763631241966,
+        "action": "create",
+        "by": "MAIL-AUTO",
+        "after": {
+          "id": "1d2d46a8-3f93-4dff-93b2-3bbc9fc3de3e",
+          "nr": "4",
+          "datum": "2025-11-20",
+          "zeit": "09:27",
+          "infoTyp": "Lagemeldung",
+          "anvon": "Von Horst Blaha <horst.blaha@uniquare.com>",
+          "uebermittlungsart": {
+            "kanalNr": "MAIL",
+            "kanal": "Mail",
+            "art": "eingehend",
+            "ein": true,
+            "aus": false
+          },
+          "information": "----- Ursprüngliche Nachricht -----\r\n Von: Horst Blaha/UNIQUARE/AT\r\n An: stab@bfkdo-fe.at\r\n Betreff: WL: Wetter\r\n Datum: Di, 18. Nov 2025 19:58\r\n\r\n\r\n\r\n ----- Ursprüngliche Nachricht -----\r\n Von: Horst Blaha/UNIQUARE/AT\r\n An: stab@bfkdo-fe.at\r\n Betreff: WL: Wetter\r\n Datum: Di, 18. Nov 2025 18:55\r\n\r\n\r\n\r\n  ----- Ursprüngliche Nachricht -----\r\n  Von: Horst Blaha/UNIQUARE/AT\r\n  An: stab@bfkdo-fe.at\r\n  Betreff: Wetter\r\n  Datum: Di, 18. Nov 2025 16:51\r\n\r\n\r\n\r\n  Markante Wetterlage Bezirk Feldkirchen – Schwellen für niedrigste\r\n  Warnstufe (Regen, Wind und Schnee) stellenweise erreicht\r\n  Mag. David Kaufmann<info@tauernwetter.at>\r\n  ​\r\n\r\n  Warnung für:18.11.2025\r\n\r\n\r\n  wetter@bfkdo-fe.at​\r\n\r\n\r\n                                                                           \r\n  Einige Personen, die diese Nachricht erhalten haben, erhalten nicht oft  \r\n  eine E-Mail von info@tauernwetter.at. Erfahren Sie, warum dies wichtig   \r\n  ist                                                                      \r\n                                                                           \r\n\r\n\r\n  Sehr geehrter Herr Blaha!\r\n\r\n  Ich wünsche Ihnen einen guten Morgen!\r\n\r\n  Für den Bezirk Feldkirchen ist heute mit einer markanten\r\n  Wetterentwicklung zu rechnen – zunächst am Vormittag, dann erneut am\r\n  Abend und in der Nacht. Hier die Details:\r\n\r\n\r\n  ⏰ Zeitlicher Ablauf\r\n  Bis 15:00 Uhr\r\n\r\n  Wiederholt kräftiger Regen\r\n  Danach vorübergehende Niederschlagspause\r\n  18:00 Uhr – Durchzug Kaltfront (KRITISCHER ZEITRAUM)\r\n\r\n  Neuerlicher Regen- und Schneefallbeginn\r\n  Schneefallgrenze sinkt bis 19:00 Uhr auf unter 1.000m\r\n  Nach 19:00 Uhr weiteres Absinken auf 800m (kurzzeitig auch tiefer)\r\n  18:00 – 24:00 Uhr\r\n\r\n  Durchgehender Niederschlag\r\n  Morgen früh rasche Wetterberuhigung\r\n  ❄️ Schneefall\r\n  Betroffene Gebiete:\r\n\r\n  Reichenau: ~5cm Neuschnee erwartet\r\n  Gnesau: ~5cm Neuschnee erwartet\r\n  Oberhalb von ca. 800 Meter Seehöhe: Schneefall ist hier ab den Abend\r\n  überall im Bezirk zumindest theoretis",
+          "ergehtAn": [
+            "LtStb",
+            "S2"
+          ],
+          "verantwortliche": [
+            "S2"
+          ],
+          "bemerkung": "",
+          "vermerk": "",
+          "erstelltAm": "2025-11-20T09:27:58.000Z",
+          "erstelltVon": "MAIL-AUTO",
+          "geaendertAm": "2025-11-20T09:27:58.000Z",
+          "geaendertVon": "MAIL-AUTO",
+          "createdBy": "MAIL-AUTO",
+          "lastBy": "MAIL-AUTO",
+          "printCount": 0,
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "meta": {
+            "createdVia": "weather-mail"
+          },
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "S2",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ]
+        }
+      },
+      {
+        "ts": 1763709061030,
+        "action": "update",
+        "by": "S2",
+        "changes": [
+          {
+            "path": "massnahmen[].done",
+            "before": false,
+            "after": true
+          }
+        ],
+        "after": {
+          "id": "1d2d46a8-3f93-4dff-93b2-3bbc9fc3de3e",
+          "nr": 4,
+          "datum": "2025-11-20",
+          "zeit": "09:27",
+          "infoTyp": "Lagemeldung",
+          "anvon": "Von Horst Blaha <horst.blaha@uniquare.com>",
+          "uebermittlungsart": {
+            "kanalNr": "MAIL",
+            "kanal": "Mail",
+            "art": "eingehend",
+            "ein": true,
+            "aus": false
+          },
+          "information": "----- Ursprüngliche Nachricht -----\r\n Von: Horst Blaha/UNIQUARE/AT\r\n An: stab@bfkdo-fe.at\r\n Betreff: WL: Wetter\r\n Datum: Di, 18. Nov 2025 19:58\r\n\r\n\r\n\r\n ----- Ursprüngliche Nachricht -----\r\n Von: Horst Blaha/UNIQUARE/AT\r\n An: stab@bfkdo-fe.at\r\n Betreff: WL: Wetter\r\n Datum: Di, 18. Nov 2025 18:55\r\n\r\n\r\n\r\n  ----- Ursprüngliche Nachricht -----\r\n  Von: Horst Blaha/UNIQUARE/AT\r\n  An: stab@bfkdo-fe.at\r\n  Betreff: Wetter\r\n  Datum: Di, 18. Nov 2025 16:51\r\n\r\n\r\n\r\n  Markante Wetterlage Bezirk Feldkirchen – Schwellen für niedrigste\r\n  Warnstufe (Regen, Wind und Schnee) stellenweise erreicht\r\n  Mag. David Kaufmann<info@tauernwetter.at>\r\n  ​\r\n\r\n  Warnung für:18.11.2025\r\n\r\n\r\n  wetter@bfkdo-fe.at​\r\n\r\n\r\n                                                                           \r\n  Einige Personen, die diese Nachricht erhalten haben, erhalten nicht oft  \r\n  eine E-Mail von info@tauernwetter.at. Erfahren Sie, warum dies wichtig   \r\n  ist                                                                      \r\n                                                                           \r\n\r\n\r\n  Sehr geehrter Herr Blaha!\r\n\r\n  Ich wünsche Ihnen einen guten Morgen!\r\n\r\n  Für den Bezirk Feldkirchen ist heute mit einer markanten\r\n  Wetterentwicklung zu rechnen – zunächst am Vormittag, dann erneut am\r\n  Abend und in der Nacht. Hier die Details:\r\n\r\n\r\n  ⏰ Zeitlicher Ablauf\r\n  Bis 15:00 Uhr\r\n\r\n  Wiederholt kräftiger Regen\r\n  Danach vorübergehende Niederschlagspause\r\n  18:00 Uhr – Durchzug Kaltfront (KRITISCHER ZEITRAUM)\r\n\r\n  Neuerlicher Regen- und Schneefallbeginn\r\n  Schneefallgrenze sinkt bis 19:00 Uhr auf unter 1.000m\r\n  Nach 19:00 Uhr weiteres Absinken auf 800m (kurzzeitig auch tiefer)\r\n  18:00 – 24:00 Uhr\r\n\r\n  Durchgehender Niederschlag\r\n  Morgen früh rasche Wetterberuhigung\r\n  ❄️ Schneefall\r\n  Betroffene Gebiete:\r\n\r\n  Reichenau: ~5cm Neuschnee erwartet\r\n  Gnesau: ~5cm Neuschnee erwartet\r\n  Oberhalb von ca. 800 Meter Seehöhe: Schneefall ist hier ab den Abend\r\n  überall im Bezirk zumindest theoretis",
+          "ergehtAn": [
+            "LtStb",
+            "S2"
+          ],
+          "verantwortliche": [
+            "S2"
+          ],
+          "bemerkung": "",
+          "vermerk": "",
+          "erstelltAm": "2025-11-20T09:27:58.000Z",
+          "erstelltVon": "MAIL-AUTO",
+          "geaendertAm": "2025-11-20T09:27:58.000Z",
+          "geaendertVon": "MAIL-AUTO",
+          "createdBy": "MAIL-AUTO",
+          "lastBy": "MAIL-AUTO",
+          "printCount": 0,
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "meta": {
+            "createdVia": "weather-mail"
+          },
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "S2",
+              "done": true
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "zu": ""
+        }
+      }
+    ],
+    "otherRecipientConfirmation": {
+      "confirmed": false,
+      "by": null,
+      "byRole": null,
+      "at": null
+    },
+    "meta": {
+      "createdVia": "weather-mail"
+    },
+    "massnahmen": [
+      {
+        "massnahme": "",
+        "verantwortlich": "S2",
+        "done": true
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      }
+    ],
+    "zu": ""
+  },
+  {
+    "datum": "2025-11-21",
+    "zeit": "12:07",
+    "uebermittlungsart": {
+      "kanalNr": "",
+      "ein": true,
+      "aus": false
+    },
+    "anvon": "Von: S2",
+    "infoTyp": "Information",
+    "information": "Von Horst Blaha <horst.blaha@uniquare.com>\n\n----- Ursprüngliche Nachricht -----\n Von: Horst Blaha/UNIQUARE/AT\n An: stab@bfkdo-fe.at\n Betreff: WL: Wetter\n Datum: Di, 18. Nov 2025 19:58\n\n\n\n ----- Ursprüngliche Nachricht -----\n Von: Horst Blaha/UNIQUARE/AT\n An: stab@bfkdo-fe.at\n Betreff: WL: Wetter\n Datum: Di, 18. Nov 2025 18:55\n\n\n\n  ----- Ursprüngliche Nachricht -----\n  Von: Horst Blaha/UNIQUARE/AT\n  An: stab@bfkdo-fe.at\n  Betreff: Wetter\n  Datum: Di, 18. Nov 2025 16:51\n\n\n\n  Markante Wetterlage Bezirk Feldkirchen – Schwellen für niedrigste\n  Warnstufe (Regen, Wind und Schnee) stellenweise erreicht\n  Mag. David Kaufmann<info@tauernwetter.at>\n  ​\n\n  Warnung für:18.11.2025\n\n\n  wetter@bfkdo-fe.at​\n\n\n                                                                           \n  Einige Personen, die diese Nachricht erhalten haben, erhalten nicht oft  \n  eine E-Mail von info@tauernwetter.at. Erfahren Sie, warum dies wichtig   \n  ist                                                                      \n                                                                           \n\n\n  Sehr geehrter Herr Blaha!\n\n  Ich wünsche Ihnen einen guten Morgen!\n\n  Für den Bezirk Feldkirchen ist heute mit einer markanten\n  Wetterentwicklung zu rechnen – zunächst am Vormittag, dann erneut am\n  Abend und in der Nacht. Hier die Details:\n\n\n  ⏰ Zeitlicher Ablauf\n  Bis 15:00 Uhr\n\n  Wiederholt kräftiger Regen\n  Danach vorübergehende Niederschlagspause\n  18:00 Uhr – Durchzug Kaltfront (KRITISCHER ZEITRAUM)\n\n  Neuerlicher Regen- und Schneefallbeginn\n  Schneefallgrenze sinkt bis 19:00 Uhr auf unter 1.000m\n  Nach 19:00 Uhr weiteres Absinken auf 800m (kurzzeitig auch tiefer)\n  18:00 – 24:00 Uhr\n\n  Durchgehender Niederschlag\n  Morgen früh rasche Wetterberuhigung\n  ❄️ Schneefall\n  Betroffene Gebiete:\n\n  Reichenau: ~5cm Neuschnee erwartet\n  Gnesau: ~5cm Neuschnee erwartet\n  Oberhalb von ca. 800 Meter Seehöhe: Schneefall ist hier ab den Abend\n  überall im Bezirk zumindest theoretis\n\nVerantwortlich: S2",
+    "rueckmeldung1": "",
+    "ergehtAn": [
+      "EL",
+      "LtStb",
+      "S1",
+      "S2",
+      "S3",
+      "S4",
+      "S5",
+      "S6"
+    ],
+    "ergehtAnText": "",
+    "otherRecipientConfirmation": {
+      "confirmed": false,
+      "by": null,
+      "byRole": null,
+      "at": null
+    },
+    "lagebericht": "",
+    "massnahmen": [
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      }
+    ],
+    "zu": "4",
+    "nr": 5,
+    "id": "b01da3ad-417c-40c1-a580-0748fdafa2be",
+    "printCount": 0,
+    "history": [
+      {
+        "ts": 1763723284401,
+        "action": "create",
+        "by": "S2",
+        "after": {
+          "datum": "2025-11-21",
+          "zeit": "12:07",
+          "uebermittlungsart": {
+            "kanalNr": "",
+            "ein": true,
+            "aus": false
+          },
+          "anvon": "Von: S2",
+          "infoTyp": "Information",
+          "information": "Von Horst Blaha <horst.blaha@uniquare.com>\n\n----- Ursprüngliche Nachricht -----\n Von: Horst Blaha/UNIQUARE/AT\n An: stab@bfkdo-fe.at\n Betreff: WL: Wetter\n Datum: Di, 18. Nov 2025 19:58\n\n\n\n ----- Ursprüngliche Nachricht -----\n Von: Horst Blaha/UNIQUARE/AT\n An: stab@bfkdo-fe.at\n Betreff: WL: Wetter\n Datum: Di, 18. Nov 2025 18:55\n\n\n\n  ----- Ursprüngliche Nachricht -----\n  Von: Horst Blaha/UNIQUARE/AT\n  An: stab@bfkdo-fe.at\n  Betreff: Wetter\n  Datum: Di, 18. Nov 2025 16:51\n\n\n\n  Markante Wetterlage Bezirk Feldkirchen – Schwellen für niedrigste\n  Warnstufe (Regen, Wind und Schnee) stellenweise erreicht\n  Mag. David Kaufmann<info@tauernwetter.at>\n  ​\n\n  Warnung für:18.11.2025\n\n\n  wetter@bfkdo-fe.at​\n\n\n                                                                           \n  Einige Personen, die diese Nachricht erhalten haben, erhalten nicht oft  \n  eine E-Mail von info@tauernwetter.at. Erfahren Sie, warum dies wichtig   \n  ist                                                                      \n                                                                           \n\n\n  Sehr geehrter Herr Blaha!\n\n  Ich wünsche Ihnen einen guten Morgen!\n\n  Für den Bezirk Feldkirchen ist heute mit einer markanten\n  Wetterentwicklung zu rechnen – zunächst am Vormittag, dann erneut am\n  Abend und in der Nacht. Hier die Details:\n\n\n  ⏰ Zeitlicher Ablauf\n  Bis 15:00 Uhr\n\n  Wiederholt kräftiger Regen\n  Danach vorübergehende Niederschlagspause\n  18:00 Uhr – Durchzug Kaltfront (KRITISCHER ZEITRAUM)\n\n  Neuerlicher Regen- und Schneefallbeginn\n  Schneefallgrenze sinkt bis 19:00 Uhr auf unter 1.000m\n  Nach 19:00 Uhr weiteres Absinken auf 800m (kurzzeitig auch tiefer)\n  18:00 – 24:00 Uhr\n\n  Durchgehender Niederschlag\n  Morgen früh rasche Wetterberuhigung\n  ❄️ Schneefall\n  Betroffene Gebiete:\n\n  Reichenau: ~5cm Neuschnee erwartet\n  Gnesau: ~5cm Neuschnee erwartet\n  Oberhalb von ca. 800 Meter Seehöhe: Schneefall ist hier ab den Abend\n  überall im Bezirk zumindest theoretis\n\nVerantwortlich: S2",
+          "rueckmeldung1": "",
+          "ergehtAn": [
+            "EL",
+            "LtStb",
+            "S1",
+            "S2",
+            "S3",
+            "S4",
+            "S5",
+            "S6"
+          ],
+          "ergehtAnText": "",
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "lagebericht": "",
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "zu": "4",
+          "nr": 5,
+          "id": "b01da3ad-417c-40c1-a580-0748fdafa2be",
+          "printCount": 0,
+          "meta": {
+            "createdVia": "task-board",
+            "createdByRole": "S2"
+          },
+          "createdBy": "S2"
+        }
+      }
+    ],
+    "meta": {
+      "createdVia": "task-board",
+      "createdByRole": "S2"
+    },
+    "createdBy": "S2",
+    "lastBy": "S2"
+  },
+  {
+    "datum": "2025-11-21",
+    "zeit": "14:51",
+    "uebermittlungsart": {
+      "kanalNr": "2",
+      "ein": true,
+      "aus": false
+    },
+    "anvon": "Von: TEST",
+    "infoTyp": "Lagemeldung",
+    "information": "oisdjfsdfsadfsdf",
+    "rueckmeldung1": "",
+    "ergehtAn": [
+      "LtStb"
+    ],
+    "ergehtAnText": "",
+    "otherRecipientConfirmation": {
+      "confirmed": false,
+      "by": null,
+      "byRole": null,
+      "at": null
+    },
+    "lagebericht": "",
+    "massnahmen": [
+      {
+        "massnahme": "",
+        "verantwortlich": "S2",
+        "done": true
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      }
+    ],
+    "zu": "",
+    "nr": 6,
+    "id": "87ab7142-36f7-46fc-ac4b-3833ee7c8f37",
+    "printCount": 0,
+    "history": [
+      {
+        "ts": 1763733113399,
+        "action": "create",
+        "by": "S2",
+        "after": {
+          "datum": "2025-11-21",
+          "zeit": "14:51",
+          "uebermittlungsart": {
+            "kanalNr": "2",
+            "ein": true,
+            "aus": false
+          },
+          "anvon": "Von: TEST",
+          "infoTyp": "Lagemeldung",
+          "information": "oisdjfsdfsadfsdf",
+          "rueckmeldung1": "",
+          "ergehtAn": [
+            "LtStb"
+          ],
+          "ergehtAnText": "",
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "lagebericht": "",
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "S2",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "zu": "",
+          "nr": 6,
+          "id": "87ab7142-36f7-46fc-ac4b-3833ee7c8f37",
+          "printCount": 0,
+          "createdBy": "S2"
+        }
+      },
+      {
+        "ts": 1767954181094,
+        "action": "update",
+        "by": "S2",
+        "changes": [
+          {
+            "path": "massnahmen[].done",
+            "before": false,
+            "after": true
+          }
+        ],
+        "after": {
+          "datum": "2025-11-21",
+          "zeit": "14:51",
+          "uebermittlungsart": {
+            "kanalNr": "2",
+            "ein": true,
+            "aus": false
+          },
+          "anvon": "Von: TEST",
+          "infoTyp": "Lagemeldung",
+          "information": "oisdjfsdfsadfsdf",
+          "rueckmeldung1": "",
+          "ergehtAn": [
+            "LtStb"
+          ],
+          "ergehtAnText": "",
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "lagebericht": "",
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "S2",
+              "done": true
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ],
+          "zu": "",
+          "nr": 6,
+          "id": "87ab7142-36f7-46fc-ac4b-3833ee7c8f37",
+          "printCount": 0,
+          "createdBy": "S2",
+          "lastBy": "S2"
+        }
+      }
+    ],
+    "createdBy": "S2",
+    "lastBy": "S2"
+  },
+  {
+    "id": "f1d5fc12-e882-4fb7-bc27-1c7ce5b28bf2",
+    "nr": 7,
+    "datum": "2026-01-08",
+    "zeit": "13:14",
+    "infoTyp": "Lagemeldung",
+    "anvon": "Von \"Mag. David Kaufmann\" <info@tauernwetter.at>",
+    "uebermittlungsart": {
+      "kanalNr": "MAIL",
+      "kanal": "Mail",
+      "art": "eingehend",
+      "ein": true,
+      "aus": false
+    },
+    "information": "Warnung für:09.01.2026,10.01.2026\n \nWarnung Schneefall für 09.01.2026 bis 10.01.2026 (Bezirk Feldkirchen)\ngültig von 09.01.2026 von 8:00 Uhr bis 10.01.2026 5:00 Uhr\n \nWarnstufe Rot Schneefall (Warnstufe 2/3): Gemeinden Reichenau, Gnesau, Albeck:\n🔴 Schneewarnung Stufe 2 (Rot)\n \nEin Höhentrog mit einfließender Kaltluft erfasst am Freitag den Alpenraum und sorgt wiederholt für teils kräftige Schneeschauer.\n \nZeitlicher Ablauf: Freitag Vormittag: Die Luft labilisiert sich rasch, immer wieder ziehen Schneeschauer durch – stellenweise auch länger anhaltend und es gebietsweise können sehr kräftige Schneeschauer durchziehen.\n \nErwartete Schneemengen: Verbreitet: 5 bis 20 cm Neuschnee.\nVereinzelt: bis zu 30 cm möglich.\n \nWo genau die heftigsten Schneeschauer durchziehen, lässt sich nicht exakt vorhersagen. Besonderheiten: Stellenweise sind die Schauer von Blitz und Donner begleitet – bei Wintergewittern kurzzeitig sehr intensive Schneefälle möglich. \n \nAuswirkungen: Tiefwinterliche Fahrbahnverhältnisse, eventuell Schneeverwehungen. Zeitweise stark eingeschränkte Sicht.\nStarke Beeinträchtigung des Straßenverkehrs möglich.\n \n------------\n \nAlle anderen Gemeinden des Bezirks: \nAchtung - Schnee\n🟡 Wetterinformation \n \nEin Höhentrog mit einfließender Kaltluft sorgt am Freitag für wiederholt auftretende Schneeschauer.\n \nErwartete Schneemengen: 1 bis 5 cm Neuschnee. Im Falle eines kräftigen Schneeschauers auch deutlich mehr möglich.\n \nZeitlicher Ablauf: Ab dem Freitag Vormittag kommt es zu Schneeschauern, die in der Nacht auf Samstag allmählich abklingen sollten.\n \nAuswirkungen:\nZeitweise winterliche Fahrbahnverhältnisse.\nKurzzeitig eingeschränkte Sicht bei Schauerdurchgang.\nVorsicht im Straßenverkehr.\n \n-----------------------------------------------------\n \nWichtig: Es kann auch abgesehen von den drei Gemeinden in denen eine Schneewarnung besteht auch in den anderen Gemeinden zu einer Hochstufung von einer Wetterinformation zu einer Warnung kommen, ebenso ist es möglich, dass di",
+    "ergehtAn": [
+      "LtStb",
+      "S2"
+    ],
+    "verantwortliche": [
+      "S2"
+    ],
+    "bemerkung": "",
+    "vermerk": "",
+    "erstelltAm": "2026-01-08T13:14:05.000Z",
+    "erstelltVon": "MAIL-AUTO",
+    "geaendertAm": "2026-01-08T13:14:05.000Z",
+    "geaendertVon": "MAIL-AUTO",
+    "createdBy": "MAIL-AUTO",
+    "lastBy": "MAIL-AUTO",
+    "printCount": 0,
+    "history": [
+      {
+        "ts": 1767954005560,
+        "action": "create",
+        "by": "MAIL-AUTO",
+        "after": {
+          "id": "f1d5fc12-e882-4fb7-bc27-1c7ce5b28bf2",
+          "nr": "7",
+          "datum": "2026-01-08",
+          "zeit": "13:14",
+          "infoTyp": "Lagemeldung",
+          "anvon": "Von \"Mag. David Kaufmann\" <info@tauernwetter.at>",
+          "uebermittlungsart": {
+            "kanalNr": "MAIL",
+            "kanal": "Mail",
+            "art": "eingehend",
+            "ein": true,
+            "aus": false
+          },
+          "information": "Warnung für:09.01.2026,10.01.2026\n \nWarnung Schneefall für 09.01.2026 bis 10.01.2026 (Bezirk Feldkirchen)\ngültig von 09.01.2026 von 8:00 Uhr bis 10.01.2026 5:00 Uhr\n \nWarnstufe Rot Schneefall (Warnstufe 2/3): Gemeinden Reichenau, Gnesau, Albeck:\n🔴 Schneewarnung Stufe 2 (Rot)\n \nEin Höhentrog mit einfließender Kaltluft erfasst am Freitag den Alpenraum und sorgt wiederholt für teils kräftige Schneeschauer.\n \nZeitlicher Ablauf: Freitag Vormittag: Die Luft labilisiert sich rasch, immer wieder ziehen Schneeschauer durch – stellenweise auch länger anhaltend und es gebietsweise können sehr kräftige Schneeschauer durchziehen.\n \nErwartete Schneemengen: Verbreitet: 5 bis 20 cm Neuschnee.\nVereinzelt: bis zu 30 cm möglich.\n \nWo genau die heftigsten Schneeschauer durchziehen, lässt sich nicht exakt vorhersagen. Besonderheiten: Stellenweise sind die Schauer von Blitz und Donner begleitet – bei Wintergewittern kurzzeitig sehr intensive Schneefälle möglich. \n \nAuswirkungen: Tiefwinterliche Fahrbahnverhältnisse, eventuell Schneeverwehungen. Zeitweise stark eingeschränkte Sicht.\nStarke Beeinträchtigung des Straßenverkehrs möglich.\n \n------------\n \nAlle anderen Gemeinden des Bezirks: \nAchtung - Schnee\n🟡 Wetterinformation \n \nEin Höhentrog mit einfließender Kaltluft sorgt am Freitag für wiederholt auftretende Schneeschauer.\n \nErwartete Schneemengen: 1 bis 5 cm Neuschnee. Im Falle eines kräftigen Schneeschauers auch deutlich mehr möglich.\n \nZeitlicher Ablauf: Ab dem Freitag Vormittag kommt es zu Schneeschauern, die in der Nacht auf Samstag allmählich abklingen sollten.\n \nAuswirkungen:\nZeitweise winterliche Fahrbahnverhältnisse.\nKurzzeitig eingeschränkte Sicht bei Schauerdurchgang.\nVorsicht im Straßenverkehr.\n \n-----------------------------------------------------\n \nWichtig: Es kann auch abgesehen von den drei Gemeinden in denen eine Schneewarnung besteht auch in den anderen Gemeinden zu einer Hochstufung von einer Wetterinformation zu einer Warnung kommen, ebenso ist es möglich, dass di",
+          "ergehtAn": [
+            "LtStb",
+            "S2"
+          ],
+          "verantwortliche": [
+            "S2"
+          ],
+          "bemerkung": "",
+          "vermerk": "",
+          "erstelltAm": "2026-01-08T13:14:05.000Z",
+          "erstelltVon": "MAIL-AUTO",
+          "geaendertAm": "2026-01-08T13:14:05.000Z",
+          "geaendertVon": "MAIL-AUTO",
+          "createdBy": "MAIL-AUTO",
+          "lastBy": "MAIL-AUTO",
+          "printCount": 0,
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "meta": {
+            "createdVia": "weather-mail"
+          },
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "S2",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ]
+        }
+      }
+    ],
+    "otherRecipientConfirmation": {
+      "confirmed": false,
+      "by": null,
+      "byRole": null,
+      "at": null
+    },
+    "meta": {
+      "createdVia": "weather-mail"
+    },
+    "massnahmen": [
+      {
+        "massnahme": "",
+        "verantwortlich": "S2",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      }
+    ],
+    "zu": ""
+  },
+  {
+    "id": "5495bb29-2747-4775-8c2f-6410f76962a2",
+    "nr": 8,
+    "datum": "2025-12-30",
+    "zeit": "16:49",
+    "infoTyp": "Lagemeldung",
+    "anvon": "Von info@tauernwetter.at",
+    "uebermittlungsart": {
+      "kanalNr": "MAIL",
+      "kanal": "Mail",
+      "art": "eingehend",
+      "ein": true,
+      "aus": false
+    },
+    "information": "Warnung für:30.12.2025,31.12.2026,01.01.2026\n \n30.12.25 von 18:00 Uhr\nbis 01.01.26 3:00 Uhr\n \nFür die Gemeinden Reichenau und Albeck:\nVor allem in höheren Lagen kommt es zu einem markanten Temperatursturz. In besonders exponierten Lagen sind Windspitzen über 80 km/h zu erwarten. Besondere Vorsicht ist beim Umgang mit Feuerwerkskörpern geboten!\n \nLiebe Grüße aus Mallnitz!\n \ni.A. Julian Kaufmann\nProjekt Tauernwetter",
+    "ergehtAn": [
+      "LtStb",
+      "S2"
+    ],
+    "verantwortliche": [
+      "S2"
+    ],
+    "bemerkung": "",
+    "vermerk": "",
+    "erstelltAm": "2025-12-30T16:49:27.000Z",
+    "erstelltVon": "MAIL-AUTO",
+    "geaendertAm": "2025-12-30T16:49:27.000Z",
+    "geaendertVon": "MAIL-AUTO",
+    "createdBy": "MAIL-AUTO",
+    "lastBy": "MAIL-AUTO",
+    "printCount": 0,
+    "history": [
+      {
+        "ts": 1767954005626,
+        "action": "create",
+        "by": "MAIL-AUTO",
+        "after": {
+          "id": "5495bb29-2747-4775-8c2f-6410f76962a2",
+          "nr": "8",
+          "datum": "2025-12-30",
+          "zeit": "16:49",
+          "infoTyp": "Lagemeldung",
+          "anvon": "Von info@tauernwetter.at",
+          "uebermittlungsart": {
+            "kanalNr": "MAIL",
+            "kanal": "Mail",
+            "art": "eingehend",
+            "ein": true,
+            "aus": false
+          },
+          "information": "Warnung für:30.12.2025,31.12.2026,01.01.2026\n \n30.12.25 von 18:00 Uhr\nbis 01.01.26 3:00 Uhr\n \nFür die Gemeinden Reichenau und Albeck:\nVor allem in höheren Lagen kommt es zu einem markanten Temperatursturz. In besonders exponierten Lagen sind Windspitzen über 80 km/h zu erwarten. Besondere Vorsicht ist beim Umgang mit Feuerwerkskörpern geboten!\n \nLiebe Grüße aus Mallnitz!\n \ni.A. Julian Kaufmann\nProjekt Tauernwetter",
+          "ergehtAn": [
+            "LtStb",
+            "S2"
+          ],
+          "verantwortliche": [
+            "S2"
+          ],
+          "bemerkung": "",
+          "vermerk": "",
+          "erstelltAm": "2025-12-30T16:49:27.000Z",
+          "erstelltVon": "MAIL-AUTO",
+          "geaendertAm": "2025-12-30T16:49:27.000Z",
+          "geaendertVon": "MAIL-AUTO",
+          "createdBy": "MAIL-AUTO",
+          "lastBy": "MAIL-AUTO",
+          "printCount": 0,
+          "otherRecipientConfirmation": {
+            "confirmed": false,
+            "by": null,
+            "byRole": null,
+            "at": null
+          },
+          "meta": {
+            "createdVia": "weather-mail"
+          },
+          "massnahmen": [
+            {
+              "massnahme": "",
+              "verantwortlich": "S2",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            },
+            {
+              "massnahme": "",
+              "verantwortlich": "",
+              "done": false
+            }
+          ]
+        }
+      }
+    ],
+    "otherRecipientConfirmation": {
+      "confirmed": false,
+      "by": null,
+      "byRole": null,
+      "at": null
+    },
+    "meta": {
+      "createdVia": "weather-mail"
+    },
+    "massnahmen": [
+      {
+        "massnahme": "",
+        "verantwortlich": "S2",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      },
+      {
+        "massnahme": "",
+        "verantwortlich": "",
+        "done": false
+      }
+    ],
+    "zu": ""
+  }
+]
