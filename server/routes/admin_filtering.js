@@ -187,11 +187,7 @@ router.get("/status", async (req, res) => {
         }))
       } : null,
 
-      last_analysis: lastAnalysisStatus || {
-        timestamp: null,
-        disaster_type: null,
-        message: "Noch keine Analyse durchgeführt"
-      }
+      lastAnalysis: lastAnalysisStatus?.lastAnalysis || null
     };
 
     res.json(status);
