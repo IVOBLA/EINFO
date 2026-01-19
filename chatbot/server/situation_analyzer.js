@@ -17,6 +17,7 @@ import { embedText } from "./rag/embedding.js";
 import { loadPromptTemplate, fillTemplate } from "./prompts.js";
 import { getKnowledgeContextWithSources, addToVectorRAG } from "./rag/rag_vector.js";
 import { getCurrentSession } from "./rag/session_rag.js";
+import { filterSuggestionsForRole, dismissSuggestion, initSuggestionFilter } from "./suggestion_filter.js";
 
 const __filename = fileURLToPath(import.meta.url);
 
@@ -176,6 +177,9 @@ export async function initSituationAnalyzer() {
     } else {
       learnedSuggestions = [];
     }
+
+    // Initialisiere Suggestion-Filter (lädt dismissed suggestions)
+    await initSuggestionFilter();
 
     const cfg = await readAnalysisConfig();
     setAnalysisInterval(cfg.intervalMinutes);
@@ -528,22 +532,31 @@ export async function analyzeAllRoles(forceRefresh = false) {
 
     // Für jede Rolle Cache aktualisieren
     const results = {};
+    let totalFiltered = 0;
     for (const role of roles) {
       const roleSuggestions = normalizedRoleSuggestions[role] || [];
+
+      // Vorschläge mit IDs versehen
+      const suggestionsWithIds = roleSuggestions.map((s, i) => ({
+        id: `sug_${now}_${role}_${i}`,
+        analysisId,
+        targetRole: role,
+        ...s,
+        status: "new",
+        createdAt: now
+      }));
+
+      // POST-PROCESSING: Filtere Duplikate (existierende Tasks + dismissed)
+      // Dies hält die Prompts klein, da die Filterung NACH der LLM-Generierung erfolgt
+      const filteredSuggestions = await filterSuggestionsForRole(suggestionsWithIds, role);
+      totalFiltered += suggestionsWithIds.length - filteredSuggestions.length;
 
       const analysis = {
         analysisId,
         timestamp: now,
         role,
         situation,
-        suggestions: roleSuggestions.map((s, i) => ({
-          id: `sug_${now}_${role}_${i}`,
-          analysisId,
-          targetRole: role,
-          ...s,
-          status: "new",
-          createdAt: now
-        })),
+        suggestions: filteredSuggestions,
         nextAnalysisIn: analysisIntervalMs
       };
 
@@ -555,6 +568,7 @@ export async function analyzeAllRoles(forceRefresh = false) {
     logInfo("Gesamtanalyse abgeschlossen", {
       roles: roles.length,
       totalSuggestions: Object.values(results).reduce((sum, r) => sum + r.suggestions.length, 0),
+      filteredDuplicates: totalFiltered,
       severity: situation.severity
     });
 
@@ -775,7 +789,10 @@ export async function saveSuggestionFeedback({
   userNotes,
   editedContent,
   userId,
-  userRole
+  userRole,
+  suggestionTitle,
+  suggestionDescription,
+  targetRole
 }) {
   const feedbackId = `fb_sug_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -794,6 +811,16 @@ export async function saveSuggestionFeedback({
   // Bei "Hilfreich" -> In Learned Suggestions aufnehmen
   if (helpful) {
     await addLearnedSuggestion(feedbackData);
+  } else {
+    // Bei "Nicht hilfreich" -> Als dismissed speichern (verhindert erneutes Vorschlagen)
+    await dismissSuggestion({
+      suggestionId,
+      title: suggestionTitle || editedContent?.title || "",
+      description: suggestionDescription || editedContent?.description || "",
+      targetRole: targetRole || userRole || "unknown",
+      reason: userNotes || "not_helpful",
+      userId: userId || "anonymous"
+    });
   }
 
   logInfo("Vorschlags-Feedback gespeichert", {

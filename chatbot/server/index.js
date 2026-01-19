@@ -1529,6 +1529,8 @@ app.post(
 );
 
 // Feedback zu Vorschlag speichern (binäres System)
+// Bei "nicht hilfreich" wird der Vorschlag als dismissed gespeichert,
+// sodass ähnliche Vorschläge in Zukunft nicht mehr angezeigt werden
 app.post("/api/situation/suggestion/feedback", async (req, res) => {
   try {
     const {
@@ -1538,7 +1540,10 @@ app.post("/api/situation/suggestion/feedback", async (req, res) => {
       userNotes,
       editedContent,
       userId,
-      userRole
+      userRole,
+      suggestionTitle,
+      suggestionDescription,
+      targetRole
     } = req.body || {};
 
     if (!suggestionId) {
@@ -1555,7 +1560,10 @@ app.post("/api/situation/suggestion/feedback", async (req, res) => {
       userNotes,
       editedContent,
       userId,
-      userRole
+      userRole,
+      suggestionTitle,
+      suggestionDescription,
+      targetRole
     });
 
     // SSE-Broadcast für Feedback
