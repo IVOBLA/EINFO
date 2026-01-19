@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { buildChatbotApiUrl } from "../utils/http.js";
+import AufgAddModal from "./AufgAddModal.jsx";
 
 const PRIORITY_COLORS = {
   high: "bg-red-100 border-red-300 text-red-800",
@@ -29,7 +30,7 @@ function sanitizeAnalysisIntervalMinutes(value, fallback = 5) {
   return Math.max(MIN_ANALYSIS_INTERVAL_MINUTES, Math.floor(parsed));
 }
 
-function SuggestionCard({ suggestion, onFeedback, onEdit }) {
+function SuggestionCard({ suggestion, onFeedback, onEdit, onCreateTask, onDismiss }) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(suggestion.title);
   const [editedDescription, setEditedDescription] = useState(suggestion.description);
@@ -46,6 +47,21 @@ function SuggestionCard({ suggestion, onFeedback, onEdit }) {
     await onFeedback?.(suggestion.id, helpful, userNotes, {
       title: editedTitle,
       description: editedDescription
+    });
+    // Bei "Nicht hilfreich" den Vorschlag ausblenden
+    if (!helpful) {
+      onDismiss?.(suggestion.id);
+    }
+  };
+
+  const handleCreateTask = () => {
+    onCreateTask?.({
+      title: editedTitle,
+      description: editedDescription,
+      priority: suggestion.priority,
+      category: suggestion.category,
+      reasoning: suggestion.reasoning,
+      suggestionId: suggestion.id
     });
   };
 
@@ -122,12 +138,21 @@ function SuggestionCard({ suggestion, onFeedback, onEdit }) {
           <button
             onClick={() => handleFeedback(true)}
             className="flex-1 text-xs py-1 px-2 rounded bg-green-500 text-white hover:bg-green-600"
+            title="Als hilfreich markieren"
           >
             Hilfreich
           </button>
           <button
+            onClick={handleCreateTask}
+            className="flex-1 text-xs py-1 px-2 rounded bg-blue-500 text-white hover:bg-blue-600"
+            title="Aufgabe aus diesem Vorschlag erstellen"
+          >
+            Aufgabe erstellen
+          </button>
+          <button
             onClick={() => handleFeedback(false)}
             className="flex-1 text-xs py-1 px-2 rounded bg-gray-400 text-white hover:bg-gray-500"
+            title="Als nicht hilfreich markieren und ausblenden"
           >
             Nicht hilfreich
           </button>
@@ -135,7 +160,15 @@ function SuggestionCard({ suggestion, onFeedback, onEdit }) {
       ) : (
         <div className="text-xs mt-2 pt-2 border-t border-gray-200 text-center">
           {feedbackGiven ? (
-            <span className="text-green-600">Danke! Vorschlag wird gespeichert.</span>
+            <div className="space-y-2">
+              <span className="text-green-600 block">Danke! Vorschlag wird gespeichert.</span>
+              <button
+                onClick={handleCreateTask}
+                className="text-xs py-1 px-3 rounded bg-blue-500 text-white hover:bg-blue-600"
+              >
+                Aufgabe erstellen
+              </button>
+            </div>
           ) : (
             <span className="text-gray-500">Feedback erfasst.</span>
           )}
@@ -299,7 +332,27 @@ function QuestionSection({ role, onQuestionAsked }) {
   );
 }
 
-export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled = true }) {
+// LocalStorage-Key für ausgeblendete Vorschläge
+const DISMISSED_SUGGESTIONS_KEY = "dismissed_ai_suggestions";
+
+function loadDismissedSuggestions() {
+  try {
+    const stored = localStorage.getItem(DISMISSED_SUGGESTIONS_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveDismissedSuggestions(ids) {
+  try {
+    localStorage.setItem(DISMISSED_SUGGESTIONS_KEY, JSON.stringify(ids));
+  } catch {
+    // localStorage nicht verfügbar
+  }
+}
+
+export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled = true, incidentOptions = [] }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(true);
   // Initialisiere mit currentRole oder Fallback auf "LTSTB" wenn leer
@@ -315,6 +368,13 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
     intervalMinutes: 5,
   });
   const resolvedEnabled = enabled && analysisConfig.enabled;
+
+  // State für ausgeblendete Vorschläge
+  const [dismissedSuggestions, setDismissedSuggestions] = useState(() => loadDismissedSuggestions());
+
+  // State für Aufgaben-Modal
+  const [taskModalOpen, setTaskModalOpen] = useState(false);
+  const [taskModalData, setTaskModalData] = useState(null);
 
   // Rolle aktualisieren wenn sich currentRole ändert - nur die Board-Rolle verwenden
   useEffect(() => {
@@ -489,6 +549,67 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
       // Feedback-Fehler ignorieren
     }
   };
+
+  // Vorschlag ausblenden (bei "Nicht hilfreich")
+  const handleDismissSuggestion = useCallback((suggestionId) => {
+    setDismissedSuggestions((prev) => {
+      const updated = [...prev, suggestionId];
+      saveDismissedSuggestions(updated);
+      return updated;
+    });
+  }, []);
+
+  // Aufgabe aus Vorschlag erstellen
+  const handleCreateTaskFromSuggestion = useCallback((suggestionData) => {
+    setTaskModalData(suggestionData);
+    setTaskModalOpen(true);
+  }, []);
+
+  // Aufgabe wurde erstellt - auch Feedback senden
+  const handleTaskCreated = useCallback(async (taskData) => {
+    // Aufgabe an Backend senden
+    try {
+      const res = await fetch(`/api/aufgaben?role=${selectedRole}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...taskData,
+          meta: {
+            fromAiSuggestion: true,
+            suggestionId: taskModalData?.suggestionId
+          }
+        })
+      });
+      if (!res.ok) {
+        console.error("Fehler beim Erstellen der Aufgabe");
+      }
+    } catch (err) {
+      console.error("Fehler beim Erstellen der Aufgabe:", err);
+    }
+
+    // Feedback als "hilfreich" senden, da Aufgabe erstellt wurde
+    if (taskModalData?.suggestionId) {
+      try {
+        await fetch(buildChatbotApiUrl("/api/situation/suggestion/feedback"), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            suggestionId: taskModalData.suggestionId,
+            analysisId: analysisData?.analysisId,
+            helpful: true,
+            userNotes: "Aufgabe erstellt",
+            editedContent: { title: taskData.title, description: taskData.desc },
+            userRole: selectedRole
+          })
+        });
+      } catch {
+        // Feedback-Fehler ignorieren
+      }
+    }
+
+    setTaskModalOpen(false);
+    setTaskModalData(null);
+  }, [selectedRole, analysisData?.analysisId, taskModalData?.suggestionId]);
 
   // API gibt die Rollen-Daten direkt zurück (nicht in einem roles-Objekt)
   const currentRoleData = useMemo(() => {
@@ -671,13 +792,22 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
                     <h4 className="text-sm font-semibold text-gray-700 mb-3">
                       Handlungsvorschläge für {selectedRole}
                     </h4>
-                    {currentRoleData.suggestions.map((sug) => (
+                    {currentRoleData.suggestions
+                      .filter((sug) => !dismissedSuggestions.includes(sug.id))
+                      .map((sug) => (
                       <SuggestionCard
                         key={sug.id}
                         suggestion={sug}
                         onFeedback={handleFeedback}
+                        onCreateTask={handleCreateTaskFromSuggestion}
+                        onDismiss={handleDismissSuggestion}
                       />
                     ))}
+                    {currentRoleData.suggestions.filter((sug) => !dismissedSuggestions.includes(sug.id)).length === 0 && (
+                      <p className="text-sm text-gray-500 text-center py-4">
+                        Alle Vorschläge wurden bearbeitet.
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <div className="text-center py-8 text-gray-500">
@@ -711,6 +841,21 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
           onClick={() => setIsMinimized(true)}
         />
       )}
+
+      {/* Aufgaben-Modal für Vorschläge */}
+      <AufgAddModal
+        open={taskModalOpen}
+        onClose={() => {
+          setTaskModalOpen(false);
+          setTaskModalData(null);
+        }}
+        onAdded={handleTaskCreated}
+        incidentOptions={incidentOptions}
+        initialTitle={taskModalData?.title || ""}
+        initialDesc={taskModalData?.description || ""}
+        initialResponsible={selectedRole}
+        initialType={taskModalData?.category || "KI-Vorschlag"}
+      />
     </>
   );
 }
