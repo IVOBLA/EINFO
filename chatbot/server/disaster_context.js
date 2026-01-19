@@ -363,12 +363,21 @@ function determinePriority(item) {
 /**
  * Lädt aktuelle EINFO-Daten direkt aus den Dateien
  * (Protokolle, Aufgaben, Einsätze)
+ *
+ * Gibt zurück:
+ * - board: Flaches Array aller Board-Items (für einfache Iteration)
+ * - boardRaw: Originales Board-Objekt mit columns-Struktur (für Filterung/Fingerprint)
+ * - protokoll: Array der Protokolleinträge
+ * - protocol: Alias für protokoll (für englische Konsistenz)
+ * - aufgaben: Array der Aufgaben
  */
 export async function loadCurrentEinfoData() {
   const result = {
     protokoll: [],
+    protocol: [], // Alias für englische Konsistenz
     aufgaben: [],
     board: [],
+    boardRaw: null, // Originales Board-Objekt mit columns
     loadedAt: Date.now()
   };
 
@@ -377,6 +386,7 @@ export async function loadCurrentEinfoData() {
     const raw = await fsPromises.readFile(PROTOCOL_FILE, "utf8");
     const parsed = JSON.parse(raw);
     result.protokoll = Array.isArray(parsed) ? parsed : [];
+    result.protocol = result.protokoll; // Alias
   } catch (err) {
     if (err?.code !== "ENOENT") {
       logError("Fehler beim Laden der Protokolle", { error: String(err) });
@@ -391,8 +401,13 @@ export async function loadCurrentEinfoData() {
     // board.json kann entweder ein Array oder eine columns-Struktur sein
     if (Array.isArray(parsed)) {
       result.board = parsed;
+      // Kein columns-Format vorhanden, boardRaw bleibt null
+      result.boardRaw = null;
     } else if (parsed?.columns && typeof parsed.columns === "object") {
-      // Extrahiere Items aus allen Spalten und füge column-Info hinzu
+      // Speichere das originale Board-Objekt mit columns für Filterung/Fingerprint
+      result.boardRaw = parsed;
+
+      // Extrahiere Items aus allen Spalten und füge column-Info hinzu (flaches Array)
       const allItems = [];
       for (const [columnKey, columnData] of Object.entries(parsed.columns)) {
         const items = Array.isArray(columnData?.items) ? columnData.items : [];
@@ -406,6 +421,7 @@ export async function loadCurrentEinfoData() {
       result.board = allItems;
     } else {
       result.board = [];
+      result.boardRaw = null;
     }
   } catch (err) {
     if (err?.code !== "ENOENT") {
@@ -961,11 +977,18 @@ export async function getFilteredDisasterContextSummary({ maxLength = 2500 } = {
     // Lade aktuelle EINFO-Daten
     const einfoData = await loadCurrentEinfoData();
 
-    // Wende Filterregeln an
-    const { filtered, rules } = await applyAllFilteringRules(einfoData, {});
+    // Erstelle Datenobjekt für Filterung mit boardRaw (columns-Struktur)
+    // Die Filterregeln und Fingerprint-Extraktion erwarten board.columns
+    const dataForFiltering = {
+      ...einfoData,
+      board: einfoData.boardRaw || einfoData.board // Verwende boardRaw wenn vorhanden
+    };
 
-    // Extrahiere Context-Fingerprint
-    const fingerprint = extractContextFingerprint(filtered, einfoData, lastContextFingerprint);
+    // Wende Filterregeln an
+    const { filtered, rules } = await applyAllFilteringRules(dataForFiltering, {});
+
+    // Extrahiere Context-Fingerprint (verwendet dataForFiltering für korrekte board.columns Struktur)
+    const fingerprint = extractContextFingerprint(filtered, dataForFiltering, lastContextFingerprint);
 
     // Speichere für nächsten Vergleich
     lastContextFingerprint = fingerprint;
