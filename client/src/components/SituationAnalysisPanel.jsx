@@ -47,6 +47,11 @@ function SuggestionCard({ suggestion, onFeedback, onEdit, onCreateTask, onDismis
     await onFeedback?.(suggestion.id, helpful, userNotes, {
       title: editedTitle,
       description: editedDescription
+    }, {
+      // Original-Suggestion-Daten für server-seitige Speicherung
+      title: suggestion.title,
+      description: suggestion.description,
+      targetRole: suggestion.targetRole
     });
     // Bei "Nicht hilfreich" den Vorschlag ausblenden
     if (!helpful) {
@@ -531,7 +536,7 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
     };
   }, []);
 
-  const handleFeedback = async (suggestionId, helpful, userNotes, editedContent) => {
+  const handleFeedback = async (suggestionId, helpful, userNotes, editedContent, suggestionData) => {
     try {
       await fetch(buildChatbotApiUrl("/api/situation/suggestion/feedback"), {
         method: "POST",
@@ -542,7 +547,11 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
           helpful,
           userNotes,
           editedContent,
-          userRole: selectedRole
+          userRole: selectedRole,
+          // Für server-seitige Speicherung der dismissed suggestions
+          suggestionTitle: suggestionData?.title || editedContent?.title,
+          suggestionDescription: suggestionData?.description || editedContent?.description,
+          targetRole: suggestionData?.targetRole || selectedRole
         })
       });
     } catch {

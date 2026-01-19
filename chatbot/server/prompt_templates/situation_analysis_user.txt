@@ -2,9 +2,12 @@ AKTUELLER STAND - LIVE-DATEN AUS DEM EINSATZLEITSYSTEM:
 
 {{disasterSummary}}
 
+{{excludeContext}}
+
 ---
 
 Basierend auf diesem aktuellen Stand (Einsätze, offene Aufgaben, Protokoll):
 1. Analysiere die Gesamtlage und identifiziere kritische Faktoren
 2. Erstelle für JEDE Stabsrolle konkrete Handlungsvorschläge
 3. Die Vorschläge müssen sich direkt aus den oben genannten Daten ableiten
+4. Schlage KEINE Maßnahmen vor, die oben als "bereits vorhanden" oder "abgelehnt" markiert sind
