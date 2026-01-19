@@ -213,6 +213,17 @@ export default function LLMModelManager() {
   const [testResult, setTestResult] = useState(null);
   const [testRunning, setTestRunning] = useState(false);
   const [streamingAnswer, setStreamingAnswer] = useState(""); // Live-gestreamte Antwort
+  const [testTaskType, setTestTaskType] = useState("chat"); // NEU: Task-Typ für Test
+  const [showPromptEditor, setShowPromptEditor] = useState(false); // NEU: Prompt-Editor anzeigen
+  const [editedPrompts, setEditedPrompts] = useState(null); // NEU: Bearbeitete Prompts
+  const [loadingPrompts, setLoadingPrompts] = useState(false); // NEU: Prompts laden
+
+  // Prompt-Template-Editor
+  const [promptTemplates, setPromptTemplates] = useState([]);
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [templateContent, setTemplateContent] = useState("");
+  const [templateLoading, setTemplateLoading] = useState(false);
+  const [templateSaving, setTemplateSaving] = useState(false);
 
   // Daten laden mit Auto-Retry bei Netzwerkfehlern
   useEffect(() => {
@@ -382,6 +393,118 @@ export default function LLMModelManager() {
     }
   }
 
+  // Lade Prompt-Vorschau für den aktuellen Task-Typ
+  async function loadPromptsForPreview() {
+    setLoadingPrompts(true);
+    try {
+      // Mache einen Dummy-Request um die Prompts zu bekommen (ohne tatsächlichen LLM-Aufruf)
+      // Wir nutzen den Test-Endpunkt mit einem speziellen Flag
+      const res = await fetch(buildChatbotApiUrl("/api/llm/test-with-metrics-stream"), {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: testingModel,
+          question: testQuestion || "Testfrage",
+          taskType: testTaskType,
+          previewOnly: true
+        })
+      });
+
+      // Da es ein SSE-Endpunkt ist, lesen wir nur das erste Event
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        // Suche nach dem "prompts" Event (falls wir das hinzufügen)
+        // Für jetzt nutzen wir das rawRequest aus dem done Event
+        const lines = buffer.split("\n");
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              if (data.rawRequest && data.rawRequest.messages) {
+                const systemMsg = data.rawRequest.messages.find(m => m.role === "system");
+                const userMsg = data.rawRequest.messages.find(m => m.role === "user");
+                setEditedPrompts({
+                  systemPrompt: systemMsg?.content || "",
+                  userPrompt: userMsg?.content || ""
+                });
+                reader.cancel();
+                return;
+              }
+            } catch {
+              // Ignoriere Parse-Fehler
+            }
+          }
+        }
+      }
+    } catch (ex) {
+      console.error("Fehler beim Laden der Prompts:", ex);
+    } finally {
+      setLoadingPrompts(false);
+    }
+  }
+
+  // Lade Prompt-Templates Liste
+  async function loadPromptTemplates() {
+    try {
+      const res = await fetch(buildChatbotApiUrl("/api/llm/prompt-templates"), { credentials: "include" });
+      const data = await res.json();
+      if (data.ok) {
+        setPromptTemplates(data.templates || []);
+      }
+    } catch (ex) {
+      console.error("Fehler beim Laden der Prompt-Templates:", ex);
+    }
+  }
+
+  // Lade ein einzelnes Template
+  async function loadTemplate(name) {
+    setTemplateLoading(true);
+    try {
+      const res = await fetch(buildChatbotApiUrl(`/api/llm/prompt-templates/${encodeURIComponent(name)}`), { credentials: "include" });
+      const data = await res.json();
+      if (data.ok) {
+        setSelectedTemplate(name);
+        setTemplateContent(data.content);
+      }
+    } catch (ex) {
+      console.error("Fehler beim Laden des Templates:", ex);
+    } finally {
+      setTemplateLoading(false);
+    }
+  }
+
+  // Speichere ein Template
+  async function saveTemplate() {
+    if (!selectedTemplate) return;
+    setTemplateSaving(true);
+    try {
+      const res = await fetch(buildChatbotApiUrl(`/api/llm/prompt-templates/${encodeURIComponent(selectedTemplate)}`), {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: templateContent })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setMsg("Template gespeichert");
+      } else {
+        setErr(data.error || "Fehler beim Speichern");
+      }
+    } catch (ex) {
+      setErr("Fehler beim Speichern des Templates");
+    } finally {
+      setTemplateSaving(false);
+    }
+  }
+
   async function testModel(modelName) {
     setTestRunning(true);
     setTestResult(null);
@@ -393,7 +516,12 @@ export default function LLMModelManager() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model: modelName, question: testQuestion })
+        body: JSON.stringify({
+          model: modelName,
+          question: testQuestion,
+          taskType: testTaskType,
+          editedPrompts: editedPrompts // NEU: Bearbeitete Prompts übergeben
+        })
       });
 
       if (!res.ok) {
@@ -1062,7 +1190,7 @@ export default function LLMModelManager() {
       {/* Test-Dialog */}
       {testingModel && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-medium text-lg">Modell testen: {testingModel}</h3>
@@ -1073,10 +1201,36 @@ export default function LLMModelManager() {
                     setTestingModel(null);
                     setTestResult(null);
                     setStreamingAnswer("");
+                    setEditedPrompts(null);
+                    setShowPromptEditor(false);
                   }}
                 >
                   ✕
                 </button>
+              </div>
+
+              {/* Task-Typ Auswahl */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Task-Typ</label>
+                <select
+                  className="w-full border rounded px-3 py-2"
+                  value={testTaskType}
+                  onChange={(e) => {
+                    setTestTaskType(e.target.value);
+                    setEditedPrompts(null); // Reset beim Wechsel
+                    setShowPromptEditor(false);
+                  }}
+                  disabled={testRunning}
+                >
+                  <option value="chat">Chat (QA)</option>
+                  <option value="analysis">Analysis (KI-Situationsanalyse)</option>
+                  <option value="operations">Operations (Simulation)</option>
+                  <option value="start">Start (Szenario-Start)</option>
+                  <option value="default">Default</option>
+                </select>
+                <div className="text-xs text-gray-500 mt-1">
+                  Der Task-Typ bestimmt welche Prompts und Parameter verwendet werden
+                </div>
               </div>
 
               <div>
@@ -1090,14 +1244,70 @@ export default function LLMModelManager() {
                 />
               </div>
 
-              <button
-                type="button"
-                className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
-                onClick={() => testModel(testingModel)}
-                disabled={testRunning || !testQuestion.trim()}
-              >
-                {testRunning ? "Teste..." : "Test starten"}
-              </button>
+              {/* Prompt-Editor Toggle */}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
+                  onClick={() => testModel(testingModel)}
+                  disabled={testRunning || !testQuestion.trim()}
+                >
+                  {testRunning ? "Teste..." : "Test starten"}
+                </button>
+                <button
+                  type="button"
+                  className="px-4 py-2 border rounded hover:bg-gray-50 text-gray-700"
+                  onClick={() => {
+                    if (!showPromptEditor) {
+                      loadPromptsForPreview();
+                    }
+                    setShowPromptEditor(!showPromptEditor);
+                  }}
+                  disabled={testRunning || loadingPrompts}
+                >
+                  {loadingPrompts ? "Lade..." : (showPromptEditor ? "Prompts ausblenden" : "Prompts anzeigen/bearbeiten")}
+                </button>
+              </div>
+
+              {/* Prompt-Editor */}
+              {showPromptEditor && editedPrompts && (
+                <div className="border rounded p-4 bg-gray-50 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-sm">Prompts bearbeiten vor dem Senden</h4>
+                    <button
+                      type="button"
+                      className="text-xs px-2 py-1 border rounded hover:bg-white"
+                      onClick={() => setEditedPrompts(null)}
+                    >
+                      Zurücksetzen
+                    </button>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">System-Prompt</label>
+                    <textarea
+                      className="w-full border rounded px-3 py-2 font-mono text-xs h-40"
+                      value={editedPrompts.systemPrompt}
+                      onChange={(e) => setEditedPrompts(prev => ({ ...prev, systemPrompt: e.target.value }))}
+                      disabled={testRunning}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">User-Prompt</label>
+                    <textarea
+                      className="w-full border rounded px-3 py-2 font-mono text-xs h-40"
+                      value={editedPrompts.userPrompt}
+                      onChange={(e) => setEditedPrompts(prev => ({ ...prev, userPrompt: e.target.value }))}
+                      disabled={testRunning}
+                    />
+                  </div>
+
+                  <div className="text-xs text-amber-700 bg-amber-50 p-2 rounded">
+                    Hinweis: Änderungen an den Prompts gelten nur für diesen Test und werden nicht gespeichert.
+                  </div>
+                </div>
+              )}
 
               {/* Live-Streaming-Anzeige während des Tests */}
               {testRunning && streamingAnswer && (
@@ -1292,9 +1502,32 @@ export default function LLMModelManager() {
                             <summary className="px-3 py-2 bg-gray-100 cursor-pointer hover:bg-gray-200 text-sm font-medium text-gray-700">
                               RAW Request (Ollama API)
                             </summary>
-                            <pre className="p-3 text-xs bg-gray-50 overflow-auto max-h-60 text-gray-800">
-                              {JSON.stringify(testResult.rawRequest, null, 2)}
-                            </pre>
+                            <div className="p-3 text-xs bg-gray-50 overflow-auto max-h-96 text-gray-800 space-y-4">
+                              {/* Request Optionen */}
+                              <div>
+                                <div className="font-medium text-gray-600 mb-1">Optionen:</div>
+                                <pre className="bg-white p-2 rounded border text-xs">
+                                  {JSON.stringify({
+                                    model: testResult.rawRequest.model,
+                                    stream: testResult.rawRequest.stream,
+                                    format: testResult.rawRequest.format,
+                                    options: testResult.rawRequest.options
+                                  }, null, 2)}
+                                </pre>
+                              </div>
+
+                              {/* Messages mit echten Zeilenumbrüchen */}
+                              {testResult.rawRequest.messages?.map((msg, idx) => (
+                                <div key={idx}>
+                                  <div className="font-medium text-gray-600 mb-1">
+                                    {msg.role === "system" ? "System-Prompt:" : "User-Prompt:"}
+                                  </div>
+                                  <pre className="bg-white p-2 rounded border text-xs whitespace-pre-wrap break-words">
+                                    {msg.content}
+                                  </pre>
+                                </div>
+                              ))}
+                            </div>
                           </details>
                         )}
 
@@ -1303,9 +1536,29 @@ export default function LLMModelManager() {
                             <summary className="px-3 py-2 bg-gray-100 cursor-pointer hover:bg-gray-200 text-sm font-medium text-gray-700">
                               RAW Response (Ollama API)
                             </summary>
-                            <pre className="p-3 text-xs bg-gray-50 overflow-auto max-h-60 text-gray-800">
-                              {JSON.stringify(testResult.rawResponse, null, 2)}
-                            </pre>
+                            <div className="p-3 text-xs bg-gray-50 overflow-auto max-h-96 text-gray-800 space-y-4">
+                              {/* Response Metadaten */}
+                              <div>
+                                <div className="font-medium text-gray-600 mb-1">Metadaten:</div>
+                                <pre className="bg-white p-2 rounded border text-xs">
+                                  {JSON.stringify({
+                                    model: testResult.rawResponse.model,
+                                    created_at: testResult.rawResponse.created_at,
+                                    done: testResult.rawResponse.done,
+                                    total_duration: testResult.rawResponse.total_duration,
+                                    eval_count: testResult.rawResponse.eval_count
+                                  }, null, 2)}
+                                </pre>
+                              </div>
+
+                              {/* Antwort-Inhalt mit echten Zeilenumbrüchen */}
+                              <div>
+                                <div className="font-medium text-gray-600 mb-1">Antwort:</div>
+                                <pre className="bg-white p-2 rounded border text-xs whitespace-pre-wrap break-words">
+                                  {testResult.rawResponse.message?.content}
+                                </pre>
+                              </div>
+                            </div>
                           </details>
                         )}
                       </div>
@@ -1317,6 +1570,103 @@ export default function LLMModelManager() {
           </div>
         </div>
       )}
+
+      {/* Prompt-Template-Editor */}
+      <div className="border rounded p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-medium">Prompt-Templates bearbeiten</h3>
+          <button
+            type="button"
+            className="text-xs px-2 py-1 border rounded hover:bg-gray-50"
+            onClick={loadPromptTemplates}
+          >
+            Templates laden
+          </button>
+        </div>
+
+        <div className="text-xs text-gray-600 mb-4">
+          Hier können Sie die Prompt-Templates für verschiedene Task-Typen direkt bearbeiten.
+          Änderungen werden sofort wirksam. Ein Backup wird automatisch erstellt.
+        </div>
+
+        {promptTemplates.length === 0 ? (
+          <div className="text-sm text-gray-500 py-4 text-center">
+            Klicken Sie auf "Templates laden" um die verfügbaren Templates anzuzeigen.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Template-Auswahl */}
+            <div>
+              <label className="block text-sm font-medium mb-1">Template auswählen</label>
+              <select
+                className="w-full border rounded px-3 py-2"
+                value={selectedTemplate || ""}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    loadTemplate(e.target.value);
+                  } else {
+                    setSelectedTemplate(null);
+                    setTemplateContent("");
+                  }
+                }}
+                disabled={templateLoading}
+              >
+                <option value="">-- Template wählen --</option>
+                {promptTemplates.map((t) => (
+                  <option key={t.name} value={t.name}>
+                    {t.displayName}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Template-Editor */}
+            {selectedTemplate && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium">
+                    {selectedTemplate}
+                  </label>
+                  <span className="text-xs text-gray-500">
+                    {templateContent.length} Zeichen
+                  </span>
+                </div>
+
+                <textarea
+                  className="w-full border rounded px-3 py-2 font-mono text-xs h-80"
+                  value={templateContent}
+                  onChange={(e) => setTemplateContent(e.target.value)}
+                  disabled={templateLoading || templateSaving}
+                  placeholder="Template-Inhalt..."
+                />
+
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400"
+                    onClick={saveTemplate}
+                    disabled={templateSaving || !templateContent}
+                  >
+                    {templateSaving ? "Speichere..." : "Template speichern"}
+                  </button>
+                  <button
+                    type="button"
+                    className="px-4 py-2 border rounded hover:bg-gray-50"
+                    onClick={() => loadTemplate(selectedTemplate)}
+                    disabled={templateLoading}
+                  >
+                    Zurücksetzen
+                  </button>
+                </div>
+
+                <div className="text-xs text-amber-700 bg-amber-50 p-2 rounded">
+                  Hinweis: Änderungen werden sofort wirksam. Ein Backup der vorherigen Version wird automatisch im Ordner "backups" erstellt.
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Aktions-Buttons */}
       <div className="flex gap-3">
