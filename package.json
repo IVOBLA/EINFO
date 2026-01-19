@@ -3,7 +3,8 @@
   "private": true,
   "workspaces": [
     "client",
-    "server"
+    "server",
+    "chatbot"
   ],
   "scripts": {
     "dev": "concurrently -k -n CLIENT,SERVER -c magenta,cyan \"npm:dev --workspace=client\" \"npm:dev --workspace=server\"",
