@@ -947,6 +947,7 @@ export function incrementSimulationStep() {
 
 import { applyAllFilteringRules } from "./filtering_engine.js";
 import { extractContextFingerprint } from "./context_fingerprint.js";
+import { setLastAnalysisStatus } from "../../server/routes/admin_filtering.js";
 
 // Cache für letzten Fingerprint
 let lastContextFingerprint = null;
@@ -1008,6 +1009,17 @@ export async function getFilteredDisasterContextSummary({ maxLength = 2500 } = {
     if (summary.length > maxLength) {
       summary = summary.substring(0, maxLength) + "\n... (gekürzt)";
     }
+
+    // NEU: Status an Admin-Panel kommunizieren
+    setLastAnalysisStatus({
+      lastAnalysis: {
+        timestamp: Date.now(),
+        tokensUsed,
+        tokensLimit,
+        appliedRules,
+        fingerprint
+      }
+    });
 
     return { summary, fingerprint, filtered, appliedRules, tokensUsed, tokensLimit };
   } catch (err) {
