@@ -984,8 +984,8 @@ export async function getFilteredDisasterContextSummary({ maxLength = 2500 } = {
       board: einfoData.boardRaw || einfoData.board // Verwende boardRaw wenn vorhanden
     };
 
-    // Wende Filterregeln an
-    const { filtered, rules } = await applyAllFilteringRules(dataForFiltering, {});
+    // Wende Filterregeln an (mit Debug-Infos)
+    const { filtered, rules, debug: filterDebug } = await applyAllFilteringRules(dataForFiltering, {});
 
     // Extrahiere Context-Fingerprint (verwendet dataForFiltering für korrekte board.columns Struktur)
     const fingerprint = extractContextFingerprint(filtered, dataForFiltering, lastContextFingerprint);
@@ -1044,7 +1044,7 @@ export async function getFilteredDisasterContextSummary({ maxLength = 2500 } = {
       }
     });
 
-    return { summary, fingerprint, filtered, appliedRules, tokensUsed, tokensLimit };
+    return { summary, fingerprint, filtered, appliedRules, tokensUsed, tokensLimit, filterDebug };
   } catch (err) {
     logError("Fehler bei gefiltertem Context-Summary", {
       error: String(err)
@@ -1052,7 +1052,7 @@ export async function getFilteredDisasterContextSummary({ maxLength = 2500 } = {
 
     // Fallback auf alte Methode
     const summary = await getDisasterContextSummary({ maxLength });
-    return { summary, fingerprint: null, filtered: null, appliedRules: null };
+    return { summary, fingerprint: null, filtered: null, appliedRules: null, filterDebug: null };
   }
 }
 

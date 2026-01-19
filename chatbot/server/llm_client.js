@@ -11,7 +11,7 @@ import {
   jsonRepairSystemPrompt
 } from "./prompts.js";
 
-import { logDebug, logError, logLLMExchange } from "./logger.js";
+import { logDebug, logError, logLLMExchange, logPromptComposition } from "./logger.js";
 import { getKnowledgeContextVector } from "./rag/rag_vector.js";
 import { getEnhancedContext } from "./rag/query_router.js";
 import { extractJsonObject, validateOperationsJson } from "./json_sanitizer.js";
@@ -140,19 +140,39 @@ export async function callLLMForOps({
   let systemPrompt;
   let userPrompt;
 
+  // Debug-Infos für Prompt-Composition-Log
+  let promptCompositionDebug = null;
+
   if (llmInput.firstStep) {
     // NEU: Szenario an Start-Prompt übergeben
     const start = buildStartPrompts({ roles: llmInput.roles, scenario });
     systemPrompt = start.systemPrompt;
     userPrompt = start.userPrompt;
+
+    // Debug-Info für Start-Phase
+    promptCompositionDebug = {
+      phase: "start",
+      rules: {},
+      filtering: {},
+      components: {
+        systemPrompt: { chars: systemPrompt.length, tokens: Math.ceil(systemPrompt.length / 4) },
+        userPrompt: { chars: userPrompt.length, tokens: Math.ceil(userPrompt.length / 4) },
+        scenarioContext: { chars: scenario ? JSON.stringify(scenario).length : 0, included: !!scenario }
+      }
+    };
   } else {
     // Knowledge Context aus RAG
     const knowledgeContext = await getKnowledgeContextVector(
       "Stabsarbeit Kat-E Einsatzleiter LdStb Meldestelle S1 S2 S3 S4 S5 S6"
     );
 
-    // Disaster Context abrufen (mit Filterregeln + Admin-Status Update)
-    const { summary: disasterContext } = await getFilteredDisasterContextSummary({ maxLength: 1500 });
+    // Disaster Context abrufen (mit Filterregeln + Admin-Status Update + Debug-Infos)
+    const {
+      summary: disasterContext,
+      filterDebug,
+      appliedRules,
+      tokensUsed: disasterTokens
+    } = await getFilteredDisasterContextSummary({ maxLength: 1500 });
 
     // Learned Responses abrufen (basierend auf aktuellem Board-Context)
     const contextQuery = `${compressedBoard.substring(0, 200)} Katastrophenmanagement Einsatzleitung`;
@@ -172,6 +192,70 @@ export async function callLLMForOps({
       learnedResponses,
       scenario
     });
+
+    // Debug-Info für Operations-Phase (vollständig)
+    promptCompositionDebug = {
+      phase: "operations",
+      rules: filterDebug?.rules || {},
+      filtering: filterDebug?.filtering || {},
+      appliedRules,
+      components: {
+        systemPrompt: {
+          chars: systemPrompt.length,
+          tokens: Math.ceil(systemPrompt.length / 4),
+          preview: systemPrompt.substring(0, 100)
+        },
+        userPrompt: {
+          chars: userPrompt.length,
+          tokens: Math.ceil(userPrompt.length / 4)
+        },
+        compressedBoard: {
+          chars: compressedBoard?.length || 0,
+          tokens: Math.ceil((compressedBoard?.length || 0) / 4),
+          preview: compressedBoard?.substring(0, 80)
+        },
+        compressedAufgaben: {
+          chars: compressedAufgaben?.length || 0,
+          tokens: Math.ceil((compressedAufgaben?.length || 0) / 4)
+        },
+        compressedProtokoll: {
+          chars: compressedProtokoll?.length || 0,
+          tokens: Math.ceil((compressedProtokoll?.length || 0) / 4)
+        },
+        knowledgeContext: {
+          chars: knowledgeContext?.length || 0,
+          tokens: Math.ceil((knowledgeContext?.length || 0) / 4),
+          included: !!knowledgeContext && knowledgeContext !== "(kein Knowledge-Kontext verfügbar)"
+        },
+        disasterContext: {
+          chars: disasterContext?.length || 0,
+          tokens: disasterTokens || Math.ceil((disasterContext?.length || 0) / 4),
+          preview: disasterContext?.substring(0, 80)
+        },
+        learnedResponses: {
+          chars: learnedResponses?.length || 0,
+          tokens: Math.ceil((learnedResponses?.length || 0) / 4),
+          included: !!learnedResponses && learnedResponses !== "(keine gelernten Antworten verfügbar)"
+        },
+        memorySnippets: {
+          chars: memorySnippets?.join?.("\n")?.length || 0,
+          count: Array.isArray(memorySnippets) ? memorySnippets.length : 0
+        },
+        messagesNeedingResponse: {
+          count: llmInput.messagesNeedingResponse?.length || 0,
+          included: (llmInput.messagesNeedingResponse?.length || 0) > 0
+        },
+        openQuestions: {
+          count: llmInput.openQuestions?.length || 0,
+          included: (llmInput.openQuestions?.length || 0) > 0
+        }
+      }
+    };
+  }
+
+  // Prompt-Composition-Log schreiben
+  if (promptCompositionDebug) {
+    logPromptComposition(promptCompositionDebug);
   }
 
   const messages = [

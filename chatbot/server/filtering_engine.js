@@ -70,6 +70,7 @@ export function invalidateRulesCache() {
 
 /**
  * Wendet alle aktivierten Regeln an
+ * @returns {object} - { filtered, rules, debug } mit Debug-Informationen
  */
 export async function applyAllFilteringRules(rawData, learnedWeights = {}) {
   const rules = await loadFilteringRules();
@@ -82,32 +83,138 @@ export async function applyAllFilteringRules(rawData, learnedWeights = {}) {
     incidents: []
   };
 
+  // Debug-Tracking für jede Regel
+  const debug = {
+    rules: {},
+    filtering: {}
+  };
+
+  // Zähle Rohdaten
+  const rawAbschnitteCount = countAreas(rawData.board);
+  const rawProtocolCount = Array.isArray(rawData.protocol) ? rawData.protocol.length : 0;
+  const rawIncidentsCount = countIncidents(rawData.board);
+
   // Regel R1: Abschnitte-Priorität
-  if (rules.rules.R1_ABSCHNITTE_PRIORITAET?.enabled) {
+  const r1Enabled = rules.rules.R1_ABSCHNITTE_PRIORITAET?.enabled;
+  debug.rules.R1_ABSCHNITTE_PRIORITAET = {
+    enabled: r1Enabled,
+    details: r1Enabled
+      ? `max_items=${rules.rules.R1_ABSCHNITTE_PRIORITAET.output?.max_items || 5}`
+      : null
+  };
+  if (r1Enabled) {
     filtered.abschnitte = applyRule_R1(rawData.board, rules.rules.R1_ABSCHNITTE_PRIORITAET);
+    debug.filtering.abschnitte = {
+      before: rawAbschnitteCount,
+      after: filtered.abschnitte.length,
+      reason: `Top ${rules.rules.R1_ABSCHNITTE_PRIORITAET.output?.max_items || 5} nach Priority-Score`
+    };
   }
 
   // Regel R2: Protokoll-Relevanz
-  if (rules.rules.R2_PROTOKOLL_RELEVANZ?.enabled) {
-    filtered.protocol = applyRule_R2(rawData.protocol, rules.rules.R2_PROTOKOLL_RELEVANZ, learnedWeights);
+  const r2Enabled = rules.rules.R2_PROTOKOLL_RELEVANZ?.enabled;
+  const r2Config = rules.rules.R2_PROTOKOLL_RELEVANZ;
+  debug.rules.R2_PROTOKOLL_RELEVANZ = {
+    enabled: r2Enabled,
+    details: r2Enabled
+      ? `min_score=${r2Config.output?.min_score || 0.6}, max_entries=${r2Config.output?.max_entries || 10}`
+      : null
+  };
+  if (r2Enabled) {
+    filtered.protocol = applyRule_R2(rawData.protocol, r2Config, learnedWeights);
+    debug.filtering.protocol = {
+      before: rawProtocolCount,
+      after: filtered.protocol.length,
+      reason: `Score >= ${r2Config.output?.min_score || 0.6}, max ${r2Config.output?.max_entries || 10} Einträge`
+    };
   }
 
   // Regel R3: Trends-Erkennung
-  if (rules.rules.R3_TRENDS_ERKENNUNG?.enabled) {
+  const r3Enabled = rules.rules.R3_TRENDS_ERKENNUNG?.enabled;
+  debug.rules.R3_TRENDS_ERKENNUNG = {
+    enabled: r3Enabled,
+    details: r3Enabled
+      ? `time_windows=${JSON.stringify(rules.rules.R3_TRENDS_ERKENNUNG.time_windows || [60])}`
+      : null
+  };
+  if (r3Enabled) {
     filtered.trends = applyRule_R3(rawData.board, rules.rules.R3_TRENDS_ERKENNUNG);
+    debug.filtering.trends = {
+      before: "n/a",
+      after: Object.keys(filtered.trends).length > 0 ? 1 : 0,
+      reason: `Trend: ${filtered.trends.direction || "stable"} (${filtered.trends.strength || "weak"})`
+    };
   }
 
   // Regel R4: Ressourcen-Status
-  if (rules.rules.R4_RESSOURCEN_STATUS?.enabled) {
+  const r4Enabled = rules.rules.R4_RESSOURCEN_STATUS?.enabled;
+  debug.rules.R4_RESSOURCEN_STATUS = {
+    enabled: r4Enabled,
+    details: r4Enabled
+      ? `threshold=${rules.rules.R4_RESSOURCEN_STATUS.aggregation?.highlight_threshold?.utilization_percent || 80}%`
+      : null
+  };
+  if (r4Enabled) {
     filtered.resources = applyRule_R4(rawData.board, rules.rules.R4_RESSOURCEN_STATUS);
+    debug.filtering.resources = {
+      before: rawIncidentsCount,
+      after: filtered.resources.per_area?.length || 0,
+      reason: `Auslastung: ${filtered.resources.utilization || 0}%, Engpass: ${filtered.resources.resource_shortage ? "JA" : "NEIN"}`
+    };
   }
 
   // Regel R5: Stabs-Fokus (modifiziert andere Regeln)
-  if (rules.rules.R5_STABS_FOKUS?.enabled) {
+  const r5Enabled = rules.rules.R5_STABS_FOKUS?.enabled;
+  debug.rules.R5_STABS_FOKUS = {
+    enabled: r5Enabled,
+    details: r5Enabled
+      ? `aggregate=${rules.rules.R5_STABS_FOKUS.stab_mode?.aggregate_to_sections}, max_individual=${rules.rules.R5_STABS_FOKUS.stab_mode?.max_individual_incidents || 3}`
+      : null
+  };
+  if (r5Enabled) {
+    const incidentsBefore = filtered.incidents.length;
     applyRule_R5(filtered, rawData, rules.rules.R5_STABS_FOKUS);
+    debug.filtering.incidents = {
+      before: rawIncidentsCount,
+      after: filtered.incidents.length,
+      reason: `Nur kritische Einzeleinsätze (max ${rules.rules.R5_STABS_FOKUS.stab_mode?.max_individual_incidents || 3})`
+    };
   }
 
-  return { filtered, rules };
+  logDebug("Filterregeln angewendet", {
+    rulesApplied: Object.entries(debug.rules).filter(([_, v]) => v.enabled).map(([k]) => k),
+    filtering: debug.filtering
+  });
+
+  return { filtered, rules, debug };
+}
+
+/**
+ * Hilfsfunktion: Zählt Abschnitte im Board
+ */
+function countAreas(board) {
+  if (!board?.columns) return 0;
+  let count = 0;
+  for (const columnKey of ["neu", "in-bearbeitung", "erledigt"]) {
+    const column = board.columns[columnKey];
+    if (!column?.items) continue;
+    count += column.items.filter(card => card?.isArea).length;
+  }
+  return count;
+}
+
+/**
+ * Hilfsfunktion: Zählt Incidents (nicht-Abschnitte) im Board
+ */
+function countIncidents(board) {
+  if (!board?.columns) return 0;
+  let count = 0;
+  for (const columnKey of ["neu", "in-bearbeitung", "erledigt"]) {
+    const column = board.columns[columnKey];
+    if (!column?.items) continue;
+    count += column.items.filter(card => card && !card.isArea).length;
+  }
+  return count;
 }
 
 /**
