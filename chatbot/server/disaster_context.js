@@ -1010,8 +1010,8 @@ export async function getFilteredDisasterContextSummary({ maxLength = 2500 } = {
       summary = summary.substring(0, maxLength) + "\n... (gekürzt)";
     }
 
-    // NEU: Status an Admin-Panel kommunizieren
-    setLastAnalysisStatus({
+    // NEU: Status an Admin-Panel kommunizieren (in Datei persistiert)
+    await setLastAnalysisStatus({
       lastAnalysis: {
         timestamp: Date.now(),
         tokensUsed,

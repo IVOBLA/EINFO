@@ -10,7 +10,7 @@ import { fileURLToPath } from "url";
 import { CONFIG } from "./config.js";
 import { logDebug, logError, logInfo } from "./logger.js";
 // isSimulationRunning nicht mehr benötigt - KI-Analyse ist immer verfügbar
-import { getDisasterContextSummary, getCurrentDisasterContext } from "./disaster_context.js";
+import { getFilteredDisasterContextSummary, getCurrentDisasterContext } from "./disaster_context.js";
 import { callLLMForChat } from "./llm_client.js";
 import { saveFeedback, getLearnedResponsesContext } from "./llm_feedback.js";
 import { embedText } from "./rag/embedding.js";
@@ -670,7 +670,7 @@ export async function answerQuestion(question, role, context = "aufgabenboard") 
   }
 
   const normalizedRole = role.toUpperCase();
-  const disasterSummary = await getDisasterContextSummary({ maxLength: 1500 });
+  const { summary: disasterSummary } = await getFilteredDisasterContextSummary({ maxLength: 1500 });
 
   // RAG-Context holen (parallel für Performance)
   const [vectorRagResult, sessionContext] = await Promise.all([
