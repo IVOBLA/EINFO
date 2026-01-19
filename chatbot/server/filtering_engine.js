@@ -18,6 +18,83 @@ let cachedRules = null;
 let cacheTimestamp = null;
 const CACHE_TTL_MS = 60000; // 1 Minute
 
+// Vordefinierte Standard-Regeln (R1-R5)
+const DEFAULT_RULES = {
+  version: "1.0.0",
+  limits: {
+    max_total_tokens: 2500,
+    max_context_size_kb: 50
+  },
+  rules: {
+    R1_ABSCHNITTE_PRIORITAET: {
+      enabled: true,
+      description: "Filtert Abschnitte nach Priorität und zeigt die wichtigsten",
+      applies_to: "board",
+      priority_factors: [
+        { field: "critical_incidents", operator: ">", value: 0, score: 100 },
+        { field: "total_incidents", operator: ">=", value: 5, score: 50 },
+        { field: "total_personnel", operator: ">=", value: 20, score: 30 },
+        { field: "avg_personnel_per_incident", operator: ">=", value: 5, score: 20 }
+      ],
+      output: {
+        max_items: 5
+      }
+    },
+    R2_PROTOKOLL_RELEVANZ: {
+      enabled: true,
+      description: "Filtert Protokoll-Einträge nach Relevanz",
+      applies_to: "protocol",
+      scoring: {
+        base_score: 0.5,
+        factors: [
+          { name: "Offene Fragen", pattern: "\\?", weight: 0.3, learnable: true },
+          { name: "Ressourcen-Anfrage", keywords: ["anfordern", "anforderung", "benötigt", "brauchen", "verstärkung"], weight: 0.25, learnable: true },
+          { name: "Statusmeldung", keywords: ["status", "lage", "situation", "aktuell"], weight: 0.15, learnable: true },
+          { name: "Dringend", keywords: ["dringend", "sofort", "kritisch", "notfall", "alarm"], weight: 0.4, learnable: false },
+          { name: "Warnung", keywords: ["warnung", "achtung", "gefahr", "vorsicht"], weight: 0.35, learnable: false }
+        ]
+      },
+      output: {
+        max_entries: 10,
+        min_score: 0.6,
+        show_score: false
+      }
+    },
+    R3_TRENDS_ERKENNUNG: {
+      enabled: true,
+      description: "Erkennt Trends in der Einsatzentwicklung",
+      applies_to: "board",
+      time_windows: [60, 120],
+      output: {
+        forecast_horizon_minutes: 120
+      }
+    },
+    R4_RESSOURCEN_STATUS: {
+      enabled: true,
+      description: "Analysiert den Ressourcen-Status und erkennt Engpässe",
+      applies_to: "board",
+      aggregation: {
+        highlight_threshold: {
+          utilization_percent: 80
+        }
+      }
+    },
+    R5_STABS_FOKUS: {
+      enabled: false,
+      description: "Aggregiert Daten für Stabs-Ansicht (nur kritische Einzeleinsätze)",
+      applies_to: "all",
+      stab_mode: {
+        aggregate_to_sections: true,
+        max_individual_incidents: 3,
+        show_individual_incidents_only_if: [
+          { field: "priority", value: "critical" },
+          { field: "has_open_questions", value: true }
+        ]
+      }
+    }
+  }
+};
+
 /**
  * Lädt Filterregeln aus JSON-Datei
  */
@@ -28,8 +105,15 @@ export async function loadFilteringRules() {
       return cachedRules;
     }
 
-    const raw = await fsPromises.readFile(RULES_FILE, "utf8");
-    const rules = JSON.parse(raw);
+    let rules;
+    try {
+      const raw = await fsPromises.readFile(RULES_FILE, "utf8");
+      rules = JSON.parse(raw);
+    } catch (readErr) {
+      // Datei existiert nicht - Default verwenden
+      logInfo("Keine filtering_rules.json gefunden, verwende vordefinierte Regeln");
+      rules = DEFAULT_RULES;
+    }
 
     cachedRules = rules;
     cacheTimestamp = Date.now();
@@ -45,8 +129,8 @@ export async function loadFilteringRules() {
       error: String(err),
       file: RULES_FILE
     });
-    // Fallback: Leere Regeln
-    return { version: "1.0.0", limits: {}, rules: {} };
+    // Fallback: Default-Regeln
+    return DEFAULT_RULES;
   }
 }
 
