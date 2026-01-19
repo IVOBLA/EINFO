@@ -18,8 +18,16 @@ let cachedRules = null;
 let cacheTimestamp = null;
 const CACHE_TTL_MS = 60000; // 1 Minute
 
+// Leere Fallback-Regeln (nur wenn Datei nicht lesbar)
+const EMPTY_RULES = {
+  version: "1.0.0",
+  limits: { max_total_tokens: 2500 },
+  rules: {}
+};
+
 /**
- * Lädt Filterregeln aus JSON-Datei
+ * Lädt Filterregeln aus JSON-Datei (filtering_rules.json)
+ * Die Datei wird vom Admin-Panel verwaltet und enthält alle Regeln.
  */
 export async function loadFilteringRules() {
   try {
@@ -41,12 +49,13 @@ export async function loadFilteringRules() {
 
     return rules;
   } catch (err) {
-    logError("Fehler beim Laden der Filterregeln", {
+    logError("Fehler beim Laden der Filterregeln - Datei nicht gefunden oder ungültig", {
       error: String(err),
-      file: RULES_FILE
+      file: RULES_FILE,
+      hint: "Bitte Admin-Panel öffnen um Standard-Regeln zu initialisieren"
     });
-    // Fallback: Leere Regeln
-    return { version: "1.0.0", limits: {}, rules: {} };
+    // Fallback: Leere Regeln (keine Filterung)
+    return EMPTY_RULES;
   }
 }
 

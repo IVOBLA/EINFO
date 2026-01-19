@@ -18,6 +18,116 @@ const LEARNED_FILE = path.resolve(__dirname, "../data/llm_feedback/learned_filte
 // Cache für letzten Analyse-Status
 let lastAnalysisStatus = null;
 
+// Vordefinierte Standard-Regeln (R1-R5)
+const DEFAULT_RULES = {
+  version: "1.0.0",
+  limits: {
+    max_total_tokens: 2500,
+    max_context_size_kb: 50
+  },
+  rules: {
+    R1_ABSCHNITTE_PRIORITAET: {
+      enabled: true,
+      description: "Filtert Abschnitte nach Priorität und zeigt die wichtigsten",
+      applies_to: "board",
+      priority_factors: [
+        { field: "critical_incidents", operator: ">", value: 0, score: 100 },
+        { field: "total_incidents", operator: ">=", value: 5, score: 50 },
+        { field: "total_personnel", operator: ">=", value: 20, score: 30 },
+        { field: "avg_personnel_per_incident", operator: ">=", value: 5, score: 20 }
+      ],
+      output: {
+        max_items: 5
+      }
+    },
+    R2_PROTOKOLL_RELEVANZ: {
+      enabled: true,
+      description: "Filtert Protokoll-Einträge nach Relevanz",
+      applies_to: "protocol",
+      scoring: {
+        base_score: 0.5,
+        factors: [
+          { name: "Offene Fragen", pattern: "\\?", weight: 0.3, learnable: true },
+          { name: "Ressourcen-Anfrage", keywords: ["anfordern", "anforderung", "benötigt", "brauchen", "verstärkung"], weight: 0.25, learnable: true },
+          { name: "Statusmeldung", keywords: ["status", "lage", "situation", "aktuell"], weight: 0.15, learnable: true },
+          { name: "Dringend", keywords: ["dringend", "sofort", "kritisch", "notfall", "alarm"], weight: 0.4, learnable: false },
+          { name: "Warnung", keywords: ["warnung", "achtung", "gefahr", "vorsicht"], weight: 0.35, learnable: false }
+        ]
+      },
+      output: {
+        max_entries: 10,
+        min_score: 0.6,
+        show_score: false
+      }
+    },
+    R3_TRENDS_ERKENNUNG: {
+      enabled: true,
+      description: "Erkennt Trends in der Einsatzentwicklung",
+      applies_to: "board",
+      time_windows: [60, 120],
+      output: {
+        forecast_horizon_minutes: 120
+      }
+    },
+    R4_RESSOURCEN_STATUS: {
+      enabled: true,
+      description: "Analysiert den Ressourcen-Status und erkennt Engpässe",
+      applies_to: "board",
+      aggregation: {
+        highlight_threshold: {
+          utilization_percent: 80
+        }
+      }
+    },
+    R5_STABS_FOKUS: {
+      enabled: false,
+      description: "Aggregiert Daten für Stabs-Ansicht (nur kritische Einzeleinsätze)",
+      applies_to: "all",
+      stab_mode: {
+        aggregate_to_sections: true,
+        max_individual_incidents: 3,
+        show_individual_incidents_only_if: [
+          { field: "priority", value: "critical" },
+          { field: "has_open_questions", value: true }
+        ]
+      }
+    }
+  }
+};
+
+/**
+ * Lädt Regeln aus Datei. Erstellt die Datei mit Standard-Regeln falls nicht vorhanden.
+ */
+async function loadRulesOrDefault() {
+  try {
+    const rulesRaw = await fsPromises.readFile(RULES_FILE, "utf8");
+    return JSON.parse(rulesRaw);
+  } catch (err) {
+    // Datei existiert nicht - Standard-Regeln in Datei schreiben
+    console.log("filtering_rules.json nicht gefunden, erstelle mit Standard-Regeln...");
+    await ensureDir(RULES_FILE);
+    await fsPromises.writeFile(
+      RULES_FILE,
+      JSON.stringify(DEFAULT_RULES, null, 2),
+      "utf8"
+    );
+    console.log("filtering_rules.json erstellt:", RULES_FILE);
+    return DEFAULT_RULES;
+  }
+}
+
+/**
+ * Stellt sicher, dass das Verzeichnis existiert
+ */
+async function ensureDir(filePath) {
+  const dir = path.dirname(filePath);
+  try {
+    await fsPromises.mkdir(dir, { recursive: true });
+  } catch (err) {
+    // Verzeichnis existiert bereits
+  }
+}
+
 /**
  * Speichert den letzten Analyse-Status (wird von disaster_context.js aufgerufen)
  */
@@ -34,9 +144,8 @@ export function setLastAnalysisStatus(status) {
  */
 router.get("/status", async (req, res) => {
   try {
-    // Lade Regelwerk
-    const rulesRaw = await fsPromises.readFile(RULES_FILE, "utf8");
-    const rules = JSON.parse(rulesRaw);
+    // Lade Regelwerk (mit Fallback auf Default)
+    const rules = await loadRulesOrDefault();
 
     // Lade gelernte Filter
     let learned = null;
@@ -101,8 +210,7 @@ router.get("/status", async (req, res) => {
  */
 router.get("/", async (req, res) => {
   try {
-    const rulesRaw = await fsPromises.readFile(RULES_FILE, "utf8");
-    const rules = JSON.parse(rulesRaw);
+    const rules = await loadRulesOrDefault();
     res.json(rules);
   } catch (err) {
     console.error("Fehler beim Laden der Regeln:", err);
@@ -128,6 +236,9 @@ router.put("/", async (req, res) => {
         details: "Fehlende Felder: version oder rules"
       });
     }
+
+    // Verzeichnis erstellen falls nötig
+    await ensureDir(RULES_FILE);
 
     // Speichern
     await fsPromises.writeFile(
@@ -189,6 +300,9 @@ router.post("/reset-learned", async (req, res) => {
         details: "Sende { confirmReset: true }"
       });
     }
+
+    // Verzeichnis erstellen falls nötig
+    await ensureDir(LEARNED_FILE);
 
     // Initialer Zustand
     const initialState = {
