@@ -144,7 +144,7 @@ import {
   initializeDisasterContext,
   updateDisasterContextFromEinfo,
   getCurrentDisasterContext,
-  getDisasterContextSummary,
+  getFilteredDisasterContextSummary,
   loadDisasterContext,
   listDisasterContexts,
   finalizeDisasterContext,
@@ -1233,14 +1233,14 @@ app.get("/api/disaster/current", (req, res) => {
   }
 });
 
-// Disaster Context Summary abrufen (immer aktuelle EINFO-Daten)
+// Disaster Context Summary abrufen (mit Filterregeln + Admin-Status Update)
 app.get("/api/disaster/summary", async (req, res) => {
   try {
     const { maxLength } = req.query;
-    const summary = await getDisasterContextSummary({
+    const result = await getFilteredDisasterContextSummary({
       maxLength: maxLength ? parseInt(maxLength, 10) : 1500
     });
-    res.json({ ok: true, summary });
+    res.json({ ok: true, summary: result.summary });
   } catch (err) {
     logError("Disaster Summary Fehler", { error: String(err) });
     res.status(500).json({ ok: false, error: String(err) });

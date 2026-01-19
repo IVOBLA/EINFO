@@ -18,7 +18,7 @@ import { extractJsonObject, validateOperationsJson } from "./json_sanitizer.js";
 import { setLLMHistoryMeta } from "./state_store.js";
 
 // Imports für Disaster Context und Learned Responses
-import { getDisasterContextSummary } from "./disaster_context.js";
+import { getFilteredDisasterContextSummary } from "./disaster_context.js";
 import { getLearnedResponsesContext } from "./llm_feedback.js";
 
 // ============================================================
@@ -151,8 +151,8 @@ export async function callLLMForOps({
       "Stabsarbeit Kat-E Einsatzleiter LdStb Meldestelle S1 S2 S3 S4 S5 S6"
     );
 
-    // Disaster Context abrufen (immer aktuelle EINFO-Daten)
-    const disasterContext = await getDisasterContextSummary({ maxLength: 1500 });
+    // Disaster Context abrufen (mit Filterregeln + Admin-Status Update)
+    const { summary: disasterContext } = await getFilteredDisasterContextSummary({ maxLength: 1500 });
 
     // Learned Responses abrufen (basierend auf aktuellem Board-Context)
     const contextQuery = `${compressedBoard.substring(0, 200)} Katastrophenmanagement Einsatzleitung`;
@@ -306,8 +306,8 @@ export async function callLLMForChat(arg1, arg2, arg3) {
     ? await getKnowledgeContextVector(question)
     : enhancedContext;
 
-  // Disaster Context abrufen (immer aktuelle EINFO-Daten)
-  const disasterContext = await getDisasterContextSummary({ maxLength: 1000 });
+  // Disaster Context abrufen (mit Filterregeln + Admin-Status Update)
+  const { summary: disasterContext } = await getFilteredDisasterContextSummary({ maxLength: 1000 });
 
   // Learned Responses abrufen (basierend auf Frage)
   const learnedResponses = await getLearnedResponsesContext(question, { maxLength: 800 });
