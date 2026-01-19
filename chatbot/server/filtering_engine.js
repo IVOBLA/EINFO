@@ -456,7 +456,23 @@ function calculateAreaStats(board, area, rule) {
 function scoreProtocolEntry(entry, rule, learnedWeights = {}) {
   let score = rule.scoring?.base_score || 0.5;
 
-  const text = String(entry.content || entry.text || "").toLowerCase();
+  const text = [
+    entry.content,
+    entry.text,
+    entry.information,
+    entry.info,
+    entry.infoTyp,
+    entry.infoType,
+    entry.subject,
+    entry.title,
+    ...(Array.isArray(entry?.massnahmen)
+      ? entry.massnahmen.map((item) => item?.massnahme).filter(Boolean)
+      : [])
+  ]
+    .filter(Boolean)
+    .map((value) => String(value))
+    .join(" ")
+    .toLowerCase();
 
   for (const factor of rule.scoring?.factors || []) {
     let matches = false;
