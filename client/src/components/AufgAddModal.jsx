@@ -22,6 +22,10 @@ export default function AufgAddModal({
   onAdded,
   incidentOptions = [],
   defaultDueOffsetMinutes = getFallbackDueOffsetMinutes(),
+  initialTitle = "",
+  initialDesc = "",
+  initialResponsible = "",
+  initialType = "",
 }) {
   const safeOffset = useMemo(
     () => ensureValidDueOffset(defaultDueOffsetMinutes),
@@ -39,12 +43,12 @@ export default function AufgAddModal({
     if (!open) return;
 
     setDueAt(createDefaultDueAt(safeOffset));
-    setTitle("");
-    setType("");
-    setResponsible("");
-    setDesc("");
+    setTitle(initialTitle || "");
+    setType(initialType || "");
+    setResponsible(initialResponsible || "");
+    setDesc(initialDesc || "");
     setRelatedIncidentId("");
-  }, [open, safeOffset]);
+  }, [open, safeOffset, initialTitle, initialDesc, initialResponsible, initialType]);
 
   const selectedIncident = useMemo(() => {
     if (!relatedIncidentId) return null;
