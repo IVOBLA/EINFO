@@ -15,6 +15,7 @@ const router = express.Router();
 const RULES_FILE = path.resolve(__dirname, "../data/conf/filtering_rules.json");
 const LEARNED_FILE = path.resolve(__dirname, "../data/llm_feedback/learned_filters.json");
 const ANALYSIS_STATUS_FILE = path.resolve(__dirname, "../data/last_analysis_status.json");
+const SCENARIO_CONFIG_FILE = path.resolve(__dirname, "../data/scenario_config.json");
 
 // Vordefinierte Standard-Regeln (R1-R5)
 const DEFAULT_RULES = {
@@ -376,6 +377,81 @@ router.post("/reset-learned", async (req, res) => {
     console.error("Fehler beim Reset:", err);
     res.status(500).json({
       error: "Fehler beim Reset",
+      details: String(err)
+    });
+  }
+});
+
+/**
+ * GET /api/admin/filtering-rules/scenario
+ * Gibt aktuelle Szenario-Konfiguration zurück
+ */
+router.get("/scenario", async (req, res) => {
+  try {
+    const raw = await fsPromises.readFile(SCENARIO_CONFIG_FILE, "utf8");
+    const config = JSON.parse(raw);
+    res.json(config);
+  } catch (err) {
+    // Datei existiert nicht - Default-Werte zurückgeben
+    res.json({
+      scenarioId: null,
+      artDesEreignisses: "Unbekannt",
+      geografischerBereich: "Nicht definiert",
+      zeit: null,
+      wetter: null,
+      infrastruktur: null
+    });
+  }
+});
+
+/**
+ * PUT /api/admin/filtering-rules/scenario
+ * Aktualisiert Szenario-Konfiguration
+ */
+router.put("/scenario", async (req, res) => {
+  try {
+    const { artDesEreignisses, geografischerBereich, zeit, wetter, infrastruktur } = req.body;
+
+    // Lade bestehende Config oder erstelle neue
+    let config = {};
+    try {
+      const raw = await fsPromises.readFile(SCENARIO_CONFIG_FILE, "utf8");
+      config = JSON.parse(raw);
+    } catch {
+      // Datei existiert nicht
+    }
+
+    // Aktualisiere nur übergebene Felder
+    if (artDesEreignisses !== undefined) config.artDesEreignisses = artDesEreignisses;
+    if (geografischerBereich !== undefined) config.geografischerBereich = geografischerBereich;
+    if (zeit !== undefined) config.zeit = zeit;
+    if (wetter !== undefined) config.wetter = wetter;
+    if (infrastruktur !== undefined) config.infrastruktur = infrastruktur;
+
+    // Setze scenarioId wenn nicht vorhanden
+    if (!config.scenarioId) {
+      config.scenarioId = `scenario_${Date.now()}`;
+    }
+
+    // Verzeichnis erstellen falls nötig
+    await ensureDir(SCENARIO_CONFIG_FILE);
+
+    // Speichern
+    await fsPromises.writeFile(
+      SCENARIO_CONFIG_FILE,
+      JSON.stringify(config, null, 2),
+      "utf8"
+    );
+
+    res.json({
+      success: true,
+      message: "Szenario-Konfiguration aktualisiert",
+      config
+    });
+  } catch (err) {
+    console.error("Fehler beim Speichern der Szenario-Konfiguration:", err);
+    res.status(500).json({
+      error: "Fehler beim Speichern",
       details: String(err)
     });
   }
