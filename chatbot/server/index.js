@@ -32,7 +32,6 @@ import {
 import { logInfo, logError, logDebug } from "./logger.js";
 import { initMemoryStore } from "./memory_manager.js";
 import { loadPromptTemplate, fillTemplate, buildSystemPromptChat, buildUserPromptChat } from "./prompts.js";
-import { getFilteredDisasterContextSummary } from "./disaster_context.js";
 import { getExcludeContextForPrompt } from "./suggestion_filter.js";
 import { getGpuStatus } from "./gpu_status.js";
 import { getSystemStatus, getCpuTimesSnapshot, collectSystemMetrics } from "./system_status.js";
