@@ -136,10 +136,15 @@ export function getCachedAnalysisForRole(role) {
   };
 }
 
+// Intervall 0 = nur manuelle Auslösung (kein automatischer Loop)
 function sanitizeAnalysisIntervalMinutes(value) {
   const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed < AI_ANALYSIS_MIN_INTERVAL_MINUTES) {
+  if (!Number.isFinite(parsed) || parsed < 0) {
     return AI_ANALYSIS_DEFAULT_INTERVAL_MINUTES;
+  }
+  // 0 ist erlaubt (nur manuelle Auslösung), sonst Minimum 1 Minute
+  if (parsed > 0 && parsed < AI_ANALYSIS_MIN_INTERVAL_MINUTES) {
+    return AI_ANALYSIS_MIN_INTERVAL_MINUTES;
   }
   return Math.floor(parsed);
 }
@@ -231,16 +236,25 @@ export function getAnalysisStatus() {
 
 /**
  * Setzt das Analyse-Intervall
+ * Bei Intervall 0: Loop wird gestoppt (nur manuelle Auslösung möglich)
  */
 export function setAnalysisInterval(minutes) {
   const normalizedMinutes = sanitizeAnalysisIntervalMinutes(minutes);
   analysisIntervalMs = normalizedMinutes * 60 * 1000;
-  logInfo("Analyse-Intervall geändert", { intervalMinutes: normalizedMinutes });
+  logInfo("Analyse-Intervall geändert", {
+    intervalMinutes: normalizedMinutes,
+    mode: normalizedMinutes === 0 ? "nur-manuell" : "automatisch"
+  });
 
   if (analysisIntervalId) {
     clearInterval(analysisIntervalId);
     analysisIntervalId = null;
-    startAnalysisLoop();
+    // Nur neu starten wenn Intervall > 0
+    if (normalizedMinutes > 0) {
+      startAnalysisLoop();
+    } else {
+      logInfo("Automatische Analyse deaktiviert (Intervall=0, nur manuelle Auslösung)");
+    }
   }
 }
 
@@ -1022,6 +1036,12 @@ export function startAnalysisLoop() {
     return;
   }
 
+  // Bei Intervall 0: Kein automatischer Loop (nur manuelle Auslösung)
+  if (analysisIntervalMs <= 0) {
+    logDebug("Analyse-Loop nicht gestartet (Intervall=0, nur manuelle Auslösung)");
+    return;
+  }
+
   analysisIntervalId = setInterval(async () => {
     if (!isAnalysisActive()) {
       logDebug("Analyse übersprungen (Simulation aktiv)");
@@ -1061,15 +1081,21 @@ export function stopAnalysisLoop() {
 export async function syncAnalysisLoop() {
   const cfg = await readAnalysisConfig();
   setAnalysisInterval(cfg.intervalMinutes);
-  if (cfg.enabled) {
+  // Loop nur starten wenn: enabled=true UND intervalMinutes > 0
+  // Bei intervalMinutes=0: nur manuelle Auslösung möglich
+  if (cfg.enabled && cfg.intervalMinutes > 0) {
     startAnalysisLoop();
   } else {
     stopAnalysisLoop();
+    if (cfg.enabled && cfg.intervalMinutes === 0) {
+      logInfo("KI-Analyse aktiviert aber Intervall=0: Nur manuelle Auslösung möglich");
+    }
   }
   return {
     enabled: cfg.enabled,
     intervalMinutes: cfg.intervalMinutes,
-    running: Boolean(analysisIntervalId)
+    running: Boolean(analysisIntervalId),
+    manualOnly: cfg.intervalMinutes === 0
   };
 }
 
