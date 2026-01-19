@@ -14,9 +14,7 @@ const router = express.Router();
 
 const RULES_FILE = path.resolve(__dirname, "../data/conf/filtering_rules.json");
 const LEARNED_FILE = path.resolve(__dirname, "../data/llm_feedback/learned_filters.json");
-
-// Cache für letzten Analyse-Status
-let lastAnalysisStatus = null;
+const ANALYSIS_STATUS_FILE = path.resolve(__dirname, "../data/last_analysis_status.json");
 
 // Vordefinierte Standard-Regeln (R1-R5)
 const DEFAULT_RULES = {
@@ -129,13 +127,37 @@ async function ensureDir(filePath) {
 }
 
 /**
- * Speichert den letzten Analyse-Status (wird von disaster_context.js aufgerufen)
+ * Speichert den letzten Analyse-Status in eine Datei
+ * (wird von disaster_context.js im Chatbot-Server aufgerufen)
  */
-export function setLastAnalysisStatus(status) {
-  lastAnalysisStatus = {
+export async function setLastAnalysisStatus(status) {
+  const statusData = {
     ...status,
     timestamp: Date.now()
   };
+  try {
+    await ensureDir(ANALYSIS_STATUS_FILE);
+    await fsPromises.writeFile(
+      ANALYSIS_STATUS_FILE,
+      JSON.stringify(statusData, null, 2),
+      "utf8"
+    );
+  } catch (err) {
+    console.error("Fehler beim Speichern des Analyse-Status:", err);
+  }
+}
+
+/**
+ * Lädt den letzten Analyse-Status aus der Datei
+ */
+async function loadLastAnalysisStatus() {
+  try {
+    const raw = await fsPromises.readFile(ANALYSIS_STATUS_FILE, "utf8");
+    return JSON.parse(raw);
+  } catch (err) {
+    // Datei existiert noch nicht - OK
+    return null;
+  }
 }
 
 /**
@@ -187,7 +209,7 @@ router.get("/status", async (req, res) => {
         }))
       } : null,
 
-      lastAnalysis: lastAnalysisStatus?.lastAnalysis || null
+      lastAnalysis: (await loadLastAnalysisStatus())?.lastAnalysis || null
     };
 
     res.json(status);
