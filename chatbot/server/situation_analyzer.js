@@ -242,15 +242,41 @@ export function setAnalysisInterval(minutes) {
 
 /**
  * Holt gelernte Vorschläge für einen Kontext
+ * NEU: Nutzt Context-Fingerprint für intelligentes Matching
  */
-async function getLearnedSuggestionsForContext(role, contextSummary) {
+async function getLearnedSuggestionsForContext(role, contextSummary, contextFingerprint = null) {
   if (!learnedSuggestions.length) return [];
 
   // Filtere nach Rolle
   const roleSpecific = learnedSuggestions.filter(s => s.targetRole === role);
   if (!roleSpecific.length) return [];
 
-  // Einfache Keyword-basierte Relevanz (ohne Embedding für Performance)
+  // Wenn Fingerprint vorhanden: Nutze Fingerprint-Matching
+  if (contextFingerprint) {
+    const { matchFingerprints } = await import("./context_fingerprint.js");
+
+    const relevant = roleSpecific
+      .map(s => {
+        const score = s.context_fingerprint
+          ? matchFingerprints(contextFingerprint, s.context_fingerprint)
+          : 0;
+        return { ...s, relevance: score };
+      })
+      .filter(s => s.relevance >= 15) // Min-Schwelle
+      .sort((a, b) => b.relevance - a.relevance)
+      .slice(0, 3);
+
+    logDebug("Fingerprint-basiertes Matching", {
+      role,
+      candidates: roleSpecific.length,
+      matches: relevant.length,
+      scores: relevant.map(r => r.relevance)
+    });
+
+    return relevant;
+  }
+
+  // Fallback: Einfache Keyword-basierte Relevanz (alte Methode)
   const contextLower = contextSummary.toLowerCase();
   const relevant = roleSpecific
     .map(s => {
@@ -320,13 +346,14 @@ export async function analyzeAllRoles(forceRefresh = false) {
   logInfo("Starte Gesamtanalyse für alle Rollen (Stream wird abgewartet)");
 
   try {
-    // Aktuellen Kontext holen (immer aktuelle EINFO-Daten)
-    const disasterSummary = await getDisasterContextSummary({ maxLength: 2500 });
+    // Aktuellen Kontext holen (NEU: mit Filterregeln + Fingerprint)
+    const { getFilteredDisasterContextSummary } = await import("./disaster_context.js");
+    const { summary: disasterSummary, fingerprint, filtered } = await getFilteredDisasterContextSummary({ maxLength: 2500 });
 
-    // Gelernte Vorschläge sammeln
+    // Gelernte Vorschläge sammeln (NEU: mit Fingerprint-Matching)
     const learnedByRole = {};
     for (const role of roles) {
-      learnedByRole[role] = await getLearnedSuggestionsForContext(role, disasterSummary);
+      learnedByRole[role] = await getLearnedSuggestionsForContext(role, disasterSummary, fingerprint);
     }
 
     // Rollen-Beschreibungen für Prompt

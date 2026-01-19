@@ -552,4 +552,162 @@ async function updateLearnedWeights(feedback) {
 
 ---
 
-**Status:** Diskussion pausiert, Chat gespeichert, bereit für Fortsetzung
+## 🎯 ENTSCHEIDUNG: Context-Fingerprint-Ansatz (2026-01-18 Fortsetzung)
+
+### Problem identifiziert
+Das aktuelle System nutzt **einfaches Keyword-Matching** für gelernte Vorschläge:
+- Code in `situation_analyzer.js:246-267`
+- "Einfache Keyword-basierte Relevanz (ohne Embedding für Performance)"
+- **Problem:** Semantisch ähnliche Situationen werden nicht erkannt
+  - Beispiel: "großflächig" ≠ "viele Einsatzstellen" → kein Match
+  - Aber semantisch identisch!
+
+### Evaluierte Alternativen
+1. **Semantisches RAG (Embeddings)** - Beste Qualität, aber Performance-Overhead
+2. **Zwei-Stufen-LLM** - Risiko von Informationsverlust ❌
+3. **Rollenspezifisch** - 7 API-Calls statt 1 (zu teuer) ❌
+4. **Incremental Context** - Nur Änderungen (gute Ergänzung)
+5. **Context-Fingerprint** - Strukturierte Metadaten ⭐
+
+### ✅ Entschiedener Ansatz: Context-Fingerprint + Regelsystem
+
+**Architektur:**
+```
+┌─────────────────────────────────────────────────┐
+│     1. REGELSYSTEM filtert Kontext              │
+│  ├─ R1: Abschnitte (critical_sections: 3)      │
+│  ├─ R2: Protokoll (types: [Fragen, Ressourcen])│
+│  ├─ R3: Trends (escalating, +8/h)              │
+│  └─ R4: Ressourcen (shortage: true, 85%)       │
+│                                                 │
+│  Output: Gefilterter Kontext (800 Tokens)      │
+│          + Context-Fingerprint (Metadaten)      │
+└──────────────────┬──────────────────────────────┘
+                   │
+                   ↓
+┌─────────────────────────────────────────────────┐
+│  2. LERNEN findet ähnliche Situationen         │
+│  ├─ Vergleiche Context-Fingerprints             │
+│  ├─ Match: Disaster-Type + Phase + Ressourcen  │
+│  └─ Top 3 relevante Vorschläge (aus 50)        │
+│                                                 │
+│  Output: 3 gelernte Vorschläge (200 Tokens)    │
+└──────────────────┬──────────────────────────────┘
+                   │
+                   ↓
+┌─────────────────────────────────────────────────┐
+│     3. LLM ANALYSIERT kombiniert                │
+│  Input: 1200 Tokens (statt 3000!)              │
+│  Output: Hochwertige Vorschläge für alle Rollen│
+└─────────────────────────────────────────────────┘
+```
+
+### Context-Fingerprint-Struktur
+
+```json
+{
+  "disaster_type": "hochwasser",
+  "phase": "escalation",
+
+  "critical_sections": 3,
+  "total_incidents": 45,
+
+  "dominant_protocol_types": ["Offene Fragen", "Ressourcen-Anfrage"],
+
+  "trend_direction": "escalating",
+  "new_incidents_per_hour": 8,
+
+  "resource_shortage": true,
+  "avg_utilization": 85
+}
+```
+
+### Matching-Algorithmus
+
+```javascript
+function matchFingerprints(current, learned) {
+  let score = 0;
+
+  // Disaster-Type (wichtigster Faktor)
+  if (current.disaster_type === learned.disaster_type) score += 20;
+
+  // Phase
+  if (current.phase === learned.phase) score += 10;
+
+  // Trend-Richtung
+  if (current.trend_direction === learned.trend_direction) score += 5;
+
+  // Ressourcen-Situation
+  if (current.resource_shortage === learned.resource_shortage) score += 5;
+
+  // Protocol-Type Overlap
+  const typeOverlap = current.dominant_protocol_types.filter(t =>
+    learned.dominant_protocol_types.includes(t)
+  ).length;
+  score += typeOverlap * 3;
+
+  return score;
+}
+```
+
+### Vorteile der Lösung
+1. ✅ **Hochwertige Entscheidungen:** LLM bekommt relevanten Kontext + passende gelernte Vorschläge
+2. ✅ **Strukturiert:** Context-Fingerprint ist nachvollziehbar (nicht Black-Box)
+3. ✅ **Effizient:** Kein Embedding nötig, schnelles Matching
+4. ✅ **Regeln + Lernen:** Beste Kombination aus beiden Welten
+5. ✅ **Disaster-spezifisch:** Hochwasser-Learnings ≠ Sturm-Learnings
+6. ✅ **Kein Informationsverlust:** Anders als Zwei-Stufen-LLM
+7. ✅ **Ein API-Call:** Anders als rollenspezifische Ansätze
+
+### Implementierungs-Komponenten
+
+**Schritt 1:** Erweitere `applyAllFilteringRules()`
+```javascript
+function applyAllFilteringRules(rules, learned, rawData) {
+  const filtered = { ... };
+
+  // NEU: Erstelle Context-Fingerprint
+  const fingerprint = extractContextFingerprint(filtered, rawData);
+
+  return { filtered, fingerprint };
+}
+```
+
+**Schritt 2:** Erweitere `saveFeedback()`
+```javascript
+export async function saveFeedback(feedback) {
+  // Füge aktuellen Fingerprint hinzu
+  feedback.context_fingerprint = currentContextFingerprint;
+
+  // Speichere wie bisher
+  await saveFeedbackToFile(feedback);
+}
+```
+
+**Schritt 3:** Intelligentes Matching
+```javascript
+function getLearnedSuggestionsForContext(role, fingerprint) {
+  const roleSpecific = learnedSuggestions.filter(s => s.targetRole === role);
+
+  const scored = roleSpecific.map(s => ({
+    ...s,
+    relevance: matchFingerprints(fingerprint, s.context_fingerprint)
+  }))
+  .filter(s => s.relevance > 15)  // Min-Schwelle
+  .sort((a, b) => b.relevance - a.relevance)
+  .slice(0, 3);
+
+  return scored;
+}
+```
+
+### Optionale Erweiterung: Incremental Context
+
+Kann später hinzugefügt werden für zusätzliche Token-Reduktion:
+- Erste Analyse: Voller Kontext (2000 Tokens)
+- Folge-Analysen: Nur Diff + Kritisches (700 Tokens)
+- Alle 60min: Refresh mit vollem Kontext
+
+---
+
+**Status:** Ansatz entschieden, bereit für Implementierungsplanung

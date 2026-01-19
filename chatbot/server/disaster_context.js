@@ -940,3 +940,154 @@ export function incrementSimulationStep() {
     currentDisasterContext.statistics.totalSimulationSteps++;
   }
 }
+
+// ============================================
+// NEU: Regel-basierte Filterung + Context-Fingerprint
+// ============================================
+
+import { applyAllFilteringRules } from "./filtering_engine.js";
+import { extractContextFingerprint } from "./context_fingerprint.js";
+
+// Cache für letzten Fingerprint
+let lastContextFingerprint = null;
+
+/**
+ * Holt gefilterten Disaster Context mit Regeln und Fingerprint
+ * NEUE VERSION mit Regel-basierter Filterung
+ */
+export async function getFilteredDisasterContextSummary({ maxLength = 2500 } = {}) {
+  try {
+    // Lade aktuelle EINFO-Daten
+    const einfoData = await loadCurrentEinfoData();
+
+    // Wende Filterregeln an
+    const { filtered, rules } = await applyAllFilteringRules(einfoData, {});
+
+    // Extrahiere Context-Fingerprint
+    const fingerprint = extractContextFingerprint(filtered, einfoData, lastContextFingerprint);
+
+    // Speichere für nächsten Vergleich
+    lastContextFingerprint = fingerprint;
+
+    // Baue kompakten Summary
+    let summary = buildFilteredSummary(filtered, fingerprint, rules);
+
+    // Token-Zählung (grobe Schätzung: ~4 Zeichen pro Token)
+    const tokensUsed = Math.ceil(summary.length / 4);
+    const tokensLimit = rules.limits?.max_total_tokens || 2500;
+
+    // NEU: Erstelle Metadaten über angewendete Regeln
+    const appliedRules = {
+      R1_ABSCHNITTE: {
+        enabled: rules.rules.R1_ABSCHNITTE_PRIORITAET?.enabled || false,
+        items_shown: filtered.abschnitte?.length || 0,
+        max_items: rules.rules.R1_ABSCHNITTE_PRIORITAET?.output?.max_items || 0
+      },
+      R2_PROTOKOLL: {
+        enabled: rules.rules.R2_PROTOKOLL_RELEVANZ?.enabled || false,
+        items_shown: filtered.protocol?.length || 0,
+        max_items: rules.rules.R2_PROTOKOLL_RELEVANZ?.output?.max_entries || 0
+      },
+      R3_TRENDS: {
+        enabled: rules.rules.R3_TRENDS_ERKENNUNG?.enabled || false,
+        direction: filtered.trends?.direction || "unknown",
+        strength: filtered.trends?.strength || "unknown"
+      },
+      R4_RESSOURCEN: {
+        enabled: rules.rules.R4_RESSOURCEN_STATUS?.enabled || false,
+        shortage: filtered.resources?.resource_shortage || false,
+        utilization: filtered.resources?.utilization || 0
+      },
+      R5_STABS_FOKUS: {
+        enabled: rules.rules.R5_STABS_FOKUS?.enabled || false,
+        individual_incidents_shown: filtered.incidents?.length || 0
+      }
+    };
+
+    // Kürze falls nötig
+    if (summary.length > maxLength) {
+      summary = summary.substring(0, maxLength) + "\n... (gekürzt)";
+    }
+
+    return { summary, fingerprint, filtered, appliedRules, tokensUsed, tokensLimit };
+  } catch (err) {
+    logError("Fehler bei gefiltertem Context-Summary", {
+      error: String(err)
+    });
+
+    // Fallback auf alte Methode
+    const summary = await getDisasterContextSummary({ maxLength });
+    return { summary, fingerprint: null, filtered: null, appliedRules: null };
+  }
+}
+
+/**
+ * Baut Summary aus gefilterten Daten
+ */
+function buildFilteredSummary(filtered, fingerprint, rules) {
+  let summary = `### KATASTROPHEN-ÜBERSICHT ###\n\n`;
+  summary += `Typ: ${fingerprint.disaster_type}\n`;
+  summary += `Phase: ${fingerprint.phase}\n`;
+  summary += `Dauer: ${Math.floor(fingerprint.hours_running * 60)} Minuten\n`;
+  summary += `Trend: ${fingerprint.trend_direction} (${fingerprint.trend_strength})\n\n`;
+
+  // Abschnitte (aus R1)
+  if (filtered.abschnitte && filtered.abschnitte.length > 0) {
+    summary += `### ABSCHNITTE (${fingerprint.total_sections} gesamt, ${fingerprint.critical_sections} kritisch) ###\n`;
+    for (const abschnitt of filtered.abschnitte) {
+      summary += `- [${abschnitt.priority.toUpperCase()}] ${abschnitt.name}`;
+      summary += ` - ${abschnitt.total_incidents} Einsätze (${abschnitt.critical_incidents} kritisch)`;
+      summary += `, ${abschnitt.total_personnel} Kräfte\n`;
+    }
+    summary += `\n`;
+  }
+
+  // Ressourcen (aus R4)
+  if (filtered.resources) {
+    const res = filtered.resources;
+    summary += `### RESSOURCEN-STATUS ###\n`;
+    summary += `Einheiten: ${res.available_units} verfügbar / ${res.total_units} gesamt (${res.utilization}% ausgelastet)\n`;
+    if (res.resource_shortage) {
+      summary += `⚠️ RESSOURCEN-ENGPASS (>80% Auslastung)\n`;
+    }
+    summary += `Personal: ${res.total_personnel} im Einsatz\n\n`;
+  }
+
+  // Protokoll (aus R2)
+  if (filtered.protocol && filtered.protocol.length > 0) {
+    summary += `### WICHTIGE PROTOKOLL-EINTRÄGE (${fingerprint.protocol_entries_total} gesamt) ###\n`;
+    for (const entry of filtered.protocol.slice(0, 10)) {
+      const time = entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString("de-DE", { hour: '2-digit', minute: '2-digit' }) : "";
+      const content = String(entry.content || entry.text || "").substring(0, 100);
+      summary += `- [${time}] ${content}\n`;
+    }
+    summary += `\n`;
+  }
+
+  // Trends (aus R3)
+  if (filtered.trends && Object.keys(filtered.trends).length > 0) {
+    summary += `### TRENDS & PROGNOSE ###\n`;
+    summary += `Neue Einsätze (letzte Stunde): ${fingerprint.new_incidents_last_hour}\n`;
+    summary += `Trend: ${fingerprint.trend_direction} (${fingerprint.trend_strength})\n`;
+    summary += `Prognose nächste 2h: ${fingerprint.forecast_2h_incidents} neue Einsätze\n\n`;
+  }
+
+  // Geografische Verteilung
+  if (fingerprint.geographic_pattern && fingerprint.geographic_pattern !== "unknown") {
+    summary += `### GEOGRAFISCHE VERTEILUNG ###\n`;
+    summary += `Muster: ${fingerprint.geographic_pattern}\n`;
+    if (fingerprint.hotspot_locations && fingerprint.hotspot_locations.length > 0) {
+      summary += `Hotspots: ${fingerprint.hotspot_locations.join(", ")}\n`;
+    }
+    summary += `\n`;
+  }
+
+  return summary;
+}
+
+/**
+ * Gibt letzten Context-Fingerprint zurück
+ */
+export function getLastContextFingerprint() {
+  return lastContextFingerprint;
+}

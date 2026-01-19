@@ -142,7 +142,8 @@ export async function saveFeedback({
   userRole,
   comment,
   implemented,
-  outcome
+  outcome,
+  contextFingerprint // NEU: Context-Fingerprint für Matching
 }) {
   const feedbackId = `feedback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
@@ -169,7 +170,10 @@ export async function saveFeedback({
     comment,
 
     implemented: implemented === true,
-    outcome
+    outcome,
+
+    // NEU: Context-Fingerprint für intelligentes Matching
+    context_fingerprint: contextFingerprint || null
   };
 
   // Speichere Feedback
