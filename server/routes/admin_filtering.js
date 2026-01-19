@@ -96,14 +96,22 @@ const DEFAULT_RULES = {
 };
 
 /**
- * Lädt Regeln aus Datei oder gibt Default zurück
+ * Lädt Regeln aus Datei. Erstellt die Datei mit Standard-Regeln falls nicht vorhanden.
  */
 async function loadRulesOrDefault() {
   try {
     const rulesRaw = await fsPromises.readFile(RULES_FILE, "utf8");
     return JSON.parse(rulesRaw);
   } catch (err) {
-    // Datei existiert nicht - Default verwenden
+    // Datei existiert nicht - Standard-Regeln in Datei schreiben
+    console.log("filtering_rules.json nicht gefunden, erstelle mit Standard-Regeln...");
+    await ensureDir(RULES_FILE);
+    await fsPromises.writeFile(
+      RULES_FILE,
+      JSON.stringify(DEFAULT_RULES, null, 2),
+      "utf8"
+    );
+    console.log("filtering_rules.json erstellt:", RULES_FILE);
     return DEFAULT_RULES;
   }
 }

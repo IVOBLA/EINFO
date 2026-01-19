@@ -19,6 +19,7 @@ export default function FilteringRulesPanel({ locked = false }) {
   const [saving, setSaving] = useState(false);
   const [showAddFactor, setShowAddFactor] = useState(false);
   const [newFactor, setNewFactor] = useState({ name: "", keywords: "", weight: 0.2 });
+  const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
     loadStatus();
@@ -797,6 +798,13 @@ export default function FilteringRulesPanel({ locked = false }) {
         >
           Aktualisieren
         </button>
+        <button
+          type="button"
+          className="px-4 py-2 rounded bg-gray-600 hover:bg-gray-700 text-white"
+          onClick={() => setShowHelp(true)}
+        >
+          Hilfe zur Regel-Erstellung
+        </button>
       </div>
 
       <div className="text-xs text-gray-500 mt-4 pt-4 border-t">
@@ -804,6 +812,194 @@ export default function FilteringRulesPanel({ locked = false }) {
         Context-Fingerprinting und maschinellem Lernen. Gelernte Gewichte werden automatisch basierend
         auf Feedback angepasst und bleiben über Neustarts hinweg erhalten.
       </div>
+
+      {/* Hilfe-Modal */}
+      {showHelp && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
+              <h2 className="text-xl font-bold">Hilfe: Filterregeln konfigurieren</h2>
+              <button
+                type="button"
+                onClick={() => setShowHelp(false)}
+                className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="px-6 py-4 space-y-6">
+              {/* Einführung */}
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Was sind Filterregeln?</h3>
+                <p className="text-sm text-gray-700">
+                  Filterregeln bestimmen, welche Informationen dem KI-Chatbot zur Verfügung gestellt werden.
+                  Sie helfen dabei, die relevantesten Daten auszuwählen und unwichtige Informationen auszublenden.
+                  So erhält der Chatbot genau die Informationen, die er braucht, um hilfreiche Antworten zu geben.
+                </p>
+              </div>
+
+              {/* Die 5 Regeln */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Die 5 Standard-Regeln</h3>
+
+                <div className="space-y-4">
+                  <div className="border rounded p-3 bg-green-50">
+                    <h4 className="font-medium text-green-800">R1: Abschnitte-Priorität</h4>
+                    <p className="text-sm text-gray-700 mt-1">
+                      Sortiert und filtert Einsatz-Abschnitte nach Wichtigkeit. Abschnitte mit kritischen
+                      Einsätzen, vielen Einsätzen oder viel Personal werden priorisiert.
+                    </p>
+                    <div className="mt-2 text-xs text-gray-600">
+                      <strong>Einstellung:</strong> "Max Abschnitte" bestimmt, wie viele Abschnitte maximal angezeigt werden.
+                    </div>
+                  </div>
+
+                  <div className="border rounded p-3 bg-blue-50">
+                    <h4 className="font-medium text-blue-800">R2: Protokoll-Relevanz</h4>
+                    <p className="text-sm text-gray-700 mt-1">
+                      Bewertet Protokoll-Einträge nach Relevanz anhand von Schlüsselwörtern.
+                      Einträge mit Fragen, dringenden Meldungen oder Ressourcen-Anfragen werden höher bewertet.
+                    </p>
+                    <div className="mt-2 text-xs text-gray-600">
+                      <strong>Einstellungen:</strong>
+                      <ul className="list-disc ml-4 mt-1">
+                        <li>"Max Einträge" - Maximale Anzahl der Protokoll-Einträge</li>
+                        <li>"Min Score" - Mindest-Relevanz (0-1). Höher = nur sehr relevante Einträge</li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  <div className="border rounded p-3 bg-purple-50">
+                    <h4 className="font-medium text-purple-800">R3: Trends-Erkennung</h4>
+                    <p className="text-sm text-gray-700 mt-1">
+                      Erkennt Entwicklungstrends im Einsatzgeschehen (steigend, stabil, fallend)
+                      und erstellt Prognosen für die kommenden Stunden.
+                    </p>
+                    <div className="mt-2 text-xs text-gray-600">
+                      <strong>Einstellung:</strong> "Prognose-Horizont" bestimmt, wie weit in die Zukunft prognostiziert wird (in Minuten).
+                    </div>
+                  </div>
+
+                  <div className="border rounded p-3 bg-orange-50">
+                    <h4 className="font-medium text-orange-800">R4: Ressourcen-Status</h4>
+                    <p className="text-sm text-gray-700 mt-1">
+                      Analysiert die Auslastung der verfügbaren Ressourcen (Fahrzeuge, Personal)
+                      und erkennt Engpässe automatisch.
+                    </p>
+                  </div>
+
+                  <div className="border rounded p-3 bg-gray-100">
+                    <h4 className="font-medium text-gray-800">R5: Stabs-Fokus (Standard: AUS)</h4>
+                    <p className="text-sm text-gray-700 mt-1">
+                      Spezialansicht für Stabsarbeit. Aggregiert Daten auf Abschnitts-Ebene und
+                      zeigt nur kritische Einzeleinsätze an. Für strategische Übersicht statt operative Details.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Anleitung: Regeln aktivieren/deaktivieren */}
+              <div>
+                <h3 className="text-lg font-semibold mb-2">So aktivieren/deaktivieren Sie Regeln</h3>
+                <ol className="list-decimal ml-5 text-sm text-gray-700 space-y-2">
+                  <li>Klicken Sie auf den Button <strong>"Bearbeiten"</strong> oben rechts im Regel-Bereich</li>
+                  <li>Setzen oder entfernen Sie das Häkchen bei der gewünschten Regel</li>
+                  <li>Klicken Sie auf <strong>"Speichern"</strong> um die Änderungen zu übernehmen</li>
+                </ol>
+              </div>
+
+              {/* Anleitung: Parameter anpassen */}
+              <div>
+                <h3 className="text-lg font-semibold mb-2">So passen Sie Regel-Parameter an</h3>
+                <ol className="list-decimal ml-5 text-sm text-gray-700 space-y-2">
+                  <li>Klicken Sie auf <strong>"Bearbeiten"</strong></li>
+                  <li>Bei aktivierten Regeln erscheinen Eingabefelder für die Parameter</li>
+                  <li>Ändern Sie die Werte nach Bedarf:
+                    <ul className="list-disc ml-5 mt-1">
+                      <li><strong>Max Abschnitte/Einträge:</strong> Weniger = kompaktere Übersicht, mehr = detailliertere Information</li>
+                      <li><strong>Min Score:</strong> 0.0 bis 1.0 - Je höher, desto strenger die Filterung</li>
+                      <li><strong>Prognose-Horizont:</strong> In Minuten, z.B. 120 = 2 Stunden Vorausschau</li>
+                    </ul>
+                  </li>
+                  <li>Klicken Sie auf <strong>"Speichern"</strong></li>
+                </ol>
+              </div>
+
+              {/* Anleitung: Eigene Keyword-Faktoren */}
+              <div>
+                <h3 className="text-lg font-semibold mb-2">So fügen Sie eigene Schlüsselwörter hinzu (R2)</h3>
+                <p className="text-sm text-gray-700 mb-3">
+                  Sie können eigene Begriffe definieren, die Protokoll-Einträge als wichtig markieren sollen.
+                  Das ist nützlich für organisationsspezifische Begriffe oder aktuelle Ereignisse.
+                </p>
+                <ol className="list-decimal ml-5 text-sm text-gray-700 space-y-2">
+                  <li>Klicken Sie auf <strong>"Bearbeiten"</strong></li>
+                  <li>Scrollen Sie zur Regel <strong>R2 Protokoll-Relevanz</strong></li>
+                  <li>Klicken Sie auf <strong>"+ Eigenen Faktor hinzufügen"</strong></li>
+                  <li>Geben Sie einen <strong>Namen</strong> ein (z.B. "Evakuierung")</li>
+                  <li>Geben Sie <strong>Schlüsselwörter</strong> kommagetrennt ein (z.B. "evakuieren, räumung, verlassen, evakuierung")</li>
+                  <li>Stellen Sie das <strong>Gewicht</strong> ein:
+                    <ul className="list-disc ml-5 mt-1">
+                      <li><strong>0.1 - 0.2:</strong> Niedrige Priorität (leichte Erhöhung der Relevanz)</li>
+                      <li><strong>0.3 - 0.4:</strong> Mittlere Priorität (deutliche Erhöhung)</li>
+                      <li><strong>0.5+:</strong> Hohe Priorität (starke Erhöhung)</li>
+                      <li><strong>Negative Werte:</strong> Verringert die Relevanz (z.B. für unwichtige Routine-Meldungen)</li>
+                    </ul>
+                  </li>
+                  <li>Klicken Sie auf <strong>"Hinzufügen"</strong> und dann <strong>"Speichern"</strong></li>
+                </ol>
+                <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm">
+                  <strong>Beispiele für nützliche eigene Faktoren:</strong>
+                  <ul className="list-disc ml-5 mt-1">
+                    <li><strong>Evakuierung</strong> (evakuieren, räumung, verlassen) - Gewicht: 0.5</li>
+                    <li><strong>Verletzte</strong> (verletzte, verletzt, sanitäter, rettung) - Gewicht: 0.4</li>
+                    <li><strong>Routine</strong> (routinemeldung, standard, planmäßig) - Gewicht: -0.2</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Maschinelles Lernen */}
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Maschinelles Lernen (ML)</h3>
+                <p className="text-sm text-gray-700">
+                  Faktoren mit dem <span className="text-blue-500 font-medium">ML</span>-Symbol werden automatisch
+                  durch Benutzer-Feedback verbessert. Wenn Chatbot-Antworten als hilfreich oder nicht hilfreich
+                  markiert werden, passt das System die Gewichte dieser Faktoren automatisch an.
+                </p>
+                <p className="text-sm text-gray-700 mt-2">
+                  Die <strong>"Gelernte Gewichte"</strong> Sektion zeigt, wie sich die Gewichte durch Feedback
+                  verändert haben. Mit <strong>"Gelernte Gewichte zurücksetzen"</strong> können Sie alle
+                  Anpassungen rückgängig machen.
+                </p>
+              </div>
+
+              {/* Tipps */}
+              <div className="bg-blue-50 border border-blue-200 rounded p-4">
+                <h3 className="text-lg font-semibold mb-2 text-blue-800">Tipps für optimale Einstellungen</h3>
+                <ul className="list-disc ml-5 text-sm text-gray-700 space-y-1">
+                  <li>Beginnen Sie mit den <strong>Standard-Einstellungen</strong> und passen Sie nach Bedarf an</li>
+                  <li>Bei <strong>großen Einsatzlagen</strong>: Reduzieren Sie Max-Werte für kompaktere Übersicht</li>
+                  <li>Bei <strong>wenig Einsätzen</strong>: Erhöhen Sie Max-Werte für mehr Details</li>
+                  <li>Der <strong>Min Score</strong> bei R2 sollte zwischen 0.5 und 0.7 liegen</li>
+                  <li>Aktivieren Sie <strong>R5 Stabs-Fokus</strong> nur für strategische Stabsarbeit</li>
+                  <li>Testen Sie Änderungen im <strong>Chatbot</strong> um die Auswirkungen zu sehen</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="sticky bottom-0 bg-white border-t px-6 py-4">
+              <button
+                type="button"
+                onClick={() => setShowHelp(false)}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded"
+              >
+                Schließen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
