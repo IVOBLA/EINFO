@@ -147,6 +147,7 @@ import {
   updateDisasterContextFromEinfo,
   getCurrentDisasterContext,
   getFilteredDisasterContextSummary,
+  getSummarizationPromptData,
   loadDisasterContext,
   listDisasterContexts,
   finalizeDisasterContext,
@@ -789,17 +790,27 @@ app.post("/api/llm/test-with-metrics-stream", rateLimit(RateLimitProfiles.STRICT
       const summarizationSystemTemplate = loadPromptTemplate("summarization_system.txt");
       const summarizationUserTemplate = loadPromptTemplate("summarization_user.txt");
 
-      // Für Test: Verwende Beispieldaten wenn keine echten Daten verfügbar
+      const {
+        boardData,
+        protocolData,
+        tasksData,
+        activeIncidents,
+        criticalIncidents,
+        totalPersonnel,
+        protocolCount,
+        openTasks
+      } = await getSummarizationPromptData();
+
       systemPrompt = summarizationSystemTemplate;
       userPrompt = fillTemplate(summarizationUserTemplate, {
-        boardData: "(Board-Daten werden bei echtem Aufruf hinzugefügt - Testmodus)",
-        protocolData: "(Protokoll-Daten werden bei echtem Aufruf hinzugefügt - Testmodus)",
-        tasksData: "(Aufgaben-Daten werden bei echtem Aufruf hinzugefügt - Testmodus)",
-        activeIncidents: "0",
-        criticalIncidents: "0",
-        totalPersonnel: "0",
-        protocolCount: "0",
-        openTasks: "0"
+        boardData,
+        protocolData,
+        tasksData,
+        activeIncidents: String(activeIncidents),
+        criticalIncidents: String(criticalIncidents),
+        totalPersonnel: String(totalPersonnel),
+        protocolCount: String(protocolCount),
+        openTasks: String(openTasks)
       });
     } else if (taskType === "chat") {
       // Chat: Verwende Chat-Prompts
