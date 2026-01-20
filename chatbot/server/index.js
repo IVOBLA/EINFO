@@ -36,6 +36,8 @@ import { getExcludeContextForPrompt } from "./suggestion_filter.js";
 import { getGpuStatus } from "./gpu_status.js";
 import { getSystemStatus, getCpuTimesSnapshot, collectSystemMetrics } from "./system_status.js";
 import { getGeoIndex } from "./rag/geo_search.js";
+import { getKnowledgeContextWithSources } from "./rag/rag_vector.js";
+import { getCurrentSession } from "./rag/session_rag.js";
 import { createJsonBodyParser } from "./middleware/jsonBodyParser.js";
 
 // ============================================================
@@ -838,6 +840,58 @@ app.post("/api/llm/test-with-metrics-stream", rateLimit(RateLimitProfiles.STRICT
       // Chat: Verwende Chat-Prompts
       systemPrompt = buildSystemPromptChat();
       userPrompt = buildUserPromptChat(question, "(Knowledge-Kontext wird bei echtem Chat-Aufruf hinzugefügt)", "", "");
+    } else if (taskType === "situation-question") {
+      // Situation-Question: Verwende Frage-Prompts (Text-Output, kein JSON)
+      // Verwendet ECHTE Daten wie in der Produktionsumgebung
+      const situationQuestionSystemTemplate = loadPromptTemplate("situation_question_system.txt");
+
+      // Rollen-Beschreibung für Test (S2 als Default)
+      const testRole = "S2";
+      const roleDescription = "Stabsstelle 2 - Lage und Dokumentation. KERNAUFGABEN: Lagekarte mit allen Einsatzstellen führen, Pegelstände/Messwerte dokumentieren, Lagemeldungen zu festen Zeiten erstellen, Einsatztagebuch führen, Wetterdaten abfragen.";
+
+      // Prüfe ob LLM-Summarization aktiviert ist (wie bei Analysis)
+      const analysisConfig = await getAnalysisConfig();
+      const useLLMSummarization = analysisConfig.contextMode === "llm" ||
+                                  analysisConfig.llmSummarization?.enabled === true;
+
+      // Disaster Context holen - entsprechend der Konfiguration
+      let disasterSummary;
+      let contextMode;
+      if (useLLMSummarization) {
+        logDebug("Modelltest Situation-Question: Verwende LLM-Summarization für Kontext");
+        const llmResult = await getLLMSummarizedContext({ maxLength: 1500 });
+        disasterSummary = llmResult.summary;
+        contextMode = llmResult.llmUsed ? "llm" : "rules-fallback";
+      } else {
+        logDebug("Modelltest Situation-Question: Verwende regelbasierte Filterung für Kontext");
+        const { summary } = await getFilteredDisasterContextSummary({ maxLength: 1500 });
+        disasterSummary = summary;
+        contextMode = "rules";
+      }
+      logDebug("Modelltest Situation-Question: Context-Modus", { contextMode, useLLMSummarization });
+
+      // RAG-Context holen (ECHT - wie in answerQuestion)
+      const [vectorRagResult, sessionContext] = await Promise.all([
+        getKnowledgeContextWithSources(question, { topK: 3, maxChars: 1500 }),
+        getCurrentSession().getContextForQuery(question, { maxChars: 1000, topK: 3 })
+      ]);
+
+      // RAG-Context zusammenbauen
+      let ragContextSection = "";
+      if (vectorRagResult.context) {
+        ragContextSection += "FACHLICHES WISSEN (Knowledge-Base):\n" + vectorRagResult.context + "\n\n";
+      }
+      if (sessionContext) {
+        ragContextSection += sessionContext;
+      }
+
+      systemPrompt = fillTemplate(situationQuestionSystemTemplate, {
+        role: testRole,
+        roleDescription: roleDescription,
+        disasterSummary: disasterSummary || "(Keine aktuellen Lagedaten verfügbar)",
+        ragContext: ragContextSection || "(Kein relevanter RAG-Kontext gefunden)"
+      });
+      userPrompt = question;
     } else if (taskType === "operations" || taskType === "start") {
       // Operations/Start: Verwende Operations-Prompts (vereinfacht für Test)
       const operationsSystemTemplate = loadPromptTemplate("operations_system_prompt.txt");

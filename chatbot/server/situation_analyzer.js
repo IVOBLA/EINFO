@@ -10,7 +10,7 @@ import { fileURLToPath } from "url";
 import { CONFIG } from "./config.js";
 import { logDebug, logError, logInfo } from "./logger.js";
 // isSimulationRunning nicht mehr benötigt - KI-Analyse ist immer verfügbar
-import { getFilteredDisasterContextSummary, getCurrentDisasterContext } from "./disaster_context.js";
+import { getFilteredDisasterContextSummary, getCurrentDisasterContext, getLLMSummarizedContext, getCachedLLMSummary } from "./disaster_context.js";
 import { callLLMForChat } from "./llm_client.js";
 import { saveFeedback, getLearnedResponsesContext } from "./llm_feedback.js";
 import { embedText } from "./rag/embedding.js";
@@ -821,7 +821,34 @@ export async function answerQuestion(question, role, context = "aufgabenboard") 
   }
 
   const normalizedRole = role.toUpperCase();
-  const { summary: disasterSummary } = await getFilteredDisasterContextSummary({ maxLength: 1500 });
+
+  // Konfiguration lesen für Context-Modus (wie bei timergesteuerter Analyse)
+  const analysisConfig = await readAnalysisConfig();
+  const useLLMSummarization = analysisConfig.contextMode === "llm" ||
+                              analysisConfig.llmSummarization?.enabled === true;
+
+  // Kontext holen - entsprechend der Konfiguration
+  // WICHTIG: Bei LLM-Modus wird der CACHE der letzten timergesteuerten Analyse verwendet,
+  // KEIN neuer LLM-Aufruf! Der Cache wird nur durch timergesteuerte Analysen aktualisiert.
+  let disasterSummary;
+  if (useLLMSummarization) {
+    // Gecachte LLM-Zusammenfassung verwenden (kein neuer LLM-Aufruf!)
+    logDebug("Fragebeantwortung: Verwende gecachte LLM-Zusammenfassung");
+    const cachedResult = await getCachedLLMSummary({ maxLength: 1500 });
+    disasterSummary = cachedResult.summary;
+    if (cachedResult.fromCache) {
+      logDebug("Fragebeantwortung: Cache-Alter", {
+        cacheAge: Date.now() - cachedResult.timestamp
+      });
+    } else {
+      logDebug("Fragebeantwortung: Kein Cache vorhanden, Fallback auf regelbasiert");
+    }
+  } else {
+    // Regelbasierte Filterung verwenden (Standard)
+    logDebug("Fragebeantwortung: Verwende regelbasierte Filterung");
+    const { summary } = await getFilteredDisasterContextSummary({ maxLength: 1500 });
+    disasterSummary = summary;
+  }
 
   // RAG-Context holen (parallel für Performance)
   const [vectorRagResult, sessionContext] = await Promise.all([
@@ -865,8 +892,7 @@ export async function answerQuestion(question, role, context = "aufgabenboard") 
     let answer;
     try {
       answer = await callLLMForChat(systemPrompt, question, {
-        taskType: "analysis", // Verwendet alle Parameter aus analysis-Task-Config
-        requireJson: false    // Antworten sollen Text sein, kein JSON
+        taskType: "situation-question" // Eigener Task-Typ für Fragen (Text-Output, kein JSON)
       });
     } catch (llmErr) {
       logError("LLM-Aufruf fehlgeschlagen bei Fragebeantwortung", {

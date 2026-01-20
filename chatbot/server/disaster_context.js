@@ -102,6 +102,13 @@ const STAFF_ROLES = ["LTSTB", "S1", "S2", "S3", "S4", "S5", "S6"];
 // In-Memory-Cache für aktuellen Disaster Context
 let currentDisasterContext = null;
 
+// Cache für letzte LLM-Zusammenfassung (wird von timergesteuerter Analyse aktualisiert)
+// Kein maxAge - der Cache wird bei jeder timergesteuerten Analyse aktualisiert
+let lastLLMSummaryCache = {
+  summary: null,
+  timestamp: null
+};
+
 async function readSummarizationOverrides() {
   try {
     const raw = await fsPromises.readFile(AI_ANALYSIS_CFG_FILE, "utf8");
@@ -1365,6 +1372,10 @@ export async function getLLMSummarizedContext({ maxLength = 2000 } = {}) {
       }
     });
 
+    // Cache aktualisieren (für Live-Fragen)
+    lastLLMSummaryCache.summary = summary;
+    lastLLMSummaryCache.timestamp = Date.now();
+
     return {
       summary,
       llmUsed: true,
@@ -1391,6 +1402,49 @@ export async function getLLMSummarizedContext({ maxLength = 2000 } = {}) {
       fallbackReason: String(err)
     };
   }
+}
+
+/**
+ * Gibt die gecachte LLM-Zusammenfassung zurück (für Live-Fragen).
+ * Wenn kein Cache vorhanden ist, wird auf regelbasierte Filterung zurückgefallen.
+ *
+ * WICHTIG: Diese Funktion ruft NICHT den LLM auf!
+ * Der Cache wird nur durch timergesteuerte Analysen (getLLMSummarizedContext) aktualisiert.
+ *
+ * @param {Object} options - Optionen
+ * @param {number} options.maxLength - Maximale Länge der Zusammenfassung
+ * @returns {Object} - { summary, fromCache, timestamp }
+ */
+export async function getCachedLLMSummary({ maxLength = 1500 } = {}) {
+  // Wenn Cache vorhanden, verwende ihn
+  if (lastLLMSummaryCache.summary) {
+    let summary = lastLLMSummaryCache.summary;
+
+    // Kürze falls nötig
+    if (summary.length > maxLength) {
+      summary = summary.substring(0, maxLength) + "\n... (gekürzt)";
+    }
+
+    logDebug("Verwende gecachte LLM-Zusammenfassung", {
+      cacheAge: Date.now() - lastLLMSummaryCache.timestamp,
+      summaryLength: summary.length
+    });
+
+    return {
+      summary,
+      fromCache: true,
+      timestamp: lastLLMSummaryCache.timestamp
+    };
+  }
+
+  // Kein Cache vorhanden - Fallback auf regelbasierte Filterung
+  logDebug("Kein LLM-Summary-Cache vorhanden, Fallback auf regelbasierte Filterung");
+  const { summary } = await getFilteredDisasterContextSummary({ maxLength });
+  return {
+    summary,
+    fromCache: false,
+    timestamp: null
+  };
 }
 
 /**
