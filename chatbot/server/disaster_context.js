@@ -1429,20 +1429,40 @@ function formatBoardForPrompt(board) {
  * Formatiert Protokoll-Daten für den Prompt
  * PRIORITÄT: Protokoll hat höchste Priorität für Summarization
  * Relevante Felder: Zeitstempel, infoTyp, massnahmen.massnahme, information (vollständig)
+ *
+ * Filterlogik:
+ * - Alle Lagemeldungen werden IMMER vollständig übernommen
+ * - Andere Eintragstypen: nur die letzten 10 (um Prompt-Länge zu begrenzen)
  */
 function formatProtocolForPrompt(protokoll) {
   if (!protokoll || protokoll.length === 0) {
     return "(Keine Protokolleinträge)";
   }
 
-  const lines = [];
   const sorted = [...protokoll].sort((a, b) => {
     const tsA = resolveProtocolTimestamp(a) || 0;
     const tsB = resolveProtocolTimestamp(b) || 0;
     return tsB - tsA; // Neueste zuerst
   });
 
-  for (const entry of sorted) {
+  // Trenne Lagemeldungen von anderen Einträgen
+  const lagemeldungen = sorted.filter(entry => {
+    const typ = (entry.infoTyp || entry.type || "").toLowerCase();
+    return typ === "lagemeldung";
+  });
+
+  const andereEintraege = sorted.filter(entry => {
+    const typ = (entry.infoTyp || entry.type || "").toLowerCase();
+    return typ !== "lagemeldung";
+  });
+
+  // Alle Lagemeldungen + max. 10 andere Einträge
+  const MAX_ANDERE = 10;
+  const andereGekuerzt = andereEintraege.slice(0, MAX_ANDERE);
+  const andereAusgelassen = andereEintraege.length - andereGekuerzt.length;
+
+  // Hilfsfunktion zum Formatieren eines Eintrags
+  const formatEntry = (entry) => {
     const time = entry.zeit || entry.time || "";
     const date = entry.datum || entry.date || "";
     const typ = entry.infoTyp || entry.type || "";
@@ -1460,7 +1480,31 @@ function formatProtocolForPrompt(protokoll) {
       }
     }
 
-    lines.push(`- [${date} ${time}] (${typ})${massnahmenText}\n  ${info}`);
+    return `- [${date} ${time}] (${typ})${massnahmenText}\n  ${info}`;
+  };
+
+  const lines = [];
+
+  // Lagemeldungen zuerst (alle)
+  if (lagemeldungen.length > 0) {
+    lines.push(`### Lagemeldungen (${lagemeldungen.length} Einträge)`);
+    for (const entry of lagemeldungen) {
+      lines.push(formatEntry(entry));
+    }
+  }
+
+  // Andere Einträge (max. 10)
+  if (andereGekuerzt.length > 0) {
+    const hinweis = andereAusgelassen > 0
+      ? ` (${andereGekuerzt.length} von ${andereEintraege.length} gezeigt)`
+      : ` (${andereGekuerzt.length} Einträge)`;
+    lines.push(`### Weitere Protokolleinträge${hinweis}`);
+    for (const entry of andereGekuerzt) {
+      lines.push(formatEntry(entry));
+    }
+    if (andereAusgelassen > 0) {
+      lines.push(`... ${andereAusgelassen} weitere Einträge nicht angezeigt`);
+    }
   }
 
   return lines.join("\n\n");
