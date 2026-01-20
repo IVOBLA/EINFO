@@ -1,10 +1,10 @@
 Analysiere die folgende Einsatzlage und erstelle eine kompakte Zusammenfassung für den Technischen Einsatzleiter (LTSTB).
 
+## PROTOKOLL (höchste Priorität)
+{{protocolData}}
+
 ## AKTUELLE EINSÄTZE (Board)
 {{boardData}}
-
-## PROTOKOLL (letzte Einträge)
-{{protocolData}}
 
 ## OFFENE AUFGABEN
 {{tasksData}}
