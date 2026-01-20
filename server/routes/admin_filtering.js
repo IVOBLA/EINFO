@@ -305,6 +305,117 @@ router.get("/learned", async (req, res) => {
   }
 });
 
+// Pfad für AI-Analyse-Konfiguration
+const AI_ANALYSIS_CFG_FILE = path.resolve(__dirname, "../data/conf/ai-analysis.json");
+
+/**
+ * GET /api/admin/filtering-rules/ai-analysis-config
+ * Gibt die aktuelle AI-Analyse-Konfiguration zurück
+ */
+router.get("/ai-analysis-config", async (req, res) => {
+  try {
+    let config;
+    try {
+      const raw = await fsPromises.readFile(AI_ANALYSIS_CFG_FILE, "utf8");
+      config = JSON.parse(raw);
+    } catch (err) {
+      // Datei existiert noch nicht - Standard-Konfiguration zurückgeben
+      config = {
+        enabled: true,
+        intervalMinutes: 5,
+        contextMode: "rules",
+        llmSummarization: {
+          enabled: false,
+          model: "llama3.1:8b",
+          maxTokens: 1500,
+          temperature: 0.3,
+          timeout: 60000
+        }
+      };
+    }
+    res.json(config);
+  } catch (err) {
+    console.error("Fehler beim Laden der AI-Analyse-Konfiguration:", err);
+    res.status(500).json({
+      error: "Fehler beim Laden der Konfiguration",
+      details: String(err)
+    });
+  }
+});
+
+/**
+ * PUT /api/admin/filtering-rules/ai-analysis-config
+ * Aktualisiert die AI-Analyse-Konfiguration
+ */
+router.put("/ai-analysis-config", async (req, res) => {
+  try {
+    const newConfig = req.body;
+
+    // Validierung
+    if (typeof newConfig !== "object") {
+      return res.status(400).json({
+        error: "Ungültige Konfiguration",
+        details: "Body muss ein Objekt sein"
+      });
+    }
+
+    // Bestehende Konfiguration laden
+    let existingConfig = {
+      enabled: true,
+      intervalMinutes: 5,
+      contextMode: "rules",
+      llmSummarization: {
+        enabled: false,
+        model: "llama3.1:8b",
+        maxTokens: 1500,
+        temperature: 0.3,
+        timeout: 60000
+      }
+    };
+
+    try {
+      const raw = await fsPromises.readFile(AI_ANALYSIS_CFG_FILE, "utf8");
+      existingConfig = JSON.parse(raw);
+    } catch (err) {
+      // Datei existiert noch nicht - Standard verwenden
+    }
+
+    // Merge Konfiguration
+    const mergedConfig = {
+      ...existingConfig,
+      ...newConfig,
+      llmSummarization: {
+        ...(existingConfig.llmSummarization || {}),
+        ...(newConfig.llmSummarization || {})
+      }
+    };
+
+    // Verzeichnis erstellen falls nötig
+    await ensureDir(AI_ANALYSIS_CFG_FILE);
+
+    // Speichern
+    await fsPromises.writeFile(
+      AI_ANALYSIS_CFG_FILE,
+      JSON.stringify(mergedConfig, null, 2),
+      "utf8"
+    );
+
+    console.log("[ADMIN] AI-Analyse-Konfiguration aktualisiert:", mergedConfig);
+
+    res.json({
+      success: true,
+      message: "AI-Analyse-Konfiguration aktualisiert",
+      config: mergedConfig
+    });
+  } catch (err) {
+    console.error("Fehler beim Speichern der AI-Analyse-Konfiguration:", err);
+    res.status(500).json({
+      error: "Fehler beim Speichern der Konfiguration",
+      details: String(err)
+    });
+  }
+});
+
 /**
  * POST /api/admin/filtering-rules/reset-learned
  * Setzt gelernte Gewichte zurück

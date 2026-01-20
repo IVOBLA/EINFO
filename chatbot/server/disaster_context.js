@@ -10,6 +10,7 @@ import { fileURLToPath } from "url";
 import { CONFIG } from "./config.js";
 import { logDebug, logError, logInfo } from "./logger.js";
 import { getCurrentState } from "./state_store.js";
+import { loadPromptTemplate, fillTemplate } from "./prompts.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1147,4 +1148,251 @@ function buildFilteredSummary(filtered, fingerprint, rules) {
  */
 export function getLastContextFingerprint() {
   return lastContextFingerprint;
+}
+
+// ============================================
+// NEU: LLM-basierte Zusammenfassung
+// ============================================
+
+// Lade Templates für LLM-Summarization
+let summarizationSystemTemplate = null;
+let summarizationUserTemplate = null;
+
+function loadSummarizationTemplates() {
+  if (!summarizationSystemTemplate) {
+    try {
+      summarizationSystemTemplate = loadPromptTemplate("summarization_system.txt");
+      summarizationUserTemplate = loadPromptTemplate("summarization_user.txt");
+    } catch (err) {
+      logError("Fehler beim Laden der Summarization-Templates", { error: String(err) });
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Erstellt eine LLM-basierte Zusammenfassung der aktuellen Lage
+ * Alternative zur regelbasierten Filterung
+ *
+ * @param {Object} options - Optionen
+ * @param {number} options.maxLength - Maximale Länge der Zusammenfassung
+ * @returns {Object} - { summary, llmUsed, duration, model }
+ */
+export async function getLLMSummarizedContext({ maxLength = 2000 } = {}) {
+  const startTime = Date.now();
+
+  try {
+    // Templates laden
+    if (!loadSummarizationTemplates()) {
+      throw new Error("Summarization-Templates konnten nicht geladen werden");
+    }
+
+    // Aktuelle EINFO-Daten laden
+    const einfoData = await loadCurrentEinfoData();
+
+    // Daten für Prompt aufbereiten
+    const boardData = formatBoardForPrompt(einfoData.board);
+    const protocolData = formatProtocolForPrompt(einfoData.protokoll);
+    const tasksData = formatTasksForPrompt(einfoData.aufgaben);
+
+    // Statistiken berechnen
+    const activeIncidents = einfoData.board.filter(item => {
+      const status = String(item?.column || "").toLowerCase();
+      return status !== "erledigt";
+    }).length;
+
+    const criticalIncidents = einfoData.board.filter(item => {
+      const content = String(item?.content || "").toLowerCase();
+      return content.includes("verletzt") || content.includes("eingeschlossen") ||
+             content.includes("evakuierung") || content.includes("kritisch");
+    }).length;
+
+    const totalPersonnel = einfoData.board.reduce((sum, item) => {
+      return sum + (item.personnel || item.alerted?.split(",").length || 0);
+    }, 0);
+
+    const openTasks = einfoData.aufgaben.filter(task => {
+      const status = String(task?.status || "").toLowerCase();
+      return status !== "erledigt" && status !== "done";
+    }).length;
+
+    // Prompts erstellen
+    const systemPrompt = summarizationSystemTemplate;
+    const userPrompt = fillTemplate(summarizationUserTemplate, {
+      boardData,
+      protocolData,
+      tasksData,
+      activeIncidents: String(activeIncidents),
+      criticalIncidents: String(criticalIncidents),
+      totalPersonnel: String(totalPersonnel),
+      protocolCount: String(einfoData.protokoll.length),
+      openTasks: String(openTasks)
+    });
+
+    // LLM aufrufen (dynamischer Import um zirkuläre Abhängigkeit zu vermeiden)
+    const { callLLMForChat } = await import("./llm_client.js");
+
+    const llmResponse = await callLLMForChat(systemPrompt, userPrompt, {
+      taskType: "summarization"
+    });
+
+    const duration = Date.now() - startTime;
+
+    // Prüfe Antwort
+    if (!llmResponse || typeof llmResponse !== "string" || !llmResponse.trim()) {
+      throw new Error("LLM gab leere Antwort bei Summarization");
+    }
+
+    let summary = llmResponse.trim();
+
+    // Kürze falls nötig
+    if (summary.length > maxLength) {
+      summary = summary.substring(0, maxLength) + "\n... (gekürzt)";
+    }
+
+    logInfo("LLM-Summarization erfolgreich", {
+      duration,
+      summaryLength: summary.length,
+      inputDataSize: {
+        board: einfoData.board.length,
+        protokoll: einfoData.protokoll.length,
+        aufgaben: einfoData.aufgaben.length
+      }
+    });
+
+    return {
+      summary,
+      llmUsed: true,
+      duration,
+      model: "summarization",
+      fingerprint: null // LLM-Modus hat keinen Fingerprint
+    };
+
+  } catch (err) {
+    const duration = Date.now() - startTime;
+    logError("Fehler bei LLM-Summarization, Fallback auf Regelbasiert", {
+      error: String(err),
+      duration
+    });
+
+    // Fallback auf regelbasierte Filterung
+    const { summary, fingerprint } = await getFilteredDisasterContextSummary({ maxLength });
+    return {
+      summary,
+      llmUsed: false,
+      duration,
+      model: "rules-fallback",
+      fingerprint,
+      fallbackReason: String(err)
+    };
+  }
+}
+
+/**
+ * Formatiert Board-Daten für den Prompt
+ */
+function formatBoardForPrompt(board) {
+  if (!board || board.length === 0) {
+    return "(Keine aktiven Einsätze)";
+  }
+
+  const lines = [];
+  const sorted = [...board].sort((a, b) => {
+    // Sortiere: neu > in-bearbeitung > erledigt
+    const order = { "neu": 0, "in-bearbeitung": 1, "erledigt": 2 };
+    return (order[a.column] ?? 1) - (order[b.column] ?? 1);
+  });
+
+  for (const item of sorted.slice(0, 20)) { // Max 20 Einträge
+    const status = item.column || "unbekannt";
+    const typ = item.typ || item.type || "Einsatz";
+    const ort = item.ort || item.location || "Unbekannt";
+    const content = (item.content || item.description || "").substring(0, 80);
+    const alerted = item.alerted ? ` [Alarmiert: ${item.alerted}]` : "";
+
+    lines.push(`- [${status.toUpperCase()}] ${typ} @ ${ort}: ${content}${alerted}`);
+  }
+
+  if (board.length > 20) {
+    lines.push(`... und ${board.length - 20} weitere Einsätze`);
+  }
+
+  return lines.join("\n");
+}
+
+/**
+ * Formatiert Protokoll-Daten für den Prompt
+ */
+function formatProtocolForPrompt(protokoll) {
+  if (!protokoll || protokoll.length === 0) {
+    return "(Keine Protokolleinträge)";
+  }
+
+  const lines = [];
+  const sorted = [...protokoll].sort((a, b) => {
+    const tsA = resolveProtocolTimestamp(a) || 0;
+    const tsB = resolveProtocolTimestamp(b) || 0;
+    return tsB - tsA; // Neueste zuerst
+  });
+
+  for (const entry of sorted.slice(0, 15)) { // Max 15 Einträge
+    const time = entry.zeit || entry.time || "";
+    const date = entry.datum || entry.date || "";
+    const von = entry.anvon || entry.von || "Unbekannt";
+    const an = Array.isArray(entry.ergehtAn) ? entry.ergehtAn.join(", ") : (entry.ergehtAn || "");
+    const typ = entry.infoTyp || entry.type || "";
+    const info = (entry.information || entry.info || "").substring(0, 100);
+
+    lines.push(`- [${date} ${time}] ${von} → ${an} (${typ}): ${info}`);
+  }
+
+  if (protokoll.length > 15) {
+    lines.push(`... und ${protokoll.length - 15} weitere Einträge`);
+  }
+
+  return lines.join("\n");
+}
+
+/**
+ * Formatiert Aufgaben-Daten für den Prompt
+ */
+function formatTasksForPrompt(aufgaben) {
+  if (!aufgaben || aufgaben.length === 0) {
+    return "(Keine offenen Aufgaben)";
+  }
+
+  // Nur offene Aufgaben
+  const openTasks = aufgaben.filter(task => {
+    const status = String(task?.status || "").toLowerCase();
+    return status !== "erledigt" && status !== "done" && status !== "abgeschlossen";
+  });
+
+  if (openTasks.length === 0) {
+    return "(Keine offenen Aufgaben)";
+  }
+
+  const lines = [];
+
+  // Gruppiere nach Rolle
+  const byRole = {};
+  for (const task of openTasks) {
+    const role = task._role || task.responsible || "Unbekannt";
+    if (!byRole[role]) byRole[role] = [];
+    byRole[role].push(task);
+  }
+
+  for (const [role, tasks] of Object.entries(byRole)) {
+    lines.push(`**${role}:**`);
+    for (const task of tasks.slice(0, 5)) {
+      const title = (task.title || task.desc || task.description || "Unbenannt").substring(0, 60);
+      const status = task.status ? ` [${task.status}]` : "";
+      lines.push(`  - ${title}${status}`);
+    }
+    if (tasks.length > 5) {
+      lines.push(`  ... und ${tasks.length - 5} weitere`);
+    }
+  }
+
+  return lines.join("\n");
 }

@@ -21,6 +21,10 @@ export default function FilteringRulesPanel({ locked = false }) {
   const [newFactor, setNewFactor] = useState({ name: "", keywords: "", weight: 0.2 });
   const [showHelp, setShowHelp] = useState(false);
 
+  // NEU: AI-Analyse-Konfiguration (LLM-Summarization)
+  const [aiConfig, setAiConfig] = useState(null);
+  const [aiConfigSaving, setAiConfigSaving] = useState(false);
+  const [aiConfigMsg, setAiConfigMsg] = useState("");
   // Szenario-Konfiguration
   const [scenario, setScenario] = useState(null);
   const [editingScenario, setEditingScenario] = useState(false);
@@ -31,8 +35,70 @@ export default function FilteringRulesPanel({ locked = false }) {
     loadStatus();
     loadLearnedWeights();
     loadRules();
+    loadAiConfig();
     loadScenario();
   }, []);
+
+  // NEU: AI-Analyse-Konfiguration laden
+  async function loadAiConfig() {
+    try {
+      const res = await fetch("/api/admin/filtering-rules/ai-analysis-config", { credentials: "include" });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || "Laden fehlgeschlagen");
+      setAiConfig(data);
+    } catch (ex) {
+      console.warn("AI-Analyse-Konfiguration laden fehlgeschlagen:", ex.message);
+      // Default-Konfiguration setzen
+      setAiConfig({
+        enabled: true,
+        intervalMinutes: 5,
+        contextMode: "rules",
+        llmSummarization: {
+          enabled: false,
+          model: "llama3.1:8b",
+          maxTokens: 1500,
+          temperature: 0.3,
+          timeout: 60000
+        }
+      });
+    }
+  }
+
+  // NEU: AI-Analyse-Konfiguration speichern
+  async function saveAiConfig(updates) {
+    try {
+      setAiConfigSaving(true);
+      setAiConfigMsg("");
+
+      const newConfig = { ...aiConfig, ...updates };
+      if (updates.llmSummarization) {
+        newConfig.llmSummarization = { ...aiConfig.llmSummarization, ...updates.llmSummarization };
+      }
+
+      const res = await fetch("/api/admin/filtering-rules/ai-analysis-config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(newConfig)
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || "Speichern fehlgeschlagen");
+
+      setAiConfig(data.config);
+      setAiConfigMsg("Konfiguration gespeichert");
+      setTimeout(() => setAiConfigMsg(""), 3000);
+    } catch (ex) {
+      setErr(ex.message || "Speichern fehlgeschlagen");
+    } finally {
+      setAiConfigSaving(false);
+    }
+  }
+
+  // NEU: Toggle zwischen Regelbasiert und LLM
+  function toggleContextMode() {
+    const newMode = aiConfig?.contextMode === "llm" ? "rules" : "llm";
+    saveAiConfig({ contextMode: newMode });
+  }
 
   async function loadStatus() {
     try {
@@ -293,6 +359,146 @@ export default function FilteringRulesPanel({ locked = false }) {
       {err && (
         <div className="p-3 bg-red-50 border border-red-200 rounded text-red-700">
           {err}
+        </div>
+      )}
+
+      {/* NEU: Context-Modus Auswahl (Regelbasiert vs. LLM-Zusammenfassung) */}
+      {aiConfig && (
+        <div className="border rounded p-4 bg-gradient-to-r from-purple-50 to-blue-50">
+          <div className="flex items-center justify-between mb-3">
+            <div className="font-medium text-base flex items-center gap-2">
+              <span className="text-xl">🤖</span> KI-Analyse Context-Modus
+            </div>
+            {aiConfigMsg && (
+              <span className="text-green-600 text-xs">{aiConfigMsg}</span>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            {/* Toggle zwischen Regelbasiert und LLM */}
+            <div className="flex items-center gap-4 p-3 bg-white rounded border">
+              <div className="flex-1">
+                <div className="font-medium text-sm">Kontext-Aufbereitung für KI-Analyse</div>
+                <div className="text-xs text-gray-600 mt-1">
+                  Wählen Sie, wie die Lage-Daten für die KI-Analyse aufbereitet werden sollen.
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
+                    aiConfig.contextMode !== "llm"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  }`}
+                  disabled={aiConfigSaving || locked}
+                  onClick={() => saveAiConfig({ contextMode: "rules" })}
+                >
+                  Regelbasiert (R1-R5)
+                </button>
+                <button
+                  type="button"
+                  className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
+                    aiConfig.contextMode === "llm"
+                      ? "bg-purple-600 text-white"
+                      : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                  }`}
+                  disabled={aiConfigSaving || locked}
+                  onClick={() => saveAiConfig({ contextMode: "llm" })}
+                >
+                  LLM-Zusammenfassung
+                </button>
+              </div>
+            </div>
+
+            {/* Erklärung zum aktuellen Modus */}
+            <div className={`p-3 rounded border ${aiConfig.contextMode === "llm" ? "bg-purple-50 border-purple-200" : "bg-blue-50 border-blue-200"}`}>
+              {aiConfig.contextMode === "llm" ? (
+                <div className="text-sm">
+                  <div className="font-medium text-purple-800 mb-1">LLM-Zusammenfassung aktiv (2. LLM-Call)</div>
+                  <div className="text-gray-700">
+                    Ein schnelles Chat-Modell fasst die aktuelle Lage zusammen, bevor sie an das Analyse-Modell übergeben wird.
+                    Dies kann flexibler sein als regelbasierte Filterung, benötigt aber mehr Rechenzeit.
+                  </div>
+                  <div className="mt-2 text-xs text-purple-600">
+                    Modell: <strong>{aiConfig.llmSummarization?.model || "llama3.1:8b"}</strong> |
+                    Temp: {aiConfig.llmSummarization?.temperature || 0.3} |
+                    Max Tokens: {aiConfig.llmSummarization?.maxTokens || 1500}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-sm">
+                  <div className="font-medium text-blue-800 mb-1">Regelbasierte Filterung aktiv</div>
+                  <div className="text-gray-700">
+                    Die 5 Filterregeln (R1-R5) werden angewendet, um die relevantesten Daten für die KI-Analyse auszuwählen.
+                    Schneller und vorhersehbarer als LLM-Zusammenfassung.
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* LLM-Modell Konfiguration (nur bei LLM-Modus) */}
+            {aiConfig.contextMode === "llm" && (
+              <div className="p-3 bg-white rounded border">
+                <div className="font-medium text-sm mb-2">LLM-Summarization Einstellungen</div>
+                <div className="grid grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <label className="text-gray-600">Modell:</label>
+                    <select
+                      value={aiConfig.llmSummarization?.model || "llama3.1:8b"}
+                      onChange={(e) => saveAiConfig({ llmSummarization: { model: e.target.value } })}
+                      className="mt-1 w-full px-2 py-1 border rounded"
+                      disabled={aiConfigSaving || locked}
+                    >
+                      <option value="llama3.1:8b">llama3.1:8b (schnell)</option>
+                      <option value="einfo-balanced">einfo-balanced</option>
+                      <option value="einfo-analysis">einfo-analysis</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-gray-600">Temperatur:</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="1"
+                      step="0.1"
+                      value={aiConfig.llmSummarization?.temperature || 0.3}
+                      onChange={(e) => saveAiConfig({ llmSummarization: { temperature: parseFloat(e.target.value) || 0.3 } })}
+                      className="mt-1 w-full px-2 py-1 border rounded"
+                      disabled={aiConfigSaving || locked}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-gray-600">Max Tokens:</label>
+                    <input
+                      type="number"
+                      min="500"
+                      max="4000"
+                      step="100"
+                      value={aiConfig.llmSummarization?.maxTokens || 1500}
+                      onChange={(e) => saveAiConfig({ llmSummarization: { maxTokens: parseInt(e.target.value) || 1500 } })}
+                      className="mt-1 w-full px-2 py-1 border rounded"
+                      disabled={aiConfigSaving || locked}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-gray-600">Timeout (ms):</label>
+                    <input
+                      type="number"
+                      min="10000"
+                      max="120000"
+                      step="5000"
+                      value={aiConfig.llmSummarization?.timeout || 60000}
+                      onChange={(e) => saveAiConfig({ llmSummarization: { timeout: parseInt(e.target.value) || 60000 } })}
+                      className="mt-1 w-full px-2 py-1 border rounded"
+                      disabled={aiConfigSaving || locked}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

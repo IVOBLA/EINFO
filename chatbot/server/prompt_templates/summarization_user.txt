@@ -1,0 +1,24 @@
+Analysiere die folgende Einsatzlage und erstelle eine kompakte Zusammenfassung für den Technischen Einsatzleiter (LTSTB).
+
+## AKTUELLE EINSÄTZE (Board)
+{{boardData}}
+
+## PROTOKOLL (letzte Einträge)
+{{protocolData}}
+
+## OFFENE AUFGABEN
+{{tasksData}}
+
+## STATISTIKEN
+- Aktive Einsätze: {{activeIncidents}}
+- Kritische Einsätze: {{criticalIncidents}}
+- Personal im Einsatz: {{totalPersonnel}}
+- Protokolleinträge: {{protocolCount}}
+- Offene Aufgaben: {{openTasks}}
+
+---
+
+Erstelle jetzt die Zusammenfassung gemäß dem vorgegebenen Format. Beachte besonders:
+1. Erkenne Trends in den Daten (werden es mehr oder weniger Einsätze?)
+2. Identifiziere kritische Engpässe
+3. Finde offene Fragen/Anfragen im Protokoll
