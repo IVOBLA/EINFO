@@ -673,12 +673,11 @@ function scoreProtocolEntry(entry, rule, learnedWeights = {}) {
   let score = rule.scoring?.base_score || 0.5;
 
   const text = [
-    entry.content,
-    entry.text,
-    entry.information,
-    entry.info,
-    entry.infoTyp,
-    entry.infoType,
+    entry.information,  // Hauptfeld für Protokoll-Inhalt
+    entry.info,         // Alternativfeld
+    entry.infoTyp,      // Typ der Information
+    entry.infoType,     // Alternativfeld für Typ
+    entry.anvon,        // Von wem
     entry.subject,
     entry.title,
     ...(Array.isArray(entry?.massnahmen)

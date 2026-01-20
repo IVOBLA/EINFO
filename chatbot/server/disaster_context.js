@@ -1199,8 +1199,8 @@ function buildFilteredSummary(filtered, fingerprint, rules) {
   if (filtered.protocol && filtered.protocol.length > 0) {
     summary += `### WICHTIGE PROTOKOLL-EINTRÄGE (${fingerprint.protocol_entries_total} gesamt) ###\n`;
     for (const entry of filtered.protocol.slice(0, 10)) {
-      const time = entry.timestamp ? new Date(entry.timestamp).toLocaleTimeString("de-DE", { hour: '2-digit', minute: '2-digit' }) : "";
-      const content = String(entry.content || entry.text || "").substring(0, 100);
+      const time = buildProtocolTimeLabel(entry);
+      const content = String(entry.information || entry.info || "").substring(0, 100);
       summary += `- [${time}] ${content}\n`;
     }
     summary += `\n`;
