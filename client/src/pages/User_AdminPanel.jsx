@@ -644,11 +644,11 @@ export default function User_AdminPanel() {
   async function onSaveAnalysisConfig() {
     if (savingAnalysisConfig) return;
     const parsedMinutes = Number.parseInt(analysisConfigDraft.intervalMinutes, 10);
-    if (!Number.isFinite(parsedMinutes) || parsedMinutes <= 0) {
-      setErr("Intervall für die KI-Analyse muss eine Zahl ≥ 1 sein.");
+    if (!Number.isFinite(parsedMinutes) || parsedMinutes < 0) {
+      setErr("Intervall für die KI-Analyse muss eine Zahl ≥ 0 sein (0 = nur manuelle Auslösung).");
       return;
     }
-    const intervalMinutes = Math.max(1, parsedMinutes);
+    const intervalMinutes = Math.max(0, parsedMinutes);
     setErr("");
     setMsg("");
     setSavingAnalysisConfig(true);
@@ -1332,7 +1332,7 @@ export default function User_AdminPanel() {
             <input
               id="analysisInterval"
               type="number"
-              min={1}
+              min={0}
               className="border px-2 py-1 rounded w-24"
               value={analysisConfigDraft.intervalMinutes}
               onChange={(e) => {
