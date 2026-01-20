@@ -66,6 +66,17 @@ const DEFAULT_TASK_CONFIG = {
       topK: 50,
       repeatPenalty: 1.1
     },
+    summarization: {
+      model: "llama3.1:8b",
+      temperature: 0.3,
+      maxTokens: 1500,
+      timeout: 60000,
+      numGpu: 20,
+      numCtx: 4096,
+      topP: 0.9,
+      topK: 40,
+      repeatPenalty: 1.1
+    },
     default: {
       model: "einfo-balanced",
       temperature: 0.1,

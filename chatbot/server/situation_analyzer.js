@@ -150,7 +150,17 @@ async function readAnalysisConfig() {
     const parsed = JSON.parse(raw);
     return {
       enabled: parsed?.enabled !== false,
-      intervalMinutes: sanitizeAnalysisIntervalMinutes(parsed?.intervalMinutes)
+      intervalMinutes: sanitizeAnalysisIntervalMinutes(parsed?.intervalMinutes),
+      // NEU: Context-Modus (rules oder llm)
+      contextMode: parsed?.contextMode || "rules",
+      // NEU: LLM-Summarization Konfiguration
+      llmSummarization: {
+        enabled: parsed?.llmSummarization?.enabled || false,
+        model: parsed?.llmSummarization?.model || "llama3.1:8b",
+        maxTokens: parsed?.llmSummarization?.maxTokens || 1500,
+        temperature: parsed?.llmSummarization?.temperature || 0.3,
+        timeout: parsed?.llmSummarization?.timeout || 60000
+      }
     };
   } catch (err) {
     if (err?.code !== "ENOENT") {
@@ -158,9 +168,40 @@ async function readAnalysisConfig() {
     }
     return {
       enabled: true,
-      intervalMinutes: AI_ANALYSIS_DEFAULT_INTERVAL_MINUTES
+      intervalMinutes: AI_ANALYSIS_DEFAULT_INTERVAL_MINUTES,
+      contextMode: "rules",
+      llmSummarization: {
+        enabled: false,
+        model: "llama3.1:8b",
+        maxTokens: 1500,
+        temperature: 0.3,
+        timeout: 60000
+      }
     };
   }
+}
+
+/**
+ * Speichert die Analyse-Konfiguration
+ */
+export async function saveAnalysisConfig(config) {
+  try {
+    const dir = path.dirname(AI_ANALYSIS_CFG_FILE);
+    await fsPromises.mkdir(dir, { recursive: true });
+    await fsPromises.writeFile(AI_ANALYSIS_CFG_FILE, JSON.stringify(config, null, 2), "utf8");
+    logInfo("Analyse-Konfiguration gespeichert", { config });
+    return { success: true };
+  } catch (err) {
+    logError("Fehler beim Speichern der Analyse-Konfiguration", { error: String(err) });
+    return { success: false, error: String(err) };
+  }
+}
+
+/**
+ * Gibt die aktuelle Analyse-Konfiguration zurück
+ */
+export async function getAnalysisConfig() {
+  return await readAnalysisConfig();
 }
 
 /**
@@ -350,9 +391,41 @@ export async function analyzeAllRoles(forceRefresh = false) {
   logInfo("Starte Gesamtanalyse für alle Rollen (Stream wird abgewartet)");
 
   try {
-    // Aktuellen Kontext holen (NEU: mit Filterregeln + Fingerprint)
-    const { getFilteredDisasterContextSummary } = await import("./disaster_context.js");
-    const { summary: disasterSummary, fingerprint, filtered } = await getFilteredDisasterContextSummary({ maxLength: 2500 });
+    // Konfiguration lesen für Context-Modus
+    const analysisConfig = await readAnalysisConfig();
+    const useLLMSummarization = analysisConfig.contextMode === "llm" ||
+                                analysisConfig.llmSummarization?.enabled === true;
+
+    // Kontext holen (NEU: wahlweise regelbasiert oder LLM-basiert)
+    const { getFilteredDisasterContextSummary, getLLMSummarizedContext } = await import("./disaster_context.js");
+
+    let disasterSummary;
+    let fingerprint = null;
+    let contextMode;
+    let contextDuration = 0;
+
+    if (useLLMSummarization) {
+      // LLM-basierte Zusammenfassung verwenden
+      logInfo("Verwende LLM-basierte Zusammenfassung (2. LLM-Call)");
+      const llmResult = await getLLMSummarizedContext({ maxLength: 2500 });
+      disasterSummary = llmResult.summary;
+      fingerprint = llmResult.fingerprint;
+      contextMode = llmResult.llmUsed ? "llm" : "rules-fallback";
+      contextDuration = llmResult.duration;
+
+      logInfo("LLM-Zusammenfassung erhalten", {
+        mode: contextMode,
+        duration: contextDuration,
+        summaryLength: disasterSummary.length
+      });
+    } else {
+      // Regelbasierte Filterung verwenden (Standard)
+      logInfo("Verwende regelbasierte Filterung");
+      const { summary, fingerprint: fp } = await getFilteredDisasterContextSummary({ maxLength: 2500 });
+      disasterSummary = summary;
+      fingerprint = fp;
+      contextMode = "rules";
+    }
 
     // Gelernte Vorschläge sammeln (NEU: mit Fingerprint-Matching)
     const learnedByRole = {};
