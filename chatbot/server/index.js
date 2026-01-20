@@ -81,7 +81,8 @@ import {
   answerQuestion,
   saveSuggestionFeedback,
   saveQuestionFeedback,
-  syncAnalysisLoop
+  syncAnalysisLoop,
+  getAnalysisConfig
 } from "./situation_analyzer.js";
 
 import fs from "fs/promises";
@@ -147,6 +148,7 @@ import {
   updateDisasterContextFromEinfo,
   getCurrentDisasterContext,
   getFilteredDisasterContextSummary,
+  getLLMSummarizedContext,
   getSummarizationPromptData,
   loadDisasterContext,
   listDisasterContexts,
@@ -776,8 +778,27 @@ app.post("/api/llm/test-with-metrics-stream", rateLimit(RateLimitProfiles.STRICT
       const roles = Object.keys(ROLE_DESCRIPTIONS);
       const rolesDescription = roles.map(r => `- ${r}: ${ROLE_DESCRIPTIONS[r]}`).join("\n");
 
-      // Disaster Context und Exclude Context holen
-      const { summary: disasterSummary } = await getFilteredDisasterContextSummary({ maxLength: 2500 });
+      // Prüfe ob LLM-Summarization aktiviert ist
+      const analysisConfig = await getAnalysisConfig();
+      const useLLMSummarization = analysisConfig.contextMode === "llm" ||
+                                  analysisConfig.llmSummarization?.enabled === true;
+
+      // Disaster Context holen - entsprechend der Konfiguration
+      let disasterSummary;
+      let contextMode;
+      if (useLLMSummarization) {
+        logDebug("Modelltest Analysis: Verwende LLM-Summarization für Kontext");
+        const llmResult = await getLLMSummarizedContext({ maxLength: 2500 });
+        disasterSummary = llmResult.summary;
+        contextMode = llmResult.llmUsed ? "llm" : "rules-fallback";
+      } else {
+        logDebug("Modelltest Analysis: Verwende regelbasierte Filterung für Kontext");
+        const { summary } = await getFilteredDisasterContextSummary({ maxLength: 2500 });
+        disasterSummary = summary;
+        contextMode = "rules";
+      }
+      logDebug("Modelltest Analysis: Context-Modus", { contextMode, useLLMSummarization });
+
       const excludeContext = await getExcludeContextForPrompt(roles);
 
       systemPrompt = fillTemplate(situationAnalysisSystemTemplate, { rolesDescription });
