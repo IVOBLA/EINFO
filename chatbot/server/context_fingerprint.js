@@ -316,7 +316,7 @@ function getTopProtocolTypes(protocol, topN = 3) {
 
   for (const entry of protocol) {
     // Klassifiziere basierend auf Inhalt
-    const text = String(entry.content || entry.text || "").toLowerCase();
+    const text = String(entry.information || entry.info || "").toLowerCase();
     let type = "Statusmeldung";
 
     if (text.includes("?")) type = "Offene Fragen";
@@ -345,7 +345,7 @@ function countProtocolType(protocol, typeName) {
   const typeKeywords = keywords[typeName] || [];
 
   return protocol.filter(entry => {
-    const text = String(entry.content || entry.text || "").toLowerCase();
+    const text = String(entry.information || entry.info || "").toLowerCase();
     return typeKeywords.some(kw => text.includes(kw));
   }).length;
 }
@@ -375,7 +375,7 @@ function hasKeywords(protocol, keywords) {
   if (!protocol || !Array.isArray(protocol)) return false;
 
   return protocol.some(entry => {
-    const text = String(entry.content || entry.text || "").toLowerCase();
+    const text = String(entry.information || entry.info || "").toLowerCase();
     return keywords.some(kw => text.includes(kw.toLowerCase()));
   });
 }
