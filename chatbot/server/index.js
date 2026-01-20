@@ -804,10 +804,37 @@ app.post("/api/llm/test-with-metrics-stream", rateLimit(RateLimitProfiles.STRICT
 
       const excludeContext = await getExcludeContextForPrompt(roles);
 
+      // RAG-Kontext laden wenn aktiviert (wie in situation_analyzer.js)
+      let ragContext = "";
+      if (analysisConfig.useRagContext) {
+        try {
+          logDebug("Lade RAG-Kontext für Modelltest Analysis");
+          const ragQuery = `Einsatzlage: ${disasterSummary?.substring(0, 500) || ""}`;
+          const ragResult = await getKnowledgeContextWithSources(ragQuery, {
+            topK: 5,
+            maxChars: 2000
+          });
+          if (ragResult && ragResult.context) {
+            ragContext = `---
+RELEVANTE INFORMATIONEN AUS DER WISSENSDATENBANK (SOPs, Richtlinien, Vorschriften):
+
+${ragResult.context}`;
+            logDebug("RAG-Kontext geladen für Modelltest", {
+              contextLength: ragResult.context.length,
+              sourcesCount: ragResult.sources?.length || 0
+            });
+          }
+        } catch (ragErr) {
+          logError("Fehler beim Laden des RAG-Kontexts für Modelltest", { error: String(ragErr) });
+          // Fortfahren ohne RAG-Kontext
+        }
+      }
+
       systemPrompt = fillTemplate(situationAnalysisSystemTemplate, { rolesDescription });
       userPrompt = fillTemplate(situationAnalysisUserTemplate, {
         disasterSummary: disasterSummary || "(Keine aktuellen Lagedaten verfügbar - Testmodus)",
-        excludeContext: excludeContext || ""
+        excludeContext: excludeContext || "",
+        ragContext: ragContext || "" // RAG Knowledge-Base Kontext (wenn aktiviert)
       });
     } else if (taskType === "summarization") {
       // Summarization: Verwende Kontext-Zusammenfassungs-Prompts
