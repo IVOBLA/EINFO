@@ -411,7 +411,7 @@ export default function LLMModelManager() {
         })
       });
 
-      // Da es ein SSE-Endpunkt ist, lesen wir nur das erste Event
+      // Da es ein SSE-Endpunkt ist, lesen wir das "prompts" Event
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
@@ -421,13 +421,13 @@ export default function LLMModelManager() {
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
 
-        // Suche nach dem "prompts" Event (falls wir das hinzufügen)
-        // Für jetzt nutzen wir das rawRequest aus dem done Event
-        const lines = buffer.split("\n");
-        for (const line of lines) {
-          if (line.startsWith("data: ")) {
+        // Parse SSE-Events (Format: "event: prompts\ndata: {...}\n\n")
+        const events = buffer.split("\n\n");
+        for (const event of events) {
+          const dataMatch = event.match(/data: (.+)/);
+          if (dataMatch) {
             try {
-              const data = JSON.parse(line.slice(6));
+              const data = JSON.parse(dataMatch[1]);
               if (data.rawRequest && data.rawRequest.messages) {
                 const systemMsg = data.rawRequest.messages.find(m => m.role === "system");
                 const userMsg = data.rawRequest.messages.find(m => m.role === "user");
@@ -1224,6 +1224,7 @@ export default function LLMModelManager() {
                 >
                   <option value="chat">Chat (QA)</option>
                   <option value="analysis">Analysis (KI-Situationsanalyse)</option>
+                  <option value="summarization">Summarization (Kontext-Zusammenfassung)</option>
                   <option value="operations">Operations (Simulation)</option>
                   <option value="start">Start (Szenario-Start)</option>
                   <option value="default">Default</option>
@@ -1231,6 +1232,12 @@ export default function LLMModelManager() {
                 <div className="text-xs text-gray-500 mt-1">
                   Der Task-Typ bestimmt welche Prompts und Parameter verwendet werden
                 </div>
+                {testTaskType === "analysis" && (
+                  <div className="text-xs text-amber-600 mt-2 bg-amber-50 p-2 rounded">
+                    Hinweis: Bei aktivierter "LLM-Zusammenfassung" wird vor der Analysis zuerst ein Summarization-Aufruf gemacht.
+                    Wählen Sie "Summarization" um diesen ersten Aufruf separat zu testen.
+                  </div>
+                )}
               </div>
 
               <div>
@@ -1284,9 +1291,14 @@ export default function LLMModelManager() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">System-Prompt</label>
+                    <label className="block text-sm font-medium mb-1">
+                      System-Prompt
+                      <span className="text-gray-400 font-normal ml-2">
+                        ({editedPrompts.systemPrompt.length} Zeichen)
+                      </span>
+                    </label>
                     <textarea
-                      className="w-full border rounded px-3 py-2 font-mono text-xs h-40"
+                      className="w-full border rounded px-3 py-2 font-mono text-xs min-h-[200px] max-h-[400px] overflow-auto resize-y"
                       value={editedPrompts.systemPrompt}
                       onChange={(e) => setEditedPrompts(prev => ({ ...prev, systemPrompt: e.target.value }))}
                       disabled={testRunning}
@@ -1294,9 +1306,14 @@ export default function LLMModelManager() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">User-Prompt</label>
+                    <label className="block text-sm font-medium mb-1">
+                      User-Prompt
+                      <span className="text-gray-400 font-normal ml-2">
+                        ({editedPrompts.userPrompt.length} Zeichen)
+                      </span>
+                    </label>
                     <textarea
-                      className="w-full border rounded px-3 py-2 font-mono text-xs h-40"
+                      className="w-full border rounded px-3 py-2 font-mono text-xs min-h-[200px] max-h-[400px] overflow-auto resize-y"
                       value={editedPrompts.userPrompt}
                       onChange={(e) => setEditedPrompts(prev => ({ ...prev, userPrompt: e.target.value }))}
                       disabled={testRunning}
