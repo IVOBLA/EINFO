@@ -1119,34 +1119,73 @@ export async function getFilteredDisasterContextSummary({ maxLength = 2500 } = {
 
 /**
  * Baut Summary aus gefilterten Daten
+ * WICHTIG: Gesamtstatistiken zeigen IMMER alle Daten, Details können gefiltert sein
  */
 function buildFilteredSummary(filtered, fingerprint, rules) {
-  let summary = `### KATASTROPHEN-ÜBERSICHT ###\n\n`;
-  summary += `Typ: ${fingerprint.disaster_type}\n`;
-  summary += `Phase: ${fingerprint.phase}\n`;
-  summary += `Dauer: ${Math.floor(fingerprint.hours_running * 60)} Minuten\n`;
+  let summary = `### GESAMTLAGE ###\n`;
+  summary += `Typ: ${fingerprint.disaster_type} | Phase: ${fingerprint.phase} | Dauer: ${Math.floor(fingerprint.hours_running * 60)} Min\n`;
   summary += `Trend: ${fingerprint.trend_direction} (${fingerprint.trend_strength})\n\n`;
 
-  // Abschnitte (aus R1)
+  // GESAMTSTATISTIKEN - immer vollständig aus rawData
+  summary += `### GESAMTSTATISTIKEN ###\n`;
+  summary += `Einsätze: ${fingerprint.active_incidents} aktiv von ${fingerprint.total_incidents} gesamt`;
+  if (fingerprint.critical_incidents > 0) {
+    summary += ` (${fingerprint.critical_incidents} kritisch)`;
+  }
+  summary += `\n`;
+  summary += `Abschnitte: ${fingerprint.active_sections || fingerprint.total_sections} aktiv von ${fingerprint.total_sections} gesamt`;
+  if (fingerprint.critical_sections > 0) {
+    summary += ` (${fingerprint.critical_sections} kritisch)`;
+  }
+  summary += `\n`;
+  if (fingerprint.standalone_incidents > 0) {
+    summary += `Einsätze ohne Abschnitt: ${fingerprint.standalone_incidents_active} aktiv von ${fingerprint.standalone_incidents} gesamt\n`;
+  }
+  summary += `Personal: ${filtered.resources?.deployed_personnel || 0} im Einsatz`;
+  if (filtered.resources?.total_personnel) {
+    summary += ` / ${filtered.resources.total_personnel} verfügbar`;
+  }
+  summary += `\n`;
+  summary += `Fahrzeuge: ${filtered.resources?.deployed_units || 0} im Einsatz`;
+  if (filtered.resources?.total_units) {
+    summary += ` / ${filtered.resources.total_units} gesamt`;
+  }
+  if (filtered.resources?.utilization > 0) {
+    summary += ` (${filtered.resources.utilization}% Auslastung)`;
+  }
+  summary += `\n\n`;
+
+  // Abschnitte (aus R1) - mit Hinweis auf Filterung
   if (filtered.abschnitte && filtered.abschnitte.length > 0) {
-    summary += `### ABSCHNITTE (${fingerprint.total_sections} gesamt, ${fingerprint.critical_sections} kritisch) ###\n`;
+    const shownCount = filtered.abschnitte.length;
+    const totalCount = fingerprint.total_sections;
+    const filterHint = shownCount < totalCount ? ` (${shownCount} von ${totalCount} gezeigt)` : "";
+    summary += `### TOP-ABSCHNITTE${filterHint} ###\n`;
     for (const abschnitt of filtered.abschnitte) {
       summary += `- [${abschnitt.priority.toUpperCase()}] ${abschnitt.name}`;
-      summary += ` - ${abschnitt.total_incidents} Einsätze (${abschnitt.critical_incidents} kritisch)`;
+      summary += ` - ${abschnitt.active_incidents || abschnitt.total_incidents} Einsätze`;
+      if (abschnitt.critical_incidents > 0) {
+        summary += ` (${abschnitt.critical_incidents} kritisch)`;
+      }
       summary += `, ${abschnitt.total_personnel} Kräfte\n`;
     }
+    // Hinweis auf weitere Abschnitte
+    if (shownCount < totalCount) {
+      const remainingCount = totalCount - shownCount;
+      summary += `(+ ${remainingCount} weitere Abschnitte nicht im Detail gezeigt)\n`;
+    }
     summary += `\n`;
+  } else if (fingerprint.total_sections > 0) {
+    // Es gibt Abschnitte aber keine wurden gefiltert
+    summary += `### ABSCHNITTE ###\n`;
+    summary += `${fingerprint.total_sections} Abschnitte vorhanden (keine Details gefiltert)\n\n`;
   }
 
-  // Ressourcen (aus R4)
-  if (filtered.resources) {
-    const res = filtered.resources;
-    summary += `### RESSOURCEN-STATUS ###\n`;
-    summary += `Einheiten: ${res.available_units} verfügbar / ${res.total_units} gesamt (${res.utilization}% ausgelastet)\n`;
-    if (res.resource_shortage) {
-      summary += `⚠️ RESSOURCEN-ENGPASS (>80% Auslastung)\n`;
-    }
-    summary += `Personal: ${res.total_personnel} im Einsatz\n\n`;
+  // Ressourcen-Warnung (aus R4) - nur wenn Engpass
+  if (filtered.resources?.resource_shortage) {
+    summary += `### ⚠️ RESSOURCEN-ENGPASS ###\n`;
+    summary += `Auslastung: ${filtered.resources.utilization}% (kritisch >80%)\n`;
+    summary += `Verfügbar: ${filtered.resources.available_units} Fahrzeuge, ${filtered.resources.available_personnel} Personen\n\n`;
   }
 
   // Protokoll (aus R2)

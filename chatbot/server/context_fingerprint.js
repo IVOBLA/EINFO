@@ -18,13 +18,19 @@ export function extractContextFingerprint(filteredData, rawData, previousFingerp
     phase: rawData.disaster?.phase || "initial",
     hours_running: calculateHoursRunning(rawData.disaster?.start_time),
 
-    // ABSCHNITTE (aus Regel R1)
-    total_sections: filteredData.abschnitte?.length || 0,
-    critical_sections: filteredData.abschnitte?.filter(a => a.priority === "critical").length || 0,
+    // ABSCHNITTE - Gesamtzahlen aus rawData, nicht aus gefilterten Daten
+    total_sections: countAllSections(rawData.board),
+    active_sections: countActiveSections(rawData.board),
+    critical_sections: countCriticalSections(rawData.board),
+    filtered_sections_count: filteredData.abschnitte?.length || 0,
     critical_section_names: filteredData.abschnitte
       ?.filter(a => a.priority === "critical")
       .map(a => a.name)
       .slice(0, 3) || [],
+
+    // STANDALONE-EINSÄTZE (ohne Abschnitt-Zuordnung)
+    standalone_incidents: countStandaloneIncidents(rawData.board),
+    standalone_incidents_active: countActiveStandaloneIncidents(rawData.board),
 
     // EINSATZSTELLEN
     total_incidents: countAllIncidents(rawData.board),
@@ -164,6 +170,83 @@ function countAllIncidents(board) {
   for (const col of Object.values(board.columns)) {
     if (col.items) {
       count += col.items.filter(item => item && !item.isArea).length;
+    }
+  }
+  return count;
+}
+
+function countAllSections(board) {
+  if (!board?.columns) return 0;
+  let count = 0;
+  for (const col of Object.values(board.columns)) {
+    if (col.items) {
+      count += col.items.filter(item => item?.isArea).length;
+    }
+  }
+  return count;
+}
+
+function countActiveSections(board) {
+  if (!board?.columns) return 0;
+  let count = 0;
+  for (const colKey of ["neu", "in-bearbeitung"]) {
+    const col = board.columns[colKey];
+    if (col?.items) {
+      count += col.items.filter(item => item?.isArea).length;
+    }
+  }
+  return count;
+}
+
+function countCriticalSections(board) {
+  if (!board?.columns) return 0;
+  let count = 0;
+  for (const col of Object.values(board.columns)) {
+    if (col?.items) {
+      // Ein Abschnitt ist kritisch wenn er kritische Einsätze enthält
+      for (const item of col.items) {
+        if (item?.isArea) {
+          const hasCriticalIncidents = hasAreaCriticalIncidents(board, item.id);
+          if (hasCriticalIncidents) count++;
+        }
+      }
+    }
+  }
+  return count;
+}
+
+function hasAreaCriticalIncidents(board, areaId) {
+  if (!board?.columns) return false;
+  for (const col of Object.values(board.columns)) {
+    if (col?.items) {
+      for (const item of col.items) {
+        if (item && !item.isArea && String(item.areaCardId) === String(areaId)) {
+          if (item.priority === "critical") return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
+function countStandaloneIncidents(board) {
+  if (!board?.columns) return 0;
+  let count = 0;
+  for (const col of Object.values(board.columns)) {
+    if (col.items) {
+      count += col.items.filter(item => item && !item.isArea && !item.areaCardId).length;
+    }
+  }
+  return count;
+}
+
+function countActiveStandaloneIncidents(board) {
+  if (!board?.columns) return 0;
+  let count = 0;
+  for (const colKey of ["neu", "in-bearbeitung"]) {
+    const col = board.columns[colKey];
+    if (col?.items) {
+      count += col.items.filter(item => item && !item.isArea && !item.areaCardId).length;
     }
   }
   return count;
