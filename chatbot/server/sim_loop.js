@@ -16,6 +16,7 @@ import {
   updateDisasterContextFromEinfo,
   incrementSimulationStep
 } from "./disaster_context.js";
+import { isAnalysisInProgress } from "./situation_analyzer.js";
 import {
   buildScenarioControlSummary,
   getScenarioMinutesPerStep
@@ -698,6 +699,14 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
         longScenarioMinItems: CONFIG.memoryRag.longScenarioMinItems
       });
       memorySnippets = memoryHits.map((hit) => hit.text);
+    }
+
+    // NEU: Simulationsschritt überspringen wenn KI-Analyse läuft (LLM-Lock)
+    // Verhindert gleichzeitige LLM-Aufrufe während der Situationsanalyse
+    if (isAnalysisInProgress()) {
+      logInfo("Simulationsschritt übersprungen - KI-Analyse läuft", { stepId, source });
+      logEvent("simulation", "step_skipped_analysis", { stepId, source });
+      return { ok: false, reason: "analysis_in_progress", skipped: true };
     }
 
     const { parsed: llmResponse } = await callLLMForOps({

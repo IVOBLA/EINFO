@@ -77,6 +77,7 @@ import {
   analyzeForRole,
   getCachedAnalysisForRole,
   isAnalysisInProgress,
+  getAnalysisTimerStatus,
   setOnAnalysisComplete,
   answerQuestion,
   saveSuggestionFeedback,
@@ -1690,11 +1691,12 @@ app.post("/api/feedback/learned-context", async (req, res) => {
 // API-Routen für Situationsanalyse
 // ============================================================
 
-// Status der Situationsanalyse
+// Status der Situationsanalyse (inkl. Timer-Info für nächste Analyse)
 app.get("/api/situation/status", (req, res) => {
   try {
     const status = getAnalysisStatus();
-    res.json({ ok: true, ...status });
+    const timerStatus = getAnalysisTimerStatus();
+    res.json({ ok: true, ...status, timer: timerStatus });
   } catch (err) {
     logError("Situationsanalyse-Status Fehler", { error: String(err) });
     res.status(500).json({ ok: false, error: String(err) });
@@ -1725,11 +1727,13 @@ app.get("/api/situation/analysis", async (req, res) => {
     // Bei cacheOnly=true nur gecachte Daten zurückgeben (keine neue Analyse)
     if (cacheOnly === "true" && forceRefresh !== "true") {
       const cached = getCachedAnalysisForRole(role);
-      // Füge auch den Status hinzu ob gerade eine Analyse läuft
+      const timerStatus = getAnalysisTimerStatus();
+      // Füge auch den Status hinzu ob gerade eine Analyse läuft + Timer-Info
       return res.json({
         ok: true,
         ...cached,
-        analysisInProgress: isAnalysisInProgress()
+        analysisInProgress: timerStatus.analysisInProgress,
+        timer: timerStatus
       });
     }
 
@@ -1750,11 +1754,11 @@ app.get("/api/situation/analysis", async (req, res) => {
   }
 });
 
-// Frage an KI stellen
+// Frage an KI stellen (blockiert bei laufender KI-Analyse)
 app.post(
   "/api/situation/question",
   rateLimit(RateLimitProfiles.GENEROUS),
-  createSituationQuestionHandler({ answerQuestion, logError })
+  createSituationQuestionHandler({ answerQuestion, logError, isAnalysisInProgress })
 );
 
 // Feedback zu Vorschlag speichern (binäres System)

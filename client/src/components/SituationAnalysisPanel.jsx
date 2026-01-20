@@ -21,6 +21,14 @@ const SEVERITY_COLORS = {
 };
 const MIN_ANALYSIS_INTERVAL_MINUTES = 0;
 
+// Formatiert die verbleibende Zeit bis zur nächsten Analyse
+function formatNextAnalysisTime(minutes) {
+  if (minutes === null || minutes === undefined) return null;
+  if (minutes <= 0) return "< 1 Min";
+  if (minutes === 1) return "1 Min";
+  return `${minutes} Min`;
+}
+
 function sanitizeAnalysisIntervalMinutes(value, fallback = 5) {
   const fallbackValue = Number.isFinite(Number(fallback)) ? Number(fallback) : 5;
   const parsed = Number(value);
@@ -183,14 +191,17 @@ function SuggestionCard({ suggestion, onFeedback, onEdit, onCreateTask, onDismis
   );
 }
 
-function QuestionSection({ role, onQuestionAsked }) {
+function QuestionSection({ role, onQuestionAsked, analysisInProgress }) {
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const [answer, setAnswer] = useState(null);
   const [questionFeedbackGiven, setQuestionFeedbackGiven] = useState(false);
 
+  // Deaktiviere Button wenn Analyse läuft
+  const isDisabled = loading || analysisInProgress;
+
   const handleAsk = async () => {
-    if (!question.trim() || loading) return;
+    if (!question.trim() || loading || analysisInProgress) return;
     setLoading(true);
     setAnswer(null);
     setQuestionFeedbackGiven(false);
@@ -260,19 +271,25 @@ function QuestionSection({ role, onQuestionAsked }) {
           type="text"
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
-          placeholder="Was muss ich als nächstes tun?"
+          placeholder={analysisInProgress ? "Bitte warten - Analyse läuft..." : "Was muss ich als nächstes tun?"}
           className="flex-1 text-sm px-3 py-2 rounded border"
           onKeyDown={(e) => e.key === "Enter" && handleAsk()}
-          disabled={loading}
+          disabled={isDisabled}
         />
         <button
           onClick={handleAsk}
-          disabled={loading || !question.trim()}
+          disabled={isDisabled || !question.trim()}
           className="px-4 py-2 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+          title={analysisInProgress ? "KI-Analyse läuft - bitte warten" : "Frage stellen"}
         >
-          {loading ? "..." : "Fragen"}
+          {loading ? "..." : analysisInProgress ? "⏳" : "Fragen"}
         </button>
       </div>
+      {analysisInProgress && (
+        <p className="text-xs text-yellow-600 mt-1">
+          KI-Analyse läuft gerade - Fragen werden nach Abschluss beantwortet
+        </p>
+      )}
 
       {answer && (
         <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
@@ -389,6 +406,8 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
   }, [currentRole]);
 
   const [analysisInProgress, setAnalysisInProgress] = useState(false);
+  // Timer-Status für Anzeige der nächsten Analyse
+  const [timerStatus, setTimerStatus] = useState(null);
 
   // fetchAnalysis: cacheOnly=true lädt nur gecachte Daten ohne neue Analyse zu starten
   // forceRefresh=true erzwingt eine neue Analyse
@@ -423,10 +442,15 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
 
       const data = await res.json();
 
+      // Timer-Status speichern (wenn vorhanden)
+      if (data.timer) {
+        setTimerStatus(data.timer);
+      }
+
       // Wenn noCache=true bedeutet das, dass noch keine Analyse durchgeführt wurde
       if (data.noCache) {
         setAnalysisData(null);
-        setAnalysisInProgress(data.analysisInProgress || false);
+        setAnalysisInProgress(data.analysisInProgress || data.timer?.analysisInProgress || false);
         return;
       }
 
@@ -440,7 +464,7 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
       }
 
       setAnalysisData(data);
-      setAnalysisInProgress(data.analysisInProgress || false);
+      setAnalysisInProgress(data.analysisInProgress || data.timer?.analysisInProgress || false);
     } catch (err) {
       setError(String(err.message || err));
     } finally {
@@ -680,6 +704,11 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
                       <span className="animate-pulse">●</span> Analyse läuft...
                     </span>
                   )}
+                  {!analysisInProgress && timerStatus?.isAutomatic && timerStatus?.nextAnalysisInMinutes !== null && (
+                    <span className="flex items-center gap-1 text-blue-200">
+                      <span>⏱️</span> Nächste Analyse in: <span className="font-medium">{formatNextAnalysisTime(timerStatus.nextAnalysisInMinutes)}</span>
+                    </span>
+                  )}
                   {analysisData?.timestamp ? (
                     <span>
                       Analyse vom: <span className="font-medium">{new Date(analysisData.timestamp).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
@@ -700,11 +729,12 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
                 <span className="text-xs animate-pulse">Lade...</span>
               )}
               <button
-                onClick={(e) => { e.stopPropagation(); fetchAnalysis(true); }}
-                className="p-1 hover:bg-white/20 rounded"
-                title="Neu analysieren"
+                onClick={(e) => { e.stopPropagation(); if (!analysisInProgress) fetchAnalysis(true); }}
+                className={`p-1 hover:bg-white/20 rounded ${analysisInProgress ? "opacity-50 cursor-not-allowed" : ""}`}
+                title={analysisInProgress ? "Analyse läuft bereits..." : "Neu analysieren"}
+                disabled={analysisInProgress}
               >
-                🔄
+                {analysisInProgress ? <span className="animate-spin inline-block">⏳</span> : "🔄"}
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); setIsMinimized(!isMinimized); }}
@@ -765,9 +795,10 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
                     <p className="text-red-600 mb-2">{error}</p>
                     <button
                       onClick={() => fetchAnalysis(true)}
-                      className="text-sm text-blue-600 hover:underline"
+                      disabled={analysisInProgress}
+                      className="text-sm text-blue-600 hover:underline disabled:opacity-50"
                     >
-                      Erneut versuchen
+                      {analysisInProgress ? "Analyse läuft..." : "Erneut versuchen"}
                     </button>
                   </div>
                 ) : loading && !currentRoleData ? (
@@ -783,7 +814,8 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
                     </p>
                     <button
                       onClick={() => fetchAnalysis(true)}
-                      className="text-sm px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                      disabled={analysisInProgress}
+                      className="text-sm px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
                     >
                       Jetzt analysieren
                     </button>
@@ -828,15 +860,16 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
                     )}
                     <button
                       onClick={() => fetchAnalysis(true)}
-                      className="mt-4 text-sm px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                      disabled={analysisInProgress}
+                      className="mt-4 text-sm px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
                     >
-                      Neu analysieren
+                      {analysisInProgress ? "Analyse läuft..." : "Neu analysieren"}
                     </button>
                   </div>
                 )}
 
                 {/* Fragen-Sektion */}
-                <QuestionSection role={selectedRole} />
+                <QuestionSection role={selectedRole} analysisInProgress={analysisInProgress} />
               </div>
             </div>
           )}

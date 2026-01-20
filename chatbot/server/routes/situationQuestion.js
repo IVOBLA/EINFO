@@ -1,6 +1,15 @@
-export function createSituationQuestionHandler({ answerQuestion, logError }) {
+export function createSituationQuestionHandler({ answerQuestion, logError, isAnalysisInProgress }) {
   return async (req, res) => {
     try {
+      // NEU: Prüfe ob KI-Analyse läuft (LLM-Lock)
+      if (isAnalysisInProgress && isAnalysisInProgress()) {
+        return res.status(503).json({
+          ok: false,
+          error: "KI-Analyse läuft gerade - bitte warten",
+          analysisInProgress: true
+        });
+      }
+
       const body = req.body || {};
       const question = body.question;
       const role = body.role ?? req.query?.role;
