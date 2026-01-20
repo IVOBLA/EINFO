@@ -111,8 +111,8 @@ export default function User_AdminPanel() {
   const [autoPrintConfig, setAutoPrintConfig] = useState({ enabled:false, intervalMinutes:10, lastRunAt:null, entryScope:"interval", scope:"interval" });
   const [autoPrintDraft, setAutoPrintDraft] = useState({ enabled:false, intervalMinutes:"10", entryScope:"interval" });
   const [savingAutoPrintConfig, setSavingAutoPrintConfig] = useState(false);
-  const [analysisConfig, setAnalysisConfig] = useState({ enabled: true, intervalMinutes: 5 });
-  const [analysisConfigDraft, setAnalysisConfigDraft] = useState({ enabled: true, intervalMinutes: "5" });
+  const [analysisConfig, setAnalysisConfig] = useState({ enabled: true, intervalMinutes: 5, useRagContext: false });
+  const [analysisConfigDraft, setAnalysisConfigDraft] = useState({ enabled: true, intervalMinutes: "5", useRagContext: false });
   const [savingAnalysisConfig, setSavingAnalysisConfig] = useState(false);
   const [mailSchedules, setMailSchedules] = useState([]);
   const [mailScheduleDraft, setMailScheduleDraft] = useState(createEmptyMailSchedule());
@@ -346,10 +346,12 @@ export default function User_AdminPanel() {
           setAnalysisConfig({
             enabled: !!cfg.enabled,
             intervalMinutes: sanitizedInterval,
+            useRagContext: !!cfg.useRagContext,
           });
           setAnalysisConfigDraft({
             enabled: !!cfg.enabled,
             intervalMinutes: String(sanitizedInterval),
+            useRagContext: !!cfg.useRagContext,
           });
         }
       } catch (_) {/* optional */}
@@ -660,6 +662,7 @@ export default function User_AdminPanel() {
         body: JSON.stringify({
           enabled: !!analysisConfigDraft.enabled,
           intervalMinutes,
+          useRagContext: !!analysisConfigDraft.useRagContext,
         }),
       });
       const js = await res.json().catch(() => ({}));
@@ -668,11 +671,13 @@ export default function User_AdminPanel() {
       const sanitized = {
         enabled: !!js.enabled,
         intervalMinutes: savedInterval,
+        useRagContext: !!js.useRagContext,
       };
       setAnalysisConfig(sanitized);
       setAnalysisConfigDraft({
         enabled: sanitized.enabled,
         intervalMinutes: Number.isFinite(sanitized.intervalMinutes) ? String(sanitized.intervalMinutes) : "",
+        useRagContext: sanitized.useRagContext,
       });
       setMsg("KI-Analyse Einstellungen gespeichert.");
     } catch (ex) {
@@ -1325,6 +1330,15 @@ export default function User_AdminPanel() {
             />
             KI-Analyse aktivieren
           </label>
+          <label className="inline-flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={!!analysisConfigDraft.useRagContext}
+              onChange={(e) => setAnalysisConfigDraft((prev) => ({ ...prev, useRagContext: e.target.checked }))}
+              disabled={locked || savingAnalysisConfig}
+            />
+            RAG-Wissensdatenbank einbeziehen (SOPs, Richtlinien)
+          </label>
           <div className="flex items-center gap-3">
             <label htmlFor="analysisInterval" className="text-sm text-gray-700">
               Intervall (Minuten)
@@ -1353,7 +1367,7 @@ export default function User_AdminPanel() {
             </button>
           </div>
           <div className="text-xs text-gray-500">
-            Aktuell: {analysisConfig.enabled ? "aktiv" : "deaktiviert"} · {analysisConfig.intervalMinutes} min
+            Aktuell: {analysisConfig.enabled ? "aktiv" : "deaktiviert"} · {analysisConfig.intervalMinutes} min · RAG: {analysisConfig.useRagContext ? "aktiviert" : "deaktiviert"}
           </div>
         </div>
       </details>
