@@ -19,7 +19,7 @@ const SEVERITY_COLORS = {
   high: "text-orange-600",
   critical: "text-red-600"
 };
-const MIN_ANALYSIS_INTERVAL_MINUTES = 1;
+const MIN_ANALYSIS_INTERVAL_MINUTES = 0;
 
 function sanitizeAnalysisIntervalMinutes(value, fallback = 5) {
   const fallbackValue = Number.isFinite(Number(fallback)) ? Number(fallback) : 5;
