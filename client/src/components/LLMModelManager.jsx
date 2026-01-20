@@ -1357,13 +1357,84 @@ export default function LLMModelManager() {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {/* Antwort */}
+                      {/* Antwort - vollständig ohne Abschneiden */}
                       <div>
-                        <div className="text-xs text-gray-600 mb-1">Antwort:</div>
-                        <div className="text-sm whitespace-pre-wrap bg-white p-2 rounded border">
+                        <div className="text-xs text-gray-600 mb-1 flex justify-between items-center">
+                          <span>Antwort:</span>
+                          <span className="text-gray-400">
+                            {testResult.answer?.length || 0} Zeichen
+                          </span>
+                        </div>
+                        <div className="text-sm whitespace-pre-wrap bg-white p-3 rounded border max-h-[400px] overflow-y-auto">
                           {testResult.answer}
                         </div>
                       </div>
+
+                      {/* Verwendete Modell-Parameter */}
+                      {testResult.modelParams && (
+                        <div className="bg-indigo-50 rounded p-3 border border-indigo-200">
+                          <div className="text-xs text-indigo-700 font-medium mb-2">
+                            Verwendete Modell-Parameter
+                            {testResult.taskType && (
+                              <span className="ml-2 px-2 py-0.5 bg-indigo-200 rounded text-indigo-800">
+                                Task: {testResult.taskType}
+                              </span>
+                            )}
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                            <div>
+                              <div className="text-gray-600">Temperature</div>
+                              <div className="font-bold text-indigo-900">
+                                {testResult.modelParams.temperature ?? "–"}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-gray-600">Max Tokens</div>
+                              <div className="font-bold text-indigo-900">
+                                {testResult.modelParams.maxTokens ?? "–"}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-gray-600">Context Size</div>
+                              <div className="font-bold text-indigo-900">
+                                {testResult.modelParams.numCtx ?? "–"}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-gray-600">Num GPU</div>
+                              <div className="font-bold text-indigo-900">
+                                {testResult.modelParams.numGpu ?? "–"}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-gray-600">Top P</div>
+                              <div className="font-bold text-indigo-900">
+                                {testResult.modelParams.topP ?? "–"}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-gray-600">Top K</div>
+                              <div className="font-bold text-indigo-900">
+                                {testResult.modelParams.topK ?? "–"}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-gray-600">Repeat Penalty</div>
+                              <div className="font-bold text-indigo-900">
+                                {testResult.modelParams.repeatPenalty ?? "–"}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-gray-600">Timeout</div>
+                              <div className="font-bold text-indigo-900">
+                                {testResult.modelParams.timeout
+                                  ? `${(testResult.modelParams.timeout / 1000).toFixed(0)}s`
+                                  : "–"}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Statistik-Übersicht */}
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

@@ -1009,12 +1009,23 @@ app.post("/api/llm/test-with-metrics-stream", rateLimit(RateLimitProfiles.STRICT
       eval_count: fullAnswer.length // Approximation
     };
 
-    // Finale Zusammenfassung senden
+    // Finale Zusammenfassung senden (vollständige Antwort ohne Abschneiden)
     sendSSE("done", {
       ok: true,
-      answer: fullAnswer.slice(0, 2000),
+      answer: fullAnswer,
       duration,
       model,
+      taskType,
+      modelParams: {
+        temperature: taskConfig.temperature,
+        maxTokens: taskConfig.maxTokens,
+        numGpu: taskConfig.numGpu,
+        numCtx: taskConfig.numCtx,
+        topP: taskConfig.topP,
+        topK: taskConfig.topK,
+        repeatPenalty: taskConfig.repeatPenalty,
+        timeout: taskConfig.timeout
+      },
       metrics,
       stats,
       rawRequest,
