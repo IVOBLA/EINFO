@@ -337,6 +337,9 @@ export async function callLLMForChat(arg1, arg2, arg3) {
     if (overrides.model) {
       taskConfig.model = overrides.model;
     }
+    if (Number.isFinite(overrides.timeout)) {
+      taskConfig.timeout = overrides.timeout;
+    }
 
     logTaskSelection(taskType, taskConfig);
 
