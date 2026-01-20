@@ -24,6 +24,7 @@ const PROTOCOL_FILE = path.join(EINFO_DATA_DIR, "protocol.json");
 const BOARD_FILE = path.join(EINFO_DATA_DIR, "board.json");
 const SCENARIO_CONFIG_FILE = path.join(EINFO_DATA_DIR, "scenario_config.json");
 const AUFG_PREFIX = "Aufg";
+const AI_ANALYSIS_CFG_FILE = path.resolve(__dirname, CONFIG.dataDir, "conf", "ai-analysis.json");
 
 // Stabsrollen für Aufgaben
 const STAFF_ROLES = ["LTSTB", "S1", "S2", "S3", "S4", "S5", "S6"];
@@ -100,6 +101,43 @@ const STAFF_ROLES = ["LTSTB", "S1", "S2", "S3", "S4", "S5", "S6"];
 
 // In-Memory-Cache für aktuellen Disaster Context
 let currentDisasterContext = null;
+
+async function readSummarizationOverrides() {
+  try {
+    const raw = await fsPromises.readFile(AI_ANALYSIS_CFG_FILE, "utf8");
+    const parsed = JSON.parse(raw);
+    const llmSummarization = parsed?.llmSummarization;
+    if (!llmSummarization || typeof llmSummarization !== "object") {
+      return null;
+    }
+
+    const overrides = {};
+    if (typeof llmSummarization.model === "string" && llmSummarization.model.trim()) {
+      overrides.model = llmSummarization.model;
+    }
+    const temperature = Number(llmSummarization.temperature);
+    if (Number.isFinite(temperature)) {
+      overrides.temperature = temperature;
+    }
+    const maxTokens = Number(llmSummarization.maxTokens);
+    if (Number.isFinite(maxTokens)) {
+      overrides.maxTokens = maxTokens;
+    }
+    const timeout = Number(llmSummarization.timeout);
+    if (Number.isFinite(timeout)) {
+      overrides.timeout = timeout;
+    }
+
+    return Object.keys(overrides).length ? overrides : null;
+  } catch (err) {
+    if (err?.code !== "ENOENT") {
+      logError("Fehler beim Lesen der LLM-Summarization-Konfiguration", {
+        error: String(err)
+      });
+    }
+    return null;
+  }
+}
 
 /**
  * Initialisiert einen neuen Disaster Context
@@ -1232,9 +1270,11 @@ export async function getLLMSummarizedContext({ maxLength = 2000 } = {}) {
 
     // LLM aufrufen (dynamischer Import um zirkuläre Abhängigkeit zu vermeiden)
     const { callLLMForChat } = await import("./llm_client.js");
+    const summarizationOverrides = await readSummarizationOverrides();
 
     const llmResponse = await callLLMForChat(systemPrompt, userPrompt, {
-      taskType: "summarization"
+      taskType: "summarization",
+      ...(summarizationOverrides || {})
     });
 
     const duration = Date.now() - startTime;
