@@ -368,7 +368,10 @@ export async function callLLMForChat(arg1, arg2, arg3) {
       }
     } : null;
 
-    const result = await doLLMCallWithRetry(body, taskType === "analysis" ? "analysis" : "chat", tokenCollector, {
+    // phaseLabel bestimmt das Antwortformat: "analysis" = JSON, "chat"/"situation-question" = Text
+    const phaseLabel = taskType === "analysis" ? "analysis" :
+                       taskType === "situation-question" ? "situation-question" : "chat";
+    const result = await doLLMCallWithRetry(body, phaseLabel, tokenCollector, {
       timeoutMs: taskConfig.timeout
     });
 
@@ -644,8 +647,10 @@ async function doLLMCallWithRetry(body, phaseLabel, onToken, options = {}, maxRe
 }
 
 async function doLLMCall(body, phaseLabel, onToken, options = {}) {
-  // JSON-Format nur für Ops/Simulation, NICHT für Chat
-  if (phaseLabel !== "chat") {
+  // JSON-Format nur für Ops/Simulation/Analysis, NICHT für Chat oder Situation-Question
+  // Situation-Question erwartet Text-Antworten, nicht JSON
+  const textOnlyPhases = ["chat", "situation-question"];
+  if (!textOnlyPhases.includes(phaseLabel)) {
     body.format = "json";
   }
   const messages = Array.isArray(body.messages) ? body.messages : [];

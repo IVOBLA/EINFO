@@ -609,7 +609,9 @@ export default function LLMModelManager() {
     { key: "start", label: "Start", description: "Erstes Szenario" },
     { key: "operations", label: "Operations", description: "Laufende Simulation" },
     { key: "chat", label: "Chat", description: "QA-Chat" },
+    { key: "situation-question", label: "Situation-Question", description: "Fragen zur Lage" },
     { key: "analysis", label: "Analysis", description: "KI-Situationsanalyse" },
+    { key: "summarization", label: "Summarization", description: "Kontext-Zusammenfassung" },
     { key: "default", label: "Default", description: "Fallback" }
   ];
 
@@ -1223,6 +1225,7 @@ export default function LLMModelManager() {
                   disabled={testRunning}
                 >
                   <option value="chat">Chat (QA)</option>
+                  <option value="situation-question">Situation-Question (Fragen zur Lage)</option>
                   <option value="analysis">Analysis (KI-Situationsanalyse)</option>
                   <option value="summarization">Summarization (Kontext-Zusammenfassung)</option>
                   <option value="operations">Operations (Simulation)</option>
@@ -1232,9 +1235,9 @@ export default function LLMModelManager() {
                 <div className="text-xs text-gray-500 mt-1">
                   Der Task-Typ bestimmt welche Prompts und Parameter verwendet werden
                 </div>
-                {testTaskType === "analysis" && (
+                {(testTaskType === "analysis" || testTaskType === "situation-question") && (
                   <div className="text-xs text-amber-600 mt-2 bg-amber-50 p-2 rounded">
-                    Hinweis: Bei aktivierter "LLM-Zusammenfassung" wird vor der Analysis zuerst ein Summarization-Aufruf gemacht.
+                    Hinweis: Bei aktivierter "LLM-Zusammenfassung" wird vor {testTaskType === "analysis" ? "der Analysis" : "der Fragebeantwortung"} zuerst ein Summarization-Aufruf gemacht.
                     Wählen Sie "Summarization" um diesen ersten Aufruf separat zu testen.
                   </div>
                 )}

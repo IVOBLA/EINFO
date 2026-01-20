@@ -66,6 +66,17 @@ const DEFAULT_TASK_CONFIG = {
       topK: 50,
       repeatPenalty: 1.1
     },
+    "situation-question": {
+      model: "einfo-analysis",
+      temperature: 0.3,
+      maxTokens: 1000,
+      timeout: 60000,
+      numGpu: 20,
+      numCtx: 4096,
+      topP: 0.9,
+      topK: 40,
+      repeatPenalty: 1.1
+    },
     summarization: {
       model: "llama3.1:8b",
       temperature: 0.3,
