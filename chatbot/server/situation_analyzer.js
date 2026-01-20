@@ -10,7 +10,7 @@ import { fileURLToPath } from "url";
 import { CONFIG } from "./config.js";
 import { logDebug, logError, logInfo } from "./logger.js";
 // isSimulationRunning nicht mehr benötigt - KI-Analyse ist immer verfügbar
-import { getFilteredDisasterContextSummary, getCurrentDisasterContext, getLLMSummarizedContext } from "./disaster_context.js";
+import { getFilteredDisasterContextSummary, getCurrentDisasterContext, getLLMSummarizedContext, getCachedLLMSummary } from "./disaster_context.js";
 import { callLLMForChat } from "./llm_client.js";
 import { saveFeedback, getLearnedResponsesContext } from "./llm_feedback.js";
 import { embedText } from "./rag/embedding.js";
@@ -828,12 +828,21 @@ export async function answerQuestion(question, role, context = "aufgabenboard") 
                               analysisConfig.llmSummarization?.enabled === true;
 
   // Kontext holen - entsprechend der Konfiguration
+  // WICHTIG: Bei LLM-Modus wird der CACHE der letzten timergesteuerten Analyse verwendet,
+  // KEIN neuer LLM-Aufruf! Der Cache wird nur durch timergesteuerte Analysen aktualisiert.
   let disasterSummary;
   if (useLLMSummarization) {
-    // LLM-basierte Zusammenfassung verwenden
-    logDebug("Fragebeantwortung: Verwende LLM-basierte Zusammenfassung");
-    const llmResult = await getLLMSummarizedContext({ maxLength: 1500 });
-    disasterSummary = llmResult.summary;
+    // Gecachte LLM-Zusammenfassung verwenden (kein neuer LLM-Aufruf!)
+    logDebug("Fragebeantwortung: Verwende gecachte LLM-Zusammenfassung");
+    const cachedResult = await getCachedLLMSummary({ maxLength: 1500 });
+    disasterSummary = cachedResult.summary;
+    if (cachedResult.fromCache) {
+      logDebug("Fragebeantwortung: Cache-Alter", {
+        cacheAge: Date.now() - cachedResult.timestamp
+      });
+    } else {
+      logDebug("Fragebeantwortung: Kein Cache vorhanden, Fallback auf regelbasiert");
+    }
   } else {
     // Regelbasierte Filterung verwenden (Standard)
     logDebug("Fragebeantwortung: Verwende regelbasierte Filterung");

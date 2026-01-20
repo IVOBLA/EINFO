@@ -1235,10 +1235,16 @@ export default function LLMModelManager() {
                 <div className="text-xs text-gray-500 mt-1">
                   Der Task-Typ bestimmt welche Prompts und Parameter verwendet werden
                 </div>
-                {(testTaskType === "analysis" || testTaskType === "situation-question") && (
+                {testTaskType === "analysis" && (
                   <div className="text-xs text-amber-600 mt-2 bg-amber-50 p-2 rounded">
-                    Hinweis: Bei aktivierter "LLM-Zusammenfassung" wird vor {testTaskType === "analysis" ? "der Analysis" : "der Fragebeantwortung"} zuerst ein Summarization-Aufruf gemacht.
+                    Hinweis: Bei aktivierter "LLM-Zusammenfassung" wird vor der Analysis zuerst ein Summarization-Aufruf gemacht.
                     Wählen Sie "Summarization" um diesen ersten Aufruf separat zu testen.
+                  </div>
+                )}
+                {testTaskType === "situation-question" && (
+                  <div className="text-xs text-blue-600 mt-2 bg-blue-50 p-2 rounded">
+                    Hinweis: Im Live-Betrieb verwendet die Fragebeantwortung den Cache der letzten timergesteuerten Analyse (kein zusätzlicher LLM-Aufruf).
+                    Im Test hier wird ein neuer Summarization-Aufruf gemacht, um aktuelle Daten zu verwenden.
                   </div>
                 )}
               </div>
