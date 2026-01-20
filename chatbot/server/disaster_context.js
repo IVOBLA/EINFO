@@ -1395,34 +1395,87 @@ export async function getLLMSummarizedContext({ maxLength = 2000 } = {}) {
 
 /**
  * Formatiert Board-Daten für den Prompt
+ *
+ * Filterlogik:
+ * - Nur Einsätze mit Status "neu" oder "in-bearbeitung" werden angezeigt
+ * - Gruppierung nach Status (Status nur einmal als Überschrift)
+ * - Timestamp für Beurteilung der Einsatzdauer
  */
 function formatBoardForPrompt(board) {
   if (!board || board.length === 0) {
     return "(Keine aktiven Einsätze)";
   }
 
-  const lines = [];
-  const sorted = [...board].sort((a, b) => {
-    // Sortiere: neu > in-bearbeitung > erledigt
-    const order = { "neu": 0, "in-bearbeitung": 1, "erledigt": 2 };
-    return (order[a.column] ?? 1) - (order[b.column] ?? 1);
+  // Filtere nur aktive Einsätze (neu, in-bearbeitung)
+  const activeStatuses = ["neu", "in-bearbeitung"];
+  const activeItems = board.filter(item => {
+    const status = String(item.column || "neu").toLowerCase();
+    return activeStatuses.includes(status);
   });
 
-  for (const item of sorted.slice(0, 20)) { // Max 20 Einträge
-    const status = item.column || "unbekannt";
-    const typ = item.typ || item.type || "Einsatz";
-    const ort = item.ort || item.location || "Unbekannt";
-    const content = (item.content || item.description || "").substring(0, 80);
-    const alerted = item.alerted ? ` [Alarmiert: ${item.alerted}]` : "";
-
-    lines.push(`- [${status.toUpperCase()}] ${typ} @ ${ort}: ${content}${alerted}`);
+  if (activeItems.length === 0) {
+    return "(Keine aktiven Einsätze)";
   }
 
-  if (board.length > 20) {
-    lines.push(`... und ${board.length - 20} weitere Einsätze`);
+  // Gruppiere nach Status
+  const grouped = {
+    "neu": [],
+    "in-bearbeitung": []
+  };
+
+  for (const item of activeItems) {
+    const status = String(item.column || "neu").toLowerCase();
+    if (grouped[status]) {
+      grouped[status].push(item);
+    }
   }
 
-  return lines.join("\n");
+  const lines = [];
+
+  // Hilfsfunktion für Einsatzdauer
+  const formatDuration = (timestamp) => {
+    if (!timestamp) return "";
+    const now = Date.now();
+    const start = typeof timestamp === "number" ? timestamp : Date.parse(timestamp);
+    if (isNaN(start)) return "";
+    const durationMin = Math.floor((now - start) / 60000);
+    if (durationMin < 60) return `${durationMin} Min`;
+    const hours = Math.floor(durationMin / 60);
+    const mins = durationMin % 60;
+    return `${hours}h ${mins}m`;
+  };
+
+  // Formatiere jede Gruppe
+  const statusLabels = {
+    "neu": "NEU",
+    "in-bearbeitung": "IN BEARBEITUNG"
+  };
+
+  for (const status of activeStatuses) {
+    const items = grouped[status];
+    if (items.length === 0) continue;
+
+    lines.push(`### [${statusLabels[status]}] (${items.length} Einsätze)`);
+
+    for (const item of items.slice(0, 15)) { // Max 15 pro Gruppe
+      const typ = item.typ || item.type || "Einsatz";
+      const ort = item.ort || item.location || "Unbekannt";
+      const content = (item.content || item.description || "").substring(0, 80);
+      const alerted = item.alerted ? ` [Alarmiert: ${item.alerted}]` : "";
+      const duration = formatDuration(item.timestamp);
+      const durationInfo = duration ? ` (Dauer: ${duration})` : "";
+
+      lines.push(`- ${typ} @ ${ort}: ${content}${alerted}${durationInfo}`);
+    }
+
+    if (items.length > 15) {
+      lines.push(`... und ${items.length - 15} weitere`);
+    }
+
+    lines.push(""); // Leerzeile zwischen Gruppen
+  }
+
+  return lines.join("\n").trim();
 }
 
 /**
@@ -1542,8 +1595,7 @@ function formatTasksForPrompt(aufgaben) {
     lines.push(`**${role}:**`);
     for (const task of tasks.slice(0, 5)) {
       const title = (task.title || task.desc || task.description || "Unbenannt").substring(0, 60);
-      const status = task.status ? ` [${task.status}]` : "";
-      lines.push(`  - ${title}${status}`);
+      lines.push(`  - ${title}`);
     }
     if (tasks.length > 5) {
       lines.push(`  ... und ${tasks.length - 5} weitere`);
