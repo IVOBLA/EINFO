@@ -22,6 +22,7 @@ const DISASTER_HISTORY_DIR = path.resolve(__dirname, "../../server/data/disaster
 const EINFO_DATA_DIR = path.resolve(__dirname, "../../server/data");
 const PROTOCOL_FILE = path.join(EINFO_DATA_DIR, "protocol.json");
 const BOARD_FILE = path.join(EINFO_DATA_DIR, "board.json");
+const SCENARIO_CONFIG_FILE = path.join(EINFO_DATA_DIR, "scenario_config.json");
 const AUFG_PREFIX = "Aufg";
 
 // Stabsrollen für Aufgaben
@@ -379,8 +380,29 @@ export async function loadCurrentEinfoData() {
     aufgaben: [],
     board: [],
     boardRaw: null, // Originales Board-Objekt mit columns
+    disaster: null, // Disaster-Info aus scenario_config.json
     loadedAt: Date.now()
   };
+
+  // 0. Szenario-Konfiguration laden für disaster-Objekt
+  try {
+    const raw = await fsPromises.readFile(SCENARIO_CONFIG_FILE, "utf8");
+    const scenarioConfig = JSON.parse(raw);
+    // Erstelle disaster-Objekt aus Szenario-Konfiguration
+    result.disaster = {
+      type: scenarioConfig.artDesEreignisses || "unknown",
+      phase: currentDisasterContext?.currentPhase || "initial",
+      start_time: currentDisasterContext?.startTime || null,
+      scenario: scenarioConfig.scenarioId || null,
+      geographic_area: scenarioConfig.geografischerBereich || null
+    };
+  } catch (err) {
+    if (err?.code !== "ENOENT") {
+      logError("Fehler beim Laden der Szenario-Konfiguration", { error: String(err) });
+    }
+    // Fallback: leeres disaster-Objekt
+    result.disaster = { type: "unknown", phase: "initial" };
+  }
 
   // 1. Protokolle laden
   try {

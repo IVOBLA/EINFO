@@ -325,6 +325,7 @@ export async function callLLMForChat(arg1, arg2, arg3) {
     const overrides = arg3 || {};
     const taskType = overrides.taskType || "chat";
     const useStreaming = overrides.stream !== false;
+    const externalOnToken = overrides.onToken || null;  // NEU: Externer Token-Callback
 
     // JSON-Format erzwingen für analysis Task-Typ (außer explizit deaktiviert)
     const requireJsonFormat = overrides.requireJson !== false && taskType === "analysis";
@@ -358,9 +359,13 @@ export async function callLLMForChat(arg1, arg2, arg3) {
     let collectedResponse = "";
     const tokenCollector = useStreaming ? (token) => {
       collectedResponse += token;
+      // NEU: Auch externen Callback aufrufen wenn vorhanden
+      if (externalOnToken) {
+        externalOnToken(token);
+      }
     } : null;
 
-    const result = await doLLMCallWithRetry(body, "chat", tokenCollector, {
+    const result = await doLLMCallWithRetry(body, taskType === "analysis" ? "analysis" : "chat", tokenCollector, {
       timeoutMs: taskConfig.timeout
     });
 

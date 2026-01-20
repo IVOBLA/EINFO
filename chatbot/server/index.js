@@ -29,8 +29,10 @@ import {
   setTaskModel,
   getAllModels
 } from "./config.js";
-import { logInfo, logError } from "./logger.js";
+import { logInfo, logError, logDebug } from "./logger.js";
 import { initMemoryStore } from "./memory_manager.js";
+import { loadPromptTemplate, fillTemplate, buildSystemPromptChat, buildUserPromptChat } from "./prompts.js";
+import { getExcludeContextForPrompt } from "./suggestion_filter.js";
 import { getGpuStatus } from "./gpu_status.js";
 import { getSystemStatus, getCpuTimesSnapshot, collectSystemMetrics } from "./system_status.js";
 import { getGeoIndex } from "./rag/geo_search.js";
@@ -699,8 +701,9 @@ app.post("/api/llm/test-with-metrics", rateLimit(RateLimitProfiles.STRICT), asyn
 });
 
 // LLM-Test mit Streaming (SSE) - Tokens werden live gesendet
+// NEU: Unterstützt taskType für echte Prompt-Komposition und editedPrompts für manuelle Anpassungen
 app.post("/api/llm/test-with-metrics-stream", rateLimit(RateLimitProfiles.STRICT), async (req, res) => {
-  const { model, question } = req.body || {};
+  const { model, question, taskType = "chat", editedPrompts } = req.body || {};
 
   if (!question || typeof question !== "string") {
     return res.status(400).json({ ok: false, error: "missing_question" });
@@ -739,11 +742,73 @@ app.post("/api/llm/test-with-metrics-stream", rateLimit(RateLimitProfiles.STRICT
   let previousCpuSnapshot = getCpuTimesSnapshot();
   let fullAnswer = "";
 
-  // Task-Config für RAW-Request-Anzeige holen
-  const taskConfig = getModelForTask("chat");
+  // Task-Config für den gewählten Task-Typ holen
+  const taskConfig = getModelForTask(taskType);
+
+  // ============================================================
+  // Prompts basierend auf Task-Typ zusammenstellen
+  // ============================================================
+  let systemPrompt = "";
+  let userPrompt = "";
+
+  try {
+    if (editedPrompts && editedPrompts.systemPrompt !== undefined && editedPrompts.userPrompt !== undefined) {
+      // Benutzer hat Prompts manuell bearbeitet - diese verwenden
+      systemPrompt = editedPrompts.systemPrompt;
+      userPrompt = editedPrompts.userPrompt;
+      logDebug("Verwende bearbeitete Prompts für Test", { taskType, edited: true });
+    } else if (taskType === "analysis") {
+      // Analysis: Verwende echte Situationsanalyse-Prompts
+      const situationAnalysisSystemTemplate = loadPromptTemplate("situation_analysis_system.txt");
+      const situationAnalysisUserTemplate = loadPromptTemplate("situation_analysis_user.txt");
+
+      // Rollen-Beschreibungen
+      const ROLE_DESCRIPTIONS = {
+        "LTSTB": "Leiter Technischer Einsatzleitung - Gesamtverantwortung und strategische Führung",
+        "S1": "Stabsstelle 1 - Personal und Innerer Dienst",
+        "S2": "Stabsstelle 2 - Lage und Dokumentation",
+        "S3": "Stabsstelle 3 - Einsatz und Taktik",
+        "S4": "Stabsstelle 4 - Versorgung und Logistik",
+        "S5": "Stabsstelle 5 - Presse und Öffentlichkeitsarbeit",
+        "S6": "Stabsstelle 6 - Kommunikation und IT"
+      };
+      const roles = Object.keys(ROLE_DESCRIPTIONS);
+      const rolesDescription = roles.map(r => `- ${r}: ${ROLE_DESCRIPTIONS[r]}`).join("\n");
+
+      // Disaster Context und Exclude Context holen
+      const { summary: disasterSummary } = await getFilteredDisasterContextSummary({ maxLength: 2500 });
+      const excludeContext = await getExcludeContextForPrompt(roles);
+
+      systemPrompt = fillTemplate(situationAnalysisSystemTemplate, { rolesDescription });
+      userPrompt = fillTemplate(situationAnalysisUserTemplate, {
+        disasterSummary: disasterSummary || "(Keine aktuellen Lagedaten verfügbar - Testmodus)",
+        excludeContext: excludeContext || ""
+      });
+    } else if (taskType === "chat") {
+      // Chat: Verwende Chat-Prompts
+      systemPrompt = buildSystemPromptChat();
+      userPrompt = buildUserPromptChat(question, "(Knowledge-Kontext wird bei echtem Chat-Aufruf hinzugefügt)", "", "");
+    } else if (taskType === "operations" || taskType === "start") {
+      // Operations/Start: Verwende Operations-Prompts (vereinfacht für Test)
+      const operationsSystemTemplate = loadPromptTemplate("operations_system_prompt.txt");
+      systemPrompt = operationsSystemTemplate;
+      userPrompt = `[TESTMODUS für ${taskType}]\n\nFrage: ${question}\n\n(Im echten Betrieb würde hier der vollständige Einsatzkontext stehen)`;
+    } else {
+      // Default: Einfacher System-Prompt
+      systemPrompt = "Du bist ein hilfreicher Assistent für Katastrophenmanagement.";
+      userPrompt = question;
+    }
+  } catch (promptErr) {
+    logError("Fehler beim Erstellen der Prompts", { taskType, error: String(promptErr) });
+    // Fallback auf einfache Prompts
+    systemPrompt = "Du bist ein hilfreicher Assistent.";
+    userPrompt = question;
+  }
+
   const rawRequest = {
     model: model,
     stream: true,
+    format: taskType === "analysis" ? "json" : undefined,
     options: {
       temperature: taskConfig.temperature,
       num_ctx: taskConfig.numCtx,
@@ -754,8 +819,8 @@ app.post("/api/llm/test-with-metrics-stream", rateLimit(RateLimitProfiles.STRICT
       repeat_penalty: taskConfig.repeatPenalty
     },
     messages: [
-      { role: "system", content: "(System-Prompt wird vom Server generiert)" },
-      { role: "user", content: question }
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt }
     ]
   };
 
@@ -813,7 +878,14 @@ app.post("/api/llm/test-with-metrics-stream", rateLimit(RateLimitProfiles.STRICT
   metricsInterval = setInterval(collectAllMetrics, 2000);
 
   try {
-    await callLLMForChat({ question, model, stream: true, onToken });
+    // Verwende die zusammengestellten Prompts für den LLM-Aufruf
+    await callLLMForChat(systemPrompt, userPrompt, {
+      taskType,
+      model,
+      stream: true,
+      onToken,
+      requireJson: taskType === "analysis"
+    });
     llmFinished = true;
     clearInterval(metricsInterval);
 
@@ -933,6 +1005,91 @@ app.get("/api/llm/profiles", async (_req, res) => {
     });
   } catch (err) {
     logError("Fehler beim Laden der Modell-Profile", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// ============================================================
+// API für Prompt-Template-Verwaltung
+// ============================================================
+const PROMPT_TEMPLATES_DIR = path.resolve(__dirname, "prompt_templates");
+
+// Liste alle verfügbaren Prompt-Templates
+app.get("/api/llm/prompt-templates", rateLimit(RateLimitProfiles.LENIENT), async (_req, res) => {
+  try {
+    const files = await fs.readdir(PROMPT_TEMPLATES_DIR);
+    const templates = files
+      .filter(f => f.endsWith(".txt"))
+      .map(f => ({
+        name: f,
+        displayName: f.replace(".txt", "").replace(/_/g, " ")
+      }));
+    res.json({ ok: true, templates });
+  } catch (err) {
+    logError("Fehler beim Laden der Prompt-Templates", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// Lade ein einzelnes Prompt-Template
+app.get("/api/llm/prompt-templates/:name", rateLimit(RateLimitProfiles.LENIENT), async (req, res) => {
+  try {
+    const { name } = req.params;
+    // Sicherheit: Nur erlaubte Zeichen im Namen
+    if (!/^[a-zA-Z0-9_-]+\.txt$/.test(name)) {
+      return res.status(400).json({ ok: false, error: "invalid_template_name" });
+    }
+    const filePath = path.join(PROMPT_TEMPLATES_DIR, name);
+    const content = await fs.readFile(filePath, "utf-8");
+    res.json({ ok: true, name, content });
+  } catch (err) {
+    if (err.code === "ENOENT") {
+      return res.status(404).json({ ok: false, error: "template_not_found" });
+    }
+    logError("Fehler beim Laden des Prompt-Templates", { name: req.params.name, error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// Speichere ein Prompt-Template
+app.put("/api/llm/prompt-templates/:name", rateLimit(RateLimitProfiles.STRICT), async (req, res) => {
+  try {
+    const { name } = req.params;
+    const { content } = req.body || {};
+
+    // Sicherheit: Nur erlaubte Zeichen im Namen
+    if (!/^[a-zA-Z0-9_-]+\.txt$/.test(name)) {
+      return res.status(400).json({ ok: false, error: "invalid_template_name" });
+    }
+
+    if (typeof content !== "string") {
+      return res.status(400).json({ ok: false, error: "missing_content" });
+    }
+
+    const filePath = path.join(PROMPT_TEMPLATES_DIR, name);
+
+    // Prüfe ob Datei existiert (nur existierende Templates können bearbeitet werden)
+    try {
+      await fs.access(filePath);
+    } catch {
+      return res.status(404).json({ ok: false, error: "template_not_found" });
+    }
+
+    // Backup erstellen bevor wir überschreiben
+    const backupDir = path.join(PROMPT_TEMPLATES_DIR, "backups");
+    await fs.mkdir(backupDir, { recursive: true });
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const backupPath = path.join(backupDir, `${name}.${timestamp}.bak`);
+    const originalContent = await fs.readFile(filePath, "utf-8");
+    await fs.writeFile(backupPath, originalContent, "utf-8");
+
+    // Speichere neue Version
+    await fs.writeFile(filePath, content, "utf-8");
+
+    logInfo("Prompt-Template aktualisiert", { name, backupPath });
+    res.json({ ok: true, message: "Template gespeichert", backupPath });
+  } catch (err) {
+    logError("Fehler beim Speichern des Prompt-Templates", { name: req.params.name, error: String(err) });
     res.status(500).json({ ok: false, error: String(err) });
   }
 });

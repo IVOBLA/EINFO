@@ -25,12 +25,18 @@ export default function FilteringRulesPanel({ locked = false }) {
   const [aiConfig, setAiConfig] = useState(null);
   const [aiConfigSaving, setAiConfigSaving] = useState(false);
   const [aiConfigMsg, setAiConfigMsg] = useState("");
+  // Szenario-Konfiguration
+  const [scenario, setScenario] = useState(null);
+  const [editingScenario, setEditingScenario] = useState(false);
+  const [editedScenario, setEditedScenario] = useState({});
+  const [savingScenario, setSavingScenario] = useState(false);
 
   useEffect(() => {
     loadStatus();
     loadLearnedWeights();
     loadRules();
     loadAiConfig();
+    loadScenario();
   }, []);
 
   // NEU: AI-Analyse-Konfiguration laden
@@ -129,6 +135,42 @@ export default function FilteringRulesPanel({ locked = false }) {
       setEditedRules(JSON.parse(JSON.stringify(data))); // Deep copy
     } catch (ex) {
       console.warn("Regeln laden fehlgeschlagen:", ex.message);
+    }
+  }
+
+  async function loadScenario() {
+    try {
+      const res = await fetch("/api/admin/filtering-rules/scenario", { credentials: "include" });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || "Laden fehlgeschlagen");
+      setScenario(data);
+      setEditedScenario(data);
+    } catch (ex) {
+      console.warn("Szenario laden fehlgeschlagen:", ex.message);
+    }
+  }
+
+  async function saveScenario() {
+    try {
+      setSavingScenario(true);
+      const res = await fetch("/api/admin/filtering-rules/scenario", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(editedScenario)
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || "Speichern fehlgeschlagen");
+
+      setScenario(editedScenario);
+      setEditingScenario(false);
+      setErr("");
+      // Status neu laden um aktualisierte Werte zu sehen
+      await loadStatus();
+    } catch (ex) {
+      setErr(ex.message || "Szenario speichern fehlgeschlagen");
+    } finally {
+      setSavingScenario(false);
     }
   }
 
@@ -783,6 +825,101 @@ export default function FilteringRulesPanel({ locked = false }) {
           </div>
         </div>
       )}
+
+      {/* Szenario-Konfiguration */}
+      <div className="border rounded p-4 bg-blue-50">
+        <div className="flex items-center justify-between mb-3">
+          <div className="font-medium text-base">Szenario-Konfiguration</div>
+          {!editingScenario ? (
+            <button
+              onClick={() => setEditingScenario(true)}
+              disabled={locked}
+              className="text-xs px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+            >
+              Bearbeiten
+            </button>
+          ) : (
+            <div className="flex gap-2">
+              <button
+                onClick={saveScenario}
+                disabled={savingScenario}
+                className="text-xs px-2 py-1 bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50"
+              >
+                {savingScenario ? "..." : "Speichern"}
+              </button>
+              <button
+                onClick={() => {
+                  setEditedScenario(scenario || {});
+                  setEditingScenario(false);
+                }}
+                className="text-xs px-2 py-1 bg-gray-400 text-white rounded hover:bg-gray-500"
+              >
+                Abbrechen
+              </button>
+            </div>
+          )}
+        </div>
+
+        {editingScenario ? (
+          <div className="grid gap-3 text-sm">
+            <div>
+              <label className="block text-gray-600 mb-1">Art des Ereignisses:</label>
+              <select
+                value={editedScenario.artDesEreignisses || ""}
+                onChange={(e) => setEditedScenario({...editedScenario, artDesEreignisses: e.target.value})}
+                className="w-full p-2 border rounded text-sm"
+              >
+                <option value="">-- Bitte wählen --</option>
+                <option value="Hochwasser">Hochwasser</option>
+                <option value="Sturm">Sturm</option>
+                <option value="Schnee">Schnee/Winterdienst</option>
+                <option value="Brand">Brand/Waldbrand</option>
+                <option value="Mure">Mure/Hangrutschung</option>
+                <option value="Verkehrsunfall">Verkehrsunfall (groß)</option>
+                <option value="Technischer Einsatz">Technischer Einsatz</option>
+                <option value="Sonstiges">Sonstiges</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-gray-600 mb-1">Geografischer Bereich:</label>
+              <input
+                type="text"
+                value={editedScenario.geografischerBereich || ""}
+                onChange={(e) => setEditedScenario({...editedScenario, geografischerBereich: e.target.value})}
+                placeholder="z.B. Bezirk Feldkirchen"
+                className="w-full p-2 border rounded text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-gray-600 mb-1">Wetter (optional):</label>
+              <input
+                type="text"
+                value={editedScenario.wetter || ""}
+                onChange={(e) => setEditedScenario({...editedScenario, wetter: e.target.value})}
+                placeholder="z.B. Dauerregen, starker Wind"
+                className="w-full p-2 border rounded text-sm"
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="grid gap-2 text-sm">
+            <div>
+              <span className="text-gray-600">Art des Ereignisses:</span>{" "}
+              <strong>{scenario?.artDesEreignisses || "Nicht definiert"}</strong>
+            </div>
+            <div>
+              <span className="text-gray-600">Geografischer Bereich:</span>{" "}
+              {scenario?.geografischerBereich || "Nicht definiert"}
+            </div>
+            {scenario?.wetter && (
+              <div>
+                <span className="text-gray-600">Wetter:</span>{" "}
+                {scenario.wetter}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Letzte Analyse-Details */}
       {lastAnalysis ? (
