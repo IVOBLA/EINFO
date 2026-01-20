@@ -1374,22 +1374,3 @@ function formatTasksForPrompt(aufgaben) {
 
   return lines.join("\n");
 }
-
-/**
- * Hilfsfunktion: Timestamp aus Protokoll-Eintrag extrahieren
- * (Kopie von resolveProtocolTimestamp für lokale Verwendung)
- */
-function resolveProtocolTimestamp(entry) {
-  if (typeof entry?.timestamp === "number") return entry.timestamp;
-  const date = entry?.datum || entry?.date;
-  const time = entry?.zeit || entry?.time;
-  if (date && time) {
-    const parsed = Date.parse(`${date} ${time}`);
-    if (!Number.isNaN(parsed)) return parsed;
-  }
-  if (date) {
-    const parsed = Date.parse(date);
-    if (!Number.isNaN(parsed)) return parsed;
-  }
-  return null;
-}
