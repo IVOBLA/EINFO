@@ -703,7 +703,7 @@ app.post("/api/llm/test-with-metrics", rateLimit(RateLimitProfiles.STRICT), asyn
 // LLM-Test mit Streaming (SSE) - Tokens werden live gesendet
 // NEU: Unterstützt taskType für echte Prompt-Komposition und editedPrompts für manuelle Anpassungen
 app.post("/api/llm/test-with-metrics-stream", rateLimit(RateLimitProfiles.STRICT), async (req, res) => {
-  const { model, question, taskType = "chat", editedPrompts } = req.body || {};
+  const { model, question, taskType = "chat", editedPrompts, previewOnly } = req.body || {};
 
   if (!question || typeof question !== "string") {
     return res.status(400).json({ ok: false, error: "missing_question" });
@@ -784,6 +784,23 @@ app.post("/api/llm/test-with-metrics-stream", rateLimit(RateLimitProfiles.STRICT
         disasterSummary: disasterSummary || "(Keine aktuellen Lagedaten verfügbar - Testmodus)",
         excludeContext: excludeContext || ""
       });
+    } else if (taskType === "summarization") {
+      // Summarization: Verwende Kontext-Zusammenfassungs-Prompts
+      const summarizationSystemTemplate = loadPromptTemplate("summarization_system.txt");
+      const summarizationUserTemplate = loadPromptTemplate("summarization_user.txt");
+
+      // Für Test: Verwende Beispieldaten wenn keine echten Daten verfügbar
+      systemPrompt = summarizationSystemTemplate;
+      userPrompt = fillTemplate(summarizationUserTemplate, {
+        boardData: "(Board-Daten werden bei echtem Aufruf hinzugefügt - Testmodus)",
+        protocolData: "(Protokoll-Daten werden bei echtem Aufruf hinzugefügt - Testmodus)",
+        tasksData: "(Aufgaben-Daten werden bei echtem Aufruf hinzugefügt - Testmodus)",
+        activeIncidents: "0",
+        criticalIncidents: "0",
+        totalPersonnel: "0",
+        protocolCount: "0",
+        openTasks: "0"
+      });
     } else if (taskType === "chat") {
       // Chat: Verwende Chat-Prompts
       systemPrompt = buildSystemPromptChat();
@@ -823,6 +840,18 @@ app.post("/api/llm/test-with-metrics-stream", rateLimit(RateLimitProfiles.STRICT
       { role: "user", content: userPrompt }
     ]
   };
+
+  // Bei previewOnly: Nur Prompts zurückgeben ohne LLM-Aufruf
+  if (previewOnly) {
+    sendSSE("prompts", {
+      ok: true,
+      rawRequest,
+      taskType,
+      model
+    });
+    res.end();
+    return;
+  }
 
   // Metriken sammeln
   const collectAllMetrics = async () => {
