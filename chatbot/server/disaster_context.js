@@ -1209,6 +1209,47 @@ function loadSummarizationTemplates() {
   return true;
 }
 
+export async function getSummarizationPromptData() {
+  const einfoData = await loadCurrentEinfoData();
+
+  const boardData = formatBoardForPrompt(einfoData.board);
+  const protocolData = formatProtocolForPrompt(einfoData.protokoll);
+  const tasksData = formatTasksForPrompt(einfoData.aufgaben);
+
+  const activeIncidents = einfoData.board.filter(item => {
+    const status = String(item?.column || "").toLowerCase();
+    return status !== "erledigt";
+  }).length;
+
+  const criticalIncidents = einfoData.board.filter(item => {
+    const content = String(item?.content || "").toLowerCase();
+    return content.includes("verletzt") || content.includes("eingeschlossen") ||
+           content.includes("evakuierung") || content.includes("kritisch");
+  }).length;
+
+  const totalPersonnel = einfoData.board.reduce((sum, item) => {
+    return sum + (item.personnel || item.alerted?.split(",").length || 0);
+  }, 0);
+
+  const openTasks = einfoData.aufgaben.filter(task => {
+    const status = String(task?.status || "").toLowerCase();
+    return status !== "erledigt" && status !== "done";
+  }).length;
+
+  return {
+    boardData,
+    protocolData,
+    tasksData,
+    activeIncidents,
+    criticalIncidents,
+    totalPersonnel,
+    boardCount: einfoData.board.length,
+    tasksCount: einfoData.aufgaben.length,
+    protocolCount: einfoData.protokoll.length,
+    openTasks
+  };
+}
+
 /**
  * Erstellt eine LLM-basierte Zusammenfassung der aktuellen Lage
  * Alternative zur regelbasierten Filterung
@@ -1226,34 +1267,18 @@ export async function getLLMSummarizedContext({ maxLength = 2000 } = {}) {
       throw new Error("Summarization-Templates konnten nicht geladen werden");
     }
 
-    // Aktuelle EINFO-Daten laden
-    const einfoData = await loadCurrentEinfoData();
-
-    // Daten für Prompt aufbereiten
-    const boardData = formatBoardForPrompt(einfoData.board);
-    const protocolData = formatProtocolForPrompt(einfoData.protokoll);
-    const tasksData = formatTasksForPrompt(einfoData.aufgaben);
-
-    // Statistiken berechnen
-    const activeIncidents = einfoData.board.filter(item => {
-      const status = String(item?.column || "").toLowerCase();
-      return status !== "erledigt";
-    }).length;
-
-    const criticalIncidents = einfoData.board.filter(item => {
-      const content = String(item?.content || "").toLowerCase();
-      return content.includes("verletzt") || content.includes("eingeschlossen") ||
-             content.includes("evakuierung") || content.includes("kritisch");
-    }).length;
-
-    const totalPersonnel = einfoData.board.reduce((sum, item) => {
-      return sum + (item.personnel || item.alerted?.split(",").length || 0);
-    }, 0);
-
-    const openTasks = einfoData.aufgaben.filter(task => {
-      const status = String(task?.status || "").toLowerCase();
-      return status !== "erledigt" && status !== "done";
-    }).length;
+    const {
+      boardData,
+      protocolData,
+      tasksData,
+      activeIncidents,
+      criticalIncidents,
+      totalPersonnel,
+      boardCount,
+      tasksCount,
+      protocolCount,
+      openTasks
+    } = await getSummarizationPromptData();
 
     // Prompts erstellen
     const systemPrompt = summarizationSystemTemplate;
@@ -1264,7 +1289,7 @@ export async function getLLMSummarizedContext({ maxLength = 2000 } = {}) {
       activeIncidents: String(activeIncidents),
       criticalIncidents: String(criticalIncidents),
       totalPersonnel: String(totalPersonnel),
-      protocolCount: String(einfoData.protokoll.length),
+      protocolCount: String(protocolCount),
       openTasks: String(openTasks)
     });
 
@@ -1295,9 +1320,9 @@ export async function getLLMSummarizedContext({ maxLength = 2000 } = {}) {
       duration,
       summaryLength: summary.length,
       inputDataSize: {
-        board: einfoData.board.length,
-        protokoll: einfoData.protokoll.length,
-        aufgaben: einfoData.aufgaben.length
+        board: boardCount,
+        protokoll: protocolCount,
+        aufgaben: tasksCount
       }
     });
 
