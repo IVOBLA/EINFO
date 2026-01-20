@@ -85,6 +85,9 @@ let analysisIntervalId = null;
 // Flag um gleichzeitige Analysen zu verhindern (Stream muss fertig sein bevor nächste Analyse startet)
 let analysisInProgress = false;
 
+// Zeitpunkt wann die letzte Analyse gestartet wurde (für Timer-Berechnung)
+let lastAnalysisStartTime = null;
+
 // Callback für SSE-Broadcast wenn Analyse fertig ist
 let onAnalysisCompleteCallback = null;
 
@@ -100,6 +103,34 @@ export function setOnAnalysisComplete(callback) {
  */
 export function isAnalysisInProgress() {
   return analysisInProgress;
+}
+
+/**
+ * Gibt den Timer-Status für die nächste Analyse zurück
+ * Wird verwendet um im Frontend anzuzeigen, wann die nächste Analyse startet
+ */
+export function getAnalysisTimerStatus() {
+  const now = Date.now();
+
+  // Berechne Zeit bis zur nächsten Analyse
+  let nextAnalysisInMs = null;
+  let nextAnalysisInMinutes = null;
+
+  if (analysisIntervalMs > 0 && lastAnalysisStartTime) {
+    const timeSinceLastAnalysis = now - lastAnalysisStartTime;
+    nextAnalysisInMs = Math.max(0, analysisIntervalMs - timeSinceLastAnalysis);
+    nextAnalysisInMinutes = Math.ceil(nextAnalysisInMs / 60000);
+  }
+
+  return {
+    analysisInProgress,
+    lastAnalysisStartTime,
+    analysisIntervalMs,
+    analysisIntervalMinutes: analysisIntervalMs / 60000,
+    nextAnalysisInMs,
+    nextAnalysisInMinutes,
+    isAutomatic: analysisIntervalMs > 0 && analysisIntervalId !== null
+  };
 }
 
 /**
@@ -405,6 +436,7 @@ export async function analyzeAllRoles(forceRefresh = false) {
 
   // Flag setzen BEVOR die Analyse startet (inkl. Datenaufbereitung)
   analysisInProgress = true;
+  lastAnalysisStartTime = Date.now();
   logInfo("Starte Gesamtanalyse für alle Rollen (Stream wird abgewartet)");
 
   try {
