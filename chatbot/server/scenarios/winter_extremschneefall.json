@@ -1,0 +1,528 @@
+{
+  "id": "winter_extremschneefall",
+  "title": "Winter-Katastrophe: Extremer Schneefall",
+  "description": "Extremer Schneefall führt zu Verkehrschaos, Stromausfällen und zahlreichen Notlagen. Schwierigkeitsgrad: EXTREM",
+  "difficulty": "hard",
+  "duration_minutes": 60,
+  "mode": "free",
+
+  "simulation": {
+    "llm_interval_minutes": 2,
+    "minutes_per_step": 2,
+    "incident_limits": {
+      "max_new_per_step": 7,
+      "max_total": 45
+    },
+    "behavior_phases": [
+      {
+        "duration_minutes": 20,
+        "label": "Schneechaos",
+        "intensity": "steigend",
+        "guidance": "Extremer Schneefall setzt ein - massiv steigende Einsatzzahlen: Verkehrsunfälle, blockierte Straßen, eingeschneite Fahrzeuge, Dachlasten. Mindestens 5-7 neue kritische Einsätze pro Schritt. Stab wird von allen Seiten mit Anfragen bombardiert."
+      },
+      {
+        "duration_minutes": 20,
+        "label": "Kollaps",
+        "intensity": "gleichbleibend",
+        "guidance": "Infrastrukturkollaps: Straßen unpassierbar, Stromausfälle breiten sich aus, Kommunikation erschwert. Weiterhin 5-6 neue Einsätze pro Schritt. Viele Rückfragen und Entscheidungen durch externe Stellen erforderlich."
+      },
+      {
+        "duration_minutes": 20,
+        "label": "Kritische Phase",
+        "intensity": "abnehmend",
+        "guidance": "Schneefall lässt langsam nach, aber die Lage bleibt kritisch. Aufräumarbeiten beginnen, noch 3-5 neue Einsätze. Fokus auf Priorisierung und Ressourcenverteilung."
+      }
+    ]
+  },
+
+  "scenario_context": {
+    "event_type": "Winter-Katastrophe",
+    "region": "Bezirk Feldkirchen",
+    "affected_areas": [
+      "Feldkirchen",
+      "Himmelberg",
+      "Steuerberg",
+      "Gnesau",
+      "Deutsch-Griffen",
+      "Glödnitz",
+      "Reichenau",
+      "Albeck"
+    ],
+    "weather": "Extremer Schneefall 8-12 cm/h, Temperaturen -12°C, Schneeverwehungen bis 2m Höhe, Sicht unter 50m, Windböen 60 km/h",
+    "initial_situation": "Seit 04:00 Uhr morgens extremer Schneefall über dem gesamten Bezirk. Binnen 3 Stunden sind bereits 35 cm Neuschnee gefallen. Alle Hauptverkehrsrouten kritisch. Katastrophenalarm wurde um 05:30 Uhr ausgerufen. Die Lage verschärft sich minütlich.",
+    "special_conditions": [
+      "Alle Landesstraßen nur mehr eingeschränkt befahrbar",
+      "B317 zwischen Feldkirchen und Sirnitz komplett blockiert durch LKW-Bergung",
+      "Stromausfall in Gnesau (ca. 450 Haushalte) und Glödnitz (ca. 320 Haushalte)",
+      "Mobilfunknetz in höheren Lagen gestört",
+      "Schulen bezirksweit geschlossen",
+      "ÖBB-Strecke unterbrochen - Baum auf Oberleitung bei Feldkirchen Bahnhof",
+      "Mehrere Altenheime ohne Notstromversorgung",
+      "Gemeindebauhöfe arbeiten am Limit - Streugut wird knapp",
+      "Bundesheer wurde angefordert, Eintreffen in 90 Minuten erwartet",
+      "Lawinenwarnstufe 4 für exponierte Lagen"
+    ]
+  },
+
+  "initial_state": {
+    "board": {
+      "columns": {
+        "neu": {
+          "name": "Neu",
+          "items": [
+            {
+              "id": "ws-001",
+              "humanId": "E-1",
+              "content": "Massenkarambolage B317",
+              "typ": "T4, Verkehrsunfall mit Verletzten",
+              "ort": "B317 km 12, Höhe Steuerberg",
+              "description": "7 PKW und 1 LKW in Massenkarambolage verwickelt. Mindestens 4 verletzte Personen, LKW blockiert beide Fahrspuren. Rettungskräfte können aufgrund Schneelage nur schwer vorrücken."
+            },
+            {
+              "id": "ws-002",
+              "humanId": "E-2",
+              "content": "Dachlawine auf Fahrzeuge",
+              "typ": "T3, Menschenrettung",
+              "ort": "Hauptplatz 8, Feldkirchen",
+              "description": "Schneemassen von Geschäftsdach auf 2 geparkte PKW gestürzt. Personen in Fahrzeugen eingeschlossen, unverletzt aber in Panik. Weitere Dachlawinen möglich."
+            },
+            {
+              "id": "ws-003",
+              "humanId": "E-3",
+              "content": "Altenheim ohne Strom",
+              "typ": "T3, Notstromversorgung",
+              "ort": "Seniorenheim Sonnenhof, Himmelberg",
+              "description": "42 Bewohner, davon 8 auf Sauerstoff angewiesen. Notstromaggregat springt nicht an. Heizung fällt aus bei -12°C Außentemperatur."
+            },
+            {
+              "id": "ws-004",
+              "humanId": "E-4",
+              "content": "Linienbus eingeschneit",
+              "typ": "T2, Menschenrettung",
+              "ort": "L95, Abzweigung Gnesau",
+              "description": "Schulbus mit 23 Kindern (8-12 Jahre) steckt in Schneeverwehung fest. Kinder frieren, Bus-Heizung funktioniert noch. Straße nicht mehr befahrbar."
+            },
+            {
+              "id": "ws-005",
+              "humanId": "E-5",
+              "content": "Dacheinsturzgefahr Supermarkt",
+              "typ": "T3, Gebäudeevakuierung",
+              "ort": "Einkaufszentrum Feldkirchen-Süd",
+              "description": "Statiker meldet akute Einsturzgefahr durch Schneelast. Ca. 60 Kunden und 15 Mitarbeiter im Gebäude. Zufahrten verschneit."
+            },
+            {
+              "id": "ws-006",
+              "humanId": "E-6",
+              "content": "Stromleitung gerissen",
+              "typ": "T3, Gefahr durch Strom",
+              "ort": "Glödnitzer Straße, Deutsch-Griffen",
+              "description": "Freileitung unter Schneelast gerissen, liegt quer über Gemeindestraße. Funkenflug beobachtet. Weitere 180 Haushalte ohne Strom."
+            }
+          ]
+        },
+        "in-bearbeitung": {
+          "name": "In Bearbeitung",
+          "items": []
+        },
+        "erledigt": {
+          "name": "Erledigt",
+          "items": []
+        }
+      }
+    }
+  },
+
+  "triggers": [
+    {
+      "id": "trigger-polizei-1",
+      "condition": {
+        "type": "time_elapsed",
+        "minutes": 3
+      },
+      "action": {
+        "type": "external_message",
+        "data": {
+          "from": "Polizei Feldkirchen",
+          "infoTyp": "Anfrage",
+          "information": "DRINGEND: Sollen wir die B317 komplett sperren? Weiterer Verkehr verschlimmert die Lage, aber Rettungskräfte brauchen Zufahrt zur Unfallstelle. Bitte um sofortige Entscheidung!"
+        }
+      }
+    },
+    {
+      "id": "trigger-kelag-1",
+      "condition": {
+        "type": "time_elapsed",
+        "minutes": 5
+      },
+      "action": {
+        "type": "external_message",
+        "data": {
+          "from": "KELAG Störungsdienst",
+          "infoTyp": "Anfrage",
+          "information": "Stromausfall breitet sich aus. Wir haben nur 2 Entstörungstrupps verfügbar. Priorität: Altenheim Sonnenhof ODER Pumpwerk Feldkirchen (versorgt 2500 Haushalte mit Trinkwasser)? Können nicht beide gleichzeitig bedienen. Ihre Entscheidung?"
+        }
+      }
+    },
+    {
+      "id": "trigger-warnung-1",
+      "condition": {
+        "type": "time_elapsed",
+        "minutes": 8
+      },
+      "action": {
+        "type": "create_protocol",
+        "data": {
+          "information": "ZAMG-Warnung: Schneefall verstärkt sich weiter. In den nächsten 2 Stunden weitere 25-30 cm Neuschnee erwartet. Lawinengefahr steigt auf Stufe 4-5 in exponierten Lagen.",
+          "infoTyp": "Warnung",
+          "ergehtAn": ["S1", "S2", "S3"],
+          "anvon": "ZAMG"
+        }
+      }
+    },
+    {
+      "id": "trigger-oebb-1",
+      "condition": {
+        "type": "time_elapsed",
+        "minutes": 10
+      },
+      "action": {
+        "type": "external_message",
+        "data": {
+          "from": "ÖBB Infrastruktur",
+          "infoTyp": "Anfrage",
+          "information": "Baum auf Oberleitung entfernt. ABER: Können Zugverkehr nur wieder aufnehmen, wenn Bahnsteige und Zufahrten geräumt sind. Wo bekommen wir Räumfahrzeuge her? Gemeinde sagt, sie haben keine Kapazitäten frei. Was ist Ihre Empfehlung?"
+        }
+      }
+    },
+    {
+      "id": "trigger-bh-1",
+      "condition": {
+        "type": "time_elapsed",
+        "minutes": 12
+      },
+      "action": {
+        "type": "external_message",
+        "data": {
+          "from": "Bezirkshauptmannschaft",
+          "infoTyp": "Anfrage",
+          "information": "BH bittet um Lagebewertung: Sollen wir Katastrophenfall ausrufen? Dies würde Bundesheer-Einsatz beschleunigen, aber auch rechtliche Konsequenzen haben. Bitte Empfehlung mit Begründung."
+        }
+      }
+    },
+    {
+      "id": "trigger-incident-1",
+      "condition": {
+        "type": "time_elapsed",
+        "minutes": 14
+      },
+      "action": {
+        "type": "add_incident",
+        "data": {
+          "humanId": "E-7",
+          "content": "Dialyse-Patient in Not",
+          "typ": "T4, Medizinischer Notfall",
+          "ort": "Bergstraße 34, Steuerberg",
+          "description": "Patient benötigt dringend Dialyse, Termin in Klinikum Klagenfurt. Straßen unpassierbar. Rettungshubschrauber wegen Wetter nicht einsetzbar. Patient verschlechtert sich.",
+          "priority": "high"
+        }
+      }
+    },
+    {
+      "id": "trigger-gemeinde-1",
+      "condition": {
+        "type": "time_elapsed",
+        "minutes": 16
+      },
+      "action": {
+        "type": "external_message",
+        "data": {
+          "from": "Gemeinde Gnesau",
+          "infoTyp": "Anfrage",
+          "information": "Unser Bauhof hat kein Streugut mehr! Lieferung aus Hauptlager nicht möglich (Straßen). Dürfen wir Asche aus Biomasseheizwerk verwenden? Oder Sand vom Fußballplatz? Bitte rasche Freigabe - ohne Streuung geht gar nichts mehr!"
+        }
+      }
+    },
+    {
+      "id": "trigger-apotheke-1",
+      "condition": {
+        "type": "time_elapsed",
+        "minutes": 18
+      },
+      "action": {
+        "type": "external_message",
+        "data": {
+          "from": "Apotheke Feldkirchen",
+          "infoTyp": "Notfall",
+          "information": "Wir haben Notfall-Rezept für krebskrankes Kind - Medikament MUSS heute noch aus Klagenfurt geholt werden (nicht hier lagernd). Botenfahrt unmöglich. Gibt es eine Möglichkeit über Einsatzkräfte? Kind-Mutter verzweifelt."
+        }
+      }
+    },
+    {
+      "id": "trigger-rk-1",
+      "condition": {
+        "type": "time_elapsed",
+        "minutes": 22
+      },
+      "action": {
+        "type": "external_message",
+        "data": {
+          "from": "Rotes Kreuz Feldkirchen",
+          "infoTyp": "Anfrage",
+          "information": "Unsere Fahrzeuge kommen nicht mehr durch. Wir haben noch 3 dringende Einsätze offen. Sollen wir Schneeketten-ausgerüstete Privatfahrzeuge als Sanitätsfahrzeuge einsetzen? Rechtlich grenzwertig, aber evtl. alternativlos?"
+        }
+      }
+    },
+    {
+      "id": "trigger-warnung-2",
+      "condition": {
+        "type": "time_elapsed",
+        "minutes": 25
+      },
+      "action": {
+        "type": "create_protocol",
+        "data": {
+          "information": "Lawinenwarndienst: KRITISCH - Lawinengefahr Stufe 5 (sehr groß) für Bergstraßen Richtung Nockberge. Evakuierung gefährdeter Weiler (Karlbad, Zojach) wird empfohlen. Ca. 45 Personen betroffen.",
+          "infoTyp": "Warnung",
+          "ergehtAn": ["S1", "S2"],
+          "anvon": "Lawinenwarndienst Kärnten"
+        }
+      }
+    },
+    {
+      "id": "trigger-lz-1",
+      "condition": {
+        "type": "time_elapsed",
+        "minutes": 28
+      },
+      "action": {
+        "type": "external_message",
+        "data": {
+          "from": "LZ Feldkirchen",
+          "infoTyp": "Anfrage",
+          "information": "Landeswarnzentrale fragt: Sollen wir Zivilschutzalarm auslösen? Würde Bevölkerung warnen, zuhause zu bleiben. Aber: Verunsicherung? Oder notwendig? Ihre Einschätzung?"
+        }
+      }
+    },
+    {
+      "id": "trigger-bund-1",
+      "condition": {
+        "type": "time_elapsed",
+        "minutes": 30
+      },
+      "action": {
+        "type": "external_message",
+        "data": {
+          "from": "Bundesheer Kärnten",
+          "infoTyp": "Info/Anfrage",
+          "information": "Pionierzug steht bereit (80 Soldaten, 12 Kettenfahrzeuge, 4 Räumgeräte). Wo sollen wir zuerst eingesetzt werden? Bitte priorisieren: A) B317 freimachen, B) Altenheime versorgen, C) Weiler evakuieren. Können nur einen Schwerpunkt setzen."
+        }
+      }
+    },
+    {
+      "id": "trigger-incident-2",
+      "condition": {
+        "type": "time_elapsed",
+        "minutes": 32
+      },
+      "action": {
+        "type": "add_incident",
+        "data": {
+          "humanId": "E-8",
+          "content": "Pflegeheim Notruf",
+          "typ": "T4, Gebäudeevakuierung",
+          "ort": "Pflegeheim St. Martin, Albeck",
+          "description": "Heizung ausgefallen, Notstromaggregat defekt. 38 pflegebedürftige Bewohner, Innentemperatur sinkt. Verlegung notwendig, aber wohin und wie?",
+          "priority": "high"
+        }
+      }
+    },
+    {
+      "id": "trigger-med-1",
+      "condition": {
+        "type": "time_elapsed",
+        "minutes": 35
+      },
+      "action": {
+        "type": "external_message",
+        "data": {
+          "from": "LKH Klagenfurt",
+          "infoTyp": "Anfrage",
+          "information": "Wir haben 2 Intensivbetten frei für Notfälle aus Ihrem Bezirk. Transport aber aktuell nicht möglich. Sollen wir Betten freihalten (dann keine anderen Aufnahmen) oder regulär belegen? Wie schätzen Sie Transportmöglichkeit in nächsten 2h ein?"
+        }
+      }
+    },
+    {
+      "id": "trigger-media-1",
+      "condition": {
+        "type": "time_elapsed",
+        "minutes": 38
+      },
+      "action": {
+        "type": "external_message",
+        "data": {
+          "from": "ORF Kärnten",
+          "infoTyp": "Anfrage",
+          "information": "Live-Schalte in 15 Minuten geplant. Brauchen O-Ton von Einsatzleitung zur aktuellen Lage. Wer kann kurzes Statement geben? Welche Botschaft an die Bevölkerung?"
+        }
+      }
+    },
+    {
+      "id": "trigger-incident-3",
+      "condition": {
+        "type": "time_elapsed",
+        "minutes": 40
+      },
+      "action": {
+        "type": "add_incident",
+        "data": {
+          "humanId": "E-9",
+          "content": "Tankstelle ohne Strom",
+          "typ": "T2, Versorgung",
+          "ort": "Tankstelle Feldkirchen Nord, B317",
+          "description": "Einzige Tankstelle im Bezirk die noch Treibstoff hat, aber wegen Stromausfall keine Zapfsäulen funktionsfähig. Einsatzfahrzeuge brauchen dringend Treibstoff. Notstrom organisieren?",
+          "priority": "high"
+        }
+      }
+    },
+    {
+      "id": "trigger-wirtschaft-1",
+      "condition": {
+        "type": "time_elapsed",
+        "minutes": 42
+      },
+      "action": {
+        "type": "external_message",
+        "data": {
+          "from": "Wirtschaftskammer Feldkirchen",
+          "infoTyp": "Anfrage",
+          "information": "15 Betriebe melden Dacheinsturzgefahr. Können keine Statiker erreichen (Verkehr). Sollen Betriebe eigenverantwortlich räumen oder auf Freigabe warten? Versicherungen drängen auf Dokumentation."
+        }
+      }
+    },
+    {
+      "id": "trigger-tierschutz-1",
+      "condition": {
+        "type": "time_elapsed",
+        "minutes": 44
+      },
+      "action": {
+        "type": "external_message",
+        "data": {
+          "from": "Tierheim Feldkirchen",
+          "infoTyp": "Notfall",
+          "information": "Dach vom Tierheim-Stall eingestürzt. 12 Hunde, 8 Katzen, diverse Kleintiere obdachlos. -12°C! Tiere müssen sofort verlegt werden. Feuerwehrhaus als Notunterkunft möglich?"
+        }
+      }
+    },
+    {
+      "id": "trigger-buerger-1",
+      "condition": {
+        "type": "time_elapsed",
+        "minutes": 46
+      },
+      "action": {
+        "type": "external_message",
+        "data": {
+          "from": "Bürgermeister Himmelberg",
+          "infoTyp": "Anfrage",
+          "information": "20+ Bürger rufen an: Heizöl geht aus, Zufahrt für Lieferanten nicht frei. Sollen wir zentrale Wärmeräume in Gemeindeamt/Schulen öffnen? Oder Räumung priorisieren? Beides gleichzeitig nicht möglich."
+        }
+      }
+    },
+    {
+      "id": "trigger-warnung-3",
+      "condition": {
+        "type": "time_elapsed",
+        "minutes": 48
+      },
+      "action": {
+        "type": "create_protocol",
+        "data": {
+          "information": "ZAMG Update: Schneefront zieht langsam ab. In 90 Minuten Wetterbesserung erwartet. Bis dahin noch 10-15 cm Neuschnee möglich. Temperaturen bleiben bei -12°C.",
+          "infoTyp": "Info",
+          "ergehtAn": ["S1", "S2", "S3"],
+          "anvon": "ZAMG"
+        }
+      }
+    },
+    {
+      "id": "trigger-asfinag-1",
+      "condition": {
+        "type": "time_elapsed",
+        "minutes": 50
+      },
+      "action": {
+        "type": "external_message",
+        "data": {
+          "from": "ASFINAG",
+          "infoTyp": "Info/Anfrage",
+          "information": "A10 bei Friesach gesperrt - gesamter Urlauberverkehr wird durch Ihren Bezirk umgeleitet. Erwarten 500+ Fahrzeuge in nächster Stunde. Sollen wir Umleitung stoppen oder durchlassen? Verkehr könnte zusätzlich kollabieren."
+        }
+      }
+    },
+    {
+      "id": "trigger-schule-1",
+      "condition": {
+        "type": "time_elapsed",
+        "minutes": 52
+      },
+      "action": {
+        "type": "external_message",
+        "data": {
+          "from": "Direktor NMS Feldkirchen",
+          "infoTyp": "Anfrage",
+          "information": "45 Schüler wurden vor Schulschluss abgeholt - aber 12 Kinder sind noch hier. Eltern nicht erreichbar oder kommen nicht durch. Können wir Kinder hier über Nacht behalten? Haben Turnhalle und Küche. Oder müssen Einsatzkräfte Heimbringung organisieren?"
+        }
+      }
+    },
+    {
+      "id": "trigger-incident-4",
+      "condition": {
+        "type": "time_elapsed",
+        "minutes": 54
+      },
+      "action": {
+        "type": "add_incident",
+        "data": {
+          "humanId": "E-10",
+          "content": "Pensionist vermisst",
+          "typ": "T4, Personensuche",
+          "ort": "Glödnitz, Ortsgebiet",
+          "description": "84-jähriger demenzkranker Mann seit 3 Stunden vermisst. Letztmals in Hauskleidung gesehen. Bei -12°C und Schneefall. Dringend Suchmannschaft erforderlich.",
+          "priority": "high"
+        }
+      }
+    },
+    {
+      "id": "trigger-energie-1",
+      "condition": {
+        "type": "time_elapsed",
+        "minutes": 56
+      },
+      "action": {
+        "type": "external_message",
+        "data": {
+          "from": "Kärnten Netz",
+          "infoTyp": "Anfrage",
+          "information": "Stromversorgung kritisch. Müssen evtl. kontrollierte Abschaltungen vornehmen (rolling blackouts) um Netzüberlastung zu vermeiden. Welche Bereiche sind ABSOLUT zu schonen? Bitte Prioritätenliste: Krankenhäuser, Altenheime, Einsatzzentralen...?"
+        }
+      }
+    }
+  ],
+
+  "hints": [
+    "Bei Schneekatastrophen: Priorisierung ist ALLES - nicht alle Probleme sind gleichzeitig lösbar",
+    "Menschenleben hat absolute Priorität vor Sachschäden und Infrastruktur",
+    "Bundesheer-Ressourcen gezielt einsetzen - Kettenfahrzeuge für kritische Zufahrten",
+    "Bei Stromausfällen: Altenheime und medizinische Einrichtungen priorisieren",
+    "Kommunikation mit Bevölkerung nicht vergessen - Panik vermeiden",
+    "Externe Anfragen strukturiert sammeln und an zuständige Stabsbereiche delegieren",
+    "Bei Dacheinsturzgefahr: Evakuierung vor Räumungsversuch",
+    "Streugut-Alternativen: Asche nur auf Nebenstrecken, Sand schädigt Fahrbahnen",
+    "Treibstoff für Einsatzfahrzeuge sicherstellen - ohne Diesel/Benzin steht alles still",
+    "Dokumentation auch unter Zeitdruck beibehalten - rechtliche Absicherung",
+    "Bei Evakuierungen: Sammelstellen definieren (Feuerwehrhäuser, Gemeindezentren)",
+    "Lawinengefahr nicht unterschätzen - exponierte Weiler rechtzeitig evakuieren",
+    "Ressourcen der Nachbarbezirke anfragen wenn eigene Kapazitäten erschöpft"
+  ]
+}
