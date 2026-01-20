@@ -577,8 +577,8 @@ export default function User_AdminPanel() {
   function sanitizeAnalysisIntervalMinutes(value, fallback = 5) {
     const fallbackValue = Number.isFinite(Number(fallback)) ? Number(fallback) : 5;
     const parsed = Number(value);
-    if (!Number.isFinite(parsed) || parsed <= 0) return Math.max(1, Math.floor(fallbackValue));
-    return Math.max(1, Math.floor(parsed));
+    if (!Number.isFinite(parsed) || parsed < 0) return Math.max(0, Math.floor(fallbackValue));
+    return Math.max(0, Math.floor(parsed));
   }
 
   function applyAutoConfig(cfg) {
@@ -672,7 +672,7 @@ export default function User_AdminPanel() {
       setAnalysisConfig(sanitized);
       setAnalysisConfigDraft({
         enabled: sanitized.enabled,
-        intervalMinutes: String(sanitized.intervalMinutes || ""),
+        intervalMinutes: Number.isFinite(sanitized.intervalMinutes) ? String(sanitized.intervalMinutes) : "",
       });
       setMsg("KI-Analyse Einstellungen gespeichert.");
     } catch (ex) {
