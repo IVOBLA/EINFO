@@ -3105,6 +3105,7 @@ async function writeAutoCfg(next){
 const AI_ANALYSIS_DEFAULT = {
   enabled: true,
   intervalMinutes: AI_ANALYSIS_DEFAULT_INTERVAL_MINUTES,
+  useRagContext: false, // RAG-Informationen in KI-Analyse einbeziehen
 };
 
 // Intervall 0 = nur manuelle Auslösung (kein automatischer Loop)
@@ -3126,6 +3127,7 @@ async function readAiAnalysisCfg() {
   return {
     enabled: !!cfg?.enabled,
     intervalMinutes: sanitizeAiAnalysisInterval(cfg?.intervalMinutes, AI_ANALYSIS_DEFAULT.intervalMinutes),
+    useRagContext: !!cfg?.useRagContext, // RAG-Informationen in KI-Analyse einbeziehen
   };
 }
 
@@ -3135,6 +3137,7 @@ async function writeAiAnalysisCfg(next) {
   const sanitized = {
     enabled: !!merged.enabled,
     intervalMinutes: sanitizeAiAnalysisInterval(merged.intervalMinutes, current.intervalMinutes),
+    useRagContext: !!merged.useRagContext, // RAG-Informationen in KI-Analyse einbeziehen
   };
   await writeJson(AI_ANALYSIS_CFG_FILE, sanitized);
   return sanitized;
@@ -3923,6 +3926,9 @@ app.post("/api/situation/analysis-config", User_requireAuth, async (req, res) =>
         });
       }
       update.intervalMinutes = Math.floor(minutes);
+    }
+    if (body.useRagContext !== undefined) {
+      update.useRagContext = !!body.useRagContext;
     }
     const next = await writeAiAnalysisCfg(update);
     try {

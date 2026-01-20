@@ -4,6 +4,8 @@ AKTUELLER STAND - LIVE-DATEN AUS DEM EINSATZLEITSYSTEM:
 
 {{excludeContext}}
 
+{{ragContext}}
+
 ---
 
 Basierend auf diesem aktuellen Stand (Einsätze, offene Aufgaben, Protokoll):
@@ -11,3 +13,4 @@ Basierend auf diesem aktuellen Stand (Einsätze, offene Aufgaben, Protokoll):
 2. Erstelle für JEDE Stabsrolle konkrete Handlungsvorschläge
 3. Die Vorschläge müssen sich direkt aus den oben genannten Daten ableiten
 4. Schlage KEINE Maßnahmen vor, die oben als "bereits vorhanden" oder "abgelehnt" markiert sind
+5. Berücksichtige relevante Informationen aus der Wissensdatenbank falls vorhanden

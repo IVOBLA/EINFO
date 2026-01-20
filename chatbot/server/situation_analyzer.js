@@ -158,6 +158,8 @@ async function readAnalysisConfig() {
       intervalMinutes: sanitizeAnalysisIntervalMinutes(parsed?.intervalMinutes),
       // NEU: Context-Modus (rules oder llm)
       contextMode: parsed?.contextMode || "rules",
+      // NEU: RAG-Kontext für Analyse verwenden
+      useRagContext: !!parsed?.useRagContext,
       // NEU: LLM-Summarization Konfiguration
       llmSummarization: {
         enabled: parsed?.llmSummarization?.enabled || false,
@@ -175,6 +177,7 @@ async function readAnalysisConfig() {
       enabled: true,
       intervalMinutes: AI_ANALYSIS_DEFAULT_INTERVAL_MINUTES,
       contextMode: "rules",
+      useRagContext: false,
       llmSummarization: {
         enabled: false,
         model: "llama3.1:8b",
@@ -441,6 +444,34 @@ export async function analyzeAllRoles(forceRefresh = false) {
       contextMode = "rules";
     }
 
+    // NEU: RAG-Kontext laden wenn aktiviert
+    let ragContext = "";
+    if (analysisConfig.useRagContext) {
+      try {
+        logInfo("Lade RAG-Kontext für Analyse");
+        // Relevante Knowledge-Base-Informationen basierend auf der aktuellen Lage holen
+        const ragQuery = `Einsatzlage: ${disasterSummary.substring(0, 500)}`;
+        const ragResult = await getKnowledgeContextWithSources(ragQuery, {
+          topK: 5,
+          maxChars: 2000
+        });
+        if (ragResult && ragResult.context) {
+          // RAG-Kontext mit Header formatieren
+          ragContext = `---
+RELEVANTE INFORMATIONEN AUS DER WISSENSDATENBANK (SOPs, Richtlinien, Vorschriften):
+
+${ragResult.context}`;
+          logInfo("RAG-Kontext geladen", {
+            contextLength: ragResult.context.length,
+            sourcesCount: ragResult.sources?.length || 0
+          });
+        }
+      } catch (ragErr) {
+        logError("Fehler beim Laden des RAG-Kontexts", { error: String(ragErr) });
+        // Fortfahren ohne RAG-Kontext
+      }
+    }
+
     // Gelernte Vorschläge sammeln (NEU: mit Fingerprint-Matching)
     const learnedByRole = {};
     for (const role of roles) {
@@ -461,7 +492,8 @@ export async function analyzeAllRoles(forceRefresh = false) {
 
     const userPrompt = fillTemplate(situationAnalysisUserTemplate, {
       disasterSummary,
-      excludeContext: excludeContext || "" // Leer wenn keine Ausschlüsse
+      excludeContext: excludeContext || "", // Leer wenn keine Ausschlüsse
+      ragContext: ragContext || "" // RAG Knowledge-Base Kontext (wenn aktiviert)
     });
 
     let llmResponse;
