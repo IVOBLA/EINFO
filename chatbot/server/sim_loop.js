@@ -701,24 +701,12 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
       memorySnippets = memoryHits.map((hit) => hit.text);
     }
 
-    // NEU: Warten bis KI-Analyse fertig ist (LLM-Lock)
+    // NEU: Simulationsschritt überspringen wenn KI-Analyse läuft (LLM-Lock)
     // Verhindert gleichzeitige LLM-Aufrufe während der Situationsanalyse
     if (isAnalysisInProgress()) {
-      logInfo("Simulationsschritt wartet auf laufende KI-Analyse", { source });
-      logEvent("simulation", "waiting_for_analysis", { stepId, source });
-      // Warte max 120 Sekunden auf Ende der Analyse
-      const maxWaitMs = 120000;
-      const startWait = Date.now();
-      while (isAnalysisInProgress() && (Date.now() - startWait) < maxWaitMs) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-      if (isAnalysisInProgress()) {
-        logError("Simulationsschritt abgebrochen - KI-Analyse dauert zu lange", { stepId });
-        return { ok: false, reason: "analysis_timeout" };
-      }
-      logInfo("KI-Analyse beendet, Simulationsschritt wird fortgesetzt", {
-        waitedMs: Date.now() - startWait
-      });
+      logInfo("Simulationsschritt übersprungen - KI-Analyse läuft", { stepId, source });
+      logEvent("simulation", "step_skipped_analysis", { stepId, source });
+      return { ok: false, reason: "analysis_in_progress", skipped: true };
     }
 
     const { parsed: llmResponse } = await callLLMForOps({
