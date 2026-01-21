@@ -1,6 +1,7 @@
 // chatbot/server/sim_loop.js
+// Refactored: SimulationState, ProtocolIndex, Error Handling, Metriken, Trigger-System
 
-import { CONFIG } from "./config.js";
+import { CONFIG, SIMULATION_DEFAULTS } from "./config.js";
 import { readEinfoInputs } from "./einfo_io.js";
 import { callLLMForOps } from "./llm_client.js";
 import { logInfo, logError, logDebug } from "./logger.js";
@@ -27,6 +28,18 @@ import {
   normalizeRole
 } from "./field_mapper.js";
 
+// Neue Module (Verbesserungen)
+import { simulationState } from "./simulation_state.js";
+import { ProtocolIndex } from "./protocol_index.js";
+import {
+  handleSimulationError,
+  safeExecute,
+  DisasterContextError,
+  RAGIndexingError
+} from "./simulation_errors.js";
+import { metrics, startTimer } from "./simulation_metrics.js";
+import { TriggerManager } from "./scenario_triggers.js";
+
 // ============================================================
 // Interne Rollen-Konstanten
 // ============================================================
@@ -48,58 +61,46 @@ const INTERNAL_ROLES = new Set([
  * @param {Object} roles - { active: [...] }
  * @returns {Array} Meldungen die eine Antwort benötigen
  */
+/**
+ * REFACTORED: Verwendet jetzt ProtocolIndex für O(n) statt O(n²) Performance
+ *
+ * Identifiziert ausgehende Protokolleinträge die eine Antwort benötigen.
+ *
+ * @param {Array} protokoll - Alle Protokolleinträge
+ * @param {Array} protokollDelta - Neue/geänderte Einträge
+ * @param {Object} roles - { active: [...] }
+ * @returns {Array} Meldungen die Antwort benötigen
+ */
 function identifyMessagesNeedingResponse(protokoll, protokollDelta, roles) {
   const { active } = roles;
   const activeSet = new Set(active.map(r => String(r).toUpperCase()));
   const needingResponse = [];
 
+  // PERFORMANCE: Erstelle Index für effiziente Suche (O(n) statt O(n²))
+  const index = new ProtocolIndex(protokoll);
+
   // Prüfe nur neue/geänderte Einträge (Delta)
   for (const entry of protokollDelta) {
     // Nur ausgehende Meldungen prüfen
     const richtung = entry.richtung || entry.uebermittlungsart?.richtung || "";
-    const isOutgoing = /aus/i.test(richtung) || 
+    const isOutgoing = /aus/i.test(richtung) ||
                        entry.uebermittlungsart?.aus === true ||
                        entry.uebermittlungsart?.aus === "true";
-    
+
     if (!isOutgoing) continue;
 
-    // Prüfe ob diese Meldung bereits eine Antwort hat
-    // (suche nach Protokolleinträgen die auf diese Meldung antworten)
-    const hasResponse = protokoll.some(p => {
-      if (p.id === entry.id) return false;
-      const pRichtung = p.richtung || p.uebermittlungsart?.richtung || "";
-      const isIncoming = /ein/i.test(pRichtung) || p.uebermittlungsart?.ein;
-      if (!isIncoming) return false;
-      
-      // Prüfe ob es eine Rückmeldung auf diese Nr ist
-      const refNr = p.bezugNr || p.referenzNr || p.antwortAuf;
-      if (refNr && String(refNr) === String(entry.nr)) return true;
-      
-      // Oder ob der Absender der Antwort ein Empfänger der Original-Meldung war
-      const pVon = String(p.anvon || "").toUpperCase();
-      const originalEmpfaenger = Array.isArray(entry.ergehtAn) 
-        ? entry.ergehtAn.map(e => String(e).toUpperCase())
-        : [];
-      if (originalEmpfaenger.includes(pVon)) {
-        // Zeitlich nach der Original-Meldung?
-        const origTime = entry.zeit || "";
-        const respTime = p.zeit || "";
-        if (respTime > origTime) return true;
-      }
-      
-      return false;
-    });
-
-    if (hasResponse) continue;
+    // PERFORMANCE: Nutze Index für Antwort-Suche (O(1) statt O(n))
+    const response = index.findResponseTo(entry);
+    if (response) continue;
 
     // Sammle alle Empfänger
-    const ergehtAn = Array.isArray(entry.ergehtAn) 
-      ? entry.ergehtAn 
+    const ergehtAn = Array.isArray(entry.ergehtAn)
+      ? entry.ergehtAn
       : (entry.ergehtAn ? [entry.ergehtAn] : []);
-    
+
     const ergehtAnText = entry.ergehtAnText || "";
     const allRecipients = [...ergehtAn];
-    
+
     // Zusätzliche Empfänger aus Freitext
     if (ergehtAnText) {
       const textRecipients = ergehtAnText
@@ -117,13 +118,13 @@ function identifyMessagesNeedingResponse(protokoll, protokollDelta, roles) {
       const upper = String(r).toUpperCase();
       return !activeSet.has(upper);
     });
-    
+
     if (nonActiveRecipients.length === 0) continue;
 
     // Unterscheide: Interne Stabsrollen vs. Externe Stellen
     const internalMissing = [];
     const externalRecipients = [];
-    
+
     for (const r of nonActiveRecipients) {
       const upper = String(r).toUpperCase();
       // Ist es eine bekannte interne Rolle?
@@ -295,19 +296,20 @@ function identifyOpenQuestions(protokoll, roles) {
 
 // Merkt sich den letzten Stand der eingelesenen EINFO-Daten...
 
-// Merkt sich den letzten Stand der eingelesenen EINFO-Daten, damit nur neue
-// oder geänderte Einträge erneut an das LLM geschickt werden müssen.
-let lastComparableSnapshot = null;
-let lastCompressedBoardJson = "[]";
-
-let running = false;
-let stepInProgress = false;
-// NEU: Zustand für "Simulation wurde gerade gestartet"
-// Wird beim Start auf true gesetzt und nach dem ersten Schritt zurückgesetzt
-let simulationJustStarted = false;
-// NEU: Aktives Szenario für die Simulation
-let activeScenario = null;
-let simulationElapsedMinutes = 0;
+// ============================================================
+// State Management
+// ============================================================
+// REFACTORED: Globale Variablen wurden durch simulationState ersetzt
+// (siehe simulation_state.js)
+//
+// Zugriff auf State-Variablen:
+// - simulationState.lastSnapshot (früher: simulationState.lastSnapshot)
+// - simulationState.lastCompressedBoard (früher: simulationState.lastCompressedBoard)
+// - simulationState.simulationState.running (früher: simulationState.running)
+// - simulationState.simulationState.stepInProgress (früher: simulationState.stepInProgress)
+// - simulationState.justStarted (früher: simulationState.justStarted)
+// - simulationState.simulationState.activeScenario (früher: simulationState.activeScenario)
+// - simulationState.elapsedMinutes (früher: simulationState.elapsedMinutes)
 
 function buildMemoryQueryFromState(state = {}) {
   const incidentCount = state.boardCount ?? 0;
@@ -452,39 +454,43 @@ function buildDelta(currentList, previousComparableList, mapper) {
 }
 
 export function isSimulationRunning() {
-  return running;
+  return simulationState.running;
 }
 
+/**
+ * REFACTORED: Verwendet jetzt simulationState.start() Methode
+ */
 export async function startSimulation(scenario = null) {
-  running = true;
-  // NEU: Setze Zustand für ersten Schritt nur bei frischem/leerem Zustand
+  // Verwende SimulationState Methode (setzt running, activeScenario, elapsedMinutes, etc.)
+  simulationState.start(scenario);
+
+  // Prüfe ob wir vorhandene Daten haben (um justStarted korrekt zu setzen)
   const snapshotCounts = {
-    board: lastComparableSnapshot?.board?.length || 0,
-    aufgaben: lastComparableSnapshot?.aufgaben?.length || 0,
-    protokoll: lastComparableSnapshot?.protokoll?.length || 0
+    board: simulationState.lastSnapshot?.board?.length || 0,
+    aufgaben: simulationState.lastSnapshot?.aufgaben?.length || 0,
+    protokoll: simulationState.lastSnapshot?.protokoll?.length || 0
   };
   const hasSnapshotData =
     snapshotCounts.board > 0 ||
     snapshotCounts.aufgaben > 0 ||
     snapshotCounts.protokoll > 0;
   const hasCompressedBoard =
-    typeof lastCompressedBoardJson === "string" && lastCompressedBoardJson !== "[]";
-  simulationJustStarted = !(hasSnapshotData || hasCompressedBoard);
-  // NEU: Szenario speichern für die Simulation
-  activeScenario = scenario;
-  simulationElapsedMinutes = 0;
+    typeof simulationState.lastCompressedBoard === "string" &&
+    simulationState.lastCompressedBoard !== "[]";
 
+  // Wenn Daten vorhanden, ist es kein frischer Start
+  if (hasSnapshotData || hasCompressedBoard) {
+    simulationState.justStarted = false;
+  }
+
+  // Log bereits durch simulationState.start() erfolgt, aber mit zusätzlichen Details
   if (scenario) {
-    logInfo("Simulation mit Szenario gestartet", {
+    logInfo("Simulation mit Szenario gestartet - Details", {
       scenarioId: scenario.id,
       title: scenario.title,
-      eventType: scenario.scenario_context?.event_type
+      eventType: scenario.scenario_context?.event_type,
+      hasExistingData: hasSnapshotData || hasCompressedBoard
     });
-  } else {
-    logInfo(
-      "EINFO-Chatbot Simulation gestartet (Schritte werden vom Worker ausgelöst)",
-      null
-    );
   }
 
   // Auto-Loop ist bewusst deaktiviert.
@@ -495,22 +501,30 @@ export async function startSimulation(scenario = null) {
  * Gibt das aktuell aktive Szenario zurück
  */
 export function getActiveScenario() {
-  return activeScenario;
+  return simulationState.activeScenario;
 }
 
 
+/**
+ * REFACTORED: Verwendet jetzt simulationState.pause() Methode
+ */
 export function pauseSimulation() {
-  running = false;
-  logInfo("EINFO-Chatbot Simulation pausiert", null);
+  simulationState.pause();
 }
 
 
+/**
+ * REFACTORED: Jetzt mit Metriken, Error Handling und Trigger-System
+ */
 export async function stepSimulation(options = {}) {
-  if (!running) return { ok: false, reason: "not_running" };
-  if (stepInProgress && !options.forceConcurrent)
+  // METRICS: Start Timer für Step-Dauer
+  const stepTimer = startTimer();
+
+  if (!simulationState.running) return { ok: false, reason: "not_running" };
+  if (simulationState.stepInProgress && !options.forceConcurrent)
     return { ok: false, reason: "step_in_progress" };
 
-  stepInProgress = true;
+  simulationState.stepInProgress = true;
   const source = options.source || "manual";
   const providedMemorySnippets = Array.isArray(options.memorySnippets)
     ? options.memorySnippets.filter((snippet) =>
@@ -525,17 +539,17 @@ export async function stepSimulation(options = {}) {
 
     const { delta: boardDelta, snapshot: boardSnapshot } = buildDelta(
       board,
-      lastComparableSnapshot?.board,
+      simulationState.lastSnapshot?.board,
       toComparableBoardEntry
     );
     const { delta: aufgabenDelta, snapshot: aufgabenSnapshot } = buildDelta(
       aufgaben,
-      lastComparableSnapshot?.aufgaben,
+      simulationState.lastSnapshot?.aufgaben,
       toComparableAufgabe
     );
 const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
       protokoll,
-      lastComparableSnapshot?.protokoll,
+      simulationState.lastSnapshot?.protokoll,
       toComparableProtokoll
     );
 
@@ -632,17 +646,17 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
     }
 
     // --- Erkennen, dass dies der erste Simulationsschritt ist ---
-    // NEU: Nutze den expliziten Zustand simulationJustStarted statt Heuristik
-    const isFirstStep = simulationJustStarted;
+    // NEU: Nutze den expliziten Zustand simulationState.justStarted statt Heuristik
+    const isFirstStep = simulationState.justStarted;
 
     // Zustand nach dem Auslesen zurücksetzen
-    if (simulationJustStarted) {
-      simulationJustStarted = false;
+    if (simulationState.justStarted) {
+      simulationState.justStarted = false;
       logInfo("Erster Simulationsschritt: Start-Prompt wird verwendet", null);
     }
 
     const boardUnchanged =
-      lastComparableSnapshot?.board?.length === boardSnapshot.length &&
+      simulationState.lastSnapshot?.board?.length === boardSnapshot.length &&
       boardDelta.length === 0;
 
   const opsContext = {
@@ -650,12 +664,12 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
       active: roles.active
     },
       compressedBoard: boardUnchanged
-        ? lastCompressedBoardJson
+        ? simulationState.lastCompressedBoard
         : compressBoard(boardSnapshot),
       compressedAufgaben: compressAufgaben(aufgaben),
       compressedProtokoll: compressProtokoll(protokoll),
       firstStep: isFirstStep,
-      elapsedMinutes: simulationElapsedMinutes,  // NEU: Für phasenbasierte Requirements
+      elapsedMinutes: simulationState.elapsedMinutes,  // NEU: Für phasenbasierte Requirements
       // NEU: Meldungen die Antwort brauchen
       messagesNeedingResponse: messagesNeedingResponse.length > 0
         ? messagesNeedingResponse
@@ -665,8 +679,8 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
         ? openQuestions
         : null,
       scenarioControl: buildScenarioControlSummary({
-        scenario: activeScenario,
-        elapsedMinutes: simulationElapsedMinutes
+        scenario: simulationState.activeScenario,
+        elapsedMinutes: simulationState.elapsedMinutes
       })
     };
 
@@ -710,14 +724,56 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
       return { ok: false, reason: "analysis_in_progress", skipped: true };
     }
 
+    // ============================================================
+    // TRIGGER-SYSTEM: Evaluiere Szenario-Trigger
+    // ============================================================
+    let triggerOperations = {
+      board: { createIncidentSites: [], updateIncidentSites: [] },
+      aufgaben: { create: [], update: [] },
+      protokoll: { create: [] }
+    };
+
+    if (simulationState.activeScenario?.triggers) {
+      try {
+        const triggerManager = new TriggerManager(simulationState.activeScenario);
+        triggerOperations = await triggerManager.evaluateTriggers({
+          elapsedMinutes: simulationState.elapsedMinutes,
+          boardState: { columns: {} }, // Board ist flat, würde Umstrukturierung brauchen
+          protokollState: protokoll,
+          aufgabenState: aufgaben
+        });
+
+        if (triggerOperations.board.createIncidentSites.length > 0 ||
+            triggerOperations.protokoll.create.length > 0) {
+          logInfo("Szenario-Trigger ausgeführt", {
+            incidents: triggerOperations.board.createIncidentSites.length,
+            protokoll: triggerOperations.protokoll.create.length,
+            aufgaben: triggerOperations.aufgaben.create.length
+          });
+        }
+      } catch (err) {
+        logError("Fehler bei Trigger-Evaluierung", { error: String(err) });
+      }
+    }
+
+    // ============================================================
+    // LLM-CALL mit Metriken
+    // ============================================================
+    const llmTimer = startTimer();
     const { parsed: llmResponse } = await callLLMForOps({
       llmInput: opsContext,
       memorySnippets,
-      scenario: activeScenario  // NEU: Szenario an LLM übergeben
+      scenario: simulationState.activeScenario  // NEU: Szenario an LLM übergeben
     });
+    const llmDuration = llmTimer.stop();
+
+    // METRICS: Erfasse LLM-Call Dauer
+    metrics.recordHistogram('simulation_llm_call_duration_ms',
+      { model: CONFIG.llmChatModel, source },
+      llmDuration
+    );
 
     // NEU: LLM-Aufruf im Audit loggen
-    const llmDuration = Date.now() - stepStartTime;
     logEvent("llm", "ops_call", {
       stepId,
       durationMs: llmDuration,
@@ -725,13 +781,63 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
       model: CONFIG.llmChatModel
     });
 
-    const operations = (llmResponse || {}).operations || {
+    const llmOperations = (llmResponse || {}).operations || {
       board: { createIncidentSites: [], updateIncidentSites: [] },
       aufgaben: { create: [], update: [] },
       protokoll: { create: [] }
     };
 
+    // ============================================================
+    // OPERATIONS ZUSAMMENFÜHREN: Trigger + LLM
+    // ============================================================
+    const operations = {
+      board: {
+        createIncidentSites: [
+          ...triggerOperations.board.createIncidentSites,
+          ...(llmOperations.board?.createIncidentSites || [])
+        ],
+        updateIncidentSites: [
+          ...triggerOperations.board.updateIncidentSites,
+          ...(llmOperations.board?.updateIncidentSites || [])
+        ]
+      },
+      aufgaben: {
+        create: [
+          ...triggerOperations.aufgaben.create,
+          ...(llmOperations.aufgaben?.create || [])
+        ],
+        update: [
+          ...triggerOperations.aufgaben.update,
+          ...(llmOperations.aufgaben?.update || [])
+        ]
+      },
+      protokoll: {
+        create: [
+          ...triggerOperations.protokoll.create,
+          ...(llmOperations.protokoll?.create || [])
+        ]
+      }
+    };
+
     const analysis = (llmResponse || {}).analysis || "";
+
+    // METRICS: Operations zählen
+    metrics.incrementCounter('simulation_operations_total',
+      { type: 'board_create', source },
+      operations.board.createIncidentSites.length
+    );
+    metrics.incrementCounter('simulation_operations_total',
+      { type: 'board_update', source },
+      operations.board.updateIncidentSites.length
+    );
+    metrics.incrementCounter('simulation_operations_total',
+      { type: 'aufgaben_create', source },
+      operations.aufgaben.create.length
+    );
+    metrics.incrementCounter('simulation_operations_total',
+      { type: 'protokoll_create', source },
+      operations.protokoll.create.length
+    );
 
     logInfo("Simulationsschritt", {
       source,
@@ -746,13 +852,13 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
       hasProtokollOps: operations.protokoll?.create?.length > 0
     });
 
-    lastComparableSnapshot = {
+    simulationState.lastSnapshot = {
       board: boardSnapshot,
       aufgaben: aufgabenSnapshot,
       protokoll: protokollSnapshot
     };
 
-lastCompressedBoardJson = opsContext.compressedBoard;
+simulationState.lastCompressedBoard = opsContext.compressedBoard;
 
     // NEU: Audit-Event für Simulationsschritt-Ende
     const stepDuration = Date.now() - stepStartTime;
@@ -797,22 +903,57 @@ lastCompressedBoardJson = opsContext.compressedBoard;
       logError("Fehler bei RAG-Indizierung", { error: String(indexError) });
     }
 
-    // NEU: Simulationsschritt-Counter inkrementieren
+    // ============================================================
+    // SIMULATIONSZEIT INCREMENTIEREN (REFACTORED)
+    // ============================================================
     incrementSimulationStep();
-    simulationElapsedMinutes += getScenarioMinutesPerStep(activeScenario, 5);
+    const minutesToAdd = getScenarioMinutesPerStep(simulationState.activeScenario, 5);
+    simulationState.incrementTime(minutesToAdd);
+
+    // METRICS: Erfasse Step-Dauer und aktuelle Simulationszeit
+    const totalStepDuration = stepTimer.stop();
+    metrics.recordHistogram('simulation_step_duration_ms',
+      { source },
+      totalStepDuration
+    );
+    metrics.setGauge('simulation_elapsed_minutes',
+      {},
+      simulationState.elapsedMinutes
+    );
+    metrics.setGauge('simulation_step_count',
+      {},
+      simulationState.stepCount
+    );
+
+    logDebug("Simulationsschritt abgeschlossen", {
+      durationMs: totalStepDuration,
+      elapsedMinutes: simulationState.elapsedMinutes,
+      stepCount: simulationState.stepCount
+    });
 
     return { ok: true, operations, analysis };
   } catch (err) {
+    // ERROR HANDLING (REFACTORED)
+    const decision = handleSimulationError(err, { source, stepId });
+
     // NEU: Fehler im Audit loggen
     logEvent("error", "simulation_failed", {
       source,
-      error: String(err)
+      error: String(err),
+      decision
     });
-    
-    logError("Fehler im Simulationsschritt", { error: String(err), source });
-    return { ok: false, error: String(err) };
+
+    logError("Fehler im Simulationsschritt", { error: String(err), source, decision });
+
+    // METRICS: Fehler zählen
+    metrics.incrementCounter('simulation_errors_total',
+      { source, errorType: err.name || 'UnknownError' },
+      1
+    );
+
+    return { ok: false, error: String(err), decision };
   } finally {
-    stepInProgress = false;
+    simulationState.stepInProgress = false;
   }
 }
 
