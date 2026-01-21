@@ -262,6 +262,14 @@ app.post("/api/sim/start", async (req, res) => {
       });
     }
 
+    const auditStatus = getAuditStatus();
+    if (!auditStatus.active) {
+      await startAuditTrail({
+        exerciseName: scenario?.title || "Simulation",
+        mode: scenario?.mode || "free"
+      });
+    }
+
     // NEU: Szenario wird jetzt an startSimulation übergeben und in sim_loop.js verwaltet
     await startSimulation(scenario);
 
@@ -277,6 +285,31 @@ app.post("/api/sim/start", async (req, res) => {
 app.get("/api/sim/scenario", (_req, res) => {
   const activeScenario = getActiveScenario();
   res.json({ ok: true, scenario: activeScenario });
+});
+
+app.get("/api/sim/status", (_req, res) => {
+  try {
+    const activeScenario = getActiveScenario();
+    const auditStatus = getAuditStatus();
+    const events = getFilteredEvents({ limit: 200 });
+
+    res.json({
+      ok: true,
+      simulation: simulationState.getStatus(),
+      scenario: activeScenario
+        ? {
+            id: activeScenario.id,
+            title: activeScenario.title,
+            description: activeScenario.description || ""
+          }
+        : null,
+      audit: auditStatus,
+      events
+    });
+  } catch (err) {
+    logError("Simulation-Status Fehler", { error: String(err) });
+    res.status(500).json({ ok: false, error: String(err) });
+  }
 });
 
 app.post("/api/sim/pause", (req, res) => {
@@ -1478,8 +1511,8 @@ app.post("/api/audit/resume", (req, res) => {
 // Events filtern
 app.post("/api/audit/events", async (req, res) => {
   try {
-    const { exerciseId, filters } = req.body || {};
-    const events = await getFilteredEvents(exerciseId, filters);
+    const { filters } = req.body || {};
+    const events = getFilteredEvents(filters);
     res.json({ ok: true, events });
   } catch (err) {
     logError("Events filtern Fehler", { error: String(err) });
