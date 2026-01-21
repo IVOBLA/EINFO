@@ -26,12 +26,20 @@ let statistics = {
 
 // Callback für SSE-Broadcasts (wird von index.js gesetzt)
 let onStatisticsChange = null;
+let onEventLogged = null;
 
 /**
  * Registriert einen Callback für Statistik-Änderungen
  */
 export function setStatisticsChangeCallback(callback) {
   onStatisticsChange = callback;
+}
+
+/**
+ * Registriert einen Callback für neue Events
+ */
+export function setEventLoggedCallback(callback) {
+  onEventLogged = callback;
 }
 
 /**
@@ -146,6 +154,10 @@ export function logEvent(category, action, data = {}) {
   // SSE-Broadcast bei Statistik-Änderungen
   if (statsChanged) {
     notifyStatisticsChange();
+  }
+
+  if (onEventLogged) {
+    onEventLogged(event);
   }
 
   return event;
