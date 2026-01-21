@@ -778,7 +778,7 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
     // LLM-CALL mit Metriken
     // ============================================================
     const llmTimer = startTimer();
-    const { parsed: llmResponse } = await callLLMForOps({
+    const { parsed: llmResponse, model: llmModel } = await callLLMForOps({
       llmInput: opsContext,
       memorySnippets,
       scenario: simulationState.activeScenario  // NEU: Szenario an LLM übergeben
@@ -787,7 +787,7 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
 
     // METRICS: Erfasse LLM-Call Dauer
     metrics.recordHistogram('simulation_llm_call_duration_ms',
-      { model: CONFIG.llmChatModel, source },
+      { model: llmModel, source },
       llmDuration
     );
 
@@ -796,7 +796,7 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
       stepId,
       durationMs: llmDuration,
       hasResponse: !!llmResponse,
-      model: CONFIG.llmChatModel
+      model: llmModel
     });
 
     const llmOperations = (llmResponse || {}).operations || {
