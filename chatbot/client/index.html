@@ -134,6 +134,14 @@
     .event-category.llm { background: #8b5cf6; }
     .event-category.user { background: #22c55e; }
     .event-category.exercise { background: #f59e0b; }
+    .event-category.error { background: #ef4444; }
+
+    .request-log { font-family: monospace; font-size: 0.75rem; }
+    .request-item {
+      padding: 0.35rem 0.5rem;
+      border-bottom: 1px solid #334155;
+    }
+    .request-meta { color: #94a3b8; font-size: 0.65rem; margin-top: 0.15rem; }
 
     /* Buttons */
     .btn {
@@ -486,6 +494,14 @@
       </div>
     </section>
 
+    <!-- LLM Requests -->
+    <section class="card tall">
+      <h2>LLM Requests</h2>
+      <div class="scrollable request-log" id="llm-request-log">
+        <div class="request-item" style="color: #64748b;">Noch keine LLM Requests.</div>
+      </div>
+    </section>
+
     <!-- Chat -->
     <section class="card tall">
       <h2>Chat (nur bei Pause)</h2>
@@ -596,6 +612,7 @@
     let durationInterval = null;
     let selectedScenarioId = null;
     let activeScenario = null;
+    let llmRequestEvents = [];
     const chatEntries = [];
     const BOT_NAME = "Florian";
 
@@ -612,6 +629,7 @@
     const btnEnd = document.getElementById("btn-end");
     const simLog = document.getElementById("sim-log");
     const eventLog = document.getElementById("event-log");
+    const llmRequestLog = document.getElementById("llm-request-log");
     const roleList = document.getElementById("role-list");
     const opsOutput = document.getElementById("ops-output");
 
@@ -692,6 +710,11 @@
           statistics = { ...statistics, ...data.statistics };
           updateStats();
         }
+      });
+
+      eventSource.addEventListener("audit_event", (e) => {
+        const event = JSON.parse(e.data);
+        handleAuditEvent(event);
       });
 
       eventSource.onmessage = (e) => {
@@ -959,13 +982,63 @@
           const modelInfo = data.model ? ` ${data.model}` : "";
           return `LLM-Aufruf${modelInfo}${duration}`;
         }
+        if (action === "request") {
+          const duration = typeof data.durationMs === "number" ? ` (${Math.round(data.durationMs)} ms)` : "";
+          const modelInfo = data.model ? ` ${data.model}` : "";
+          const sourceInfo = data.source ? ` – ${data.source}` : "";
+          return `LLM-Request${modelInfo}${duration}${sourceInfo}`;
+        }
       }
 
       if (event.category === "error") {
-        return `Fehler: ${action}`;
+        const detail = data.error ? `: ${data.error}` : "";
+        return `Fehler (${action})${detail}`;
       }
 
       return action;
+    }
+
+    function formatLlmRequestItem(event) {
+      const time = event.timestamp
+        ? new Date(event.timestamp).toLocaleTimeString("de-DE")
+        : new Date().toLocaleTimeString("de-DE");
+      const data = event.data || {};
+      const modelInfo = data.model ? ` ${data.model}` : "";
+      const duration = typeof data.durationMs === "number" ? `${Math.round(data.durationMs)} ms` : "n/a";
+      const source = data.source ? `Quelle: ${data.source}` : "Quelle: unbekannt";
+      const responseInfo = data.hasResponse === false ? "keine Antwort" : "Antwort ok";
+      const errorInfo = data.error ? ` • Fehler: ${data.error}` : "";
+
+      return `
+        <div class="request-item">
+          <div>${time} • LLM-Aufruf${modelInfo}</div>
+          <div class="request-meta">${duration} • ${source} • ${responseInfo}${errorInfo}</div>
+        </div>
+      `;
+    }
+
+    function renderLlmRequestHistory(events = []) {
+      if (!Array.isArray(events) || events.length === 0) {
+        llmRequestLog.innerHTML = '<div class="request-item" style="color: #64748b;">Noch keine LLM Requests.</div>';
+        return;
+      }
+
+      const sorted = [...events].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      llmRequestLog.innerHTML = sorted.slice(0, 100).map(formatLlmRequestItem).join("");
+    }
+
+    function handleAuditEvent(event) {
+      if (!event) return;
+      addEventToLog(event.category || "event", formatEventMessage(event));
+
+      if (event.category === "error") {
+        appendSimLog(formatEventMessage(event));
+      }
+
+      if (event.category === "llm") {
+        llmRequestEvents = [event, ...llmRequestEvents].slice(0, 100);
+        renderLlmRequestHistory(llmRequestEvents);
+      }
     }
 
     function renderEventHistory(events = []) {
@@ -1062,6 +1135,8 @@
           title: simStatus.scenarioTitle
         });
         renderEventHistory(data.events || []);
+        llmRequestEvents = (data.events || []).filter(event => event.category === "llm");
+        renderLlmRequestHistory(llmRequestEvents);
         updateUI();
       } catch (err) {
         console.error("Fehler beim Laden des Simulationsstatus:", err);

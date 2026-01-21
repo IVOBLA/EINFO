@@ -57,7 +57,8 @@ import {
   resumeExercise,
   getFilteredEvents,
   logEvent,
-  setStatisticsChangeCallback
+  setStatisticsChangeCallback,
+  setEventLoggedCallback
 } from "./audit_trail.js";
 
 import {
@@ -97,6 +98,36 @@ import fs from "fs/promises";
 // Szenarien-Verwaltung
 // ============================================================
 const SCENARIOS_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "scenarios");
+const SERVER_DATA_DIR = "/home/bfkdo/kanban/server/data";
+
+async function cleanupServerData() {
+  const entries = await fs.readdir(SERVER_DATA_DIR, { withFileTypes: true });
+  const deletions = [];
+
+  for (const entry of entries) {
+    if (!entry.isFile()) continue;
+    const ext = path.extname(entry.name).toLowerCase();
+    if (ext !== ".log" && ext !== ".json") continue;
+    const targetPath = path.join(SERVER_DATA_DIR, entry.name);
+    deletions.push(fs.unlink(targetPath));
+  }
+
+  await Promise.all(deletions);
+  logInfo("Server-Daten bereinigt", {
+    directory: SERVER_DATA_DIR,
+    removedFiles: deletions.length
+  });
+}
+
+function logLlmRequest({ source, model, durationMs, hasResponse, error }) {
+  logEvent("llm", "request", {
+    source,
+    model,
+    durationMs,
+    hasResponse,
+    error
+  });
+}
 
 async function listScenarios() {
   try {
@@ -179,11 +210,35 @@ async function streamAnswer({ res, question }) {
   res.setHeader("Connection", "keep-alive");
   res.setHeader("Transfer-Encoding", "chunked");
 
-  await callLLMForChat({
-    question,
-    stream: true,
-    onToken: (token) => res.write(token)
-  });
+  const startTime = Date.now();
+  const taskConfig = getModelForTask("chat");
+
+  try {
+    await callLLMForChat({
+      question,
+      stream: true,
+      onToken: (token) => res.write(token)
+    });
+    logLlmRequest({
+      source: "chat",
+      model: taskConfig?.model,
+      durationMs: Date.now() - startTime,
+      hasResponse: true
+    });
+  } catch (err) {
+    logLlmRequest({
+      source: "chat",
+      model: taskConfig?.model,
+      durationMs: Date.now() - startTime,
+      hasResponse: false,
+      error: String(err)
+    });
+    logEvent("error", "llm_request_failed", {
+      source: "chat",
+      error: String(err)
+    });
+    throw err;
+  }
 
   res.end();
 }
@@ -261,6 +316,8 @@ app.post("/api/sim/start", async (req, res) => {
         description: scenario.description
       });
     }
+
+    await cleanupServerData();
 
     const auditStatus = getAuditStatus();
     if (!auditStatus.active) {
@@ -446,6 +503,8 @@ app.post("/api/llm/test", rateLimit(RateLimitProfiles.STRICT), async (req, res) 
     return res.status(400).json({ ok: false, error: "missing_model", gpuStatus });
   }
 
+  const startTime = Date.now();
+
   try {
     const models = await listAvailableLlmModels();
     const modelNames = models.map(m => m.name);
@@ -456,9 +515,26 @@ app.post("/api/llm/test", rateLimit(RateLimitProfiles.STRICT), async (req, res) 
     }
 
     const answer = await callLLMForChat({ question, model });
+    logLlmRequest({
+      source: "test",
+      model,
+      durationMs: Date.now() - startTime,
+      hasResponse: true
+    });
     res.json({ ok: true, answer, gpuStatus });
   } catch (err) {
     logError("Fehler im LLM-Test-Endpunkt", { error: String(err) });
+    logLlmRequest({
+      source: "test",
+      model,
+      durationMs: Date.now() - startTime,
+      hasResponse: false,
+      error: String(err)
+    });
+    logEvent("error", "llm_request_failed", {
+      source: "test",
+      error: String(err)
+    });
     res.status(500).json({ ok: false, error: String(err), gpuStatus });
   }
 });
@@ -582,6 +658,13 @@ app.post("/api/llm/test-model", rateLimit(RateLimitProfiles.STRICT), async (req,
     // GPU-Status nachher
     const gpuAfter = await getGpuStatus();
 
+    logLlmRequest({
+      source: "test-model",
+      model: modelConfig.name,
+      durationMs: duration,
+      hasResponse: true
+    });
+
     logInfo("Modell-Test erfolgreich", { modelKey, duration });
 
     res.json({
@@ -603,6 +686,17 @@ app.post("/api/llm/test-model", rateLimit(RateLimitProfiles.STRICT), async (req,
       modelName: modelConfig.name,
       error: String(err),
       duration
+    });
+    logLlmRequest({
+      source: "test-model",
+      model: modelConfig.name,
+      durationMs: duration,
+      hasResponse: false,
+      error: String(err)
+    });
+    logEvent("error", "llm_request_failed", {
+      source: "test-model",
+      error: String(err)
     });
 
     res.status(500).json({
@@ -760,6 +854,12 @@ app.post("/api/llm/test-with-metrics", rateLimit(RateLimitProfiles.STRICT), asyn
     };
 
     logInfo("LLM-Test mit Metriken erfolgreich", { model, duration, metricsCount: metrics.length });
+    logLlmRequest({
+      source: "test-with-metrics",
+      model,
+      durationMs: duration,
+      hasResponse: true
+    });
 
     res.json({
       ok: true,
@@ -775,6 +875,17 @@ app.post("/api/llm/test-with-metrics", rateLimit(RateLimitProfiles.STRICT), asyn
 
     const duration = Date.now() - startTime;
     logError("LLM-Test mit Metriken fehlgeschlagen", { model, error: String(err), duration });
+    logLlmRequest({
+      source: "test-with-metrics",
+      model,
+      durationMs: duration,
+      hasResponse: false,
+      error: String(err)
+    });
+    logEvent("error", "llm_request_failed", {
+      source: "test-with-metrics",
+      error: String(err)
+    });
 
     res.status(500).json({
       ok: false,
@@ -1157,6 +1268,12 @@ ${ragResult.context}`;
     };
 
     logInfo("LLM-Streaming-Test erfolgreich", { model, duration, metricsCount: metrics.length });
+    logLlmRequest({
+      source: "test-with-metrics-stream",
+      model,
+      durationMs: duration,
+      hasResponse: true
+    });
 
     // RAW Response zusammenstellen
     const rawResponse = {
@@ -1201,6 +1318,17 @@ ${ragResult.context}`;
 
     const duration = Date.now() - startTime;
     logError("LLM-Streaming-Test fehlgeschlagen", { model, error: String(err), duration });
+    logLlmRequest({
+      source: "test-with-metrics-stream",
+      model,
+      durationMs: duration,
+      hasResponse: false,
+      error: String(err)
+    });
+    logEvent("error", "llm_request_failed", {
+      source: "test-with-metrics-stream",
+      error: String(err)
+    });
 
     sendSSE("error", {
       ok: false,
@@ -2199,6 +2327,10 @@ async function bootstrap() {
   // SSE-Broadcast für Statistik-Updates registrieren
   setStatisticsChangeCallback((statistics) => {
     broadcastSSE("statistics_update", { statistics });
+  });
+
+  setEventLoggedCallback((event) => {
+    broadcastSSE("audit_event", event);
   });
 
   const PORT = process.env.CHATBOT_PORT || 3100;
