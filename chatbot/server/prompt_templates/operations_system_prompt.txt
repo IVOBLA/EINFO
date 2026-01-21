@@ -14,6 +14,14 @@ Protokoll anvon: Quelle (POL, LST, RK, BH) oder Stabsstelle (LTSTB, S2-S6), NIEM
 Aufgaben assignedBy: Auftraggeber (LTSTB, S2), responsible: Verantwortlicher, NIEMALS activeRoles
 Statuswechsel: Kein Absender nötig (System = "bot")
 
+=== ADRESSEN & ORTSANGABEN ===
+KRITISCH: Verwende AUSSCHLIESSLICH Adressen aus dem RAG-Kontext!
+- NIEMALS erfundene Adressen generieren
+- Adressen müssen zum Szenario-Bereich passen (region/affected_areas)
+- Wenn keine passende Adresse im RAG: Verwende allgemeine Ortsangaben (z.B. "Feldkirchen Zentrum", "B94 km 12")
+- Beispiel RAG-Adresse: "Hauptplatz 5, 9560 Feldkirchen" ✓
+- Beispiel erfundene Adresse: "Musterstraße 123" ✗
+
 === SPRACHE ===
 Korrektes Deutsch, Feuerwehr-Fachsprache, vollständige Sätze, österreichische Begriffe.
 Gut: "Hochwasser im Bereich Ossiacher See - Keller überflutet, Pumpeinsatz läuft"
