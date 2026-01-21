@@ -1,7 +1,7 @@
 // chatbot/server/simulation_errors.js
 // Error Handling für Simulation
 
-import { logError, logWarn, logDebug } from "./logger.js";
+import { logError, logInfo, logDebug } from "./logger.js";
 
 /**
  * Basis-Fehlerklasse für Simulation
@@ -77,7 +77,7 @@ export class FileNotFoundError extends SimulationError {
 const errorHandlers = {
   DisasterContextError: {
     handler: (err, context) => {
-      logWarn("Disaster Context konnte nicht aktualisiert werden", {
+      logInfo("Disaster Context konnte nicht aktualisiert werden", {
         error: err.message,
         context: err.context
       });
@@ -97,7 +97,7 @@ const errorHandlers = {
 
   RAGIndexingError: {
     handler: (err, context) => {
-      logWarn("RAG-Indizierung fehlgeschlagen - Daten nicht durchsuchbar", {
+      logInfo("RAG-Indizierung fehlgeschlagen - Daten nicht durchsuchbar", {
         error: err.message,
         context: err.context
       });

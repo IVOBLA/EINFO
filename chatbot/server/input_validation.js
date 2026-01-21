@@ -3,7 +3,7 @@
 
 import fs from "fs/promises";
 import { ValidationError } from "./simulation_errors.js";
-import { logWarn } from "./logger.js";
+import { logInfo } from "./logger.js";
 
 /**
  * Validierungs-Schemas
@@ -229,7 +229,7 @@ export function validateWithDefault(data, schema, defaultValue, fieldName = 'dat
     validateInput(data, schema, fieldName);
     return data;
   } catch (err) {
-    logWarn("Validierung fehlgeschlagen, verwende Default-Wert", {
+    logInfo("Validierung fehlgeschlagen, verwende Default-Wert", {
       fieldName,
       error: err.message,
       defaultValue
