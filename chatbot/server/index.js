@@ -319,10 +319,10 @@ app.get("/api/metrics/stats", (_req, res) => {
         state: simulationState.getStatus()
       },
       operations: {
-        boardCreate: metrics.counters.get('simulation_operations_total{type="board_create"}') || 0,
-        boardUpdate: metrics.counters.get('simulation_operations_total{type="board_update"}') || 0,
-        aufgabenCreate: metrics.counters.get('simulation_operations_total{type="aufgaben_create"}') || 0,
-        protokollCreate: metrics.counters.get('simulation_operations_total{type="protokoll_create"}') || 0
+        boardCreate: metrics.getCounterSum('simulation_operations_total', { type: "board_create" }),
+        boardUpdate: metrics.getCounterSum('simulation_operations_total', { type: "board_update" }),
+        aufgabenCreate: metrics.getCounterSum('simulation_operations_total', { type: "aufgaben_create" }),
+        protokollCreate: metrics.getCounterSum('simulation_operations_total', { type: "protokoll_create" })
       },
       cache: cache.getStats(),
       errors: {
