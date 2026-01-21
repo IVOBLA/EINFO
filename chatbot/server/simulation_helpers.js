@@ -1,7 +1,11 @@
 // chatbot/server/simulation_helpers.js
 // ============================================================
 // Hilfsfunktionen für die EINFO Simulation
-// 
+//
+// REFACTORED:
+// - Verwendet SIMULATION_DEFAULTS statt Magic Numbers
+// - Input-Validierung für kritische Funktionen
+//
 // Enthält:
 // - LtStb-Bestätigung von Protokolleinträgen
 // - Statuswechsel für Aufgaben simulierter Stabsstellen
@@ -20,6 +24,8 @@ import {
   normalizeRole
 } from "./field_mapper.js";
 import { readAufgBoardFile, writeAufgBoardFile } from "./aufgaben_board_io.js";
+import { SIMULATION_DEFAULTS } from "./config.js";
+import { validateCoordinates, validateFilePath } from "./input_validation.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -241,9 +247,11 @@ export async function updateTaskStatusForSimulatedRoles(activeRoles, dataDir) {
       if (currentIndex >= 0 && currentIndex < TASK_STATUS_ORDER.length - 1) {
         const newStatus = TASK_STATUS_ORDER[currentIndex + 1];
 
-        // Nur mit 30% Wahrscheinlichkeit pro Durchlauf weiterschalten
-        // um eine natürlichere Progression zu simulieren
-        if (Math.random() < 0.3) {
+        // REFACTORED: Verwendet SIMULATION_DEFAULTS.statusProgression
+        const probability = SIMULATION_DEFAULTS.statusProgression.probabilityPerStep;
+        const maxUpdates = SIMULATION_DEFAULTS.statusProgression.maxTasksPerRolePerStep;
+
+        if (Math.random() < probability) {
           item.status = newStatus;
           item.statusUpdatedAt = new Date().toISOString();
           item.statusUpdatedBy = `simulation-${normalizedRole}`;
@@ -262,8 +270,8 @@ export async function updateTaskStatusForSimulatedRoles(activeRoles, dataDir) {
 
           updated++;
 
-          // Maximal 2 Tasks pro Rolle pro Durchlauf
-          if (updated >= 2) break;
+          // REFACTORED: Max Tasks pro Rolle aus Config
+          if (updated >= maxUpdates) break;
         }
       }
     }
@@ -391,14 +399,26 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
  * @param {number} minVehicles - Mindestanzahl Fahrzeuge (default: 1)
  * @returns {Promise<string[]>} Array von Fahrzeug-IDs
  */
+/**
+ * REFACTORED: Mit Input-Validierung und SIMULATION_DEFAULTS
+ */
 export async function assignVehiclesByDistance(incident, vehiclesPath, overridesPath, minVehicles = 1) {
-  // Koordinaten prüfen
-  if (!incident?.latitude || !incident?.longitude) {
-    log("debug", "Keine Koordinaten für Fahrzeugzuweisung", {
-      incidentId: incident?.id
+  // INPUT-VALIDIERUNG: Koordinaten prüfen
+  try {
+    validateCoordinates({
+      latitude: incident?.latitude,
+      longitude: incident?.longitude
+    });
+  } catch (err) {
+    log("debug", "Ungültige Koordinaten für Fahrzeugzuweisung", {
+      incidentId: incident?.id,
+      error: err.message
     });
     return [];
   }
+
+  // REFACTORED: Verwende Config-Wert für minVehicles
+  const effectiveMinVehicles = minVehicles || SIMULATION_DEFAULTS.vehicleAssignment.minVehiclesPerIncident;
 
   // Fahrzeuge laden
   let vehicles = [];

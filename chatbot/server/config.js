@@ -255,6 +255,83 @@ export const simulationConfig = {
   // field_mapper.js und simulation_helpers.js definiert (Single Source of Truth)
 };
 
+// ============================================================
+// Simulation Behavior Defaults (ersetzt Magic Numbers)
+// ============================================================
+export const SIMULATION_DEFAULTS = {
+  compression: {
+    maxBoardItems: 25,
+    maxAufgabenItems: 50,
+    maxProtokollItems: 30,
+    maxContentLength: 100
+  },
+
+  statusProgression: {
+    // Wahrscheinlichkeit pro Schritt dass Task-Status fortschreitet
+    probabilityPerStep: 0.3,
+    // Max Anzahl Tasks die pro Rolle pro Schritt fortschreiten
+    maxTasksPerRolePerStep: 2,
+    // Mindestanzahl Schritte bevor Status wechselt
+    minStepsBeforeChange: 1
+  },
+
+  s2Rules: {
+    // Mindestanzahl Einsätze "In Bearbeitung" wenn S2 simuliert
+    minIncidentsInProgress: 1
+  },
+
+  vehicleAssignment: {
+    // Mindestanzahl Fahrzeuge pro Einsatz
+    minVehiclesPerIncident: 1,
+    // Max Entfernung in km für Fahrzeugzuweisung
+    maxDistanceKm: 50
+  },
+
+  cache: {
+    // Cache TTL für Disaster Context in Millisekunden
+    disasterContextTTL: 30000,
+    // Cache TTL für Learned Responses
+    learnedResponsesTTL: 60000
+  }
+};
+
+// ============================================================
+// Schwierigkeitsgrad-Modifikatoren
+// ============================================================
+export const DIFFICULTY_MODIFIERS = {
+  easy: {
+    label: "Einfach",
+    statusProgressionSpeed: 0.5,    // Tasks schreiten schneller fort
+    entityMultiplier: 0.7,           // 30% weniger Entities
+    llmTemperatureBoost: -0.1,       // Vorhersehbarer
+    responseTimeMultiplier: 1.5      // Mehr Zeit für Antworten
+  },
+
+  medium: {
+    label: "Mittel",
+    statusProgressionSpeed: 0.3,
+    entityMultiplier: 1.0,
+    llmTemperatureBoost: 0,
+    responseTimeMultiplier: 1.0
+  },
+
+  hard: {
+    label: "Schwer",
+    statusProgressionSpeed: 0.2,
+    entityMultiplier: 1.3,
+    llmTemperatureBoost: 0.1,
+    responseTimeMultiplier: 0.8
+  },
+
+  extreme: {
+    label: "Extrem",
+    statusProgressionSpeed: 0.1,     // Tasks brauchen länger
+    entityMultiplier: 1.8,           // 80% mehr Entities
+    llmTemperatureBoost: 0.2,        // Unvorhersehbarer
+    responseTimeMultiplier: 0.5      // Weniger Zeit
+  }
+};
+
 
 /**
  * Profil-spezifische Overrides

@@ -11,6 +11,9 @@ import {
   isSimulationRunning,
   getActiveScenario  // NEU: Szenario-Getter aus sim_loop
 } from "./sim_loop.js";
+import { metrics } from "./simulation_metrics.js";
+import { cache } from "./cache_manager.js";
+import { simulationState } from "./simulation_state.js";
 import { 
   callLLMForChat, 
   listAvailableLlmModels,
@@ -289,6 +292,50 @@ app.post("/api/sim/step", async (req, res) => {
   } catch (err) {
     logError("Fehler beim Simulationsschritt-Endpunkt", { error: String(err) });
     res.status(500).json({ ok: false, error: String(err) });
+  }
+});
+
+// ============================================================
+// Metriken-Endpunkte (NEU: Performance-Monitoring)
+// ============================================================
+
+app.get("/api/metrics", (_req, res) => {
+  res.set('Content-Type', 'text/plain; charset=utf-8');
+  try {
+    const prometheus = metrics.exportPrometheus();
+    res.send(prometheus);
+  } catch (err) {
+    logError("Fehler beim Metrics-Export", { error: String(err) });
+    res.status(500).send('# Error exporting metrics\n');
+  }
+});
+
+app.get("/api/metrics/stats", (_req, res) => {
+  try {
+    const stats = {
+      simulation: {
+        llmCalls: metrics.getStats('simulation_llm_call_duration_ms'),
+        stepDuration: metrics.getStats('simulation_step_duration_ms'),
+        state: simulationState.getStatus()
+      },
+      operations: {
+        boardCreate: metrics.counters.get('simulation_operations_total{type="board_create"}') || 0,
+        boardUpdate: metrics.counters.get('simulation_operations_total{type="board_update"}') || 0,
+        aufgabenCreate: metrics.counters.get('simulation_operations_total{type="aufgaben_create"}') || 0,
+        protokollCreate: metrics.counters.get('simulation_operations_total{type="protokoll_create"}') || 0
+      },
+      cache: cache.getStats(),
+      errors: {
+        total: Array.from(metrics.counters.entries())
+          .filter(([key]) => key.startsWith('simulation_errors_total'))
+          .reduce((sum, [, value]) => sum + value, 0)
+      },
+      metrics: metrics.toJSON()
+    };
+    res.json(stats);
+  } catch (err) {
+    logError("Fehler beim Stats-Export", { error: String(err) });
+    res.status(500).json({ error: String(err) });
   }
 });
 
