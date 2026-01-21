@@ -17,19 +17,34 @@
         "duration_minutes": 20,
         "label": "Verschärfung",
         "intensity": "steigend",
-        "guidance": "Steigende Pegelstände, mehrere neue Einsatzstellen in kurzer Folge."
+        "guidance": "Steigende Pegelstände, mehrere neue Einsatzstellen in kurzer Folge.",
+        "entity_requirements": {
+          "einsatzstellen": { "min": 2, "max": 3 },
+          "meldungen": { "min": 3, "max": 5 },
+          "aufgaben": { "min": 1, "max": 3 }
+        }
       },
       {
         "duration_minutes": 20,
         "label": "Stabilisierung",
         "intensity": "gleichbleibend",
-        "guidance": "Lage bleibt kritisch, Fokus auf Koordination und Schutzmaßnahmen."
+        "guidance": "Lage bleibt kritisch, Fokus auf Koordination und Schutzmaßnahmen.",
+        "entity_requirements": {
+          "einsatzstellen": { "min": 1, "max": 2 },
+          "meldungen": { "min": 2, "max": 4 },
+          "aufgaben": { "min": 1, "max": 2 }
+        }
       },
       {
         "duration_minutes": 20,
         "label": "Entspannung",
         "intensity": "abnehmend",
-        "guidance": "Weniger neue Meldungen, Übergang zu Aufräum- und Sicherungsphase."
+        "guidance": "Weniger neue Meldungen, Übergang zu Aufräum- und Sicherungsphase.",
+        "entity_requirements": {
+          "einsatzstellen": { "min": 0, "max": 1 },
+          "meldungen": { "min": 1, "max": 2 },
+          "aufgaben": { "min": 0, "max": 1 }
+        }
       }
     ]
   },

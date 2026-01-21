@@ -11,7 +11,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   buildScenarioControlSummary,
-  buildScenarioTimelineSummary
+  buildScenarioTimelineSummary,
+  buildPhaseRequirementsSummary
 } from "./scenario_controls.js";
 
 
@@ -48,6 +49,8 @@ const responseGuideTemplate = loadPromptTemplate("response_guide.txt");
 const scenarioContextTemplate = loadPromptTemplate("scenario_context.txt");
 // NEU: Offene Rückfragen Template
 const openQuestionsGuideTemplate = loadPromptTemplate("open_questions_guide.txt");
+// NEU: Initial Board Section Template
+const initialBoardSectionTemplate = loadPromptTemplate("initial_board_section.txt");
 
 // JSON-Reparatur Prompt (wird von llm_client.js verwendet)
 export const jsonRepairSystemPrompt = loadPromptTemplate("json_repair_system.txt");
@@ -103,10 +106,50 @@ export function buildUserPrompt({
     2
   );
 
-  // Task-Section basierend auf Szenario-Zustand wählen
-  const taskSection = llmInput.firstStep
-    ? taskSectionFirstStep
-    : taskSectionOperations;
+  // Phase Requirements für den aktuellen Schritt
+  const phaseRequirements = buildPhaseRequirementsSummary({
+    scenario,
+    elapsedMinutes: llmInput.elapsedMinutes || 0
+  });
+
+  // Task-Section basierend auf Szenario-Zustand wählen und füllen
+  let taskSection;
+  if (llmInput.firstStep) {
+    // Für ersten Schritt: initiale Einsatzstellen extrahieren
+    let initialBoardSection = "";
+    if (scenario) {
+      const allItems = [];
+      const board = scenario.initial_state?.board;
+      if (board?.columns) {
+        for (const column of Object.values(board.columns)) {
+          if (Array.isArray(column.items)) {
+            allItems.push(...column.items);
+          }
+        }
+      } else if (Array.isArray(board)) {
+        for (const column of board) {
+          if (Array.isArray(column?.items)) {
+            allItems.push(...column.items);
+          }
+        }
+      }
+      if (allItems.length > 0) {
+        const initialBoardItems = allItems.map(item =>
+          `  - ${item.humanId || item.id}: ${item.content} (${item.ort || "Ort unbekannt"})
+    Typ: ${item.typ || "Unbekannt"}
+    Beschreibung: ${item.description || ""}`
+        ).join("\n");
+
+        initialBoardSection = fillTemplate(initialBoardSectionTemplate, {
+          initialBoardItems
+        });
+      }
+    }
+    taskSection = fillTemplate(taskSectionFirstStep, { initialBoardSection });
+  } else {
+    // Für normale Operations: phaseRequirements einfügen
+    taskSection = fillTemplate(taskSectionOperations, { phaseRequirements });
+  }
 
   // ============================================================
   // Formatiere Meldungen die Antwort benötigen
@@ -217,7 +260,7 @@ export function buildStartPrompts({ roles, scenario = null }) {
 
   // NEU: Wenn ein Szenario vorhanden ist, dieses in den Prompt einbauen
   let scenarioContext = "";
-  let initialBoard = "";
+  let initialBoardSection = "";
   let scenarioHints = "";
   let scenarioControl = "";
 
@@ -251,13 +294,15 @@ export function buildStartPrompts({ roles, scenario = null }) {
       }
     }
     if (allItems.length > 0) {
-      initialBoard = `
-INITIALE EINSATZSTELLEN (aus Szenario vorgegeben):
-${allItems.map(item => `  - ${item.humanId || item.id}: ${item.content} (${item.ort || "Ort unbekannt"})
+      const initialBoardItems = allItems.map(item =>
+        `  - ${item.humanId || item.id}: ${item.content} (${item.ort || "Ort unbekannt"})
     Typ: ${item.typ || "Unbekannt"}
-    Beschreibung: ${item.description || ""}`).join("\n")}
+    Beschreibung: ${item.description || ""}`
+      ).join("\n");
 
-WICHTIG: Du MUSST diese Einsatzstellen mit genau diesen Daten anlegen!`;
+      initialBoardSection = fillTemplate(initialBoardSectionTemplate, {
+        initialBoardItems
+      });
     }
 
     // Hinweise aus dem Szenario
@@ -277,7 +322,7 @@ ${scenario.hints.map(h => `  → ${h}`).join("\n")}`;
   const userPrompt = fillTemplate(startUserPromptTemplate, {
     rolesJson,
     scenarioContext: scenarioContext || "(Kein Szenario vorgegeben - erstelle ein realistisches Katastrophenszenario)",
-    initialBoard: initialBoard || "",
+    initialBoardSection: initialBoardSection || "",
     scenarioHints: scenarioHints || "",
     scenarioControl: scenarioControl || "(keine Szenario-Steuerung definiert)"
   });

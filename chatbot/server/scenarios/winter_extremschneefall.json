@@ -18,19 +18,34 @@
         "duration_minutes": 20,
         "label": "Schneechaos",
         "intensity": "steigend",
-        "guidance": "Extremer Schneefall setzt ein - massiv steigende Einsatzzahlen: Verkehrsunfälle, blockierte Straßen, eingeschneite Fahrzeuge, Dachlasten. Mindestens 5-7 neue kritische Einsätze pro Schritt. Stab wird von allen Seiten mit Anfragen bombardiert."
+        "guidance": "Extremer Schneefall setzt ein - massiv steigende Einsatzzahlen: Verkehrsunfälle, blockierte Straßen, eingeschneite Fahrzeuge, Dachlasten. Stab wird von allen Seiten mit Anfragen bombardiert.",
+        "entity_requirements": {
+          "einsatzstellen": { "min": 5, "max": 7 },
+          "meldungen": { "min": 6, "max": 8 },
+          "aufgaben": { "min": 3, "max": 5 }
+        }
       },
       {
         "duration_minutes": 20,
         "label": "Kollaps",
         "intensity": "gleichbleibend",
-        "guidance": "Infrastrukturkollaps: Straßen unpassierbar, Stromausfälle breiten sich aus, Kommunikation erschwert. Weiterhin 5-6 neue Einsätze pro Schritt. Viele Rückfragen und Entscheidungen durch externe Stellen erforderlich."
+        "guidance": "Infrastrukturkollaps: Straßen unpassierbar, Stromausfälle breiten sich aus, Kommunikation erschwert. Viele Rückfragen und Entscheidungen durch externe Stellen erforderlich.",
+        "entity_requirements": {
+          "einsatzstellen": { "min": 5, "max": 6 },
+          "meldungen": { "min": 5, "max": 7 },
+          "aufgaben": { "min": 2, "max": 4 }
+        }
       },
       {
         "duration_minutes": 20,
         "label": "Kritische Phase",
         "intensity": "abnehmend",
-        "guidance": "Schneefall lässt langsam nach, aber die Lage bleibt kritisch. Aufräumarbeiten beginnen, noch 3-5 neue Einsätze. Fokus auf Priorisierung und Ressourcenverteilung."
+        "guidance": "Schneefall lässt langsam nach, aber die Lage bleibt kritisch. Aufräumarbeiten beginnen. Fokus auf Priorisierung und Ressourcenverteilung.",
+        "entity_requirements": {
+          "einsatzstellen": { "min": 3, "max": 5 },
+          "meldungen": { "min": 3, "max": 5 },
+          "aufgaben": { "min": 1, "max": 3 }
+        }
       }
     ]
   },
