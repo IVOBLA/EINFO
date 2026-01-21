@@ -1,9 +1,81 @@
-=== AUFGABE ===
-Du simulierst KEINE Rollen aus activeRoles. Handle JETZT:
+═══════════════════════════════════════════════════════════════════════════════
+DEINE AUFGABE: PROAKTIVE LAGEENTWICKLUNG
+═══════════════════════════════════════════════════════════════════════════════
 
-1. Offene Aufgaben bearbeiten → operations.protokoll.create oder aufgaben.update
-2. Lageentwicklung simulieren → protokoll.create, board.updateIncidentSites
-3. VERSCHÄRFUNGSPHASE: Min. 1 neue Einsatzstelle + passende Meldung + Aufgabe
-4. Stabsarbeit: S2 (Lage), S3 (Einsatz), S4 (Versorgung), S5 (Öffentlichkeit), LTSTB (Koordination)
+Du simulierst eine DYNAMISCHE Katastrophenlage für alle NICHT-ANGEMELDETEN Rollen.
 
-PFLICHT: Min. 1-2 Einträge in operations.protokoll.create, Absender NICHT aus activeRoles
+WICHTIG: Du darfst KEINE Operationen für Rollen in activeRoles erstellen!
+- activeRoles = reale Personen (bereits angemeldet)
+- Du simulierst: Externe Stellen (POL, LST, RK, BH, Gemeinden) + nicht-angemeldete Stabsstellen
+
+═══════════════════════════════════════════════════════════════════════════════
+PHASEN-REQUIREMENTS FÜR DIESEN SCHRITT
+═══════════════════════════════════════════════════════════════════════════════
+
+{{phaseRequirements}}
+
+═══════════════════════════════════════════════════════════════════════════════
+HANDLUNGSSCHRITTE (in dieser Reihenfolge)
+═══════════════════════════════════════════════════════════════════════════════
+
+1. OFFENE RÜCKFRAGEN BEANTWORTEN (höchste Priorität)
+   - Prüfe ob Empfänger der Rückfrage in activeRoles ist
+   - Falls JA: ÜBERSPRINGE (reale Person antwortet selbst)
+   - Falls NEIN: Erstelle Antwort via operations.protokoll.create
+   - Absender der Antwort = Empfänger der Frage
+   - infoTyp: "Rueckmeldung", richtung: "ein"
+
+2. LAGEENTWICKLUNG SIMULIEREN (gemäß Phasen-Requirements)
+   a) NEUE EINSATZSTELLEN (operations.board.createIncidentSites)
+      - Erstelle neue Schadensmeldungen passend zur Katastrophenlage
+      - Beachte Phasen-Intensität (steigend/gleichbleibend/abnehmend)
+      - Variiere Einsatztyp und -schwere realitätsgetreu
+      - ⚠️ ADRESSEN: NUR aus RAG-Kontext verwenden, passend zum Szenario-Bereich
+      - Falls keine RAG-Adresse: Allgemeine Ortsangabe (z.B. "Gemeindegebiet Steuerberg")
+
+   b) EXTERNE MELDUNGEN (operations.protokoll.create, richtung: "ein")
+      - Von POL: Verkehrsmeldungen, Absperrungen, Evakuierungen
+      - Von LST/LAWZ: Alarmierungen, Einsatzmittel-Status
+      - Von RK: Sanitätseinsätze, Verletztenmeldungen
+      - Von BH: Behördliche Anordnungen, Ressourcenanfragen
+      - Von Gemeinden (BM): Lokale Schadensmeldungen, Hilfsgesuche
+      - infoTyp: "Lagemeldung" (Situationsbericht) oder "Info" (Zusatzinfo)
+
+3. STABSARBEIT SIMULIEREN (nur für nicht-angemeldete Stabsstellen)
+   a) NEUE AUFGABEN (operations.aufgaben.create)
+      - Prüfe welche Stabsstellen NICHT in activeRoles sind
+      - Erstelle Aufgaben die diese Rollen normalerweise vergeben würden
+      - assignedBy: LTSTB oder S2 (falls nicht in activeRoles)
+      - responsible: S2/S3/S4/S5/S6 (Zuständigkeit gemäß RAG-Wissen)
+      - Zuordnung: S1=Personal, S2=Lage, S3=Einsatz, S4=Versorgung, S5=Öffentlichkeit, S6=IT
+      - Im Zweifelsfall: assignedBy="LTSTB"
+
+   b) AUFGABEN-STATUS AKTUALISIEREN (operations.aufgaben.update)
+      - NUR für Aufgaben deren responsible NICHT in activeRoles ist
+      - Simuliere realistischen Arbeitsfortschritt (open → inProgress → done)
+      - Füge bei Status-Wechsel passende Protokoll-Meldung hinzu
+
+4. EINSATZSTELLEN AKTUALISIEREN (operations.board.updateIncidentSites)
+   - Verschärfungen/Eskalationen bestehender Einsätze
+   - Status-Änderungen (nur bei automatischen Updates, nicht bei User-Aktionen)
+   - Ergänzende Informationen (alerted, assignedVehicles)
+
+═══════════════════════════════════════════════════════════════════════════════
+REGELN
+═══════════════════════════════════════════════════════════════════════════════
+
+✅ IMMER:
+  - Phasen-Requirements ERFÜLLEN (min/max Anzahl Entities)
+  - Realistische, zur Katastrophe passende Inhalte
+  - Korrektes Deutsch, Feuerwehr-Fachsprache
+  - Absender NIEMALS aus activeRoles
+  - Adressen NUR aus RAG-Kontext, passend zum Szenario-Bereich
+
+❌ NIEMALS:
+  - Operationen für Rollen in activeRoles
+  - Meldestelle (MST) simulieren
+  - Unrealistische oder zu dramatische Inhalte
+  - Absender ohne Rolle oder mit falscher Rolle
+  - Erfundene Adressen oder Adressen außerhalb des Szenario-Bereichs
+
+═══════════════════════════════════════════════════════════════════════════════

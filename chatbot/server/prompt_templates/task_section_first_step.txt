@@ -1,2 +1,19 @@
-START DER SIMULATION:
-Erzeuge 1-3 Einsatzstellen (operations.board.createIncidentSites), passende Protokolleinträge (protokoll.create) und Aufgaben für S2/S3/S4/S5 (aufgaben.create). Halte dich an JSON-Schema und Rollenregeln.
+═══════════════════════════════════════════════════════════════════════════════
+START DER SIMULATION
+═══════════════════════════════════════════════════════════════════════════════
+
+{{initialBoardSection}}
+
+AUFGABE:
+1. Lege die VORGEGEBENEN initialen Einsatzstellen an (operations.board.createIncidentSites)
+2. Erstelle 2-4 passende Protokolleinträge (operations.protokoll.create):
+   - Eingehende Meldungen von externen Stellen (POL, LST, RK, BH)
+   - Erste Lageberichte
+   - Alarmierungen
+3. Erstelle 2-4 initiale Aufgaben für Stabsstellen (operations.aufgaben.create):
+   - S2: Lageerkundung, Kartenerstellung
+   - S3: Einsatzmittel-Koordination
+   - S4: Ressourcen-Beschaffung
+   - S5: Pressemitteilung vorbereiten
+
+Halte dich strikt an JSON-Schema und Rollenregeln (KEINE Operationen für activeRoles)!

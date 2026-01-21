@@ -655,6 +655,7 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
       compressedAufgaben: compressAufgaben(aufgaben),
       compressedProtokoll: compressProtokoll(protokoll),
       firstStep: isFirstStep,
+      elapsedMinutes: simulationElapsedMinutes,  // NEU: Für phasenbasierte Requirements
       // NEU: Meldungen die Antwort brauchen
       messagesNeedingResponse: messagesNeedingResponse.length > 0
         ? messagesNeedingResponse

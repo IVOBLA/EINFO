@@ -5,14 +5,11 @@ ACTIVE ROLLEN:
 
 {{scenarioContext}}
 
-{{initialBoard}}
+{{initialBoardSection}}
 
 {{scenarioHints}}
 
 SZENARIO-STEUERUNG:
 {{scenarioControl}}
-
-ANFORDERUNGEN:
-Wenn INITIALE EINSATZSTELLEN definiert: Lege GENAU diese an. Sonst: 1-3 Einsatzstellen, 1-5 Aufgaben, 1-3 Protokolleinträge. KEINE activeRoles verwenden. Deutsch.
 
 Nur JSON. Keine ```.

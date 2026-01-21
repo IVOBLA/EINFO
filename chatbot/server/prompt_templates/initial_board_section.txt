@@ -1,0 +1,8 @@
+═══════════════════════════════════════════════════════════════════════════════
+INITIALE EINSATZSTELLEN (aus Szenario vorgegeben)
+═══════════════════════════════════════════════════════════════════════════════
+
+{{initialBoardItems}}
+
+WICHTIG: Du MUSST diese Einsatzstellen mit genau diesen Daten anlegen!
+Verwende operations.board.createIncidentSites mit den exakten Werten (id, humanId, content, ort, typ, description).

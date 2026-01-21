@@ -13,11 +13,29 @@ function normalizeBehaviorPhase(phase = {}) {
     return null;
   }
 
+  // Entity Requirements normalisieren
+  const rawReqs = phase.entity_requirements || phase.entityRequirements || {};
+  const entityRequirements = {
+    einsatzstellen: {
+      min: toNumber(rawReqs.einsatzstellen?.min) || 0,
+      max: toNumber(rawReqs.einsatzstellen?.max) || null
+    },
+    meldungen: {
+      min: toNumber(rawReqs.meldungen?.min) || 0,
+      max: toNumber(rawReqs.meldungen?.max) || null
+    },
+    aufgaben: {
+      min: toNumber(rawReqs.aufgaben?.min) || 0,
+      max: toNumber(rawReqs.aufgaben?.max) || null
+    }
+  };
+
   return {
     durationMinutes,
     label: phase.label || phase.name || "Phase",
     intensity: phase.intensity || phase.behavior || "",
-    guidance: phase.guidance || phase.description || ""
+    guidance: phase.guidance || phase.description || "",
+    entityRequirements
   };
 }
 
@@ -101,6 +119,64 @@ export function getScenarioPhase(behaviorPhases = [], elapsedMinutes = 0) {
     elapsedInPhase: lastPhase.durationMinutes,
     remainingMinutes: 0
   };
+}
+
+export function buildPhaseRequirementsSummary({ scenario, elapsedMinutes = 0 } = {}) {
+  if (!scenario?.simulation) {
+    return "(keine Phasen-Requirements definiert)";
+  }
+
+  const { behaviorPhases } = normalizeScenarioSimulation(scenario);
+  if (behaviorPhases.length === 0) {
+    return "(keine Phasen-Requirements definiert)";
+  }
+
+  const phase = getScenarioPhase(behaviorPhases, elapsedMinutes);
+  if (!phase) {
+    return "(keine Phasen-Requirements definiert)";
+  }
+
+  const reqs = phase.entityRequirements;
+  const lines = [];
+
+  // Einsatzstellen
+  if (reqs.einsatzstellen.min > 0 || reqs.einsatzstellen.max) {
+    const min = reqs.einsatzstellen.min || 0;
+    const max = reqs.einsatzstellen.max;
+    if (max) {
+      lines.push(`📍 EINSATZSTELLEN: ${min}-${max} neue Einsatzstellen`);
+    } else {
+      lines.push(`📍 EINSATZSTELLEN: mindestens ${min} neue Einsatzstellen`);
+    }
+  }
+
+  // Meldungen
+  if (reqs.meldungen.min > 0 || reqs.meldungen.max) {
+    const min = reqs.meldungen.min || 0;
+    const max = reqs.meldungen.max;
+    if (max) {
+      lines.push(`📨 MELDUNGEN: ${min}-${max} eingehende Meldungen (von POL, LST, RK, BH, Gemeinden)`);
+    } else {
+      lines.push(`📨 MELDUNGEN: mindestens ${min} eingehende Meldungen (von POL, LST, RK, BH, Gemeinden)`);
+    }
+  }
+
+  // Aufgaben
+  if (reqs.aufgaben.min > 0 || reqs.aufgaben.max) {
+    const min = reqs.aufgaben.min || 0;
+    const max = reqs.aufgaben.max;
+    if (max) {
+      lines.push(`📋 AUFGABEN: ${min}-${max} neue Aufgaben für Stabsstellen`);
+    } else {
+      lines.push(`📋 AUFGABEN: mindestens ${min} neue Aufgaben für Stabsstellen`);
+    }
+  }
+
+  if (lines.length === 0) {
+    return "(keine Entity-Requirements für diese Phase)";
+  }
+
+  return lines.join("\n");
 }
 
 export function buildScenarioControlSummary({ scenario, elapsedMinutes = 0 } = {}) {
