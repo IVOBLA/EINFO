@@ -933,6 +933,66 @@
       return `${minutes}:${seconds.toString().padStart(2, "0")}`;
     }
 
+    function formatEventMessage(event) {
+      if (!event) return "Event";
+      const action = event.action || "event";
+      const data = event.data || {};
+
+      if (event.category === "exercise") {
+        if (action === "start") return "Uebung gestartet";
+        if (action === "end") return "Uebung beendet";
+        if (action === "pause") return "Uebung pausiert";
+        if (action === "resume") return "Uebung fortgesetzt";
+      }
+
+      if (event.category === "simulation") {
+        if (action === "step_start") return "Simulationsschritt gestartet";
+        if (action === "step_complete") return "Simulationsschritt abgeschlossen";
+        if (action === "response_needed") return `Antworten erforderlich (${data.messageCount || 0})`;
+        if (action === "open_questions_found") return `Offene Rueckfragen (${data.questionCount || 0})`;
+        if (action === "step_skipped_analysis") return "Schritt uebersprungen (Analyse aktiv)";
+      }
+
+      if (event.category === "llm") {
+        if (action === "ops_call") {
+          const duration = typeof data.durationMs === "number" ? ` (${Math.round(data.durationMs)} ms)` : "";
+          const modelInfo = data.model ? ` ${data.model}` : "";
+          return `LLM-Aufruf${modelInfo}${duration}`;
+        }
+      }
+
+      if (event.category === "error") {
+        return `Fehler: ${action}`;
+      }
+
+      return action;
+    }
+
+    function renderEventHistory(events = []) {
+      if (!Array.isArray(events) || events.length === 0) {
+        eventLog.innerHTML = '<div class="event-item" style="color: #64748b;">Warte auf Events...</div>';
+        return;
+      }
+
+      const sorted = [...events].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      const items = sorted.slice(0, 100).map((event) => {
+        const time = event.timestamp
+          ? new Date(event.timestamp).toLocaleTimeString("de-DE")
+          : new Date().toLocaleTimeString("de-DE");
+        const message = formatEventMessage(event);
+        const category = event.category || "event";
+        return `
+          <div class="event-item">
+            <span class="event-time">${time}</span>
+            <span class="event-category ${category}">${category}</span>
+            ${message}
+          </div>
+        `;
+      });
+
+      eventLog.innerHTML = items.join("");
+    }
+
     function startDurationTimer() {
       stopDurationTimer();
       durationInterval = setInterval(() => {
@@ -953,6 +1013,59 @@
       btnStep.disabled = busy || !simulationRunning;
       btnStart.disabled = busy || simulationRunning;
       btnPause.disabled = busy || !simulationRunning;
+    }
+
+    function applyScenarioDisplay(scenario) {
+      if (scenario?.title) {
+        activeScenario = scenario;
+        scenarioBadge.textContent = scenario.title;
+        scenarioBadge.style.display = "inline";
+        controlInfo.innerHTML = `<p><strong>${scenario.title}</strong></p>`;
+        return;
+      }
+
+      activeScenario = null;
+      scenarioBadge.style.display = "none";
+      controlInfo.innerHTML = simulationRunning
+        ? `<p><strong>Freier Modus</strong></p>`
+        : '<p style="color: #64748b;">Starten Sie eine Simulation mit Szenario-Auswahl</p>';
+    }
+
+    async function hydrateSimulationStatus() {
+      try {
+        const res = await fetch("/api/sim/status");
+        const data = await res.json().catch(() => null);
+        if (!data?.ok) return;
+
+        const simStatus = data.simulation || {};
+        simulationRunning = !!simStatus.running;
+
+        if (simStatus.startTime) {
+          startTime = simStatus.startTime;
+          statDuration.textContent = formatDuration(Date.now() - startTime);
+          startDurationTimer();
+        } else {
+          startTime = null;
+          stopDurationTimer();
+          statDuration.textContent = "0:00";
+        }
+
+        if (data.audit?.statistics) {
+          statistics = { ...statistics, ...data.audit.statistics };
+        } else if (typeof simStatus.stepCount === "number") {
+          statistics.simSteps = simStatus.stepCount;
+        }
+
+        updateStats();
+        applyScenarioDisplay(data.scenario || {
+          id: simStatus.scenarioId,
+          title: simStatus.scenarioTitle
+        });
+        renderEventHistory(data.events || []);
+        updateUI();
+      } catch (err) {
+        console.error("Fehler beim Laden des Simulationsstatus:", err);
+      }
     }
 
     async function loadRoles() {
@@ -1452,6 +1565,7 @@
     // Init
     // ============================================================
     connectSSE();
+    hydrateSimulationStatus();
     loadRoles();
     loadLlmModels();
     refreshGpuStatus();
