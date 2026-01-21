@@ -461,9 +461,6 @@ export function isSimulationRunning() {
  * REFACTORED: Verwendet jetzt simulationState.start() Methode
  */
 export async function startSimulation(scenario = null) {
-  // Verwende SimulationState Methode (setzt running, activeScenario, elapsedMinutes, etc.)
-  simulationState.start(scenario);
-
   // Prüfe ob wir vorhandene Daten haben (um justStarted korrekt zu setzen)
   const snapshotCounts = {
     board: simulationState.lastSnapshot?.board?.length || 0,
@@ -477,10 +474,29 @@ export async function startSimulation(scenario = null) {
   const hasCompressedBoard =
     typeof simulationState.lastCompressedBoard === "string" &&
     simulationState.lastCompressedBoard !== "[]";
+  const existingScenario = simulationState.activeScenario;
+  const nextScenario = scenario ?? existingScenario;
+  const isSameScenario =
+    existingScenario?.id &&
+    nextScenario?.id &&
+    existingScenario.id === nextScenario.id;
+  const shouldResume = (hasSnapshotData || hasCompressedBoard) && (!scenario || isSameScenario);
+  const resetState = !shouldResume || (scenario && !isSameScenario);
+
+  // Verwende SimulationState Methode (setzt running, activeScenario, elapsedMinutes, etc.)
+  simulationState.start(nextScenario, { resetState });
 
   // Wenn Daten vorhanden, ist es kein frischer Start
-  if (hasSnapshotData || hasCompressedBoard) {
+  if (!resetState) {
     simulationState.justStarted = false;
+  }
+
+  if (simulationState.activeScenario?.triggers) {
+    if (!simulationState.triggerManager || resetState || !isSameScenario) {
+      simulationState.triggerManager = new TriggerManager(simulationState.activeScenario);
+    }
+  } else {
+    simulationState.triggerManager = null;
   }
 
   // Log bereits durch simulationState.start() erfolgt, aber mit zusätzlichen Details
@@ -489,7 +505,7 @@ export async function startSimulation(scenario = null) {
       scenarioId: scenario.id,
       title: scenario.title,
       eventType: scenario.scenario_context?.event_type,
-      hasExistingData: hasSnapshotData || hasCompressedBoard
+      hasExistingData: !resetState
     });
   }
 
@@ -735,8 +751,10 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
 
     if (simulationState.activeScenario?.triggers) {
       try {
-        const triggerManager = new TriggerManager(simulationState.activeScenario);
-        triggerOperations = await triggerManager.evaluateTriggers({
+        if (!simulationState.triggerManager) {
+          simulationState.triggerManager = new TriggerManager(simulationState.activeScenario);
+        }
+        triggerOperations = await simulationState.triggerManager.evaluateTriggers({
           elapsedMinutes: simulationState.elapsedMinutes,
           boardState: { columns: {} }, // Board ist flat, würde Umstrukturierung brauchen
           protokollState: protokoll,

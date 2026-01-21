@@ -15,6 +15,7 @@ export class SimulationState {
     this.stepInProgress = false;
     this.justStarted = false;
     this.activeScenario = null;
+    this.triggerManager = null;
     this.elapsedMinutes = 0;
     this.startTime = null;
     this.stepCount = 0;
@@ -24,16 +25,21 @@ export class SimulationState {
    * Startet die Simulation mit optionalem Szenario
    * @param {Object|null} scenario - Szenario-Konfiguration
    */
-  start(scenario = null) {
+  start(scenario = null, options = {}) {
+    const { resetState = true } = options;
     this.running = true;
     this.stepInProgress = false;
-    this.justStarted = true;
+    this.justStarted = resetState;
     this.activeScenario = scenario;
-    this.elapsedMinutes = 0;
-    this.startTime = Date.now();
-    this.stepCount = 0;
-    this.lastSnapshot = null;
-    this.lastCompressedBoard = "[]";
+    if (resetState) {
+      this.elapsedMinutes = 0;
+      this.startTime = Date.now();
+      this.stepCount = 0;
+      this.lastSnapshot = null;
+      this.lastCompressedBoard = "[]";
+    } else if (!this.startTime) {
+      this.startTime = Date.now();
+    }
 
     logInfo("Simulation gestartet", {
       scenarioId: scenario?.id || "none",
@@ -76,6 +82,7 @@ export class SimulationState {
   reset() {
     this.stop();
     this.activeScenario = null;
+    this.triggerManager = null;
     this.elapsedMinutes = 0;
     this.startTime = null;
     this.stepCount = 0;

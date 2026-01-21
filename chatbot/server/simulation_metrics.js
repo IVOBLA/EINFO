@@ -64,6 +64,62 @@ export class SimulationMetrics {
   }
 
   /**
+   * Zerlegt einen Key in Name und Labels
+   * @param {string} key - Metrik-Key
+   * @returns {{ name: string, labels: Object }}
+   */
+  parseKey(key) {
+    const match = key.match(/^([^{}]+)(?:\{([^}]*)\})?$/);
+    if (!match) {
+      return { name: key, labels: {} };
+    }
+    const [, name, labelStr] = match;
+    const labels = {};
+    if (labelStr) {
+      const regex = /(\w+)="([^"]*)"/g;
+      let labelMatch;
+      while ((labelMatch = regex.exec(labelStr)) !== null) {
+        labels[labelMatch[1]] = labelMatch[2];
+      }
+    }
+    return { name, labels };
+  }
+
+  /**
+   * Formatiert Labels für Prometheus
+   * @param {Object} labels - Labels
+   * @returns {string}
+   */
+  formatLabels(labels) {
+    const labelStr = Object.entries(labels)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([k, v]) => `${k}="${v}"`)
+      .join(',');
+    return labelStr ? `{${labelStr}}` : "";
+  }
+
+  /**
+   * Summiert Counter nach Label-Filter
+   * @param {string} name - Metrik-Name
+   * @param {Object} labelFilter - Label-Filter
+   * @returns {number}
+   */
+  getCounterSum(name, labelFilter = {}) {
+    let sum = 0;
+    for (const [key, value] of this.counters.entries()) {
+      const parsed = this.parseKey(key);
+      if (parsed.name !== name) continue;
+      const matches = Object.entries(labelFilter).every(
+        ([label, expected]) => parsed.labels[label] === expected
+      );
+      if (matches) {
+        sum += value;
+      }
+    }
+    return sum;
+  }
+
+  /**
    * Gibt Statistiken für ein Histogram zurück
    * @param {string} name - Metrik-Name
    * @returns {Object|null}
@@ -108,20 +164,22 @@ export class SimulationMetrics {
     for (const [key, values] of this.histograms.entries()) {
       if (values.length === 0) continue;
 
+      const { name, labels } = this.parseKey(key);
       const sorted = values.map(v => v.value).sort((a, b) => a - b);
       const sum = sorted.reduce((a, b) => a + b, 0);
 
-      lines.push(`${key}_count ${sorted.length}`);
-      lines.push(`${key}_sum ${sum}`);
+      const labelSuffix = this.formatLabels(labels);
+      lines.push(`${name}_count${labelSuffix} ${sorted.length}`);
+      lines.push(`${name}_sum${labelSuffix} ${sum}`);
 
       // Quantile
       const p50 = sorted[Math.floor(sorted.length * 0.5)];
       const p95 = sorted[Math.floor(sorted.length * 0.95)];
       const p99 = sorted[Math.floor(sorted.length * 0.99)];
 
-      lines.push(`${key}{quantile="0.5"} ${p50}`);
-      lines.push(`${key}{quantile="0.95"} ${p95}`);
-      lines.push(`${key}{quantile="0.99"} ${p99}`);
+      lines.push(`${name}${this.formatLabels({ ...labels, quantile: "0.5" })} ${p50}`);
+      lines.push(`${name}${this.formatLabels({ ...labels, quantile: "0.95" })} ${p95}`);
+      lines.push(`${name}${this.formatLabels({ ...labels, quantile: "0.99" })} ${p99}`);
     }
 
     return lines.join('\n');
