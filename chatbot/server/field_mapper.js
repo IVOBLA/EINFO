@@ -76,6 +76,13 @@ const MELDESTELLE = new Set([
   "MELDESTELLE", "MS", "MELDESTELLE/S6"
 ]);
 
+// Rollen-Aliase für externe Stellen (NPC-Absender, Varianten mit/ohne Umlaute)
+const ROLLEN_ALIASE = new Map([
+  ["BÜRGERTELEFON", "BM"],
+  ["BUERGERTELEFON", "BM"],
+  ["EVU", "EVN"]
+]);
+
 // ============================================================
 // Basis-Transformationen
 // ============================================================
@@ -318,7 +325,7 @@ export function isStabsstelle(role) {
  */
 export function isExterneStelle(role) {
   if (!role) return false;
-  const normalized = String(role).trim().toUpperCase();
+  const normalized = normalizeRole(role);
   return EXTERNE_STELLEN.has(normalized);
 }
 
@@ -358,7 +365,8 @@ export function getAllExterneStellen() {
  */
 export function normalizeRole(role) {
   if (!role) return "";
-  return String(role).trim().toUpperCase();
+  const normalized = String(role).trim().toUpperCase();
+  return ROLLEN_ALIASE.get(normalized) || normalized;
 }
 
 /**
@@ -386,6 +394,7 @@ export const __test__ = {
   STABSSTELLEN,
   EXTERNE_STELLEN,
   MELDESTELLE,
+  ROLLEN_ALIASE,
   addProtocolDefaults,
   normalizeFieldNames
 };

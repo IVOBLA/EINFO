@@ -72,6 +72,12 @@ describe('Simulation Helpers', () => {
       expect(normalizeRole(external)).toBe('POLIZEI MÜNCHEN');
     });
 
+    it('sollte Alias-Rollen auf externe Stellen abbilden', () => {
+      expect(normalizeRole('Bürgertelefon')).toBe('BM');
+      expect(normalizeRole('Buergertelefon')).toBe('BM');
+      expect(normalizeRole('EVU')).toBe('EVN');
+    });
+
     it('sollte leere Strings handhaben', () => {
       expect(normalizeRole('')).toBe('');
       expect(normalizeRole('   ')).toBe('');
