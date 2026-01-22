@@ -66,6 +66,14 @@ const normalizeAutoPrintScope = (value) => {
   return "interval";
 };
 
+const getDownloadFilename = (disposition, fallback) => {
+  if (typeof disposition === "string") {
+    const match = disposition.match(/filename="([^"]+)"/);
+    if (match?.[1]) return match[1];
+  }
+  return fallback;
+};
+
 const createEmptyMailSchedule = () => ({
   id: null,
   label: "",
@@ -1825,7 +1833,7 @@ export default function User_AdminPanel() {
               Initialsetup
             </button>
 
-                      <button
+            <button
               type="button"
               className="border rounded px-3 py-1"
               disabled={locked || loading}
@@ -1853,6 +1861,47 @@ export default function User_AdminPanel() {
               title='Packt *.csv & *.json aus "data" in eine ZIP unter "data/archive" (mit Zeitstempel) und lädt es herunter.'
             >
               Archive
+            </button>
+
+            <button
+              type="button"
+              className="border rounded px-3 py-1"
+              disabled={locked || loading}
+              onClick={async () => {
+                setErr(""); setMsg(""); setLoading(true);
+                try {
+                  const res = await fetch("/api/user/admin/logs/download", { credentials: "include" });
+                  if (!res.ok) {
+                    const text = await res.text();
+                    let message = "Log-Download fehlgeschlagen";
+                    try {
+                      const data = JSON.parse(text);
+                      message = data?.error || message;
+                    } catch {
+                      if (text) message = text;
+                    }
+                    throw new Error(message);
+                  }
+                  const blob = await res.blob();
+                  const filename = getDownloadFilename(res.headers.get("Content-Disposition"), "logs.zip");
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = url;
+                  a.download = filename;
+                  document.body.appendChild(a);
+                  a.click();
+                  a.remove();
+                  window.URL.revokeObjectURL(url);
+                  setMsg("Logfiles heruntergeladen.");
+                } catch (ex) {
+                  setErr(ex.message || "Log-Download fehlgeschlagen");
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              title="Lädt alle Logfiles als ZIP herunter."
+            >
+              Logfiles herunterladen
             </button>
           </div>
           <div className="text-xs text-gray-500">
