@@ -71,7 +71,7 @@ const INTERNAL_ROLES = new Set([
  * @param {Object} roles - { active: [...] }
  * @returns {Array} Meldungen die Antwort benötigen
  */
-function identifyMessagesNeedingResponse(protokoll, protokollDelta, roles) {
+export function identifyMessagesNeedingResponse(protokoll, protokollDelta, roles) {
   const { active } = roles;
   const activeSet = new Set(active.map(r => String(r).toUpperCase()));
   const needingResponse = [];
@@ -172,7 +172,7 @@ function identifyMessagesNeedingResponse(protokoll, protokollDelta, roles) {
  * @param {Object} roles - { active: [...] }
  * @returns {Array} Offene Rückfragen die beantwortet werden müssen
  */
-function identifyOpenQuestions(protokoll, roles) {
+export function identifyOpenQuestions(protokoll, roles) {
   const { active } = roles;
   const activeSet = new Set(active.map(r => String(r).toUpperCase()));
   const openQuestions = [];
@@ -311,7 +311,7 @@ function identifyOpenQuestions(protokoll, roles) {
 // - simulationState.simulationState.activeScenario (früher: simulationState.activeScenario)
 // - simulationState.elapsedMinutes (früher: simulationState.elapsedMinutes)
 
-function buildMemoryQueryFromState(state = {}) {
+export function buildMemoryQueryFromState(state = {}) {
   const incidentCount = state.boardCount ?? 0;
   const taskCount = state.aufgabenCount ?? 0;
   const protocolCount = state.protokollCount ?? 0;
@@ -320,7 +320,7 @@ function buildMemoryQueryFromState(state = {}) {
 }
 
 // Board kommt bereits als flache Liste aus einfo_io (flattenBoard)
-function compressBoard(board) {
+export function compressBoard(board) {
   if (!Array.isArray(board)) return "[]";
 
   // Nur nicht-erledigte Items, limitiert
@@ -344,7 +344,7 @@ function compressBoard(board) {
 }
 // Aufg_board_S2.json: S2-Aufgaben
 
-function compressAufgaben(aufgaben) {
+export function compressAufgaben(aufgaben) {
   if (!Array.isArray(aufgaben)) return "[]";
 
   const maxItems = CONFIG.prompt?.maxAufgabenItems || 50;
@@ -372,7 +372,7 @@ function compressAufgaben(aufgaben) {
 
 // protocol.json: Protokolleinträge
 
-function compressProtokoll(protokoll) {
+export function compressProtokoll(protokoll) {
   if (!Array.isArray(protokoll)) return "[]";
 
   const maxItems = CONFIG.prompt?.maxProtokollItems || 30;
@@ -423,7 +423,7 @@ function toComparableAufgabe(task = {}) {
   };
 }
 
-function toComparableProtokoll(entry = {}) {
+export function toComparableProtokoll(entry = {}) {
   return {
     id: entry.id,
     information: entry.information || "",
@@ -435,7 +435,7 @@ function toComparableProtokoll(entry = {}) {
   };
 }
 
-function buildDelta(currentList, previousComparableList, mapper) {
+export function buildDelta(currentList, previousComparableList, mapper) {
   const comparableCurrent = currentList
     .map((item) => mapper(item))
     .filter((item) => item && item.id);

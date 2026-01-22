@@ -91,7 +91,8 @@ export function buildUserPrompt({
   openQuestions = null,      // NEU: Offene Rückfragen
   disasterContext = "",      // NEU
   learnedResponses = "",     // NEU
-  scenario = null
+  scenario = null,
+  allowPlaceholders = true
 }) {
   const safeMemorySnippets = Array.isArray(memorySnippets)
     ? memorySnippets
@@ -99,7 +100,7 @@ export function buildUserPrompt({
   const formattedMemorySnippets =
     safeMemorySnippets.length > 0
       ? safeMemorySnippets.map((m) => `- ${m}`).join("\n")
-      : "(keine RAG-Erinnerungen gefunden)";
+      : (allowPlaceholders ? "(keine RAG-Erinnerungen gefunden)" : "");
   const rolesPart = JSON.stringify(
     { active: llmInput.roles?.active || [] },
     null,
@@ -239,12 +240,12 @@ export function buildUserPrompt({
     compressedAufgaben,
     compressedProtokoll,
     formattedMemorySnippets,
-    knowledgeContext: knowledgeContext || "(kein Knowledge-Kontext verfügbar)",
+    knowledgeContext: knowledgeContext || (allowPlaceholders ? "(kein Knowledge-Kontext verfügbar)" : ""),
     taskSection,
     responseRequests,  // NEU
     openQuestionsSection,  // NEU: Offene Rückfragen
-    disasterContext: disasterContext || "(kein Katastrophen-Kontext verfügbar)",  // NEU
-    learnedResponses: learnedResponses || "(keine gelernten Antworten verfügbar)",  // NEU
+    disasterContext: disasterContext || (allowPlaceholders ? "(kein Katastrophen-Kontext verfügbar)" : ""),  // NEU
+    learnedResponses: learnedResponses || (allowPlaceholders ? "(keine gelernten Antworten verfügbar)" : ""),  // NEU
     scenarioTimeline: buildScenarioTimelineSummary(scenario),
     scenarioControl: llmInput.scenarioControl || "(keine Szenario-Steuerung definiert)"
   });
@@ -254,7 +255,7 @@ export function buildUserPrompt({
 // Spezieller Start-Prompt für den ALLERERSTEN Simulationsschritt
 // (wird bei llmInput.firstStep über llm_client.js verwendet)
 // ----------------------------------------------------------
-export function buildStartPrompts({ roles, scenario = null }) {
+export function buildStartPrompts({ roles, scenario = null, allowScenarioFallback = true } = {}) {
   const rolesJson = JSON.stringify({ active: roles?.active || [] }, null, 2);
   const systemPrompt = defaultStartSystemPrompt.trim();
 
@@ -321,10 +322,10 @@ ${scenario.hints.map(h => `  → ${h}`).join("\n")}`;
   // Template mit Szenario-Kontext füllen
   const userPrompt = fillTemplate(startUserPromptTemplate, {
     rolesJson,
-    scenarioContext: scenarioContext || "(Kein Szenario vorgegeben - erstelle ein realistisches Katastrophenszenario)",
+    scenarioContext: scenarioContext || (allowScenarioFallback ? "(Kein Szenario vorgegeben - erstelle ein realistisches Katastrophenszenario)" : ""),
     initialBoardSection: initialBoardSection || "",
     scenarioHints: scenarioHints || "",
-    scenarioControl: scenarioControl || "(keine Szenario-Steuerung definiert)"
+    scenarioControl: scenarioControl || (allowScenarioFallback ? "(keine Szenario-Steuerung definiert)" : "")
   });
 
   return { systemPrompt, userPrompt };

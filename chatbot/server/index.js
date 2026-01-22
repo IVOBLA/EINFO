@@ -9,7 +9,15 @@ import {
   pauseSimulation,
   stepSimulation,
   isSimulationRunning,
-  getActiveScenario  // NEU: Szenario-Getter aus sim_loop
+  getActiveScenario,
+  buildDelta,
+  compressBoard,
+  compressAufgaben,
+  compressProtokoll,
+  identifyMessagesNeedingResponse,
+  identifyOpenQuestions,
+  buildMemoryQueryFromState,
+  toComparableProtokoll
 } from "./sim_loop.js";
 import { metrics } from "./simulation_metrics.js";
 import { cache } from "./cache_manager.js";
@@ -33,15 +41,16 @@ import {
   getAllModels
 } from "./config.js";
 import { logInfo, logError, logDebug } from "./logger.js";
-import { initMemoryStore } from "./memory_manager.js";
-import { loadPromptTemplate, fillTemplate, buildSystemPromptChat, buildUserPromptChat } from "./prompts.js";
+import { initMemoryStore, searchMemory } from "./memory_manager.js";
+import { loadPromptTemplate, fillTemplate, buildSystemPrompt, buildUserPrompt, buildStartPrompts, buildSystemPromptChat, buildUserPromptChat } from "./prompts.js";
 import { getExcludeContextForPrompt } from "./suggestion_filter.js";
 import { getGpuStatus } from "./gpu_status.js";
 import { getSystemStatus, getCpuTimesSnapshot, collectSystemMetrics } from "./system_status.js";
 import { getGeoIndex } from "./rag/geo_search.js";
-import { getKnowledgeContextWithSources } from "./rag/rag_vector.js";
+import { getKnowledgeContextVector, getKnowledgeContextWithSources } from "./rag/rag_vector.js";
 import { getCurrentSession } from "./rag/session_rag.js";
 import { createJsonBodyParser } from "./middleware/jsonBodyParser.js";
+import { readEinfoInputs } from "./einfo_io.js";
 
 // ============================================================
 // Imports für Audit-Trail und Templates
@@ -72,6 +81,7 @@ import {
 
 import { rateLimit, RateLimitProfiles, getRateLimitStats } from "./middleware/rate-limit.js";
 import { createSituationQuestionHandler } from "./routes/situationQuestion.js";
+import { buildScenarioControlSummary } from "./scenario_controls.js";
 
 // ============================================================
 // Imports für Situationsanalyse
@@ -1111,10 +1121,86 @@ ${ragResult.context}`;
       });
       userPrompt = question;
     } else if (taskType === "operations" || taskType === "start") {
-      // Operations/Start: Verwende Operations-Prompts (vereinfacht für Test)
-      const operationsSystemTemplate = loadPromptTemplate("operations_system_prompt.txt");
-      systemPrompt = operationsSystemTemplate;
-      userPrompt = `[TESTMODUS für ${taskType}]\n\nFrage: ${question}\n\n(Im echten Betrieb würde hier der vollständige Einsatzkontext stehen)`;
+      // Operations/Start: Verwende echte Simulationsdaten wie im laufenden Betrieb
+      const scenario = getActiveScenario();
+      const { roles, board, aufgaben, protokoll } = await readEinfoInputs();
+
+      await updateDisasterContextFromEinfo({ board, protokoll, aufgaben, roles });
+
+      const compressedBoard = compressBoard(board);
+      const compressedAufgaben = compressAufgaben(aufgaben);
+      const compressedProtokoll = compressProtokoll(protokoll);
+
+      const knowledgeContext = await getKnowledgeContextVector(
+        "Stabsarbeit Kat-E Einsatzleiter LdStb Meldestelle S1 S2 S3 S4 S5 S6"
+      );
+      const { summary: disasterContext } = await getFilteredDisasterContextSummary({ maxLength: 1500 });
+      const contextQuery = `${compressedBoard.substring(0, 200)} Katastrophenmanagement Einsatzleitung`;
+      const learnedResponses = await getLearnedResponsesContext(contextQuery, { maxLength: 1000 });
+
+      const memoryQuery = buildMemoryQueryFromState({
+        boardCount: board.length,
+        aufgabenCount: aufgaben.length,
+        protokollCount: protokoll.length
+      });
+      const memoryHits = await searchMemory({
+        query: memoryQuery,
+        topK: CONFIG.memoryRag.longScenarioTopK,
+        now: new Date(),
+        maxAgeMinutes: CONFIG.memoryRag.maxAgeMinutes,
+        recencyHalfLifeMinutes: CONFIG.memoryRag.recencyHalfLifeMinutes,
+        longScenarioMinItems: CONFIG.memoryRag.longScenarioMinItems
+      });
+      const memorySnippets = memoryHits.map((hit) => hit.text);
+
+      const { delta: protokollDelta } = buildDelta(
+        protokoll,
+        simulationState.lastSnapshot?.protokoll,
+        toComparableProtokoll
+      );
+      const messagesNeedingResponse = identifyMessagesNeedingResponse(protokoll, protokollDelta, roles);
+      const openQuestions = identifyOpenQuestions(protokoll, roles);
+
+      if (taskType === "start") {
+        const startPrompts = buildStartPrompts({
+          roles,
+          scenario,
+          allowScenarioFallback: false
+        });
+        systemPrompt = startPrompts.systemPrompt;
+        userPrompt = startPrompts.userPrompt;
+      } else {
+        const opsContext = {
+          roles: { active: roles.active },
+          compressedBoard,
+          compressedAufgaben,
+          compressedProtokoll,
+          firstStep: false,
+          elapsedMinutes: simulationState.elapsedMinutes,
+          messagesNeedingResponse: messagesNeedingResponse.length > 0 ? messagesNeedingResponse : null,
+          openQuestions: openQuestions.length > 0 ? openQuestions : null,
+          scenarioControl: buildScenarioControlSummary({
+            scenario,
+            elapsedMinutes: simulationState.elapsedMinutes
+          })
+        };
+
+        systemPrompt = buildSystemPrompt({ memorySnippets });
+        userPrompt = buildUserPrompt({
+          llmInput: opsContext,
+          compressedBoard,
+          compressedAufgaben,
+          compressedProtokoll,
+          knowledgeContext,
+          memorySnippets,
+          messagesNeedingResponse: opsContext.messagesNeedingResponse,
+          openQuestions: opsContext.openQuestions,
+          disasterContext,
+          learnedResponses,
+          scenario,
+          allowPlaceholders: false
+        });
+      }
     } else {
       // Default: Einfacher System-Prompt
       systemPrompt = "Du bist ein hilfreicher Assistent für Katastrophenmanagement.";
