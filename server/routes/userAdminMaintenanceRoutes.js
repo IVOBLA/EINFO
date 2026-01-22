@@ -82,8 +82,12 @@ export default function createAdminMaintenanceRoutes({ baseDir }) {
         if (st.isDirectory()) existing.push(dir);
       } catch {}
     }
+    const nameCounts = new Map();
     for (const dir of existing) {
       const baseName = path.basename(dir);
+      const count = (nameCounts.get(baseName) ?? 0) + 1;
+      nameCounts.set(baseName, count);
+      const uniqueName = count === 1 ? baseName : `${baseName}_${count}`;
       const walk = async (current, rel = "") => {
         const entries = await fs.readdir(current, { withFileTypes: true }).catch(() => []);
         for (const e of entries) {
@@ -92,7 +96,7 @@ export default function createAdminMaintenanceRoutes({ baseDir }) {
           if (e.isDirectory()) {
             await walk(abs, relPath);
           } else if (e.isFile()) {
-            result.push({ abs, rel: path.join(baseName, relPath) });
+            result.push({ abs, rel: path.join(uniqueName, relPath) });
           }
         }
       };
