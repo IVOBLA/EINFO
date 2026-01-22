@@ -14,6 +14,7 @@ import { loadScenarioFromFile, assertScenarioStructure } from "../engine/loader.
 import { createInitialState, resetStateForScenario } from "../engine/state.js";
 import { getPegelAtTick } from "../engine/timeline.js";
 import { applyTickRules, applyUserEvent } from "../engine/rules.js";
+import { createEmptyOperations } from "../engine/ops_builder.js";
 import { ensureMinimumOperations, filterOperationsByRoles, validateOperations } from "../engine/validators.js";
 import { parseHeuristik } from "../nlu/heuristik.js";
 import { parseWithLlm } from "../nlu/llm_nlu.js";
@@ -82,6 +83,13 @@ export async function stepSimulation(options = {}) {
 export async function handleUserFreitext({ role, text }) {
   const einfoData = await readEinfoInputs();
   const activeRoles = einfoData.roles?.active || [];
+  if (!activeScenario || !state.running) {
+    const operations = createEmptyOperations();
+    return {
+      replyText: "Simulation noch nicht gestartet. Bitte zuerst /api/sim/start aufrufen.",
+      operationsDelta: filterOperationsByRoles(operations, activeRoles)
+    };
+  }
   const heuristik = parseHeuristik(text);
   let nluResult = normalizeNluResult(heuristik);
 
