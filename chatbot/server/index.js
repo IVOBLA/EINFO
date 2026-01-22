@@ -310,8 +310,9 @@ app.get("/api/scenarios/:scenarioId", async (req, res) => {
 
 app.post("/api/sim/start", async (req, res) => {
   try {
-    const { scenarioId } = req.body || {};
+    const { scenarioId, resume } = req.body || {};
     let scenario = null;
+    const resumeRequested = !scenarioId && (resume === true || simulationState.paused);
 
     // Szenario laden wenn angegeben
     if (scenarioId) {
@@ -327,7 +328,13 @@ app.post("/api/sim/start", async (req, res) => {
       });
     }
 
-    await cleanupServerData();
+    if (!resumeRequested) {
+      await cleanupServerData();
+    } else {
+      logInfo("Cleanup beim Simulationsstart übersprungen (Resume)", {
+        paused: simulationState.paused
+      });
+    }
 
     const auditStatus = getAuditStatus();
     if (!auditStatus.active) {

@@ -793,7 +793,7 @@
       setBusy(true);
 
       try {
-        const body = scenarioId ? { scenarioId } : {};
+        const body = scenarioId ? { scenarioId } : resumeRequested ? { resume: true } : {};
         const res = await fetch("/api/sim/start", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
