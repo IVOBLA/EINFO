@@ -30,6 +30,7 @@
     }
     .status-badge.active { background: #22c55e; color: #000; }
     .status-badge.inactive { background: #64748b; }
+    .status-badge.paused { background: #f59e0b; color: #000; }
     .status-badge.scenario { background: #3b82f6; }
 
     .connected { color: #22c55e; font-size: 0.85rem; }
@@ -605,6 +606,7 @@
     // State
     // ============================================================
     let simulationRunning = false;
+    let simulationPaused = false;
     let exerciseId = null;
     let statistics = { simSteps: 0, llmCalls: 0, protocolsCreated: 0, tasksCreated: 0, incidentsCreated: 0 };
     let eventSource = null;
@@ -786,7 +788,8 @@
     // Simulation Control
     // ============================================================
     async function startSimulation(scenarioId = null) {
-      appendSimLog("Simulation wird gestartet...");
+      const resumeRequested = simulationPaused && !scenarioId;
+      appendSimLog(resumeRequested ? "Simulation wird fortgesetzt..." : "Simulation wird gestartet...");
       setBusy(true);
 
       try {
@@ -800,7 +803,10 @@
 
         if (data.ok) {
           simulationRunning = true;
-          startTime = Date.now();
+          simulationPaused = false;
+          if (!resumeRequested || !startTime) {
+            startTime = Date.now();
+          }
           startDurationTimer();
 
           if (data.scenario) {
@@ -812,8 +818,13 @@
             controlInfo.innerHTML = `<p><strong>Freier Modus</strong></p>`;
           }
 
-          appendSimLog("Simulation gestartet.");
-          addEventToLog("simulation", "Simulation gestartet" + (data.scenario ? `: ${data.scenario.title}` : ""));
+          appendSimLog(resumeRequested ? "Simulation fortgesetzt." : "Simulation gestartet.");
+          addEventToLog(
+            "simulation",
+            resumeRequested
+              ? "Simulation fortgesetzt"
+              : "Simulation gestartet" + (data.scenario ? `: ${data.scenario.title}` : "")
+          );
           updateUI();
         } else {
           appendSimLog("Fehler: " + (data.error || "Unbekannt"));
@@ -868,12 +879,21 @@
       try {
         await fetch("/api/sim/pause", { method: "POST" });
         simulationRunning = false;
+        simulationPaused = true;
         appendSimLog("Simulation pausiert. Chat verfuegbar.");
         addEventToLog("simulation", "Simulation pausiert");
         updateUI();
       } catch (err) {
         appendSimLog("Fehler: " + err);
       }
+    }
+
+    async function togglePauseResume() {
+      if (simulationPaused) {
+        await startSimulation(null);
+        return;
+      }
+      await pauseSimulation();
     }
 
     async function endSimulation() {
@@ -883,6 +903,7 @@
         await fetch("/api/sim/pause", { method: "POST" });
         await fetch("/api/audit/end", { method: "POST" });
         simulationRunning = false;
+        simulationPaused = false;
         stopDurationTimer();
         activeScenario = null;
         scenarioBadge.style.display = "none";
@@ -905,6 +926,15 @@
         btnStart.disabled = true;
         btnStep.disabled = false;
         btnPause.disabled = false;
+        btnPause.textContent = "Pause";
+        btnEnd.disabled = false;
+      } else if (simulationPaused) {
+        exerciseStatus.textContent = "Simulation pausiert";
+        exerciseStatus.className = "status-badge paused";
+        btnStart.disabled = true;
+        btnStep.disabled = false;
+        btnPause.disabled = false;
+        btnPause.textContent = "Fortsetzen";
         btnEnd.disabled = false;
       } else {
         exerciseStatus.textContent = "Keine Simulation aktiv";
@@ -912,6 +942,7 @@
         btnStart.disabled = false;
         btnStep.disabled = true;
         btnPause.disabled = true;
+        btnPause.textContent = "Pause";
         btnEnd.disabled = true;
       }
     }
@@ -1083,9 +1114,9 @@
     }
 
     function setBusy(busy) {
-      btnStep.disabled = busy || !simulationRunning;
-      btnStart.disabled = busy || simulationRunning;
-      btnPause.disabled = busy || !simulationRunning;
+      btnStep.disabled = busy || (!simulationRunning && !simulationPaused);
+      btnStart.disabled = busy || simulationRunning || simulationPaused;
+      btnPause.disabled = busy || (!simulationRunning && !simulationPaused);
     }
 
     function applyScenarioDisplay(scenario) {
@@ -1099,7 +1130,7 @@
 
       activeScenario = null;
       scenarioBadge.style.display = "none";
-      controlInfo.innerHTML = simulationRunning
+      controlInfo.innerHTML = (simulationRunning || simulationPaused)
         ? `<p><strong>Freier Modus</strong></p>`
         : '<p style="color: #64748b;">Starten Sie eine Simulation mit Szenario-Auswahl</p>';
     }
@@ -1112,6 +1143,7 @@
 
         const simStatus = data.simulation || {};
         simulationRunning = !!simStatus.running;
+        simulationPaused = !!simStatus.paused;
 
         if (simStatus.startTime) {
           startTime = simStatus.startTime;
@@ -1415,7 +1447,7 @@
     btnCancelModal.addEventListener("click", hideScenarioModal);
 
     btnStep.addEventListener("click", stepSimulation);
-    btnPause.addEventListener("click", pauseSimulation);
+    btnPause.addEventListener("click", togglePauseResume);
     btnEnd.addEventListener("click", endSimulation);
 
     // ============================================================

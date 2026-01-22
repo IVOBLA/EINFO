@@ -12,6 +12,7 @@ export class SimulationState {
     this.lastSnapshot = null;
     this.lastCompressedBoard = "[]";
     this.running = false;
+    this.paused = false;
     this.stepInProgress = false;
     this.justStarted = false;
     this.activeScenario = null;
@@ -28,6 +29,7 @@ export class SimulationState {
   start(scenario = null, options = {}) {
     const { resetState = true } = options;
     this.running = true;
+    this.paused = false;
     this.stepInProgress = false;
     this.justStarted = resetState;
     this.activeScenario = scenario;
@@ -52,6 +54,7 @@ export class SimulationState {
    */
   pause() {
     this.running = false;
+    this.paused = true;
     logInfo("Simulation pausiert", {
       elapsedMinutes: this.elapsedMinutes,
       stepCount: this.stepCount
@@ -64,6 +67,7 @@ export class SimulationState {
   stop() {
     const wasRunning = this.running;
     this.running = false;
+    this.paused = false;
     this.stepInProgress = false;
     this.justStarted = false;
 
@@ -131,6 +135,7 @@ export class SimulationState {
   toJSON() {
     return {
       running: this.running,
+      paused: this.paused,
       stepInProgress: this.stepInProgress,
       justStarted: this.justStarted,
       activeScenario: this.activeScenario,
@@ -151,6 +156,7 @@ export class SimulationState {
     const state = new SimulationState();
     Object.assign(state, {
       running: data.running || false,
+      paused: data.paused || false,
       stepInProgress: false, // Nie stepInProgress beim Restore
       justStarted: data.justStarted || false,
       activeScenario: data.activeScenario || null,
@@ -170,6 +176,7 @@ export class SimulationState {
   getStatus() {
     return {
       running: this.running,
+      paused: this.paused,
       stepInProgress: this.stepInProgress,
       justStarted: this.justStarted,
       elapsedMinutes: this.elapsedMinutes,
