@@ -23,6 +23,7 @@ import {
   deleteKnowledgeFile,
   KNOWLEDGE_DIR,
 } from "../chatbotRunner.js";
+import { getLogDirCandidates } from "../utils/logDirectories.mjs";
 
 const pipe = promisify(pipeline);
 
@@ -68,6 +69,35 @@ export default function createAdminMaintenanceRoutes({ baseDir }) {
       }
     }
     await walk(root, "");
+    return result;
+  }
+
+  async function collectLogFiles(logDirs) {
+    const result = [];
+    const existing = [];
+    for (const dir of logDirs) {
+      if (!dir) continue;
+      try {
+        const st = await fs.stat(dir);
+        if (st.isDirectory()) existing.push(dir);
+      } catch {}
+    }
+    for (const dir of existing) {
+      const baseName = path.basename(dir);
+      const walk = async (current, rel = "") => {
+        const entries = await fs.readdir(current, { withFileTypes: true }).catch(() => []);
+        for (const e of entries) {
+          const abs = path.join(current, e.name);
+          const relPath = path.join(rel, e.name);
+          if (e.isDirectory()) {
+            await walk(abs, relPath);
+          } else if (e.isFile()) {
+            result.push({ abs, rel: path.join(baseName, relPath) });
+          }
+        }
+      };
+      await walk(dir, "");
+    }
     return result;
   }
 
@@ -219,6 +249,34 @@ export default function createAdminMaintenanceRoutes({ baseDir }) {
     } catch (err) {
       console.error("Archive download error:", err);
       if (!res.headersSent) res.status(404).json({ ok: false, error: "Datei nicht gefunden" });
+    }
+  });
+
+  // ---- Download all logs (ZIP stream) ------------------------------
+  router.get("/logs/download", async (_req, res) => {
+    try {
+      const logDirs = getLogDirCandidates();
+      const files = await collectLogFiles(logDirs);
+      if (!files.length) {
+        return res.status(404).json({ ok: false, error: "Keine Logfiles gefunden" });
+      }
+
+      const zipName = `logs_${ts()}.zip`;
+      setZipHeaders(res, zipName);
+
+      const zip = archiver("zip", { zlib: { level: 9 } });
+      zip.on("warning", (w) => console.warn("archiver warning:", w?.message || w));
+      zip.on("error", (err) => {
+        console.error("Log-Archiv error:", err);
+        if (!res.headersSent) res.status(500).end();
+      });
+
+      zip.pipe(res);
+      for (const f of files) zip.file(f.abs, { name: f.rel });
+      await zip.finalize();
+    } catch (err) {
+      console.error("Log-Archiv download error:", err);
+      if (!res.headersSent) res.status(500).json({ ok: false, error: err.message });
     }
   });
 
