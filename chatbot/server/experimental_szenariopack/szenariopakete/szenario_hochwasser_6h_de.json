@@ -1,0 +1,121 @@
+{
+  "metadaten": {
+    "id": "hochwasser_6h_experimental",
+    "titel": "Hochwasser 6h (Experiment)",
+    "beschreibung": "Deterministische 6h-Simulation mit 5-Minuten-Takt für Hochwasser im Bezirk Feldkirchen.",
+    "version": "0.1",
+    "autor": "EINFO Experimental ScenarioPack",
+    "sprache": "de"
+  },
+  "zeit": {
+    "schritt_minuten": 5,
+    "dauer_stunden": 6,
+    "takte": 72,
+    "start_zeit": "2025-01-01T06:00:00Z"
+  },
+  "standard": {
+    "basis_einsatz": {
+      "humanId": "E-KOORD",
+      "content": "Einsatzkoordination Hochwasserlage",
+      "typ": "Hochwasser",
+      "ort": "Bezirk Feldkirchen",
+      "description": "Dauer-Einsatzstelle zur Koordination der Hochwasserlage"
+    }
+  },
+  "akteure": {
+    "stabsrollen": ["LTSTB", "S2", "S3", "S4", "S5", "S6"],
+    "externe": ["POL", "RK", "EVU", "BH", "BGM", "ZAMG"],
+    "aktive_rollen_default": []
+  },
+  "welt": {
+    "zonen": [
+      { "id": "Z1", "name": "Zentrum", "typ": "urban" },
+      { "id": "Z2", "name": "Industrie", "typ": "gewerbe" },
+      { "id": "Z3", "name": "Süd", "typ": "wohngebiet" }
+    ],
+    "kritische_objekte": [
+      { "id": "K-UMS", "name": "Umspannwerk Feldkirchen", "zone": "Z2" },
+      { "id": "K-SCHULE", "name": "Volksschule Süd", "zone": "Z3" }
+    ]
+  },
+  "ressourcen": {
+    "geraete": {
+      "bagger": { "verfuegbar": 2 },
+      "pumpen": { "verfuegbar": 4 },
+      "sandsack_fueller": { "verfuegbar": 1 }
+    },
+    "logistik": {
+      "verpflegung_pakete": 200,
+      "kraftstoff_liter": 1200
+    }
+  },
+  "umwelt": {
+    "wetter": {
+      "lage": "Dauerregen, kühle Temperaturen",
+      "warnung": "Starkregenwarnung aktiv"
+    },
+    "messwerte": {
+      "pegel_name": "Glan",
+      "einheit": "cm"
+    }
+  },
+  "verlauf": {
+    "pegelkurve": [
+      { "takt": 0, "pegel_cm": 380 },
+      { "takt": 12, "pegel_cm": 410 },
+      { "takt": 24, "pegel_cm": 450 },
+      { "takt": 36, "pegel_cm": 475 },
+      { "takt": 48, "pegel_cm": 500 },
+      { "takt": 60, "pegel_cm": 515 },
+      { "takt": 72, "pegel_cm": 505 }
+    ]
+  },
+  "npc_agenten": [
+    {
+      "id": "NPC-BUERGER",
+      "rolle": "Bürgertelefon",
+      "cadence_takte": 6,
+      "triggers": ["pegel>=420"],
+      "nachricht": "Bürger melden erste Überflutungen in Kellern."
+    },
+    {
+      "id": "NPC-EVU",
+      "rolle": "EVU",
+      "cadence_takte": 12,
+      "triggers": ["pegel>=470"],
+      "nachricht": "EVU warnt vor möglichem Stromausfall in Z2."
+    }
+  ],
+  "regeln": {
+    "tick_regeln": [
+      { "id": "TICK-LOG", "beschreibung": "Kurzlage pro Takt" }
+    ],
+    "zustands_regeln": [
+      { "id": "RW-VORWARNUNG", "beschreibung": "Vorwarnung ab 420cm" },
+      { "id": "RW-ALARM1", "beschreibung": "Alarmstufe 1 ab 460cm" },
+      { "id": "RW-ALARM2", "beschreibung": "Alarmstufe 2 ab 500cm" },
+      { "id": "RW-DAMM", "beschreibung": "Dammstatus abhängig vom Pegel" },
+      { "id": "RW-STROM", "beschreibung": "Stromausfall möglich ab 490cm" }
+    ],
+    "user_event_regeln": [
+      { "id": "UE-WETTER", "beschreibung": "Antwort auf Wetterabfrage" },
+      { "id": "UE-RESSOURCE", "beschreibung": "Ressourcenabfrage/Disposition" },
+      { "id": "UE-LOGISTIK", "beschreibung": "Logistik-Anfrage" },
+      { "id": "UE-PLAN", "beschreibung": "Standing Orders setzen" },
+      { "id": "UE-ANTWORT", "beschreibung": "Offene Fragen beantworten" }
+    ]
+  },
+  "startzustand": {
+    "zone_schweregrade": { "Z1": 0, "Z2": 1, "Z3": 1 },
+    "damm_status": "OK",
+    "strom_status": "OK"
+  },
+  "fragen_init": [
+    {
+      "id": "Q-001",
+      "text": "Sind mobile Hochwasserschutzwände verfügbar?",
+      "erwartet": "JA_NEIN",
+      "status": "offen"
+    }
+  ]
+}

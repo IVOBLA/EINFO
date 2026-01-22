@@ -18,7 +18,7 @@ import {
   identifyOpenQuestions,
   buildMemoryQueryFromState,
   toComparableProtokoll
-} from "./sim_loop.js";
+} from "./experimental_szenariopack/api/sim_loop_adapter.js";
 import { metrics } from "./simulation_metrics.js";
 import { cache } from "./cache_manager.js";
 import { simulationState } from "./simulation_state.js";
