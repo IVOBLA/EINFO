@@ -2,6 +2,9 @@
 // Refactored: SimulationState, ProtocolIndex, Error Handling, Metriken, Trigger-System
 
 import { CONFIG, SIMULATION_DEFAULTS } from "./config.js";
+import fs from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
 import { readEinfoInputs } from "./einfo_io.js";
 import { callLLMForOps } from "./llm_client.js";
 import { logInfo, logError, logDebug } from "./logger.js";
@@ -39,6 +42,35 @@ import {
 } from "./simulation_errors.js";
 import { metrics, startTimer } from "./simulation_metrics.js";
 import { TriggerManager } from "./scenario_triggers.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const LOG_DIRS_TO_CLEAR = [
+  path.resolve(__dirname, "../logs"),
+  path.resolve(__dirname, "../../server/logs")
+];
+
+async function clearLogFiles(dir) {
+  try {
+    const entries = await fs.readdir(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const abs = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        await clearLogFiles(abs);
+      } else if (entry.isFile()) {
+        await fs.unlink(abs).catch(() => {});
+      }
+    }
+  } catch (err) {
+    if (err?.code !== "ENOENT") throw err;
+  }
+}
+
+async function clearSimulationLogs() {
+  for (const dir of LOG_DIRS_TO_CLEAR) {
+    await clearLogFiles(dir);
+  }
+}
 
 // ============================================================
 // Interne Rollen-Konstanten
@@ -483,6 +515,15 @@ export async function startSimulation(scenario = null) {
   const shouldResume = (hasSnapshotData || hasCompressedBoard) && (!scenario || isSameScenario);
   const resetState = !shouldResume || (scenario && !isSameScenario);
 
+  if (resetState) {
+    try {
+      await clearSimulationLogs();
+      logInfo("Logfiles vor Simulationsstart gelöscht", { logDirs: LOG_DIRS_TO_CLEAR });
+    } catch (err) {
+      logError("Fehler beim Löschen der Logfiles", { error: String(err) });
+    }
+  }
+
   // Verwende SimulationState Methode (setzt running, activeScenario, elapsedMinutes, etc.)
   simulationState.start(nextScenario, { resetState });
 
@@ -536,7 +577,9 @@ export async function stepSimulation(options = {}) {
   // METRICS: Start Timer für Step-Dauer
   const stepTimer = startTimer();
 
-  if (!simulationState.running) return { ok: false, reason: "not_running" };
+  if (!simulationState.running && !simulationState.paused) {
+    return { ok: false, reason: "not_running" };
+  }
   if (simulationState.stepInProgress && !options.forceConcurrent)
     return { ok: false, reason: "step_in_progress" };
 

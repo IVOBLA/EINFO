@@ -40,6 +40,7 @@ export default function createAdminMaintenanceRoutes({ baseDir }) {
   const BASE_DIR    = path.resolve(baseDir);
   const INITIAL_DIR = path.join(BASE_DIR, "initial");
   const ARCHIVE_DIR = path.join(BASE_DIR, "archive");
+  const CHATBOT_LOG_DIR = path.resolve(BASE_DIR, "..", "..", "chatbot", "logs");
 
   const router = express.Router();
 
@@ -259,7 +260,7 @@ export default function createAdminMaintenanceRoutes({ baseDir }) {
   // ---- Download all logs (ZIP stream) ------------------------------
   router.get("/logs/download", async (_req, res) => {
     try {
-      const logDirs = getLogDirCandidates();
+      const logDirs = [...getLogDirCandidates(), CHATBOT_LOG_DIR];
       const files = await collectLogFiles(logDirs);
       if (!files.length) {
         return res.status(404).json({ ok: false, error: "Keine Logfiles gefunden" });
