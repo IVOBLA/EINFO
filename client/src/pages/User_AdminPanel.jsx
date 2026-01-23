@@ -1949,53 +1949,101 @@ export default function User_AdminPanel() {
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="px-4 py-2 rounded bg-green-600 hover:bg-green-700 text-white disabled:opacity-60"
-              disabled={locked || chatbotLoading || (chatbotStatus.chatbot?.ready && chatbotStatus.worker?.running)}
-              onClick={async () => {
-                setErr(""); setMsg(""); setChatbotLoading(true);
-                try {
-                  const res = await fetch("/api/user/admin/chatbot/start", { method: "POST", credentials: "include" });
-                  const js = await res.json();
-                  if (!res.ok || js.error) throw new Error(js.error || "Start fehlgeschlagen");
-                  if (js.status) setChatbotStatus(js.status);
-                  setMsg("Chatbot & Worker gestartet.");
-                } catch (ex) {
-                  setErr(ex.message || "Start fehlgeschlagen");
-                } finally {
-                  setChatbotLoading(false);
-                }
-              }}
-            >
-              Starten
-            </button>
-            <button
-              type="button"
-              className="px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white disabled:opacity-60"
-              disabled={locked || chatbotLoading || (!chatbotStatus.chatbot?.running && !chatbotStatus.worker?.running)}
-              onClick={async () => {
-                setErr(""); setMsg(""); setChatbotLoading(true);
-                try {
-                  const res = await fetch("/api/user/admin/chatbot/stop", { method: "POST", credentials: "include" });
-                  const js = await res.json();
-                  if (!res.ok || js.error) throw new Error(js.error || "Stop fehlgeschlagen");
-                  if (js.status) setChatbotStatus(js.status);
-                  setMsg("Chatbot & Worker gestoppt.");
-                } catch (ex) {
-                  setErr(ex.message || "Stop fehlgeschlagen");
-                } finally {
-                  setChatbotLoading(false);
-                }
-              }}
-            >
-              Stoppen
-            </button>
+          <div className="grid gap-2 text-xs text-gray-600">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="min-w-[70px] font-medium text-gray-700">Chatbot</span>
+              <button
+                type="button"
+                className="px-3 py-1 rounded bg-green-600 hover:bg-green-700 text-white disabled:opacity-60"
+                disabled={locked || chatbotLoading || chatbotStatus.chatbot?.running}
+                onClick={async () => {
+                  setErr(""); setMsg(""); setChatbotLoading(true);
+                  try {
+                    const res = await fetch("/api/user/admin/chatbot/server/start", { method: "POST", credentials: "include" });
+                    const js = await res.json();
+                    if (!res.ok || js.error) throw new Error(js.error || "Start fehlgeschlagen");
+                    if (js.status) setChatbotStatus(js.status);
+                    setMsg("Chatbot gestartet.");
+                  } catch (ex) {
+                    setErr(ex.message || "Start fehlgeschlagen");
+                  } finally {
+                    setChatbotLoading(false);
+                  }
+                }}
+              >
+                Starten
+              </button>
+              <button
+                type="button"
+                className="px-3 py-1 rounded bg-red-600 hover:bg-red-700 text-white disabled:opacity-60"
+                disabled={locked || chatbotLoading || !chatbotStatus.chatbot?.running}
+                onClick={async () => {
+                  setErr(""); setMsg(""); setChatbotLoading(true);
+                  try {
+                    const res = await fetch("/api/user/admin/chatbot/server/stop", { method: "POST", credentials: "include" });
+                    const js = await res.json();
+                    if (!res.ok || js.error) throw new Error(js.error || "Stop fehlgeschlagen");
+                    if (js.status) setChatbotStatus(js.status);
+                    setMsg("Chatbot gestoppt.");
+                  } catch (ex) {
+                    setErr(ex.message || "Stop fehlgeschlagen");
+                  } finally {
+                    setChatbotLoading(false);
+                  }
+                }}
+              >
+                Stoppen
+              </button>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="min-w-[70px] font-medium text-gray-700">Worker</span>
+              <button
+                type="button"
+                className="px-3 py-1 rounded bg-green-600 hover:bg-green-700 text-white disabled:opacity-60"
+                disabled={locked || chatbotLoading || chatbotStatus.worker?.running}
+                onClick={async () => {
+                  setErr(""); setMsg(""); setChatbotLoading(true);
+                  try {
+                    const res = await fetch("/api/user/admin/chatbot/worker/start", { method: "POST", credentials: "include" });
+                    const js = await res.json();
+                    if (!res.ok || js.error) throw new Error(js.error || "Start fehlgeschlagen");
+                    if (js.status) setChatbotStatus(js.status);
+                    setMsg("Worker gestartet.");
+                  } catch (ex) {
+                    setErr(ex.message || "Start fehlgeschlagen");
+                  } finally {
+                    setChatbotLoading(false);
+                  }
+                }}
+              >
+                Starten
+              </button>
+              <button
+                type="button"
+                className="px-3 py-1 rounded bg-red-600 hover:bg-red-700 text-white disabled:opacity-60"
+                disabled={locked || chatbotLoading || !chatbotStatus.worker?.running}
+                onClick={async () => {
+                  setErr(""); setMsg(""); setChatbotLoading(true);
+                  try {
+                    const res = await fetch("/api/user/admin/chatbot/worker/stop", { method: "POST", credentials: "include" });
+                    const js = await res.json();
+                    if (!res.ok || js.error) throw new Error(js.error || "Stop fehlgeschlagen");
+                    if (js.status) setChatbotStatus(js.status);
+                    setMsg("Worker gestoppt.");
+                  } catch (ex) {
+                    setErr(ex.message || "Stop fehlgeschlagen");
+                  } finally {
+                    setChatbotLoading(false);
+                  }
+                }}
+              >
+                Stoppen
+              </button>
+            </div>
           </div>
 
           <div className="text-xs text-gray-500">
-            Startet/Stoppt den Chatbot-Server (Port 3100) und den Simulations-Worker zusammen.
+            Chatbot-Server (Port 3100) und Simulations-Worker lassen sich getrennt starten/stoppen.
           </div>
         </div>
       </details>
