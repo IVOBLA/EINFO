@@ -1,4 +1,3 @@
-import { getZeitstempel } from "./timeline.js";
 import {
   addIncident,
   addProtocol,
@@ -18,168 +17,171 @@ function ensureOpenQuestion(state, question) {
   }
 }
 
-function createSummaryText({ scenario, state, tick, pegel }) {
+function getRuleSet(scenario) {
+  return scenario?.regeln || {};
+}
+
+function formatTemplate(value, context) {
+  if (typeof value !== "string") return value;
+  return value.replace(/\{\{(\w+)\}\}/g, (_, key) => {
+    if (context[key] === undefined || context[key] === null) return "";
+    return String(context[key]);
+  });
+}
+
+function resolveTemplate(value, context, fallback) {
+  const rendered = formatTemplate(value || "", context).trim();
+  return rendered || fallback;
+}
+
+function formatDeep(value, context) {
+  if (Array.isArray(value)) {
+    return value.map((item) => formatDeep(item, context));
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, val]) => [key, formatDeep(val, context)])
+    );
+  }
+  return formatTemplate(value, context);
+}
+
+function buildProtocolFromConfig(config, { activeRoles, context }) {
+  const payload = formatDeep(config, context);
+  return buildProtocolEntry({
+    information: payload.information,
+    infoTyp: payload.infoTyp,
+    anvon: payload.anvon,
+    ergehtAn: payload.ergehtAn,
+    richtung: payload.richtung,
+    activeRoles
+  });
+}
+
+function buildTaskFromConfig(config, { activeRoles, context }) {
+  const payload = formatDeep(config, context);
+  return buildTask({
+    title: payload.title,
+    desc: payload.desc,
+    priority: payload.priority || "medium",
+    responsible: pickRole(activeRoles, payload.responsibleRoles || ["S3", "S2"], payload.fallback || "POL"),
+    assignedBy: pickRole(activeRoles, payload.assignedByRoles || ["LTSTB", "S2"], payload.fallback || "POL"),
+    key: payload.key
+  });
+}
+
+function buildIncidentFromConfig(config, { context }) {
+  const payload = formatDeep(config, context);
+  return buildIncident({
+    humanId: payload.humanId,
+    content: payload.content,
+    typ: payload.typ,
+    ort: payload.ort,
+    description: payload.description
+  });
+}
+
+function applyConfiguredActions({ actions, operations, state, activeRoles, context }) {
+  if (!actions) return;
+  if (actions.protocols) {
+    for (const entry of actions.protocols) {
+      addProtocol(operations, buildProtocolFromConfig(entry, { activeRoles, context }));
+    }
+  }
+  if (actions.tasks) {
+    for (const entry of actions.tasks) {
+      const task = buildTaskFromConfig(entry, { activeRoles, context });
+      if (task.key) {
+        if (state.dedupe_keys.has(task.key)) continue;
+        state.dedupe_keys.add(task.key);
+      }
+      addTask(operations, task);
+    }
+  }
+  if (actions.incidents) {
+    for (const entry of actions.incidents) {
+      const incident = buildIncidentFromConfig(entry, { context });
+      if (incident.humanId && state.incidents.has(incident.humanId)) continue;
+      addIncident(operations, incident);
+      if (incident.humanId) {
+        state.incidents.add(incident.humanId);
+      }
+    }
+  }
+  if (actions.questions) {
+    for (const entry of actions.questions) {
+      const question = formatDeep(entry, context);
+      ensureOpenQuestion(state, question);
+    }
+  }
+}
+
+function evaluateCondition(condition, { pegel, tick }) {
+  if (!condition) return false;
+  if (condition.typ === "pegel_min") {
+    return pegel >= Number(condition.wert);
+  }
+  if (condition.typ === "takt_min") {
+    return tick >= Number(condition.wert);
+  }
+  return false;
+}
+
+function buildContext({ scenario, state, tick, pegel }) {
   const zoneInfo = Object.entries(state.zone_schweregrade)
     .map(([zone, level]) => `${zone}:${level}`)
     .join(", ");
-  return `Kurzlage T${tick}: Pegel ${pegel}${scenario.umwelt?.messwerte?.einheit || "cm"}, Damm ${state.damm_status}, Zonen ${zoneInfo}. Offene Fragen: ${state.offene_fragen.filter((q) => q.status === "offen").length}.`;
+  return {
+    tick,
+    pegel,
+    pegel_unit: scenario.umwelt?.messwerte?.einheit || "cm",
+    damm_status: state.damm_status,
+    offene_fragen: state.offene_fragen.filter((q) => q.status === "offen").length,
+    zone_info: zoneInfo
+  };
 }
 
-function applyThresholds({ scenario, state, pegel, operations, activeRoles }) {
-  if (pegel >= 420 && !state.flags.vorwarnung) {
-    state.flags.vorwarnung = true;
-    addProtocol(
-      operations,
-      buildProtocolEntry({
-        information: "Vorwarnung: Pegel überschreitet 420cm. Sandsacklogistik anfahren.",
-        infoTyp: "Lagemeldung",
-        anvon: "S2",
-        ergehtAn: ["S3", "S4"],
-        richtung: "aus",
-        activeRoles
-      })
-    );
-    addTask(
-      operations,
-      buildTask({
-        title: "Führungsgruppe Hochwasser einberufen",
-        desc: "Lagebesprechung durchführen und Kräfte koordinieren.",
-        priority: "high",
-        responsible: pickRole(activeRoles, ["S3", "S2"], "POL"),
-        assignedBy: pickRole(activeRoles, ["LTSTB", "S2"], "POL"),
-        key: "vorwarnung-fuehrungsgruppe"
-      })
-    );
-    addTask(
-      operations,
-      buildTask({
-        title: "Sandsacklinie vorbereiten",
-        desc: "Sandsack-Füllstation aktivieren und Materialanforderung anstoßen.",
-        priority: "high",
-        responsible: pickRole(activeRoles, ["S4"], "POL"),
-        assignedBy: pickRole(activeRoles, ["S2"], "POL"),
-        key: "vorwarnung-sandsack"
-      })
-    );
-  }
+function applyThresholds({ scenario, state, tick, pegel, operations, activeRoles }) {
+  const rules = getRuleSet(scenario);
+  const zustandsRegeln = Array.isArray(rules.zustands_regeln) ? rules.zustands_regeln : [];
+  const context = buildContext({ scenario, state, tick, pegel });
 
-  if (pegel >= 460 && !state.flags.alarm1) {
-    state.flags.alarm1 = true;
-    addIncident(
-      operations,
-      buildIncident({
-        humanId: "E-KATS",
-        content: "Alarmstufe 1 - Hochwasserlage verschärft",
-        typ: "Hochwasser",
-        ort: "Bezirk Feldkirchen",
-        description: "Alarmstufe 1 ausgelöst, Einsatzbereitschaft erhöhen."
-      })
-    );
-    addTask(
-      operations,
-      buildTask({
-        title: "Alarmierung Einsatzkräfte Stufe 1",
-        desc: "Alarmplan Hochwasser Stufe 1 aktivieren.",
-        priority: "critical",
-        responsible: pickRole(activeRoles, ["S2"], "POL"),
-        assignedBy: pickRole(activeRoles, ["LTSTB"], "POL"),
-        key: "alarm1-alarmierung"
-      })
-    );
-  }
+  for (const regel of zustandsRegeln) {
+    if (regel.typ === "damm_status") {
+      const levels = Array.isArray(regel.levels) ? regel.levels : [];
+      const sorted = [...levels].sort((a, b) => Number(b.min) - Number(a.min));
+      const next = sorted.find((level) => pegel >= Number(level.min));
+      const nextStatus = next?.status || state.damm_status;
+      if (nextStatus !== state.damm_status) {
+        state.damm_status = nextStatus;
+        context.damm_status = nextStatus;
+        applyConfiguredActions({
+          actions: regel.on_change,
+          operations,
+          state,
+          activeRoles,
+          context: { ...context, damm_status: nextStatus }
+        });
+      }
+      continue;
+    }
 
-  if (pegel >= 500 && !state.flags.alarm2) {
-    state.flags.alarm2 = true;
-    addIncident(
+    if (!evaluateCondition(regel.bedingung, { pegel, tick })) {
+      continue;
+    }
+
+    if (regel.once_flag) {
+      if (state.flags[regel.once_flag]) continue;
+      state.flags[regel.once_flag] = true;
+    }
+
+    applyConfiguredActions({
+      actions: regel.aktionen,
       operations,
-      buildIncident({
-        humanId: "E-EVAK-Z3",
-        content: "Alarmstufe 2 - Evakuierung Z3 vorbereiten",
-        typ: "Hochwasser",
-        ort: "Zone Z3",
-        description: "Evakuierungsplanung für Zone Z3 starten."
-      })
-    );
-    ensureOpenQuestion(state, {
-      id: "Q-002",
-      text: "Evakuierung Z3 freigeben?",
-      erwartet: "JA_NEIN"
+      state,
+      activeRoles,
+      context
     });
-    addProtocol(
-      operations,
-      buildProtocolEntry({
-        information: "Rückfrage: Evakuierung Z3 freigeben?",
-        infoTyp: "Rueckfrage",
-        anvon: "S2",
-        ergehtAn: ["LTSTB"],
-        richtung: "aus",
-        activeRoles
-      })
-    );
-  }
-
-  let newDammStatus = state.damm_status;
-  if (pegel >= 495) {
-    newDammStatus = "BRUCHGEFAHR";
-  } else if (pegel >= 470) {
-    newDammStatus = "SICKER";
-  } else {
-    newDammStatus = "OK";
-  }
-
-  if (newDammStatus !== state.damm_status) {
-    state.damm_status = newDammStatus;
-    addIncident(
-      operations,
-      buildIncident({
-        humanId: "E-DAMM-A",
-        content: `Dammstatus ${newDammStatus} - Sicherungsmaßnahmen`,
-        typ: "Hochwasser",
-        ort: "Dammabschnitt Z2",
-        description: "Dammüberwachung und Sicherung verstärken."
-      })
-    );
-    addTask(
-      operations,
-      buildTask({
-        title: "Sandsacklinie am Damm aufbauen",
-        desc: "Dammabschnitt Z2 sichern und Sandsäcke verstärken.",
-        priority: "high",
-        responsible: pickRole(activeRoles, ["S3"], "POL"),
-        assignedBy: pickRole(activeRoles, ["S2"], "POL"),
-        key: `damm-${newDammStatus.toLowerCase()}-sandsack`
-      })
-    );
-    ensureOpenQuestion(state, {
-      id: "Q-003",
-      text: "Bagger verfügbar für Dammarbeiten?",
-      erwartet: "JA_NEIN"
-    });
-  }
-
-  if (pegel >= 490 && !state.flags.stromausfall) {
-    state.flags.stromausfall = true;
-    addIncident(
-      operations,
-      buildIncident({
-        humanId: "E-INFRA-STROM",
-        content: "Stromausfall droht in Z2",
-        typ: "Hochwasser",
-        ort: "Zone Z2",
-        description: "EVU koordinieren, Aggregate prüfen."
-      })
-    );
-    addTask(
-      operations,
-      buildTask({
-        title: "EVU koordinieren & Aggregate prüfen",
-        desc: "Kontakt EVU halten, mobile Aggregate bereitstellen.",
-        priority: "high",
-        responsible: pickRole(activeRoles, ["S6"], "POL"),
-        assignedBy: pickRole(activeRoles, ["S2"], "POL"),
-        key: "stromausfall-aggregate"
-      })
-    );
   }
 }
 
@@ -238,32 +240,26 @@ export function applyTickRules({ scenario, state, tick, pegel, activeRoles }) {
     state.incidents.add(basis.humanId);
   }
 
-  addProtocol(
-    operations,
-    buildProtocolEntry({
-      information: createSummaryText({ scenario, state, tick, pegel }),
-      infoTyp: "Lagemeldung",
-      anvon: "S2",
-      ergehtAn: ["LTSTB"],
-      richtung: "aus",
-      activeRoles
-    })
-  );
+  const rules = getRuleSet(scenario);
+  const tickRegeln = Array.isArray(rules.tick_regeln) ? rules.tick_regeln : [];
+  const context = buildContext({ scenario, state, tick, pegel });
 
-  const lagecheckKey = `lagecheck-${tick}`;
-  if (!state.dedupe_keys.has(lagecheckKey)) {
-    addTask(
-      operations,
-      buildTask({
-        title: "Lagecheck Hochwasser",
-        desc: `Pegel ${pegel}cm prüfen, aktuelle Lage zusammenfassen.`,
-        priority: "medium",
-        responsible: pickRole(activeRoles, ["S2"], "POL"),
-        assignedBy: pickRole(activeRoles, ["LTSTB"], "POL"),
-        key: lagecheckKey
-      })
-    );
-    state.dedupe_keys.add(lagecheckKey);
+  for (const regel of tickRegeln) {
+    const regelContext = { ...context, regel_id: regel.id };
+    if (regel.typ === "protocol") {
+      const protocol = buildProtocolFromConfig(regel.protocol, { activeRoles, context: regelContext });
+      addProtocol(operations, protocol);
+      continue;
+    }
+    if (regel.typ === "task") {
+      const task = buildTaskFromConfig(regel.task, { activeRoles, context: regelContext });
+      if (task.key) {
+        if (state.dedupe_keys.has(task.key)) continue;
+        state.dedupe_keys.add(task.key);
+      }
+      addTask(operations, task);
+      continue;
+    }
   }
 
   applyThresholds({ scenario, state, pegel, operations, activeRoles });
@@ -287,115 +283,130 @@ export function applyUserEvent({ scenario, state, nluResult, activeRoles, curren
 
   const absicht = nluResult.absicht;
   const felder = nluResult.felder || {};
+  const rules = getRuleSet(scenario);
+  const userRules = rules.user_event_regeln || {};
 
   if (absicht === "WETTER_ABFRAGE") {
-    replyText = `Wetterlage: ${scenario.umwelt?.wetter?.lage || "unbekannt"}. Warnung: ${scenario.umwelt?.wetter?.warnung || "keine"}.`;
-    addProtocol(
+    const regel = userRules[absicht];
+    const context = {
+      wetter_lage: scenario.umwelt?.wetter?.lage || "unbekannt",
+      wetter_warnung: scenario.umwelt?.wetter?.warnung || "keine"
+    };
+    replyText = formatTemplate(regel?.reply || "", context) || `Wetterlage: ${context.wetter_lage}. Warnung: ${context.wetter_warnung}.`;
+    applyConfiguredActions({
+      actions: regel?.aktionen,
       operations,
-      buildProtocolEntry({
-        information: `Wetterauskunft erteilt: ${replyText}`,
-        infoTyp: "Info",
-        anvon: "S5",
-        ergehtAn: ["LTSTB"],
-        richtung: "aus",
-        activeRoles
-      })
-    );
+      state,
+      activeRoles,
+      context: { ...context, reply: replyText }
+    });
   }
 
   if (absicht === "RESSOURCE_ABFRAGE") {
     const ressource = felder.ressource || "Ressourcen";
     const status = state.geraete_status?.[ressource?.toLowerCase()] || null;
-    replyText = status
-      ? `${ressource}: verfügbar ${status.verfuegbar}, reserviert ${status.reserviert}.`
-      : `Aktueller Stand für ${ressource}: siehe Ressourcenübersicht.`;
-    addTask(
+    const regel = userRules[absicht];
+    const context = {
+      ressource,
+      verfuegbar: status?.verfuegbar ?? "",
+      reserviert: status?.reserviert ?? ""
+    };
+    replyText =
+      formatTemplate(regel?.reply || "", context) ||
+      (status
+        ? `${ressource}: verfügbar ${status.verfuegbar}, reserviert ${status.reserviert}.`
+        : `Aktueller Stand für ${ressource}: siehe Ressourcenübersicht.`);
+    applyConfiguredActions({
+      actions: regel?.aktionen,
       operations,
-      buildTask({
-        title: `Ressourcenlage ${ressource} prüfen`,
-        desc: "Verfügbarkeit bestätigen und ggf. disponieren.",
-        priority: "medium",
-        responsible: pickRole(activeRoles, ["S4"], "POL"),
-        assignedBy: pickRole(activeRoles, ["S2"], "POL"),
-        key: `ressource-${ressource}`
-      })
-    );
+      state,
+      activeRoles,
+      context: { ...context, reply: replyText }
+    });
   }
 
   if (absicht === "LOGISTIK_ANFRAGE") {
-    replyText = "Logistik-Anfrage aufgenommen. Bitte Anzahl der zu versorgenden Kräfte nennen.";
-    addIncident(
+    const regel = userRules[absicht];
+    replyText = regel?.reply || "Logistik-Anfrage aufgenommen. Bitte Anzahl der zu versorgenden Kräfte nennen.";
+    applyConfiguredActions({
+      actions: regel?.aktionen,
       operations,
-      buildIncident({
-        humanId: "E-LOGISTIK",
-        content: "Verpflegung/Logistik anfordern",
-        typ: "Sonstig",
-        ort: "Bereitstellungsraum",
-        description: "Versorgungslogistik koordinieren."
-      })
-    );
-    ensureOpenQuestion(state, {
-      id: "Q-004",
-      text: "Für wie viele Personen wird Verpflegung benötigt?",
-      erwartet: "ZAHL"
+      state,
+      activeRoles,
+      context: { reply: replyText }
     });
   }
 
   if (absicht === "PLAN_WENN_DANN") {
+    const regel = userRules[absicht];
     const pegel = Number(felder.pegel);
     if (Number.isFinite(pegel)) {
+      const actionTitle = resolveTemplate(regel?.aktion?.title, { pegel, aktion: felder.aktion }, "Evakuierung vorbereiten");
+      const actionDesc = resolveTemplate(regel?.aktion?.desc, { pegel, aktion: felder.aktion }, "Standing Order ausgelöst.");
       state.standing_orders.push({
         id: `plan-${Date.now()}`,
         bedingung: { typ: "pegel_min", wert: pegel },
         aktion: {
           typ: "task",
-          title: felder.aktion || "Evakuierung vorbereiten",
-          desc: "Standing Order ausgelöst.",
-          priority: "high"
+          title: actionTitle,
+          desc: actionDesc,
+          priority: regel?.aktion?.priority || "high"
         },
         fired: false
       });
-      replyText = `Standing Order gesetzt: Wenn Pegel >= ${pegel}cm, dann ${felder.aktion || "Evakuierung vorbereiten"}.`;
+      replyText = resolveTemplate(regel?.reply, {
+        pegel,
+        aktion: felder.aktion || actionTitle
+      }, `Standing Order gesetzt: Wenn Pegel >= ${pegel}cm, dann ${felder.aktion || actionTitle}.`);
     } else {
       replyText = "Bitte einen Pegelwert angeben (z.B. 460cm).";
     }
   }
 
   if (absicht === "PLAN_ZEIT") {
+    const regel = userRules[absicht];
     const minuten = Number(felder.minuten);
     if (Number.isFinite(minuten)) {
       const schritt = scenario.zeit?.schritt_minuten || 5;
       const takte = Math.max(1, Math.round(minuten / schritt));
+      const actionTitle = resolveTemplate(regel?.aktion?.title, { minuten, aktion: felder.aktion }, "Maßnahme nach Zeit");
+      const actionDesc = resolveTemplate(regel?.aktion?.desc, { minuten, aktion: felder.aktion }, "Zeitplan ausgelöst.");
       state.standing_orders.push({
         id: `plan-${Date.now()}`,
         bedingung: { typ: "takt", wert: currentTick + takte },
         aktion: {
           typ: "task",
-          title: felder.aktion || "Maßnahme nach Zeit",
-          desc: "Zeitplan ausgelöst.",
-          priority: "medium"
+          title: actionTitle,
+          desc: actionDesc,
+          priority: regel?.aktion?.priority || "medium"
         },
         fired: false
       });
-      replyText = `Zeitplan gesetzt: In ${minuten} Minuten ${felder.aktion || "Maßnahme nach Zeit"}.`;
+      replyText = resolveTemplate(regel?.reply, {
+        minuten,
+        aktion: felder.aktion || actionTitle
+      }, `Zeitplan gesetzt: In ${minuten} Minuten ${felder.aktion || actionTitle}.`);
     } else {
       replyText = "Bitte eine Zeitangabe in Minuten angeben.";
     }
   }
 
   if (absicht === "BEFEHL") {
-    replyText = "Befehl aufgenommen und als Aufgabe angelegt.";
-    addTask(
-      operations,
-      buildTask({
-        title: felder.aktion || "Befehl ausführen",
-        desc: felder.detail || "User-Befehl",
-        priority: "high",
-        responsible: pickRole(activeRoles, ["S3"], "POL"),
-        assignedBy: pickRole(activeRoles, ["LTSTB", "S2"], "POL"),
-        key: `befehl-${Date.now()}`
-      })
+    const regel = userRules[absicht];
+    replyText = regel?.reply || "Befehl aufgenommen und als Aufgabe angelegt.";
+    const actionTitle = resolveTemplate(regel?.task?.title, { aktion: felder.aktion }, "Befehl ausführen");
+    const detailDesc = resolveTemplate(regel?.task?.desc, { detail: felder.detail }, "User-Befehl");
+    const context = { aktion: felder.aktion || actionTitle, detail: felder.detail || detailDesc };
+    const task = buildTaskFromConfig(
+      {
+        ...regel?.task,
+        title: actionTitle,
+        desc: detailDesc,
+        key: regel?.task?.key || `befehl-${Date.now()}`
+      },
+      { activeRoles, context }
     );
+    addTask(operations, task);
   }
 
   if (absicht === "ANTWORT") {
@@ -404,31 +415,32 @@ export function applyUserEvent({ scenario, state, nluResult, activeRoles, curren
     if (offene) {
       offene.status = "beantwortet";
       offene.antwort = antwort;
-      replyText = `Antwort zu ${offene.id} registriert.`;
-      if (offene.id === "Q-002" && String(antwort).toLowerCase().startsWith("j")) {
-        addTask(
-          operations,
-          buildTask({
-            title: "Evakuierung Z3 vorbereiten",
-            desc: "Evakuierungsmaßnahmen einleiten.",
-            priority: "critical",
-            responsible: pickRole(activeRoles, ["S3"], "POL"),
-            assignedBy: pickRole(activeRoles, ["LTSTB"], "POL"),
-            key: "evakuierung-z3-vorbereiten"
-          })
-        );
+      const regel = userRules[absicht];
+      replyText = formatTemplate(regel?.reply || "Antwort zu {{frage_id}} registriert.", {
+        frage_id: offene.id
+      });
+      const context = { frage_id: offene.id, antwort };
+      const specials = Array.isArray(regel?.folgeaktionen) ? regel.folgeaktionen : [];
+      for (const special of specials) {
+        const matchId = !special.frage_id || special.frage_id === offene.id;
+        const matchPrefix = !special.antwort_prefix || String(antwort).toLowerCase().startsWith(special.antwort_prefix);
+        if (matchId && matchPrefix) {
+          applyConfiguredActions({
+            actions: special.aktionen,
+            operations,
+            state,
+            activeRoles,
+            context
+          });
+        }
       }
-      addProtocol(
+      applyConfiguredActions({
+        actions: regel?.aktionen,
         operations,
-        buildProtocolEntry({
-          information: `Antwort erhalten (${offene.id}): ${antwort}`,
-          infoTyp: "Rueckmeldung",
-          anvon: "LTSTB",
-          ergehtAn: ["S2"],
-          richtung: "ein",
-          activeRoles
-        })
-      );
+        state,
+        activeRoles,
+        context
+      });
     } else {
       replyText = "Aktuell keine offene Frage gefunden.";
     }
