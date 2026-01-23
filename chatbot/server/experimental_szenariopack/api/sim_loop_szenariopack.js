@@ -69,6 +69,7 @@ export async function stepSimulation(options = {}) {
   ensureMinimumOperations(operations, activeRoles);
   const filtered = filterOperationsByRoles(operations, activeRoles);
   validateOperations(filtered);
+  const responseOperations = filtered.operations;
 
   state.history.push({ tick, pegel });
   state.tick += 1;
@@ -77,7 +78,7 @@ export async function stepSimulation(options = {}) {
     state.running = false;
   }
 
-  return { ok: true, operations: filtered };
+  return { ok: true, operations: responseOperations };
 }
 
 export async function handleUserFreitext({ role, text }) {
@@ -87,7 +88,7 @@ export async function handleUserFreitext({ role, text }) {
     const operations = createEmptyOperations();
     return {
       replyText: "Simulation noch nicht gestartet. Bitte zuerst /api/sim/start aufrufen.",
-      operationsDelta: filterOperationsByRoles(operations, activeRoles)
+      operationsDelta: filterOperationsByRoles(operations, activeRoles).operations
     };
   }
   const heuristik = parseHeuristik(text);
@@ -109,10 +110,11 @@ export async function handleUserFreitext({ role, text }) {
   ensureMinimumOperations(operations, activeRoles);
   const filtered = filterOperationsByRoles(operations, activeRoles);
   validateOperations(filtered);
+  const responseOperations = filtered.operations;
 
   return {
     replyText,
-    operationsDelta: filtered
+    operationsDelta: responseOperations
   };
 }
 
