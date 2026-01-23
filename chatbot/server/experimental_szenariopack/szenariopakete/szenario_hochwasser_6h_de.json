@@ -88,21 +88,308 @@
   ],
   "regeln": {
     "tick_regeln": [
-      { "id": "TICK-LOG", "beschreibung": "Kurzlage pro Takt" }
+      {
+        "id": "TICK-KURZLAGE",
+        "typ": "protocol",
+        "protocol": {
+          "information": "Kurzlage T{{tick}}: Pegel {{pegel}}{{pegel_unit}}, Damm {{damm_status}}, Zonen {{zone_info}}. Offene Fragen: {{offene_fragen}}.",
+          "infoTyp": "Lagemeldung",
+          "anvon": "S2",
+          "ergehtAn": ["LTSTB"],
+          "richtung": "aus"
+        }
+      },
+      {
+        "id": "TICK-LAGECHECK",
+        "typ": "task",
+        "task": {
+          "title": "Lagecheck Hochwasser",
+          "desc": "Pegel {{pegel}}{{pegel_unit}} prüfen, aktuelle Lage zusammenfassen.",
+          "priority": "medium",
+          "responsibleRoles": ["S2"],
+          "assignedByRoles": ["LTSTB"],
+          "key": "lagecheck-{{tick}}"
+        }
+      }
     ],
     "zustands_regeln": [
-      { "id": "RW-VORWARNUNG", "beschreibung": "Vorwarnung ab 420cm" },
-      { "id": "RW-ALARM1", "beschreibung": "Alarmstufe 1 ab 460cm" },
-      { "id": "RW-ALARM2", "beschreibung": "Alarmstufe 2 ab 500cm" },
-      { "id": "RW-DAMM", "beschreibung": "Dammstatus abhängig vom Pegel" },
-      { "id": "RW-STROM", "beschreibung": "Stromausfall möglich ab 490cm" }
+      {
+        "id": "RW-VORWARNUNG",
+        "typ": "threshold",
+        "bedingung": { "typ": "pegel_min", "wert": 420 },
+        "once_flag": "vorwarnung",
+        "aktionen": {
+          "protocols": [
+            {
+              "information": "Vorwarnung: Pegel überschreitet 420{{pegel_unit}}. Sandsacklogistik anfahren.",
+              "infoTyp": "Lagemeldung",
+              "anvon": "S2",
+              "ergehtAn": ["S3", "S4"],
+              "richtung": "aus"
+            }
+          ],
+          "tasks": [
+            {
+              "title": "Führungsgruppe Hochwasser einberufen",
+              "desc": "Lagebesprechung durchführen und Kräfte koordinieren.",
+              "priority": "high",
+              "responsibleRoles": ["S3", "S2"],
+              "assignedByRoles": ["LTSTB", "S2"],
+              "key": "vorwarnung-fuehrungsgruppe"
+            },
+            {
+              "title": "Sandsacklinie vorbereiten",
+              "desc": "Sandsack-Füllstation aktivieren und Materialanforderung anstoßen.",
+              "priority": "high",
+              "responsibleRoles": ["S4"],
+              "assignedByRoles": ["S2"],
+              "key": "vorwarnung-sandsack"
+            }
+          ]
+        }
+      },
+      {
+        "id": "RW-ALARM1",
+        "typ": "threshold",
+        "bedingung": { "typ": "pegel_min", "wert": 460 },
+        "once_flag": "alarm1",
+        "aktionen": {
+          "incidents": [
+            {
+              "humanId": "E-KATS",
+              "content": "Alarmstufe 1 - Hochwasserlage verschärft",
+              "typ": "Hochwasser",
+              "ort": "Bezirk Feldkirchen",
+              "description": "Alarmstufe 1 ausgelöst, Einsatzbereitschaft erhöhen."
+            }
+          ],
+          "tasks": [
+            {
+              "title": "Alarmierung Einsatzkräfte Stufe 1",
+              "desc": "Alarmplan Hochwasser Stufe 1 aktivieren.",
+              "priority": "critical",
+              "responsibleRoles": ["S2"],
+              "assignedByRoles": ["LTSTB"],
+              "key": "alarm1-alarmierung"
+            }
+          ]
+        }
+      },
+      {
+        "id": "RW-ALARM2",
+        "typ": "threshold",
+        "bedingung": { "typ": "pegel_min", "wert": 500 },
+        "once_flag": "alarm2",
+        "aktionen": {
+          "incidents": [
+            {
+              "humanId": "E-EVAK-Z3",
+              "content": "Alarmstufe 2 - Evakuierung Z3 vorbereiten",
+              "typ": "Hochwasser",
+              "ort": "Zone Z3",
+              "description": "Evakuierungsplanung für Zone Z3 starten."
+            }
+          ],
+          "protocols": [
+            {
+              "information": "Rückfrage: Evakuierung Z3 freigeben?",
+              "infoTyp": "Rueckfrage",
+              "anvon": "S2",
+              "ergehtAn": ["LTSTB"],
+              "richtung": "aus"
+            }
+          ],
+          "questions": [
+            {
+              "id": "Q-002",
+              "text": "Evakuierung Z3 freigeben?",
+              "erwartet": "JA_NEIN"
+            }
+          ]
+        }
+      },
+      {
+        "id": "RW-DAMM",
+        "typ": "damm_status",
+        "levels": [
+          { "min": 495, "status": "BRUCHGEFAHR" },
+          { "min": 470, "status": "SICKER" },
+          { "min": 0, "status": "OK" }
+        ],
+        "on_change": {
+          "incidents": [
+            {
+              "humanId": "E-DAMM-A",
+              "content": "Dammstatus {{damm_status}} - Sicherungsmaßnahmen",
+              "typ": "Hochwasser",
+              "ort": "Dammabschnitt Z2",
+              "description": "Dammüberwachung und Sicherung verstärken."
+            }
+          ],
+          "tasks": [
+            {
+              "title": "Sandsacklinie am Damm aufbauen",
+              "desc": "Dammabschnitt Z2 sichern und Sandsäcke verstärken.",
+              "priority": "high",
+              "responsibleRoles": ["S3"],
+              "assignedByRoles": ["S2"],
+              "key": "damm-{{damm_status}}-sandsack"
+            }
+          ],
+          "questions": [
+            {
+              "id": "Q-003",
+              "text": "Bagger verfügbar für Dammarbeiten?",
+              "erwartet": "JA_NEIN"
+            }
+          ]
+        }
+      },
+      {
+        "id": "RW-STROM",
+        "typ": "threshold",
+        "bedingung": { "typ": "pegel_min", "wert": 490 },
+        "once_flag": "stromausfall",
+        "aktionen": {
+          "incidents": [
+            {
+              "humanId": "E-INFRA-STROM",
+              "content": "Stromausfall droht in Z2",
+              "typ": "Hochwasser",
+              "ort": "Zone Z2",
+              "description": "EVU koordinieren, Aggregate prüfen."
+            }
+          ],
+          "tasks": [
+            {
+              "title": "EVU koordinieren & Aggregate prüfen",
+              "desc": "Kontakt EVU halten, mobile Aggregate bereitstellen.",
+              "priority": "high",
+              "responsibleRoles": ["S6"],
+              "assignedByRoles": ["S2"],
+              "key": "stromausfall-aggregate"
+            }
+          ]
+        }
+      }
     ],
-    "user_event_regeln": [
-      { "id": "UE-WETTER", "beschreibung": "Antwort auf Wetterabfrage" },
-      { "id": "UE-RESSOURCE", "beschreibung": "Ressourcenabfrage/Disposition" },
-      { "id": "UE-LOGISTIK", "beschreibung": "Logistik-Anfrage" },
-      { "id": "UE-PLAN", "beschreibung": "Standing Orders setzen" },
-      { "id": "UE-ANTWORT", "beschreibung": "Offene Fragen beantworten" }
+    "user_event_regeln": {
+      "WETTER_ABFRAGE": {
+        "reply": "Wetterlage: {{wetter_lage}}. Warnung: {{wetter_warnung}}.",
+        "aktionen": {
+          "protocols": [
+            {
+              "information": "Wetterauskunft erteilt: {{reply}}",
+              "infoTyp": "Info",
+              "anvon": "S5",
+              "ergehtAn": ["LTSTB"],
+              "richtung": "aus"
+            }
+          ]
+        }
+      },
+      "RESSOURCE_ABFRAGE": {
+        "reply": "Aktueller Stand für {{ressource}}: verfügbar {{verfuegbar}}, reserviert {{reserviert}}.",
+        "aktionen": {
+          "tasks": [
+            {
+              "title": "Ressourcenlage {{ressource}} prüfen",
+              "desc": "Verfügbarkeit bestätigen und ggf. disponieren.",
+              "priority": "medium",
+              "responsibleRoles": ["S4"],
+              "assignedByRoles": ["S2"],
+              "key": "ressource-{{ressource}}"
+            }
+          ]
+        }
+      },
+      "LOGISTIK_ANFRAGE": {
+        "reply": "Logistik-Anfrage aufgenommen. Bitte Anzahl der zu versorgenden Kräfte nennen.",
+        "aktionen": {
+          "incidents": [
+            {
+              "humanId": "E-LOGISTIK",
+              "content": "Verpflegung/Logistik anfordern",
+              "typ": "Sonstig",
+              "ort": "Bereitstellungsraum",
+              "description": "Versorgungslogistik koordinieren."
+            }
+          ],
+          "questions": [
+            {
+              "id": "Q-004",
+              "text": "Für wie viele Personen wird Verpflegung benötigt?",
+              "erwartet": "ZAHL"
+            }
+          ]
+        }
+      },
+      "PLAN_WENN_DANN": {
+        "reply": "Standing Order gesetzt: Wenn Pegel >= {{pegel}}cm, dann {{aktion}}.",
+        "aktion": {
+          "title": "{{aktion}}",
+          "desc": "Standing Order ausgelöst.",
+          "priority": "high"
+        }
+      },
+      "PLAN_ZEIT": {
+        "reply": "Zeitplan gesetzt: In {{minuten}} Minuten {{aktion}}.",
+        "aktion": {
+          "title": "{{aktion}}",
+          "desc": "Zeitplan ausgelöst.",
+          "priority": "medium"
+        }
+      },
+      "BEFEHL": {
+        "reply": "Befehl aufgenommen und als Aufgabe angelegt.",
+        "task": {
+          "title": "{{aktion}}",
+          "desc": "{{detail}}",
+          "priority": "high",
+          "responsibleRoles": ["S3"],
+          "assignedByRoles": ["LTSTB", "S2"]
+        }
+      },
+      "ANTWORT": {
+        "reply": "Antwort zu {{frage_id}} registriert.",
+        "aktionen": {
+          "protocols": [
+            {
+              "information": "Antwort erhalten ({{frage_id}}): {{antwort}}",
+              "infoTyp": "Rueckmeldung",
+              "anvon": "LTSTB",
+              "ergehtAn": ["S2"],
+              "richtung": "ein"
+            }
+          ]
+        },
+        "folgeaktionen": [
+          {
+            "frage_id": "Q-002",
+            "antwort_prefix": "j",
+            "aktionen": {
+              "tasks": [
+                {
+                  "title": "Evakuierung Z3 vorbereiten",
+                  "desc": "Evakuierungsmaßnahmen einleiten.",
+                  "priority": "critical",
+                  "responsibleRoles": ["S3"],
+                  "assignedByRoles": ["LTSTB"],
+                  "key": "evakuierung-z3-vorbereiten"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "task_effekte": [
+      {
+        "id": "EFF-DAMM-SAND",
+        "title_contains": ["sandsacklinie", "damm"],
+        "state_matches": { "damm_status": "BRUCHGEFAHR" },
+        "set_state": { "damm_status": "SICKER" }
+      }
     ]
   },
   "startzustand": {
@@ -170,9 +457,10 @@
     },
     "npc_agenten": "Liste von NPC-Agenten mit Triggern und Nachrichten.",
     "regeln": {
-      "tick_regeln": "Regeln, die pro Takt ausgeführt werden.",
-      "zustands_regeln": "Regeln, die auf Zustandsänderungen reagieren.",
-      "user_event_regeln": "Regeln für Nutzerinteraktionen."
+      "tick_regeln": "Regeln, die pro Takt ausgeführt werden (protocol/task mit Platzhaltern).",
+      "zustands_regeln": "Schwellwert- und Zustandsregeln (z.B. pegel_min, damm_status).",
+      "user_event_regeln": "Regeln für Nutzerinteraktionen (Reply-Templates und Aktionen).",
+      "task_effekte": "Effekte, die beim Abschluss von Aufgaben Zustände anpassen."
     },
     "startzustand": {
       "zone_schweregrade": "Start-Schweregrade pro Zone.",
