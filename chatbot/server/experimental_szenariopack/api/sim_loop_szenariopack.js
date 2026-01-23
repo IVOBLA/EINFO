@@ -16,7 +16,7 @@ import { getExperimentalConfig } from "../config/config_loader.js";
 import { loadScenarioFromFile, assertScenarioStructure } from "../engine/loader.js";
 import { createInitialState, resetStateForScenario } from "../engine/state.js";
 import { getPegelAtTick } from "../engine/timeline.js";
-import { applyBaselineRules, applyUserEvent } from "../engine/rules.js";
+import { applyTickRules, applyUserEvent } from "../engine/rules.js";
 import { createEmptyOperations } from "../engine/ops_builder.js";
 import {
   applyBudgets,
@@ -251,13 +251,6 @@ export async function stepSimulation(options = {}) {
 
   decayEffects({ state, currentTick: state.tick });
 
-
-  const compressedBoard = compressBoard(board);
-  const compressedAufgaben = compressAufgaben(aufgaben);
-  const compressedProtokoll = compressProtokoll(protokoll);
-
-  decayEffects({ state, currentTick: state.tick });
-
   const { now: worldNow, delta: worldDelta, forecast } = computeWorld({
     scenario: activeScenario,
     state,
@@ -326,7 +319,7 @@ export async function stepSimulation(options = {}) {
     }
   }
 
-  const baselineOps = applyBaselineRules({
+  const baselineOps = applyTickRules({
     scenario: activeScenario,
     state,
     tick: state.tick,
@@ -334,10 +327,13 @@ export async function stepSimulation(options = {}) {
     activeRoles
   });
 
-  const llmOpsContainer = normalizeLlMOperations(llmResponse);
-  const llmOpsContainer = llmResponse?.operations
-    ? { operations: llmResponse.operations }
-    : createEmptyOperations();
+  let llmOpsContainer = normalizeLlMOperations(llmResponse);
+  try {
+    validateOperations(llmOpsContainer);
+  } catch (error) {
+    logError("Experimental ScenarioPack: LLM-Operations ungültig", { error: String(error) });
+    llmOpsContainer = createEmptyOperations();
+  }
 
   const mergedOperations = mergeOperations(baselineOps, llmOpsContainer);
 
@@ -353,7 +349,7 @@ export async function stepSimulation(options = {}) {
     validateOperations(guardOps);
   } catch (error) {
     logError("Experimental ScenarioPack: Operations JSON ungültig", { error: String(error) });
-    guardOps = createEmptyOperations();
+    guardOps = baselineOps;
   }
 
   guardOps = filterOperationsByRoles(guardOps, activeRoles);
@@ -361,24 +357,6 @@ export async function stepSimulation(options = {}) {
   guardOps = applyBudgets({ ops: guardOps, budgets });
   ensureMinimumOperations(guardOps, { activeRoles, state, config });
   updateDedupeState({ ops: guardOps, state, dedupeWindow });
-
-  const countsAfter = countOperations(guardOps);
-
-
-  let guardOps = mergedOperations;
-  const countsBefore = countOperations(guardOps);
-
-  try {
-    validateOperations(guardOps);
-  } catch (error) {
-    logError("Experimental ScenarioPack: Operations JSON ungültig", { error: String(error) });
-    guardOps = createEmptyOperations();
-  }
-
-  guardOps = filterOperationsByRoles(guardOps, activeRoles);
-  guardOps = dedupeOperations({ ops: guardOps, state, dedupeWindow });
-  guardOps = applyBudgets({ ops: guardOps, budgets });
-  ensureMinimumOperations(guardOps, { activeRoles, state, config });
 
   const countsAfter = countOperations(guardOps);
 
