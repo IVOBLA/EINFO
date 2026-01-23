@@ -842,11 +842,63 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
       model: llmModel
     });
 
-    const llmOperations = (llmResponse || {}).operations || {
+    // ============================================================
+    // LLM-RESPONSE NORMALISIERUNG
+    // ============================================================
+    // BUGFIX: LLM liefert manchmal operations als Array statt Objekt
+    // Normalisiere die Response um robuste Verarbeitung zu gewährleisten
+    let rawOperations = (llmResponse || {}).operations;
+
+    // Fall 1: operations ist ein Array → leere Operations verwenden
+    if (Array.isArray(rawOperations)) {
+      logError("LLM lieferte operations als Array statt Objekt - verwende leere Operations", {
+        rawOperations: JSON.stringify(rawOperations).slice(0, 200)
+      });
+      rawOperations = null;
+    }
+
+    // Fall 2: operations ist null/undefined → leere Operations
+    const llmOperations = rawOperations || {
       board: { createIncidentSites: [], updateIncidentSites: [] },
       aufgaben: { create: [], update: [] },
       protokoll: { create: [] }
     };
+
+    // Stelle sicher dass alle Sub-Objekte existieren
+    if (!llmOperations.board) {
+      llmOperations.board = { createIncidentSites: [], updateIncidentSites: [] };
+    }
+    if (!llmOperations.board.createIncidentSites) {
+      llmOperations.board.createIncidentSites = [];
+    }
+    if (!llmOperations.board.updateIncidentSites) {
+      llmOperations.board.updateIncidentSites = [];
+    }
+
+    if (!llmOperations.aufgaben) {
+      llmOperations.aufgaben = { create: [], update: [] };
+    }
+    if (!llmOperations.aufgaben.create) {
+      llmOperations.aufgaben.create = [];
+    }
+    if (!llmOperations.aufgaben.update) {
+      llmOperations.aufgaben.update = [];
+    }
+
+    if (!llmOperations.protokoll) {
+      llmOperations.protokoll = { create: [] };
+    }
+    if (!llmOperations.protokoll.create) {
+      llmOperations.protokoll.create = [];
+    }
+
+    logDebug("LLM-Operations normalisiert", {
+      boardCreate: llmOperations.board?.createIncidentSites?.length || 0,
+      boardUpdate: llmOperations.board?.updateIncidentSites?.length || 0,
+      aufgabenCreate: llmOperations.aufgaben?.create?.length || 0,
+      aufgabenUpdate: llmOperations.aufgaben?.update?.length || 0,
+      protokollCreate: llmOperations.protokoll?.create?.length || 0
+    });
 
     // ============================================================
     // OPERATIONS ZUSAMMENFÜHREN: Trigger + LLM

@@ -31,6 +31,8 @@ Schlecht: "HW OSS KEL PUMP" (zu kurz), "flood" (falsche Sprache)
 Max. 5 Einsatzstellen, 8 Aufgaben, 8 Protokolleinträge pro Schritt
 
 === JSON-SCHEMA ===
+WICHTIG: Gib NUR das operations-Objekt zurück, KEINE zusätzlichen Felder!
+
 {
   "operations": {
     "board": {
@@ -40,14 +42,14 @@ Max. 5 Einsatzstellen, 8 Aufgaben, 8 Protokolleinträge pro Schritt
         "typ": "Brand|Hochwasser|Sturm|Verkehr|Sonstig", "humanId": "E001",
         "alerted": ["FF Ort"], "assignedVehicles": ["TLF"]
       }],
-      "updateIncidentSites": [{"id": "uuid", "changes": {"status": "active"}}]
+      "updateIncidentSites": [{"incidentId": "uuid", "changes": {"status": "active"}}]
     },
     "aufgaben": {
       "create": [{
         "title": "Titel", "responsible": "S2|S3|S4|S5|LTSTB", "status": "open|inProgress|done",
         "desc": "Beschreibung", "priority": "low|medium|high|critical", "assignedBy": "LTSTB|S2"
       }],
-      "update": [{"id": "uuid", "changes": {"status": "done"}}]
+      "update": [{"taskId": "uuid", "changes": {"status": "done"}}]
     },
     "protokoll": {
       "create": [{
@@ -55,10 +57,10 @@ Max. 5 Einsatzstellen, 8 Aufgaben, 8 Protokolleinträge pro Schritt
         "anvon": "Absender", "ergehtAn": ["Empfänger"], "richtung": "ein|aus"
       }]
     }
-  },
-  "analysis": "Lagebeurteilung",
-  "meta": {"historySummary": "Entwicklungen", "historyState": {...}}
+  }
 }
+
+VERBOTEN: Keine analysis, meta, oder andere Felder außerhalb von operations!
 
 PFLICHT: Board (content, status, ort, typ), Aufgaben (title, responsible, status, priority, assignedBy), Protokoll (information, infoTyp, anvon, richtung)
 KATEGORIEN: Lagemeldung (Situationsbericht), Auftrag (Anweisung), Rueckfrage (Informationsanfrage), Rueckmeldung (Statusbestätigung), Info (Zusatzinfo)
