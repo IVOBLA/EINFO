@@ -1,0 +1,45 @@
+{
+  "nlu": {
+    "llm": {
+      "system_prompt": "Du bist ein NLU-Parser. Antworte NUR mit einem JSON-Objekt.\nFormat:\n{\n  \"absicht\": \"WETTER_ABFRAGE|RESSOURCE_ABFRAGE|LOGISTIK_ANFRAGE|BEFEHL|PLAN_ZEIT|PLAN_WENN_DANN|ANTWORT|UNKLAR\",\n  \"vertrauen\": 0.0,\n  \"felder\": { \"pegel\": 0, \"minuten\": 0, \"aktion\": \"\", \"ressource\": \"\", \"antwort\": \"\" },\n  \"rueckfrage\": null\n}\nKeine zusätzlichen Felder, kein Text außerhalb des JSON.",
+      "options": {
+        "taskType": "analysis",
+        "stream": false,
+        "requireJson": true,
+        "maxTokens": 256,
+        "temperature": 0
+      }
+    },
+    "heuristic": {
+      "yes_words": ["ja", "jawohl", "yes", "ok"],
+      "no_words": ["nein", "no", "negativ"],
+      "keywords": {
+        "weather": ["wetter", "regen", "vorhersage"],
+        "logistics": ["verpflegung", "verpflegen", "essen", "trinken", "logistik"],
+        "command": ["befehl", "anweisen", "beauftragen", "ordne", "ordnung"]
+      },
+      "resource": {
+        "regex": { "pattern": "(bagger|pumpe|pumpen|aggregat|sandsack)", "flags": "i" },
+        "default_label": "Ressourcen"
+      },
+      "regex": {
+        "number": { "pattern": "(\\d+[\\.,]?\\d*)", "flags": "" },
+        "minutes": { "pattern": "(\\d+)\\s*(minuten|min|m)", "flags": "i" },
+        "pegel_condition": { "pattern": "wenn\\s+pegel\\s*>=?\\s*\\d+", "flags": "i" },
+        "pegel_extract": { "pattern": "pegel\\s*>=?\\s*(\\d+)", "flags": "i" },
+        "action_after_then": { "pattern": "dann\\s+(.+)", "flags": "i" },
+        "action_after_minutes": { "pattern": "(?:in\\s+\\d+\\s*min(?:uten)?\\s+)(.+)", "flags": "i" }
+      }
+    }
+  },
+  "npc_triggers": {
+    "parsers": [
+      {
+        "id": "pegel_gte",
+        "regex": { "pattern": "pegel\\s*>=\\s*(\\d+)", "flags": "i" },
+        "operator": "gte",
+        "field": "pegel"
+      }
+    ]
+  }
+}
