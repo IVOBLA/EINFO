@@ -11,9 +11,14 @@ const regexConfig = heuristicConfig.regex || {};
 
 function buildRegex(value) {
   if (!value) return null;
-  if (typeof value === "string") return new RegExp(value);
-  if (typeof value === "object" && value.pattern) {
-    return new RegExp(value.pattern, value.flags || "");
+  try {
+    if (typeof value === "string") return new RegExp(value);
+    if (typeof value === "object" && value.pattern) {
+      return new RegExp(value.pattern, value.flags || "");
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("Fehlerhafte Regex-Konfiguration in heuristik:", message, value);
   }
   return null;
 }
