@@ -31,8 +31,8 @@ describe("Experimental ScenarioPack", () => {
     await startSimulation();
     const result = await stepSimulation();
     expect(result.ok).toBe(true);
-    expect(result.operations.operations.protokoll.create.length).toBeGreaterThan(0);
-    expect(result.operations.operations.aufgaben.create.length).toBeGreaterThan(0);
+    expect(result.operations.protokoll.create.length).toBeGreaterThan(0);
+    expect(result.operations.aufgaben.create.length).toBeGreaterThan(0);
   });
 
   it("NLU-Heuristik erkennt Wetterabfrage", async () => {
@@ -55,7 +55,7 @@ describe("Experimental ScenarioPack", () => {
     let triggered = false;
     for (let i = 0; i < 40; i += 1) {
       const result = await stepSimulation();
-      const tasks = result.operations.operations.aufgaben.create;
+      const tasks = result.operations.aufgaben.create;
       if (tasks.some((task) => String(task.title).toLowerCase().includes("evak"))) {
         triggered = true;
         break;
@@ -72,7 +72,7 @@ describe("Experimental ScenarioPack", () => {
     );
     await startSimulation();
     const result = await stepSimulation();
-    const ops = result.operations.operations;
+    const ops = result.operations;
 
     const activeSet = new Set(["S2", "LTSTB", "MS"]);
     const roleFields = [
