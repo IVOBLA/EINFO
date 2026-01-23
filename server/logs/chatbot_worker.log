@@ -1,0 +1,38 @@
+[2026-01-23T19:44:44.138Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5792/8188MB | Temp: 44°C
+[2026-01-23T19:44:44.140Z] Aktives Szenario geändert: winter_extremschneefall
+[2026-01-23T19:44:44.140Z] Worker-Intervall angepasst: 120000 ms
+[2026-01-23T19:44:44.140Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-23T19:46:44.140Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
+[2026-01-23T19:48:15.408Z] LLM-Operationen: {"boardCreate":6,"boardUpdate":0,"taskCreate":3,"taskUpdate":0,"protoCreate":3}
+[2026-01-23T19:48:15.408Z] Board-Create angewandt: cb-incident-1769197695408-uzw4v0
+[2026-01-23T19:48:15.408Z] Board-Create angewandt: cb-incident-1769197695408-4ahztq
+[2026-01-23T19:48:15.408Z] Board-Create angewandt: cb-incident-1769197695408-p0m95d
+[2026-01-23T19:48:15.408Z] Board-Create angewandt: cb-incident-1769197695408-llbx38
+[2026-01-23T19:48:15.408Z] Board-Create angewandt: cb-incident-1769197695408-l478ct
+[2026-01-23T19:48:15.409Z] Board-Create angewandt: cb-incident-1769197695409-0ynza2
+[2026-01-23T19:48:15.410Z] Aufgaben-Create verworfen: {"op":{"title":"Rettungskräfte zu Massenkarambolage B317 entsenden","responsible":"Feuerwehr Feldkirchen","status":"offen","desc":"Sofortige Rettungsmaßnahmen für verletzte Personen durchführen. Einsatzkräfte mit Kettenfahrzeugen ausstatten.","priority":1,"assignedBy":"Einsatzleiter"},"reason":"Rolle \"Einsatzleiter\" ist keine Stabsrolle.","activeRoles":[]}
+[2026-01-23T19:48:15.410Z] Aufgaben-Create verworfen: {"op":{"title":"Notstromversorgung Altenheim Sonnenhof","responsible":"Technisches Hilfswerk Kärnten","status":"offen","desc":"Sofortige Notstromanbindung durchführen, um Heizungs- und Lebenserhaltungssysteme zu sichern.","priority":1,"assignedBy":"Einsatzleiter"},"reason":"Rolle \"Einsatzleiter\" ist keine Stabsrolle.","activeRoles":[]}
+[2026-01-23T19:48:15.411Z] Aufgaben-Create verworfen: {"op":{"title":"Evakuierung Supermarkt Feldkirchen-Süd","responsible":"Feuerwehr Feldkirchen","status":"offen","desc":"Gebäude evakuieren und sicherstellen, dass alle Personen unverletzt sind.","priority":1,"assignedBy":"Einsatzleiter"},"reason":"Rolle \"Einsatzleiter\" ist keine Stabsrolle.","activeRoles":[]}
+[2026-01-23T19:48:15.411Z] Protokoll-Create verworfen: {"op":{"id":"prot-1769197695407-z3pwws","information":"Katastrophenalarm um 05:30 Uhr ausgerufen","infoTyp":"Alarmierung","anvon":"","ergehtAn":[],"richtung":null,"datum":"2026-01-23","zeit":"20:48","printCount":0,"uebermittlungsart":{"kanalNr":"bot","ein":true,"aus":false},"otherRecipientConfirmation":{"confirmed":false,"by":null,"byRole":null,"at":null},"rueckmeldung1":"","rueckmeldung2":"","lagebericht":"","massnahmen":[{"massnahme":"","verantwortlich":""},{"massnahme":"","verantwortlich":""},{"massnahme":"","verantwortlich":""},{"massnahme":"","verantwortlich":""},{"massnahme":"","verantwortlich":""}],"history":[{"action":"created","at":"2026-01-23T19:48:15.407Z","by":"simulation-worker","details":"Automatisch durch Simulation erstellt"}]},"reason":"Keine Absender-Rolle gefunden. Geprüfte Felder: ab, av, von, anvon, r, assignedBy, responsible, createdBy. Operation: {\"id\":\"prot-1769197695407-z3pwws\",\"information\":\"Katastrophenalarm um 05:30 Uhr ausgerufen\",\"infoTyp\":\"Alarmierung\",\"anvon\":\"\",\"ergehtAn\":[],\"richtung\":null,\"datum\":\"2026-01-23\",\"zeit\":\"20:48\",\"printC","activeRoles":[]}
+[2026-01-23T19:48:15.412Z] Protokoll-Create verworfen: {"op":{"id":"prot-1769197695407-acjs6a","information":"Bundesheer wurde angefordert und erwartet in 90 Minuten","infoTyp":"Ressourcenversorgung","anvon":"","ergehtAn":[],"richtung":null,"datum":"2026-01-23","zeit":"20:48","printCount":0,"uebermittlungsart":{"kanalNr":"bot","ein":true,"aus":false},"otherRecipientConfirmation":{"confirmed":false,"by":null,"byRole":null,"at":null},"rueckmeldung1":"","rueckmeldung2":"","lagebericht":"","massnahmen":[{"massnahme":"","verantwortlich":""},{"massnahme":"","verantwortlich":""},{"massnahme":"","verantwortlich":""},{"massnahme":"","verantwortlich":""},{"massnahme":"","verantwortlich":""}],"history":[{"action":"created","at":"2026-01-23T19:48:15.407Z","by":"simulation-worker","details":"Automatisch durch Simulation erstellt"}]},"reason":"Keine Absender-Rolle gefunden. Geprüfte Felder: ab, av, von, anvon, r, assignedBy, responsible, createdBy. Operation: {\"id\":\"prot-1769197695407-acjs6a\",\"information\":\"Bundesheer wurde angefordert und erwartet in 90 Minuten\",\"infoTyp\":\"Ressourcenversorgung\",\"anvon\":\"\",\"ergehtAn\":[],\"richtung\":null,\"datum\":\"2026-01-23\"","activeRoles":[]}
+[2026-01-23T19:48:15.412Z] Protokoll-Create verworfen: {"op":{"id":"prot-1769197695407-6tf9ud","information":"Schulbus mit Kindern eingeschneit - sofortige Rettungsmaßnahmen notwendig.","infoTyp":"Menschenrettung","anvon":"","ergehtAn":[],"richtung":null,"datum":"2026-01-23","zeit":"20:48","printCount":0,"uebermittlungsart":{"kanalNr":"bot","ein":true,"aus":false},"otherRecipientConfirmation":{"confirmed":false,"by":null,"byRole":null,"at":null},"rueckmeldung1":"","rueckmeldung2":"","lagebericht":"","massnahmen":[{"massnahme":"","verantwortlich":""},{"massnahme":"","verantwortlich":""},{"massnahme":"","verantwortlich":""},{"massnahme":"","verantwortlich":""},{"massnahme":"","verantwortlich":""}],"history":[{"action":"created","at":"2026-01-23T19:48:15.407Z","by":"simulation-worker","details":"Automatisch durch Simulation erstellt"}]},"reason":"Keine Absender-Rolle gefunden. Geprüfte Felder: ab, av, von, anvon, r, assignedBy, responsible, createdBy. Operation: {\"id\":\"prot-1769197695407-6tf9ud\",\"information\":\"Schulbus mit Kindern eingeschneit - sofortige Rettungsmaßnahmen notwendig.\",\"infoTyp\":\"Menschenrettung\",\"anvon\":\"\",\"ergehtAn\":[],\"richtung\":null,\"datum","activeRoles":[]}
+[2026-01-23T19:48:15.412Z] Analysis: ...
+[2026-01-23T19:48:15.426Z] Action-History aktualisiert: 6 neue Einträge
+[2026-01-23T19:48:15.426Z] Schritt abgeschlossen in 211314ms | Angewandt: 6
+[2026-01-23T19:48:15.446Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5442/8188MB | Temp: 43°C
+[2026-01-23T19:48:44.190Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5442/8188MB | Temp: 42°C
+[2026-01-23T19:48:44.192Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-23T19:50:44.159Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
+[2026-01-23T19:52:44.160Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
+[2026-01-23T19:53:22.143Z] LLM-Operationen: {"boardCreate":0,"boardUpdate":0,"taskCreate":0,"taskUpdate":0,"protoCreate":0}
+[2026-01-23T19:53:22.144Z] Schritt abgeschlossen in 277982ms | Angewandt: 0
+[2026-01-23T19:53:22.164Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5444/8188MB | Temp: 43°C
+[2026-01-23T19:54:44.253Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 4622/8188MB | Temp: 43°C
+[2026-01-23T19:54:44.255Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-23T19:56:44.224Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
+[2026-01-23T19:58:44.225Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
+[2026-01-23T19:59:10.218Z] LLM-Operationen: {"boardCreate":0,"boardUpdate":0,"taskCreate":0,"taskUpdate":0,"protoCreate":1}
+[2026-01-23T19:59:10.226Z] Protokoll-Create angewandt: cb-prot-1769198350226-iqo6se
+[2026-01-23T19:59:10.245Z] Action-History aktualisiert: 1 neue Einträge
+[2026-01-23T19:59:10.245Z] Schritt abgeschlossen in 266018ms | Angewandt: 1
+[2026-01-23T19:59:10.263Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5444/8188MB | Temp: 43°C
