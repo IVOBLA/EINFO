@@ -91,10 +91,6 @@ function applyConfiguredActions({ actions, operations, state, activeRoles, conte
   if (actions.tasks) {
     for (const entry of actions.tasks) {
       const task = buildTaskFromConfig(entry, { activeRoles, context });
-      if (task.key) {
-        if (state.dedupe_keys.has(task.key)) continue;
-        state.dedupe_keys.add(task.key);
-      }
       addTask(operations, task);
     }
   }
@@ -249,10 +245,6 @@ export function applyTickRules({ scenario, state, tick, pegel, activeRoles }) {
     }
     if (regel.typ === "task") {
       const task = buildTaskFromConfig(regel.task, { activeRoles, context: regelContext });
-      if (task.key) {
-        if (state.dedupe_keys.has(task.key)) continue;
-        state.dedupe_keys.add(task.key);
-      }
       addTask(operations, task);
       continue;
     }

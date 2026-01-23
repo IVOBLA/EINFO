@@ -33,7 +33,6 @@ export function createInitialState(scenario) {
     reservierungen: [],
     history: [],
     incidents: new Set(),
-    dedupe_keys: taskKeys,
     dedupe: {
       taskKeys,
       protokollKeys: [],
