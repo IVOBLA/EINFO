@@ -345,7 +345,8 @@ export default function createAdminMaintenanceRoutes({ baseDir }) {
     try {
       const result = await chatbotServerStart();
       await syncAiAnalysisLoop();
-      res.json({ ok: true, ...result });
+      const status = await chatbotStatusWithHealth().catch(() => null);
+      res.json({ ok: true, ...result, status });
     } catch (err) {
       console.error("Chatbot server start error:", err);
       res.status(500).json({ ok: false, error: err.message });
@@ -356,7 +357,8 @@ export default function createAdminMaintenanceRoutes({ baseDir }) {
   router.post("/chatbot/server/stop", async (_req, res) => {
     try {
       const result = await chatbotServerStop();
-      res.json(result);
+      const status = await chatbotStatusWithHealth().catch(() => null);
+      res.json({ ...result, status });
     } catch (err) {
       console.error("Chatbot server stop error:", err);
       res.status(500).json({ ok: false, error: err.message });
@@ -368,7 +370,8 @@ export default function createAdminMaintenanceRoutes({ baseDir }) {
     try {
       const result = await workerStart();
       await syncAiAnalysisLoop();
-      res.json({ ok: true, ...result });
+      const status = await chatbotStatusWithHealth().catch(() => null);
+      res.json({ ok: true, ...result, status });
     } catch (err) {
       console.error("Worker start error:", err);
       res.status(500).json({ ok: false, error: err.message });
@@ -379,7 +382,8 @@ export default function createAdminMaintenanceRoutes({ baseDir }) {
   router.post("/chatbot/worker/stop", async (_req, res) => {
     try {
       const result = await workerStop();
-      res.json(result);
+      const status = await chatbotStatusWithHealth().catch(() => null);
+      res.json({ ...result, status });
     } catch (err) {
       console.error("Worker stop error:", err);
       res.status(500).json({ ok: false, error: err.message });

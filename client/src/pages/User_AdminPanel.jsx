@@ -134,6 +134,18 @@ export default function User_AdminPanel() {
   // Chatbot & Worker State
   const [chatbotStatus, setChatbotStatus] = useState({ chatbot: { running: false }, worker: { running: false } });
   const [chatbotLoading, setChatbotLoading] = useState(false);
+  const refreshChatbotStatus = async () => {
+    try {
+      const res = await fetch("/api/user/admin/chatbot/status", { credentials: "include", cache: "no-store" });
+      if (!res.ok) return null;
+      const data = await res.json().catch(() => ({}));
+      if (data.ok === false) return null;
+      setChatbotStatus(data);
+      return data;
+    } catch {
+      return null;
+    }
+  };
 
   // Knowledge State
   const [knowledgeFiles, setKnowledgeFiles] = useState([]);
@@ -369,11 +381,7 @@ export default function User_AdminPanel() {
       } catch (_) {/* optional */}
       // Chatbot-Status laden
       try {
-        const cbRes = await fetch("/api/user/admin/chatbot/status", { credentials: "include", cache: "no-store" });
-        if (cbRes.ok) {
-          const cbData = await cbRes.json();
-          if (cbData.ok !== false) setChatbotStatus(cbData);
-        }
+        await refreshChatbotStatus();
       } catch (_) {/* optional */}
       // Knowledge-Dateien laden
       try {
@@ -1937,11 +1945,7 @@ export default function User_AdminPanel() {
               disabled={chatbotLoading}
               onClick={async () => {
                 setChatbotLoading(true);
-                try {
-                  const res = await fetch("/api/user/admin/chatbot/status", { credentials: "include" });
-                  const js = await res.json();
-                  if (js.ok !== false) setChatbotStatus(js);
-                } catch {}
+                await refreshChatbotStatus();
                 setChatbotLoading(false);
               }}
             >
@@ -1962,8 +1966,9 @@ export default function User_AdminPanel() {
                     const res = await fetch("/api/user/admin/chatbot/server/start", { method: "POST", credentials: "include" });
                     const js = await res.json();
                     if (!res.ok || js.error) throw new Error(js.error || "Start fehlgeschlagen");
-                    const nextStatus = js.status ?? js;
-                    if (nextStatus?.chatbot) setChatbotStatus(nextStatus);
+                    const nextStatus = js.status ?? ((js.chatbot || js.worker) ? js : null);
+                    if (nextStatus) setChatbotStatus(nextStatus);
+                    else await refreshChatbotStatus();
                     setMsg("Chatbot gestartet.");
                   } catch (ex) {
                     setErr(ex.message || "Start fehlgeschlagen");
@@ -1984,8 +1989,9 @@ export default function User_AdminPanel() {
                     const res = await fetch("/api/user/admin/chatbot/server/stop", { method: "POST", credentials: "include" });
                     const js = await res.json();
                     if (!res.ok || js.error) throw new Error(js.error || "Stop fehlgeschlagen");
-                    const nextStatus = js.status ?? js;
-                    if (nextStatus?.chatbot) setChatbotStatus(nextStatus);
+                    const nextStatus = js.status ?? ((js.chatbot || js.worker) ? js : null);
+                    if (nextStatus) setChatbotStatus(nextStatus);
+                    else await refreshChatbotStatus();
                     setMsg("Chatbot gestoppt.");
                   } catch (ex) {
                     setErr(ex.message || "Stop fehlgeschlagen");
@@ -2009,8 +2015,9 @@ export default function User_AdminPanel() {
                     const res = await fetch("/api/user/admin/chatbot/worker/start", { method: "POST", credentials: "include" });
                     const js = await res.json();
                     if (!res.ok || js.error) throw new Error(js.error || "Start fehlgeschlagen");
-                    const nextStatus = js.status ?? js;
-                    if (nextStatus?.worker) setChatbotStatus(nextStatus);
+                    const nextStatus = js.status ?? ((js.chatbot || js.worker) ? js : null);
+                    if (nextStatus) setChatbotStatus(nextStatus);
+                    else await refreshChatbotStatus();
                     setMsg("Worker gestartet.");
                   } catch (ex) {
                     setErr(ex.message || "Start fehlgeschlagen");
@@ -2031,8 +2038,9 @@ export default function User_AdminPanel() {
                     const res = await fetch("/api/user/admin/chatbot/worker/stop", { method: "POST", credentials: "include" });
                     const js = await res.json();
                     if (!res.ok || js.error) throw new Error(js.error || "Stop fehlgeschlagen");
-                    const nextStatus = js.status ?? js;
-                    if (nextStatus?.worker) setChatbotStatus(nextStatus);
+                    const nextStatus = js.status ?? ((js.chatbot || js.worker) ? js : null);
+                    if (nextStatus) setChatbotStatus(nextStatus);
+                    else await refreshChatbotStatus();
                     setMsg("Worker gestoppt.");
                   } catch (ex) {
                     setErr(ex.message || "Stop fehlgeschlagen");
