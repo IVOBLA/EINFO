@@ -122,6 +122,7 @@ export async function chatbotServerStart() {
       CHATBOT_DEBUG: process.env.CHATBOT_DEBUG || "1",
       CHATBOT_PROFILE: process.env.CHATBOT_PROFILE || "llama_8b_gpu",
       CHATBOT_PORT: process.env.CHATBOT_PORT || "3100",
+      CHATBOT_HOST: process.env.CHATBOT_HOST || "0.0.0.0",
     };
 
     chatbotProcess = spawn(process.execPath, [CHATBOT_SERVER_SCRIPT], {
