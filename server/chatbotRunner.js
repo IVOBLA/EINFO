@@ -66,6 +66,37 @@ function processIsAlive(proc) {
   }
 }
 
+export async function waitForChatbotReady({ timeoutMs = 20000, intervalMs = 750 } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const status = chatbotStatus();
+    if (!status.chatbot.running) {
+      return {
+        ok: false,
+        error: "Chatbot-Prozess wurde direkt nach dem Start beendet.",
+        status: await chatbotStatusWithHealth().catch(() => status),
+      };
+    }
+
+    const ready = await checkChatbotHealth();
+    if (ready) {
+      return {
+        ok: true,
+        status: await chatbotStatusWithHealth().catch(() => status),
+      };
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+
+  const status = await chatbotStatusWithHealth().catch(() => chatbotStatus());
+  return {
+    ok: false,
+    error: "Chatbot-Healthcheck innerhalb des Zeitlimits nicht erreichbar.",
+    status,
+  };
+}
+
 // ===================== STATUS =====================
 
 export function chatbotStatus() {

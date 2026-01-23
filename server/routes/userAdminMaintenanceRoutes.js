@@ -14,6 +14,7 @@ import {
   chatbotServerStop,
   workerStart,
   workerStop,
+  waitForChatbotReady,
   startAll,
   stopAll,
   syncAiAnalysisLoop,
@@ -345,8 +346,21 @@ export default function createAdminMaintenanceRoutes({ baseDir }) {
     try {
       const result = await chatbotServerStart();
       await syncAiAnalysisLoop();
-      const status = await chatbotStatusWithHealth().catch(() => null);
-      res.json({ ok: true, ...result, status });
+      const readiness = await waitForChatbotReady();
+      if (!readiness.ok && !readiness.status?.chatbot?.running) {
+        return res.status(500).json({
+          ok: false,
+          error: readiness.error || "Chatbot-Start fehlgeschlagen.",
+          status: readiness.status ?? null,
+        });
+      }
+      const status = readiness.status ?? (await chatbotStatusWithHealth().catch(() => null));
+      res.json({
+        ok: true,
+        ...result,
+        status,
+        warning: readiness.ok ? undefined : readiness.error,
+      });
     } catch (err) {
       console.error("Chatbot server start error:", err);
       res.status(500).json({ ok: false, error: err.message });
