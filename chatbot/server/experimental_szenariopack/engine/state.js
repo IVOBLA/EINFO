@@ -1,5 +1,6 @@
 export function createInitialState(scenario) {
   const { startzustand, ressourcen, fragen_init } = scenario;
+  const taskKeys = new Set();
   return {
     running: false,
     tick: 0,
@@ -32,7 +33,21 @@ export function createInitialState(scenario) {
     reservierungen: [],
     history: [],
     incidents: new Set(),
-    dedupe_keys: new Set(),
+    dedupe_keys: taskKeys,
+    dedupe: {
+      taskKeys,
+      protokollKeys: [],
+      protokollWindow: 20
+    },
+    lastSnapshot: { board: [], aufgaben: [], protokoll: [] },
+    lastCompressedBoard: null,
+    worldLast: null,
+    activeEffects: [],
+    auditTrail: [],
+    fallback: {
+      lastProtocolTick: -Infinity,
+      lastTaskTick: -Infinity
+    },
     pending_user_events: [],
     pending_ops: []
   };

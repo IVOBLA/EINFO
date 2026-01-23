@@ -273,6 +273,34 @@ export function applyTickRules({ scenario, state, tick, pegel, activeRoles }) {
   return operations;
 }
 
+export function applyBaselineRules({ scenario, state, tick, pegel, activeRoles }) {
+  const operations = createEmptyOperations();
+  const basis = scenario.standard?.basis_einsatz;
+  if (basis && !state.incidents.has(basis.humanId)) {
+    addIncident(
+      operations,
+      buildIncident({
+        humanId: basis.humanId,
+        content: basis.content,
+        typ: basis.typ,
+        ort: basis.ort,
+        description: basis.description
+      })
+    );
+    state.incidents.add(basis.humanId);
+  }
+
+  applyThresholds({ scenario, state, pegel, operations, activeRoles });
+  applyStandingOrders({ state, pegel, tick, operations, activeRoles });
+
+  const npcEvents = generateNpcEvents({ scenario, state, tick, pegel, activeRoles });
+  for (const entry of npcEvents) {
+    addProtocol(operations, entry);
+  }
+
+  return operations;
+}
+
 export function applyUserEvent({ scenario, state, nluResult, activeRoles, currentTick }) {
   const operations = createEmptyOperations();
   let replyText = "";
