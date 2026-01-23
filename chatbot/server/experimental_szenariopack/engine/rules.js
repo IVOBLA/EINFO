@@ -283,6 +283,7 @@ export function applyBaselineRules({ scenario, state, tick, pegel, activeRoles }
         description: basis.description
       })
     );
+    state.incidents.add(basis.humanId);
   }
 
   applyThresholds({ scenario, state, pegel, operations, activeRoles });

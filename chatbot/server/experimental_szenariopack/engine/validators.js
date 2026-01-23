@@ -98,6 +98,14 @@ export function dedupeOperations({ ops, state, dedupeWindow = 20 }) {
     }
     if (humanId) {
       seenIncidents.add(humanId);
+
+  operations.board.createIncidentSites = operations.board.createIncidentSites.filter((incident) => {
+    const humanId = incident?.humanId;
+    if (humanId && state.incidents?.has(humanId)) {
+      return false;
+    }
+    if (humanId) {
+      state.incidents.add(humanId);
     }
     return true;
   });
@@ -152,12 +160,30 @@ export function updateDedupeState({ ops, state, dedupeWindow = 20 }) {
   for (const entry of entries) {
     const key = getProtocolKey(entry);
     if (window.includes(key)) continue;
+    if (dedupeState.taskKeys.has(key)) {
+      return false;
+    }
+    dedupeState.taskKeys.add(key);
+    return true;
+  });
+
+  const window = Array.isArray(dedupeState.protokollKeys) ? dedupeState.protokollKeys : [];
+  operations.protokoll.create = operations.protokoll.create.filter((entry) => {
+    const key = getProtocolKey(entry);
+    if (window.includes(key)) {
+      return false;
+    }
     window.push(key);
     while (window.length > dedupeWindow) {
       window.shift();
     }
   }
   dedupeState.protokollKeys = window;
+    return true;
+  });
+  dedupeState.protokollKeys = window;
+
+  return next;
 }
 
 export function applyBudgets({ ops, budgets }) {
