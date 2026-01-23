@@ -1962,7 +1962,8 @@ export default function User_AdminPanel() {
                     const res = await fetch("/api/user/admin/chatbot/server/start", { method: "POST", credentials: "include" });
                     const js = await res.json();
                     if (!res.ok || js.error) throw new Error(js.error || "Start fehlgeschlagen");
-                    if (js.status) setChatbotStatus(js.status);
+                    const nextStatus = js.status ?? js;
+                    if (nextStatus?.chatbot) setChatbotStatus(nextStatus);
                     setMsg("Chatbot gestartet.");
                   } catch (ex) {
                     setErr(ex.message || "Start fehlgeschlagen");
@@ -1983,7 +1984,8 @@ export default function User_AdminPanel() {
                     const res = await fetch("/api/user/admin/chatbot/server/stop", { method: "POST", credentials: "include" });
                     const js = await res.json();
                     if (!res.ok || js.error) throw new Error(js.error || "Stop fehlgeschlagen");
-                    if (js.status) setChatbotStatus(js.status);
+                    const nextStatus = js.status ?? js;
+                    if (nextStatus?.chatbot) setChatbotStatus(nextStatus);
                     setMsg("Chatbot gestoppt.");
                   } catch (ex) {
                     setErr(ex.message || "Stop fehlgeschlagen");
@@ -2007,7 +2009,8 @@ export default function User_AdminPanel() {
                     const res = await fetch("/api/user/admin/chatbot/worker/start", { method: "POST", credentials: "include" });
                     const js = await res.json();
                     if (!res.ok || js.error) throw new Error(js.error || "Start fehlgeschlagen");
-                    if (js.status) setChatbotStatus(js.status);
+                    const nextStatus = js.status ?? js;
+                    if (nextStatus?.worker) setChatbotStatus(nextStatus);
                     setMsg("Worker gestartet.");
                   } catch (ex) {
                     setErr(ex.message || "Start fehlgeschlagen");
@@ -2028,7 +2031,8 @@ export default function User_AdminPanel() {
                     const res = await fetch("/api/user/admin/chatbot/worker/stop", { method: "POST", credentials: "include" });
                     const js = await res.json();
                     if (!res.ok || js.error) throw new Error(js.error || "Stop fehlgeschlagen");
-                    if (js.status) setChatbotStatus(js.status);
+                    const nextStatus = js.status ?? js;
+                    if (nextStatus?.worker) setChatbotStatus(nextStatus);
                     setMsg("Worker gestoppt.");
                   } catch (ex) {
                     setErr(ex.message || "Stop fehlgeschlagen");
