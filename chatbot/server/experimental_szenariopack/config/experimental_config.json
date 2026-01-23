@@ -41,5 +41,74 @@
         "field": "pegel"
       }
     ]
+  },
+  "parameter_beschreibung": {
+    "nlu": {
+      "llm": {
+        "system_prompt": "System-Prompt für den LLM-basierten NLU-Parser. Muss ein JSON-Objekt ohne Zusatztext erzwingen.",
+        "options": {
+          "taskType": "Verarbeitungsmodus für das LLM (z.B. analysis).",
+          "stream": "Ob das LLM gestreamt antwortet (false empfohlen für JSON-Parsing).",
+          "requireJson": "Erzwingt JSON-Antworten vom LLM.",
+          "maxTokens": "Maximale Anzahl Tokens in der LLM-Antwort.",
+          "temperature": "Zufall/Varianz der LLM-Antwort (0 = deterministisch)."
+        }
+      },
+      "heuristic": {
+        "yes_words": "Liste von Bestätigungswörtern für die Heuristik.",
+        "no_words": "Liste von Verneinungswörtern für die Heuristik.",
+        "keywords": {
+          "weather": "Schlüsselwörter zur Erkennung von Wetterabfragen.",
+          "logistics": "Schlüsselwörter zur Erkennung von Logistik-Anfragen.",
+          "command": "Schlüsselwörter zur Erkennung von Befehlen."
+        },
+        "resource": {
+          "regex": {
+            "pattern": "Regex zur Erkennung von Ressourcen-Nennungen.",
+            "flags": "Regex-Flags (z.B. i für case-insensitive)."
+          },
+          "default_label": "Fallback-Bezeichnung für gefundene Ressourcen."
+        },
+        "regex": {
+          "number": {
+            "pattern": "Regex zur Extraktion beliebiger Zahlen.",
+            "flags": "Regex-Flags."
+          },
+          "minutes": {
+            "pattern": "Regex zur Extraktion von Minutenangaben.",
+            "flags": "Regex-Flags."
+          },
+          "pegel_condition": {
+            "pattern": "Regex zur Erkennung einer Pegel-Bedingung (z.B. wenn pegel >= 420).",
+            "flags": "Regex-Flags."
+          },
+          "pegel_extract": {
+            "pattern": "Regex zur Extraktion des Pegelwerts.",
+            "flags": "Regex-Flags."
+          },
+          "action_after_then": {
+            "pattern": "Regex zur Extraktion der Aktion nach 'dann'.",
+            "flags": "Regex-Flags."
+          },
+          "action_after_minutes": {
+            "pattern": "Regex zur Extraktion einer Aktion nach Zeitangabe.",
+            "flags": "Regex-Flags."
+          }
+        }
+      }
+    },
+    "npc_triggers": {
+      "parsers": [
+        {
+          "id": "Eindeutiger Parser-Identifier.",
+          "regex": {
+            "pattern": "Regex zur Extraktion von Trigger-Werten.",
+            "flags": "Regex-Flags."
+          },
+          "operator": "Vergleichsoperator für die Auswertung (z.B. gte).",
+          "field": "Ziel-Feld im Szenariozustand (z.B. pegel)."
+        }
+      ]
+    }
   }
 }

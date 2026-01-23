@@ -117,5 +117,68 @@
       "erwartet": "JA_NEIN",
       "status": "offen"
     }
-  ]
+  ],
+  "parameter_beschreibung": {
+    "metadaten": {
+      "id": "Eindeutige Szenario-ID.",
+      "titel": "Anzeigename des Szenarios.",
+      "beschreibung": "Kurzbeschreibung des Szenarios für UI/Übersicht.",
+      "version": "Szenario-Version (SemVer oder frei).",
+      "autor": "Autor bzw. Herkunft des Szenarios.",
+      "sprache": "Szenario-Sprache (z.B. de)."
+    },
+    "zeit": {
+      "schritt_minuten": "Simulationsschritt in Minuten pro Takt.",
+      "dauer_stunden": "Gesamtdauer der Simulation in Stunden.",
+      "takte": "Gesamtzahl der Takte (sollte schritt_minuten * takte = dauer_stunden*60 entsprechen).",
+      "start_zeit": "ISO-Zeitstempel für den Simulationsstart."
+    },
+    "standard": {
+      "basis_einsatz": {
+        "humanId": "Human-readable Kennung für den Einsatz.",
+        "content": "Kurzbeschreibung des Einsatzes.",
+        "typ": "Einsatztyp (z.B. Hochwasser).",
+        "ort": "Einsatzort/Region.",
+        "description": "Ausführlichere Beschreibung für Kontext."
+      }
+    },
+    "akteure": {
+      "stabsrollen": "Liste interner Stabsrollen.",
+      "externe": "Liste externer Partner/Organisationen.",
+      "aktive_rollen_default": "Standardmäßig aktivierte Rollen (Subset von stabsrollen/externe)."
+    },
+    "welt": {
+      "zonen": "Liste der betroffenen Zonen.",
+      "kritische_objekte": "Kritische Objekte mit Zuordnung zur Zone."
+    },
+    "ressourcen": {
+      "geraete": "Verfügbare Geräte mit Stückzahlen.",
+      "logistik": "Logistische Bestände (z.B. Verpflegung, Kraftstoff)."
+    },
+    "umwelt": {
+      "wetter": {
+        "lage": "Beschreibung der Wetterlage.",
+        "warnung": "Aktive Warnungen."
+      },
+      "messwerte": {
+        "pegel_name": "Bezeichnung der Pegelstation.",
+        "einheit": "Einheit der Pegelwerte."
+      }
+    },
+    "verlauf": {
+      "pegelkurve": "Liste von (takt, pegel_cm) Punkten für den Pegelverlauf."
+    },
+    "npc_agenten": "Liste von NPC-Agenten mit Triggern und Nachrichten.",
+    "regeln": {
+      "tick_regeln": "Regeln, die pro Takt ausgeführt werden.",
+      "zustands_regeln": "Regeln, die auf Zustandsänderungen reagieren.",
+      "user_event_regeln": "Regeln für Nutzerinteraktionen."
+    },
+    "startzustand": {
+      "zone_schweregrade": "Start-Schweregrade pro Zone.",
+      "damm_status": "Initialer Status von Dämmen.",
+      "strom_status": "Initialer Status der Stromversorgung."
+    },
+    "fragen_init": "Initiale offene Fragen/Tasks für den Stab."
+  }
 }
