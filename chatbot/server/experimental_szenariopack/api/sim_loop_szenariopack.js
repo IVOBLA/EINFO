@@ -23,6 +23,7 @@ import {
   dedupeOperations,
   ensureMinimumOperations,
   filterOperationsByRoles,
+  updateDedupeState,
   validateOperations
 } from "../engine/validators.js";
 import { decayEffects, applyEffects } from "../engine/user_effects.js";
@@ -118,12 +119,80 @@ function mergeOperations(a, b) {
   return result;
 }
 
+function normalizeOperationsFromList(list = []) {
+  const container = createEmptyOperations();
+  for (const entry of list) {
+    if (!entry || typeof entry !== "object") continue;
+    const type = String(entry.type || "").toLowerCase();
+    if (type === "board.create" || type === "board.createincidentsite") {
+      container.operations.board.createIncidentSites.push({
+        humanId: entry.humanId || null,
+        content: entry.content || entry.title || "Einsatz",
+        typ: entry.typ || "Einsatz",
+        ort: entry.ort || entry.location || "",
+        description: entry.description || entry.desc || ""
+      });
+    }
+    if (type === "board.update" || type === "board.updateincidentsite") {
+      container.operations.board.updateIncidentSites.push(entry);
+    }
+    if (type === "board.transition" || type === "board.transitionincidentsite") {
+      container.operations.board.transitionIncidentSites.push(entry);
+    }
+    if (type === "aufgaben.create") {
+      container.operations.aufgaben.create.push({
+        title: entry.title || entry.description || "Aufgabe",
+        desc: entry.desc || entry.description || "",
+        priority: entry.priority || "medium",
+        responsible: entry.responsible || null,
+        assignedBy: entry.assignedBy || null,
+        status: entry.status || "open"
+      });
+    }
+    if (type === "aufgaben.update") {
+      container.operations.aufgaben.update.push(entry);
+    }
+    if (type === "protokoll.create") {
+      container.operations.protokoll.create.push({
+        information: entry.information || "",
+        infoTyp: entry.infoTyp || entry.typ || "Info",
+        anvon: entry.anvon || entry.von || null,
+        ergehtAn: entry.ergehtAn || [],
+        richtung: entry.richtung || ""
+      });
+    }
+  }
+  return container;
+}
+
+function normalizeLlMOperations(llmResponse) {
+  const operations = llmResponse?.operations;
+  if (Array.isArray(operations)) {
+    return normalizeOperationsFromList(operations);
+  }
+  if (operations && typeof operations === "object") {
+    const normalized = createEmptyOperations();
+    normalized.operations.board.createIncidentSites =
+      operations.board?.createIncidentSites || operations.board?.create || [];
+    normalized.operations.board.updateIncidentSites =
+      operations.board?.updateIncidentSites || operations.board?.update || [];
+    normalized.operations.board.transitionIncidentSites =
+      operations.board?.transitionIncidentSites || operations.board?.transition || [];
+    normalized.operations.aufgaben.create = operations.aufgaben?.create || [];
+    normalized.operations.aufgaben.update = operations.aufgaben?.update || [];
+    normalized.operations.protokoll.create = operations.protokoll?.create || [];
+    return normalized;
+  }
+  return createEmptyOperations();
+}
+
 function pushAudit(stateRef, entry, maxEntries = 200) {
   stateRef.auditTrail.push(entry);
   if (stateRef.auditTrail.length > maxEntries) {
     stateRef.auditTrail.splice(0, stateRef.auditTrail.length - maxEntries);
   }
 }
+
 
 export function isSimulationRunning() {
   return state.running;
@@ -175,6 +244,13 @@ export async function stepSimulation(options = {}) {
     roles
   );
   const openQuestions = identifyOpenQuestions(protokoll, roles);
+
+  const compressedBoard = compressBoard(board);
+  const compressedAufgaben = compressAufgaben(aufgaben);
+  const compressedProtokoll = compressProtokoll(protokoll);
+
+  decayEffects({ state, currentTick: state.tick });
+
 
   const compressedBoard = compressBoard(board);
   const compressedAufgaben = compressAufgaben(aufgaben);
@@ -258,6 +334,7 @@ export async function stepSimulation(options = {}) {
     activeRoles
   });
 
+  const llmOpsContainer = normalizeLlMOperations(llmResponse);
   const llmOpsContainer = llmResponse?.operations
     ? { operations: llmResponse.operations }
     : createEmptyOperations();
@@ -268,6 +345,25 @@ export async function stepSimulation(options = {}) {
     Array.isArray(llmResponse?.user_effects) && taskDeltaSummary.length > 0
       ? applyEffects({ state, effects: llmResponse.user_effects, currentTick: state.tick })
       : [];
+
+  let guardOps = mergedOperations;
+  const countsBefore = countOperations(guardOps);
+
+  try {
+    validateOperations(guardOps);
+  } catch (error) {
+    logError("Experimental ScenarioPack: Operations JSON ungültig", { error: String(error) });
+    guardOps = createEmptyOperations();
+  }
+
+  guardOps = filterOperationsByRoles(guardOps, activeRoles);
+  guardOps = dedupeOperations({ ops: guardOps, state, dedupeWindow });
+  guardOps = applyBudgets({ ops: guardOps, budgets });
+  ensureMinimumOperations(guardOps, { activeRoles, state, config });
+  updateDedupeState({ ops: guardOps, state, dedupeWindow });
+
+  const countsAfter = countOperations(guardOps);
+
 
   let guardOps = mergedOperations;
   const countsBefore = countOperations(guardOps);
@@ -371,6 +467,7 @@ export async function handleUserFreitext({ role, text }) {
   const deduped = dedupeOperations({ ops: filtered, state, dedupeWindow: config?.ops?.dedupeWindow ?? 20 });
   const budgeted = applyBudgets({ ops: deduped, budgets: config?.ops?.budgets });
   ensureMinimumOperations(budgeted, { activeRoles, state, config });
+  updateDedupeState({ ops: budgeted, state, dedupeWindow: config?.ops?.dedupeWindow ?? 20 });
   const responseOperations = budgeted.operations;
 
   return {

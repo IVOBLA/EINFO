@@ -101,11 +101,7 @@ function applyConfiguredActions({ actions, operations, state, activeRoles, conte
   if (actions.incidents) {
     for (const entry of actions.incidents) {
       const incident = buildIncidentFromConfig(entry, { context });
-      if (incident.humanId && state.incidents.has(incident.humanId)) continue;
       addIncident(operations, incident);
-      if (incident.humanId) {
-        state.incidents.add(incident.humanId);
-      }
     }
   }
   if (actions.questions) {

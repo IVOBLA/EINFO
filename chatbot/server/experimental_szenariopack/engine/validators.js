@@ -87,6 +87,17 @@ export function dedupeOperations({ ops, state, dedupeWindow = 20 }) {
 
   const next = structuredClone(ops);
   const operations = next.operations;
+  const seenIncidents = new Set(state.incidents || []);
+  const seenTaskKeys = new Set(dedupeState.taskKeys || []);
+  const seenProtokoll = Array.isArray(dedupeState.protokollKeys) ? [...dedupeState.protokollKeys] : [];
+
+  operations.board.createIncidentSites = operations.board.createIncidentSites.filter((incident) => {
+    const humanId = incident?.humanId;
+    if (humanId && seenIncidents.has(humanId)) {
+      return false;
+    }
+    if (humanId) {
+      seenIncidents.add(humanId);
 
   operations.board.createIncidentSites = operations.board.createIncidentSites.filter((incident) => {
     const humanId = incident?.humanId;
@@ -101,6 +112,54 @@ export function dedupeOperations({ ops, state, dedupeWindow = 20 }) {
 
   operations.aufgaben.create = operations.aufgaben.create.filter((task) => {
     const key = getTaskKey(task);
+    if (seenTaskKeys.has(key)) {
+      return false;
+    }
+    seenTaskKeys.add(key);
+    return true;
+  });
+
+  operations.protokoll.create = operations.protokoll.create.filter((entry) => {
+    const key = getProtocolKey(entry);
+    if (seenProtokoll.includes(key)) {
+      return false;
+    }
+    seenProtokoll.push(key);
+    while (seenProtokoll.length > dedupeWindow) {
+      seenProtokoll.shift();
+    }
+    return true;
+  });
+
+  return next;
+}
+
+export function updateDedupeState({ ops, state, dedupeWindow = 20 }) {
+  const dedupeState = state.dedupe || {
+    taskKeys: new Set(),
+    protokollKeys: [],
+    protokollWindow: dedupeWindow
+  };
+  dedupeState.protokollWindow = dedupeWindow;
+  state.dedupe = dedupeState;
+
+  const incidents = ops.operations?.board?.createIncidentSites || [];
+  for (const incident of incidents) {
+    if (incident?.humanId) {
+      state.incidents.add(incident.humanId);
+    }
+  }
+
+  const tasks = ops.operations?.aufgaben?.create || [];
+  for (const task of tasks) {
+    dedupeState.taskKeys.add(getTaskKey(task));
+  }
+
+  const entries = ops.operations?.protokoll?.create || [];
+  const window = Array.isArray(dedupeState.protokollKeys) ? dedupeState.protokollKeys : [];
+  for (const entry of entries) {
+    const key = getProtocolKey(entry);
+    if (window.includes(key)) continue;
     if (dedupeState.taskKeys.has(key)) {
       return false;
     }
@@ -118,6 +177,8 @@ export function dedupeOperations({ ops, state, dedupeWindow = 20 }) {
     while (window.length > dedupeWindow) {
       window.shift();
     }
+  }
+  dedupeState.protokollKeys = window;
     return true;
   });
   dedupeState.protokollKeys = window;
