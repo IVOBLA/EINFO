@@ -492,6 +492,46 @@ export function isSimulationRunning() {
 /**
  * REFACTORED: Verwendet jetzt simulationState.start() Methode
  */
+/**
+ * Schreibt scenario_config.json basierend auf dem aktiven Szenario
+ * Wird beim Simulation-Start aufgerufen um die Szenario-Konfiguration
+ * im Admin Panel anzuzeigen.
+ */
+async function writeScenarioConfig(scenario) {
+  if (!scenario || !scenario.scenario_context) return;
+
+  const EINFO_DATA_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../server/data");
+  const SCENARIO_CONFIG_FILE = path.join(EINFO_DATA_DIR, "scenario_config.json");
+
+  const config = {
+    scenarioId: scenario.id || null,
+    artDesEreignisses: scenario.scenario_context.event_type || "Unbekannt",
+    geografischerBereich: scenario.scenario_context.region || "Nicht definiert",
+    zeit: new Date().toISOString(),
+    wetter: scenario.scenario_context.weather || null,
+    infrastruktur: scenario.scenario_context.special_conditions?.join(", ") || null
+  };
+
+  try {
+    await fs.writeFile(
+      SCENARIO_CONFIG_FILE,
+      JSON.stringify(config, null, 2),
+      "utf8"
+    );
+    logInfo("Szenario-Konfiguration geschrieben", {
+      file: SCENARIO_CONFIG_FILE,
+      scenarioId: config.scenarioId,
+      eventType: config.artDesEreignisses,
+      region: config.geografischerBereich
+    });
+  } catch (err) {
+    logError("Fehler beim Schreiben der Szenario-Konfiguration", {
+      error: String(err),
+      file: SCENARIO_CONFIG_FILE
+    });
+  }
+}
+
 export async function startSimulation(scenario = null) {
   // Prüfe ob wir vorhandene Daten haben (um justStarted korrekt zu setzen)
   const snapshotCounts = {
@@ -548,6 +588,12 @@ export async function startSimulation(scenario = null) {
       eventType: scenario.scenario_context?.event_type,
       hasExistingData: !resetState
     });
+
+    // Schreibe Szenario-Konfiguration für Admin Panel
+    // Nur bei frischem Start (resetState=true) oder wenn ein neues Szenario geladen wird
+    if (resetState || !isSameScenario) {
+      await writeScenarioConfig(scenario);
+    }
   }
 
   // Auto-Loop ist bewusst deaktiviert.
@@ -842,11 +888,63 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
       model: llmModel
     });
 
-    const llmOperations = (llmResponse || {}).operations || {
+    // ============================================================
+    // LLM-RESPONSE NORMALISIERUNG
+    // ============================================================
+    // BUGFIX: LLM liefert manchmal operations als Array statt Objekt
+    // Normalisiere die Response um robuste Verarbeitung zu gewährleisten
+    let rawOperations = (llmResponse || {}).operations;
+
+    // Fall 1: operations ist ein Array → leere Operations verwenden
+    if (Array.isArray(rawOperations)) {
+      logError("LLM lieferte operations als Array statt Objekt - verwende leere Operations", {
+        rawOperations: JSON.stringify(rawOperations).slice(0, 200)
+      });
+      rawOperations = null;
+    }
+
+    // Fall 2: operations ist null/undefined → leere Operations
+    const llmOperations = rawOperations || {
       board: { createIncidentSites: [], updateIncidentSites: [] },
       aufgaben: { create: [], update: [] },
       protokoll: { create: [] }
     };
+
+    // Stelle sicher dass alle Sub-Objekte existieren
+    if (!llmOperations.board) {
+      llmOperations.board = { createIncidentSites: [], updateIncidentSites: [] };
+    }
+    if (!llmOperations.board.createIncidentSites) {
+      llmOperations.board.createIncidentSites = [];
+    }
+    if (!llmOperations.board.updateIncidentSites) {
+      llmOperations.board.updateIncidentSites = [];
+    }
+
+    if (!llmOperations.aufgaben) {
+      llmOperations.aufgaben = { create: [], update: [] };
+    }
+    if (!llmOperations.aufgaben.create) {
+      llmOperations.aufgaben.create = [];
+    }
+    if (!llmOperations.aufgaben.update) {
+      llmOperations.aufgaben.update = [];
+    }
+
+    if (!llmOperations.protokoll) {
+      llmOperations.protokoll = { create: [] };
+    }
+    if (!llmOperations.protokoll.create) {
+      llmOperations.protokoll.create = [];
+    }
+
+    logDebug("LLM-Operations normalisiert", {
+      boardCreate: llmOperations.board?.createIncidentSites?.length || 0,
+      boardUpdate: llmOperations.board?.updateIncidentSites?.length || 0,
+      aufgabenCreate: llmOperations.aufgaben?.create?.length || 0,
+      aufgabenUpdate: llmOperations.aufgaben?.update?.length || 0,
+      protokollCreate: llmOperations.protokoll?.create?.length || 0
+    });
 
     // ============================================================
     // OPERATIONS ZUSAMMENFÜHREN: Trigger + LLM

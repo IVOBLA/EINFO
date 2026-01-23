@@ -722,6 +722,10 @@ function resolveProtokollAnvon(op) {
   const candidates = [
     op?.anvon,
     op?.ab,
+    op?.av,
+    op?.von,
+    op?.from,
+    op?.sender,
     op?.r,
     op?.assignedBy,
     op?.responsible,
@@ -736,6 +740,97 @@ function resolveProtokollAnvon(op) {
   }
   // Default bei Statuswechsel oder wenn keine Rolle gefunden
   return "bot";
+}
+
+/**
+ * Sanitisiert Operations-Objekte um häufige LLM-Fehler zu korrigieren
+ * BUGFIX: LLM verwendet manchmal falsche Feldnamen (from/sender statt anvon)
+ */
+function sanitizeOperations(ops) {
+  if (!ops || typeof ops !== "object") return ops;
+
+  // Sanitiere Board-Update-Operations
+  if (ops.board?.updateIncidentSites) {
+    ops.board.updateIncidentSites = ops.board.updateIncidentSites.map((op) => {
+      const sanitized = { ...op };
+
+      // BUGFIX E: LLM verwendet manchmal "id" statt "incidentId"
+      if (op.id && !op.incidentId) {
+        sanitized.incidentId = op.id;
+        delete sanitized.id;
+        log("Board update: id → incidentId normalisiert");
+      }
+
+      return sanitized;
+    });
+  }
+
+  // Sanitiere Aufgaben-Update-Operations
+  if (ops.aufgaben?.update) {
+    ops.aufgaben.update = ops.aufgaben.update.map((op) => {
+      const sanitized = { ...op };
+
+      // BUGFIX E: LLM verwendet manchmal "id" statt "taskId"
+      if (op.id && !op.taskId) {
+        sanitized.taskId = op.id;
+        delete sanitized.id;
+        log("Aufgaben update: id → taskId normalisiert");
+      }
+
+      return sanitized;
+    });
+  }
+
+  // Sanitiere Protokoll-Operations
+  if (ops.protokoll?.create) {
+    ops.protokoll.create = ops.protokoll.create.map((op) => {
+      const sanitized = { ...op };
+
+      // BUGFIX D: LLM verwendet manchmal from/sender statt anvon
+      if (!sanitized.anvon && (op.from || op.sender || op.von || op.av)) {
+        sanitized.anvon = resolveProtokollAnvon(op);
+        log("Protokoll anvon sanitized:", {
+          original: { from: op.from, sender: op.sender, von: op.von, av: op.av },
+          sanitized: sanitized.anvon
+        });
+      }
+
+      // BUGFIX C: Stelle sicher dass anvon nie null ist
+      if (!sanitized.anvon) {
+        sanitized.anvon = "bot";
+        log("Protokoll anvon fehlte - gesetzt auf bot");
+      }
+
+      // BUGFIX: Stelle sicher dass richtung gesetzt ist
+      if (!sanitized.richtung) {
+        sanitized.richtung = "ein";
+      }
+
+      return sanitized;
+    });
+  }
+
+  // Sanitiere Aufgaben-Operations
+  if (ops.aufgaben?.create) {
+    ops.aufgaben.create = ops.aufgaben.create.map((op) => {
+      const sanitized = { ...op };
+
+      // BUGFIX B: assignedBy darf nicht in activeRoles sein
+      // Wenn assignedBy fehlt, setze es auf responsible oder "LtStb"
+      if (!sanitized.assignedBy) {
+        sanitized.assignedBy = sanitized.responsible || "LtStb";
+      }
+
+      // BUGFIX: Stelle sicher dass responsible gesetzt ist
+      if (!sanitized.responsible) {
+        sanitized.responsible = sanitized.assignedBy || "LtStb";
+      }
+
+      return sanitized;
+    });
+  }
+
+  return ops;
 }
 
 function normalizeRecipients(value) {
@@ -1028,6 +1123,10 @@ async function runOnce() {
       success = true;
       // Transform LLM short field names (t, d, o, r, i, ea) to JSON long names (title, desc, etc.)
       let ops = transformLlmOperationsToJson(data.operations || {});
+
+      // BUGFIX: Sanitize operations to fix common LLM errors (anvon=null, wrong field names, etc.)
+      ops = sanitizeOperations(ops);
+
       const scenarioSimulation = scenario?.simulation
         ? normalizeScenarioSimulation(scenario)
         : null;
