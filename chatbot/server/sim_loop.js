@@ -492,6 +492,46 @@ export function isSimulationRunning() {
 /**
  * REFACTORED: Verwendet jetzt simulationState.start() Methode
  */
+/**
+ * Schreibt scenario_config.json basierend auf dem aktiven Szenario
+ * Wird beim Simulation-Start aufgerufen um die Szenario-Konfiguration
+ * im Admin Panel anzuzeigen.
+ */
+async function writeScenarioConfig(scenario) {
+  if (!scenario || !scenario.scenario_context) return;
+
+  const EINFO_DATA_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../server/data");
+  const SCENARIO_CONFIG_FILE = path.join(EINFO_DATA_DIR, "scenario_config.json");
+
+  const config = {
+    scenarioId: scenario.id || null,
+    artDesEreignisses: scenario.scenario_context.event_type || "Unbekannt",
+    geografischerBereich: scenario.scenario_context.region || "Nicht definiert",
+    zeit: new Date().toISOString(),
+    wetter: scenario.scenario_context.weather || null,
+    infrastruktur: scenario.scenario_context.special_conditions?.join(", ") || null
+  };
+
+  try {
+    await fs.writeFile(
+      SCENARIO_CONFIG_FILE,
+      JSON.stringify(config, null, 2),
+      "utf8"
+    );
+    logInfo("Szenario-Konfiguration geschrieben", {
+      file: SCENARIO_CONFIG_FILE,
+      scenarioId: config.scenarioId,
+      eventType: config.artDesEreignisses,
+      region: config.geografischerBereich
+    });
+  } catch (err) {
+    logError("Fehler beim Schreiben der Szenario-Konfiguration", {
+      error: String(err),
+      file: SCENARIO_CONFIG_FILE
+    });
+  }
+}
+
 export async function startSimulation(scenario = null) {
   // Prüfe ob wir vorhandene Daten haben (um justStarted korrekt zu setzen)
   const snapshotCounts = {
@@ -548,6 +588,12 @@ export async function startSimulation(scenario = null) {
       eventType: scenario.scenario_context?.event_type,
       hasExistingData: !resetState
     });
+
+    // Schreibe Szenario-Konfiguration für Admin Panel
+    // Nur bei frischem Start (resetState=true) oder wenn ein neues Szenario geladen wird
+    if (resetState || !isSameScenario) {
+      await writeScenarioConfig(scenario);
+    }
   }
 
   // Auto-Loop ist bewusst deaktiviert.
