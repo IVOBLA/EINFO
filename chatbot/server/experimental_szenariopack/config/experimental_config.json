@@ -42,6 +42,17 @@
       }
     ]
   },
+  "ops": {
+    "budgets": {
+      "protokollCreateMax": 3,
+      "tasksCreateMax": 2,
+      "incidentsCreateMax": 1,
+      "updatesMax": 2
+    },
+    "dedupeWindow": 20,
+    "fallbackCooldownTicks": 3,
+    "fallbackTaskCooldownTicks": 10
+  },
   "parameter_beschreibung": {
     "nlu": {
       "llm": {
@@ -109,6 +120,17 @@
           "field": "Ziel-Feld im Szenariozustand (z.B. pegel)."
         }
       ]
+    },
+    "ops": {
+      "budgets": {
+        "protokollCreateMax": "Maximale Anzahl neuer Protokolleinträge pro Tick.",
+        "tasksCreateMax": "Maximale Anzahl neuer Aufgaben pro Tick.",
+        "incidentsCreateMax": "Maximale Anzahl neuer Einsätze pro Tick.",
+        "updatesMax": "Maximale Anzahl Update-Operationen pro Tick."
+      },
+      "dedupeWindow": "Sliding-Window-Größe für Protokoll-Dedupe.",
+      "fallbackCooldownTicks": "Cooldown in Ticks für Fallback-Protokoll.",
+      "fallbackTaskCooldownTicks": "Cooldown in Ticks für Fallback-Aufgaben."
     }
   }
 }

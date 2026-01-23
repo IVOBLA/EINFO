@@ -101,11 +101,7 @@ function applyConfiguredActions({ actions, operations, state, activeRoles, conte
   if (actions.incidents) {
     for (const entry of actions.incidents) {
       const incident = buildIncidentFromConfig(entry, { context });
-      if (incident.humanId && state.incidents.has(incident.humanId)) continue;
       addIncident(operations, incident);
-      if (incident.humanId) {
-        state.incidents.add(incident.humanId);
-      }
     }
   }
   if (actions.questions) {
@@ -260,6 +256,33 @@ export function applyTickRules({ scenario, state, tick, pegel, activeRoles }) {
       addTask(operations, task);
       continue;
     }
+  }
+
+  applyThresholds({ scenario, state, pegel, operations, activeRoles });
+  applyStandingOrders({ state, pegel, tick, operations, activeRoles });
+
+  const npcEvents = generateNpcEvents({ scenario, state, tick, pegel, activeRoles });
+  for (const entry of npcEvents) {
+    addProtocol(operations, entry);
+  }
+
+  return operations;
+}
+
+export function applyBaselineRules({ scenario, state, tick, pegel, activeRoles }) {
+  const operations = createEmptyOperations();
+  const basis = scenario.standard?.basis_einsatz;
+  if (basis && !state.incidents.has(basis.humanId)) {
+    addIncident(
+      operations,
+      buildIncident({
+        humanId: basis.humanId,
+        content: basis.content,
+        typ: basis.typ,
+        ort: basis.ort,
+        description: basis.description
+      })
+    );
   }
 
   applyThresholds({ scenario, state, pegel, operations, activeRoles });
