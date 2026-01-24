@@ -36,10 +36,12 @@ import {
 const CHATBOT_STEP_URL = "http://127.0.0.1:3100/api/sim/step";
 const CHATBOT_SCENARIO_URL = "http://127.0.0.1:3100/api/sim/scenario";
 const WORKER_INTERVAL_MS = 30000;
+const WORKER_CONFIG_FILE = path.join(process.cwd(), "data", "conf", "worker_config.json");
 let isRunning = false; // <--- NEU
 let workerIntervalId = null; // Store interval ID for cleanup
 let currentWorkerIntervalMs = WORKER_INTERVAL_MS;
 let cachedScenario = null;
+let configCheckIntervalId = null; // Für Config-Datei-Überwachung
 // Pfad zu deinen echten Daten:
 // Wir gehen davon aus, dass du den Worker IMMER aus dem server-Ordner startest:
 //   cd C:\kanban41\server
@@ -153,6 +155,43 @@ async function fetchActiveScenario() {
   } catch (err) {
     log("Fehler beim Laden des aktiven Szenarios:", err?.message || err);
     return null;
+  }
+}
+
+/**
+ * Lädt Worker-Konfiguration aus worker_config.json
+ * Falls Datei nicht existiert, wird Default-Config verwendet
+ */
+async function loadWorkerConfig() {
+  try {
+    const raw = await fsPromises.readFile(WORKER_CONFIG_FILE, "utf8");
+    const config = JSON.parse(raw);
+    return {
+      intervalMs: config.intervalMs || WORKER_INTERVAL_MS,
+      enabled: config.enabled !== false
+    };
+  } catch (err) {
+    // Datei existiert nicht oder ist ungültig - verwende Defaults
+    return {
+      intervalMs: WORKER_INTERVAL_MS,
+      enabled: true
+    };
+  }
+}
+
+/**
+ * Überwacht worker_config.json und passt Intervall an
+ */
+async function checkWorkerConfig() {
+  const config = await loadWorkerConfig();
+
+  if (!config.enabled) {
+    // Worker sollte deaktiviert werden (wird nicht implementiert, da stopWorker() nötig)
+    return;
+  }
+
+  if (config.intervalMs !== currentWorkerIntervalMs) {
+    restartWorkerInterval(config.intervalMs);
   }
 }
 
@@ -431,7 +470,8 @@ async function applyBoardOperations(boardOps, activeRoles, staffRoles) {
       isArea: false,
       areaCardId: null,
       areaColor: null,
-      humanId: null
+      humanId: null,
+      createdBy: "LAWZ" // Default-Anleger für alle Einsätze
     };
 
     boardRaw.columns["neu"].items.push(newItem);
@@ -602,10 +642,10 @@ async function applyAufgabenOperations(taskOps, activeRoles, staffRoles = []) {
     const now = Date.now();
     const nowIso = new Date(now).toISOString();
 
-    // Ersteller bestimmen: assignedBy → responsible → "LtStb"
+    // Ersteller bestimmen: assignedBy → responsible → "LTSTB"
     // Beim Erstellen von Aufgaben durch das LLM muss der Ersteller immer
-    // die Rolle sein, der sie zugeordnet wird, oder "LtStb"
-    const assignedBy = op.assignedBy || op.responsible || "LtStb";
+    // die Rolle sein, der sie zugeordnet wird, oder "LTSTB" (Default)
+    const assignedBy = op.assignedBy || op.responsible || "LTSTB";
 
     const newTask = {
       id,
@@ -625,7 +665,7 @@ async function applyAufgabenOperations(taskOps, activeRoles, staffRoles = []) {
       },
       originProtocolNr: op.linkedProtocolId || null,
       assignedBy: assignedBy,
-      createdBy: "CHATBOT",
+      createdBy: "LTSTB",  // Leiter Technischer Stab (Stabsrolle)
       relatedIncidentId: op.relatedIncidentId || null,
       incidentTitle: null,
       linkedProtocolNrs: op.linkedProtocolId ? [op.linkedProtocolId] : [],
@@ -739,7 +779,7 @@ function resolveProtokollAnvon(op) {
     }
   }
   // Default bei Statuswechsel oder wenn keine Rolle gefunden
-  return "bot";
+  return "LTSTB";
 }
 
 /**
@@ -797,8 +837,8 @@ function sanitizeOperations(ops) {
 
       // BUGFIX C: Stelle sicher dass anvon nie null ist
       if (!sanitized.anvon) {
-        sanitized.anvon = "bot";
-        log("Protokoll anvon fehlte - gesetzt auf bot");
+        sanitized.anvon = "LTSTB";
+        log("Protokoll anvon fehlte - gesetzt auf LTSTB");
       }
 
       // BUGFIX: Stelle sicher dass richtung gesetzt ist
@@ -816,14 +856,14 @@ function sanitizeOperations(ops) {
       const sanitized = { ...op };
 
       // BUGFIX B: assignedBy darf nicht in activeRoles sein
-      // Wenn assignedBy fehlt, setze es auf responsible oder "LtStb"
+      // Wenn assignedBy fehlt, setze es auf responsible oder "LTSTB"
       if (!sanitized.assignedBy) {
-        sanitized.assignedBy = sanitized.responsible || "LtStb";
+        sanitized.assignedBy = sanitized.responsible || "LTSTB";
       }
 
       // BUGFIX: Stelle sicher dass responsible gesetzt ist
       if (!sanitized.responsible) {
-        sanitized.responsible = sanitized.assignedBy || "LtStb";
+        sanitized.responsible = sanitized.assignedBy || "LTSTB";
       }
 
       return sanitized;
@@ -857,6 +897,7 @@ function isBotEntry(entry) {
   const kanalNr = entry?.uebermittlungsart?.kanalNr || "";
   return (
     createdBy === "CHATBOT" ||
+    createdBy === "LTSTB" ||
     createdBy === "simulation-worker" ||
     createdBy === "bot" ||
     kanalNr === "bot" ||
@@ -1013,12 +1054,12 @@ async function applyProtokollOperations(protoOps, activeRoles, staffRoles) {
         {
           ts: now.getTime(),
           action: "create",
-          by: op.originRole || "CHATBOT",
+          by: op.originRole || "LTSTB",
           after: {} // nicht nötig, kann leer bleiben oder minimal
         }
       ],
-      lastBy: op.originRole || "CHATBOT",
-      createdBy: "CHATBOT",
+      lastBy: op.originRole || "LTSTB",
+      createdBy: "LTSTB",  // Leiter Technischer Stab (Stabsrolle)
       zu: ""
     };
 
@@ -1292,18 +1333,29 @@ async function runOnce() {
   }
 }
 
-function startWorker() {
+async function startWorker() {
+  // Lade initiale Config
+  const config = await loadWorkerConfig();
+  currentWorkerIntervalMs = config.intervalMs;
+
   log("Chatbot-Worker gestartet, Intervall:", currentWorkerIntervalMs, "ms");
   runOnce();
   workerIntervalId = setInterval(runOnce, currentWorkerIntervalMs);
+
+  // Starte Config-Überwachung (alle 10 Sekunden)
+  configCheckIntervalId = setInterval(checkWorkerConfig, 10000);
 }
 
 function stopWorker() {
   if (workerIntervalId !== null) {
     clearInterval(workerIntervalId);
     workerIntervalId = null;
-    log("Chatbot-Worker gestoppt");
   }
+  if (configCheckIntervalId !== null) {
+    clearInterval(configCheckIntervalId);
+    configCheckIntervalId = null;
+  }
+  log("Chatbot-Worker gestoppt");
 }
 
 async function bootstrap() {
@@ -1315,7 +1367,7 @@ async function bootstrap() {
     return;
   }
 
-  startWorker();
+  await startWorker();
 }
 
 bootstrap();

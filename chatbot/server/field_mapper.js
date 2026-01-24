@@ -151,7 +151,7 @@ function addProtocolDefaults(entry) {
     // PFLICHTFELDER mit Standardwerten
     datum: entry.datum || now.toISOString().split("T")[0],
     zeit: entry.zeit || now.toTimeString().slice(0, 5),
-    anvon: entry.anvon || "",
+    anvon: entry.anvon || "LTSTB",  // Default: Leiter Technischer Stab (gültige Stabsrolle)
     infoTyp: entry.infoTyp || "Info",
     information: entry.information || "",
 
@@ -206,13 +206,80 @@ function addProtocolDefaults(entry) {
 // ============================================================
 
 /**
+ * Normalisiert das Operations-Format vom LLM.
+ * Das LLM liefert manchmal ein Array-Format statt der erwarteten verschachtelten Struktur:
+ *
+ * Falsches Format (Array):
+ *   { operations: [
+ *     { type: "protokoll.create", ... },
+ *     { type: "board.createIncidentSite", ... }
+ *   ]}
+ *
+ * Korrektes Format (verschachtelt):
+ *   { operations: {
+ *     board: { createIncidentSites: [...] },
+ *     aufgaben: { create: [...] },
+ *     protokoll: { create: [...] }
+ *   }}
+ *
+ * Diese Funktion konvertiert das Array-Format ins verschachtelte Format.
+ *
+ * @param {Object|Array} operations - Die Operations vom LLM
+ * @returns {Object} - Die Operations im verschachtelten Format
+ */
+export function normalizeOperationsFormat(operations) {
+  if (!operations) return operations;
+
+  // Wenn operations ein Array ist, konvertiere es
+  if (Array.isArray(operations)) {
+    const normalized = {
+      board: { createIncidentSites: [], updateIncidentSites: [] },
+      aufgaben: { create: [], update: [] },
+      protokoll: { create: [] }
+    };
+
+    for (const op of operations) {
+      const type = op.type || "";
+
+      // Board operations
+      if (type === "board.createIncidentSite" || type === "board.createIncidentSites") {
+        const { type, ...rest } = op;
+        normalized.board.createIncidentSites.push(rest);
+      } else if (type === "board.updateIncidentSite" || type === "board.updateIncidentSites") {
+        const { type, ...rest } = op;
+        normalized.board.updateIncidentSites.push(rest);
+      }
+      // Aufgaben operations
+      else if (type === "aufgaben.create") {
+        const { type, ...rest } = op;
+        normalized.aufgaben.create.push(rest);
+      } else if (type === "aufgaben.update") {
+        const { type, ...rest } = op;
+        normalized.aufgaben.update.push(rest);
+      }
+      // Protokoll operations
+      else if (type === "protokoll.create") {
+        const { type, ...rest } = op;
+        normalized.protokoll.create.push(rest);
+      }
+    }
+
+    return normalized;
+  }
+
+  // Wenn operations bereits ein Objekt ist, gebe es zurück
+  return operations;
+}
+
+/**
  * Transformiert alle Operations vom LLM-Format ins JSON-Format.
  *
  * Diese Funktion:
- * 1. Wandelt kurze Feldnamen in lange um (auf allen Ebenen)
- * 2. ENTFERNT das Feld "via" überall
- * 3. Fügt Standardwerte zu Protokolleinträgen hinzu
- * 4. Konvertiert verschachtelte "changes"-Objekte in Update-Operations
+ * 1. Normalisiert das Format (Array → verschachtelt)
+ * 2. Wandelt kurze Feldnamen in lange um (auf allen Ebenen)
+ * 3. ENTFERNT das Feld "via" überall
+ * 4. Fügt Standardwerte zu Protokolleinträgen hinzu
+ * 5. Konvertiert verschachtelte "changes"-Objekte in Update-Operations
  *
  * WICHTIG: Update-Operations haben eine verschachtelte "changes"-Struktur:
  *   { id: "...", changes: { t: "...", d: "..." } }
@@ -224,6 +291,9 @@ function addProtocolDefaults(entry) {
  */
 export function transformLlmOperationsToJson(operations) {
   if (!operations) return operations;
+
+  // Schritt 1: Format normalisieren (Array → verschachtelt)
+  operations = normalizeOperationsFormat(operations);
 
   const result = { ...operations };
 
@@ -387,5 +457,6 @@ export const __test__ = {
   EXTERNE_STELLEN,
   MELDESTELLE,
   addProtocolDefaults,
-  normalizeFieldNames
+  normalizeFieldNames,
+  normalizeOperationsFormat
 };

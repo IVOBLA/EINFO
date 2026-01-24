@@ -426,10 +426,23 @@ export async function loadCurrentEinfoData() {
     board: [],
     boardRaw: null, // Originales Board-Objekt mit columns
     disaster: null, // Disaster-Info aus scenario_config.json
+    activeRoles: [], // Aktive Rollen aus roles.json
     loadedAt: Date.now()
   };
 
-  // 0. Szenario-Konfiguration laden für disaster-Objekt
+  // 0. Rollen laden für R5-Filterung
+  try {
+    const rolesFile = path.join(EINFO_DATA_DIR, "roles.json");
+    const raw = await fsPromises.readFile(rolesFile, "utf8");
+    const parsed = JSON.parse(raw);
+    result.activeRoles = Array.isArray(parsed?.roles?.active) ? parsed.roles.active : [];
+  } catch (err) {
+    if (err?.code !== "ENOENT") {
+      logError("Fehler beim Laden der Rollen", { error: String(err) });
+    }
+  }
+
+  // 1. Szenario-Konfiguration laden für disaster-Objekt
   try {
     const raw = await fsPromises.readFile(SCENARIO_CONFIG_FILE, "utf8");
     const scenarioConfig = JSON.parse(raw);
@@ -449,7 +462,7 @@ export async function loadCurrentEinfoData() {
     result.disaster = { type: "unknown", phase: "initial" };
   }
 
-  // 1. Protokolle laden
+  // 2. Protokolle laden
   try {
     const raw = await fsPromises.readFile(PROTOCOL_FILE, "utf8");
     const parsed = JSON.parse(raw);
@@ -461,7 +474,7 @@ export async function loadCurrentEinfoData() {
     }
   }
 
-  // 2. Board/Einsätze laden
+  // 3. Board/Einsätze laden
   try {
     const raw = await fsPromises.readFile(BOARD_FILE, "utf8");
     const parsed = JSON.parse(raw);
@@ -497,7 +510,7 @@ export async function loadCurrentEinfoData() {
     }
   }
 
-  // 3. Aufgaben für alle Rollen laden
+  // 4. Aufgaben für alle Rollen laden
   for (const role of STAFF_ROLES) {
     try {
       const aufgFile = path.join(EINFO_DATA_DIR, `${AUFG_PREFIX}_board_${role}.json`);

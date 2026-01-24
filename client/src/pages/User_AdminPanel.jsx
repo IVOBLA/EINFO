@@ -147,6 +147,11 @@ export default function User_AdminPanel() {
     }
   };
 
+  // Worker Config State
+  const [workerConfig, setWorkerConfig] = useState({ intervalMs: 30000, enabled: true });
+  const [workerConfigDraft, setWorkerConfigDraft] = useState({ intervalSec: "30", enabled: true });
+  const [savingWorkerConfig, setSavingWorkerConfig] = useState(false);
+
   // Knowledge State
   const [knowledgeFiles, setKnowledgeFiles] = useState([]);
   const [knowledgeLoading, setKnowledgeLoading] = useState(false);
@@ -378,6 +383,20 @@ export default function User_AdminPanel() {
       try {
         await loadMailSchedules();
         await loadApiSchedules();
+      } catch (_) {/* optional */}
+      // Worker-Config laden
+      try {
+        const wcRes = await fetch("/api/user/admin/worker/config", { credentials: "include", cache: "no-store" });
+        if (wcRes.ok) {
+          const wcData = await wcRes.json();
+          if (wcData.ok !== false && wcData.config) {
+            setWorkerConfig(wcData.config);
+            setWorkerConfigDraft({
+              intervalSec: String((wcData.config.intervalMs || 30000) / 1000),
+              enabled: wcData.config.enabled !== false
+            });
+          }
+        }
       } catch (_) {/* optional */}
       // Chatbot-Status laden
       try {
@@ -658,6 +677,43 @@ export default function User_AdminPanel() {
   const saveAutoImportInterval = async () => {
     await saveAutoConfig(autoConfigDraft);
   };
+
+  async function saveWorkerConfig() {
+    if (savingWorkerConfig) return;
+    const parsedSec = Number.parseInt(workerConfigDraft.intervalSec, 10);
+    if (!Number.isFinite(parsedSec) || parsedSec < 5) {
+      setErr("Worker-Intervall muss mindestens 5 Sekunden sein.");
+      return;
+    }
+    setErr("");
+    setMsg("");
+    setSavingWorkerConfig(true);
+    try {
+      const res = await fetch("/api/user/admin/worker/config", {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          intervalMs: parsedSec * 1000,
+          enabled: workerConfigDraft.enabled
+        })
+      });
+      const js = await res.json().catch(() => ({}));
+      if (!res.ok || js?.error) throw new Error(js?.error || "Speichern fehlgeschlagen");
+      if (js.config) {
+        setWorkerConfig(js.config);
+        setWorkerConfigDraft({
+          intervalSec: String((js.config.intervalMs || 30000) / 1000),
+          enabled: js.config.enabled !== false
+        });
+      }
+      setMsg(js.message || "Worker-Intervall gespeichert.");
+    } catch (ex) {
+      setErr(ex.message || "Speichern fehlgeschlagen");
+    } finally {
+      setSavingWorkerConfig(false);
+    }
+  }
 
   async function onSaveAnalysisConfig() {
     if (savingAnalysisConfig) return;
@@ -2056,6 +2112,46 @@ export default function User_AdminPanel() {
 
           <div className="text-xs text-gray-500">
             Chatbot-Server (Port 3100) und Simulations-Worker lassen sich getrennt starten/stoppen.
+          </div>
+        </div>
+      </details>
+
+      {/* 8.5) Worker-Intervall Einstellung */}
+      <details className="border rounded p-3">
+        <summary className="cursor-pointer font-medium">Worker-Intervall Einstellung</summary>
+        <div className="mt-3 space-y-3 text-sm">
+          <p className="text-gray-600">
+            Aktuelles Intervall: <strong>{(workerConfig.intervalMs / 1000).toFixed(1)}s</strong>
+            {chatbotStatus.worker?.running && (
+              <span className="ml-2 text-green-600 font-medium">
+                (Worker läuft, Änderung wird in ~10s übernommen)
+              </span>
+            )}
+          </p>
+
+          <div className="flex items-center gap-3">
+            <label className="font-medium">Intervall (Sekunden):</label>
+            <input
+              type="number"
+              min="5"
+              step="1"
+              className="border rounded px-2 py-1 w-24"
+              disabled={locked || savingWorkerConfig}
+              value={workerConfigDraft.intervalSec}
+              onChange={(e) => setWorkerConfigDraft({ ...workerConfigDraft, intervalSec: e.target.value })}
+            />
+            <button
+              type="button"
+              className="px-4 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-60"
+              disabled={locked || savingWorkerConfig}
+              onClick={saveWorkerConfig}
+            >
+              {savingWorkerConfig ? "Speichert..." : "Speichern"}
+            </button>
+          </div>
+
+          <div className="text-xs text-gray-500">
+            Min. 5 Sekunden. Der Worker überwacht die Config-Datei und passt das Intervall automatisch an.
           </div>
         </div>
       </details>
