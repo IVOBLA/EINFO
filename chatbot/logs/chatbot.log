@@ -1,111 +1,501 @@
-{"ts":"2026-01-23T19:44:23.322Z","level":"INFO","msg":"Logfiles vor Simulationsstart gelöscht","extra":{"logDirs":["/home/bfkdo/kanban/chatbot/logs","/home/bfkdo/kanban/server/logs"]}}
-{"ts":"2026-01-23T19:44:23.323Z","level":"INFO","msg":"Simulation gestartet","extra":{"scenarioId":"winter_extremschneefall","startTime":1769197463323}}
-{"ts":"2026-01-23T19:44:23.323Z","level":"INFO","msg":"Simulation mit Szenario gestartet - Details","extra":{"scenarioId":"winter_extremschneefall","title":"Winter-Katastrophe: Extremer Schneefall","eventType":"Winter-Katastrophe","hasExistingData":false}}
-{"ts":"2026-01-23T19:44:26.199Z","level":"INFO","msg":"SSE-Client getrennt","extra":{"clientCount":0}}
-{"ts":"2026-01-23T19:44:26.481Z","level":"INFO","msg":"SSE-Client verbunden","extra":{"clientCount":1}}
-{"ts":"2026-01-23T19:44:44.168Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
-{"ts":"2026-01-23T19:44:44.169Z","level":"DEBUG","msg":"EINFO-Inputs gelesen","extra":{"activeRolesCount":0,"missingRolesCount":0,"boardCount":0,"aufgabenCount":0,"protokollCount":0}}
-{"ts":"2026-01-23T19:44:44.170Z","level":"DEBUG","msg":"ProtocolIndex aufgebaut","extra":{"entries":0,"duration":0,"indices":{"byNr":0,"byRecipient":0,"bySender":0,"byId":0}}}
-{"ts":"2026-01-23T19:44:44.170Z","level":"ERROR","msg":"Kein aktiver Disaster Context - initialisiere automatisch","extra":null}
-{"ts":"2026-01-23T19:44:44.170Z","level":"DEBUG","msg":"Disaster Context gespeichert","extra":{"disasterId":"disaster_1769197484170"}}
-{"ts":"2026-01-23T19:44:44.170Z","level":"INFO","msg":"Disaster Context initialisiert","extra":{"disasterId":"disaster_1769197484170","type":"unspecified"}}
-{"ts":"2026-01-23T19:44:44.171Z","level":"DEBUG","msg":"Disaster Context gespeichert","extra":{"disasterId":"disaster_1769197484170"}}
-{"ts":"2026-01-23T19:44:44.171Z","level":"DEBUG","msg":"Disaster Context aktualisiert","extra":{"boardItems":0,"protokollItems":0,"aufgabenItems":0}}
-{"ts":"2026-01-23T19:44:44.171Z","level":"INFO","msg":"Erster Simulationsschritt: Start-Prompt wird verwendet","extra":null}
-{"ts":"2026-01-23T19:44:44.172Z","level":"DEBUG","msg":"OPS-Prompt aufgebaut","extra":{"systemLen":869,"userLen":5626,"estimatedTokens":1624,"memorySnippets":5}}
-{"ts":"2026-01-23T19:44:44.173Z","level":"DEBUG","msg":"Task-Config ausgewählt","extra":{"taskType":"start","model":"einfo-balanced:latest","temperature":0.1,"maxTokens":4000,"timeout":220000,"numGpu":20}}
-{"ts":"2026-01-23T19:44:44.173Z","level":"DEBUG","msg":"LLM-Call Versuch","extra":{"attempt":1,"maxRetries":3,"phase":"ops","timeout":220000}}
-{"ts":"2026-01-23T19:44:44.173Z","level":"DEBUG","msg":"LLM-Request","extra":{"model":"einfo-balanced:latest","phase":"ops"}}
-{"ts":"2026-01-23T19:48:15.207Z","level":"INFO","msg":"Simulationsschritt","extra":{"source":"worker","hasBoardOps":true,"hasAufgabenOps":true,"hasProtokollOps":true}}
-{"ts":"2026-01-23T19:48:15.208Z","level":"DEBUG","msg":"EventIndexer: Event","extra":{"type":"incident:created","handlers":1}}
-{"ts":"2026-01-23T19:48:15.209Z","level":"INFO","msg":"SessionRAG initialisiert","extra":{"scenarioId":"session_1769197695209"}}
-{"ts":"2026-01-23T19:48:15.233Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
-{"ts":"2026-01-23T19:48:15.233Z","level":"DEBUG","msg":"SessionRAG: Item hinzugefügt","extra":{"id":"incident_undefined","type":"incident","itemCount":1}}
-{"ts":"2026-01-23T19:48:15.241Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
-{"ts":"2026-01-23T19:48:15.241Z","level":"DEBUG","msg":"EventIndexer: Event","extra":{"type":"incident:created","handlers":1}}
-{"ts":"2026-01-23T19:48:15.262Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
-{"ts":"2026-01-23T19:48:15.269Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
-{"ts":"2026-01-23T19:48:15.269Z","level":"DEBUG","msg":"SessionRAG: Item hinzugefügt","extra":{"id":"incident_undefined","type":"incident","itemCount":1}}
-{"ts":"2026-01-23T19:48:15.269Z","level":"DEBUG","msg":"EventIndexer: Event","extra":{"type":"incident:created","handlers":1}}
-{"ts":"2026-01-23T19:48:15.285Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
-{"ts":"2026-01-23T19:48:15.285Z","level":"DEBUG","msg":"SessionRAG: Item hinzugefügt","extra":{"id":"incident_undefined","type":"incident","itemCount":1}}
-{"ts":"2026-01-23T19:48:15.292Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
-{"ts":"2026-01-23T19:48:15.292Z","level":"DEBUG","msg":"EventIndexer: Event","extra":{"type":"incident:created","handlers":1}}
-{"ts":"2026-01-23T19:48:15.308Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
-{"ts":"2026-01-23T19:48:15.314Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
-{"ts":"2026-01-23T19:48:15.314Z","level":"DEBUG","msg":"SessionRAG: Item hinzugefügt","extra":{"id":"incident_undefined","type":"incident","itemCount":1}}
-{"ts":"2026-01-23T19:48:15.314Z","level":"DEBUG","msg":"EventIndexer: Event","extra":{"type":"incident:created","handlers":1}}
-{"ts":"2026-01-23T19:48:15.330Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
-{"ts":"2026-01-23T19:48:15.331Z","level":"DEBUG","msg":"SessionRAG: Item hinzugefügt","extra":{"id":"incident_undefined","type":"incident","itemCount":1}}
-{"ts":"2026-01-23T19:48:15.338Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
-{"ts":"2026-01-23T19:48:15.339Z","level":"DEBUG","msg":"EventIndexer: Event","extra":{"type":"incident:created","handlers":1}}
-{"ts":"2026-01-23T19:48:15.354Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
-{"ts":"2026-01-23T19:48:15.360Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
-{"ts":"2026-01-23T19:48:15.361Z","level":"DEBUG","msg":"SessionRAG: Item hinzugefügt","extra":{"id":"incident_undefined","type":"incident","itemCount":1}}
-{"ts":"2026-01-23T19:48:15.361Z","level":"DEBUG","msg":"EventIndexer: Event","extra":{"type":"task:created","handlers":1}}
-{"ts":"2026-01-23T19:48:15.377Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
-{"ts":"2026-01-23T19:48:15.377Z","level":"DEBUG","msg":"SessionRAG: Item hinzugefügt","extra":{"id":"task_undefined","type":"task","itemCount":2}}
-{"ts":"2026-01-23T19:48:15.377Z","level":"DEBUG","msg":"EventIndexer: Event","extra":{"type":"task:created","handlers":1}}
-{"ts":"2026-01-23T19:48:15.392Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
-{"ts":"2026-01-23T19:48:15.392Z","level":"DEBUG","msg":"SessionRAG: Item hinzugefügt","extra":{"id":"task_undefined","type":"task","itemCount":2}}
-{"ts":"2026-01-23T19:48:15.392Z","level":"DEBUG","msg":"EventIndexer: Event","extra":{"type":"task:created","handlers":1}}
-{"ts":"2026-01-23T19:48:15.405Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
-{"ts":"2026-01-23T19:48:15.406Z","level":"DEBUG","msg":"EventIndexer: Event","extra":{"type":"protocol:entry","handlers":1}}
-{"ts":"2026-01-23T19:48:15.405Z","level":"DEBUG","msg":"SessionRAG: Item hinzugefügt","extra":{"id":"task_undefined","type":"task","itemCount":2}}
-{"ts":"2026-01-23T19:48:15.406Z","level":"DEBUG","msg":"SessionRAG: Leerer Text ignoriert","extra":{"id":"protocol_1769197695406"}}
-{"ts":"2026-01-23T19:48:15.406Z","level":"DEBUG","msg":"EventIndexer: Event","extra":{"type":"protocol:entry","handlers":1}}
-{"ts":"2026-01-23T19:48:15.406Z","level":"DEBUG","msg":"SessionRAG: Leerer Text ignoriert","extra":{"id":"protocol_1769197695406"}}
-{"ts":"2026-01-23T19:48:15.406Z","level":"DEBUG","msg":"EventIndexer: Event","extra":{"type":"protocol:entry","handlers":1}}
-{"ts":"2026-01-23T19:48:15.406Z","level":"DEBUG","msg":"SessionRAG: Leerer Text ignoriert","extra":{"id":"protocol_1769197695406"}}
-{"ts":"2026-01-23T19:48:15.406Z","level":"DEBUG","msg":"RAG-Indizierung abgeschlossen","extra":{"incidents":6,"tasks":3,"protocols":3}}
-{"ts":"2026-01-23T19:48:15.406Z","level":"DEBUG","msg":"Simulationszeit erhöht","extra":{"elapsedMinutes":2,"stepCount":1,"addedMinutes":2}}
-{"ts":"2026-01-23T19:48:15.406Z","level":"DEBUG","msg":"Simulationsschritt abgeschlossen","extra":{"durationMs":211237,"elapsedMinutes":2,"stepCount":1}}
-{"ts":"2026-01-23T19:48:15.425Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
-{"ts":"2026-01-23T19:48:44.217Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
-{"ts":"2026-01-23T19:48:44.218Z","level":"DEBUG","msg":"EINFO-Inputs gelesen","extra":{"activeRolesCount":0,"missingRolesCount":0,"boardCount":6,"aufgabenCount":0,"protokollCount":0}}
-{"ts":"2026-01-23T19:48:44.218Z","level":"DEBUG","msg":"ProtocolIndex aufgebaut","extra":{"entries":0,"duration":0,"indices":{"byNr":0,"byRecipient":0,"bySender":0,"byId":0}}}
-{"ts":"2026-01-23T19:48:44.219Z","level":"INFO","msg":"Disaster Phase geändert","extra":{"from":"initial","to":"escalation"}}
-{"ts":"2026-01-23T19:48:44.219Z","level":"DEBUG","msg":"Disaster Context gespeichert","extra":{"disasterId":"disaster_1769197484170"}}
-{"ts":"2026-01-23T19:48:44.219Z","level":"DEBUG","msg":"Disaster Context aktualisiert","extra":{"boardItems":6,"protokollItems":0,"aufgabenItems":0}}
-{"ts":"2026-01-23T19:48:44.472Z","level":"DEBUG","msg":"Vector-Index (JS) geladen","extra":{"elements":2828,"dim":1024}}
-{"ts":"2026-01-23T19:48:44.489Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
-{"ts":"2026-01-23T19:48:44.495Z","level":"DEBUG","msg":"Vector-Knowledge-Kontext erzeugt","extra":{"length":2498,"parts":3,"topScore":"0.745"}}
-{"ts":"2026-01-23T19:48:44.496Z","level":"DEBUG","msg":"EINFO-Daten geladen","extra":{"protokollCount":0,"aufgabenCount":0,"boardCount":6}}
-{"ts":"2026-01-23T19:48:44.497Z","level":"DEBUG","msg":"Filterregeln geladen","extra":{"version":"1.0.0","ruleCount":5}}
-{"ts":"2026-01-23T19:48:44.497Z","level":"DEBUG","msg":"Fahrzeugdaten geladen","extra":{"vehicleCount":7.5,"totalMannschaft":66}}
-{"ts":"2026-01-23T19:48:44.498Z","level":"DEBUG","msg":"Filterregeln angewendet","extra":{"rulesApplied":["R1_ABSCHNITTE_PRIORITAET","R2_PROTOKOLL_RELEVANZ","R3_TRENDS_ERKENNUNG","R4_RESSOURCEN_STATUS","R5_STABS_FOKUS"],"filtering":{"abschnitte":{"before":0,"after":0,"reason":"Top 5 nach Priority-Score"},"protocol":{"before":0,"after":0,"reason":"Score >= 0.6, max 10 Einträge"},"trends":{"before":"n/a","after":1,"reason":"Trend: escalating (strong)"},"resources":{"before":6,"after":0,"reason":"Auslastung: 0%, Engpass: NEIN","deployed_personnel":0,"total_personnel":66},"incidents":{"before":6,"after":0,"reason":"Nur kritische Einzeleinsätze (max 3)"}}}}
-{"ts":"2026-01-23T19:48:44.498Z","level":"DEBUG","msg":"Context-Fingerprint erstellt","extra":{"disaster_type":"unknown","phase":"initial","total_incidents":6,"utilization":0}}
-{"ts":"2026-01-23T19:48:44.499Z","level":"DEBUG","msg":"OPS-Prompt aufgebaut","extra":{"systemLen":3888,"userLen":15828,"estimatedTokens":4929,"memorySnippets":5}}
-{"ts":"2026-01-23T19:48:44.499Z","level":"DEBUG","msg":"Task-Config ausgewählt","extra":{"taskType":"operations","model":"einfo-balanced:latest","temperature":0.05,"maxTokens":4000,"timeout":300000,"numGpu":20}}
-{"ts":"2026-01-23T19:48:44.499Z","level":"DEBUG","msg":"LLM-Call Versuch","extra":{"attempt":1,"maxRetries":3,"phase":"ops","timeout":300000}}
-{"ts":"2026-01-23T19:48:44.499Z","level":"DEBUG","msg":"LLM-Request","extra":{"model":"einfo-balanced:latest","phase":"ops"}}
-{"ts":"2026-01-23T19:53:22.141Z","level":"INFO","msg":"Simulationsschritt","extra":{"source":"worker","hasBoardOps":false,"hasAufgabenOps":false,"hasProtokollOps":false}}
-{"ts":"2026-01-23T19:53:22.141Z","level":"DEBUG","msg":"RAG-Indizierung abgeschlossen","extra":{"incidents":0,"tasks":0,"protocols":0}}
-{"ts":"2026-01-23T19:53:22.141Z","level":"DEBUG","msg":"Simulationszeit erhöht","extra":{"elapsedMinutes":4,"stepCount":2,"addedMinutes":2}}
-{"ts":"2026-01-23T19:53:22.141Z","level":"DEBUG","msg":"Simulationsschritt abgeschlossen","extra":{"durationMs":277923,"elapsedMinutes":4,"stepCount":2}}
-{"ts":"2026-01-23T19:54:44.256Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
-{"ts":"2026-01-23T19:54:44.259Z","level":"DEBUG","msg":"EINFO-Inputs gelesen","extra":{"activeRolesCount":0,"missingRolesCount":0,"boardCount":6,"aufgabenCount":0,"protokollCount":0}}
-{"ts":"2026-01-23T19:54:44.259Z","level":"DEBUG","msg":"ProtocolIndex aufgebaut","extra":{"entries":0,"duration":0,"indices":{"byNr":0,"byRecipient":0,"bySender":0,"byId":0}}}
-{"ts":"2026-01-23T19:54:44.260Z","level":"DEBUG","msg":"Disaster Context gespeichert","extra":{"disasterId":"disaster_1769197484170"}}
-{"ts":"2026-01-23T19:54:44.260Z","level":"DEBUG","msg":"Disaster Context aktualisiert","extra":{"boardItems":6,"protokollItems":0,"aufgabenItems":0}}
-{"ts":"2026-01-23T19:54:44.264Z","level":"INFO","msg":"Szenario-Trigger ausgeführt","extra":{"condition":{"type":"time_elapsed","minutes":3},"action":"external_message","triggerId":"0_{\"type\":\"time_elapsed\",\"minutes\":3}"}}
-{"ts":"2026-01-23T19:54:44.264Z","level":"INFO","msg":"Szenario-Trigger ausgeführt","extra":{"incidents":0,"protokoll":1,"aufgaben":0}}
-{"ts":"2026-01-23T19:54:44.264Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
-{"ts":"2026-01-23T19:54:44.268Z","level":"DEBUG","msg":"Vector-Knowledge-Kontext erzeugt","extra":{"length":2498,"parts":3,"topScore":"0.745"}}
-{"ts":"2026-01-23T19:54:44.269Z","level":"DEBUG","msg":"EINFO-Daten geladen","extra":{"protokollCount":0,"aufgabenCount":0,"boardCount":6}}
-{"ts":"2026-01-23T19:54:44.269Z","level":"DEBUG","msg":"Filterregeln geladen","extra":{"version":"1.0.0","ruleCount":5}}
-{"ts":"2026-01-23T19:54:44.270Z","level":"DEBUG","msg":"Fahrzeugdaten geladen","extra":{"vehicleCount":7.5,"totalMannschaft":66}}
-{"ts":"2026-01-23T19:54:44.270Z","level":"DEBUG","msg":"Filterregeln angewendet","extra":{"rulesApplied":["R1_ABSCHNITTE_PRIORITAET","R2_PROTOKOLL_RELEVANZ","R3_TRENDS_ERKENNUNG","R4_RESSOURCEN_STATUS","R5_STABS_FOKUS"],"filtering":{"abschnitte":{"before":0,"after":0,"reason":"Top 5 nach Priority-Score"},"protocol":{"before":0,"after":0,"reason":"Score >= 0.6, max 10 Einträge"},"trends":{"before":"n/a","after":1,"reason":"Trend: escalating (strong)"},"resources":{"before":6,"after":0,"reason":"Auslastung: 0%, Engpass: NEIN","deployed_personnel":0,"total_personnel":66},"incidents":{"before":6,"after":0,"reason":"Nur kritische Einzeleinsätze (max 3)"}}}}
-{"ts":"2026-01-23T19:54:44.270Z","level":"DEBUG","msg":"Context-Fingerprint erstellt","extra":{"disaster_type":"unknown","phase":"initial","total_incidents":6,"utilization":0}}
-{"ts":"2026-01-23T19:54:44.271Z","level":"DEBUG","msg":"OPS-Prompt aufgebaut","extra":{"systemLen":3888,"userLen":15828,"estimatedTokens":4929,"memorySnippets":5}}
-{"ts":"2026-01-23T19:54:44.271Z","level":"DEBUG","msg":"Task-Config ausgewählt","extra":{"taskType":"operations","model":"einfo-balanced:latest","temperature":0.05,"maxTokens":4000,"timeout":300000,"numGpu":20}}
-{"ts":"2026-01-23T19:54:44.271Z","level":"DEBUG","msg":"LLM-Call Versuch","extra":{"attempt":1,"maxRetries":3,"phase":"ops","timeout":300000}}
-{"ts":"2026-01-23T19:54:44.271Z","level":"DEBUG","msg":"LLM-Request","extra":{"model":"einfo-balanced:latest","phase":"ops"}}
-{"ts":"2026-01-23T19:59:09.610Z","level":"INFO","msg":"Simulationsschritt","extra":{"source":"worker","hasBoardOps":false,"hasAufgabenOps":false,"hasProtokollOps":true}}
-{"ts":"2026-01-23T19:59:09.611Z","level":"DEBUG","msg":"EventIndexer: Event","extra":{"type":"protocol:entry","handlers":1}}
-{"ts":"2026-01-23T19:59:10.216Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
-{"ts":"2026-01-23T19:59:10.216Z","level":"DEBUG","msg":"SessionRAG: Item hinzugefügt","extra":{"id":"protocol_1769198349611","type":"protocol","itemCount":3}}
-{"ts":"2026-01-23T19:59:10.217Z","level":"DEBUG","msg":"RAG-Indizierung abgeschlossen","extra":{"incidents":0,"tasks":0,"protocols":1}}
-{"ts":"2026-01-23T19:59:10.217Z","level":"DEBUG","msg":"Simulationszeit erhöht","extra":{"elapsedMinutes":6,"stepCount":3,"addedMinutes":2}}
-{"ts":"2026-01-23T19:59:10.217Z","level":"DEBUG","msg":"Simulationsschritt abgeschlossen","extra":{"durationMs":265960,"elapsedMinutes":6,"stepCount":3}}
-{"ts":"2026-01-23T19:59:10.243Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
+{"ts":"2026-01-24T08:30:49.870Z","level":"INFO","msg":"Logfiles vor Simulationsstart gelöscht","extra":{"logDirs":["/home/bfkdo/kanban/chatbot/logs","/home/bfkdo/kanban/server/logs"]}}
+{"ts":"2026-01-24T08:30:49.870Z","level":"INFO","msg":"Simulation gestartet","extra":{"scenarioId":"winter_extremschneefall","startTime":1769243449870}}
+{"ts":"2026-01-24T08:30:49.871Z","level":"INFO","msg":"Simulation mit Szenario gestartet - Details","extra":{"scenarioId":"winter_extremschneefall","title":"Winter-Katastrophe: Extremer Schneefall","eventType":"Winter-Katastrophe","hasExistingData":false}}
+{"ts":"2026-01-24T08:30:49.871Z","level":"INFO","msg":"Szenario-Konfiguration geschrieben","extra":{"file":"/home/bfkdo/kanban/server/data/scenario_config.json","scenarioId":"winter_extremschneefall","eventType":"Winter-Katastrophe","region":"Bezirk Feldkirchen"}}
+{"ts":"2026-01-24T08:35:30.568Z","level":"ERROR","msg":"LLM lieferte operations als Array statt Objekt - verwende leere Operations","extra":{"rawOperations":"[{\"type\":\"protokoll.create\",\"richtung\":\"ein\",\"infoTyp\":\"Rueckmeldung\",\"absender\":\"LtStb\",\"empfaenger\":\"S4\",\"inhalt\":\"Die Ressourcenfrage wurde an die zuständige Behörde weitergeleitet und eine Bestäti"}}
+{"ts":"2026-01-24T08:35:30.568Z","level":"DEBUG","msg":"LLM-Operations normalisiert","extra":{"boardCreate":0,"boardUpdate":0,"aufgabenCreate":0,"aufgabenUpdate":0,"protokollCreate":0}}
+{"ts":"2026-01-24T08:35:30.568Z","level":"INFO","msg":"Simulationsschritt","extra":{"source":"worker","hasBoardOps":false,"hasAufgabenOps":false,"hasProtokollOps":true}}
+{"ts":"2026-01-24T08:35:30.568Z","level":"DEBUG","msg":"EventIndexer: Event","extra":{"type":"protocol:entry","handlers":1}}
+{"ts":"2026-01-24T08:35:30.588Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
+{"ts":"2026-01-24T08:35:30.588Z","level":"DEBUG","msg":"SessionRAG: Item hinzugefügt","extra":{"id":"protocol_1769243730569","type":"protocol","itemCount":4}}
+{"ts":"2026-01-24T08:35:30.588Z","level":"DEBUG","msg":"RAG-Indizierung abgeschlossen","extra":{"incidents":0,"tasks":0,"protocols":1}}
+{"ts":"2026-01-24T08:35:30.588Z","level":"DEBUG","msg":"Simulationszeit erhöht","extra":{"elapsedMinutes":2,"stepCount":1,"addedMinutes":2}}
+{"ts":"2026-01-24T08:35:30.588Z","level":"DEBUG","msg":"Simulationsschritt abgeschlossen","extra":{"durationMs":298140,"elapsedMinutes":2,"stepCount":1}}
+{"ts":"2026-01-24T08:35:30.593Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T08:36:32.471Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T08:36:32.472Z","level":"DEBUG","msg":"EINFO-Inputs gelesen","extra":{"activeRolesCount":0,"missingRolesCount":0,"boardCount":0,"aufgabenCount":0,"protokollCount":1}}
+{"ts":"2026-01-24T08:36:32.472Z","level":"DEBUG","msg":"ProtocolIndex aufgebaut","extra":{"entries":1,"duration":0,"indices":{"byNr":1,"byRecipient":0,"bySender":1,"byId":1}}}
+{"ts":"2026-01-24T08:36:32.473Z","level":"DEBUG","msg":"Disaster Context gespeichert","extra":{"disasterId":"disaster_1769242472258"}}
+{"ts":"2026-01-24T08:36:32.473Z","level":"DEBUG","msg":"Disaster Context aktualisiert","extra":{"boardItems":0,"protokollItems":1,"aufgabenItems":0}}
+{"ts":"2026-01-24T08:36:32.473Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T08:36:32.475Z","level":"DEBUG","msg":"Vector-Knowledge-Kontext erzeugt","extra":{"length":2498,"parts":3,"topScore":"0.748"}}
+{"ts":"2026-01-24T08:36:32.477Z","level":"DEBUG","msg":"EINFO-Daten geladen","extra":{"protokollCount":1,"aufgabenCount":0,"boardCount":0}}
+{"ts":"2026-01-24T08:36:32.477Z","level":"DEBUG","msg":"Filterregeln geladen","extra":{"version":"1.0.0","ruleCount":5}}
+{"ts":"2026-01-24T08:36:32.477Z","level":"DEBUG","msg":"Fahrzeugdaten geladen","extra":{"vehicleCount":7.5,"totalMannschaft":66}}
+{"ts":"2026-01-24T08:36:32.477Z","level":"DEBUG","msg":"Filterregeln angewendet","extra":{"rulesApplied":["R1_ABSCHNITTE_PRIORITAET","R2_PROTOKOLL_RELEVANZ","R3_TRENDS_ERKENNUNG","R4_RESSOURCEN_STATUS","R5_STABS_FOKUS"],"filtering":{"abschnitte":{"before":0,"after":0,"reason":"Top 5 nach Priority-Score"},"protocol":{"before":1,"after":1,"reason":"Score >= 0.6, max 10 Einträge"},"trends":{"before":"n/a","after":1,"reason":"Trend: stable (weak)"},"resources":{"before":0,"after":0,"reason":"Auslastung: 0%, Engpass: NEIN","deployed_personnel":0,"total_personnel":66},"incidents":{"before":0,"after":0,"reason":"Nur kritische Einzeleinsätze (max 3)"}}}}
+{"ts":"2026-01-24T08:36:32.477Z","level":"DEBUG","msg":"Context-Fingerprint erstellt","extra":{"disaster_type":"Winter-Katastrophe","phase":"initial","total_incidents":0,"utilization":0}}
+{"ts":"2026-01-24T08:36:32.478Z","level":"DEBUG","msg":"OPS-Prompt aufgebaut","extra":{"systemLen":4206,"userLen":14928,"estimatedTokens":4784,"memorySnippets":5}}
+{"ts":"2026-01-24T08:36:32.478Z","level":"DEBUG","msg":"Task-Config ausgewählt","extra":{"taskType":"operations","model":"einfo-balanced:latest","temperature":0.02,"maxTokens":4000,"timeout":300000,"numGpu":20}}
+{"ts":"2026-01-24T08:36:32.478Z","level":"DEBUG","msg":"LLM-Call Versuch","extra":{"attempt":1,"maxRetries":3,"phase":"ops","timeout":300000}}
+{"ts":"2026-01-24T08:36:32.478Z","level":"DEBUG","msg":"LLM-Request","extra":{"model":"einfo-balanced:latest","phase":"ops"}}
+{"ts":"2026-01-24T08:40:53.973Z","level":"ERROR","msg":"LLM lieferte operations als Array statt Objekt - verwende leere Operations","extra":{"rawOperations":"[{\"type\":\"protokoll.create\",\"richtung\":\"ein\",\"infoTyp\":\"Rueckmeldung\",\"absender\":\"LtStb\",\"empfaenger\":\"LST\",\"inhalt\":\"Die Anfrage zur Verwendung von Einsatzmitteln wurde an die zuständige Behörde weit"}}
+{"ts":"2026-01-24T08:40:53.974Z","level":"DEBUG","msg":"LLM-Operations normalisiert","extra":{"boardCreate":0,"boardUpdate":0,"aufgabenCreate":0,"aufgabenUpdate":0,"protokollCreate":0}}
+{"ts":"2026-01-24T08:40:53.974Z","level":"INFO","msg":"Simulationsschritt","extra":{"source":"worker","hasBoardOps":false,"hasAufgabenOps":false,"hasProtokollOps":false}}
+{"ts":"2026-01-24T08:40:53.974Z","level":"DEBUG","msg":"RAG-Indizierung abgeschlossen","extra":{"incidents":0,"tasks":0,"protocols":0}}
+{"ts":"2026-01-24T08:40:53.974Z","level":"DEBUG","msg":"Simulationszeit erhöht","extra":{"elapsedMinutes":4,"stepCount":2,"addedMinutes":2}}
+{"ts":"2026-01-24T08:40:53.974Z","level":"DEBUG","msg":"Simulationsschritt abgeschlossen","extra":{"durationMs":261503,"elapsedMinutes":4,"stepCount":2}}
+{"ts":"2026-01-24T08:42:32.473Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T08:42:32.475Z","level":"DEBUG","msg":"EINFO-Inputs gelesen","extra":{"activeRolesCount":0,"missingRolesCount":0,"boardCount":0,"aufgabenCount":0,"protokollCount":1}}
+{"ts":"2026-01-24T08:42:32.475Z","level":"DEBUG","msg":"ProtocolIndex aufgebaut","extra":{"entries":1,"duration":0,"indices":{"byNr":1,"byRecipient":0,"bySender":1,"byId":1}}}
+{"ts":"2026-01-24T08:42:32.476Z","level":"DEBUG","msg":"Disaster Context gespeichert","extra":{"disasterId":"disaster_1769242472258"}}
+{"ts":"2026-01-24T08:42:32.476Z","level":"DEBUG","msg":"Disaster Context aktualisiert","extra":{"boardItems":0,"protokollItems":1,"aufgabenItems":0}}
+{"ts":"2026-01-24T08:42:32.476Z","level":"INFO","msg":"Szenario-Trigger ausgeführt","extra":{"condition":{"type":"time_elapsed","minutes":3},"action":"external_message","triggerId":"0_{\"type\":\"time_elapsed\",\"minutes\":3}"}}
+{"ts":"2026-01-24T08:42:32.476Z","level":"INFO","msg":"Szenario-Trigger ausgeführt","extra":{"incidents":0,"protokoll":1,"aufgaben":0}}
+{"ts":"2026-01-24T08:42:32.477Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T08:42:32.479Z","level":"DEBUG","msg":"Vector-Knowledge-Kontext erzeugt","extra":{"length":2498,"parts":3,"topScore":"0.748"}}
+{"ts":"2026-01-24T08:42:32.480Z","level":"DEBUG","msg":"EINFO-Daten geladen","extra":{"protokollCount":1,"aufgabenCount":0,"boardCount":0}}
+{"ts":"2026-01-24T08:42:32.480Z","level":"DEBUG","msg":"Filterregeln geladen","extra":{"version":"1.0.0","ruleCount":5}}
+{"ts":"2026-01-24T08:42:32.480Z","level":"DEBUG","msg":"Fahrzeugdaten geladen","extra":{"vehicleCount":7.5,"totalMannschaft":66}}
+{"ts":"2026-01-24T08:42:32.481Z","level":"DEBUG","msg":"Filterregeln angewendet","extra":{"rulesApplied":["R1_ABSCHNITTE_PRIORITAET","R2_PROTOKOLL_RELEVANZ","R3_TRENDS_ERKENNUNG","R4_RESSOURCEN_STATUS","R5_STABS_FOKUS"],"filtering":{"abschnitte":{"before":0,"after":0,"reason":"Top 5 nach Priority-Score"},"protocol":{"before":1,"after":1,"reason":"Score >= 0.6, max 10 Einträge"},"trends":{"before":"n/a","after":1,"reason":"Trend: stable (weak)"},"resources":{"before":0,"after":0,"reason":"Auslastung: 0%, Engpass: NEIN","deployed_personnel":0,"total_personnel":66},"incidents":{"before":0,"after":0,"reason":"Nur kritische Einzeleinsätze (max 3)"}}}}
+{"ts":"2026-01-24T08:42:32.481Z","level":"DEBUG","msg":"Context-Fingerprint erstellt","extra":{"disaster_type":"Winter-Katastrophe","phase":"initial","total_incidents":0,"utilization":0}}
+{"ts":"2026-01-24T08:42:32.481Z","level":"DEBUG","msg":"OPS-Prompt aufgebaut","extra":{"systemLen":4206,"userLen":14928,"estimatedTokens":4784,"memorySnippets":5}}
+{"ts":"2026-01-24T08:42:32.481Z","level":"DEBUG","msg":"Task-Config ausgewählt","extra":{"taskType":"operations","model":"einfo-balanced:latest","temperature":0.02,"maxTokens":4000,"timeout":300000,"numGpu":20}}
+{"ts":"2026-01-24T08:42:32.481Z","level":"DEBUG","msg":"LLM-Call Versuch","extra":{"attempt":1,"maxRetries":3,"phase":"ops","timeout":300000}}
+{"ts":"2026-01-24T08:42:32.482Z","level":"DEBUG","msg":"LLM-Request","extra":{"model":"einfo-balanced:latest","phase":"ops"}}
+{"ts":"2026-01-24T08:47:32.483Z","level":"ERROR","msg":"LLM-HTTP-Fehler","extra":{"error":"AbortError: This operation was aborted","phase":"ops"}}
+{"ts":"2026-01-24T08:47:32.484Z","level":"DEBUG","msg":"LLM-Call Retry","extra":{"attempt":1,"maxRetries":3,"delayMs":1000,"nextTimeout":450000,"phase":"ops","error":"AbortError: This operation was aborted"}}
+{"ts":"2026-01-24T08:47:33.485Z","level":"DEBUG","msg":"LLM-Call Versuch","extra":{"attempt":2,"maxRetries":3,"phase":"ops","timeout":450000}}
+{"ts":"2026-01-24T08:47:33.486Z","level":"DEBUG","msg":"LLM-Request","extra":{"model":"einfo-balanced:latest","phase":"ops"}}
+{"ts":"2026-01-24T08:48:32.535Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T08:50:32.545Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T08:52:32.593Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T08:52:34.172Z","level":"ERROR","msg":"LLM-HTTP-Fehler","extra":{"error":"TypeError: fetch failed","phase":"ops"}}
+{"ts":"2026-01-24T08:52:34.172Z","level":"DEBUG","msg":"LLM-Call Retry","extra":{"attempt":2,"maxRetries":3,"delayMs":2000,"nextTimeout":675000,"phase":"ops","error":"TypeError: fetch failed"}}
+{"ts":"2026-01-24T08:52:36.174Z","level":"DEBUG","msg":"LLM-Call Versuch","extra":{"attempt":3,"maxRetries":3,"phase":"ops","timeout":675000}}
+{"ts":"2026-01-24T08:52:36.174Z","level":"DEBUG","msg":"LLM-Request","extra":{"model":"einfo-balanced:latest","phase":"ops"}}
+{"ts":"2026-01-24T08:54:32.665Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T08:56:32.728Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T08:57:36.862Z","level":"ERROR","msg":"LLM-HTTP-Fehler","extra":{"error":"TypeError: fetch failed","phase":"ops"}}
+{"ts":"2026-01-24T08:57:36.862Z","level":"ERROR","msg":"LLM-Call endgültig fehlgeschlagen","extra":{"attempt":3,"maxRetries":3,"phase":"ops","error":"TypeError: fetch failed","retryable":true}}
+{"ts":"2026-01-24T08:57:36.862Z","level":"ERROR","msg":"Fehler beim Simulationsschritt-Endpunkt","extra":{"error":"ReferenceError: stepId is not defined"}}
+{"ts":"2026-01-24T08:58:32.786Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T08:58:32.788Z","level":"DEBUG","msg":"EINFO-Inputs gelesen","extra":{"activeRolesCount":0,"missingRolesCount":0,"boardCount":0,"aufgabenCount":0,"protokollCount":1}}
+{"ts":"2026-01-24T08:58:32.788Z","level":"DEBUG","msg":"ProtocolIndex aufgebaut","extra":{"entries":1,"duration":0,"indices":{"byNr":1,"byRecipient":0,"bySender":1,"byId":1}}}
+{"ts":"2026-01-24T08:58:32.788Z","level":"DEBUG","msg":"Disaster Context gespeichert","extra":{"disasterId":"disaster_1769242472258"}}
+{"ts":"2026-01-24T08:58:32.788Z","level":"DEBUG","msg":"Disaster Context aktualisiert","extra":{"boardItems":0,"protokollItems":1,"aufgabenItems":0}}
+{"ts":"2026-01-24T08:58:32.789Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T08:58:32.791Z","level":"DEBUG","msg":"Vector-Knowledge-Kontext erzeugt","extra":{"length":2498,"parts":3,"topScore":"0.748"}}
+{"ts":"2026-01-24T08:58:32.792Z","level":"DEBUG","msg":"EINFO-Daten geladen","extra":{"protokollCount":1,"aufgabenCount":0,"boardCount":0}}
+{"ts":"2026-01-24T08:58:32.792Z","level":"DEBUG","msg":"Filterregeln geladen","extra":{"version":"1.0.0","ruleCount":5}}
+{"ts":"2026-01-24T08:58:32.792Z","level":"DEBUG","msg":"Fahrzeugdaten geladen","extra":{"vehicleCount":7.5,"totalMannschaft":66}}
+{"ts":"2026-01-24T08:58:32.792Z","level":"DEBUG","msg":"Filterregeln angewendet","extra":{"rulesApplied":["R1_ABSCHNITTE_PRIORITAET","R2_PROTOKOLL_RELEVANZ","R3_TRENDS_ERKENNUNG","R4_RESSOURCEN_STATUS","R5_STABS_FOKUS"],"filtering":{"abschnitte":{"before":0,"after":0,"reason":"Top 5 nach Priority-Score"},"protocol":{"before":1,"after":1,"reason":"Score >= 0.6, max 10 Einträge"},"trends":{"before":"n/a","after":1,"reason":"Trend: stable (weak)"},"resources":{"before":0,"after":0,"reason":"Auslastung: 0%, Engpass: NEIN","deployed_personnel":0,"total_personnel":66},"incidents":{"before":0,"after":0,"reason":"Nur kritische Einzeleinsätze (max 3)"}}}}
+{"ts":"2026-01-24T08:58:32.792Z","level":"DEBUG","msg":"Context-Fingerprint erstellt","extra":{"disaster_type":"Winter-Katastrophe","phase":"initial","total_incidents":0,"utilization":0}}
+{"ts":"2026-01-24T08:58:32.793Z","level":"DEBUG","msg":"OPS-Prompt aufgebaut","extra":{"systemLen":4206,"userLen":14928,"estimatedTokens":4784,"memorySnippets":5}}
+{"ts":"2026-01-24T08:58:32.793Z","level":"DEBUG","msg":"LLM-Call Versuch","extra":{"attempt":1,"maxRetries":3,"phase":"ops","timeout":300000}}
+{"ts":"2026-01-24T08:58:32.793Z","level":"DEBUG","msg":"Task-Config ausgewählt","extra":{"taskType":"operations","model":"einfo-balanced:latest","temperature":0.02,"maxTokens":4000,"timeout":300000,"numGpu":20}}
+{"ts":"2026-01-24T08:58:32.793Z","level":"DEBUG","msg":"LLM-Request","extra":{"model":"einfo-balanced:latest","phase":"ops"}}
+{"ts":"2026-01-24T09:03:15.444Z","level":"ERROR","msg":"LLM lieferte operations als Array statt Objekt - verwende leere Operations","extra":{"rawOperations":"[{\"type\":\"protokoll.create\",\"richtung\":\"ein\",\"infoTyp\":\"Rueckmeldung\",\"absender\":\"ROL_LST\",\"inhalt\":\"Die Anfrage zur Verstärkung der Einsatzkräfte wurde an die zuständige Behörde weitergeleitet und ei"}}
+{"ts":"2026-01-24T09:03:15.444Z","level":"DEBUG","msg":"LLM-Operations normalisiert","extra":{"boardCreate":0,"boardUpdate":0,"aufgabenCreate":0,"aufgabenUpdate":0,"protokollCreate":0}}
+{"ts":"2026-01-24T09:03:15.444Z","level":"INFO","msg":"Simulationsschritt","extra":{"source":"worker","hasBoardOps":false,"hasAufgabenOps":false,"hasProtokollOps":false}}
+{"ts":"2026-01-24T09:03:15.445Z","level":"DEBUG","msg":"RAG-Indizierung abgeschlossen","extra":{"incidents":0,"tasks":0,"protocols":0}}
+{"ts":"2026-01-24T09:03:15.445Z","level":"DEBUG","msg":"Simulationszeit erhöht","extra":{"elapsedMinutes":6,"stepCount":3,"addedMinutes":2}}
+{"ts":"2026-01-24T09:03:15.445Z","level":"DEBUG","msg":"Simulationsschritt abgeschlossen","extra":{"durationMs":282658,"elapsedMinutes":6,"stepCount":3}}
+{"ts":"2026-01-24T09:04:32.803Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:04:32.805Z","level":"DEBUG","msg":"EINFO-Inputs gelesen","extra":{"activeRolesCount":0,"missingRolesCount":0,"boardCount":0,"aufgabenCount":0,"protokollCount":1}}
+{"ts":"2026-01-24T09:04:32.806Z","level":"DEBUG","msg":"ProtocolIndex aufgebaut","extra":{"entries":1,"duration":0,"indices":{"byNr":1,"byRecipient":0,"bySender":1,"byId":1}}}
+{"ts":"2026-01-24T09:04:32.806Z","level":"DEBUG","msg":"Disaster Context gespeichert","extra":{"disasterId":"disaster_1769242472258"}}
+{"ts":"2026-01-24T09:04:32.806Z","level":"DEBUG","msg":"Disaster Context aktualisiert","extra":{"boardItems":0,"protokollItems":1,"aufgabenItems":0}}
+{"ts":"2026-01-24T09:04:32.807Z","level":"INFO","msg":"Szenario-Trigger ausgeführt","extra":{"condition":{"type":"time_elapsed","minutes":5},"action":"external_message","triggerId":"1_{\"type\":\"time_elapsed\",\"minutes\":5}"}}
+{"ts":"2026-01-24T09:04:32.807Z","level":"INFO","msg":"Szenario-Trigger ausgeführt","extra":{"incidents":0,"protokoll":1,"aufgaben":0}}
+{"ts":"2026-01-24T09:04:32.807Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:04:32.809Z","level":"DEBUG","msg":"Vector-Knowledge-Kontext erzeugt","extra":{"length":2498,"parts":3,"topScore":"0.748"}}
+{"ts":"2026-01-24T09:04:32.811Z","level":"DEBUG","msg":"EINFO-Daten geladen","extra":{"protokollCount":1,"aufgabenCount":0,"boardCount":0}}
+{"ts":"2026-01-24T09:04:32.811Z","level":"DEBUG","msg":"Filterregeln geladen","extra":{"version":"1.0.0","ruleCount":5}}
+{"ts":"2026-01-24T09:04:32.811Z","level":"DEBUG","msg":"Fahrzeugdaten geladen","extra":{"vehicleCount":7.5,"totalMannschaft":66}}
+{"ts":"2026-01-24T09:04:32.812Z","level":"DEBUG","msg":"Filterregeln angewendet","extra":{"rulesApplied":["R1_ABSCHNITTE_PRIORITAET","R2_PROTOKOLL_RELEVANZ","R3_TRENDS_ERKENNUNG","R4_RESSOURCEN_STATUS","R5_STABS_FOKUS"],"filtering":{"abschnitte":{"before":0,"after":0,"reason":"Top 5 nach Priority-Score"},"protocol":{"before":1,"after":1,"reason":"Score >= 0.6, max 10 Einträge"},"trends":{"before":"n/a","after":1,"reason":"Trend: stable (weak)"},"resources":{"before":0,"after":0,"reason":"Auslastung: 0%, Engpass: NEIN","deployed_personnel":0,"total_personnel":66},"incidents":{"before":0,"after":0,"reason":"Nur kritische Einzeleinsätze (max 3)"}}}}
+{"ts":"2026-01-24T09:04:32.812Z","level":"DEBUG","msg":"Context-Fingerprint erstellt","extra":{"disaster_type":"Winter-Katastrophe","phase":"initial","total_incidents":0,"utilization":0}}
+{"ts":"2026-01-24T09:04:32.812Z","level":"DEBUG","msg":"OPS-Prompt aufgebaut","extra":{"systemLen":4206,"userLen":14928,"estimatedTokens":4784,"memorySnippets":5}}
+{"ts":"2026-01-24T09:04:32.812Z","level":"DEBUG","msg":"Task-Config ausgewählt","extra":{"taskType":"operations","model":"einfo-balanced:latest","temperature":0.02,"maxTokens":4000,"timeout":300000,"numGpu":20}}
+{"ts":"2026-01-24T09:04:32.812Z","level":"DEBUG","msg":"LLM-Call Versuch","extra":{"attempt":1,"maxRetries":3,"phase":"ops","timeout":300000}}
+{"ts":"2026-01-24T09:04:32.812Z","level":"DEBUG","msg":"LLM-Request","extra":{"model":"einfo-balanced:latest","phase":"ops"}}
+{"ts":"2026-01-24T09:09:32.814Z","level":"ERROR","msg":"LLM-HTTP-Fehler","extra":{"error":"AbortError: This operation was aborted","phase":"ops"}}
+{"ts":"2026-01-24T09:09:32.814Z","level":"DEBUG","msg":"LLM-Call Retry","extra":{"attempt":1,"maxRetries":3,"delayMs":1000,"nextTimeout":450000,"phase":"ops","error":"AbortError: This operation was aborted"}}
+{"ts":"2026-01-24T09:09:33.815Z","level":"DEBUG","msg":"LLM-Call Versuch","extra":{"attempt":2,"maxRetries":3,"phase":"ops","timeout":450000}}
+{"ts":"2026-01-24T09:09:33.815Z","level":"DEBUG","msg":"LLM-Request","extra":{"model":"einfo-balanced:latest","phase":"ops"}}
+{"ts":"2026-01-24T09:10:32.864Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:12:32.930Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:14:32.997Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:14:34.522Z","level":"ERROR","msg":"LLM-HTTP-Fehler","extra":{"error":"TypeError: fetch failed","phase":"ops"}}
+{"ts":"2026-01-24T09:14:34.523Z","level":"DEBUG","msg":"LLM-Call Retry","extra":{"attempt":2,"maxRetries":3,"delayMs":2000,"nextTimeout":675000,"phase":"ops","error":"TypeError: fetch failed"}}
+{"ts":"2026-01-24T09:14:36.524Z","level":"DEBUG","msg":"LLM-Call Versuch","extra":{"attempt":3,"maxRetries":3,"phase":"ops","timeout":675000}}
+{"ts":"2026-01-24T09:14:36.525Z","level":"DEBUG","msg":"LLM-Request","extra":{"model":"einfo-balanced:latest","phase":"ops"}}
+{"ts":"2026-01-24T09:16:33.062Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:18:33.135Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:19:37.228Z","level":"ERROR","msg":"LLM-HTTP-Fehler","extra":{"error":"TypeError: fetch failed","phase":"ops"}}
+{"ts":"2026-01-24T09:19:37.228Z","level":"ERROR","msg":"LLM-Call endgültig fehlgeschlagen","extra":{"attempt":3,"maxRetries":3,"phase":"ops","error":"TypeError: fetch failed","retryable":true}}
+{"ts":"2026-01-24T09:19:37.228Z","level":"ERROR","msg":"Fehler beim Simulationsschritt-Endpunkt","extra":{"error":"ReferenceError: stepId is not defined"}}
+{"ts":"2026-01-24T09:20:33.177Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:20:33.178Z","level":"DEBUG","msg":"EINFO-Inputs gelesen","extra":{"activeRolesCount":0,"missingRolesCount":0,"boardCount":0,"aufgabenCount":0,"protokollCount":1}}
+{"ts":"2026-01-24T09:20:33.179Z","level":"DEBUG","msg":"ProtocolIndex aufgebaut","extra":{"entries":1,"duration":0,"indices":{"byNr":1,"byRecipient":0,"bySender":1,"byId":1}}}
+{"ts":"2026-01-24T09:20:33.179Z","level":"DEBUG","msg":"Disaster Context gespeichert","extra":{"disasterId":"disaster_1769242472258"}}
+{"ts":"2026-01-24T09:20:33.179Z","level":"DEBUG","msg":"Disaster Context aktualisiert","extra":{"boardItems":0,"protokollItems":1,"aufgabenItems":0}}
+{"ts":"2026-01-24T09:20:33.179Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:20:33.181Z","level":"DEBUG","msg":"Vector-Knowledge-Kontext erzeugt","extra":{"length":2498,"parts":3,"topScore":"0.748"}}
+{"ts":"2026-01-24T09:20:33.183Z","level":"DEBUG","msg":"EINFO-Daten geladen","extra":{"protokollCount":1,"aufgabenCount":0,"boardCount":0}}
+{"ts":"2026-01-24T09:20:33.183Z","level":"DEBUG","msg":"Filterregeln geladen","extra":{"version":"1.0.0","ruleCount":5}}
+{"ts":"2026-01-24T09:20:33.183Z","level":"DEBUG","msg":"Fahrzeugdaten geladen","extra":{"vehicleCount":7.5,"totalMannschaft":66}}
+{"ts":"2026-01-24T09:20:33.184Z","level":"DEBUG","msg":"Filterregeln angewendet","extra":{"rulesApplied":["R1_ABSCHNITTE_PRIORITAET","R2_PROTOKOLL_RELEVANZ","R3_TRENDS_ERKENNUNG","R4_RESSOURCEN_STATUS","R5_STABS_FOKUS"],"filtering":{"abschnitte":{"before":0,"after":0,"reason":"Top 5 nach Priority-Score"},"protocol":{"before":1,"after":1,"reason":"Score >= 0.6, max 10 Einträge"},"trends":{"before":"n/a","after":1,"reason":"Trend: stable (weak)"},"resources":{"before":0,"after":0,"reason":"Auslastung: 0%, Engpass: NEIN","deployed_personnel":0,"total_personnel":66},"incidents":{"before":0,"after":0,"reason":"Nur kritische Einzeleinsätze (max 3)"}}}}
+{"ts":"2026-01-24T09:20:33.184Z","level":"DEBUG","msg":"Context-Fingerprint erstellt","extra":{"disaster_type":"Winter-Katastrophe","phase":"initial","total_incidents":0,"utilization":0}}
+{"ts":"2026-01-24T09:20:33.184Z","level":"DEBUG","msg":"Task-Config ausgewählt","extra":{"taskType":"operations","model":"einfo-balanced:latest","temperature":0.02,"maxTokens":4000,"timeout":300000,"numGpu":20}}
+{"ts":"2026-01-24T09:20:33.184Z","level":"DEBUG","msg":"OPS-Prompt aufgebaut","extra":{"systemLen":4206,"userLen":14928,"estimatedTokens":4784,"memorySnippets":5}}
+{"ts":"2026-01-24T09:20:33.184Z","level":"DEBUG","msg":"LLM-Call Versuch","extra":{"attempt":1,"maxRetries":3,"phase":"ops","timeout":300000}}
+{"ts":"2026-01-24T09:20:33.185Z","level":"DEBUG","msg":"LLM-Request","extra":{"model":"einfo-balanced:latest","phase":"ops"}}
+{"ts":"2026-01-24T09:25:23.041Z","level":"ERROR","msg":"LLM lieferte operations als Array statt Objekt - verwende leere Operations","extra":{"rawOperations":"[{\"type\":\"protokoll.create\",\"richtung\":\"ein\",\"infoTyp\":\"Rueckmeldung\",\"absender\":\"LtStb\",\"empfaenger\":\"S4\",\"inhalt\":\"Die Ressourcenfrage wurde an die zuständige Behörde weitergeleitet und eine Bestäti"}}
+{"ts":"2026-01-24T09:25:23.042Z","level":"DEBUG","msg":"LLM-Operations normalisiert","extra":{"boardCreate":0,"boardUpdate":0,"aufgabenCreate":0,"aufgabenUpdate":0,"protokollCreate":0}}
+{"ts":"2026-01-24T09:25:23.042Z","level":"INFO","msg":"Simulationsschritt","extra":{"source":"worker","hasBoardOps":false,"hasAufgabenOps":false,"hasProtokollOps":false}}
+{"ts":"2026-01-24T09:25:23.042Z","level":"DEBUG","msg":"RAG-Indizierung abgeschlossen","extra":{"incidents":0,"tasks":0,"protocols":0}}
+{"ts":"2026-01-24T09:25:23.042Z","level":"DEBUG","msg":"Simulationszeit erhöht","extra":{"elapsedMinutes":8,"stepCount":4,"addedMinutes":2}}
+{"ts":"2026-01-24T09:25:23.042Z","level":"DEBUG","msg":"Simulationsschritt abgeschlossen","extra":{"durationMs":289864,"elapsedMinutes":8,"stepCount":4}}
+{"ts":"2026-01-24T09:26:33.223Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:26:33.224Z","level":"DEBUG","msg":"EINFO-Inputs gelesen","extra":{"activeRolesCount":0,"missingRolesCount":0,"boardCount":0,"aufgabenCount":0,"protokollCount":1}}
+{"ts":"2026-01-24T09:26:33.224Z","level":"DEBUG","msg":"ProtocolIndex aufgebaut","extra":{"entries":1,"duration":0,"indices":{"byNr":1,"byRecipient":0,"bySender":1,"byId":1}}}
+{"ts":"2026-01-24T09:26:33.225Z","level":"DEBUG","msg":"Disaster Context gespeichert","extra":{"disasterId":"disaster_1769242472258"}}
+{"ts":"2026-01-24T09:26:33.225Z","level":"DEBUG","msg":"Disaster Context aktualisiert","extra":{"boardItems":0,"protokollItems":1,"aufgabenItems":0}}
+{"ts":"2026-01-24T09:26:33.226Z","level":"INFO","msg":"Szenario-Trigger ausgeführt","extra":{"condition":{"type":"time_elapsed","minutes":8},"action":"create_protocol","triggerId":"2_{\"type\":\"time_elapsed\",\"minutes\":8}"}}
+{"ts":"2026-01-24T09:26:33.226Z","level":"INFO","msg":"Szenario-Trigger ausgeführt","extra":{"incidents":0,"protokoll":1,"aufgaben":0}}
+{"ts":"2026-01-24T09:26:33.226Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:26:33.228Z","level":"DEBUG","msg":"Vector-Knowledge-Kontext erzeugt","extra":{"length":2498,"parts":3,"topScore":"0.748"}}
+{"ts":"2026-01-24T09:26:33.228Z","level":"DEBUG","msg":"EINFO-Daten geladen","extra":{"protokollCount":1,"aufgabenCount":0,"boardCount":0}}
+{"ts":"2026-01-24T09:26:33.229Z","level":"DEBUG","msg":"Filterregeln geladen","extra":{"version":"1.0.0","ruleCount":5}}
+{"ts":"2026-01-24T09:26:33.229Z","level":"DEBUG","msg":"Fahrzeugdaten geladen","extra":{"vehicleCount":7.5,"totalMannschaft":66}}
+{"ts":"2026-01-24T09:26:33.229Z","level":"DEBUG","msg":"Filterregeln angewendet","extra":{"rulesApplied":["R1_ABSCHNITTE_PRIORITAET","R2_PROTOKOLL_RELEVANZ","R3_TRENDS_ERKENNUNG","R4_RESSOURCEN_STATUS","R5_STABS_FOKUS"],"filtering":{"abschnitte":{"before":0,"after":0,"reason":"Top 5 nach Priority-Score"},"protocol":{"before":1,"after":1,"reason":"Score >= 0.6, max 10 Einträge"},"trends":{"before":"n/a","after":1,"reason":"Trend: stable (weak)"},"resources":{"before":0,"after":0,"reason":"Auslastung: 0%, Engpass: NEIN","deployed_personnel":0,"total_personnel":66},"incidents":{"before":0,"after":0,"reason":"Nur kritische Einzeleinsätze (max 3)"}}}}
+{"ts":"2026-01-24T09:26:33.229Z","level":"DEBUG","msg":"Context-Fingerprint erstellt","extra":{"disaster_type":"Winter-Katastrophe","phase":"initial","total_incidents":0,"utilization":0}}
+{"ts":"2026-01-24T09:26:33.230Z","level":"DEBUG","msg":"OPS-Prompt aufgebaut","extra":{"systemLen":4206,"userLen":14928,"estimatedTokens":4784,"memorySnippets":5}}
+{"ts":"2026-01-24T09:26:33.230Z","level":"DEBUG","msg":"Task-Config ausgewählt","extra":{"taskType":"operations","model":"einfo-balanced:latest","temperature":0.02,"maxTokens":4000,"timeout":300000,"numGpu":20}}
+{"ts":"2026-01-24T09:26:33.230Z","level":"DEBUG","msg":"LLM-Call Versuch","extra":{"attempt":1,"maxRetries":3,"phase":"ops","timeout":300000}}
+{"ts":"2026-01-24T09:26:33.230Z","level":"DEBUG","msg":"LLM-Request","extra":{"model":"einfo-balanced:latest","phase":"ops"}}
+{"ts":"2026-01-24T09:30:33.981Z","level":"ERROR","msg":"LLM lieferte operations als Array statt Objekt - verwende leere Operations","extra":{"rawOperations":"[{\"type\":\"protokoll.create\",\"absender\":\"LST\",\"infoTyp\":\"Rueckmeldung\",\"richtung\":\"ein\",\"text\":\"Die Anfrage zur Verstärkung der Einsatzkräfte wurde an die zuständige Behörde weitergeleitet. Bitte warte"}}
+{"ts":"2026-01-24T09:30:33.981Z","level":"INFO","msg":"Simulationsschritt","extra":{"source":"worker","hasBoardOps":false,"hasAufgabenOps":false,"hasProtokollOps":true}}
+{"ts":"2026-01-24T09:30:33.981Z","level":"DEBUG","msg":"LLM-Operations normalisiert","extra":{"boardCreate":0,"boardUpdate":0,"aufgabenCreate":0,"aufgabenUpdate":0,"protokollCreate":0}}
+{"ts":"2026-01-24T09:30:33.981Z","level":"DEBUG","msg":"EventIndexer: Event","extra":{"type":"protocol:entry","handlers":1}}
+{"ts":"2026-01-24T09:30:34.601Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:30:34.601Z","level":"DEBUG","msg":"SessionRAG: Item hinzugefügt","extra":{"id":"protocol_1769247033981","type":"protocol","itemCount":5}}
+{"ts":"2026-01-24T09:30:34.601Z","level":"DEBUG","msg":"RAG-Indizierung abgeschlossen","extra":{"incidents":0,"tasks":0,"protocols":1}}
+{"ts":"2026-01-24T09:30:34.601Z","level":"DEBUG","msg":"Simulationszeit erhöht","extra":{"elapsedMinutes":10,"stepCount":5,"addedMinutes":2}}
+{"ts":"2026-01-24T09:30:34.601Z","level":"DEBUG","msg":"Simulationsschritt abgeschlossen","extra":{"durationMs":241377,"elapsedMinutes":10,"stepCount":5}}
+{"ts":"2026-01-24T09:30:34.612Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:32:33.344Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:32:33.346Z","level":"DEBUG","msg":"EINFO-Inputs gelesen","extra":{"activeRolesCount":0,"missingRolesCount":0,"boardCount":0,"aufgabenCount":0,"protokollCount":2}}
+{"ts":"2026-01-24T09:32:33.346Z","level":"DEBUG","msg":"ProtocolIndex aufgebaut","extra":{"entries":2,"duration":0,"indices":{"byNr":2,"byRecipient":3,"bySender":2,"byId":2}}}
+{"ts":"2026-01-24T09:32:33.347Z","level":"DEBUG","msg":"Disaster Context gespeichert","extra":{"disasterId":"disaster_1769242472258"}}
+{"ts":"2026-01-24T09:32:33.347Z","level":"DEBUG","msg":"Disaster Context aktualisiert","extra":{"boardItems":0,"protokollItems":2,"aufgabenItems":0}}
+{"ts":"2026-01-24T09:32:33.348Z","level":"INFO","msg":"Szenario-Trigger ausgeführt","extra":{"condition":{"type":"time_elapsed","minutes":10},"action":"external_message","triggerId":"3_{\"type\":\"time_elapsed\",\"minutes\":10}"}}
+{"ts":"2026-01-24T09:32:33.348Z","level":"INFO","msg":"Szenario-Trigger ausgeführt","extra":{"incidents":0,"protokoll":1,"aufgaben":0}}
+{"ts":"2026-01-24T09:32:33.348Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:32:33.349Z","level":"DEBUG","msg":"Vector-Knowledge-Kontext erzeugt","extra":{"length":2498,"parts":3,"topScore":"0.748"}}
+{"ts":"2026-01-24T09:32:33.351Z","level":"DEBUG","msg":"EINFO-Daten geladen","extra":{"protokollCount":2,"aufgabenCount":0,"boardCount":0}}
+{"ts":"2026-01-24T09:32:33.351Z","level":"DEBUG","msg":"Filterregeln geladen","extra":{"version":"1.0.0","ruleCount":5}}
+{"ts":"2026-01-24T09:32:33.351Z","level":"DEBUG","msg":"Fahrzeugdaten geladen","extra":{"vehicleCount":7.5,"totalMannschaft":66}}
+{"ts":"2026-01-24T09:32:33.351Z","level":"DEBUG","msg":"Filterregeln angewendet","extra":{"rulesApplied":["R1_ABSCHNITTE_PRIORITAET","R2_PROTOKOLL_RELEVANZ","R3_TRENDS_ERKENNUNG","R4_RESSOURCEN_STATUS","R5_STABS_FOKUS"],"filtering":{"abschnitte":{"before":0,"after":0,"reason":"Top 5 nach Priority-Score"},"protocol":{"before":2,"after":2,"reason":"Score >= 0.6, max 10 Einträge"},"trends":{"before":"n/a","after":1,"reason":"Trend: stable (weak)"},"resources":{"before":0,"after":0,"reason":"Auslastung: 0%, Engpass: NEIN","deployed_personnel":0,"total_personnel":66},"incidents":{"before":0,"after":0,"reason":"Nur kritische Einzeleinsätze (max 3)"}}}}
+{"ts":"2026-01-24T09:32:33.351Z","level":"DEBUG","msg":"Context-Fingerprint erstellt","extra":{"disaster_type":"Winter-Katastrophe","phase":"initial","total_incidents":0,"utilization":0}}
+{"ts":"2026-01-24T09:32:33.352Z","level":"DEBUG","msg":"OPS-Prompt aufgebaut","extra":{"systemLen":4206,"userLen":15306,"estimatedTokens":4878,"memorySnippets":5}}
+{"ts":"2026-01-24T09:32:33.352Z","level":"DEBUG","msg":"Task-Config ausgewählt","extra":{"taskType":"operations","model":"einfo-balanced:latest","temperature":0.02,"maxTokens":4000,"timeout":300000,"numGpu":20}}
+{"ts":"2026-01-24T09:32:33.352Z","level":"DEBUG","msg":"LLM-Call Versuch","extra":{"attempt":1,"maxRetries":3,"phase":"ops","timeout":300000}}
+{"ts":"2026-01-24T09:32:33.352Z","level":"DEBUG","msg":"LLM-Request","extra":{"model":"einfo-balanced:latest","phase":"ops"}}
+{"ts":"2026-01-24T09:35:58.110Z","level":"ERROR","msg":"LLM lieferte operations als Array statt Objekt - verwende leere Operations","extra":{"rawOperations":"[{\"type\":\"protokoll.create\",\"absender\":\"POL Steuerberg\",\"infoTyp\":\"Rueckmeldung\",\"richtung\":\"ein\",\"text\":\"Die Absperrung der Straße bei der Adresse Mainzstraße 12 in Steuerberg wurde erfolgreich durch"}}
+{"ts":"2026-01-24T09:35:58.111Z","level":"DEBUG","msg":"LLM-Operations normalisiert","extra":{"boardCreate":0,"boardUpdate":0,"aufgabenCreate":0,"aufgabenUpdate":0,"protokollCreate":0}}
+{"ts":"2026-01-24T09:35:58.111Z","level":"DEBUG","msg":"EventIndexer: Event","extra":{"type":"protocol:entry","handlers":1}}
+{"ts":"2026-01-24T09:35:58.111Z","level":"INFO","msg":"Simulationsschritt","extra":{"source":"worker","hasBoardOps":false,"hasAufgabenOps":false,"hasProtokollOps":true}}
+{"ts":"2026-01-24T09:35:58.140Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:35:58.140Z","level":"DEBUG","msg":"SessionRAG: Item hinzugefügt","extra":{"id":"protocol_1769247358111","type":"protocol","itemCount":6}}
+{"ts":"2026-01-24T09:35:58.140Z","level":"DEBUG","msg":"RAG-Indizierung abgeschlossen","extra":{"incidents":0,"tasks":0,"protocols":1}}
+{"ts":"2026-01-24T09:35:58.140Z","level":"DEBUG","msg":"Simulationszeit erhöht","extra":{"elapsedMinutes":12,"stepCount":6,"addedMinutes":2}}
+{"ts":"2026-01-24T09:35:58.140Z","level":"DEBUG","msg":"Simulationsschritt abgeschlossen","extra":{"durationMs":204795,"elapsedMinutes":12,"stepCount":6}}
+{"ts":"2026-01-24T09:35:58.149Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:36:33.374Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:36:33.375Z","level":"DEBUG","msg":"EINFO-Inputs gelesen","extra":{"activeRolesCount":0,"missingRolesCount":0,"boardCount":0,"aufgabenCount":0,"protokollCount":3}}
+{"ts":"2026-01-24T09:36:33.375Z","level":"DEBUG","msg":"ProtocolIndex aufgebaut","extra":{"entries":3,"duration":0,"indices":{"byNr":3,"byRecipient":3,"bySender":3,"byId":3}}}
+{"ts":"2026-01-24T09:36:33.376Z","level":"DEBUG","msg":"Disaster Context gespeichert","extra":{"disasterId":"disaster_1769242472258"}}
+{"ts":"2026-01-24T09:36:33.376Z","level":"DEBUG","msg":"Disaster Context aktualisiert","extra":{"boardItems":0,"protokollItems":3,"aufgabenItems":0}}
+{"ts":"2026-01-24T09:36:33.377Z","level":"INFO","msg":"Szenario-Trigger ausgeführt","extra":{"condition":{"type":"time_elapsed","minutes":12},"action":"external_message","triggerId":"4_{\"type\":\"time_elapsed\",\"minutes\":12}"}}
+{"ts":"2026-01-24T09:36:33.377Z","level":"INFO","msg":"Szenario-Trigger ausgeführt","extra":{"incidents":0,"protokoll":1,"aufgaben":0}}
+{"ts":"2026-01-24T09:36:33.377Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:36:33.379Z","level":"DEBUG","msg":"Vector-Knowledge-Kontext erzeugt","extra":{"length":2498,"parts":3,"topScore":"0.748"}}
+{"ts":"2026-01-24T09:36:33.380Z","level":"DEBUG","msg":"EINFO-Daten geladen","extra":{"protokollCount":3,"aufgabenCount":0,"boardCount":0}}
+{"ts":"2026-01-24T09:36:33.380Z","level":"DEBUG","msg":"Filterregeln geladen","extra":{"version":"1.0.0","ruleCount":5}}
+{"ts":"2026-01-24T09:36:33.380Z","level":"DEBUG","msg":"Fahrzeugdaten geladen","extra":{"vehicleCount":7.5,"totalMannschaft":66}}
+{"ts":"2026-01-24T09:36:33.380Z","level":"DEBUG","msg":"Filterregeln angewendet","extra":{"rulesApplied":["R1_ABSCHNITTE_PRIORITAET","R2_PROTOKOLL_RELEVANZ","R3_TRENDS_ERKENNUNG","R4_RESSOURCEN_STATUS","R5_STABS_FOKUS"],"filtering":{"abschnitte":{"before":0,"after":0,"reason":"Top 5 nach Priority-Score"},"protocol":{"before":3,"after":3,"reason":"Score >= 0.6, max 10 Einträge"},"trends":{"before":"n/a","after":1,"reason":"Trend: stable (weak)"},"resources":{"before":0,"after":0,"reason":"Auslastung: 0%, Engpass: NEIN","deployed_personnel":0,"total_personnel":66},"incidents":{"before":0,"after":0,"reason":"Nur kritische Einzeleinsätze (max 3)"}}}}
+{"ts":"2026-01-24T09:36:33.380Z","level":"DEBUG","msg":"Context-Fingerprint erstellt","extra":{"disaster_type":"Winter-Katastrophe","phase":"initial","total_incidents":0,"utilization":0}}
+{"ts":"2026-01-24T09:36:33.381Z","level":"DEBUG","msg":"OPS-Prompt aufgebaut","extra":{"systemLen":4206,"userLen":15680,"estimatedTokens":4972,"memorySnippets":5}}
+{"ts":"2026-01-24T09:36:33.381Z","level":"DEBUG","msg":"Task-Config ausgewählt","extra":{"taskType":"operations","model":"einfo-balanced:latest","temperature":0.02,"maxTokens":4000,"timeout":300000,"numGpu":20}}
+{"ts":"2026-01-24T09:36:33.381Z","level":"DEBUG","msg":"LLM-Call Versuch","extra":{"attempt":1,"maxRetries":3,"phase":"ops","timeout":300000}}
+{"ts":"2026-01-24T09:36:33.382Z","level":"DEBUG","msg":"LLM-Request","extra":{"model":"einfo-balanced:latest","phase":"ops"}}
+{"ts":"2026-01-24T09:39:47.323Z","level":"ERROR","msg":"LLM lieferte operations als Array statt Objekt - verwende leere Operations","extra":{"rawOperations":"[{\"type\":\"protokoll.create\",\"absender\":\"LST\",\"infoTyp\":\"Rueckmeldung\",\"richtung\":\"ein\",\"text\":\"Die Anfrage zur Bereitstellung von Rettungsbooten wurde an die Wasserwacht weitergeleitet. Erwartet Bestä"}}
+{"ts":"2026-01-24T09:39:47.323Z","level":"DEBUG","msg":"LLM-Operations normalisiert","extra":{"boardCreate":0,"boardUpdate":0,"aufgabenCreate":0,"aufgabenUpdate":0,"protokollCreate":0}}
+{"ts":"2026-01-24T09:39:47.323Z","level":"INFO","msg":"Simulationsschritt","extra":{"source":"worker","hasBoardOps":false,"hasAufgabenOps":false,"hasProtokollOps":true}}
+{"ts":"2026-01-24T09:39:47.323Z","level":"DEBUG","msg":"EventIndexer: Event","extra":{"type":"protocol:entry","handlers":1}}
+{"ts":"2026-01-24T09:39:47.351Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:39:47.351Z","level":"DEBUG","msg":"SessionRAG: Item hinzugefügt","extra":{"id":"protocol_1769247587323","type":"protocol","itemCount":7}}
+{"ts":"2026-01-24T09:39:47.351Z","level":"DEBUG","msg":"RAG-Indizierung abgeschlossen","extra":{"incidents":0,"tasks":0,"protocols":1}}
+{"ts":"2026-01-24T09:39:47.351Z","level":"DEBUG","msg":"Simulationszeit erhöht","extra":{"elapsedMinutes":14,"stepCount":7,"addedMinutes":2}}
+{"ts":"2026-01-24T09:39:47.351Z","level":"DEBUG","msg":"Simulationsschritt abgeschlossen","extra":{"durationMs":193976,"elapsedMinutes":14,"stepCount":7}}
+{"ts":"2026-01-24T09:39:47.354Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:40:33.417Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:40:33.418Z","level":"DEBUG","msg":"EINFO-Inputs gelesen","extra":{"activeRolesCount":0,"missingRolesCount":0,"boardCount":0,"aufgabenCount":0,"protokollCount":4}}
+{"ts":"2026-01-24T09:40:33.418Z","level":"DEBUG","msg":"ProtocolIndex aufgebaut","extra":{"entries":4,"duration":0,"indices":{"byNr":4,"byRecipient":3,"bySender":4,"byId":4}}}
+{"ts":"2026-01-24T09:40:33.419Z","level":"DEBUG","msg":"Disaster Context gespeichert","extra":{"disasterId":"disaster_1769242472258"}}
+{"ts":"2026-01-24T09:40:33.419Z","level":"DEBUG","msg":"Disaster Context aktualisiert","extra":{"boardItems":0,"protokollItems":4,"aufgabenItems":0}}
+{"ts":"2026-01-24T09:40:33.419Z","level":"INFO","msg":"Szenario-Trigger ausgeführt","extra":{"condition":{"type":"time_elapsed","minutes":14},"action":"add_incident","triggerId":"5_{\"type\":\"time_elapsed\",\"minutes\":14}"}}
+{"ts":"2026-01-24T09:40:33.419Z","level":"INFO","msg":"Szenario-Trigger ausgeführt","extra":{"incidents":1,"protokoll":0,"aufgaben":0}}
+{"ts":"2026-01-24T09:40:33.419Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:40:33.421Z","level":"DEBUG","msg":"Vector-Knowledge-Kontext erzeugt","extra":{"length":2498,"parts":3,"topScore":"0.748"}}
+{"ts":"2026-01-24T09:40:33.422Z","level":"DEBUG","msg":"EINFO-Daten geladen","extra":{"protokollCount":4,"aufgabenCount":0,"boardCount":0}}
+{"ts":"2026-01-24T09:40:33.422Z","level":"DEBUG","msg":"Filterregeln geladen","extra":{"version":"1.0.0","ruleCount":5}}
+{"ts":"2026-01-24T09:40:33.423Z","level":"DEBUG","msg":"Fahrzeugdaten geladen","extra":{"vehicleCount":7.5,"totalMannschaft":66}}
+{"ts":"2026-01-24T09:40:33.423Z","level":"DEBUG","msg":"Filterregeln angewendet","extra":{"rulesApplied":["R1_ABSCHNITTE_PRIORITAET","R2_PROTOKOLL_RELEVANZ","R3_TRENDS_ERKENNUNG","R4_RESSOURCEN_STATUS","R5_STABS_FOKUS"],"filtering":{"abschnitte":{"before":0,"after":0,"reason":"Top 5 nach Priority-Score"},"protocol":{"before":4,"after":4,"reason":"Score >= 0.6, max 10 Einträge"},"trends":{"before":"n/a","after":1,"reason":"Trend: stable (weak)"},"resources":{"before":0,"after":0,"reason":"Auslastung: 0%, Engpass: NEIN","deployed_personnel":0,"total_personnel":66},"incidents":{"before":0,"after":0,"reason":"Nur kritische Einzeleinsätze (max 3)"}}}}
+{"ts":"2026-01-24T09:40:33.423Z","level":"DEBUG","msg":"Context-Fingerprint erstellt","extra":{"disaster_type":"Winter-Katastrophe","phase":"initial","total_incidents":0,"utilization":0}}
+{"ts":"2026-01-24T09:40:33.423Z","level":"DEBUG","msg":"OPS-Prompt aufgebaut","extra":{"systemLen":4206,"userLen":16060,"estimatedTokens":5067,"memorySnippets":5}}
+{"ts":"2026-01-24T09:40:33.424Z","level":"DEBUG","msg":"Task-Config ausgewählt","extra":{"taskType":"operations","model":"einfo-balanced:latest","temperature":0.02,"maxTokens":4000,"timeout":300000,"numGpu":20}}
+{"ts":"2026-01-24T09:40:33.424Z","level":"DEBUG","msg":"LLM-Call Versuch","extra":{"attempt":1,"maxRetries":3,"phase":"ops","timeout":300000}}
+{"ts":"2026-01-24T09:40:33.424Z","level":"DEBUG","msg":"LLM-Request","extra":{"model":"einfo-balanced:latest","phase":"ops"}}
+{"ts":"2026-01-24T09:43:59.951Z","level":"DEBUG","msg":"Alte Histogram-Einträge entfernt","extra":{"removed":10}}
+{"ts":"2026-01-24T09:45:27.988Z","level":"ERROR","msg":"LLM lieferte operations als Array statt Objekt - verwende leere Operations","extra":{"rawOperations":"[{\"type\":\"protokoll.create\",\"infoTyp\":\"Rueckmeldung\",\"richtung\":\"ein\",\"absenderId\":\"RK\",\"inhalt\":\"Die Rettungsorganisation bestätigt die Bereitschaft von Sanitätskräften für den Einsatz in Steuerberg."}}
+{"ts":"2026-01-24T09:45:27.988Z","level":"DEBUG","msg":"LLM-Operations normalisiert","extra":{"boardCreate":0,"boardUpdate":0,"aufgabenCreate":0,"aufgabenUpdate":0,"protokollCreate":0}}
+{"ts":"2026-01-24T09:45:27.989Z","level":"INFO","msg":"Simulationsschritt","extra":{"source":"worker","hasBoardOps":true,"hasAufgabenOps":false,"hasProtokollOps":false}}
+{"ts":"2026-01-24T09:45:27.989Z","level":"DEBUG","msg":"EventIndexer: Event","extra":{"type":"incident:created","handlers":1}}
+{"ts":"2026-01-24T09:45:28.013Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:45:28.023Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:45:28.023Z","level":"DEBUG","msg":"SessionRAG: Item hinzugefügt","extra":{"id":"incident_undefined","type":"incident","itemCount":7}}
+{"ts":"2026-01-24T09:45:28.023Z","level":"DEBUG","msg":"RAG-Indizierung abgeschlossen","extra":{"incidents":1,"tasks":0,"protocols":0}}
+{"ts":"2026-01-24T09:45:28.023Z","level":"DEBUG","msg":"Simulationszeit erhöht","extra":{"elapsedMinutes":16,"stepCount":8,"addedMinutes":2}}
+{"ts":"2026-01-24T09:45:28.023Z","level":"DEBUG","msg":"Simulationsschritt abgeschlossen","extra":{"durationMs":294605,"elapsedMinutes":16,"stepCount":8}}
+{"ts":"2026-01-24T09:45:28.042Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:46:33.466Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:46:33.469Z","level":"DEBUG","msg":"EINFO-Inputs gelesen","extra":{"activeRolesCount":0,"missingRolesCount":0,"boardCount":1,"aufgabenCount":0,"protokollCount":4}}
+{"ts":"2026-01-24T09:46:33.469Z","level":"DEBUG","msg":"ProtocolIndex aufgebaut","extra":{"entries":4,"duration":0,"indices":{"byNr":4,"byRecipient":3,"bySender":4,"byId":4}}}
+{"ts":"2026-01-24T09:46:33.469Z","level":"INFO","msg":"Disaster Phase geändert","extra":{"from":"initial","to":"escalation"}}
+{"ts":"2026-01-24T09:46:33.470Z","level":"DEBUG","msg":"Disaster Context gespeichert","extra":{"disasterId":"disaster_1769242472258"}}
+{"ts":"2026-01-24T09:46:33.470Z","level":"DEBUG","msg":"Disaster Context aktualisiert","extra":{"boardItems":1,"protokollItems":4,"aufgabenItems":0}}
+{"ts":"2026-01-24T09:46:33.471Z","level":"INFO","msg":"Szenario-Trigger ausgeführt","extra":{"condition":{"type":"time_elapsed","minutes":16},"action":"external_message","triggerId":"6_{\"type\":\"time_elapsed\",\"minutes\":16}"}}
+{"ts":"2026-01-24T09:46:33.471Z","level":"INFO","msg":"Szenario-Trigger ausgeführt","extra":{"incidents":0,"protokoll":1,"aufgaben":0}}
+{"ts":"2026-01-24T09:46:33.471Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:46:33.473Z","level":"DEBUG","msg":"Vector-Knowledge-Kontext erzeugt","extra":{"length":2498,"parts":3,"topScore":"0.748"}}
+{"ts":"2026-01-24T09:46:33.473Z","level":"DEBUG","msg":"EINFO-Daten geladen","extra":{"protokollCount":4,"aufgabenCount":0,"boardCount":1}}
+{"ts":"2026-01-24T09:46:33.473Z","level":"DEBUG","msg":"Filterregeln geladen","extra":{"version":"1.0.0","ruleCount":5}}
+{"ts":"2026-01-24T09:46:33.474Z","level":"DEBUG","msg":"Fahrzeugdaten geladen","extra":{"vehicleCount":7.5,"totalMannschaft":66}}
+{"ts":"2026-01-24T09:46:33.474Z","level":"DEBUG","msg":"Filterregeln angewendet","extra":{"rulesApplied":["R1_ABSCHNITTE_PRIORITAET","R2_PROTOKOLL_RELEVANZ","R3_TRENDS_ERKENNUNG","R4_RESSOURCEN_STATUS","R5_STABS_FOKUS"],"filtering":{"abschnitte":{"before":0,"after":0,"reason":"Top 5 nach Priority-Score"},"protocol":{"before":4,"after":4,"reason":"Score >= 0.6, max 10 Einträge"},"trends":{"before":"n/a","after":1,"reason":"Trend: escalating (strong)"},"resources":{"before":1,"after":0,"reason":"Auslastung: 0%, Engpass: NEIN","deployed_personnel":0,"total_personnel":66},"incidents":{"before":1,"after":0,"reason":"Nur kritische Einzeleinsätze (max 3)"}}}}
+{"ts":"2026-01-24T09:46:33.474Z","level":"DEBUG","msg":"Context-Fingerprint erstellt","extra":{"disaster_type":"Winter-Katastrophe","phase":"escalation","total_incidents":1,"utilization":0}}
+{"ts":"2026-01-24T09:46:33.475Z","level":"DEBUG","msg":"OPS-Prompt aufgebaut","extra":{"systemLen":4206,"userLen":16440,"estimatedTokens":5162,"memorySnippets":5}}
+{"ts":"2026-01-24T09:46:33.475Z","level":"DEBUG","msg":"Task-Config ausgewählt","extra":{"taskType":"operations","model":"einfo-balanced:latest","temperature":0.02,"maxTokens":4000,"timeout":300000,"numGpu":20}}
+{"ts":"2026-01-24T09:46:33.475Z","level":"DEBUG","msg":"LLM-Call Versuch","extra":{"attempt":1,"maxRetries":3,"phase":"ops","timeout":300000}}
+{"ts":"2026-01-24T09:46:33.475Z","level":"DEBUG","msg":"LLM-Request","extra":{"model":"einfo-balanced:latest","phase":"ops"}}
+{"ts":"2026-01-24T09:50:41.253Z","level":"ERROR","msg":"LLM lieferte operations als Array statt Objekt - verwende leere Operations","extra":{"rawOperations":"[{\"type\":\"protokoll.create\",\"infoTyp\":\"Rueckmeldung\",\"richtung\":\"ein\",\"absenderId\":\"RK\",\"inhalt\":\"Die Rettungsorganisation bestätigt die Bereitschaft von Sanitätseinheiten für den Einsatz in der betro"}}
+{"ts":"2026-01-24T09:50:41.253Z","level":"DEBUG","msg":"LLM-Operations normalisiert","extra":{"boardCreate":0,"boardUpdate":0,"aufgabenCreate":0,"aufgabenUpdate":0,"protokollCreate":0}}
+{"ts":"2026-01-24T09:50:41.253Z","level":"INFO","msg":"Simulationsschritt","extra":{"source":"worker","hasBoardOps":false,"hasAufgabenOps":false,"hasProtokollOps":true}}
+{"ts":"2026-01-24T09:50:41.254Z","level":"DEBUG","msg":"EventIndexer: Event","extra":{"type":"protocol:entry","handlers":1}}
+{"ts":"2026-01-24T09:50:41.271Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:50:41.271Z","level":"DEBUG","msg":"SessionRAG: Item hinzugefügt","extra":{"id":"protocol_1769248241254","type":"protocol","itemCount":8}}
+{"ts":"2026-01-24T09:50:41.271Z","level":"DEBUG","msg":"RAG-Indizierung abgeschlossen","extra":{"incidents":0,"tasks":0,"protocols":1}}
+{"ts":"2026-01-24T09:50:41.271Z","level":"DEBUG","msg":"Simulationsschritt abgeschlossen","extra":{"durationMs":247803,"elapsedMinutes":18,"stepCount":9}}
+{"ts":"2026-01-24T09:50:41.271Z","level":"DEBUG","msg":"Simulationszeit erhöht","extra":{"elapsedMinutes":18,"stepCount":9,"addedMinutes":2}}
+{"ts":"2026-01-24T09:50:41.298Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:52:33.560Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:52:33.561Z","level":"DEBUG","msg":"EINFO-Inputs gelesen","extra":{"activeRolesCount":0,"missingRolesCount":0,"boardCount":1,"aufgabenCount":0,"protokollCount":5}}
+{"ts":"2026-01-24T09:52:33.562Z","level":"DEBUG","msg":"ProtocolIndex aufgebaut","extra":{"entries":5,"duration":0,"indices":{"byNr":5,"byRecipient":3,"bySender":5,"byId":5}}}
+{"ts":"2026-01-24T09:52:33.562Z","level":"DEBUG","msg":"Disaster Context aktualisiert","extra":{"boardItems":1,"protokollItems":5,"aufgabenItems":0}}
+{"ts":"2026-01-24T09:52:33.562Z","level":"DEBUG","msg":"Disaster Context gespeichert","extra":{"disasterId":"disaster_1769242472258"}}
+{"ts":"2026-01-24T09:52:33.563Z","level":"INFO","msg":"Szenario-Trigger ausgeführt","extra":{"condition":{"type":"time_elapsed","minutes":18},"action":"external_message","triggerId":"7_{\"type\":\"time_elapsed\",\"minutes\":18}"}}
+{"ts":"2026-01-24T09:52:33.563Z","level":"INFO","msg":"Szenario-Trigger ausgeführt","extra":{"incidents":0,"protokoll":1,"aufgaben":0}}
+{"ts":"2026-01-24T09:52:33.563Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:52:33.565Z","level":"DEBUG","msg":"Vector-Knowledge-Kontext erzeugt","extra":{"length":2498,"parts":3,"topScore":"0.748"}}
+{"ts":"2026-01-24T09:52:33.566Z","level":"DEBUG","msg":"EINFO-Daten geladen","extra":{"protokollCount":5,"aufgabenCount":0,"boardCount":1}}
+{"ts":"2026-01-24T09:52:33.566Z","level":"DEBUG","msg":"Filterregeln geladen","extra":{"version":"1.0.0","ruleCount":5}}
+{"ts":"2026-01-24T09:52:33.566Z","level":"DEBUG","msg":"Filterregeln angewendet","extra":{"rulesApplied":["R1_ABSCHNITTE_PRIORITAET","R2_PROTOKOLL_RELEVANZ","R3_TRENDS_ERKENNUNG","R4_RESSOURCEN_STATUS","R5_STABS_FOKUS"],"filtering":{"abschnitte":{"before":0,"after":0,"reason":"Top 5 nach Priority-Score"},"protocol":{"before":5,"after":5,"reason":"Score >= 0.6, max 10 Einträge"},"trends":{"before":"n/a","after":1,"reason":"Trend: escalating (strong)"},"resources":{"before":1,"after":0,"reason":"Auslastung: 0%, Engpass: NEIN","deployed_personnel":0,"total_personnel":66},"incidents":{"before":1,"after":0,"reason":"Nur kritische Einzeleinsätze (max 3)"}}}}
+{"ts":"2026-01-24T09:52:33.566Z","level":"DEBUG","msg":"Fahrzeugdaten geladen","extra":{"vehicleCount":7.5,"totalMannschaft":66}}
+{"ts":"2026-01-24T09:52:33.566Z","level":"DEBUG","msg":"Context-Fingerprint erstellt","extra":{"disaster_type":"Winter-Katastrophe","phase":"escalation","total_incidents":1,"utilization":0}}
+{"ts":"2026-01-24T09:52:33.567Z","level":"DEBUG","msg":"OPS-Prompt aufgebaut","extra":{"systemLen":4206,"userLen":16813,"estimatedTokens":5255,"memorySnippets":5}}
+{"ts":"2026-01-24T09:52:33.567Z","level":"DEBUG","msg":"Task-Config ausgewählt","extra":{"taskType":"operations","model":"einfo-balanced:latest","temperature":0.02,"maxTokens":4000,"timeout":300000,"numGpu":20}}
+{"ts":"2026-01-24T09:52:33.567Z","level":"DEBUG","msg":"LLM-Call Versuch","extra":{"attempt":1,"maxRetries":3,"phase":"ops","timeout":300000}}
+{"ts":"2026-01-24T09:52:33.567Z","level":"DEBUG","msg":"LLM-Request","extra":{"model":"einfo-balanced:latest","phase":"ops"}}
+{"ts":"2026-01-24T09:55:39.883Z","level":"ERROR","msg":"LLM lieferte operations als Array statt Objekt - verwende leere Operations","extra":{"rawOperations":"[{\"type\":\"protokoll.create\",\"absender\":\"LST\",\"empfaenger\":\"LtStb\",\"infoTyp\":\"Rueckmeldung\",\"richtung\":\"ein\",\"text\":\"Die letzte Rückfrage zur Verfügbarkeit von Rettungsbooten wurde beantwortet. Es sind"}}
+{"ts":"2026-01-24T09:55:39.883Z","level":"DEBUG","msg":"LLM-Operations normalisiert","extra":{"boardCreate":0,"boardUpdate":0,"aufgabenCreate":0,"aufgabenUpdate":0,"protokollCreate":0}}
+{"ts":"2026-01-24T09:55:39.883Z","level":"INFO","msg":"Simulationsschritt","extra":{"source":"worker","hasBoardOps":false,"hasAufgabenOps":false,"hasProtokollOps":true}}
+{"ts":"2026-01-24T09:55:39.883Z","level":"DEBUG","msg":"EventIndexer: Event","extra":{"type":"protocol:entry","handlers":1}}
+{"ts":"2026-01-24T09:55:39.899Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:55:39.899Z","level":"DEBUG","msg":"SessionRAG: Item hinzugefügt","extra":{"id":"protocol_1769248539883","type":"protocol","itemCount":9}}
+{"ts":"2026-01-24T09:55:39.899Z","level":"DEBUG","msg":"RAG-Indizierung abgeschlossen","extra":{"incidents":0,"tasks":0,"protocols":1}}
+{"ts":"2026-01-24T09:55:39.899Z","level":"DEBUG","msg":"Simulationszeit erhöht","extra":{"elapsedMinutes":20,"stepCount":10,"addedMinutes":2}}
+{"ts":"2026-01-24T09:55:39.900Z","level":"DEBUG","msg":"Simulationsschritt abgeschlossen","extra":{"durationMs":186339,"elapsedMinutes":20,"stepCount":10}}
+{"ts":"2026-01-24T09:55:39.902Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:56:33.618Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:56:33.620Z","level":"DEBUG","msg":"ProtocolIndex aufgebaut","extra":{"entries":6,"duration":0,"indices":{"byNr":6,"byRecipient":3,"bySender":6,"byId":6}}}
+{"ts":"2026-01-24T09:56:33.620Z","level":"DEBUG","msg":"EINFO-Inputs gelesen","extra":{"activeRolesCount":0,"missingRolesCount":0,"boardCount":1,"aufgabenCount":0,"protokollCount":6}}
+{"ts":"2026-01-24T09:56:33.620Z","level":"DEBUG","msg":"Disaster Context gespeichert","extra":{"disasterId":"disaster_1769242472258"}}
+{"ts":"2026-01-24T09:56:33.620Z","level":"DEBUG","msg":"Disaster Context aktualisiert","extra":{"boardItems":1,"protokollItems":6,"aufgabenItems":0}}
+{"ts":"2026-01-24T09:56:33.620Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T09:56:33.622Z","level":"DEBUG","msg":"Vector-Knowledge-Kontext erzeugt","extra":{"length":2498,"parts":3,"topScore":"0.748"}}
+{"ts":"2026-01-24T09:56:33.623Z","level":"DEBUG","msg":"EINFO-Daten geladen","extra":{"protokollCount":6,"aufgabenCount":0,"boardCount":1}}
+{"ts":"2026-01-24T09:56:33.623Z","level":"DEBUG","msg":"Filterregeln geladen","extra":{"version":"1.0.0","ruleCount":5}}
+{"ts":"2026-01-24T09:56:33.623Z","level":"DEBUG","msg":"Fahrzeugdaten geladen","extra":{"vehicleCount":7.5,"totalMannschaft":66}}
+{"ts":"2026-01-24T09:56:33.624Z","level":"DEBUG","msg":"Filterregeln angewendet","extra":{"rulesApplied":["R1_ABSCHNITTE_PRIORITAET","R2_PROTOKOLL_RELEVANZ","R3_TRENDS_ERKENNUNG","R4_RESSOURCEN_STATUS","R5_STABS_FOKUS"],"filtering":{"abschnitte":{"before":0,"after":0,"reason":"Top 5 nach Priority-Score"},"protocol":{"before":6,"after":6,"reason":"Score >= 0.6, max 10 Einträge"},"trends":{"before":"n/a","after":1,"reason":"Trend: escalating (strong)"},"resources":{"before":1,"after":0,"reason":"Auslastung: 0%, Engpass: NEIN","deployed_personnel":0,"total_personnel":66},"incidents":{"before":1,"after":0,"reason":"Nur kritische Einzeleinsätze (max 3)"}}}}
+{"ts":"2026-01-24T09:56:33.624Z","level":"DEBUG","msg":"Context-Fingerprint erstellt","extra":{"disaster_type":"Winter-Katastrophe","phase":"escalation","total_incidents":1,"utilization":0}}
+{"ts":"2026-01-24T09:56:33.624Z","level":"DEBUG","msg":"OPS-Prompt aufgebaut","extra":{"systemLen":4102,"userLen":17072,"estimatedTokens":5294,"memorySnippets":5}}
+{"ts":"2026-01-24T09:56:33.624Z","level":"DEBUG","msg":"Task-Config ausgewählt","extra":{"taskType":"operations","model":"einfo-balanced:latest","temperature":0.02,"maxTokens":4000,"timeout":300000,"numGpu":20}}
+{"ts":"2026-01-24T09:56:33.624Z","level":"DEBUG","msg":"LLM-Call Versuch","extra":{"attempt":1,"maxRetries":3,"phase":"ops","timeout":300000}}
+{"ts":"2026-01-24T09:56:33.624Z","level":"DEBUG","msg":"LLM-Request","extra":{"model":"einfo-balanced:latest","phase":"ops"}}
+{"ts":"2026-01-24T10:00:18.027Z","level":"ERROR","msg":"LLM lieferte operations als Array statt Objekt - verwende leere Operations","extra":{"rawOperations":"[{\"type\":\"protokoll.create\",\"richtung\":\"ein\",\"infoTyp\":\"Rueckmeldung\",\"absender\":\"LtStb\",\"empfaenger\":\"S2\",\"text\":\"Die aktuelle Lage wird weiterhin als kritisch eingestuft. Bitte aktualisierte Informa"}}
+{"ts":"2026-01-24T10:00:18.027Z","level":"DEBUG","msg":"LLM-Operations normalisiert","extra":{"boardCreate":0,"boardUpdate":0,"aufgabenCreate":0,"aufgabenUpdate":0,"protokollCreate":0}}
+{"ts":"2026-01-24T10:00:18.027Z","level":"INFO","msg":"Simulationsschritt","extra":{"source":"worker","hasBoardOps":false,"hasAufgabenOps":false,"hasProtokollOps":false}}
+{"ts":"2026-01-24T10:00:18.027Z","level":"DEBUG","msg":"RAG-Indizierung abgeschlossen","extra":{"incidents":0,"tasks":0,"protocols":0}}
+{"ts":"2026-01-24T10:00:18.028Z","level":"DEBUG","msg":"Simulationsschritt abgeschlossen","extra":{"durationMs":224409,"elapsedMinutes":22,"stepCount":11}}
+{"ts":"2026-01-24T10:00:18.028Z","level":"DEBUG","msg":"Simulationszeit erhöht","extra":{"elapsedMinutes":22,"stepCount":11,"addedMinutes":2}}
+{"ts":"2026-01-24T10:00:33.599Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T10:00:33.602Z","level":"DEBUG","msg":"EINFO-Inputs gelesen","extra":{"activeRolesCount":0,"missingRolesCount":0,"boardCount":1,"aufgabenCount":0,"protokollCount":6}}
+{"ts":"2026-01-24T10:00:33.603Z","level":"DEBUG","msg":"ProtocolIndex aufgebaut","extra":{"entries":6,"duration":0,"indices":{"byNr":6,"byRecipient":3,"bySender":6,"byId":6}}}
+{"ts":"2026-01-24T10:00:33.604Z","level":"DEBUG","msg":"Disaster Context gespeichert","extra":{"disasterId":"disaster_1769242472258"}}
+{"ts":"2026-01-24T10:00:33.604Z","level":"DEBUG","msg":"Disaster Context aktualisiert","extra":{"boardItems":1,"protokollItems":6,"aufgabenItems":0}}
+{"ts":"2026-01-24T10:00:33.604Z","level":"INFO","msg":"Szenario-Trigger ausgeführt","extra":{"condition":{"type":"time_elapsed","minutes":22},"action":"external_message","triggerId":"8_{\"type\":\"time_elapsed\",\"minutes\":22}"}}
+{"ts":"2026-01-24T10:00:33.604Z","level":"INFO","msg":"Szenario-Trigger ausgeführt","extra":{"incidents":0,"protokoll":1,"aufgaben":0}}
+{"ts":"2026-01-24T10:00:33.605Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T10:00:33.607Z","level":"DEBUG","msg":"Vector-Knowledge-Kontext erzeugt","extra":{"length":2498,"parts":3,"topScore":"0.748"}}
+{"ts":"2026-01-24T10:00:33.608Z","level":"DEBUG","msg":"EINFO-Daten geladen","extra":{"protokollCount":6,"aufgabenCount":0,"boardCount":1}}
+{"ts":"2026-01-24T10:00:33.608Z","level":"DEBUG","msg":"Filterregeln geladen","extra":{"version":"1.0.0","ruleCount":5}}
+{"ts":"2026-01-24T10:00:33.609Z","level":"DEBUG","msg":"Fahrzeugdaten geladen","extra":{"vehicleCount":7.5,"totalMannschaft":66}}
+{"ts":"2026-01-24T10:00:33.609Z","level":"DEBUG","msg":"Filterregeln angewendet","extra":{"rulesApplied":["R1_ABSCHNITTE_PRIORITAET","R2_PROTOKOLL_RELEVANZ","R3_TRENDS_ERKENNUNG","R4_RESSOURCEN_STATUS","R5_STABS_FOKUS"],"filtering":{"abschnitte":{"before":0,"after":0,"reason":"Top 5 nach Priority-Score"},"protocol":{"before":6,"after":6,"reason":"Score >= 0.6, max 10 Einträge"},"trends":{"before":"n/a","after":1,"reason":"Trend: escalating (strong)"},"resources":{"before":1,"after":0,"reason":"Auslastung: 0%, Engpass: NEIN","deployed_personnel":0,"total_personnel":66},"incidents":{"before":1,"after":0,"reason":"Nur kritische Einzeleinsätze (max 3)"}}}}
+{"ts":"2026-01-24T10:00:33.609Z","level":"DEBUG","msg":"Context-Fingerprint erstellt","extra":{"disaster_type":"Winter-Katastrophe","phase":"escalation","total_incidents":1,"utilization":0}}
+{"ts":"2026-01-24T10:00:33.610Z","level":"DEBUG","msg":"OPS-Prompt aufgebaut","extra":{"systemLen":4102,"userLen":17072,"estimatedTokens":5294,"memorySnippets":5}}
+{"ts":"2026-01-24T10:00:33.611Z","level":"DEBUG","msg":"Task-Config ausgewählt","extra":{"taskType":"operations","model":"einfo-balanced:latest","temperature":0.02,"maxTokens":4000,"timeout":300000,"numGpu":20}}
+{"ts":"2026-01-24T10:00:33.611Z","level":"DEBUG","msg":"LLM-Call Versuch","extra":{"attempt":1,"maxRetries":3,"phase":"ops","timeout":300000}}
+{"ts":"2026-01-24T10:00:33.611Z","level":"DEBUG","msg":"LLM-Request","extra":{"model":"einfo-balanced:latest","phase":"ops"}}
+{"ts":"2026-01-24T10:03:18.226Z","level":"ERROR","msg":"LLM lieferte operations als Array statt Objekt - verwende leere Operations","extra":{"rawOperations":"[{\"type\":\"protokoll.create\",\"infoTyp\":\"Rueckmeldung\",\"richtung\":\"ein\",\"absenderId\":\"POL1234567890\",\"inhalt\":\"Die Polizei bestätigt die Absperrung der Straße in Richtung Steuerberg. Bitte um Unterstütz"}}
+{"ts":"2026-01-24T10:03:18.226Z","level":"DEBUG","msg":"LLM-Operations normalisiert","extra":{"boardCreate":0,"boardUpdate":0,"aufgabenCreate":0,"aufgabenUpdate":0,"protokollCreate":0}}
+{"ts":"2026-01-24T10:03:18.226Z","level":"INFO","msg":"Simulationsschritt","extra":{"source":"worker","hasBoardOps":false,"hasAufgabenOps":false,"hasProtokollOps":true}}
+{"ts":"2026-01-24T10:03:18.226Z","level":"DEBUG","msg":"EventIndexer: Event","extra":{"type":"protocol:entry","handlers":1}}
+{"ts":"2026-01-24T10:03:18.843Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
+{"ts":"2026-01-24T10:03:18.843Z","level":"DEBUG","msg":"RAG-Indizierung abgeschlossen","extra":{"incidents":0,"tasks":0,"protocols":1}}
+{"ts":"2026-01-24T10:03:18.843Z","level":"DEBUG","msg":"Simulationszeit erhöht","extra":{"elapsedMinutes":24,"stepCount":12,"addedMinutes":2}}
+{"ts":"2026-01-24T10:03:18.843Z","level":"DEBUG","msg":"SessionRAG: Item hinzugefügt","extra":{"id":"protocol_1769248998227","type":"protocol","itemCount":10}}
+{"ts":"2026-01-24T10:03:18.843Z","level":"DEBUG","msg":"Simulationsschritt abgeschlossen","extra":{"durationMs":165242,"elapsedMinutes":24,"stepCount":12}}
+{"ts":"2026-01-24T10:03:18.852Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T10:04:33.708Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
+{"ts":"2026-01-24T10:04:33.710Z","level":"DEBUG","msg":"EINFO-Inputs gelesen","extra":{"activeRolesCount":0,"missingRolesCount":0,"boardCount":1,"aufgabenCount":0,"protokollCount":7}}
+{"ts":"2026-01-24T10:04:33.710Z","level":"DEBUG","msg":"ProtocolIndex aufgebaut","extra":{"entries":7,"duration":0,"indices":{"byNr":7,"byRecipient":3,"bySender":7,"byId":7}}}
+{"ts":"2026-01-24T10:04:33.711Z","level":"DEBUG","msg":"Disaster Context gespeichert","extra":{"disasterId":"disaster_1769242472258"}}
+{"ts":"2026-01-24T10:04:33.711Z","level":"DEBUG","msg":"Disaster Context aktualisiert","extra":{"boardItems":1,"protokollItems":7,"aufgabenItems":0}}
+{"ts":"2026-01-24T10:04:33.711Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T10:04:33.713Z","level":"DEBUG","msg":"Vector-Knowledge-Kontext erzeugt","extra":{"length":2498,"parts":3,"topScore":"0.748"}}
+{"ts":"2026-01-24T10:04:33.714Z","level":"DEBUG","msg":"EINFO-Daten geladen","extra":{"protokollCount":7,"aufgabenCount":0,"boardCount":1}}
+{"ts":"2026-01-24T10:04:33.714Z","level":"DEBUG","msg":"Filterregeln geladen","extra":{"version":"1.0.0","ruleCount":5}}
+{"ts":"2026-01-24T10:04:33.715Z","level":"DEBUG","msg":"Fahrzeugdaten geladen","extra":{"vehicleCount":7.5,"totalMannschaft":66}}
+{"ts":"2026-01-24T10:04:33.715Z","level":"DEBUG","msg":"Filterregeln angewendet","extra":{"rulesApplied":["R1_ABSCHNITTE_PRIORITAET","R2_PROTOKOLL_RELEVANZ","R3_TRENDS_ERKENNUNG","R4_RESSOURCEN_STATUS","R5_STABS_FOKUS"],"filtering":{"abschnitte":{"before":0,"after":0,"reason":"Top 5 nach Priority-Score"},"protocol":{"before":7,"after":7,"reason":"Score >= 0.6, max 10 Einträge"},"trends":{"before":"n/a","after":1,"reason":"Trend: escalating (strong)"},"resources":{"before":1,"after":0,"reason":"Auslastung: 0%, Engpass: NEIN","deployed_personnel":0,"total_personnel":66},"incidents":{"before":1,"after":0,"reason":"Nur kritische Einzeleinsätze (max 3)"}}}}
+{"ts":"2026-01-24T10:04:33.715Z","level":"DEBUG","msg":"Context-Fingerprint erstellt","extra":{"disaster_type":"Winter-Katastrophe","phase":"escalation","total_incidents":1,"utilization":0}}
+{"ts":"2026-01-24T10:04:33.716Z","level":"DEBUG","msg":"OPS-Prompt aufgebaut","extra":{"systemLen":4206,"userLen":17557,"estimatedTokens":5441,"memorySnippets":5}}
+{"ts":"2026-01-24T10:04:33.716Z","level":"DEBUG","msg":"Task-Config ausgewählt","extra":{"taskType":"operations","model":"einfo-balanced:latest","temperature":0.02,"maxTokens":4000,"timeout":300000,"numGpu":20}}
+{"ts":"2026-01-24T10:04:33.716Z","level":"DEBUG","msg":"LLM-Call Versuch","extra":{"attempt":1,"maxRetries":3,"phase":"ops","timeout":300000}}
+{"ts":"2026-01-24T10:04:33.716Z","level":"DEBUG","msg":"LLM-Request","extra":{"model":"einfo-balanced:latest","phase":"ops"}}
+{"ts":"2026-01-24T10:06:28.193Z","level":"ERROR","msg":"LLM lieferte operations als Array statt Objekt - verwende leere Operations","extra":{"rawOperations":"[{\"type\":\"protokoll.create\",\"richtung\":\"ein\",\"infoTyp\":\"Rueckmeldung\",\"absender\":\"ROL_POL\",\"inhalt\":\"Die Polizei bestätigt die Absperrung der Straße in Steuerberg und teilt mit, dass sie Unterstützung"}}
+{"ts":"2026-01-24T10:06:28.193Z","level":"DEBUG","msg":"LLM-Operations normalisiert","extra":{"boardCreate":0,"boardUpdate":0,"aufgabenCreate":0,"aufgabenUpdate":0,"protokollCreate":0}}
+{"ts":"2026-01-24T10:06:28.193Z","level":"INFO","msg":"Simulationsschritt","extra":{"source":"worker","hasBoardOps":false,"hasAufgabenOps":false,"hasProtokollOps":false}}
+{"ts":"2026-01-24T10:06:28.194Z","level":"DEBUG","msg":"RAG-Indizierung abgeschlossen","extra":{"incidents":0,"tasks":0,"protocols":0}}
+{"ts":"2026-01-24T10:06:28.194Z","level":"DEBUG","msg":"Simulationszeit erhöht","extra":{"elapsedMinutes":26,"stepCount":13,"addedMinutes":2}}
+{"ts":"2026-01-24T10:06:28.194Z","level":"DEBUG","msg":"Simulationsschritt abgeschlossen","extra":{"durationMs":114485,"elapsedMinutes":26,"stepCount":13}}
+{"ts":"2026-01-24T10:06:33.671Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T10:06:33.673Z","level":"DEBUG","msg":"EINFO-Inputs gelesen","extra":{"activeRolesCount":0,"missingRolesCount":0,"boardCount":1,"aufgabenCount":0,"protokollCount":7}}
+{"ts":"2026-01-24T10:06:33.674Z","level":"DEBUG","msg":"ProtocolIndex aufgebaut","extra":{"entries":7,"duration":0,"indices":{"byNr":7,"byRecipient":3,"bySender":7,"byId":7}}}
+{"ts":"2026-01-24T10:06:33.675Z","level":"DEBUG","msg":"Disaster Context gespeichert","extra":{"disasterId":"disaster_1769242472258"}}
+{"ts":"2026-01-24T10:06:33.675Z","level":"DEBUG","msg":"Disaster Context aktualisiert","extra":{"boardItems":1,"protokollItems":7,"aufgabenItems":0}}
+{"ts":"2026-01-24T10:06:33.675Z","level":"INFO","msg":"Szenario-Trigger ausgeführt","extra":{"condition":{"type":"time_elapsed","minutes":25},"action":"create_protocol","triggerId":"9_{\"type\":\"time_elapsed\",\"minutes\":25}"}}
+{"ts":"2026-01-24T10:06:33.675Z","level":"INFO","msg":"Szenario-Trigger ausgeführt","extra":{"incidents":0,"protokoll":1,"aufgaben":0}}
+{"ts":"2026-01-24T10:06:33.676Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T10:06:33.679Z","level":"DEBUG","msg":"Vector-Knowledge-Kontext erzeugt","extra":{"length":2498,"parts":3,"topScore":"0.748"}}
+{"ts":"2026-01-24T10:06:33.680Z","level":"DEBUG","msg":"EINFO-Daten geladen","extra":{"protokollCount":7,"aufgabenCount":0,"boardCount":1}}
+{"ts":"2026-01-24T10:06:33.680Z","level":"DEBUG","msg":"Filterregeln geladen","extra":{"version":"1.0.0","ruleCount":5}}
+{"ts":"2026-01-24T10:06:33.681Z","level":"DEBUG","msg":"Fahrzeugdaten geladen","extra":{"vehicleCount":7.5,"totalMannschaft":66}}
+{"ts":"2026-01-24T10:06:33.681Z","level":"DEBUG","msg":"Filterregeln angewendet","extra":{"rulesApplied":["R1_ABSCHNITTE_PRIORITAET","R2_PROTOKOLL_RELEVANZ","R3_TRENDS_ERKENNUNG","R4_RESSOURCEN_STATUS","R5_STABS_FOKUS"],"filtering":{"abschnitte":{"before":0,"after":0,"reason":"Top 5 nach Priority-Score"},"protocol":{"before":7,"after":7,"reason":"Score >= 0.6, max 10 Einträge"},"trends":{"before":"n/a","after":1,"reason":"Trend: escalating (strong)"},"resources":{"before":1,"after":0,"reason":"Auslastung: 0%, Engpass: NEIN","deployed_personnel":0,"total_personnel":66},"incidents":{"before":1,"after":0,"reason":"Nur kritische Einzeleinsätze (max 3)"}}}}
+{"ts":"2026-01-24T10:06:33.681Z","level":"DEBUG","msg":"Context-Fingerprint erstellt","extra":{"disaster_type":"Winter-Katastrophe","phase":"escalation","total_incidents":1,"utilization":0}}
+{"ts":"2026-01-24T10:06:33.682Z","level":"DEBUG","msg":"OPS-Prompt aufgebaut","extra":{"systemLen":4206,"userLen":17557,"estimatedTokens":5441,"memorySnippets":5}}
+{"ts":"2026-01-24T10:06:33.682Z","level":"DEBUG","msg":"Task-Config ausgewählt","extra":{"taskType":"operations","model":"einfo-balanced:latest","temperature":0.02,"maxTokens":4000,"timeout":300000,"numGpu":20}}
+{"ts":"2026-01-24T10:06:33.682Z","level":"DEBUG","msg":"LLM-Call Versuch","extra":{"attempt":1,"maxRetries":3,"phase":"ops","timeout":300000}}
+{"ts":"2026-01-24T10:06:33.682Z","level":"DEBUG","msg":"LLM-Request","extra":{"model":"einfo-balanced:latest","phase":"ops"}}
+{"ts":"2026-01-24T10:10:11.699Z","level":"DEBUG","msg":"LLM-Operations normalisiert","extra":{"boardCreate":0,"boardUpdate":0,"aufgabenCreate":0,"aufgabenUpdate":0,"protokollCreate":0}}
+{"ts":"2026-01-24T10:10:11.699Z","level":"ERROR","msg":"LLM lieferte operations als Array statt Objekt - verwende leere Operations","extra":{"rawOperations":"[{\"type\":\"protokoll.create\",\"richtung\":\"ein\",\"infoTyp\":\"Rueckmeldung\",\"absender\":\"LST\",\"inhalt\":\"Die Anfrage zur Verwendung von Einsatzmitteln wurde an die zuständige Einheit weitergeleitet und eine B"}}
+{"ts":"2026-01-24T10:10:11.699Z","level":"INFO","msg":"Simulationsschritt","extra":{"source":"worker","hasBoardOps":false,"hasAufgabenOps":false,"hasProtokollOps":true}}
+{"ts":"2026-01-24T10:10:11.699Z","level":"DEBUG","msg":"EventIndexer: Event","extra":{"type":"protocol:entry","handlers":1}}
+{"ts":"2026-01-24T10:10:12.302Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
+{"ts":"2026-01-24T10:10:12.302Z","level":"DEBUG","msg":"SessionRAG: Item hinzugefügt","extra":{"id":"protocol_1769249411699","type":"protocol","itemCount":11}}
+{"ts":"2026-01-24T10:10:12.302Z","level":"DEBUG","msg":"RAG-Indizierung abgeschlossen","extra":{"incidents":0,"tasks":0,"protocols":1}}
+{"ts":"2026-01-24T10:10:12.302Z","level":"DEBUG","msg":"Simulationszeit erhöht","extra":{"elapsedMinutes":28,"stepCount":14,"addedMinutes":2}}
+{"ts":"2026-01-24T10:10:12.302Z","level":"DEBUG","msg":"Simulationsschritt abgeschlossen","extra":{"durationMs":218629,"elapsedMinutes":28,"stepCount":14}}
+{"ts":"2026-01-24T10:10:12.313Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T10:10:33.717Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
+{"ts":"2026-01-24T10:10:33.718Z","level":"DEBUG","msg":"EINFO-Inputs gelesen","extra":{"activeRolesCount":0,"missingRolesCount":0,"boardCount":1,"aufgabenCount":0,"protokollCount":8}}
+{"ts":"2026-01-24T10:10:33.719Z","level":"DEBUG","msg":"ProtocolIndex aufgebaut","extra":{"entries":8,"duration":0,"indices":{"byNr":8,"byRecipient":3,"bySender":8,"byId":8}}}
+{"ts":"2026-01-24T10:10:33.719Z","level":"DEBUG","msg":"Disaster Context gespeichert","extra":{"disasterId":"disaster_1769242472258"}}
+{"ts":"2026-01-24T10:10:33.719Z","level":"DEBUG","msg":"Disaster Context aktualisiert","extra":{"boardItems":1,"protokollItems":8,"aufgabenItems":0}}
+{"ts":"2026-01-24T10:10:33.719Z","level":"INFO","msg":"Szenario-Trigger ausgeführt","extra":{"incidents":0,"protokoll":1,"aufgaben":0}}
+{"ts":"2026-01-24T10:10:33.719Z","level":"INFO","msg":"Szenario-Trigger ausgeführt","extra":{"condition":{"type":"time_elapsed","minutes":28},"action":"external_message","triggerId":"10_{\"type\":\"time_elapsed\",\"minutes\":28}"}}
+{"ts":"2026-01-24T10:10:33.720Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T10:10:33.721Z","level":"DEBUG","msg":"Vector-Knowledge-Kontext erzeugt","extra":{"length":2498,"parts":3,"topScore":"0.748"}}
+{"ts":"2026-01-24T10:10:33.723Z","level":"DEBUG","msg":"EINFO-Daten geladen","extra":{"protokollCount":8,"aufgabenCount":0,"boardCount":1}}
+{"ts":"2026-01-24T10:10:33.723Z","level":"DEBUG","msg":"Filterregeln geladen","extra":{"version":"1.0.0","ruleCount":5}}
+{"ts":"2026-01-24T10:10:33.724Z","level":"DEBUG","msg":"Fahrzeugdaten geladen","extra":{"vehicleCount":7.5,"totalMannschaft":66}}
+{"ts":"2026-01-24T10:10:33.724Z","level":"DEBUG","msg":"Filterregeln angewendet","extra":{"rulesApplied":["R1_ABSCHNITTE_PRIORITAET","R2_PROTOKOLL_RELEVANZ","R3_TRENDS_ERKENNUNG","R4_RESSOURCEN_STATUS","R5_STABS_FOKUS"],"filtering":{"abschnitte":{"before":0,"after":0,"reason":"Top 5 nach Priority-Score"},"protocol":{"before":8,"after":8,"reason":"Score >= 0.6, max 10 Einträge"},"trends":{"before":"n/a","after":1,"reason":"Trend: escalating (strong)"},"resources":{"before":1,"after":0,"reason":"Auslastung: 0%, Engpass: NEIN","deployed_personnel":0,"total_personnel":66},"incidents":{"before":1,"after":0,"reason":"Nur kritische Einzeleinsätze (max 3)"}}}}
+{"ts":"2026-01-24T10:10:33.724Z","level":"DEBUG","msg":"Context-Fingerprint erstellt","extra":{"disaster_type":"Winter-Katastrophe","phase":"escalation","total_incidents":1,"utilization":0}}
+{"ts":"2026-01-24T10:10:33.724Z","level":"DEBUG","msg":"OPS-Prompt aufgebaut","extra":{"systemLen":4157,"userLen":17900,"estimatedTokens":5515,"memorySnippets":5}}
+{"ts":"2026-01-24T10:10:33.724Z","level":"DEBUG","msg":"Task-Config ausgewählt","extra":{"taskType":"operations","model":"einfo-balanced:latest","temperature":0.02,"maxTokens":4000,"timeout":300000,"numGpu":20}}
+{"ts":"2026-01-24T10:10:33.724Z","level":"DEBUG","msg":"LLM-Call Versuch","extra":{"attempt":1,"maxRetries":3,"phase":"ops","timeout":300000}}
+{"ts":"2026-01-24T10:10:33.724Z","level":"DEBUG","msg":"LLM-Request","extra":{"model":"einfo-balanced:latest","phase":"ops"}}
+{"ts":"2026-01-24T10:13:59.951Z","level":"DEBUG","msg":"Alte Histogram-Einträge entfernt","extra":{"removed":2}}
+{"ts":"2026-01-24T10:14:39.184Z","level":"ERROR","msg":"LLM lieferte operations als Array statt Objekt - verwende leere Operations","extra":{"rawOperations":"[{\"type\":\"protokoll.create\",\"richtung\":\"ein\",\"infoTyp\":\"Rueckmeldung\",\"absender\":\"LtStb\",\"empfaenger\":\"BM_GemeindeSteuerberg\",\"text\":\"Die Bitte um zusätzliche Sanitätskräfte wurde an die zuständige Be"}}
+{"ts":"2026-01-24T10:14:39.184Z","level":"DEBUG","msg":"LLM-Operations normalisiert","extra":{"boardCreate":0,"boardUpdate":0,"aufgabenCreate":0,"aufgabenUpdate":0,"protokollCreate":0}}
+{"ts":"2026-01-24T10:14:39.184Z","level":"INFO","msg":"Simulationsschritt","extra":{"source":"worker","hasBoardOps":false,"hasAufgabenOps":false,"hasProtokollOps":true}}
+{"ts":"2026-01-24T10:14:39.184Z","level":"DEBUG","msg":"EventIndexer: Event","extra":{"type":"protocol:entry","handlers":1}}
+{"ts":"2026-01-24T10:14:39.208Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
+{"ts":"2026-01-24T10:14:39.208Z","level":"DEBUG","msg":"SessionRAG: Item hinzugefügt","extra":{"id":"protocol_1769249679184","type":"protocol","itemCount":12}}
+{"ts":"2026-01-24T10:14:39.208Z","level":"DEBUG","msg":"RAG-Indizierung abgeschlossen","extra":{"incidents":0,"tasks":0,"protocols":1}}
+{"ts":"2026-01-24T10:14:39.208Z","level":"DEBUG","msg":"Simulationszeit erhöht","extra":{"elapsedMinutes":30,"stepCount":15,"addedMinutes":2}}
+{"ts":"2026-01-24T10:14:39.208Z","level":"DEBUG","msg":"Simulationsschritt abgeschlossen","extra":{"durationMs":245490,"elapsedMinutes":30,"stepCount":15}}
+{"ts":"2026-01-24T10:14:39.211Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T10:16:33.758Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
+{"ts":"2026-01-24T10:16:33.760Z","level":"DEBUG","msg":"EINFO-Inputs gelesen","extra":{"activeRolesCount":0,"missingRolesCount":0,"boardCount":1,"aufgabenCount":0,"protokollCount":9}}
+{"ts":"2026-01-24T10:16:33.760Z","level":"DEBUG","msg":"ProtocolIndex aufgebaut","extra":{"entries":9,"duration":0,"indices":{"byNr":9,"byRecipient":3,"bySender":9,"byId":9}}}
+{"ts":"2026-01-24T10:16:33.761Z","level":"DEBUG","msg":"Disaster Context gespeichert","extra":{"disasterId":"disaster_1769242472258"}}
+{"ts":"2026-01-24T10:16:33.761Z","level":"DEBUG","msg":"Disaster Context aktualisiert","extra":{"boardItems":1,"protokollItems":9,"aufgabenItems":0}}
+{"ts":"2026-01-24T10:16:33.761Z","level":"INFO","msg":"Szenario-Trigger ausgeführt","extra":{"condition":{"type":"time_elapsed","minutes":30},"action":"external_message","triggerId":"11_{\"type\":\"time_elapsed\",\"minutes\":30}"}}
+{"ts":"2026-01-24T10:16:33.761Z","level":"INFO","msg":"Szenario-Trigger ausgeführt","extra":{"incidents":0,"protokoll":1,"aufgaben":0}}
+{"ts":"2026-01-24T10:16:33.761Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T10:16:33.763Z","level":"DEBUG","msg":"Vector-Knowledge-Kontext erzeugt","extra":{"length":2498,"parts":3,"topScore":"0.748"}}
+{"ts":"2026-01-24T10:16:33.764Z","level":"DEBUG","msg":"EINFO-Daten geladen","extra":{"protokollCount":9,"aufgabenCount":0,"boardCount":1}}
+{"ts":"2026-01-24T10:16:33.764Z","level":"DEBUG","msg":"Filterregeln geladen","extra":{"version":"1.0.0","ruleCount":5}}
+{"ts":"2026-01-24T10:16:33.764Z","level":"DEBUG","msg":"Fahrzeugdaten geladen","extra":{"vehicleCount":7.5,"totalMannschaft":66}}
+{"ts":"2026-01-24T10:16:33.764Z","level":"DEBUG","msg":"Filterregeln angewendet","extra":{"rulesApplied":["R1_ABSCHNITTE_PRIORITAET","R2_PROTOKOLL_RELEVANZ","R3_TRENDS_ERKENNUNG","R4_RESSOURCEN_STATUS","R5_STABS_FOKUS"],"filtering":{"abschnitte":{"before":0,"after":0,"reason":"Top 5 nach Priority-Score"},"protocol":{"before":9,"after":9,"reason":"Score >= 0.6, max 10 Einträge"},"trends":{"before":"n/a","after":1,"reason":"Trend: escalating (strong)"},"resources":{"before":1,"after":0,"reason":"Auslastung: 0%, Engpass: NEIN","deployed_personnel":0,"total_personnel":66},"incidents":{"before":1,"after":0,"reason":"Nur kritische Einzeleinsätze (max 3)"}}}}
+{"ts":"2026-01-24T10:16:33.764Z","level":"DEBUG","msg":"Context-Fingerprint erstellt","extra":{"disaster_type":"Winter-Katastrophe","phase":"escalation","total_incidents":1,"utilization":0}}
+{"ts":"2026-01-24T10:16:33.765Z","level":"DEBUG","msg":"OPS-Prompt aufgebaut","extra":{"systemLen":4206,"userLen":18248,"estimatedTokens":5614,"memorySnippets":5}}
+{"ts":"2026-01-24T10:16:33.765Z","level":"DEBUG","msg":"Task-Config ausgewählt","extra":{"taskType":"operations","model":"einfo-balanced:latest","temperature":0.02,"maxTokens":4000,"timeout":300000,"numGpu":20}}
+{"ts":"2026-01-24T10:16:33.765Z","level":"DEBUG","msg":"LLM-Call Versuch","extra":{"attempt":1,"maxRetries":3,"phase":"ops","timeout":300000}}
+{"ts":"2026-01-24T10:16:33.765Z","level":"DEBUG","msg":"LLM-Request","extra":{"model":"einfo-balanced:latest","phase":"ops"}}
+{"ts":"2026-01-24T10:20:02.771Z","level":"ERROR","msg":"LLM lieferte operations als Array statt Objekt - verwende leere Operations","extra":{"rawOperations":"[{\"type\":\"protokoll.create\",\"richtung\":\"ein\",\"infoTyp\":\"Rueckmeldung\",\"absender\":\"ROL_BH\",\"inhalt\":\"Die Bitte um Unterstützung durch den Bundesrat wurde bestätigt. Bereitschaftstruppen werden in Kürze"}}
+{"ts":"2026-01-24T10:20:02.772Z","level":"DEBUG","msg":"LLM-Operations normalisiert","extra":{"boardCreate":0,"boardUpdate":0,"aufgabenCreate":0,"aufgabenUpdate":0,"protokollCreate":0}}
+{"ts":"2026-01-24T10:20:02.772Z","level":"INFO","msg":"Simulationsschritt","extra":{"source":"worker","hasBoardOps":false,"hasAufgabenOps":false,"hasProtokollOps":true}}
+{"ts":"2026-01-24T10:20:02.772Z","level":"DEBUG","msg":"EventIndexer: Event","extra":{"type":"protocol:entry","handlers":1}}
+{"ts":"2026-01-24T10:20:02.793Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
+{"ts":"2026-01-24T10:20:02.793Z","level":"DEBUG","msg":"SessionRAG: Item hinzugefügt","extra":{"id":"protocol_1769250002772","type":"protocol","itemCount":13}}
+{"ts":"2026-01-24T10:20:02.793Z","level":"DEBUG","msg":"RAG-Indizierung abgeschlossen","extra":{"incidents":0,"tasks":0,"protocols":1}}
+{"ts":"2026-01-24T10:20:02.793Z","level":"DEBUG","msg":"Simulationszeit erhöht","extra":{"elapsedMinutes":32,"stepCount":16,"addedMinutes":2}}
+{"ts":"2026-01-24T10:20:02.793Z","level":"DEBUG","msg":"Simulationsschritt abgeschlossen","extra":{"durationMs":209034,"elapsedMinutes":32,"stepCount":16}}
+{"ts":"2026-01-24T10:20:02.804Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               {"ts":"2026-01-24T15:18:07.685Z","level":"INFO","msg":"LLM Feedback System initialisiert","extra":{"learnedResponsesCount":0}}
+{"ts":"2026-01-24T15:18:07.697Z","level":"INFO","msg":"Memory-Store initialisiert","extra":null}
+{"ts":"2026-01-24T15:18:07.698Z","level":"INFO","msg":"Suggestion-Filter initialisiert","extra":{"dismissedCount":0,"acceptedCount":1}}
+{"ts":"2026-01-24T15:18:07.698Z","level":"INFO","msg":"Analyse-Intervall geändert","extra":{"intervalMinutes":0,"mode":"nur-manuell"}}
+{"ts":"2026-01-24T15:18:07.699Z","level":"INFO","msg":"Situationsanalyse-System initialisiert","extra":{"learnedSuggestionsCount":1,"analysisIntervalMinutes":0}}
+{"ts":"2026-01-24T15:18:07.699Z","level":"INFO","msg":"Situationsanalyse-System initialisiert","extra":null}
+{"ts":"2026-01-24T15:18:07.700Z","level":"INFO","msg":"Chatbot läuft auf http://0.0.0.0:3100 (GUI: /gui)","extra":null}
+{"ts":"2026-01-24T15:18:07.700Z","level":"INFO","msg":"Verfügbare Endpoints:","extra":{"simulation":["/api/sim/start","/api/sim/pause","/api/sim/step"],"chat":["/api/chat"],"llm":["/api/llm/models","/api/llm/gpu","/api/llm/test","/api/llm/config","/api/llm/model","/api/llm/profiles"],"audit":["/api/audit/status","/api/audit/start","/api/audit/end","/api/audit/list"],"templates":["/api/templates"],"disaster":["/api/disaster/current","/api/disaster/summary","/api/disaster/init"],"feedback":["/api/feedback","/api/feedback/list","/api/feedback/stats"],"situation":["/api/situation/status","/api/situation/analysis","/api/situation/question"],"sse":["/api/events"]}}
+{"ts":"2026-01-24T15:18:07.701Z","level":"INFO","msg":"LLM-Konfiguration:","extra":{}}
+{"ts":"2026-01-24T15:18:07.714Z","level":"INFO","msg":"GeoIndex: Lade Adressdateien","extra":{"fileCount":185}}
+{"ts":"2026-01-24T15:18:07.722Z","level":"INFO","msg":"Installierte Modelle","extra":{"count":6,"available":["einfo-balanced:latest","llama3.1:8b","einfo-analysis","einfo-balanced"]}}
+{"ts":"2026-01-24T15:18:07.742Z","level":"INFO","msg":"GeoIndex: Geladen","extra":{"locationCount":8726,"files":185}}
+{"ts":"2026-01-24T15:18:07.743Z","level":"INFO","msg":"Geo-Index geladen","extra":{"totalLocations":8726,"namedLocations":278,"unnamedLocations":8448,"byType":{"none":8656,"hotel":6,"retail":4,"apartments":4,"train_station":3,"house":10,"church":11,"industrial":2,"public":6,"school":7,"chapel":2,"roof":2,"warehouse":2,"commercial":2,"kindergarten":1,"hospital":1,"farm":1,"semidetached_house":1,"detached":2,"hut":1,"residential":1,"supermarket":1},"sourceFiles":139}}
+{"ts":"2026-01-24T15:18:09.020Z","level":"INFO","msg":"Analyse-Intervall geändert","extra":{"intervalMinutes":0,"mode":"nur-manuell"}}
+{"ts":"2026-01-24T15:18:09.020Z","level":"INFO","msg":"KI-Analyse aktiviert aber Intervall=0: Nur manuelle Auslösung möglich","extra":null}
+{"ts":"2026-01-24T15:18:09.980Z","level":"DEBUG","msg":"Embedding erzeugt","extra":{"dim":1024}}
+{"ts":"2026-01-24T15:18:12.695Z","level":"INFO","msg":"SSE-Client verbunden","extra":{"clientCount":1}}
+{"ts":"2026-01-24T15:18:39.118Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T15:19:09.145Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T15:19:39.148Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T15:20:09.169Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T15:20:39.192Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T15:21:09.205Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T15:21:39.229Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}
+{"ts":"2026-01-24T15:22:09.255Z","level":"DEBUG","msg":"Embedding aus Cache","extra":{"dim":1024}}

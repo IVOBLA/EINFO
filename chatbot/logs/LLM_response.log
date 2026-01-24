@@ -1,5 +1,5 @@
 {
-  "ts": "2026-01-23T19:48:15.203Z",
+  "ts": "2026-01-24T08:35:30.568Z",
   "type": "LLM",
   "phase": "response",
   "model": "einfo-balanced:latest",
@@ -11,185 +11,19 @@
 rawResponse:
 {
   "model": "einfo-balanced:latest",
-  "created_at": "2026-01-23T19:48:15.202023211Z",
+  "created_at": "2026-01-24T08:35:30.567002784Z",
   "message": {
     "role": "assistant",
-    "content": "{\n  \"operations\": {\n    \"board\": {\"createIncidentSites\": [{\"content\": \"Massenkarambolage B317\", \"status\": \"aktiv\", \"ort\": \"B317 km 12, Höhe Steuerberg\", \"description\": \"7 PKW und 1 LKW in Massenkarambolage verwickelt. Mindestens 4 verletzte Personen, LKW blockiert beide Fahrspuren.\", \"latitude\": null, \"longitude\": null, \"typ\": \"T4\", \"humanId\": \"E-1\", \"alerted\": true, \"assignedVehicles\": []},\n                                      {\"content\": \"Dachlawine auf Fahrzeuge\", \"status\": \"aktiv\", \"ort\": \"Hauptplatz 8, Feldkirchen\", \"description\": \"Schneemassen von Geschäftsdach auf 2 geparkte PKW gestürzt. Personen in Fahrzeugen eingeschlossen, unverletzt aber in Panik.\", \"latitude\": null, \"longitude\": null, \"typ\": \"T3\", \"humanId\": \"E-2\", \"alerted\": true, \"assignedVehicles\": []},\n                                      {\"content\": \"Altenheim ohne Strom\", \"status\": \"aktiv\", \"ort\": \"Seniorenheim Sonnenhof, Himmelberg\", \"description\": \"42 Bewohner, davon 8 auf Sauerstoff angewiesen. Notstromaggregat springt nicht an.\", \"latitude\": null, \"longitude\": null, \"typ\": \"T3\", \"humanId\": \"E-3\", \"alerted\": true, \"assignedVehicles\": []},\n                                      {\"content\": \"Linienbus eingeschneit\", \"status\": \"aktiv\", \"ort\": \"L95, Abzweigung Gnesau\", \"description\": \"Schulbus mit 23 Kindern (8-12 Jahre) steckt in Schneeverwehung fest. Kinder frieren.\", \"latitude\": null, \"longitude\": null, \"typ\": \"T2\", \"humanId\": \"E-4\", \"alerted\": true, \"assignedVehicles\": []},\n                                      {\"content\": \"Dacheinsturzgefahr Supermarkt\", \"status\": \"aktiv\", \"ort\": \"Einkaufszentrum Feldkirchen-Süd\", \"description\": \"Statiker meldet akute Einsturzgefahr durch Schneelast. Ca. 60 Kunden und 15 Mitarbeiter im Gebäude.\", \"latitude\": null, \"longitude\": null, \"typ\": \"T3\", \"humanId\": \"E-5\", \"alerted\": true, \"assignedVehicles\": []},\n                                      {\"content\": \"Stromleitung gerissen\", \"status\": \"aktiv\", \"ort\": \"Glödnitzer Straße, Deutsch-Griffen\", \"description\": \"Freileitung unter Schneelast gerissen, liegt quer über Gemeindestraße. Funkenflug beobachtet.\", \"latitude\": null, \"longitude\": null, \"typ\": \"T3\", \"humanId\": \"E-6\", \"alerted\": true, \"assignedVehicles\": []}]},\n    \"aufgaben\": {\"create\": [{\"title\": \"Rettungskräfte zu Massenkarambolage B317 entsenden\", \"responsible\": \"Feuerwehr Feldkirchen\", \"status\": \"offen\", \"desc\": \"Sofortige Rettungsmaßnahmen für verletzte Personen durchführen. Einsatzkräfte mit Kettenfahrzeugen ausstatten.\", \"priority\": 1, \"assignedBy\": \"Einsatzleiter\"},\n                             {\"title\": \"Notstromversorgung Altenheim Sonnenhof\", \"responsible\": \"Technisches Hilfswerk Kärnten\", \"status\": \"offen\", \"desc\": \"Sofortige Notstromanbindung durchführen, um Heizungs- und Lebenserhaltungssysteme zu sichern.\", \"priority\": 1, \"assignedBy\": \"Einsatzleiter\"},\n                             {\"title\": \"Evakuierung Supermarkt Feldkirchen-Süd\", \"responsible\": \"Feuerwehr Feldkirchen\", \"status\": \"offen\", \"desc\": \"Gebäude evakuieren und sicherstellen, dass alle Personen unverletzt sind.\", \"priority\": 1, \"assignedBy\": \"Einsatzleiter\"}]},\n    \"protokoll\": {\"create\": [{\"information\": \"Katastrophenalarm um 05:30 Uhr ausgerufen\", \"infoTyp\": \"Alarmierung\", \"anvon\": null, \"ergehtAn\": null, \"richtung\": null},\n                              {\"information\": \"Bundesheer wurde angefordert und erwartet in 90 Minuten\", \"infoTyp\": \"Ressourcenversorgung\", \"anvon\": null, \"ergehtAn\": null, \"richtung\": null},\n                              {\"information\": \"Schulbus mit Kindern eingeschneit - sofortige Rettungsmaßnahmen notwendig.\", \"infoTyp\": \"Menschenrettung\", \"anvon\": null, \"ergehtAn\": null, \"richtung\": null}]}\n  },\n  \"analysis\": \"...\",\n  \"meta\": {\"historySummary\": \"...\", \"historyState\": {}}\n}"
+    "content": "{\n  \"operations\": [\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Rueckmeldung\",\n      \"absender\": \"LtStb\",\n      \"empfaenger\": \"S4\",\n      \"inhalt\": \"Die Ressourcenfrage wurde an die zuständige Behörde weitergeleitet und eine Bestätigung erwartet.\",\n      \"zeitpunkt\": \"2023-11-15T16:37:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"absender\": \"POL\",\n      \"empfaenger\": \"LtStb\",\n      \"inhalt\": \"Es gibt aktuell mehrere Verkehrsaufkommen auf der A1 in Richtung Steuerberg. Bitte informieren Sie die Fahrer über alternative Routen.\",\n      \"zeitpunkt\": \"2023-11-15T16:40:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"absender\": \"RK\",\n      \"empfaenger\": \"LtStb\",\n      \"inhalt\": \"Ein Unfall auf der A1 hat zu Verletzten geführt. Sanitätskräfte sind bereits vor Ort und behandeln die Betroffenen.\",\n      \"zeitpunkt\": \"2023-11-15T16:45:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Info\",\n      \"absender\": \"BH\",\n      \"empfaenger\": \"LtStb\",\n      \"inhalt\": \"Es wird eine Warnmeldung für die Bevölkerung ausgestrahlt. Bitte informieren Sie alle Betroffenen.\",\n      \"zeitpunkt\": \"2023-11-15T16:48:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"absender\": \"Gemeinde Steuerberg\",\n      \"empfaenger\": \"LtStb\",\n      \"inhalt\": \"Es gibt Schäden an öffentlichen Gebäuden in der Gemeinde. Bitte senden Sie Unterstützung.\",\n      \"zeitpunkt\": \"2023-11-15T16:50:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"absender\": \"Gemeinde Steuerberg\",\n      \"empfaenger\": \"LtStb\",\n      \"inhalt\": \"Ein Teil der Bevölkerung ist ohne Stromversorgung. Bitte informieren Sie die zuständige Versorgerfirma.\",\n      \"zeitpunkt\": \"2023-11-15T16:55:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LtStb\",\n      \"responsible\": \"S4\",\n      \"beschreibung\": \"Bitte überprüfen Sie die Verfügbarkeit von Notfallversorgungseinheiten und bereiten Sie diese vor.\",\n      \"zeitpunkt\": \"2023-11-15T16:58:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LtStb\",\n      \"responsible\": \"S5\",\n      \"beschreibung\": \"Bitte erstellen Sie eine Warnmeldung für die Bevölkerung und informieren Sie alle relevanten Medien.\",\n      \"zeitpunkt\": \"2023-11-15T17:00:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LtStb\",\n      \"responsible\": \"S6\",\n      \"beschreibung\": \"Bitte überprüfen Sie die Funkkapazität und stellen Sie sicher, dass alle notwendigen Kommunikationsmittel einsatzbereit sind.\",\n      \"zeitpunkt\": \"2023-11-15T17:02:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"adresse\": \"Gemeindegebiet Steuerberg, Hauptstraße 42\",\n      \"typ\": \"Verkehrsunfall\",\n      \"beschreibung\": \"Ein schwerer Verkehrsunfall hat zu mehreren Verletzten geführt. Sanitätskräfte sind bereits vor Ort.\",\n      \"zeitpunkt\": \"2023-11-15T17:04:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"adresse\": \"Gemeindegebiet Steuerberg, Industriestraße 89\",\n      \"typ\": \"Technisches Notfall\",\n      \"beschreibung\": \"Ein technischer Defekt hat zu einem Stromausfall geführt. Bitte senden Sie einen Techniker vor Ort.\",\n      \"zeitpunkt\": \"2023-11-15T17:06:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"adresse\": \"Gemeindegebiet Steuerberg, Parkplatz am Bahnhof\",\n      \"typ\": \"Evakuierung\",\n      \"beschreibung\": \"Ein Teil der Bevölkerung muss evakuiert werden. Bitte bereiten Sie die notwendigen Maßnahmen vor.\",\n      \"zeitpunkt\": \"2023-11-15T17:08:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"adresse\": \"Gemeindegebiet Steuerberg, Schulstraße 64\",\n      \"typ\": \"Notfallversorgung\",\n      \"beschreibung\": \"Ein Teil der Bevölkerung ist ohne Stromversorgung. Bitte senden Sie Notfallgeneratoren vor Ort.\",\n      \"zeitpunkt\": \"2023-11-15T17:10:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"adresse\": \"Gemeindegebiet Steuerberg, Kirchplatz 98\",\n      \"typ\": \"Sanitätseinsatz\",\n      \"beschreibung\": \"Ein Unfall hat zu Verletzten geführt. Sanitätskräfte sind bereits vor Ort und behandeln die Betroffenen.\",\n      \"zeitpunkt\": \"2023-11-15T17:12:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"adresse\": \"Gemeindegebiet Steuerberg, Parkplatz am Rathaus\",\n      \"typ\": \"Verkehrsaufkommen\",\n      \"beschreibung\": \"Es gibt aktuell mehrere Verkehrsaufkommen auf der A1 in Richtung Steuerberg. Bitte informieren Sie die Fahrer über alternative Routen.\",\n      \"zeitpunkt\": \"2023-11-15T17:14:00Z\"\n    }\n  ]\n}"
   },
   "done": true,
   "done_reason": "stop",
-  "total_duration": 211026123803,
-  "load_duration": 1853856637,
-  "prompt_eval_count": 2204,
-  "prompt_eval_duration": 4404507064,
-  "eval_count": 1152,
-  "eval_duration": 185509848819
-}
-parsedResponse:
-{
-  "operations": {
-    "board": {
-      "createIncidentSites": [
-        {
-          "content": "Massenkarambolage B317",
-          "status": "aktiv",
-          "ort": "B317 km 12, Höhe Steuerberg",
-          "description": "7 PKW und 1 LKW in Massenkarambolage verwickelt. Mindestens 4 verletzte Personen, LKW blockiert beide Fahrspuren.",
-          "latitude": null,
-          "longitude": null,
-          "typ": "T4",
-          "humanId": "E-1",
-          "alerted": true,
-          "assignedVehicles": []
-        },
-        {
-          "content": "Dachlawine auf Fahrzeuge",
-          "status": "aktiv",
-          "ort": "Hauptplatz 8, Feldkirchen",
-          "description": "Schneemassen von Geschäftsdach auf 2 geparkte PKW gestürzt. Personen in Fahrzeugen eingeschlossen, unverletzt aber in Panik.",
-          "latitude": null,
-          "longitude": null,
-          "typ": "T3",
-          "humanId": "E-2",
-          "alerted": true,
-          "assignedVehicles": []
-        },
-        {
-          "content": "Altenheim ohne Strom",
-          "status": "aktiv",
-          "ort": "Seniorenheim Sonnenhof, Himmelberg",
-          "description": "42 Bewohner, davon 8 auf Sauerstoff angewiesen. Notstromaggregat springt nicht an.",
-          "latitude": null,
-          "longitude": null,
-          "typ": "T3",
-          "humanId": "E-3",
-          "alerted": true,
-          "assignedVehicles": []
-        },
-        {
-          "content": "Linienbus eingeschneit",
-          "status": "aktiv",
-          "ort": "L95, Abzweigung Gnesau",
-          "description": "Schulbus mit 23 Kindern (8-12 Jahre) steckt in Schneeverwehung fest. Kinder frieren.",
-          "latitude": null,
-          "longitude": null,
-          "typ": "T2",
-          "humanId": "E-4",
-          "alerted": true,
-          "assignedVehicles": []
-        },
-        {
-          "content": "Dacheinsturzgefahr Supermarkt",
-          "status": "aktiv",
-          "ort": "Einkaufszentrum Feldkirchen-Süd",
-          "description": "Statiker meldet akute Einsturzgefahr durch Schneelast. Ca. 60 Kunden und 15 Mitarbeiter im Gebäude.",
-          "latitude": null,
-          "longitude": null,
-          "typ": "T3",
-          "humanId": "E-5",
-          "alerted": true,
-          "assignedVehicles": []
-        },
-        {
-          "content": "Stromleitung gerissen",
-          "status": "aktiv",
-          "ort": "Glödnitzer Straße, Deutsch-Griffen",
-          "description": "Freileitung unter Schneelast gerissen, liegt quer über Gemeindestraße. Funkenflug beobachtet.",
-          "latitude": null,
-          "longitude": null,
-          "typ": "T3",
-          "humanId": "E-6",
-          "alerted": true,
-          "assignedVehicles": []
-        }
-      ]
-    },
-    "aufgaben": {
-      "create": [
-        {
-          "title": "Rettungskräfte zu Massenkarambolage B317 entsenden",
-          "responsible": "Feuerwehr Feldkirchen",
-          "status": "offen",
-          "desc": "Sofortige Rettungsmaßnahmen für verletzte Personen durchführen. Einsatzkräfte mit Kettenfahrzeugen ausstatten.",
-          "priority": 1,
-          "assignedBy": "Einsatzleiter"
-        },
-        {
-          "title": "Notstromversorgung Altenheim Sonnenhof",
-          "responsible": "Technisches Hilfswerk Kärnten",
-          "status": "offen",
-          "desc": "Sofortige Notstromanbindung durchführen, um Heizungs- und Lebenserhaltungssysteme zu sichern.",
-          "priority": 1,
-          "assignedBy": "Einsatzleiter"
-        },
-        {
-          "title": "Evakuierung Supermarkt Feldkirchen-Süd",
-          "responsible": "Feuerwehr Feldkirchen",
-          "status": "offen",
-          "desc": "Gebäude evakuieren und sicherstellen, dass alle Personen unverletzt sind.",
-          "priority": 1,
-          "assignedBy": "Einsatzleiter"
-        }
-      ]
-    },
-    "protokoll": {
-      "create": [
-        {
-          "information": "Katastrophenalarm um 05:30 Uhr ausgerufen",
-          "infoTyp": "Alarmierung",
-          "anvon": null,
-          "ergehtAn": null,
-          "richtung": null
-        },
-        {
-          "information": "Bundesheer wurde angefordert und erwartet in 90 Minuten",
-          "infoTyp": "Ressourcenversorgung",
-          "anvon": null,
-          "ergehtAn": null,
-          "richtung": null
-        },
-        {
-          "information": "Schulbus mit Kindern eingeschneit - sofortige Rettungsmaßnahmen notwendig.",
-          "infoTyp": "Menschenrettung",
-          "anvon": null,
-          "ergehtAn": null,
-          "richtung": null
-        }
-      ]
-    }
-  },
-  "analysis": "...",
-  "meta": {
-    "historySummary": "...",
-    "historyState": {}
-  }
-}
-{
-  "ts": "2026-01-23T19:53:22.141Z",
-  "type": "LLM",
-  "phase": "response",
-  "model": "einfo-balanced:latest",
-  "extra": {
-    "phase": "ops",
-    "messageCount": 2
-  }
-}
-rawResponse:
-{
-  "model": "einfo-balanced:latest",
-  "created_at": "2026-01-23T19:53:22.14025705Z",
-  "message": {
-    "role": "assistant",
-    "content": "{\n  \"operations\": [\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Rueckmeldung\",\n      \"absender\": \"LTSTB\",\n      \"inhalt\": \"Die Anfrage zur Verwendung von Rettungsbooten wurde an die Wasserwacht weitergeleitet. Sie werden innerhalb der nächsten Stunde mit Unterstützung eintreffen.\",\n      \"timestamp\": \"2023-10-15T14:37:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"absender\": \"POL\",\n      \"inhalt\": \"Es gibt aktuell mehrere Verkehrsaufkommen auf der A1 in Richtung Steuerberg. Bitte bereiten Sie sich darauf vor, dass weitere Rettungs- und Einsatzfahrzeuge möglicherweise behindert werden.\",\n      \"timestamp\": \"2023-10-15T14:38:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"absender\": \"RK\",\n      \"inhalt\": \"Ein weiterer Patient wurde ins Krankenhaus eingeliefert. Es handelt sich um eine 56-jährige Frau mit schweren Verletzungen am Bein.\",\n      \"timestamp\": \"2023-10-15T14:39:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Info\",\n      \"absender\": \"BH Steuerberg\",\n      \"inhalt\": \"Die Gemeinde Steuerberg bittet um Unterstützung bei der Bereitstellung von Notunterkünften für evakuierte Personen.\",\n      \"timestamp\": \"2023-10-15T14:40:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S6\",\n      \"inhalt\": \"Bitte stellen Sie sicher, dass alle IT-Systeme stabil und verfügbar sind. Überprüfen Sie insbesondere die Kommunikationssysteme.\",\n      \"timestamp\": \"2023-10-15T14:41:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S3\",\n      \"inhalt\": \"Es gibt eine erhöhte Anzahl von Einsatzfahrzeugen. Bitte organisieren Sie die Parkplätze und den Zugang.\",\n      \"timestamp\": \"2023-10-15T14:42:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S4\",\n      \"inhalt\": \"Bitte bereiten Sie die Versorgung von evakuierten Personen vor. Das beinhaltet Nahrung, Trinkwasser und Notunterkünfte.\",\n      \"timestamp\": \"2023-10-15T14:43:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S5\",\n      \"inhalt\": \"Bitte informieren Sie die Öffentlichkeit über den aktuellen Stand der Katastropheneinsatzleitung und geben Sie Ratschläge zur Sicherheit.\",\n      \"timestamp\": \"2023-10-15T14:44:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSite\",\n      \"adresse\": \"Gemeindegebiet Steuerberg, Hauptstraße 78\",\n      \"typ\": \"Verkehrsunfall\",\n      \"schweregrad\": \"mittel\",\n      \"timestamp\": \"2023-10-15T14:46:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSite\",\n      \"adresse\": \"Gemeindegebiet Steuerberg, Industriestraße 987\",\n      \"typ\": \"Brand\",\n      \"schweregrad\": \"hoch\",\n      \"timestamp\": \"2023-10-15T14:47:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSite\",\n      \"adresse\": \"Gemeindegebiet Steuerberg, Parkplatz am Bahnhof\",\n      \"typ\": \"Rettungsaktion\",\n      \"schweregrad\": \"leicht\",\n      \"timestamp\": \"2023-10-15T14:48:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSite\",\n      \"adresse\": \"Gemeindegebiet Steuerberg, Wohnsiedlung Nord\",\n      \"typ\": \"Verkehrsversperrung\",\n      \"schweregrad\": \"mittel\",\n      \"timestamp\": \"2023-10-15T14:49:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSite\",\n      \"adresse\": \"Gemeindegebiet Steuerberg, Schule am Randweg 78b\",\n      \"typ\": \"Rettungsaktion\",\n      \"schweregrad\": \"leicht\",\n      \"timestamp\": \"2023-10-15T14:50:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSite\",\n      \"adresse\": \"Gemeindegebiet Steuerberg, Industriegebiet Ost 987a\",\n      \"typ\": \"Brand\",\n      \"schweregrad\": \"hoch\",\n      \"timestamp\": \"2023-10-15T14:51:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSite\",\n      \"adresse\": \"Gemeindegebiet Steuerberg, Parkplatz am Bahnhof 78c\",\n      \"typ\": \"Verkehrsunfall\",\n      \"schweregrad\": \"mittel\",\n      \"timestamp\": \"2023-10-15T14:52:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSite\",\n      \"adresse\": \"Gemeindegebiet Steuerberg, Wohnsiedlung Nord 987b\",\n      \"typ\": \"Verkehrsversperrung\",\n      \"schweregrad\": \"mittel\",\n      \"timestamp\": \"2023-10-15T14:53:00Z\"\n    }\n  ]\n}"
-  },
-  "done": true,
-  "done_reason": "stop",
-  "total_duration": 277639476967,
-  "load_duration": 62812312,
+  "total_duration": 298110990940,
+  "load_duration": 62305562,
   "prompt_eval_count": 4096,
-  "prompt_eval_duration": 7631346661,
-  "eval_count": 1507,
-  "eval_duration": 244774210823
+  "prompt_eval_duration": 7657725413,
+  "eval_count": 1625,
+  "eval_duration": 263618620434
 }
 parsedResponse:
 {
@@ -198,266 +32,2148 @@ parsedResponse:
       "type": "protokoll.create",
       "richtung": "ein",
       "infoTyp": "Rueckmeldung",
-      "absender": "LTSTB",
-      "inhalt": "Die Anfrage zur Verwendung von Rettungsbooten wurde an die Wasserwacht weitergeleitet. Sie werden innerhalb der nächsten Stunde mit Unterstützung eintreffen.",
-      "timestamp": "2023-10-15T14:37:00Z"
+      "absender": "LtStb",
+      "empfaenger": "S4",
+      "inhalt": "Die Ressourcenfrage wurde an die zuständige Behörde weitergeleitet und eine Bestätigung erwartet.",
+      "zeitpunkt": "2023-11-15T16:37:00Z"
     },
     {
       "type": "protokoll.create",
       "richtung": "ein",
       "infoTyp": "Lagemeldung",
       "absender": "POL",
-      "inhalt": "Es gibt aktuell mehrere Verkehrsaufkommen auf der A1 in Richtung Steuerberg. Bitte bereiten Sie sich darauf vor, dass weitere Rettungs- und Einsatzfahrzeuge möglicherweise behindert werden.",
-      "timestamp": "2023-10-15T14:38:00Z"
+      "empfaenger": "LtStb",
+      "inhalt": "Es gibt aktuell mehrere Verkehrsaufkommen auf der A1 in Richtung Steuerberg. Bitte informieren Sie die Fahrer über alternative Routen.",
+      "zeitpunkt": "2023-11-15T16:40:00Z"
     },
     {
       "type": "protokoll.create",
       "richtung": "ein",
       "infoTyp": "Lagemeldung",
       "absender": "RK",
-      "inhalt": "Ein weiterer Patient wurde ins Krankenhaus eingeliefert. Es handelt sich um eine 56-jährige Frau mit schweren Verletzungen am Bein.",
-      "timestamp": "2023-10-15T14:39:00Z"
-    },
-    {
-      "type": "protokoll.create",
-      "richtung": "ein",
-      "infoTyp": "Info",
-      "absender": "BH Steuerberg",
-      "inhalt": "Die Gemeinde Steuerberg bittet um Unterstützung bei der Bereitstellung von Notunterkünften für evakuierte Personen.",
-      "timestamp": "2023-10-15T14:40:00Z"
-    },
-    {
-      "type": "aufgaben.create",
-      "assignedBy": "LTSTB",
-      "responsible": "S6",
-      "inhalt": "Bitte stellen Sie sicher, dass alle IT-Systeme stabil und verfügbar sind. Überprüfen Sie insbesondere die Kommunikationssysteme.",
-      "timestamp": "2023-10-15T14:41:00Z"
-    },
-    {
-      "type": "aufgaben.create",
-      "assignedBy": "LTSTB",
-      "responsible": "S3",
-      "inhalt": "Es gibt eine erhöhte Anzahl von Einsatzfahrzeugen. Bitte organisieren Sie die Parkplätze und den Zugang.",
-      "timestamp": "2023-10-15T14:42:00Z"
-    },
-    {
-      "type": "aufgaben.create",
-      "assignedBy": "LTSTB",
-      "responsible": "S4",
-      "inhalt": "Bitte bereiten Sie die Versorgung von evakuierten Personen vor. Das beinhaltet Nahrung, Trinkwasser und Notunterkünfte.",
-      "timestamp": "2023-10-15T14:43:00Z"
-    },
-    {
-      "type": "aufgaben.create",
-      "assignedBy": "LTSTB",
-      "responsible": "S5",
-      "inhalt": "Bitte informieren Sie die Öffentlichkeit über den aktuellen Stand der Katastropheneinsatzleitung und geben Sie Ratschläge zur Sicherheit.",
-      "timestamp": "2023-10-15T14:44:00Z"
-    },
-    {
-      "type": "board.createIncidentSite",
-      "adresse": "Gemeindegebiet Steuerberg, Hauptstraße 78",
-      "typ": "Verkehrsunfall",
-      "schweregrad": "mittel",
-      "timestamp": "2023-10-15T14:46:00Z"
-    },
-    {
-      "type": "board.createIncidentSite",
-      "adresse": "Gemeindegebiet Steuerberg, Industriestraße 987",
-      "typ": "Brand",
-      "schweregrad": "hoch",
-      "timestamp": "2023-10-15T14:47:00Z"
-    },
-    {
-      "type": "board.createIncidentSite",
-      "adresse": "Gemeindegebiet Steuerberg, Parkplatz am Bahnhof",
-      "typ": "Rettungsaktion",
-      "schweregrad": "leicht",
-      "timestamp": "2023-10-15T14:48:00Z"
-    },
-    {
-      "type": "board.createIncidentSite",
-      "adresse": "Gemeindegebiet Steuerberg, Wohnsiedlung Nord",
-      "typ": "Verkehrsversperrung",
-      "schweregrad": "mittel",
-      "timestamp": "2023-10-15T14:49:00Z"
-    },
-    {
-      "type": "board.createIncidentSite",
-      "adresse": "Gemeindegebiet Steuerberg, Schule am Randweg 78b",
-      "typ": "Rettungsaktion",
-      "schweregrad": "leicht",
-      "timestamp": "2023-10-15T14:50:00Z"
-    },
-    {
-      "type": "board.createIncidentSite",
-      "adresse": "Gemeindegebiet Steuerberg, Industriegebiet Ost 987a",
-      "typ": "Brand",
-      "schweregrad": "hoch",
-      "timestamp": "2023-10-15T14:51:00Z"
-    },
-    {
-      "type": "board.createIncidentSite",
-      "adresse": "Gemeindegebiet Steuerberg, Parkplatz am Bahnhof 78c",
-      "typ": "Verkehrsunfall",
-      "schweregrad": "mittel",
-      "timestamp": "2023-10-15T14:52:00Z"
-    },
-    {
-      "type": "board.createIncidentSite",
-      "adresse": "Gemeindegebiet Steuerberg, Wohnsiedlung Nord 987b",
-      "typ": "Verkehrsversperrung",
-      "schweregrad": "mittel",
-      "timestamp": "2023-10-15T14:53:00Z"
-    }
-  ]
-}
-{
-  "ts": "2026-01-23T19:59:09.610Z",
-  "type": "LLM",
-  "phase": "response",
-  "model": "einfo-balanced:latest",
-  "extra": {
-    "phase": "ops",
-    "messageCount": 2
-  }
-}
-rawResponse:
-{
-  "model": "einfo-balanced:latest",
-  "created_at": "2026-01-23T19:59:09.609821358Z",
-  "message": {
-    "role": "assistant",
-    "content": "{\n  \"operations\": [\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Rueckmeldung\",\n      \"absender\": \"LTSTB\",\n      \"empfaenger\": \"S2\",\n      \"inhalt\": \"Die Anfrage zur Eskalation der Verkehrsbelastungen auf der A1 wurde an die zuständige Behörde weitergeleitet. Bitte warten Sie auf eine Rückmeldung.\",\n      \"zeitpunkt\": \"2023-10-15T14:37:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"absender\": \"POL\",\n      \"empfaenger\": \"LTSTB\",\n      \"inhalt\": \"Es gibt aktuell mehrere Unfälle auf der A1 in Richtung Steuerberg. Bitte bereiten Sie zusätzliche Einsatzkräfte vor.\",\n      \"zeitpunkt\": \"2023-10-15T14:38:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"absender\": \"RK\",\n      \"empfaenger\": \"LTSTB\",\n      \"inhalt\": \"Ein schwerer Unfall auf der A1 hat zu einer Verletztenmeldung geführt. Bitte bereiten Sie einen Rettungswagen vor.\",\n      \"zeitpunkt\": \"2023-10-15T14:39:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Info\",\n      \"absender\": \"BH\",\n      \"empfaenger\": \"LTSTB\",\n      \"inhalt\": \"Die Behörde hat eine Anordnung erlassen, dass alle Rettungsaktionen auf der A1 Priorität haben.\",\n      \"zeitpunkt\": \"2023-10-15T14:40:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"absender\": \"Gemeinde Steuerberg\",\n      \"empfaenger\": \"LTSTB\",\n      \"inhalt\": \"Es gibt eine Schadensmeldung in der Gemeinde Steuerberg. Bitte bereiten Sie einen Einsatz vor.\",\n      \"zeitpunkt\": \"2023-10-15T14:41:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"absender\": \"Gemeinde Steuerberg\",\n      \"empfaenger\": \"LTSTB\",\n      \"inhalt\": \"Ein weiterer Unfall wurde in der Gemeinde Steuerberg gemeldet. Bitte bereiten Sie einen zusätzlichen Einsatz vor.\",\n      \"zeitpunkt\": \"2023-10-15T14:42:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S2\",\n      \"inhalt\": \"Bitte überprüfen Sie die aktuelle Lage auf der A1 und bereiten Sie zusätzliche Einsatzkräfte vor.\",\n      \"zeitpunkt\": \"2023-10-15T14:43:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S3\",\n      \"inhalt\": \"Bitte bereiten Sie einen Rettungswagen für den Unfall auf der A1 vor.\",\n      \"zeitpunkt\": \"2023-10-15T14:44:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S6\",\n      \"inhalt\": \"Bitte aktualisieren Sie die IT-Infrastruktur, um sicherzustellen, dass alle Systeme für den aktuellen Einsatz bereit sind.\",\n      \"zeitpunkt\": \"2023-10-15T14:45:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"adresse\": \"Gemeinde Steuerberg, Hauptstraße 7\",\n      \"typ\": \"Unfall\",\n      \"schweregrad\": \"mittel\",\n      \"zeitpunkt\": \"2023-10-15T14:46:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"adresse\": \"Gemeinde Steuerberg, Parkstraße 9\",\n      \"typ\": \"Brand\",\n      \"schweregrad\": \"leicht\",\n      \"zeitpunkt\": \"2023-10-15T14:47:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"adresse\": \"Gemeinde Steuerberg, Lindenstraße 11\",\n      \"typ\": \"Rettung\",\n      \"schweregrad\": \"mittel\",\n      \"zeitpunkt\": \"2023-10-15T14:48:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"adresse\": \"Gemeinde Steuerberg, Allee 13\",\n      \"typ\": \"Unfall\",\n      \"schweregrad\": \"leicht\",\n      \"zeitpunkt\": \"2023-10-15T14:49:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"adresse\": \"Gemeinde Steuerberg, Bahnhofstraße 15\",\n      \"typ\": \"Brand\",\n      \"schweregrad\": \"mittel\",\n      \"zeitpunkt\": \"2023-10-15T14:50:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"adresse\": \"Gemeinde Steuerberg, Markt 17\",\n      \"typ\": \"Rettung\",\n      \"schweregrad\": \"leicht\",\n      \"zeitpunkt\": \"2023-10-15T14:51:00Z\"\n    }\n  ]\n}"
-  },
-  "done": true,
-  "done_reason": "stop",
-  "total_duration": 265336969771,
-  "load_duration": 67774149,
-  "prompt_eval_count": 4096,
-  "prompt_eval_duration": 7620542773,
-  "eval_count": 1443,
-  "eval_duration": 233647753756
-}
-parsedResponse:
-{
-  "operations": [
-    {
-      "type": "protokoll.create",
-      "richtung": "ein",
-      "infoTyp": "Rueckmeldung",
-      "absender": "LTSTB",
-      "empfaenger": "S2",
-      "inhalt": "Die Anfrage zur Eskalation der Verkehrsbelastungen auf der A1 wurde an die zuständige Behörde weitergeleitet. Bitte warten Sie auf eine Rückmeldung.",
-      "zeitpunkt": "2023-10-15T14:37:00Z"
-    },
-    {
-      "type": "protokoll.create",
-      "richtung": "ein",
-      "infoTyp": "Lagemeldung",
-      "absender": "POL",
-      "empfaenger": "LTSTB",
-      "inhalt": "Es gibt aktuell mehrere Unfälle auf der A1 in Richtung Steuerberg. Bitte bereiten Sie zusätzliche Einsatzkräfte vor.",
-      "zeitpunkt": "2023-10-15T14:38:00Z"
-    },
-    {
-      "type": "protokoll.create",
-      "richtung": "ein",
-      "infoTyp": "Lagemeldung",
-      "absender": "RK",
-      "empfaenger": "LTSTB",
-      "inhalt": "Ein schwerer Unfall auf der A1 hat zu einer Verletztenmeldung geführt. Bitte bereiten Sie einen Rettungswagen vor.",
-      "zeitpunkt": "2023-10-15T14:39:00Z"
+      "empfaenger": "LtStb",
+      "inhalt": "Ein Unfall auf der A1 hat zu Verletzten geführt. Sanitätskräfte sind bereits vor Ort und behandeln die Betroffenen.",
+      "zeitpunkt": "2023-11-15T16:45:00Z"
     },
     {
       "type": "protokoll.create",
       "richtung": "ein",
       "infoTyp": "Info",
       "absender": "BH",
-      "empfaenger": "LTSTB",
-      "inhalt": "Die Behörde hat eine Anordnung erlassen, dass alle Rettungsaktionen auf der A1 Priorität haben.",
-      "zeitpunkt": "2023-10-15T14:40:00Z"
+      "empfaenger": "LtStb",
+      "inhalt": "Es wird eine Warnmeldung für die Bevölkerung ausgestrahlt. Bitte informieren Sie alle Betroffenen.",
+      "zeitpunkt": "2023-11-15T16:48:00Z"
     },
     {
       "type": "protokoll.create",
       "richtung": "ein",
       "infoTyp": "Lagemeldung",
       "absender": "Gemeinde Steuerberg",
-      "empfaenger": "LTSTB",
-      "inhalt": "Es gibt eine Schadensmeldung in der Gemeinde Steuerberg. Bitte bereiten Sie einen Einsatz vor.",
-      "zeitpunkt": "2023-10-15T14:41:00Z"
+      "empfaenger": "LtStb",
+      "inhalt": "Es gibt Schäden an öffentlichen Gebäuden in der Gemeinde. Bitte senden Sie Unterstützung.",
+      "zeitpunkt": "2023-11-15T16:50:00Z"
     },
     {
       "type": "protokoll.create",
       "richtung": "ein",
       "infoTyp": "Lagemeldung",
       "absender": "Gemeinde Steuerberg",
-      "empfaenger": "LTSTB",
-      "inhalt": "Ein weiterer Unfall wurde in der Gemeinde Steuerberg gemeldet. Bitte bereiten Sie einen zusätzlichen Einsatz vor.",
-      "zeitpunkt": "2023-10-15T14:42:00Z"
+      "empfaenger": "LtStb",
+      "inhalt": "Ein Teil der Bevölkerung ist ohne Stromversorgung. Bitte informieren Sie die zuständige Versorgerfirma.",
+      "zeitpunkt": "2023-11-15T16:55:00Z"
     },
     {
       "type": "aufgaben.create",
-      "assignedBy": "LTSTB",
+      "assignedBy": "LtStb",
+      "responsible": "S4",
+      "beschreibung": "Bitte überprüfen Sie die Verfügbarkeit von Notfallversorgungseinheiten und bereiten Sie diese vor.",
+      "zeitpunkt": "2023-11-15T16:58:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LtStb",
+      "responsible": "S5",
+      "beschreibung": "Bitte erstellen Sie eine Warnmeldung für die Bevölkerung und informieren Sie alle relevanten Medien.",
+      "zeitpunkt": "2023-11-15T17:00:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LtStb",
+      "responsible": "S6",
+      "beschreibung": "Bitte überprüfen Sie die Funkkapazität und stellen Sie sicher, dass alle notwendigen Kommunikationsmittel einsatzbereit sind.",
+      "zeitpunkt": "2023-11-15T17:02:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "adresse": "Gemeindegebiet Steuerberg, Hauptstraße 42",
+      "typ": "Verkehrsunfall",
+      "beschreibung": "Ein schwerer Verkehrsunfall hat zu mehreren Verletzten geführt. Sanitätskräfte sind bereits vor Ort.",
+      "zeitpunkt": "2023-11-15T17:04:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "adresse": "Gemeindegebiet Steuerberg, Industriestraße 89",
+      "typ": "Technisches Notfall",
+      "beschreibung": "Ein technischer Defekt hat zu einem Stromausfall geführt. Bitte senden Sie einen Techniker vor Ort.",
+      "zeitpunkt": "2023-11-15T17:06:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "adresse": "Gemeindegebiet Steuerberg, Parkplatz am Bahnhof",
+      "typ": "Evakuierung",
+      "beschreibung": "Ein Teil der Bevölkerung muss evakuiert werden. Bitte bereiten Sie die notwendigen Maßnahmen vor.",
+      "zeitpunkt": "2023-11-15T17:08:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "adresse": "Gemeindegebiet Steuerberg, Schulstraße 64",
+      "typ": "Notfallversorgung",
+      "beschreibung": "Ein Teil der Bevölkerung ist ohne Stromversorgung. Bitte senden Sie Notfallgeneratoren vor Ort.",
+      "zeitpunkt": "2023-11-15T17:10:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "adresse": "Gemeindegebiet Steuerberg, Kirchplatz 98",
+      "typ": "Sanitätseinsatz",
+      "beschreibung": "Ein Unfall hat zu Verletzten geführt. Sanitätskräfte sind bereits vor Ort und behandeln die Betroffenen.",
+      "zeitpunkt": "2023-11-15T17:12:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "adresse": "Gemeindegebiet Steuerberg, Parkplatz am Rathaus",
+      "typ": "Verkehrsaufkommen",
+      "beschreibung": "Es gibt aktuell mehrere Verkehrsaufkommen auf der A1 in Richtung Steuerberg. Bitte informieren Sie die Fahrer über alternative Routen.",
+      "zeitpunkt": "2023-11-15T17:14:00Z"
+    }
+  ]
+}
+{
+  "ts": "2026-01-24T08:40:53.973Z",
+  "type": "LLM",
+  "phase": "response",
+  "model": "einfo-balanced:latest",
+  "extra": {
+    "phase": "ops",
+    "messageCount": 2
+  }
+}
+rawResponse:
+{
+  "model": "einfo-balanced:latest",
+  "created_at": "2026-01-24T08:40:53.97216087Z",
+  "message": {
+    "role": "assistant",
+    "content": "{\n  \"operations\": [\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Rueckmeldung\",\n      \"absender\": \"LtStb\",\n      \"empfaenger\": \"LST\",\n      \"inhalt\": \"Die Anfrage zur Verwendung von Einsatzmitteln wurde an die zuständige Behörde weitergeleitet und eine Bestätigung erhalten. Die benötigten Ressourcen sind in Kürze verfügbar.\",\n      \"zeitpunkt\": \"2023-11-15T14:37:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"absender\": \"POL\",\n      \"empfaenger\": \"LtStb\",\n      \"inhalt\": \"Es gibt aktuell mehrere Verkehrsaufkommen auf der A1 in Richtung Steuerberg. Bitte informieren Sie die Fahrzeugführer, dass sie möglicherweise langsamer vorankommen werden.\",\n      \"zeitpunkt\": \"2023-11-15T14:38:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"absender\": \"RK\",\n      \"empfaenger\": \"LtStb\",\n      \"inhalt\": \"Ein weiterer Patient wurde ins Krankenhaus eingeliefert. Es handelt sich um eine Verletzung durch Trümmer, die bei der Räumungsaktion entstanden sind.\",\n      \"zeitpunkt\": \"2023-11-15T14:40:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Info\",\n      \"absender\": \"BH\",\n      \"empfaenger\": \"LtStb\",\n      \"inhalt\": \"Die Behörde hat eine Anordnung erlassen, dass alle Einsatzkräfte bis 18:00 Uhr am Standort bleiben sollen.\",\n      \"zeitpunkt\": \"2023-11-15T14:42:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"absender\": \"BM Steuerberg\",\n      \"empfaenger\": \"LtStb\",\n      \"inhalt\": \"In der Gemeinde Steuerberg wurden mehrere Schäden durch den Sturm gemeldet. Bitte senden Sie Unterstützung.\",\n      \"zeitpunkt\": \"2023-11-15T14:45:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LtStb\",\n      \"responsible\": \"S2\",\n      \"beschreibung\": \"Bitte erstellen Sie ein aktuelles Lagebild und teilen Sie es mit den zuständigen Behörden.\",\n      \"zeitpunkt\": \"2023-11-15T14:47:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LtStb\",\n      \"responsible\": \"S3\",\n      \"beschreibung\": \"Bitte ordnen Sie die Einsatzkräfte neu zu, um den erhöhten Bedarf an Unterstützung in Steuerberg abzudecken.\",\n      \"zeitpunkt\": \"2023-11-15T14:48:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LtStb\",\n      \"responsible\": \"S4\",\n      \"beschreibung\": \"Bitte sorgen Sie für ausreichende Versorgung der Einsatzkräfte, insbesondere in Bezug auf Nahrung und Trinkwasser.\",\n      \"zeitpunkt\": \"2023-11-15T14:50:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentType\": \"Verkehrsunfall\",\n      \"address\": \"Gemeindegebiet Steuerberg, Auffahrt zur Autobahn 1\",\n      \"description\": \"Ein schwerer Verkehrsunfall hat die Fahrbahn blockiert. Es gibt mehrere verletzte Personen.\",\n      \"timeOfIncident\": \"2023-11-15T14:52:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentType\": \"Räumungsaktion\",\n      \"address\": \"Gemeindegebiet Steuerberg, Dorfplatz\",\n      \"description\": \"Eine Räumungsaktion für gefährliche Trümmer ist notwendig. Es gibt Anzeichen von Schadstoffen.\",\n      \"timeOfIncident\": \"2023-11-15T14:55:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentType\": \"Erdbeben\",\n      \"address\": \"Gemeindegebiet Steuerberg, Industriegebiet\",\n      \"description\": \"Ein Erdbeben von mittlerer Stärke hat Gebäude beschädigt und Stromausfälle verursacht.\",\n      \"timeOfIncident\": \"2023-11-15T14:58:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentType\": \"Brand\",\n      \"address\": \"Gemeindegebiet Steuerberg, Wohnsiedlung\",\n      \"description\": \"Ein Brand in einem Mehrfamilienhaus hat die Feuerwehr alarmiert. Es gibt mehrere vermisste Personen.\",\n      \"timeOfIncident\": \"2023-11-15T14:59:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentType\": \"Verkehrsaufkommen\",\n      \"address\": \"Gemeindegebiet Steuerberg, Hauptstraße\",\n      \"description\": \"Ein erhöhtes Verkehrsaufkommen hat zu Staus geführt. Bitte informieren Sie die Fahrzeugführer.\",\n      \"timeOfIncident\": \"2023-11-15T14:59:30Z\"\n    }\n  ]\n}"
+  },
+  "done": true,
+  "done_reason": "stop",
+  "total_duration": 261492166511,
+  "load_duration": 59284667,
+  "prompt_eval_count": 4096,
+  "prompt_eval_duration": 7661442201,
+  "eval_count": 1429,
+  "eval_duration": 230288526175
+}
+parsedResponse:
+{
+  "operations": [
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Rueckmeldung",
+      "absender": "LtStb",
+      "empfaenger": "LST",
+      "inhalt": "Die Anfrage zur Verwendung von Einsatzmitteln wurde an die zuständige Behörde weitergeleitet und eine Bestätigung erhalten. Die benötigten Ressourcen sind in Kürze verfügbar.",
+      "zeitpunkt": "2023-11-15T14:37:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Lagemeldung",
+      "absender": "POL",
+      "empfaenger": "LtStb",
+      "inhalt": "Es gibt aktuell mehrere Verkehrsaufkommen auf der A1 in Richtung Steuerberg. Bitte informieren Sie die Fahrzeugführer, dass sie möglicherweise langsamer vorankommen werden.",
+      "zeitpunkt": "2023-11-15T14:38:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Lagemeldung",
+      "absender": "RK",
+      "empfaenger": "LtStb",
+      "inhalt": "Ein weiterer Patient wurde ins Krankenhaus eingeliefert. Es handelt sich um eine Verletzung durch Trümmer, die bei der Räumungsaktion entstanden sind.",
+      "zeitpunkt": "2023-11-15T14:40:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Info",
+      "absender": "BH",
+      "empfaenger": "LtStb",
+      "inhalt": "Die Behörde hat eine Anordnung erlassen, dass alle Einsatzkräfte bis 18:00 Uhr am Standort bleiben sollen.",
+      "zeitpunkt": "2023-11-15T14:42:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Lagemeldung",
+      "absender": "BM Steuerberg",
+      "empfaenger": "LtStb",
+      "inhalt": "In der Gemeinde Steuerberg wurden mehrere Schäden durch den Sturm gemeldet. Bitte senden Sie Unterstützung.",
+      "zeitpunkt": "2023-11-15T14:45:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LtStb",
       "responsible": "S2",
-      "inhalt": "Bitte überprüfen Sie die aktuelle Lage auf der A1 und bereiten Sie zusätzliche Einsatzkräfte vor.",
-      "zeitpunkt": "2023-10-15T14:43:00Z"
+      "beschreibung": "Bitte erstellen Sie ein aktuelles Lagebild und teilen Sie es mit den zuständigen Behörden.",
+      "zeitpunkt": "2023-11-15T14:47:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LtStb",
+      "responsible": "S3",
+      "beschreibung": "Bitte ordnen Sie die Einsatzkräfte neu zu, um den erhöhten Bedarf an Unterstützung in Steuerberg abzudecken.",
+      "zeitpunkt": "2023-11-15T14:48:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LtStb",
+      "responsible": "S4",
+      "beschreibung": "Bitte sorgen Sie für ausreichende Versorgung der Einsatzkräfte, insbesondere in Bezug auf Nahrung und Trinkwasser.",
+      "zeitpunkt": "2023-11-15T14:50:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Verkehrsunfall",
+      "address": "Gemeindegebiet Steuerberg, Auffahrt zur Autobahn 1",
+      "description": "Ein schwerer Verkehrsunfall hat die Fahrbahn blockiert. Es gibt mehrere verletzte Personen.",
+      "timeOfIncident": "2023-11-15T14:52:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Räumungsaktion",
+      "address": "Gemeindegebiet Steuerberg, Dorfplatz",
+      "description": "Eine Räumungsaktion für gefährliche Trümmer ist notwendig. Es gibt Anzeichen von Schadstoffen.",
+      "timeOfIncident": "2023-11-15T14:55:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Erdbeben",
+      "address": "Gemeindegebiet Steuerberg, Industriegebiet",
+      "description": "Ein Erdbeben von mittlerer Stärke hat Gebäude beschädigt und Stromausfälle verursacht.",
+      "timeOfIncident": "2023-11-15T14:58:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Brand",
+      "address": "Gemeindegebiet Steuerberg, Wohnsiedlung",
+      "description": "Ein Brand in einem Mehrfamilienhaus hat die Feuerwehr alarmiert. Es gibt mehrere vermisste Personen.",
+      "timeOfIncident": "2023-11-15T14:59:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Verkehrsaufkommen",
+      "address": "Gemeindegebiet Steuerberg, Hauptstraße",
+      "description": "Ein erhöhtes Verkehrsaufkommen hat zu Staus geführt. Bitte informieren Sie die Fahrzeugführer.",
+      "timeOfIncident": "2023-11-15T14:59:30Z"
+    }
+  ]
+}
+{
+  "ts": "2026-01-24T08:47:32.484Z",
+  "type": "LLM",
+  "phase": "response_error",
+  "model": "einfo-balanced:latest",
+  "extra": {
+    "phase": "ops",
+    "error": "AbortError: This operation was aborted",
+    "messageCount": 2
+  }
+}
+rawResponse:
+AbortError: This operation was aborted
+parsedResponse:
+null
+{
+  "ts": "2026-01-24T08:52:34.172Z",
+  "type": "LLM",
+  "phase": "response_error",
+  "model": "einfo-balanced:latest",
+  "extra": {
+    "phase": "ops",
+    "error": "TypeError: fetch failed",
+    "messageCount": 2
+  }
+}
+rawResponse:
+TypeError: fetch failed
+parsedResponse:
+null
+{
+  "ts": "2026-01-24T08:57:36.862Z",
+  "type": "LLM",
+  "phase": "response_error",
+  "model": "einfo-balanced:latest",
+  "extra": {
+    "phase": "ops",
+    "error": "TypeError: fetch failed",
+    "messageCount": 2
+  }
+}
+rawResponse:
+TypeError: fetch failed
+parsedResponse:
+null
+{
+  "ts": "2026-01-24T09:03:15.444Z",
+  "type": "LLM",
+  "phase": "response",
+  "model": "einfo-balanced:latest",
+  "extra": {
+    "phase": "ops",
+    "messageCount": 2
+  }
+}
+rawResponse:
+{
+  "model": "einfo-balanced:latest",
+  "created_at": "2026-01-24T09:03:15.443647694Z",
+  "message": {
+    "role": "assistant",
+    "content": "{\n  \"operations\": [\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Rueckmeldung\",\n      \"absender\": \"ROL_LST\",\n      \"inhalt\": \"Die Anfrage zur Verstärkung der Einsatzkräfte wurde an die zuständige Behörde weitergeleitet und eine Bestätigung erhalten. Die zusätzlichen Ressourcen werden innerhalb von 30 Minuten am Einsatzort eintreffen.\",\n      \"timestamp\": \"2023-11-15T14:37:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"absender\": \"ROL_POL\",\n      \"inhalt\": \"Es gibt aktuell mehrere Verkehrsstaus auf der A1 und A2 in Richtung Steuerberg. Bitte informieren Sie die Fahrzeugführer, dass sie alternative Routen wählen sollten.\",\n      \"timestamp\": \"2023-11-15T14:38:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"absender\": \"ROL_RK\",\n      \"inhalt\": \"Ein weiterer Patient wurde ins Krankenhaus eingeliefert. Es handelt sich um eine Person mit schweren Verletzungen am Bein.\",\n      \"timestamp\": \"2023-11-15T14:40:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n       \"infoTyp\": \"Info\",\n        \"absender\": \"ROL_BM_Steuerberg\",\n        \"inhalt\": \"In der Gemeinde Steuerberg gibt es mehrere Schäden an Gebäuden und Straßen. Bitte senden Sie weitere Einsatzkräfte, um die Situation zu stabilisieren.\",\n      \"timestamp\": \"2023-11-15T14:42:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n       \"richtung\": \"ein\",\n        \"infoTyp\": \"Lagemeldung\",\n         \"absender\": \"ROL_BH\",\n          \"inhalt\": \"Die Bundeswehr hat angeboten, Unterstützung durch Logistikressourcen und Truppen zu leisten. Bitte kontaktieren Sie uns für weitere Informationen.\",\n      \"timestamp\": \"2023-11-15T14:45:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n       \"richtung\": \"ein\",\n        \"infoTyp\": \"Lagemeldung\",\n         \"absender\": \"ROL_LST\",\n          \"inhalt\": \"Ein weiterer Einsatzort wurde identifiziert. Es handelt sich um einen Brand in einem Wohnhaus im Ortsteil Steuerberg.\",\n      \"timestamp\": \"2023-11-15T14:47:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n       \"assignedBy\": \"LTSTB\",\n        \"responsible\": \"S3\",\n         \"inhalt\": \"Bitte überprüfen Sie die Verfügbarkeit von Feuerwehrfahrzeugen und Personal für den zusätzlichen Einsatzort.\",\n      \"timestamp\": \"2023-11-15T14:50:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n       \"assignedBy\": \"LTSTB\",\n        \"responsible\": \"S4\",\n         \"inhalt\": \"Bitte sorgen Sie für die Versorgung der Einsatzkräfte mit Nahrung und Trinkwasser.\",\n      \"timestamp\": \"2023-11-15T14:52:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n       \"assignedBy\": \"LTSTB\",\n        \"responsible\": \"S6\",\n         \"inhalt\": \"Bitte stellen Sie sicher, dass die Kommunikationssysteme stabil sind und alle notwendigen Informationen an die Einsatzkräfte übermittelt werden.\",\n      \"timestamp\": \"2023-11-15T14:55:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n       \"incidentType\": \"Brand\",\n        \"address\": \"Gemeindegebiet Steuerberg, Ortsteil 2\",\n         \"severity\": \"mittel\",\n          \"description\": \"Ein Brand in einem Wohnhaus im Ortsteil Steuerberg.\",\n      \"timestamp\": \"2023-11-15T14:57:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n       \"incidentType\": \"Verkehrsunfall\",\n        \"address\": \"A1 in Richtung Steuerberg, km 89+600\",\n         \"severity\": \"leicht\",\n          \"description\": \"Ein Verkehrsunfall auf der A1.\",\n      \"timestamp\": \"2023-11-15T14:59:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n       \"incidentType\": \"Erdbeben\",\n        \"address\": \"Gemeindegebiet Steuerberg, Ortsteil 3\",\n         \"severity\": \"schwer\",\n          \"description\": \"Ein Erdbeben hat zu Gebäudedestabilisierungen geführt.\",\n      \"timestamp\": \"2023-11-15T15:01:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n       \"incidentType\": \"Flutung\",\n        \"address\": \"Gemeindegebiet Steuerberg, Ortsteil 4\",\n         \"severity\": \"mittel\",\n          \"description\": \"Ein Teil des Ortes ist durch Fluten bedroht.\",\n      \"timestamp\": \"2023-11-15T15:03:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n       \"incidentType\": \"Brand\",\n        \"address\": \"Gemeindegebiet Steuerberg, Ortsteil 5\",\n         \"severity\": \"leicht\",\n          \"description\": \"Ein kleiner Brand in einem Gewerbeobjekt.\",\n      \"timestamp\": \"2023-11-15T15:06:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n       \"incidentType\": \"Verkehrsunfall\",\n        \"address\": \"A2 in Richtung Steuerberg, km 98+400\",\n         \"severity\": \"mittel\",\n          \"description\": \"Ein Verkehrsunfall auf der A2.\",\n      \"timestamp\": \"2023-11-15T15:07:00Z\"\n    }\n  ]\n}"
+  },
+  "done": true,
+  "done_reason": "stop",
+  "total_duration": 282648872345,
+  "load_duration": 57653664,
+  "prompt_eval_count": 4096,
+  "prompt_eval_duration": 7648331559,
+  "eval_count": 1540,
+  "eval_duration": 249740795758
+}
+parsedResponse:
+{
+  "operations": [
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Rueckmeldung",
+      "absender": "ROL_LST",
+      "inhalt": "Die Anfrage zur Verstärkung der Einsatzkräfte wurde an die zuständige Behörde weitergeleitet und eine Bestätigung erhalten. Die zusätzlichen Ressourcen werden innerhalb von 30 Minuten am Einsatzort eintreffen.",
+      "timestamp": "2023-11-15T14:37:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Lagemeldung",
+      "absender": "ROL_POL",
+      "inhalt": "Es gibt aktuell mehrere Verkehrsstaus auf der A1 und A2 in Richtung Steuerberg. Bitte informieren Sie die Fahrzeugführer, dass sie alternative Routen wählen sollten.",
+      "timestamp": "2023-11-15T14:38:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Lagemeldung",
+      "absender": "ROL_RK",
+      "inhalt": "Ein weiterer Patient wurde ins Krankenhaus eingeliefert. Es handelt sich um eine Person mit schweren Verletzungen am Bein.",
+      "timestamp": "2023-11-15T14:40:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Info",
+      "absender": "ROL_BM_Steuerberg",
+      "inhalt": "In der Gemeinde Steuerberg gibt es mehrere Schäden an Gebäuden und Straßen. Bitte senden Sie weitere Einsatzkräfte, um die Situation zu stabilisieren.",
+      "timestamp": "2023-11-15T14:42:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Lagemeldung",
+      "absender": "ROL_BH",
+      "inhalt": "Die Bundeswehr hat angeboten, Unterstützung durch Logistikressourcen und Truppen zu leisten. Bitte kontaktieren Sie uns für weitere Informationen.",
+      "timestamp": "2023-11-15T14:45:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Lagemeldung",
+      "absender": "ROL_LST",
+      "inhalt": "Ein weiterer Einsatzort wurde identifiziert. Es handelt sich um einen Brand in einem Wohnhaus im Ortsteil Steuerberg.",
+      "timestamp": "2023-11-15T14:47:00Z"
     },
     {
       "type": "aufgaben.create",
       "assignedBy": "LTSTB",
       "responsible": "S3",
-      "inhalt": "Bitte bereiten Sie einen Rettungswagen für den Unfall auf der A1 vor.",
-      "zeitpunkt": "2023-10-15T14:44:00Z"
+      "inhalt": "Bitte überprüfen Sie die Verfügbarkeit von Feuerwehrfahrzeugen und Personal für den zusätzlichen Einsatzort.",
+      "timestamp": "2023-11-15T14:50:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S4",
+      "inhalt": "Bitte sorgen Sie für die Versorgung der Einsatzkräfte mit Nahrung und Trinkwasser.",
+      "timestamp": "2023-11-15T14:52:00Z"
     },
     {
       "type": "aufgaben.create",
       "assignedBy": "LTSTB",
       "responsible": "S6",
-      "inhalt": "Bitte aktualisieren Sie die IT-Infrastruktur, um sicherzustellen, dass alle Systeme für den aktuellen Einsatz bereit sind.",
-      "zeitpunkt": "2023-10-15T14:45:00Z"
+      "inhalt": "Bitte stellen Sie sicher, dass die Kommunikationssysteme stabil sind und alle notwendigen Informationen an die Einsatzkräfte übermittelt werden.",
+      "timestamp": "2023-11-15T14:55:00Z"
     },
     {
       "type": "board.createIncidentSites",
-      "adresse": "Gemeinde Steuerberg, Hauptstraße 7",
-      "typ": "Unfall",
-      "schweregrad": "mittel",
-      "zeitpunkt": "2023-10-15T14:46:00Z"
+      "incidentType": "Brand",
+      "address": "Gemeindegebiet Steuerberg, Ortsteil 2",
+      "severity": "mittel",
+      "description": "Ein Brand in einem Wohnhaus im Ortsteil Steuerberg.",
+      "timestamp": "2023-11-15T14:57:00Z"
     },
     {
       "type": "board.createIncidentSites",
-      "adresse": "Gemeinde Steuerberg, Parkstraße 9",
-      "typ": "Brand",
-      "schweregrad": "leicht",
-      "zeitpunkt": "2023-10-15T14:47:00Z"
+      "incidentType": "Verkehrsunfall",
+      "address": "A1 in Richtung Steuerberg, km 89+600",
+      "severity": "leicht",
+      "description": "Ein Verkehrsunfall auf der A1.",
+      "timestamp": "2023-11-15T14:59:00Z"
     },
     {
       "type": "board.createIncidentSites",
-      "adresse": "Gemeinde Steuerberg, Lindenstraße 11",
-      "typ": "Rettung",
-      "schweregrad": "mittel",
-      "zeitpunkt": "2023-10-15T14:48:00Z"
+      "incidentType": "Erdbeben",
+      "address": "Gemeindegebiet Steuerberg, Ortsteil 3",
+      "severity": "schwer",
+      "description": "Ein Erdbeben hat zu Gebäudedestabilisierungen geführt.",
+      "timestamp": "2023-11-15T15:01:00Z"
     },
     {
       "type": "board.createIncidentSites",
-      "adresse": "Gemeinde Steuerberg, Allee 13",
-      "typ": "Unfall",
-      "schweregrad": "leicht",
-      "zeitpunkt": "2023-10-15T14:49:00Z"
+      "incidentType": "Flutung",
+      "address": "Gemeindegebiet Steuerberg, Ortsteil 4",
+      "severity": "mittel",
+      "description": "Ein Teil des Ortes ist durch Fluten bedroht.",
+      "timestamp": "2023-11-15T15:03:00Z"
     },
     {
       "type": "board.createIncidentSites",
-      "adresse": "Gemeinde Steuerberg, Bahnhofstraße 15",
-      "typ": "Brand",
-      "schweregrad": "mittel",
-      "zeitpunkt": "2023-10-15T14:50:00Z"
+      "incidentType": "Brand",
+      "address": "Gemeindegebiet Steuerberg, Ortsteil 5",
+      "severity": "leicht",
+      "description": "Ein kleiner Brand in einem Gewerbeobjekt.",
+      "timestamp": "2023-11-15T15:06:00Z"
     },
     {
       "type": "board.createIncidentSites",
-      "adresse": "Gemeinde Steuerberg, Markt 17",
-      "typ": "Rettung",
-      "schweregrad": "leicht",
-      "zeitpunkt": "2023-10-15T14:51:00Z"
+      "incidentType": "Verkehrsunfall",
+      "address": "A2 in Richtung Steuerberg, km 98+400",
+      "severity": "mittel",
+      "description": "Ein Verkehrsunfall auf der A2.",
+      "timestamp": "2023-11-15T15:07:00Z"
+    }
+  ]
+}
+{
+  "ts": "2026-01-24T09:09:32.814Z",
+  "type": "LLM",
+  "phase": "response_error",
+  "model": "einfo-balanced:latest",
+  "extra": {
+    "phase": "ops",
+    "error": "AbortError: This operation was aborted",
+    "messageCount": 2
+  }
+}
+rawResponse:
+AbortError: This operation was aborted
+parsedResponse:
+null
+{
+  "ts": "2026-01-24T09:14:34.523Z",
+  "type": "LLM",
+  "phase": "response_error",
+  "model": "einfo-balanced:latest",
+  "extra": {
+    "phase": "ops",
+    "error": "TypeError: fetch failed",
+    "messageCount": 2
+  }
+}
+rawResponse:
+TypeError: fetch failed
+parsedResponse:
+null
+{
+  "ts": "2026-01-24T09:19:37.228Z",
+  "type": "LLM",
+  "phase": "response_error",
+  "model": "einfo-balanced:latest",
+  "extra": {
+    "phase": "ops",
+    "error": "TypeError: fetch failed",
+    "messageCount": 2
+  }
+}
+rawResponse:
+TypeError: fetch failed
+parsedResponse:
+null
+{
+  "ts": "2026-01-24T09:25:23.041Z",
+  "type": "LLM",
+  "phase": "response",
+  "model": "einfo-balanced:latest",
+  "extra": {
+    "phase": "ops",
+    "messageCount": 2
+  }
+}
+rawResponse:
+{
+  "model": "einfo-balanced:latest",
+  "created_at": "2026-01-24T09:25:23.040790408Z",
+  "message": {
+    "role": "assistant",
+    "content": "{\n  \"operations\": [\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Rueckmeldung\",\n      \"absender\": \"LtStb\",\n      \"empfaenger\": \"S4\",\n      \"inhalt\": \"Die Ressourcenfrage wurde an die zuständige Behörde weitergeleitet und eine Bestätigung erwartet.\",\n      \"zeitpunkt\": \"2023-11-15T16:47:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"absender\": \"POL\",\n      \"empfaenger\": \"LtStb\",\n      \"inhalt\": \"Es gibt aktuell Verkehrsaufkommen auf der A1 in Richtung Steuerberg. Bitte informieren Sie die Fahrzeugführer.\",\n      \"zeitpunkt\": \"2023-11-15T16:48:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Info\",\n      \"absender\": \"LST\",\n      \"empfaenger\": \"LtStb\",\n      \"inhalt\": \"Der Einsatzwagen 1234 befindet sich auf dem Weg zum Schadensort in Steuerberg. Erwartete Ankunft um 17:05 Uhr.\",\n      \"zeitpunkt\": \"2023-11-15T16:50:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"absender\": \"RK\",\n      \"empfaenger\": \"LtStb\",\n      \"inhalt\": \"Ein Sanitätseinsatz wurde in der Gemeinde Steuerberg gemeldet. Ein Rettungswagen ist bereits vor Ort.\",\n      \"zeitpunkt\": \"2023-11-15T16:52:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"absender\": \"BH\",\n      \"empfaenger\": \"LtStb\",\n      \"inhalt\": \"Es wird eine Evakuierung der Einwohner in Steuerberg angeordnet. Bitte informieren Sie die zuständigen Behörden.\",\n      \"zeitpunkt\": \"2023-11-15T16:54:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"absender\": \"BM_Steuerberg\",\n      \"empfaenger\": \"LtStb\",\n      \"inhalt\": \"In der Gemeinde Steuerberg wurde ein Schaden an einem öffentlichen Gebäude gemeldet. Bitte senden Sie Unterstützung.\",\n      \"zeitpunkt\": \"2023-11-15T16:57:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LtStb\",\n      \"responsible\": \"S4\",\n      \"inhalt\": \"Bitte überprüfen Sie die Verfügbarkeit von Ressourcen für den Evakuierungseinsatz in Steuerberg.\",\n      \"zeitpunkt\": \"2023-11-15T16:58:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LtStb\",\n      \"responsible\": \"S3\",\n      \"inhalt\": \"Bitte senden Sie Unterstützung für den Schaden an einem öffentlichen Gebäude in Steuerberg.\",\n      \"zeitpunkt\": \"2023-11-15T17:00:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LtStb\",\n      \"responsible\": \"S6\",\n      \"inhalt\": \"Bitte überprüfen Sie die Kommunikationssicherheit im Einsatzgebiet.\",\n      \"zeitpunkt\": \"2023-11-15T17:02:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentType\": \"Verkehrsunfall\",\n      \"address\": \"Gemeinde Steuerberg, Auffahrt zur Autobahn 1\",\n      \"severity\": \"mittel\",\n      \"description\": \"Ein Verkehrsunfall auf der Auffahrt zur Autobahn 1 in Richtung Steuerberg.\",\n      \"zeitpunkt\": \"2023-11-15T17:04:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentType\": \"Brand\",\n      \"address\": \"Gemeinde Steuerberg, Hauptstraße 12\",\n      \"severity\": \"hoch\",\n      \"description\": \"Ein Brand in einem Wohnhaus auf der Hauptstraße 12.\",\n      \"zeitpunkt\": \"2023-11-15T17:06:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentType\": \"Unfall\",\n      \"address\": \"Gemeinde Steuerberg, Industriestraße 45\",\n      \"severity\": \"mittel\",\n      \"description\": \"Ein Unfall auf der Industriestraße 45.\",\n      \"zeitpunkt\": \"2023-11-15T17:08:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentType\": \"Verkehrsaufkommen\",\n      \"address\": \"Gemeinde Steuerberg, Autobahn 1 Richtung Stadtzentrum\",\n      \"severity\": \"mittel\",\n      \"description\": \"Erhöhtes Verkehrsaufkommen auf der A1 in Richtung Stadtzentrum.\",\n      \"zeitpunkt\": \"2023-11-15T17:10:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentType\": \"Brand\",\n      \"address\": \"Gemeinde Steuerberg, Industriestraße 67\",\n      \"severity\": \"hoch\",\n      \"description\": \"Ein Brand in einem Lagerhaus auf der Industriestraße 67.\",\n      \"zeitpunkt\": \"2023-11-15T17:12:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentType\": \"Verkehrsunfall\",\n      \"address\": \"Gemeinde Steuerberg, Hauptstraße 89\",\n      \"severity\": \"mittel\",\n      \"description\": \"Ein Verkehrsunfall auf der Hauptstraße 89.\",\n      \"zeitpunkt\": \"2023-11-15T17:14:00Z\"\n    }\n  ]\n}"
+  },
+  "done": true,
+  "done_reason": "stop",
+  "total_duration": 289854173518,
+  "load_duration": 60831706,
+  "prompt_eval_count": 4096,
+  "prompt_eval_duration": 7659333031,
+  "eval_count": 1578,
+  "eval_duration": 256311330478
+}
+parsedResponse:
+{
+  "operations": [
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Rueckmeldung",
+      "absender": "LtStb",
+      "empfaenger": "S4",
+      "inhalt": "Die Ressourcenfrage wurde an die zuständige Behörde weitergeleitet und eine Bestätigung erwartet.",
+      "zeitpunkt": "2023-11-15T16:47:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Lagemeldung",
+      "absender": "POL",
+      "empfaenger": "LtStb",
+      "inhalt": "Es gibt aktuell Verkehrsaufkommen auf der A1 in Richtung Steuerberg. Bitte informieren Sie die Fahrzeugführer.",
+      "zeitpunkt": "2023-11-15T16:48:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Info",
+      "absender": "LST",
+      "empfaenger": "LtStb",
+      "inhalt": "Der Einsatzwagen 1234 befindet sich auf dem Weg zum Schadensort in Steuerberg. Erwartete Ankunft um 17:05 Uhr.",
+      "zeitpunkt": "2023-11-15T16:50:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Lagemeldung",
+      "absender": "RK",
+      "empfaenger": "LtStb",
+      "inhalt": "Ein Sanitätseinsatz wurde in der Gemeinde Steuerberg gemeldet. Ein Rettungswagen ist bereits vor Ort.",
+      "zeitpunkt": "2023-11-15T16:52:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Lagemeldung",
+      "absender": "BH",
+      "empfaenger": "LtStb",
+      "inhalt": "Es wird eine Evakuierung der Einwohner in Steuerberg angeordnet. Bitte informieren Sie die zuständigen Behörden.",
+      "zeitpunkt": "2023-11-15T16:54:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Lagemeldung",
+      "absender": "BM_Steuerberg",
+      "empfaenger": "LtStb",
+      "inhalt": "In der Gemeinde Steuerberg wurde ein Schaden an einem öffentlichen Gebäude gemeldet. Bitte senden Sie Unterstützung.",
+      "zeitpunkt": "2023-11-15T16:57:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LtStb",
+      "responsible": "S4",
+      "inhalt": "Bitte überprüfen Sie die Verfügbarkeit von Ressourcen für den Evakuierungseinsatz in Steuerberg.",
+      "zeitpunkt": "2023-11-15T16:58:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LtStb",
+      "responsible": "S3",
+      "inhalt": "Bitte senden Sie Unterstützung für den Schaden an einem öffentlichen Gebäude in Steuerberg.",
+      "zeitpunkt": "2023-11-15T17:00:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LtStb",
+      "responsible": "S6",
+      "inhalt": "Bitte überprüfen Sie die Kommunikationssicherheit im Einsatzgebiet.",
+      "zeitpunkt": "2023-11-15T17:02:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Verkehrsunfall",
+      "address": "Gemeinde Steuerberg, Auffahrt zur Autobahn 1",
+      "severity": "mittel",
+      "description": "Ein Verkehrsunfall auf der Auffahrt zur Autobahn 1 in Richtung Steuerberg.",
+      "zeitpunkt": "2023-11-15T17:04:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Brand",
+      "address": "Gemeinde Steuerberg, Hauptstraße 12",
+      "severity": "hoch",
+      "description": "Ein Brand in einem Wohnhaus auf der Hauptstraße 12.",
+      "zeitpunkt": "2023-11-15T17:06:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Unfall",
+      "address": "Gemeinde Steuerberg, Industriestraße 45",
+      "severity": "mittel",
+      "description": "Ein Unfall auf der Industriestraße 45.",
+      "zeitpunkt": "2023-11-15T17:08:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Verkehrsaufkommen",
+      "address": "Gemeinde Steuerberg, Autobahn 1 Richtung Stadtzentrum",
+      "severity": "mittel",
+      "description": "Erhöhtes Verkehrsaufkommen auf der A1 in Richtung Stadtzentrum.",
+      "zeitpunkt": "2023-11-15T17:10:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Brand",
+      "address": "Gemeinde Steuerberg, Industriestraße 67",
+      "severity": "hoch",
+      "description": "Ein Brand in einem Lagerhaus auf der Industriestraße 67.",
+      "zeitpunkt": "2023-11-15T17:12:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Verkehrsunfall",
+      "address": "Gemeinde Steuerberg, Hauptstraße 89",
+      "severity": "mittel",
+      "description": "Ein Verkehrsunfall auf der Hauptstraße 89.",
+      "zeitpunkt": "2023-11-15T17:14:00Z"
+    }
+  ]
+}
+{
+  "ts": "2026-01-24T09:30:33.980Z",
+  "type": "LLM",
+  "phase": "response",
+  "model": "einfo-balanced:latest",
+  "extra": {
+    "phase": "ops",
+    "messageCount": 2
+  }
+}
+rawResponse:
+{
+  "model": "einfo-balanced:latest",
+  "created_at": "2026-01-24T09:30:33.980187506Z",
+  "message": {
+    "role": "assistant",
+    "content": "{\n  \"operations\": [\n    {\n      \"type\": \"protokoll.create\",\n      \"absender\": \"LST\",\n      \"infoTyp\": \"Rueckmeldung\",\n      \"richtung\": \"ein\",\n      \"text\": \"Die Anfrage zur Verstärkung der Einsatzkräfte wurde an die zuständige Behörde weitergeleitet. Bitte warten Sie auf eine Rückmeldung.\",\n      \"timestamp\": \"2023-11-15T14:37:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentSites\": [\n        {\n          \"adresse\": \"Gemeindegebiet Steuerberg, Hauptstraße 12\",\n          \"typ\": \"Verkehrsunfall\",\n          \"beschreibung\": \"Mehrfachverunglückte Unfallstelle mit schweren Verletzten.\",\n          \"prioritaet\": \"Hoch\"\n        },\n        {\n          \"adresse\": \"Gemeindegebiet Steuerberg, Industriestraße 23\",\n          \"typ\": \"Brand\",\n          \"beschreibung\": \"Brandschäden in einem Lagerhaus mit gefährlichen Chemikalien.\",\n          \"prioritaet\": \"Hoch\"\n        },\n        {\n          \"adresse\": \"Gemeindegebiet Steuerberg, Parkplatz am Bahnhof\",\n          \"typ\": \"Rettungsaktion\",\n          \"beschreibung\": \"Person im Wasser geborgen und medizinische Erster Hilfe notwendig.\",\n          \"prioritaet\": \"Mittel\"\n        },\n        {\n          \"adresse\": \"Gemeindegebiet Steuerberg, Wohnsiedlung Nord\",\n          \"typ\": \"Einschlag\",\n          \"beschreibung\": \"Unbekannter Einschlag mit Schäden an Gebäuden und Fahrzeugen.\",\n          \"prioritaet\": \"Mittel\"\n        },\n        {\n          \"adresse\": \"Gemeindegebiet Steuerberg, Sportanlage Ost\",\n          \"typ\": \"Brand\",\n          \"beschreibung\": \"Brandschaden in einem Turnhallengebäude mit Rauchentwicklung.\",\n          \"prioritaet\": \"Hoch\"\n        }\n      ]\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"absender\": \"POL\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"richtung\": \"ein\",\n      \"text\": \"Die Verkehrslage in Steuerberg ist stark belastet. Es gibt mehrere Absperrungen aufgrund von Unfällen und Störungen.\",\n      \"timestamp\": \"2023-11-15T14:38:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"absender\": \"RK\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"richtung\": \"ein\",\n      \"text\": \"Es gibt aktuell mehrere Sanitätseinsätze in Steuerberg. Bitte überprüfen Sie die Einsatzmittel und Personalreserven.\",\n      \"timestamp\": \"2023-11-15T14:39:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"absender\": \"BH\",\n      \"infoTyp\": \"Info\",\n      \"richtung\": \"ein\",\n      \"text\": \"Die zuständige Behörde hat eine Anordnung zur Verstärkung der Rettungs- und Feuerwehrkräfte ausgestellt.\",\n      \"timestamp\": \"2023-11-15T14:40:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"absender\": \"Gemeinde Steuerberg\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"richtung\": \"ein\",\n      \"text\": \"Es gibt Schäden an öffentlichen Gebäuden und Straßen in der Gemeinde. Bitte überprüfen Sie die notwendigen Maßnahmen.\",\n      \"timestamp\": \"2023-11-15T14:41:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S2\",\n      \"beschreibung\": \"Bitte erstellen Sie ein aktuelles Lagebild der Katastrophensituation in Steuerberg.\",\n      \"timestamp\": \"2023-11-15T14:42:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S3\",\n      \"beschreibung\": \"Bitte überprüfen Sie die Einsatzmittel und Personalreserven für den aktuellen Katastrophenfall.\",\n      \"timestamp\": \"2023-11-15T14:43:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S4\",\n      \"beschreibung\": \"Bitte sorgen Sie für die Versorgung der Einsatzkräfte und Sanitätsmittel.\",\n      \"timestamp\": \"2023-11-15T14:44:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S5\",\n      \"beschreibung\": \"Bitte informieren Sie die Öffentlichkeit über den aktuellen Stand der Katastrophensituation.\",\n      \"timestamp\": \"2023-11-15T14:45:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S6\",\n      \"beschreibung\": \"Bitte überprüfen Sie die IT-Infrastruktur und Kommunikationssysteme.\",\n      \"timestamp\": \"2023-11-15T14:46:00Z\"\n    }\n  ]\n}"
+  },
+  "done": true,
+  "done_reason": "stop",
+  "total_duration": 240748543563,
+  "load_duration": 71426577,
+  "prompt_eval_count": 4096,
+  "prompt_eval_duration": 7659570423,
+  "eval_count": 1319,
+  "eval_duration": 211311264929
+}
+parsedResponse:
+{
+  "operations": [
+    {
+      "type": "protokoll.create",
+      "absender": "LST",
+      "infoTyp": "Rueckmeldung",
+      "richtung": "ein",
+      "text": "Die Anfrage zur Verstärkung der Einsatzkräfte wurde an die zuständige Behörde weitergeleitet. Bitte warten Sie auf eine Rückmeldung.",
+      "timestamp": "2023-11-15T14:37:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentSites": [
+        {
+          "adresse": "Gemeindegebiet Steuerberg, Hauptstraße 12",
+          "typ": "Verkehrsunfall",
+          "beschreibung": "Mehrfachverunglückte Unfallstelle mit schweren Verletzten.",
+          "prioritaet": "Hoch"
+        },
+        {
+          "adresse": "Gemeindegebiet Steuerberg, Industriestraße 23",
+          "typ": "Brand",
+          "beschreibung": "Brandschäden in einem Lagerhaus mit gefährlichen Chemikalien.",
+          "prioritaet": "Hoch"
+        },
+        {
+          "adresse": "Gemeindegebiet Steuerberg, Parkplatz am Bahnhof",
+          "typ": "Rettungsaktion",
+          "beschreibung": "Person im Wasser geborgen und medizinische Erster Hilfe notwendig.",
+          "prioritaet": "Mittel"
+        },
+        {
+          "adresse": "Gemeindegebiet Steuerberg, Wohnsiedlung Nord",
+          "typ": "Einschlag",
+          "beschreibung": "Unbekannter Einschlag mit Schäden an Gebäuden und Fahrzeugen.",
+          "prioritaet": "Mittel"
+        },
+        {
+          "adresse": "Gemeindegebiet Steuerberg, Sportanlage Ost",
+          "typ": "Brand",
+          "beschreibung": "Brandschaden in einem Turnhallengebäude mit Rauchentwicklung.",
+          "prioritaet": "Hoch"
+        }
+      ]
+    },
+    {
+      "type": "protokoll.create",
+      "absender": "POL",
+      "infoTyp": "Lagemeldung",
+      "richtung": "ein",
+      "text": "Die Verkehrslage in Steuerberg ist stark belastet. Es gibt mehrere Absperrungen aufgrund von Unfällen und Störungen.",
+      "timestamp": "2023-11-15T14:38:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "absender": "RK",
+      "infoTyp": "Lagemeldung",
+      "richtung": "ein",
+      "text": "Es gibt aktuell mehrere Sanitätseinsätze in Steuerberg. Bitte überprüfen Sie die Einsatzmittel und Personalreserven.",
+      "timestamp": "2023-11-15T14:39:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "absender": "BH",
+      "infoTyp": "Info",
+      "richtung": "ein",
+      "text": "Die zuständige Behörde hat eine Anordnung zur Verstärkung der Rettungs- und Feuerwehrkräfte ausgestellt.",
+      "timestamp": "2023-11-15T14:40:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "absender": "Gemeinde Steuerberg",
+      "infoTyp": "Lagemeldung",
+      "richtung": "ein",
+      "text": "Es gibt Schäden an öffentlichen Gebäuden und Straßen in der Gemeinde. Bitte überprüfen Sie die notwendigen Maßnahmen.",
+      "timestamp": "2023-11-15T14:41:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S2",
+      "beschreibung": "Bitte erstellen Sie ein aktuelles Lagebild der Katastrophensituation in Steuerberg.",
+      "timestamp": "2023-11-15T14:42:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S3",
+      "beschreibung": "Bitte überprüfen Sie die Einsatzmittel und Personalreserven für den aktuellen Katastrophenfall.",
+      "timestamp": "2023-11-15T14:43:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S4",
+      "beschreibung": "Bitte sorgen Sie für die Versorgung der Einsatzkräfte und Sanitätsmittel.",
+      "timestamp": "2023-11-15T14:44:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S5",
+      "beschreibung": "Bitte informieren Sie die Öffentlichkeit über den aktuellen Stand der Katastrophensituation.",
+      "timestamp": "2023-11-15T14:45:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S6",
+      "beschreibung": "Bitte überprüfen Sie die IT-Infrastruktur und Kommunikationssysteme.",
+      "timestamp": "2023-11-15T14:46:00Z"
+    }
+  ]
+}
+{
+  "ts": "2026-01-24T09:35:58.110Z",
+  "type": "LLM",
+  "phase": "response",
+  "model": "einfo-balanced:latest",
+  "extra": {
+    "phase": "ops",
+    "messageCount": 2
+  }
+}
+rawResponse:
+{
+  "model": "einfo-balanced:latest",
+  "created_at": "2026-01-24T09:35:58.109723108Z",
+  "message": {
+    "role": "assistant",
+    "content": "{\n  \"operations\": [\n    {\n      \"type\": \"protokoll.create\",\n      \"absender\": \"POL Steuerberg\",\n      \"infoTyp\": \"Rueckmeldung\",\n      \"richtung\": \"ein\",\n      \"text\": \"Die Absperrung der Straße bei der Adresse Mainzstraße 12 in Steuerberg wurde erfolgreich durchgeführt. Bitte um weitere Anweisungen.\",\n      \"timestamp\": \"2023-11-15T14:37:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"absender\": \"LST Steiermark\",\n      \"infoTyp\": \"Info\",\n      \"richtung\": \"ein\",\n      \"text\": \"Der Einsatzwagen 25 ist aufgrund eines technischen Problems nicht einsatzbereit. Bitte um Ersatzmittel.\",\n      \"timestamp\": \"2023-11-15T14:40:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"absender\": \"RK Steiermark\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"richtung\": \"ein\",\n      \"text\": \"Ein schwerer Unfall auf der Autobahn A12 in Richtung Graz hat zu mehreren Verletzten geführt. Sanitätseinsatz erforderlich.\",\n      \"timestamp\": \"2023-11-15T14:45:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"absender\": \"BH Steiermark\",\n      \"infoTyp\": \"Info\",\n      \"richtung\": \"ein\",\n      \"text\": \"Bitte um Bereitstellung von zusätzlichen Ressourcen für die Evakuierung der Einwohner in den Katastrophenschutzräumen.\",\n      \"timestamp\": \"2023-11-15T14:50:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"absender\": \"BM Steuerberg\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"richtung\": \"ein\",\n      \"text\": \"Ein Brand in der Industriezone hat zu einer Schadensmeldung geführt. Bitte um sofortige Unterstützung.\",\n      \"timestamp\": \"2023-11-15T14:55:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"absender\": \"BM Steiermark\",\n      \"infoTyp\": \"Info\",\n      \"richtung\": \"ein\",\n      \"text\": \"Ein lokaler Stromausfall hat zu mehreren Einbrüchen in Wohngebieten geführt. Bitte um Unterstützung bei der Räumung.\",\n      \"timestamp\": \"2023-11-15T14:58:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentSiteData\": [\n        {\n          \"address\": \"Mainzstraße 12, Steuerberg\",\n          \"description\": \"Absperrung durchgeführt.\",\n          \"severity\": \"mittel\",\n          \"timestamp\": \"2023-11-15T14:37:00Z\"\n        },\n        {\n          \"address\": \"Autobahn A12, Richtung Graz\",\n          \"description\": \"Unfall mit mehreren Verletzten.\",\n          \"severity\": \"schwer\",\n          \"timestamp\": \"2023-11-15T14:45:00Z\"\n        },\n        {\n          \"address\": \"Industriezone, Steuerberg\",\n          \"description\": \"Brand mit Schäden.\",\n          \"severity\": \"mittel\",\n          \"timestamp\": \"2023-11-15T14:55:00Z\"\n        }\n      ]\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S2\",\n      \"description\": \"Erstellen Sie ein aktuelles Lagebild basierend auf den aktuellen Meldungen.\",\n      \"timestamp\": \"2023-11-15T14:48:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S3\",\n      \"description\": \"Organisieren Sie den Einsatz von Sanitätskräften für die Unfallstelle auf der Autobahn A12.\",\n      \"timestamp\": \"2023-11-15T14:56:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S4\",\n      \"description\": \"Stellen Sie sicher, dass genügend Ressourcen für die Evakuierung der Einwohner bereitgestellt sind.\",\n      \"timestamp\": \"2023-11-15T14:59:00Z\"\n    }\n  ]\n}"
+  },
+  "done": true,
+  "done_reason": "stop",
+  "total_duration": 204755569856,
+  "load_duration": 63116249,
+  "prompt_eval_count": 4096,
+  "prompt_eval_duration": 7646279846,
+  "eval_count": 1122,
+  "eval_duration": 178688565605
+}
+parsedResponse:
+{
+  "operations": [
+    {
+      "type": "protokoll.create",
+      "absender": "POL Steuerberg",
+      "infoTyp": "Rueckmeldung",
+      "richtung": "ein",
+      "text": "Die Absperrung der Straße bei der Adresse Mainzstraße 12 in Steuerberg wurde erfolgreich durchgeführt. Bitte um weitere Anweisungen.",
+      "timestamp": "2023-11-15T14:37:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "absender": "LST Steiermark",
+      "infoTyp": "Info",
+      "richtung": "ein",
+      "text": "Der Einsatzwagen 25 ist aufgrund eines technischen Problems nicht einsatzbereit. Bitte um Ersatzmittel.",
+      "timestamp": "2023-11-15T14:40:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "absender": "RK Steiermark",
+      "infoTyp": "Lagemeldung",
+      "richtung": "ein",
+      "text": "Ein schwerer Unfall auf der Autobahn A12 in Richtung Graz hat zu mehreren Verletzten geführt. Sanitätseinsatz erforderlich.",
+      "timestamp": "2023-11-15T14:45:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "absender": "BH Steiermark",
+      "infoTyp": "Info",
+      "richtung": "ein",
+      "text": "Bitte um Bereitstellung von zusätzlichen Ressourcen für die Evakuierung der Einwohner in den Katastrophenschutzräumen.",
+      "timestamp": "2023-11-15T14:50:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "absender": "BM Steuerberg",
+      "infoTyp": "Lagemeldung",
+      "richtung": "ein",
+      "text": "Ein Brand in der Industriezone hat zu einer Schadensmeldung geführt. Bitte um sofortige Unterstützung.",
+      "timestamp": "2023-11-15T14:55:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "absender": "BM Steiermark",
+      "infoTyp": "Info",
+      "richtung": "ein",
+      "text": "Ein lokaler Stromausfall hat zu mehreren Einbrüchen in Wohngebieten geführt. Bitte um Unterstützung bei der Räumung.",
+      "timestamp": "2023-11-15T14:58:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentSiteData": [
+        {
+          "address": "Mainzstraße 12, Steuerberg",
+          "description": "Absperrung durchgeführt.",
+          "severity": "mittel",
+          "timestamp": "2023-11-15T14:37:00Z"
+        },
+        {
+          "address": "Autobahn A12, Richtung Graz",
+          "description": "Unfall mit mehreren Verletzten.",
+          "severity": "schwer",
+          "timestamp": "2023-11-15T14:45:00Z"
+        },
+        {
+          "address": "Industriezone, Steuerberg",
+          "description": "Brand mit Schäden.",
+          "severity": "mittel",
+          "timestamp": "2023-11-15T14:55:00Z"
+        }
+      ]
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S2",
+      "description": "Erstellen Sie ein aktuelles Lagebild basierend auf den aktuellen Meldungen.",
+      "timestamp": "2023-11-15T14:48:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S3",
+      "description": "Organisieren Sie den Einsatz von Sanitätskräften für die Unfallstelle auf der Autobahn A12.",
+      "timestamp": "2023-11-15T14:56:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S4",
+      "description": "Stellen Sie sicher, dass genügend Ressourcen für die Evakuierung der Einwohner bereitgestellt sind.",
+      "timestamp": "2023-11-15T14:59:00Z"
+    }
+  ]
+}
+{
+  "ts": "2026-01-24T09:39:47.322Z",
+  "type": "LLM",
+  "phase": "response",
+  "model": "einfo-balanced:latest",
+  "extra": {
+    "phase": "ops",
+    "messageCount": 2
+  }
+}
+rawResponse:
+{
+  "model": "einfo-balanced:latest",
+  "created_at": "2026-01-24T09:39:47.32195425Z",
+  "message": {
+    "role": "assistant",
+    "content": "{\n  \"operations\": [\n    {\n      \"type\": \"protokoll.create\",\n      \"absender\": \"LST\",\n      \"infoTyp\": \"Rueckmeldung\",\n      \"richtung\": \"ein\",\n      \"text\": \"Die Anfrage zur Bereitstellung von Rettungsbooten wurde an die Wasserwacht weitergeleitet. Erwartet Bestätigung innerhalb der nächsten Stunde.\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"absender\": \"RK\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"richtung\": \"ein\",\n      \"text\": \"Ein schwerer Unfall auf der A10 in Richtung Steuerberg hat zu Verletzten geführt. Sanitätskräfte sind vor Ort und behandeln die Betroffenen.\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"absender\": \"BH\",\n      \"infoTyp\": \"Info\",\n      \"richtung\": \"ein\",\n      \"text\": \"Die Landespolizei hat eine Warnmeldung für erhöhte Gefahrenpotenzial aufgrund von starken Regengüssen und Sturmböen ausgelöst. Bitte Vorsicht beim Einsatz.\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"absender\": \"Gemeinde Steuerberg\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"richtung\": \"ein\",\n      \"text\": \"Ein Teil der Gemeindewohnhäuser in Steuerberg ist ohne Stromversorgung. Bitte um Unterstützung bei der Erkennung von Risiken und Sicherheitsmaßnahmen.\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S2\",\n      \"text\": \"Bitte erstellen Sie ein aktuelles Lagebild für den Einsatzleiter, das die aktuellen Schadensmeldungen und Ressourcenverteilung berücksichtigt.\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S3\",\n      \"text\": \"Bitte ordnen Sie den verfügbaren Einsatzkräften die neuen Schadensmeldungen zu und stellen sicher, dass alle Einsätze optimal besetzt sind.\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S4\",\n      \"text\": \"Bitte sorgen Sie für ausreichende Versorgung der Einsatzkräfte mit Nahrung und Trinkwasser, insbesondere in den Bereichen Steuerberg und Umgebung.\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S5\",\n      \"text\": \"Bitte informieren Sie die Öffentlichkeit über die aktuellen Ereignisse, einschließlich Warnhinweise für starken Regen und Stürme.\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S6\",\n      \"text\": \"Bitte stellen Sie sicher, dass alle IT-Systeme stabil sind und die Kommunikation zwischen den Einsatzkräften fließt.\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentType\": \"Verkehrsunfall\",\n      \"address\": \"A10 in Richtung Steuerberg\",\n      \"description\": \"Schwere Verletzungen, Sanitätskräfte vor Ort.\",\n      \"severity\": 3\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentType\": \"Stromausfall\",\n      \"address\": \"Gemeinde Steuerberg\",\n      \"description\": \"Teil der Wohnhäuser ohne Strom, Unterstützung bei Risiken und Sicherheitsmaßnahmen benötigt.\",\n      \"severity\": 2\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentType\": \"Regensturz\",\n      \"address\": \"Gemeinde Steuerberg\",\n      \"description\": \"Erhöhte Gefahrenpotenzial aufgrund von starkem Regen und Stürmen.\",\n      \"severity\": 2\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentType\": \"Verkehrsaufkommen\",\n      \"address\": \"A10 in Richtung Steuerberg\",\n      \"description\": \"Starker Verkehr, Absperrungen notwendig.\",\n      \"severity\": 2\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentType\": \"Wasserstandserhöhung\",\n      \"address\": \"Gemeinde Steuerberg\",\n      \"description\": \"Erhöhte Wasserstände in Teilen der Gemeinde, Unterstützung bei Evakuierungen benötigt.\",\n      \"severity\": 2\n    }\n  ]\n}"
+  },
+  "done": true,
+  "done_reason": "stop",
+  "total_duration": 193938800314,
+  "load_duration": 59851032,
+  "prompt_eval_count": 4096,
+  "prompt_eval_duration": 7646013624,
+  "eval_count": 1064,
+  "eval_duration": 168728716029
+}
+parsedResponse:
+{
+  "operations": [
+    {
+      "type": "protokoll.create",
+      "absender": "LST",
+      "infoTyp": "Rueckmeldung",
+      "richtung": "ein",
+      "text": "Die Anfrage zur Bereitstellung von Rettungsbooten wurde an die Wasserwacht weitergeleitet. Erwartet Bestätigung innerhalb der nächsten Stunde."
+    },
+    {
+      "type": "protokoll.create",
+      "absender": "RK",
+      "infoTyp": "Lagemeldung",
+      "richtung": "ein",
+      "text": "Ein schwerer Unfall auf der A10 in Richtung Steuerberg hat zu Verletzten geführt. Sanitätskräfte sind vor Ort und behandeln die Betroffenen."
+    },
+    {
+      "type": "protokoll.create",
+      "absender": "BH",
+      "infoTyp": "Info",
+      "richtung": "ein",
+      "text": "Die Landespolizei hat eine Warnmeldung für erhöhte Gefahrenpotenzial aufgrund von starken Regengüssen und Sturmböen ausgelöst. Bitte Vorsicht beim Einsatz."
+    },
+    {
+      "type": "protokoll.create",
+      "absender": "Gemeinde Steuerberg",
+      "infoTyp": "Lagemeldung",
+      "richtung": "ein",
+      "text": "Ein Teil der Gemeindewohnhäuser in Steuerberg ist ohne Stromversorgung. Bitte um Unterstützung bei der Erkennung von Risiken und Sicherheitsmaßnahmen."
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S2",
+      "text": "Bitte erstellen Sie ein aktuelles Lagebild für den Einsatzleiter, das die aktuellen Schadensmeldungen und Ressourcenverteilung berücksichtigt."
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S3",
+      "text": "Bitte ordnen Sie den verfügbaren Einsatzkräften die neuen Schadensmeldungen zu und stellen sicher, dass alle Einsätze optimal besetzt sind."
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S4",
+      "text": "Bitte sorgen Sie für ausreichende Versorgung der Einsatzkräfte mit Nahrung und Trinkwasser, insbesondere in den Bereichen Steuerberg und Umgebung."
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S5",
+      "text": "Bitte informieren Sie die Öffentlichkeit über die aktuellen Ereignisse, einschließlich Warnhinweise für starken Regen und Stürme."
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S6",
+      "text": "Bitte stellen Sie sicher, dass alle IT-Systeme stabil sind und die Kommunikation zwischen den Einsatzkräften fließt."
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Verkehrsunfall",
+      "address": "A10 in Richtung Steuerberg",
+      "description": "Schwere Verletzungen, Sanitätskräfte vor Ort.",
+      "severity": 3
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Stromausfall",
+      "address": "Gemeinde Steuerberg",
+      "description": "Teil der Wohnhäuser ohne Strom, Unterstützung bei Risiken und Sicherheitsmaßnahmen benötigt.",
+      "severity": 2
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Regensturz",
+      "address": "Gemeinde Steuerberg",
+      "description": "Erhöhte Gefahrenpotenzial aufgrund von starkem Regen und Stürmen.",
+      "severity": 2
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Verkehrsaufkommen",
+      "address": "A10 in Richtung Steuerberg",
+      "description": "Starker Verkehr, Absperrungen notwendig.",
+      "severity": 2
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Wasserstandserhöhung",
+      "address": "Gemeinde Steuerberg",
+      "description": "Erhöhte Wasserstände in Teilen der Gemeinde, Unterstützung bei Evakuierungen benötigt.",
+      "severity": 2
+    }
+  ]
+}
+{
+  "ts": "2026-01-24T09:45:27.988Z",
+  "type": "LLM",
+  "phase": "response",
+  "model": "einfo-balanced:latest",
+  "extra": {
+    "phase": "ops",
+    "messageCount": 2
+  }
+}
+rawResponse:
+{
+  "model": "einfo-balanced:latest",
+  "created_at": "2026-01-24T09:45:27.987779866Z",
+  "message": {
+    "role": "assistant",
+    "content": "{\n  \"operations\": [\n    {\n      \"type\": \"protokoll.create\",\n      \"infoTyp\": \"Rueckmeldung\",\n      \"richtung\": \"ein\",\n      \"absenderId\": \"RK\",\n      \"inhalt\": \"Die Rettungsorganisation bestätigt die Bereitschaft von Sanitätskräften für den Einsatz in Steuerberg. Es werden 2 Notarztteams und ein Rettungshubschrauber bereitgestellt.\",\n      \"timestamp\": \"2023-11-15T14:37:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"richtung\": \"ein\",\n      \"absenderId\": \"POL\",\n      \"inhalt\": \"Die Polizei meldet eine Absperrung der Bundesstraße 123 in Richtung Steuerberg aufgrund von Verkehrsunfällen. Bitte um Umleitung.\",\n      \"timestamp\": \"2023-11-15T14:38:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"richtung\": \"ein\",\n      \"absenderId\": \"BH\",\n      \"inhalt\": \"Das Bundesamt für Bevölkerungsschutz und Katastrophenhilfe ordnet eine Erhöhung der Alarmstufe auf 3 an. Bitte um verstärkte Bereitschaft.\",\n      \"timestamp\": \"2023-11-15T14:39:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"richtung\": \"ein\",\n      \"absenderId\": \"Gemeinde Steuerberg\",\n      \"inhalt\": \"Die Gemeinde Steuerberg meldet Schäden an öffentlichen Gebäuden und Straßen. Bitte um Unterstützung bei der Sanierung.\",\n      \"timestamp\": \"2023-11-15T14:40:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"richtung\": \"ein\",\n      \"absenderId\": \"RK\",\n      \"inhalt\": \"Die Rettungsorganisation meldet Verletzte in der Schule Steuerberg. Es werden 5 Sanitäter und ein Notarzt eingesetzt.\",\n      \"timestamp\": \"2023-11-15T14:41:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"richtung\": \"ein\",\n      \"absenderId\": \"POL\",\n      \"inhalt\": \"Die Polizei meldet eine Flutwelle in der Gemeinde Steuerberg. Bitte um Unterstützung bei Evakuierungen.\",\n      \"timestamp\": \"2023-11-15T14:42:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentSiteIds\": [\n        {\n          \"id\": \"Einsatz_Steuerberg_Schule\",\n          \"typ\": \"Verletzte\",\n          \"beschreibung\": \"5 Verletzte in der Schule Steuerberg. Sanitäter und Notarzt eingesetzt.\",\n          \"adresse\": \"Schulstraße 1, 90234 Steuerberg\"\n        },\n        {\n          \"id\": \"Einsatz_Steuerberg_Gebaeude\",\n          \"typ\": \"Sanierung\",\n          \"beschreibung\": \"Öffentliche Gebäude und Straßen in der Gemeinde Steuerberg benötigen Sanierung.\",\n          \"adresse\": \"Gemeindesaal, 90234 Steuerberg\"\n        },\n        {\n          \"id\": \"Einsatz_Steuerberg_Flutwelle\",\n          \"typ\": \"Evakuierung\",\n          \"beschreibung\": \"Flutwelle in der Gemeinde Steuerberg. Evakuierungen erforderlich.\",\n          \"adresse\": \"Gemeindesaal, 90234 Steuerberg\"\n        }\n      ]\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S1\",\n      \"titel\": \"Personalplanung für verstärkte Bereitschaft\",\n      \"beschreibung\": \"Aufgrund der erhöhten Alarmstufe ist eine verstärkte Personalbereitschaft erforderlich. Bitte um Planung und Koordination.\",\n      \"timestamp\": \"2023-11-15T14:43:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S2\",\n      \"titel\": \"Überprüfung der Lagebilder und Karten\",\n      \"beschreibung\": \"Bitte überprüfen Sie die aktuellsten Lagebilder und Karten. Fotografieren Sie diese und legen Sie sie im Geschäftsbuch ab.\",\n      \"timestamp\": \"2023-11-15T14:44:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S3\",\n      \"titel\": \"Einsatzleitung für Flutwelle in Steuerberg\",\n      \"beschreibung\": \"Bitte leiten Sie den Einsatz bei der Flutwelle in Steuerberg. Koordinieren Sie die Ressourcen und Maßnahmen.\",\n      \"timestamp\": \"2023-11-15T14:45:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S4\",\n      \"titel\": \"Versorgung der Einsatzkräfte bei Flutwelle\",\n      \"beschreibung\": \"Bitte sorgen Sie für die Versorgung der Einsatzkräfte während des Einsatzes in Steuerberg.\",\n      \"timestamp\": \"2023-11-15T14:46:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S5\",\n      \"titel\": \"Öffentlichkeitsarbeit bei Flutwelle in Steuerberg\",\n      \"beschreibung\": \"Bitte koordinieren Sie die öffentliche Kommunikation und Informationsverbreitung im Zusammenhang mit der Flutwelle.\",\n      \"timestamp\": \"2023-11-15T14:47:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S6\",\n      \"titel\": \"IT-Sicherheit und Kommunikation bei Flutwelle\",\n      \"beschreibung\": \"Bitte sichern Sie die IT-Infrastruktur und gewährleisten Sie eine zuverlässige Kommunikation während des Einsatzes.\",\n      \"timestamp\": \"2023-11-15T14:48:00Z\"\n    }\n  ]\n}"
+  },
+  "done": true,
+  "done_reason": "stop",
+  "total_duration": 294562223009,
+  "load_duration": 60245496,
+  "prompt_eval_count": 4096,
+  "prompt_eval_duration": 7660195285,
+  "eval_count": 1608,
+  "eval_duration": 260321230823
+}
+parsedResponse:
+{
+  "operations": [
+    {
+      "type": "protokoll.create",
+      "infoTyp": "Rueckmeldung",
+      "richtung": "ein",
+      "absenderId": "RK",
+      "inhalt": "Die Rettungsorganisation bestätigt die Bereitschaft von Sanitätskräften für den Einsatz in Steuerberg. Es werden 2 Notarztteams und ein Rettungshubschrauber bereitgestellt.",
+      "timestamp": "2023-11-15T14:37:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "infoTyp": "Lagemeldung",
+      "richtung": "ein",
+      "absenderId": "POL",
+      "inhalt": "Die Polizei meldet eine Absperrung der Bundesstraße 123 in Richtung Steuerberg aufgrund von Verkehrsunfällen. Bitte um Umleitung.",
+      "timestamp": "2023-11-15T14:38:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "infoTyp": "Lagemeldung",
+      "richtung": "ein",
+      "absenderId": "BH",
+      "inhalt": "Das Bundesamt für Bevölkerungsschutz und Katastrophenhilfe ordnet eine Erhöhung der Alarmstufe auf 3 an. Bitte um verstärkte Bereitschaft.",
+      "timestamp": "2023-11-15T14:39:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "infoTyp": "Lagemeldung",
+      "richtung": "ein",
+      "absenderId": "Gemeinde Steuerberg",
+      "inhalt": "Die Gemeinde Steuerberg meldet Schäden an öffentlichen Gebäuden und Straßen. Bitte um Unterstützung bei der Sanierung.",
+      "timestamp": "2023-11-15T14:40:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "infoTyp": "Lagemeldung",
+      "richtung": "ein",
+      "absenderId": "RK",
+      "inhalt": "Die Rettungsorganisation meldet Verletzte in der Schule Steuerberg. Es werden 5 Sanitäter und ein Notarzt eingesetzt.",
+      "timestamp": "2023-11-15T14:41:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "infoTyp": "Lagemeldung",
+      "richtung": "ein",
+      "absenderId": "POL",
+      "inhalt": "Die Polizei meldet eine Flutwelle in der Gemeinde Steuerberg. Bitte um Unterstützung bei Evakuierungen.",
+      "timestamp": "2023-11-15T14:42:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentSiteIds": [
+        {
+          "id": "Einsatz_Steuerberg_Schule",
+          "typ": "Verletzte",
+          "beschreibung": "5 Verletzte in der Schule Steuerberg. Sanitäter und Notarzt eingesetzt.",
+          "adresse": "Schulstraße 1, 90234 Steuerberg"
+        },
+        {
+          "id": "Einsatz_Steuerberg_Gebaeude",
+          "typ": "Sanierung",
+          "beschreibung": "Öffentliche Gebäude und Straßen in der Gemeinde Steuerberg benötigen Sanierung.",
+          "adresse": "Gemeindesaal, 90234 Steuerberg"
+        },
+        {
+          "id": "Einsatz_Steuerberg_Flutwelle",
+          "typ": "Evakuierung",
+          "beschreibung": "Flutwelle in der Gemeinde Steuerberg. Evakuierungen erforderlich.",
+          "adresse": "Gemeindesaal, 90234 Steuerberg"
+        }
+      ]
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S1",
+      "titel": "Personalplanung für verstärkte Bereitschaft",
+      "beschreibung": "Aufgrund der erhöhten Alarmstufe ist eine verstärkte Personalbereitschaft erforderlich. Bitte um Planung und Koordination.",
+      "timestamp": "2023-11-15T14:43:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S2",
+      "titel": "Überprüfung der Lagebilder und Karten",
+      "beschreibung": "Bitte überprüfen Sie die aktuellsten Lagebilder und Karten. Fotografieren Sie diese und legen Sie sie im Geschäftsbuch ab.",
+      "timestamp": "2023-11-15T14:44:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S3",
+      "titel": "Einsatzleitung für Flutwelle in Steuerberg",
+      "beschreibung": "Bitte leiten Sie den Einsatz bei der Flutwelle in Steuerberg. Koordinieren Sie die Ressourcen und Maßnahmen.",
+      "timestamp": "2023-11-15T14:45:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S4",
+      "titel": "Versorgung der Einsatzkräfte bei Flutwelle",
+      "beschreibung": "Bitte sorgen Sie für die Versorgung der Einsatzkräfte während des Einsatzes in Steuerberg.",
+      "timestamp": "2023-11-15T14:46:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S5",
+      "titel": "Öffentlichkeitsarbeit bei Flutwelle in Steuerberg",
+      "beschreibung": "Bitte koordinieren Sie die öffentliche Kommunikation und Informationsverbreitung im Zusammenhang mit der Flutwelle.",
+      "timestamp": "2023-11-15T14:47:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S6",
+      "titel": "IT-Sicherheit und Kommunikation bei Flutwelle",
+      "beschreibung": "Bitte sichern Sie die IT-Infrastruktur und gewährleisten Sie eine zuverlässige Kommunikation während des Einsatzes.",
+      "timestamp": "2023-11-15T14:48:00Z"
+    }
+  ]
+}
+{
+  "ts": "2026-01-24T09:50:41.253Z",
+  "type": "LLM",
+  "phase": "response",
+  "model": "einfo-balanced:latest",
+  "extra": {
+    "phase": "ops",
+    "messageCount": 2
+  }
+}
+rawResponse:
+{
+  "model": "einfo-balanced:latest",
+  "created_at": "2026-01-24T09:50:41.252666759Z",
+  "message": {
+    "role": "assistant",
+    "content": "{\n  \"operations\": [\n    {\n      \"type\": \"protokoll.create\",\n      \"infoTyp\": \"Rueckmeldung\",\n      \"richtung\": \"ein\",\n      \"absenderId\": \"RK\",\n      \"inhalt\": \"Die Rettungsorganisation bestätigt die Bereitschaft von Sanitätseinheiten für den Einsatz in der betroffenen Region. Es werden 5 Ambulanzfahrzeuge und 2 Notarztteams bereitgestellt.\",\n      \"timestamp\": \"2023-11-14T16:37:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"richtung\": \"ein\",\n      \"absenderId\": \"POL\",\n      \"inhalt\": \"Die Polizei meldet eine verstärkte Absperrung der Bundesstraße 123 in Richtung Steuerberg aufgrund von Schäden an Infrastruktur. Bitte um Unterstützung bei dem Aufräumen und Sicherstellen des Verkehrsflusses.\",\n      \"timestamp\": \"2023-11-14T16:38:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"richtung\": \"ein\",\n      \"absenderId\": \"BH\",\n      \"inhalt\": \"Die Bezirksregierung fordert eine sofortige Erhöhung der Ressourcen im Bereich Versorgung. Es wird um zusätzliche Nahrungsmittel und Trinkwasser für die Bevölkerung gebeten.\",\n      \"timestamp\": \"2023-11-14T16:39:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"infoTyp\": \"Info\",\n      \"richtung\": \"ein\",\n      \"absenderId\": \"Gemeinde Steuerberg\",\n      \"inhalt\": \"Die Gemeinde Steuerberg berichtet über Schäden an Wohngebäuden und öffentlichen Einrichtungen. Es wird um Unterstützung bei der Evakuierung von betroffenen Haushalten gebeten.\",\n      \"timestamp\": \"2023-11-14T16:40:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S5\",\n      \"beschreibung\": \"Die Öffentlichkeitsarbeit soll verstärkt auf die aktuellen Schäden und Maßnahmen hinweisen. Bitte erstellen Sie eine Pressemitteilung.\",\n      \"timestamp\": \"2023-11-14T16:41:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S4\",\n      \"beschreibung\": \"Es wird um eine Erhöhung der Versorgungsmittel gebeten. Bitte organisieren Sie die Lieferung von Nahrung und Trinkwasser.\",\n      \"timestamp\": \"2023-11-14T16:42:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S3\",\n      \"beschreibung\": \"Es gibt neue Schäden in der Region. Bitte ordnen Sie die notwendigen Ressourcen zu und führen den Einsatz durch.\",\n      \"timestamp\": \"2023-11-14T16:43:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentType\": \"Verkehrsunfall\",\n      \"address\": \"Gemeindegebiet Steuerberg, Bundesstraße 123\",\n      \"description\": \"Ein schwerer Verkehrsunfall auf der Bundesstraße 123 in Richtung Steuerberg. Es gibt mehrere verletzte Personen.\",\n      \"timestamp\": \"2023-11-14T16:45:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentType\": \"Erdbeben-Schäden\",\n      \"address\": \"Gemeindegebiet Steuerberg, Dorfstraße 23\",\n      \"description\": \"Schwere Schäden an Wohnhäusern und öffentlichen Gebäuden im Dorf Steuerberg. Evakuierung notwendig.\",\n      \"timestamp\": \"2023-11-14T16:50:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentType\": \"Brand\",\n      \"address\": \"Gemeindegebiet Steuerberg, Industriestraße 78\",\n      \"description\": \"Ein Brand in einem Gewerbeobjekt im Gemeindeteil Steuerberg. Es gibt Rauchentwicklung und mögliche Verletzte.\",\n      \"timestamp\": \"2023-11-14T16:55:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentType\": \"Erdbeben-Schäden\",\n      \"address\": \"Gemeindegebiet Steuerberg, Hauptstraße 987\",\n      \"description\": \"Schwere Schäden an Infrastruktur und Gebäuden in der Stadtmitte von Steuerberg. Notfallmaßnahmen sind erforderlich.\",\n      \"timestamp\": \"2023-11-14T16:58:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentType\": \"Verkehrsunfall\",\n      \"address\": \"Gemeindegebiet Steuerberg, Bundesstraße 97\",\n      \"description\": \"Ein Verkehrsunfall auf der Bundesstraße 97 in Richtung Steuerberg. Es gibt mehrere verletzte Personen.\",\n      \"timestamp\": \"2023-11-14T16:59:00Z\"\n    }\n  ]\n}"
+  },
+  "done": true,
+  "done_reason": "stop",
+  "total_duration": 247775887995,
+  "load_duration": 60242239,
+  "prompt_eval_count": 4096,
+  "prompt_eval_duration": 7646063311,
+  "eval_count": 1356,
+  "eval_duration": 217670109684
+}
+parsedResponse:
+{
+  "operations": [
+    {
+      "type": "protokoll.create",
+      "infoTyp": "Rueckmeldung",
+      "richtung": "ein",
+      "absenderId": "RK",
+      "inhalt": "Die Rettungsorganisation bestätigt die Bereitschaft von Sanitätseinheiten für den Einsatz in der betroffenen Region. Es werden 5 Ambulanzfahrzeuge und 2 Notarztteams bereitgestellt.",
+      "timestamp": "2023-11-14T16:37:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "infoTyp": "Lagemeldung",
+      "richtung": "ein",
+      "absenderId": "POL",
+      "inhalt": "Die Polizei meldet eine verstärkte Absperrung der Bundesstraße 123 in Richtung Steuerberg aufgrund von Schäden an Infrastruktur. Bitte um Unterstützung bei dem Aufräumen und Sicherstellen des Verkehrsflusses.",
+      "timestamp": "2023-11-14T16:38:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "infoTyp": "Lagemeldung",
+      "richtung": "ein",
+      "absenderId": "BH",
+      "inhalt": "Die Bezirksregierung fordert eine sofortige Erhöhung der Ressourcen im Bereich Versorgung. Es wird um zusätzliche Nahrungsmittel und Trinkwasser für die Bevölkerung gebeten.",
+      "timestamp": "2023-11-14T16:39:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "infoTyp": "Info",
+      "richtung": "ein",
+      "absenderId": "Gemeinde Steuerberg",
+      "inhalt": "Die Gemeinde Steuerberg berichtet über Schäden an Wohngebäuden und öffentlichen Einrichtungen. Es wird um Unterstützung bei der Evakuierung von betroffenen Haushalten gebeten.",
+      "timestamp": "2023-11-14T16:40:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S5",
+      "beschreibung": "Die Öffentlichkeitsarbeit soll verstärkt auf die aktuellen Schäden und Maßnahmen hinweisen. Bitte erstellen Sie eine Pressemitteilung.",
+      "timestamp": "2023-11-14T16:41:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S4",
+      "beschreibung": "Es wird um eine Erhöhung der Versorgungsmittel gebeten. Bitte organisieren Sie die Lieferung von Nahrung und Trinkwasser.",
+      "timestamp": "2023-11-14T16:42:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S3",
+      "beschreibung": "Es gibt neue Schäden in der Region. Bitte ordnen Sie die notwendigen Ressourcen zu und führen den Einsatz durch.",
+      "timestamp": "2023-11-14T16:43:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Verkehrsunfall",
+      "address": "Gemeindegebiet Steuerberg, Bundesstraße 123",
+      "description": "Ein schwerer Verkehrsunfall auf der Bundesstraße 123 in Richtung Steuerberg. Es gibt mehrere verletzte Personen.",
+      "timestamp": "2023-11-14T16:45:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Erdbeben-Schäden",
+      "address": "Gemeindegebiet Steuerberg, Dorfstraße 23",
+      "description": "Schwere Schäden an Wohnhäusern und öffentlichen Gebäuden im Dorf Steuerberg. Evakuierung notwendig.",
+      "timestamp": "2023-11-14T16:50:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Brand",
+      "address": "Gemeindegebiet Steuerberg, Industriestraße 78",
+      "description": "Ein Brand in einem Gewerbeobjekt im Gemeindeteil Steuerberg. Es gibt Rauchentwicklung und mögliche Verletzte.",
+      "timestamp": "2023-11-14T16:55:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Erdbeben-Schäden",
+      "address": "Gemeindegebiet Steuerberg, Hauptstraße 987",
+      "description": "Schwere Schäden an Infrastruktur und Gebäuden in der Stadtmitte von Steuerberg. Notfallmaßnahmen sind erforderlich.",
+      "timestamp": "2023-11-14T16:58:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Verkehrsunfall",
+      "address": "Gemeindegebiet Steuerberg, Bundesstraße 97",
+      "description": "Ein Verkehrsunfall auf der Bundesstraße 97 in Richtung Steuerberg. Es gibt mehrere verletzte Personen.",
+      "timestamp": "2023-11-14T16:59:00Z"
+    }
+  ]
+}
+{
+  "ts": "2026-01-24T09:55:39.883Z",
+  "type": "LLM",
+  "phase": "response",
+  "model": "einfo-balanced:latest",
+  "extra": {
+    "phase": "ops",
+    "messageCount": 2
+  }
+}
+rawResponse:
+{
+  "model": "einfo-balanced:latest",
+  "created_at": "2026-01-24T09:55:39.882401291Z",
+  "message": {
+    "role": "assistant",
+    "content": "{\n  \"operations\": [\n    {\n      \"type\": \"protokoll.create\",\n      \"absender\": \"LST\",\n      \"empfaenger\": \"LtStb\",\n      \"infoTyp\": \"Rueckmeldung\",\n      \"richtung\": \"ein\",\n      \"text\": \"Die letzte Rückfrage zur Verfügbarkeit von Rettungsbooten wurde beantwortet. Es sind insgesamt 3 Bootseinsätze in der Region Steuerberg möglich.\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"absender\": \"RK\",\n      \"empfaenger\": \"LtStb\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"richtung\": \"ein\",\n      \"text\": \"Ein schwerer Unfall auf der A10 in Richtung Steuerberg hat zu Verletzten geführt. Sanitätskräfte sind vor Ort und behandeln die Betroffenen.\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"absender\": \"BH\",\n      \"empfaenger\": \"LtStb\",\n      \"infoTyp\": \"Info\",\n      \"richtung\": \"ein\",\n      \"text\": \"Die Bezirksregierung hat eine Warnstufe Orange für die kommende Nacht ausgelöst aufgrund von starken Regengüssen und Sturmböen.\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentSites\": [\n        {\n          \"id\": 10,\n          \"typ\": \"Verkehrsunfall\",\n          \"beschreibung\": \"Auffahrunfall mit mehreren Fahrzeugen auf der A2 in Richtung Steuerberg.\",\n          \"adresse\": \"Gemeindegebiet Steuerberg\"\n        },\n        {\n          \"id\": 11,\n          \"typ\": \"Erdbeben\",\n          \"beschreibung\": \"Ein Erdbeben von Magnitude 4,5 hat zu Gebäudeschäden geführt. Es gibt Meldungen über eingestürzte Dächer und Brücken.\",\n          \"adresse\": \"Gemeindegebiet Steuerberg\"\n        },\n        {\n          \"id\": 12,\n          \"typ\": \"Brand\",\n          \"beschreibung\": \"Ein Großbrand in einem Lagerhaus im Industriegebiet von Steuerberg. Es gibt Meldungen über hohe Rauchentwicklung und Flammen.\",\n          \"adresse\": \"Gemeindegebiet Steuerberg\"\n        },\n        {\n          \"id\": 13,\n          \"typ\": \"Überschwemmung\",\n          \"beschreibung\": \"Die Regenfälle haben zu Überschwemmungen geführt. Es gibt Meldungen über flutgeplagte Straßen und Wohngebiete.\",\n          \"adresse\": \"Gemeindegebiet Steuerberg\"\n        },\n        {\n          \"id\": 14,\n          \"typ\": \"Notfall\",\n          \"beschreibung\": \"Ein Notruf von einem Einwohner, der sich in einer gefährlichen Situation befindet. Es gibt Meldungen über einen verletzten Person.\",\n          \"adresse\": \"Gemeindegebiet Steuerberg\"\n        },\n        {\n          \"id\": 15,\n          \"typ\": \"Verkehrsaufklärung\",\n          \"beschreibung\": \"Die Polizei hat eine Verkehrsregulierung auf der A2 in Richtung Steuerberg angeordnet.\",\n          \"adresse\": \"Gemeindegebiet Steuerberg\"\n        }\n      ]\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S3\",\n      \"beschreibung\": \"Einsatzleitung für den Verkehrsunfall auf der A2 in Richtung Steuerberg koordinieren.\",\n      \"status\": \"open\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S4\",\n      \"beschreibung\": \"Versorgungsplan für die Betroffenen im Erdbebenfall in Steuerberg erstellen.\",\n      \"status\": \"open\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n        \"assignedBy\": \"LTSTB\",\n        \"responsible\": \"S5\",\n        \"beschreibung\": \"Öffentlichkeitsarbeit für die Überschwemmungen in Steuerberg koordinieren.\",\n        \"status\": \"open\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n        \"assignedBy\": \"LTSTB\",\n        \"responsible\": \"S6\",\n        \"beschreibung\": \"IT-Infrastruktur für die Katastrophenschutzmaßnahmen sicherstellen.\",\n        \"status\": \"open\"\n    }\n  ]\n}"
+  },
+  "done": true,
+  "done_reason": "stop",
+  "total_duration": 186313517548,
+  "load_duration": 59850111,
+  "prompt_eval_count": 4096,
+  "prompt_eval_duration": 7651328741,
+  "eval_count": 1023,
+  "eval_duration": 161708668053
+}
+parsedResponse:
+{
+  "operations": [
+    {
+      "type": "protokoll.create",
+      "absender": "LST",
+      "empfaenger": "LtStb",
+      "infoTyp": "Rueckmeldung",
+      "richtung": "ein",
+      "text": "Die letzte Rückfrage zur Verfügbarkeit von Rettungsbooten wurde beantwortet. Es sind insgesamt 3 Bootseinsätze in der Region Steuerberg möglich."
+    },
+    {
+      "type": "protokoll.create",
+      "absender": "RK",
+      "empfaenger": "LtStb",
+      "infoTyp": "Lagemeldung",
+      "richtung": "ein",
+      "text": "Ein schwerer Unfall auf der A10 in Richtung Steuerberg hat zu Verletzten geführt. Sanitätskräfte sind vor Ort und behandeln die Betroffenen."
+    },
+    {
+      "type": "protokoll.create",
+      "absender": "BH",
+      "empfaenger": "LtStb",
+      "infoTyp": "Info",
+      "richtung": "ein",
+      "text": "Die Bezirksregierung hat eine Warnstufe Orange für die kommende Nacht ausgelöst aufgrund von starken Regengüssen und Sturmböen."
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentSites": [
+        {
+          "id": 10,
+          "typ": "Verkehrsunfall",
+          "beschreibung": "Auffahrunfall mit mehreren Fahrzeugen auf der A2 in Richtung Steuerberg.",
+          "adresse": "Gemeindegebiet Steuerberg"
+        },
+        {
+          "id": 11,
+          "typ": "Erdbeben",
+          "beschreibung": "Ein Erdbeben von Magnitude 4,5 hat zu Gebäudeschäden geführt. Es gibt Meldungen über eingestürzte Dächer und Brücken.",
+          "adresse": "Gemeindegebiet Steuerberg"
+        },
+        {
+          "id": 12,
+          "typ": "Brand",
+          "beschreibung": "Ein Großbrand in einem Lagerhaus im Industriegebiet von Steuerberg. Es gibt Meldungen über hohe Rauchentwicklung und Flammen.",
+          "adresse": "Gemeindegebiet Steuerberg"
+        },
+        {
+          "id": 13,
+          "typ": "Überschwemmung",
+          "beschreibung": "Die Regenfälle haben zu Überschwemmungen geführt. Es gibt Meldungen über flutgeplagte Straßen und Wohngebiete.",
+          "adresse": "Gemeindegebiet Steuerberg"
+        },
+        {
+          "id": 14,
+          "typ": "Notfall",
+          "beschreibung": "Ein Notruf von einem Einwohner, der sich in einer gefährlichen Situation befindet. Es gibt Meldungen über einen verletzten Person.",
+          "adresse": "Gemeindegebiet Steuerberg"
+        },
+        {
+          "id": 15,
+          "typ": "Verkehrsaufklärung",
+          "beschreibung": "Die Polizei hat eine Verkehrsregulierung auf der A2 in Richtung Steuerberg angeordnet.",
+          "adresse": "Gemeindegebiet Steuerberg"
+        }
+      ]
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S3",
+      "beschreibung": "Einsatzleitung für den Verkehrsunfall auf der A2 in Richtung Steuerberg koordinieren.",
+      "status": "open"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S4",
+      "beschreibung": "Versorgungsplan für die Betroffenen im Erdbebenfall in Steuerberg erstellen.",
+      "status": "open"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S5",
+      "beschreibung": "Öffentlichkeitsarbeit für die Überschwemmungen in Steuerberg koordinieren.",
+      "status": "open"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S6",
+      "beschreibung": "IT-Infrastruktur für die Katastrophenschutzmaßnahmen sicherstellen.",
+      "status": "open"
+    }
+  ]
+}
+{
+  "ts": "2026-01-24T10:00:18.027Z",
+  "type": "LLM",
+  "phase": "response",
+  "model": "einfo-balanced:latest",
+  "extra": {
+    "phase": "ops",
+    "messageCount": 2
+  }
+}
+rawResponse:
+{
+  "model": "einfo-balanced:latest",
+  "created_at": "2026-01-24T10:00:18.026424658Z",
+  "message": {
+    "role": "assistant",
+    "content": "{\n  \"operations\": [\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Rueckmeldung\",\n      \"absender\": \"LtStb\",\n      \"empfaenger\": \"S2\",\n      \"text\": \"Die aktuelle Lage wird weiterhin als kritisch eingestuft. Bitte aktualisierte Informationen und Vorschläge für Maßnahmen zur Verfügung stellen.\",\n      \"timestamp\": \"2023-11-15T14:37:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"absender\": \"POL\",\n      \"empfaenger\": \"LtStb\",\n      \"text\": \"Es gibt aktuell mehrere Verkehrsaufkommen auf der A1 in Richtung Steuerberg. Bitte um Unterstützung bei der Koordination von Rettungsressourcen.\",\n      \"timestamp\": \"2023-11-15T14:38:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"absender\": \"RK\",\n      \"empfaenger\": \"LtStb\",\n      \"text\": \"Ein schwerer Unfall auf der B2 hat zu zahlreichen Verletzten geführt. Bitte um sofortige Unterstützung.\",\n      \"timestamp\": \"2023-11-15T14:39:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Info\",\n      \"absender\": \"LST\",\n      \"empfaenger\": \"LtStb\",\n      \"text\": \"Die Lawinenwarnstufe für die Region Steuerberg wurde auf Orange erhöht. Bitte um aktuelle Lageinformationen.\",\n      \"timestamp\": \"2023-11-15T14:40:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"absender\": \"BH\",\n      \"empfaenger\": \"LtStb\",\n      \"text\": \"Es wird eine Evakuierung der Einwohner in Steuerberg vorgeschlagen. Bitte um Unterstützung bei der Planung und Durchführung.\",\n      \"timestamp\": \"2023-11-15T14:41:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"absender\": \"Gemeinde Steuerberg\",\n      \"empfaenger\": \"LtStb\",\n      \"text\": \"Es gibt lokale Schäden im Gemeindeteil Oberdorf. Bitte um Unterstützung bei der Rettungsaktion.\",\n      \"timestamp\": \"2023-11-15T14:42:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LtStb\",\n      \"responsible\": \"S2\",\n      \"text\": \"Bitte aktualisierte Informationen zur aktuellen Lage sammeln und zusammenfassen.\",\n      \"timestamp\": \"2023-11-15T14:43:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LtStb\",\n      \"responsible\": \"S3\",\n      \"text\": \"Bitte Maßnahmen zur Unterstützung der Rettungsaktionen in Oberdorf planen und umsetzen.\",\n      \"timestamp\": \"2023-11-15T14:44:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LtStb\",\n      \"responsible\": \"S6\",\n      \"text\": \"Bitte sicherstellen, dass alle IT-Ressourcen für die aktuelle Katastrophensituation bereitgestellt sind.\",\n      \"timestamp\": \"2023-11-15T14:45:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentSiteId\": 7,\n      \"address\": \"Gemeindegebiet Steuerberg, B2\",\n      \"description\": \"Schwere Unfallstelle mit zahlreichen Verletzten.\",\n      \"severity\": \"kritisch\",\n      \"timestamp\": \"2023-11-15T14:46:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentSiteId\": 8,\n      \"address\": \"Gemeindegebiet Steuerberg, A1 Richtung Steuerberg\",\n      \"description\": \"Verkehrsaufkommen auf der Autobahn.\",\n      \"severity\": \"mittel\",\n      \"timestamp\": \"2023-11-15T14:47:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentSiteId\": 9,\n      \"address\": \"Gemeindegebiet Steuerberg, Oberdorf\",\n      \"description\": \"Lokale Schäden im Gemeindeteil.\",\n      \"severity\": \"leicht\",\n      \"timestamp\": \"2023-11-15T14:48:00Z\"\n    }\n  ]\n}"
+  },
+  "done": true,
+  "done_reason": "stop",
+  "total_duration": 224400451944,
+  "load_duration": 57499987,
+  "prompt_eval_count": 4096,
+  "prompt_eval_duration": 7644703234,
+  "eval_count": 1230,
+  "eval_duration": 196520048681
+}
+parsedResponse:
+{
+  "operations": [
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Rueckmeldung",
+      "absender": "LtStb",
+      "empfaenger": "S2",
+      "text": "Die aktuelle Lage wird weiterhin als kritisch eingestuft. Bitte aktualisierte Informationen und Vorschläge für Maßnahmen zur Verfügung stellen.",
+      "timestamp": "2023-11-15T14:37:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Lagemeldung",
+      "absender": "POL",
+      "empfaenger": "LtStb",
+      "text": "Es gibt aktuell mehrere Verkehrsaufkommen auf der A1 in Richtung Steuerberg. Bitte um Unterstützung bei der Koordination von Rettungsressourcen.",
+      "timestamp": "2023-11-15T14:38:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Lagemeldung",
+      "absender": "RK",
+      "empfaenger": "LtStb",
+      "text": "Ein schwerer Unfall auf der B2 hat zu zahlreichen Verletzten geführt. Bitte um sofortige Unterstützung.",
+      "timestamp": "2023-11-15T14:39:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Info",
+      "absender": "LST",
+      "empfaenger": "LtStb",
+      "text": "Die Lawinenwarnstufe für die Region Steuerberg wurde auf Orange erhöht. Bitte um aktuelle Lageinformationen.",
+      "timestamp": "2023-11-15T14:40:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Lagemeldung",
+      "absender": "BH",
+      "empfaenger": "LtStb",
+      "text": "Es wird eine Evakuierung der Einwohner in Steuerberg vorgeschlagen. Bitte um Unterstützung bei der Planung und Durchführung.",
+      "timestamp": "2023-11-15T14:41:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Lagemeldung",
+      "absender": "Gemeinde Steuerberg",
+      "empfaenger": "LtStb",
+      "text": "Es gibt lokale Schäden im Gemeindeteil Oberdorf. Bitte um Unterstützung bei der Rettungsaktion.",
+      "timestamp": "2023-11-15T14:42:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LtStb",
+      "responsible": "S2",
+      "text": "Bitte aktualisierte Informationen zur aktuellen Lage sammeln und zusammenfassen.",
+      "timestamp": "2023-11-15T14:43:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LtStb",
+      "responsible": "S3",
+      "text": "Bitte Maßnahmen zur Unterstützung der Rettungsaktionen in Oberdorf planen und umsetzen.",
+      "timestamp": "2023-11-15T14:44:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LtStb",
+      "responsible": "S6",
+      "text": "Bitte sicherstellen, dass alle IT-Ressourcen für die aktuelle Katastrophensituation bereitgestellt sind.",
+      "timestamp": "2023-11-15T14:45:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentSiteId": 7,
+      "address": "Gemeindegebiet Steuerberg, B2",
+      "description": "Schwere Unfallstelle mit zahlreichen Verletzten.",
+      "severity": "kritisch",
+      "timestamp": "2023-11-15T14:46:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentSiteId": 8,
+      "address": "Gemeindegebiet Steuerberg, A1 Richtung Steuerberg",
+      "description": "Verkehrsaufkommen auf der Autobahn.",
+      "severity": "mittel",
+      "timestamp": "2023-11-15T14:47:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentSiteId": 9,
+      "address": "Gemeindegebiet Steuerberg, Oberdorf",
+      "description": "Lokale Schäden im Gemeindeteil.",
+      "severity": "leicht",
+      "timestamp": "2023-11-15T14:48:00Z"
+    }
+  ]
+}
+{
+  "ts": "2026-01-24T10:03:18.226Z",
+  "type": "LLM",
+  "phase": "response",
+  "model": "einfo-balanced:latest",
+  "extra": {
+    "phase": "ops",
+    "messageCount": 2
+  }
+}
+rawResponse:
+{
+  "model": "einfo-balanced:latest",
+  "created_at": "2026-01-24T10:03:18.224892158Z",
+  "message": {
+    "role": "assistant",
+    "content": "{\n  \"operations\": [\n    {\n      \"type\": \"protokoll.create\",\n      \"infoTyp\": \"Rueckmeldung\",\n      \"richtung\": \"ein\",\n      \"absenderId\": \"POL1234567890\",\n      \"inhalt\": \"Die Polizei bestätigt die Absperrung der Straße in Richtung Steuerberg. Bitte um Unterstützung bei der Evakuierung von Einwohnern.\",\n      \"timestamp\": \"2023-11-15T14:37:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"richtung\": \"ein\",\n      \"absenderId\": \"RK1234567890\",\n      \"inhalt\": \"Der Rettungsflugdienst meldet einen schweren Unfall auf der Autobahn A1. Es gibt mehrere Verletzte.\",\n      \"timestamp\": \"2023-11-15T14:38:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"infoTyp\": \"Info\",\n      \"richtung\": \"ein\",\n      \"absenderId\": \"LST1234567890\",\n      \"inhalt\": \"Die Landesfeuerwehr informiert, dass zusätzliche Einsatzkräfte bereitstehen und auf Abruf sind.\",\n      \"timestamp\": \"2023-11-15T14:39:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"richtung\": \"ein\",\n      \"absenderId\": \"BH1234567890\",\n      \"inhalt\": \"Die Bundeswehr bittet um Unterstützung bei der Bereitstellung von Notunterkünften für evakuierte Personen.\",\n      \"timestamp\": \"2023-11-15T14:40:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"richtung\": \"ein\",\n      \"absenderId\": \"BMSteuerberg\",\n      \"inhalt\": \"Die Gemeinde Steuerberg meldet Schäden an öffentlichen Gebäuden und bittet um Unterstützung bei der Sanierung.\",\n      \"timestamp\": \"2023-11-15T14:41:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentSiteIds\": [\n        \"Einsatz_Steuerberg_123\",\n        \"Einsatz_Gemeindegebiet_9876\",\n        \"Einsatz_AutobahnA1_456\"\n      ],\n      \"timestamp\": \"2023-11-15T14:42:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S2\",\n      \"beschreibung\": \"Erstellen eines aktuellen Lagebildes für den Einsatzleiter.\",\n      \"timestamp\": \"2023-11-15T14:43:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S3\",\n      \"beschreibung\": \"Planung der Einsatzkräfte für die kommenden Einsätze.\",\n      \"timestamp\": \"2023-11-15T14:44:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S6\",\n      \"beschreibung\": \"Überprüfung der IT-Infrastruktur und Kommunikationssicherheit.\",\n      \"timestamp\": \"2023-11-15T14:45:00Z\"\n    }\n  ]\n}"
+  },
+  "done": true,
+  "done_reason": "stop",
+  "total_duration": 164611961331,
+  "load_duration": 64465891,
+  "prompt_eval_count": 4096,
+  "prompt_eval_duration": 7651055204,
+  "eval_count": 902,
+  "eval_duration": 142011482340
+}
+parsedResponse:
+{
+  "operations": [
+    {
+      "type": "protokoll.create",
+      "infoTyp": "Rueckmeldung",
+      "richtung": "ein",
+      "absenderId": "POL1234567890",
+      "inhalt": "Die Polizei bestätigt die Absperrung der Straße in Richtung Steuerberg. Bitte um Unterstützung bei der Evakuierung von Einwohnern.",
+      "timestamp": "2023-11-15T14:37:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "infoTyp": "Lagemeldung",
+      "richtung": "ein",
+      "absenderId": "RK1234567890",
+      "inhalt": "Der Rettungsflugdienst meldet einen schweren Unfall auf der Autobahn A1. Es gibt mehrere Verletzte.",
+      "timestamp": "2023-11-15T14:38:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "infoTyp": "Info",
+      "richtung": "ein",
+      "absenderId": "LST1234567890",
+      "inhalt": "Die Landesfeuerwehr informiert, dass zusätzliche Einsatzkräfte bereitstehen und auf Abruf sind.",
+      "timestamp": "2023-11-15T14:39:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "infoTyp": "Lagemeldung",
+      "richtung": "ein",
+      "absenderId": "BH1234567890",
+      "inhalt": "Die Bundeswehr bittet um Unterstützung bei der Bereitstellung von Notunterkünften für evakuierte Personen.",
+      "timestamp": "2023-11-15T14:40:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "infoTyp": "Lagemeldung",
+      "richtung": "ein",
+      "absenderId": "BMSteuerberg",
+      "inhalt": "Die Gemeinde Steuerberg meldet Schäden an öffentlichen Gebäuden und bittet um Unterstützung bei der Sanierung.",
+      "timestamp": "2023-11-15T14:41:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentSiteIds": [
+        "Einsatz_Steuerberg_123",
+        "Einsatz_Gemeindegebiet_9876",
+        "Einsatz_AutobahnA1_456"
+      ],
+      "timestamp": "2023-11-15T14:42:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S2",
+      "beschreibung": "Erstellen eines aktuellen Lagebildes für den Einsatzleiter.",
+      "timestamp": "2023-11-15T14:43:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S3",
+      "beschreibung": "Planung der Einsatzkräfte für die kommenden Einsätze.",
+      "timestamp": "2023-11-15T14:44:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S6",
+      "beschreibung": "Überprüfung der IT-Infrastruktur und Kommunikationssicherheit.",
+      "timestamp": "2023-11-15T14:45:00Z"
+    }
+  ]
+}
+{
+  "ts": "2026-01-24T10:06:28.193Z",
+  "type": "LLM",
+  "phase": "response",
+  "model": "einfo-balanced:latest",
+  "extra": {
+    "phase": "ops",
+    "messageCount": 2
+  }
+}
+rawResponse:
+{
+  "model": "einfo-balanced:latest",
+  "created_at": "2026-01-24T10:06:28.192543868Z",
+  "message": {
+    "role": "assistant",
+    "content": "{\n  \"operations\": [\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Rueckmeldung\",\n      \"absender\": \"ROL_POL\",\n      \"inhalt\": \"Die Polizei bestätigt die Absperrung der Straße in Steuerberg und teilt mit, dass sie Unterstützung durch den Bereitschaftsdienst benötigen.\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"absender\": \"ROL_LST\",\n      \"inhalt\": \"Der Leiter der Sanitätseinsätze teilt mit, dass weitere Rettungsmitarbeiter benötigt werden um Verletzte zu versorgen.\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Info\",\n      \"absender\": \"ROL_RK\",\n      \"inhalt\": \"Die Roten Kreuzer berichten über eine erhöhte Anzahl an Verletzten im Evakuierungszentrum und bitten um Unterstützung bei der Versorgung.\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"absender\": \"ROL_BM_Steuerberg\",\n      \"inhalt\": \"Das Gemeindeamt Steuerberg meldet Schäden an Wohngebäuden und bittet um Unterstützung bei der Evakuierung von Einwohnern.\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Info\",\n      \"absender\": \"ROL_BH\",\n      \"inhalt\": \"Die Behörde teilt mit, dass eine Notfallzelle eingerichtet wurde und alle beteiligten Organisationen umgehend dorthin zu melden sind.\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S2\",\n      \"inhalt\": \"Erstellen Sie ein aktuelles Lagebild und teilen Sie es dem Einsatzleiter mit.\",\n      \"status\": \"open\"\n    },\n    {\n      \"type\": \"aufgaben.update\",\n      \"id\": 1,\n      \"status\": \"inProgress\",\n      \"protokollInhalt\": \"Das Erstellung des aktuellen Lagebildes ist in Arbeit.\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentType\": \"Verkehrsunfall\",\n      \"address\": \"Gemeindegebiet Steuerberg\",\n      \"severity\": 3\n    },\n    {\n      \"type\": \"board.updateIncidentSites\",\n      \"id\": 2,\n      \"status\": \"escalated\"\n    }\n  ]\n}"
+  },
+  "done": true,
+  "done_reason": "stop",
+  "total_duration": 114475015600,
+  "load_duration": 60408044,
+  "prompt_eval_count": 4096,
+  "prompt_eval_duration": 7653391742,
+  "eval_count": 620,
+  "eval_duration": 96562909891
+}
+parsedResponse:
+{
+  "operations": [
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Rueckmeldung",
+      "absender": "ROL_POL",
+      "inhalt": "Die Polizei bestätigt die Absperrung der Straße in Steuerberg und teilt mit, dass sie Unterstützung durch den Bereitschaftsdienst benötigen."
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Lagemeldung",
+      "absender": "ROL_LST",
+      "inhalt": "Der Leiter der Sanitätseinsätze teilt mit, dass weitere Rettungsmitarbeiter benötigt werden um Verletzte zu versorgen."
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Info",
+      "absender": "ROL_RK",
+      "inhalt": "Die Roten Kreuzer berichten über eine erhöhte Anzahl an Verletzten im Evakuierungszentrum und bitten um Unterstützung bei der Versorgung."
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Lagemeldung",
+      "absender": "ROL_BM_Steuerberg",
+      "inhalt": "Das Gemeindeamt Steuerberg meldet Schäden an Wohngebäuden und bittet um Unterstützung bei der Evakuierung von Einwohnern."
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Info",
+      "absender": "ROL_BH",
+      "inhalt": "Die Behörde teilt mit, dass eine Notfallzelle eingerichtet wurde und alle beteiligten Organisationen umgehend dorthin zu melden sind."
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S2",
+      "inhalt": "Erstellen Sie ein aktuelles Lagebild und teilen Sie es dem Einsatzleiter mit.",
+      "status": "open"
+    },
+    {
+      "type": "aufgaben.update",
+      "id": 1,
+      "status": "inProgress",
+      "protokollInhalt": "Das Erstellung des aktuellen Lagebildes ist in Arbeit."
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Verkehrsunfall",
+      "address": "Gemeindegebiet Steuerberg",
+      "severity": 3
+    },
+    {
+      "type": "board.updateIncidentSites",
+      "id": 2,
+      "status": "escalated"
+    }
+  ]
+}
+{
+  "ts": "2026-01-24T10:10:11.698Z",
+  "type": "LLM",
+  "phase": "response",
+  "model": "einfo-balanced:latest",
+  "extra": {
+    "phase": "ops",
+    "messageCount": 2
+  }
+}
+rawResponse:
+{
+  "model": "einfo-balanced:latest",
+  "created_at": "2026-01-24T10:10:11.698104164Z",
+  "message": {
+    "role": "assistant",
+    "content": "{\n  \"operations\": [\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Rueckmeldung\",\n      \"absender\": \"LST\",\n      \"inhalt\": \"Die Anfrage zur Verwendung von Einsatzmitteln wurde an die zuständige Einheit weitergeleitet und eine Bestätigung erhalten. Die Mittel sind für den Einsatz bereit.\",\n      \"timestamp\": \"2023-11-15T14:37:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"absender\": \"POL\",\n      \"inhalt\": \"Es gibt aktuell Verkehrsaufkommen auf der A1 in Richtung Steuerberg. Bitte beachten Sie die möglichen Verspätungen.\",\n      \"timestamp\": \"2023-11-15T14:38:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"absender\": \"RK\",\n      \"inhalt\": \"Ein Sanitätseinsatz wurde in der Gemeinde Steuerberg gemeldet. Ein Rettungswagen ist bereits vor Ort.\",\n      \"timestamp\": \"2023-11-15T14:39:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Info\",\n      \"absender\": \"BH\",\n      \"inhalt\": \"Die Behörde hat eine Anordnung erlassen, dass alle Ressourcen zur Verfügung gestellt werden sollen. Bitte bestätigen Sie die Verfügbarkeit.\",\n      \"timestamp\": \"2023-11-15T14:40:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"absender\": \"Gemeinde Steuerberg (BM)\",\n      \"inhalt\": \"Es gibt eine Schadensmeldung in der Gemeinde Steuerberg. Ein Gebäude ist teilweise beschädigt.\",\n      \"timestamp\": \"2023-11-15T14:41:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S2\",\n      \"beschreibung\": \"Bitte erstellen Sie ein aktuelles Lagebild und teilen Sie es mit dem Einsatzleiter.\",\n      \"timestamp\": \"2023-11-15T14:42:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S3\",\n      \"beschreibung\": \"Bitte überprüfen Sie die Einsatzmittel und teilen Sie den Status mit.\",\n      \"timestamp\": \"2023-11-15T14:43:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LTSTB\",\n      \"responsible\": \"S6\",\n      \"beschreibung\": \"Bitte überprüfen Sie die IT-Infrastruktur und stellen Sie sicher, dass alle Systeme stabil sind.\",\n      \"timestamp\": \"2023-11-15T14:44:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentType\": \"Verkehrsunfall\",\n      \"address\": \"Gemeindegebiet Steuerberg, Hauptstraße 7\",\n      \"severity\": \"mittel\",\n      \"timestamp\": \"2023-11-15T14:46:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentType\": \"Brand\",\n      \"address\": \"Gemeindegebiet Steuerberg, Industriestraße 9\",\n      \"severity\": \"schwer\",\n      \"timestamp\": \"2023-11-15T14:47:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentType\": \"Rettungseinsatz\",\n      \"address\": \"Gemeindegebiet Steuerberg, Parkstraße 12\",\n      \"severity\": \"leicht\",\n      \"timestamp\": \"2023-11-15T14:48:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentType\": \"Verkehrsaufkommen\",\n      \"address\": \"Gemeindegebiet Steuerberg, Auffahrt zur Autobahn 1\",\n      \"severity\": \"mittel\",\n      \"timestamp\": \"2023-11-15T14:49:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentType\": \"Brand\",\n      \"address\": \"Gemeindegebiet Steuerberg, Industriestraße 18\",\n      \"severity\": \"schwer\",\n      \"timestamp\": \"2023-11-15T14:50:00Z\"\n    }\n  ]\n}"
+  },
+  "done": true,
+  "done_reason": "stop",
+  "total_duration": 218013391629,
+  "load_duration": 64542339,
+  "prompt_eval_count": 4096,
+  "prompt_eval_duration": 7657286963,
+  "eval_count": 1196,
+  "eval_duration": 190742675674
+}
+parsedResponse:
+{
+  "operations": [
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Rueckmeldung",
+      "absender": "LST",
+      "inhalt": "Die Anfrage zur Verwendung von Einsatzmitteln wurde an die zuständige Einheit weitergeleitet und eine Bestätigung erhalten. Die Mittel sind für den Einsatz bereit.",
+      "timestamp": "2023-11-15T14:37:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Lagemeldung",
+      "absender": "POL",
+      "inhalt": "Es gibt aktuell Verkehrsaufkommen auf der A1 in Richtung Steuerberg. Bitte beachten Sie die möglichen Verspätungen.",
+      "timestamp": "2023-11-15T14:38:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Lagemeldung",
+      "absender": "RK",
+      "inhalt": "Ein Sanitätseinsatz wurde in der Gemeinde Steuerberg gemeldet. Ein Rettungswagen ist bereits vor Ort.",
+      "timestamp": "2023-11-15T14:39:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Info",
+      "absender": "BH",
+      "inhalt": "Die Behörde hat eine Anordnung erlassen, dass alle Ressourcen zur Verfügung gestellt werden sollen. Bitte bestätigen Sie die Verfügbarkeit.",
+      "timestamp": "2023-11-15T14:40:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Lagemeldung",
+      "absender": "Gemeinde Steuerberg (BM)",
+      "inhalt": "Es gibt eine Schadensmeldung in der Gemeinde Steuerberg. Ein Gebäude ist teilweise beschädigt.",
+      "timestamp": "2023-11-15T14:41:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S2",
+      "beschreibung": "Bitte erstellen Sie ein aktuelles Lagebild und teilen Sie es mit dem Einsatzleiter.",
+      "timestamp": "2023-11-15T14:42:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S3",
+      "beschreibung": "Bitte überprüfen Sie die Einsatzmittel und teilen Sie den Status mit.",
+      "timestamp": "2023-11-15T14:43:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S6",
+      "beschreibung": "Bitte überprüfen Sie die IT-Infrastruktur und stellen Sie sicher, dass alle Systeme stabil sind.",
+      "timestamp": "2023-11-15T14:44:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Verkehrsunfall",
+      "address": "Gemeindegebiet Steuerberg, Hauptstraße 7",
+      "severity": "mittel",
+      "timestamp": "2023-11-15T14:46:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Brand",
+      "address": "Gemeindegebiet Steuerberg, Industriestraße 9",
+      "severity": "schwer",
+      "timestamp": "2023-11-15T14:47:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Rettungseinsatz",
+      "address": "Gemeindegebiet Steuerberg, Parkstraße 12",
+      "severity": "leicht",
+      "timestamp": "2023-11-15T14:48:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Verkehrsaufkommen",
+      "address": "Gemeindegebiet Steuerberg, Auffahrt zur Autobahn 1",
+      "severity": "mittel",
+      "timestamp": "2023-11-15T14:49:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Brand",
+      "address": "Gemeindegebiet Steuerberg, Industriestraße 18",
+      "severity": "schwer",
+      "timestamp": "2023-11-15T14:50:00Z"
+    }
+  ]
+}
+{
+  "ts": "2026-01-24T10:14:39.183Z",
+  "type": "LLM",
+  "phase": "response",
+  "model": "einfo-balanced:latest",
+  "extra": {
+    "phase": "ops",
+    "messageCount": 2
+  }
+}
+rawResponse:
+{
+  "model": "einfo-balanced:latest",
+  "created_at": "2026-01-24T10:14:39.183083655Z",
+  "message": {
+    "role": "assistant",
+    "content": "{\n  \"operations\": [\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Rueckmeldung\",\n      \"absender\": \"LtStb\",\n      \"empfaenger\": \"BM_GemeindeSteuerberg\",\n      \"text\": \"Die Bitte um zusätzliche Sanitätskräfte wurde an die zuständige Behörde weitergeleitet. Wir erwarten eine Rückmeldung innerhalb der nächsten Stunde.\",\n      \"timestamp\": \"2023-11-15T14:37:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"absender\": \"POL_Steuerberg\",\n      \"empfaenger\": \"LtStb\",\n      \"text\": \"Es gibt aktuell Verkehrsaufkommen auf der A1 in Richtung Steuerberg. Bitte informieren Sie die Fahrzeugführer entsprechend.\",\n      \"timestamp\": \"2023-11-15T14:38:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"absender\": \"RK_Steuerberg\",\n      \"empfaenger\": \"LtStb\",\n      \"text\": \"Wir haben aktuell 5 Sanitätsfahrzeuge im Einsatz. Bitte bestätigen Sie die Verfügbarkeit weiterer Ressourcen.\",\n      \"timestamp\": \"2023-11-15T14:39:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Info\",\n      \"absender\": \"LST_Steuerberg\",\n      \"empfaenger\": \"LtStb\",\n      \"text\": \"Die Einsatzmittel sind aktuell vollständig besetzt. Bitte informieren Sie uns, ob weitere Ressourcen benötigt werden.\",\n      \"timestamp\": \"2023-11-15T14:40:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"absender\": \"BM_GemeindeSteuerberg\",\n      \"empfaenger\": \"LtStb\",\n      \"text\": \"Es gibt aktuell lokale Schäden im Gemeindeteil Oberdorf. Bitte senden Sie einen Einsatzteam.\",\n      \"timestamp\": \"2023-11-15T14:41:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentType\": \"Verkehrsunfall\",\n      \"severityLevel\": 3,\n      \"address\": \"Gemeindegebiet Steuerberg, Hauptstraße\",\n      \"description\": \"Ein schwerer Verkehrsunfall hat die Straße blockiert. Bitte senden Sie einen Einsatzteam.\",\n      \"timestamp\": \"2023-11-15T14:42:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentType\": \"Brand\",\n      \"severityLevel\": 2,\n      \"address\": \"Gemeindegebiet Steuerberg, Industriezone\",\n      \"description\": \"Es gibt einen Brand in einem Lagerhaus. Bitte senden Sie ein Feuerwehrteam.\",\n      \"timestamp\": \"2023-11-15T14:43:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"incidentType\": \"Unfall\",\n      \"severityLevel\": 1,\n      \"address\": \"Gemeindegebiet Steuerberg, Dorfstraße\",\n      \"description\": \"Ein Unfall hat einen Verletzten verursacht. Bitte senden Sie Sanitätskräfte.\",\n      \"timestamp\": \"2023-11-15T14:44:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LtStb\",\n      \"responsible\": \"S1\",\n      \"description\": \"Bitte überprüfen Sie die Personalverfügbarkeit und stellen Sie sicher, dass ausreichend Personal für den Einsatz zur Verfügung steht.\",\n      \"timestamp\": \"2023-11-15T14:45:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LtStb\",\n      \"responsible\": \"S2\",\n      \"description\": \"Bitte erstellen Sie ein aktuelles Lagebild und informieren Sie den Einsatzleiter über die aktuellen Entwicklungen.\",\n      \"timestamp\": \"2023-11-15T14:46:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LtStb\",\n      \"responsible\": \"S3\",\n      \"description\": \"Bitte senden Sie ein Einsatzteam zu den neuen Schadensmeldungen und überwachen Sie die Fortschritte.\",\n      \"timestamp\": \"2023-11-15T14:47:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LtStb\",\n      \"responsible\": \"S4\",\n      \"description\": \"Bitte stellen Sie sicher, dass alle notwendigen Versorgungsmittel zur Verfügung stehen.\",\n      \"timestamp\": \"2023-11-15T14:48:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LtStb\",\n      \"responsible\": \"S6\",\n      \"description\": \"Bitte überprüfen Sie die IT-Infrastruktur und stellen Sie sicher, dass alle Systeme stabil sind.\",\n      \"timestamp\": \"2023-11-15T14:49:00Z\"\n    }\n  ]\n}"
+  },
+  "done": true,
+  "done_reason": "stop",
+  "total_duration": 245456797301,
+  "load_duration": 59341460,
+  "prompt_eval_count": 4096,
+  "prompt_eval_duration": 7669101407,
+  "eval_count": 1343,
+  "eval_duration": 215592669126
+}
+parsedResponse:
+{
+  "operations": [
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Rueckmeldung",
+      "absender": "LtStb",
+      "empfaenger": "BM_GemeindeSteuerberg",
+      "text": "Die Bitte um zusätzliche Sanitätskräfte wurde an die zuständige Behörde weitergeleitet. Wir erwarten eine Rückmeldung innerhalb der nächsten Stunde.",
+      "timestamp": "2023-11-15T14:37:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Lagemeldung",
+      "absender": "POL_Steuerberg",
+      "empfaenger": "LtStb",
+      "text": "Es gibt aktuell Verkehrsaufkommen auf der A1 in Richtung Steuerberg. Bitte informieren Sie die Fahrzeugführer entsprechend.",
+      "timestamp": "2023-11-15T14:38:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Lagemeldung",
+      "absender": "RK_Steuerberg",
+      "empfaenger": "LtStb",
+      "text": "Wir haben aktuell 5 Sanitätsfahrzeuge im Einsatz. Bitte bestätigen Sie die Verfügbarkeit weiterer Ressourcen.",
+      "timestamp": "2023-11-15T14:39:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Info",
+      "absender": "LST_Steuerberg",
+      "empfaenger": "LtStb",
+      "text": "Die Einsatzmittel sind aktuell vollständig besetzt. Bitte informieren Sie uns, ob weitere Ressourcen benötigt werden.",
+      "timestamp": "2023-11-15T14:40:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Lagemeldung",
+      "absender": "BM_GemeindeSteuerberg",
+      "empfaenger": "LtStb",
+      "text": "Es gibt aktuell lokale Schäden im Gemeindeteil Oberdorf. Bitte senden Sie einen Einsatzteam.",
+      "timestamp": "2023-11-15T14:41:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Verkehrsunfall",
+      "severityLevel": 3,
+      "address": "Gemeindegebiet Steuerberg, Hauptstraße",
+      "description": "Ein schwerer Verkehrsunfall hat die Straße blockiert. Bitte senden Sie einen Einsatzteam.",
+      "timestamp": "2023-11-15T14:42:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Brand",
+      "severityLevel": 2,
+      "address": "Gemeindegebiet Steuerberg, Industriezone",
+      "description": "Es gibt einen Brand in einem Lagerhaus. Bitte senden Sie ein Feuerwehrteam.",
+      "timestamp": "2023-11-15T14:43:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Unfall",
+      "severityLevel": 1,
+      "address": "Gemeindegebiet Steuerberg, Dorfstraße",
+      "description": "Ein Unfall hat einen Verletzten verursacht. Bitte senden Sie Sanitätskräfte.",
+      "timestamp": "2023-11-15T14:44:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LtStb",
+      "responsible": "S1",
+      "description": "Bitte überprüfen Sie die Personalverfügbarkeit und stellen Sie sicher, dass ausreichend Personal für den Einsatz zur Verfügung steht.",
+      "timestamp": "2023-11-15T14:45:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LtStb",
+      "responsible": "S2",
+      "description": "Bitte erstellen Sie ein aktuelles Lagebild und informieren Sie den Einsatzleiter über die aktuellen Entwicklungen.",
+      "timestamp": "2023-11-15T14:46:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LtStb",
+      "responsible": "S3",
+      "description": "Bitte senden Sie ein Einsatzteam zu den neuen Schadensmeldungen und überwachen Sie die Fortschritte.",
+      "timestamp": "2023-11-15T14:47:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LtStb",
+      "responsible": "S4",
+      "description": "Bitte stellen Sie sicher, dass alle notwendigen Versorgungsmittel zur Verfügung stehen.",
+      "timestamp": "2023-11-15T14:48:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LtStb",
+      "responsible": "S6",
+      "description": "Bitte überprüfen Sie die IT-Infrastruktur und stellen Sie sicher, dass alle Systeme stabil sind.",
+      "timestamp": "2023-11-15T14:49:00Z"
+    }
+  ]
+}
+{
+  "ts": "2026-01-24T10:20:02.771Z",
+  "type": "LLM",
+  "phase": "response",
+  "model": "einfo-balanced:latest",
+  "extra": {
+    "phase": "ops",
+    "messageCount": 2
+  }
+}
+rawResponse:
+{
+  "model": "einfo-balanced:latest",
+  "created_at": "2026-01-24T10:20:02.770267176Z",
+  "message": {
+    "role": "assistant",
+    "content": "{\n  \"operations\": [\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Rueckmeldung\",\n      \"absender\": \"ROL_BH\",\n      \"inhalt\": \"Die Bitte um Unterstützung durch den Bundesrat wurde bestätigt. Bereitschaftstruppen werden in Kürze eingesetzt.\",\n      \"timestamp\": \"2023-11-15T14:37:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"absender\": \"ROL_POL\",\n      \"inhalt\": \"Verstärkte Polizeikräfte sind in Steuerberg eingetroffen und unterstützen die Ordnungsarbeit.\",\n      \"timestamp\": \"2023-11-15T14:38:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n      \"infoTyp\": \"Info\",\n      \"absender\": \"ROL_RK\",\n      \"inhalt\": \"Die Rotes Kreuz hat eine mobile Notaufnahme eingerichtet und erwartet weitere Verletzte.\",\n      \"timestamp\": \"2023-11-15T14:39:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"richtung\": \"ein\",\n       \"infoTyp\": \"Lagemeldung\",\n        \"absender\": \"ROL_LST\",\n        \"inhalt\": \"Der Luftrettungsdienst ist mobil und bereit für Evakuierungen.\",\n        \"timestamp\": \"2023-11-15T14:40:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n       \"richtung\": \"ein\",\n        \"infoTyp\": \"Lagemeldung\",\n         \"absender\": \"ROL_Gemeinden_BM_Steuerberg\",\n          \"inhalt\": \"In Steuerberg gibt es weitere Schäden an Wohngebäuden. Evakuierung in Vorbereitung.\",\n           \"timestamp\": \"2023-11-15T14:41:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n       \"assignedBy\": \"LTSTB\",\n        \"responsible\": \"S2\",\n         \"inhalt\": \"Erstellen Sie ein aktuelles Lagebild für den Einsatzleiter.\",\n          \"timestamp\": \"2023-11-15T14:42:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n       \"assignedBy\": \"LTSTB\",\n        \"responsible\": \"S3\",\n         \"inhalt\": \"Überprüfen Sie die Einsatzmittel und bereiten Sie eine Liste der verfügbaren Ressourcen vor.\",\n          \"timestamp\": \"2023-11-15T14:43:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n       \"assignedBy\": \"LTSTB\",\n        \"responsible\": \"S6\",\n         \"inhalt\": \"Stellen Sie sicher, dass die IT-Infrastruktur stabil ist und alle notwendigen Systeme online sind.\",\n          \"timestamp\": \"2023-11-15T14:44:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n       \"incidentType\": \"Verkehrsunfall\",\n        \"severity\": 3,\n         \"address\": \"Gemeindegebiet Steuerberg, Hauptstraße\",\n          \"timestamp\": \"2023-11-15T14:46:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n       \"incidentType\": \"Brand\",\n        \"severity\": 2,\n         \"address\": \"Gemeindegebiet Steuerberg, Industriegebiet\",\n          \"timestamp\": \"2023-11-15T14:47:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n       \"incidentType\": \"Verletzte Person\",\n        \"severity\": 1,\n         \"address\": \"Gemeindegebiet Steuerberg, Wohnsiedlung Nord\",\n          \"timestamp\": \"2023-11-15T14:48:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n       \"incidentType\": \"Erdbeben\",\n        \"severity\": 4,\n         \"address\": \"Gemeindegebiet Steuerberg, Parkplatz Süd\",\n          \"timestamp\": \"2023-11-15T14:49:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSites\",\n       \"incidentType\": \"Notfallversorgung\",\n        \"severity\": 2,\n         \"address\": \"Gemeindegebiet Steuerberg, Schule Ost\",\n          \"timestamp\": \"2023-11-15T14:50:00Z\"\n    }\n  ]\n}"
+  },
+  "done": true,
+  "done_reason": "stop",
+  "total_duration": 209003192073,
+  "load_duration": 59629314,
+  "prompt_eval_count": 4096,
+  "prompt_eval_duration": 7666439572,
+  "eval_count": 1146,
+  "eval_duration": 182457055534
+}
+parsedResponse:
+{
+  "operations": [
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Rueckmeldung",
+      "absender": "ROL_BH",
+      "inhalt": "Die Bitte um Unterstützung durch den Bundesrat wurde bestätigt. Bereitschaftstruppen werden in Kürze eingesetzt.",
+      "timestamp": "2023-11-15T14:37:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Lagemeldung",
+      "absender": "ROL_POL",
+      "inhalt": "Verstärkte Polizeikräfte sind in Steuerberg eingetroffen und unterstützen die Ordnungsarbeit.",
+      "timestamp": "2023-11-15T14:38:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Info",
+      "absender": "ROL_RK",
+      "inhalt": "Die Rotes Kreuz hat eine mobile Notaufnahme eingerichtet und erwartet weitere Verletzte.",
+      "timestamp": "2023-11-15T14:39:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Lagemeldung",
+      "absender": "ROL_LST",
+      "inhalt": "Der Luftrettungsdienst ist mobil und bereit für Evakuierungen.",
+      "timestamp": "2023-11-15T14:40:00Z"
+    },
+    {
+      "type": "protokoll.create",
+      "richtung": "ein",
+      "infoTyp": "Lagemeldung",
+      "absender": "ROL_Gemeinden_BM_Steuerberg",
+      "inhalt": "In Steuerberg gibt es weitere Schäden an Wohngebäuden. Evakuierung in Vorbereitung.",
+      "timestamp": "2023-11-15T14:41:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S2",
+      "inhalt": "Erstellen Sie ein aktuelles Lagebild für den Einsatzleiter.",
+      "timestamp": "2023-11-15T14:42:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S3",
+      "inhalt": "Überprüfen Sie die Einsatzmittel und bereiten Sie eine Liste der verfügbaren Ressourcen vor.",
+      "timestamp": "2023-11-15T14:43:00Z"
+    },
+    {
+      "type": "aufgaben.create",
+      "assignedBy": "LTSTB",
+      "responsible": "S6",
+      "inhalt": "Stellen Sie sicher, dass die IT-Infrastruktur stabil ist und alle notwendigen Systeme online sind.",
+      "timestamp": "2023-11-15T14:44:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Verkehrsunfall",
+      "severity": 3,
+      "address": "Gemeindegebiet Steuerberg, Hauptstraße",
+      "timestamp": "2023-11-15T14:46:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Brand",
+      "severity": 2,
+      "address": "Gemeindegebiet Steuerberg, Industriegebiet",
+      "timestamp": "2023-11-15T14:47:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Verletzte Person",
+      "severity": 1,
+      "address": "Gemeindegebiet Steuerberg, Wohnsiedlung Nord",
+      "timestamp": "2023-11-15T14:48:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Erdbeben",
+      "severity": 4,
+      "address": "Gemeindegebiet Steuerberg, Parkplatz Süd",
+      "timestamp": "2023-11-15T14:49:00Z"
+    },
+    {
+      "type": "board.createIncidentSites",
+      "incidentType": "Notfallversorgung",
+      "severity": 2,
+      "address": "Gemeindegebiet Steuerberg, Schule Ost",
+      "timestamp": "2023-11-15T14:50:00Z"
     }
   ]
 }
