@@ -1,38 +1,310 @@
-[2026-01-23T19:44:44.138Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5792/8188MB | Temp: 44°C
-[2026-01-23T19:44:44.140Z] Aktives Szenario geändert: winter_extremschneefall
-[2026-01-23T19:44:44.140Z] Worker-Intervall angepasst: 120000 ms
-[2026-01-23T19:44:44.140Z] Starte Simulationsschritt | aktive Rollen: 0
-[2026-01-23T19:46:44.140Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
-[2026-01-23T19:48:15.408Z] LLM-Operationen: {"boardCreate":6,"boardUpdate":0,"taskCreate":3,"taskUpdate":0,"protoCreate":3}
-[2026-01-23T19:48:15.408Z] Board-Create angewandt: cb-incident-1769197695408-uzw4v0
-[2026-01-23T19:48:15.408Z] Board-Create angewandt: cb-incident-1769197695408-4ahztq
-[2026-01-23T19:48:15.408Z] Board-Create angewandt: cb-incident-1769197695408-p0m95d
-[2026-01-23T19:48:15.408Z] Board-Create angewandt: cb-incident-1769197695408-llbx38
-[2026-01-23T19:48:15.408Z] Board-Create angewandt: cb-incident-1769197695408-l478ct
-[2026-01-23T19:48:15.409Z] Board-Create angewandt: cb-incident-1769197695409-0ynza2
-[2026-01-23T19:48:15.410Z] Aufgaben-Create verworfen: {"op":{"title":"Rettungskräfte zu Massenkarambolage B317 entsenden","responsible":"Feuerwehr Feldkirchen","status":"offen","desc":"Sofortige Rettungsmaßnahmen für verletzte Personen durchführen. Einsatzkräfte mit Kettenfahrzeugen ausstatten.","priority":1,"assignedBy":"Einsatzleiter"},"reason":"Rolle \"Einsatzleiter\" ist keine Stabsrolle.","activeRoles":[]}
-[2026-01-23T19:48:15.410Z] Aufgaben-Create verworfen: {"op":{"title":"Notstromversorgung Altenheim Sonnenhof","responsible":"Technisches Hilfswerk Kärnten","status":"offen","desc":"Sofortige Notstromanbindung durchführen, um Heizungs- und Lebenserhaltungssysteme zu sichern.","priority":1,"assignedBy":"Einsatzleiter"},"reason":"Rolle \"Einsatzleiter\" ist keine Stabsrolle.","activeRoles":[]}
-[2026-01-23T19:48:15.411Z] Aufgaben-Create verworfen: {"op":{"title":"Evakuierung Supermarkt Feldkirchen-Süd","responsible":"Feuerwehr Feldkirchen","status":"offen","desc":"Gebäude evakuieren und sicherstellen, dass alle Personen unverletzt sind.","priority":1,"assignedBy":"Einsatzleiter"},"reason":"Rolle \"Einsatzleiter\" ist keine Stabsrolle.","activeRoles":[]}
-[2026-01-23T19:48:15.411Z] Protokoll-Create verworfen: {"op":{"id":"prot-1769197695407-z3pwws","information":"Katastrophenalarm um 05:30 Uhr ausgerufen","infoTyp":"Alarmierung","anvon":"","ergehtAn":[],"richtung":null,"datum":"2026-01-23","zeit":"20:48","printCount":0,"uebermittlungsart":{"kanalNr":"bot","ein":true,"aus":false},"otherRecipientConfirmation":{"confirmed":false,"by":null,"byRole":null,"at":null},"rueckmeldung1":"","rueckmeldung2":"","lagebericht":"","massnahmen":[{"massnahme":"","verantwortlich":""},{"massnahme":"","verantwortlich":""},{"massnahme":"","verantwortlich":""},{"massnahme":"","verantwortlich":""},{"massnahme":"","verantwortlich":""}],"history":[{"action":"created","at":"2026-01-23T19:48:15.407Z","by":"simulation-worker","details":"Automatisch durch Simulation erstellt"}]},"reason":"Keine Absender-Rolle gefunden. Geprüfte Felder: ab, av, von, anvon, r, assignedBy, responsible, createdBy. Operation: {\"id\":\"prot-1769197695407-z3pwws\",\"information\":\"Katastrophenalarm um 05:30 Uhr ausgerufen\",\"infoTyp\":\"Alarmierung\",\"anvon\":\"\",\"ergehtAn\":[],\"richtung\":null,\"datum\":\"2026-01-23\",\"zeit\":\"20:48\",\"printC","activeRoles":[]}
-[2026-01-23T19:48:15.412Z] Protokoll-Create verworfen: {"op":{"id":"prot-1769197695407-acjs6a","information":"Bundesheer wurde angefordert und erwartet in 90 Minuten","infoTyp":"Ressourcenversorgung","anvon":"","ergehtAn":[],"richtung":null,"datum":"2026-01-23","zeit":"20:48","printCount":0,"uebermittlungsart":{"kanalNr":"bot","ein":true,"aus":false},"otherRecipientConfirmation":{"confirmed":false,"by":null,"byRole":null,"at":null},"rueckmeldung1":"","rueckmeldung2":"","lagebericht":"","massnahmen":[{"massnahme":"","verantwortlich":""},{"massnahme":"","verantwortlich":""},{"massnahme":"","verantwortlich":""},{"massnahme":"","verantwortlich":""},{"massnahme":"","verantwortlich":""}],"history":[{"action":"created","at":"2026-01-23T19:48:15.407Z","by":"simulation-worker","details":"Automatisch durch Simulation erstellt"}]},"reason":"Keine Absender-Rolle gefunden. Geprüfte Felder: ab, av, von, anvon, r, assignedBy, responsible, createdBy. Operation: {\"id\":\"prot-1769197695407-acjs6a\",\"information\":\"Bundesheer wurde angefordert und erwartet in 90 Minuten\",\"infoTyp\":\"Ressourcenversorgung\",\"anvon\":\"\",\"ergehtAn\":[],\"richtung\":null,\"datum\":\"2026-01-23\"","activeRoles":[]}
-[2026-01-23T19:48:15.412Z] Protokoll-Create verworfen: {"op":{"id":"prot-1769197695407-6tf9ud","information":"Schulbus mit Kindern eingeschneit - sofortige Rettungsmaßnahmen notwendig.","infoTyp":"Menschenrettung","anvon":"","ergehtAn":[],"richtung":null,"datum":"2026-01-23","zeit":"20:48","printCount":0,"uebermittlungsart":{"kanalNr":"bot","ein":true,"aus":false},"otherRecipientConfirmation":{"confirmed":false,"by":null,"byRole":null,"at":null},"rueckmeldung1":"","rueckmeldung2":"","lagebericht":"","massnahmen":[{"massnahme":"","verantwortlich":""},{"massnahme":"","verantwortlich":""},{"massnahme":"","verantwortlich":""},{"massnahme":"","verantwortlich":""},{"massnahme":"","verantwortlich":""}],"history":[{"action":"created","at":"2026-01-23T19:48:15.407Z","by":"simulation-worker","details":"Automatisch durch Simulation erstellt"}]},"reason":"Keine Absender-Rolle gefunden. Geprüfte Felder: ab, av, von, anvon, r, assignedBy, responsible, createdBy. Operation: {\"id\":\"prot-1769197695407-6tf9ud\",\"information\":\"Schulbus mit Kindern eingeschneit - sofortige Rettungsmaßnahmen notwendig.\",\"infoTyp\":\"Menschenrettung\",\"anvon\":\"\",\"ergehtAn\":[],\"richtung\":null,\"datum","activeRoles":[]}
-[2026-01-23T19:48:15.412Z] Analysis: ...
-[2026-01-23T19:48:15.426Z] Action-History aktualisiert: 6 neue Einträge
-[2026-01-23T19:48:15.426Z] Schritt abgeschlossen in 211314ms | Angewandt: 6
-[2026-01-23T19:48:15.446Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5442/8188MB | Temp: 43°C
-[2026-01-23T19:48:44.190Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5442/8188MB | Temp: 42°C
-[2026-01-23T19:48:44.192Z] Starte Simulationsschritt | aktive Rollen: 0
-[2026-01-23T19:50:44.159Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
-[2026-01-23T19:52:44.160Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
-[2026-01-23T19:53:22.143Z] LLM-Operationen: {"boardCreate":0,"boardUpdate":0,"taskCreate":0,"taskUpdate":0,"protoCreate":0}
-[2026-01-23T19:53:22.144Z] Schritt abgeschlossen in 277982ms | Angewandt: 0
-[2026-01-23T19:53:22.164Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5444/8188MB | Temp: 43°C
-[2026-01-23T19:54:44.253Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 4622/8188MB | Temp: 43°C
-[2026-01-23T19:54:44.255Z] Starte Simulationsschritt | aktive Rollen: 0
-[2026-01-23T19:56:44.224Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
-[2026-01-23T19:58:44.225Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
-[2026-01-23T19:59:10.218Z] LLM-Operationen: {"boardCreate":0,"boardUpdate":0,"taskCreate":0,"taskUpdate":0,"protoCreate":1}
-[2026-01-23T19:59:10.226Z] Protokoll-Create angewandt: cb-prot-1769198350226-iqo6se
-[2026-01-23T19:59:10.245Z] Action-History aktualisiert: 1 neue Einträge
-[2026-01-23T19:59:10.245Z] Schritt abgeschlossen in 266018ms | Angewandt: 1
-[2026-01-23T19:59:10.263Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5444/8188MB | Temp: 43°C
+[2026-01-24T08:32:32.387Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
+[2026-01-24T08:34:32.386Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
+[2026-01-24T08:35:30.589Z] Protokoll anvon sanitized: {"original":{"from":"KELAG Störungsdienst"},"sanitized":"KELAG Störungsdienst"}
+[2026-01-24T08:35:30.590Z] LLM-Operationen: {"boardCreate":0,"boardUpdate":0,"taskCreate":0,"taskUpdate":0,"protoCreate":1}
+[2026-01-24T08:35:30.592Z] Protokoll-Create angewandt: cb-prot-1769243730592-cbej7n
+[2026-01-24T08:35:30.594Z] Action-History aktualisiert: 1 neue Einträge
+[2026-01-24T08:35:30.594Z] Schritt abgeschlossen in 298206ms | Angewandt: 1
+[2026-01-24T08:35:30.614Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5444/8188MB | Temp: 41°C
+[2026-01-24T08:36:32.468Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5444/8188MB | Temp: 41°C
+[2026-01-24T08:36:32.470Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T08:38:32.443Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
+[2026-01-24T08:40:32.443Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
+[2026-01-24T08:40:53.975Z] LLM-Operationen: {"boardCreate":0,"boardUpdate":0,"taskCreate":0,"taskUpdate":0,"protoCreate":0}
+[2026-01-24T08:40:53.983Z] Schritt abgeschlossen in 261539ms | Angewandt: 0
+[2026-01-24T08:40:54.003Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 4622/8188MB | Temp: 40°C
+[2026-01-24T08:42:32.471Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 4622/8188MB | Temp: 41°C
+[2026-01-24T08:42:32.472Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T08:44:32.447Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
+[2026-01-24T08:46:32.448Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
+[2026-01-24T08:47:33.177Z] Fehler: fetch failed
+[2026-01-24T08:48:32.532Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 4622/8188MB | Temp: 41°C
+[2026-01-24T08:48:32.534Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T08:48:32.537Z] LLM läuft noch (1/10) – warte 5000ms...
+[2026-01-24T08:48:37.541Z] LLM läuft noch (2/10) – warte 5000ms...
+[2026-01-24T08:48:42.547Z] LLM läuft noch (3/10) – warte 5000ms...
+[2026-01-24T08:48:47.553Z] LLM läuft noch (4/10) – warte 5000ms...
+[2026-01-24T08:48:52.558Z] LLM läuft noch (5/10) – warte 5000ms...
+[2026-01-24T08:48:57.562Z] LLM läuft noch (6/10) – warte 5000ms...
+[2026-01-24T08:49:02.568Z] LLM läuft noch (7/10) – warte 5000ms...
+[2026-01-24T08:49:07.573Z] LLM läuft noch (8/10) – warte 5000ms...
+[2026-01-24T08:49:12.578Z] LLM läuft noch (9/10) – warte 5000ms...
+[2026-01-24T08:49:17.582Z] LLM läuft noch (10/10) – warte 5000ms...
+[2026-01-24T08:49:22.584Z] Max. Retries (10) erreicht oder Fehler aufgetreten.
+[2026-01-24T08:50:32.541Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 4622/8188MB | Temp: 40°C
+[2026-01-24T08:50:32.544Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T08:50:32.548Z] LLM läuft noch (1/10) – warte 5000ms...
+[2026-01-24T08:50:37.552Z] LLM läuft noch (2/10) – warte 5000ms...
+[2026-01-24T08:50:42.557Z] LLM läuft noch (3/10) – warte 5000ms...
+[2026-01-24T08:50:47.564Z] LLM läuft noch (4/10) – warte 5000ms...
+[2026-01-24T08:50:52.569Z] LLM läuft noch (5/10) – warte 5000ms...
+[2026-01-24T08:50:57.574Z] LLM läuft noch (6/10) – warte 5000ms...
+[2026-01-24T08:51:02.579Z] LLM läuft noch (7/10) – warte 5000ms...
+[2026-01-24T08:51:07.585Z] LLM läuft noch (8/10) – warte 5000ms...
+[2026-01-24T08:51:12.590Z] LLM läuft noch (9/10) – warte 5000ms...
+[2026-01-24T08:51:17.595Z] LLM läuft noch (10/10) – warte 5000ms...
+[2026-01-24T08:51:22.597Z] Max. Retries (10) erreicht oder Fehler aufgetreten.
+[2026-01-24T08:52:32.589Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 4622/8188MB | Temp: 41°C
+[2026-01-24T08:52:32.592Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T08:52:32.596Z] LLM läuft noch (1/10) – warte 5000ms...
+[2026-01-24T08:52:37.599Z] LLM läuft noch (2/10) – warte 5000ms...
+[2026-01-24T08:52:42.603Z] LLM läuft noch (3/10) – warte 5000ms...
+[2026-01-24T08:52:47.607Z] LLM läuft noch (4/10) – warte 5000ms...
+[2026-01-24T08:52:52.613Z] LLM läuft noch (5/10) – warte 5000ms...
+[2026-01-24T08:52:57.618Z] LLM läuft noch (6/10) – warte 5000ms...
+[2026-01-24T08:53:02.622Z] LLM läuft noch (7/10) – warte 5000ms...
+[2026-01-24T08:53:07.627Z] LLM läuft noch (8/10) – warte 5000ms...
+[2026-01-24T08:53:12.633Z] LLM läuft noch (9/10) – warte 5000ms...
+[2026-01-24T08:53:17.638Z] LLM läuft noch (10/10) – warte 5000ms...
+[2026-01-24T08:53:22.640Z] Max. Retries (10) erreicht oder Fehler aufgetreten.
+[2026-01-24T08:54:32.662Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 4622/8188MB | Temp: 41°C
+[2026-01-24T08:54:32.665Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T08:54:32.668Z] LLM läuft noch (1/10) – warte 5000ms...
+[2026-01-24T08:54:37.672Z] LLM läuft noch (2/10) – warte 5000ms...
+[2026-01-24T08:54:42.677Z] LLM läuft noch (3/10) – warte 5000ms...
+[2026-01-24T08:54:47.682Z] LLM läuft noch (4/10) – warte 5000ms...
+[2026-01-24T08:54:52.687Z] LLM läuft noch (5/10) – warte 5000ms...
+[2026-01-24T08:54:57.690Z] LLM läuft noch (6/10) – warte 5000ms...
+[2026-01-24T08:55:02.695Z] LLM läuft noch (7/10) – warte 5000ms...
+[2026-01-24T08:55:07.701Z] LLM läuft noch (8/10) – warte 5000ms...
+[2026-01-24T08:55:12.706Z] LLM läuft noch (9/10) – warte 5000ms...
+[2026-01-24T08:55:17.712Z] LLM läuft noch (10/10) – warte 5000ms...
+[2026-01-24T08:55:22.714Z] Max. Retries (10) erreicht oder Fehler aufgetreten.
+[2026-01-24T08:56:32.724Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 4622/8188MB | Temp: 42°C
+[2026-01-24T08:56:32.727Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T08:56:32.729Z] LLM läuft noch (1/10) – warte 5000ms...
+[2026-01-24T08:56:37.733Z] LLM läuft noch (2/10) – warte 5000ms...
+[2026-01-24T08:56:42.737Z] LLM läuft noch (3/10) – warte 5000ms...
+[2026-01-24T08:56:47.742Z] LLM läuft noch (4/10) – warte 5000ms...
+[2026-01-24T08:56:52.748Z] LLM läuft noch (5/10) – warte 5000ms...
+[2026-01-24T08:56:57.754Z] LLM läuft noch (6/10) – warte 5000ms...
+[2026-01-24T08:57:02.760Z] LLM läuft noch (7/10) – warte 5000ms...
+[2026-01-24T08:57:07.766Z] LLM läuft noch (8/10) – warte 5000ms...
+[2026-01-24T08:57:12.773Z] LLM läuft noch (9/10) – warte 5000ms...
+[2026-01-24T08:57:17.778Z] LLM läuft noch (10/10) – warte 5000ms...
+[2026-01-24T08:57:22.780Z] Max. Retries (10) erreicht oder Fehler aufgetreten.
+[2026-01-24T08:58:32.784Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 4622/8188MB | Temp: 41°C
+[2026-01-24T08:58:32.785Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T09:00:32.756Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
+[2026-01-24T09:02:32.756Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
+[2026-01-24T09:03:15.445Z] LLM-Operationen: {"boardCreate":0,"boardUpdate":0,"taskCreate":0,"taskUpdate":0,"protoCreate":0}
+[2026-01-24T09:03:15.448Z] Schritt abgeschlossen in 282688ms | Angewandt: 0
+[2026-01-24T09:03:15.468Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 4622/8188MB | Temp: 41°C
+[2026-01-24T09:04:32.800Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 4622/8188MB | Temp: 41°C
+[2026-01-24T09:04:32.802Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T09:06:32.772Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
+[2026-01-24T09:08:32.772Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
+[2026-01-24T09:09:33.501Z] Fehler: fetch failed
+[2026-01-24T09:10:32.861Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 4622/8188MB | Temp: 41°C
+[2026-01-24T09:10:32.863Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T09:10:32.867Z] LLM läuft noch (1/10) – warte 5000ms...
+[2026-01-24T09:10:37.870Z] LLM läuft noch (2/10) – warte 5000ms...
+[2026-01-24T09:10:42.876Z] LLM läuft noch (3/10) – warte 5000ms...
+[2026-01-24T09:10:47.883Z] LLM läuft noch (4/10) – warte 5000ms...
+[2026-01-24T09:10:52.888Z] LLM läuft noch (5/10) – warte 5000ms...
+[2026-01-24T09:10:57.892Z] LLM läuft noch (6/10) – warte 5000ms...
+[2026-01-24T09:11:02.896Z] LLM läuft noch (7/10) – warte 5000ms...
+[2026-01-24T09:11:07.901Z] LLM läuft noch (8/10) – warte 5000ms...
+[2026-01-24T09:11:12.907Z] LLM läuft noch (9/10) – warte 5000ms...
+[2026-01-24T09:11:17.912Z] LLM läuft noch (10/10) – warte 5000ms...
+[2026-01-24T09:11:22.914Z] Max. Retries (10) erreicht oder Fehler aufgetreten.
+[2026-01-24T09:12:32.926Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 4622/8188MB | Temp: 41°C
+[2026-01-24T09:12:32.929Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T09:12:32.933Z] LLM läuft noch (1/10) – warte 5000ms...
+[2026-01-24T09:12:37.936Z] LLM läuft noch (2/10) – warte 5000ms...
+[2026-01-24T09:12:42.941Z] LLM läuft noch (3/10) – warte 5000ms...
+[2026-01-24T09:12:47.947Z] LLM läuft noch (4/10) – warte 5000ms...
+[2026-01-24T09:12:52.953Z] LLM läuft noch (5/10) – warte 5000ms...
+[2026-01-24T09:12:57.958Z] LLM läuft noch (6/10) – warte 5000ms...
+[2026-01-24T09:13:02.963Z] LLM läuft noch (7/10) – warte 5000ms...
+[2026-01-24T09:13:07.968Z] LLM läuft noch (8/10) – warte 5000ms...
+[2026-01-24T09:13:12.974Z] LLM läuft noch (9/10) – warte 5000ms...
+[2026-01-24T09:13:17.979Z] LLM läuft noch (10/10) – warte 5000ms...
+[2026-01-24T09:13:22.980Z] Max. Retries (10) erreicht oder Fehler aufgetreten.
+[2026-01-24T09:14:32.993Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 4622/8188MB | Temp: 42°C
+[2026-01-24T09:14:32.996Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T09:14:33.000Z] LLM läuft noch (1/10) – warte 5000ms...
+[2026-01-24T09:14:38.004Z] LLM läuft noch (2/10) – warte 5000ms...
+[2026-01-24T09:14:43.009Z] LLM läuft noch (3/10) – warte 5000ms...
+[2026-01-24T09:14:48.014Z] LLM läuft noch (4/10) – warte 5000ms...
+[2026-01-24T09:14:53.020Z] LLM läuft noch (5/10) – warte 5000ms...
+[2026-01-24T09:14:58.025Z] LLM läuft noch (6/10) – warte 5000ms...
+[2026-01-24T09:15:03.030Z] LLM läuft noch (7/10) – warte 5000ms...
+[2026-01-24T09:15:08.035Z] LLM läuft noch (8/10) – warte 5000ms...
+[2026-01-24T09:15:13.040Z] LLM läuft noch (9/10) – warte 5000ms...
+[2026-01-24T09:15:18.045Z] LLM läuft noch (10/10) – warte 5000ms...
+[2026-01-24T09:15:23.047Z] Max. Retries (10) erreicht oder Fehler aufgetreten.
+[2026-01-24T09:16:33.060Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 4622/8188MB | Temp: 41°C
+[2026-01-24T09:16:33.062Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T09:16:33.064Z] LLM läuft noch (1/10) – warte 5000ms...
+[2026-01-24T09:16:38.067Z] LLM läuft noch (2/10) – warte 5000ms...
+[2026-01-24T09:16:43.073Z] LLM läuft noch (3/10) – warte 5000ms...
+[2026-01-24T09:16:48.078Z] LLM läuft noch (4/10) – warte 5000ms...
+[2026-01-24T09:16:53.085Z] LLM läuft noch (5/10) – warte 5000ms...
+[2026-01-24T09:16:58.090Z] LLM läuft noch (6/10) – warte 5000ms...
+[2026-01-24T09:17:03.095Z] LLM läuft noch (7/10) – warte 5000ms...
+[2026-01-24T09:17:08.100Z] LLM läuft noch (8/10) – warte 5000ms...
+[2026-01-24T09:17:13.105Z] LLM läuft noch (9/10) – warte 5000ms...
+[2026-01-24T09:17:18.109Z] LLM läuft noch (10/10) – warte 5000ms...
+[2026-01-24T09:17:23.112Z] Max. Retries (10) erreicht oder Fehler aufgetreten.
+[2026-01-24T09:18:33.132Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 4622/8188MB | Temp: 42°C
+[2026-01-24T09:18:33.134Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T09:18:33.137Z] LLM läuft noch (1/10) – warte 5000ms...
+[2026-01-24T09:18:38.140Z] LLM läuft noch (2/10) – warte 5000ms...
+[2026-01-24T09:18:43.143Z] LLM läuft noch (3/10) – warte 5000ms...
+[2026-01-24T09:18:48.149Z] LLM läuft noch (4/10) – warte 5000ms...
+[2026-01-24T09:18:53.152Z] LLM läuft noch (5/10) – warte 5000ms...
+[2026-01-24T09:18:58.157Z] LLM läuft noch (6/10) – warte 5000ms...
+[2026-01-24T09:19:03.162Z] LLM läuft noch (7/10) – warte 5000ms...
+[2026-01-24T09:19:08.168Z] LLM läuft noch (8/10) – warte 5000ms...
+[2026-01-24T09:19:13.173Z] LLM läuft noch (9/10) – warte 5000ms...
+[2026-01-24T09:19:18.178Z] LLM läuft noch (10/10) – warte 5000ms...
+[2026-01-24T09:19:23.180Z] Max. Retries (10) erreicht oder Fehler aufgetreten.
+[2026-01-24T09:20:33.175Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 4622/8188MB | Temp: 41°C
+[2026-01-24T09:20:33.177Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T09:22:33.143Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
+[2026-01-24T09:24:33.143Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
+[2026-01-24T09:25:23.043Z] LLM-Operationen: {"boardCreate":0,"boardUpdate":0,"taskCreate":0,"taskUpdate":0,"protoCreate":0}
+[2026-01-24T09:25:23.051Z] Schritt abgeschlossen in 289901ms | Angewandt: 0
+[2026-01-24T09:25:23.071Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 4622/8188MB | Temp: 41°C
+[2026-01-24T09:26:33.220Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 4622/8188MB | Temp: 42°C
+[2026-01-24T09:26:33.222Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T09:28:33.193Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
+[2026-01-24T09:30:33.193Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
+[2026-01-24T09:30:34.603Z] LLM-Operationen: {"boardCreate":0,"boardUpdate":0,"taskCreate":0,"taskUpdate":0,"protoCreate":1}
+[2026-01-24T09:30:34.612Z] Protokoll-Create angewandt: cb-prot-1769247034612-ntndon
+[2026-01-24T09:30:34.613Z] Action-History aktualisiert: 1 neue Einträge
+[2026-01-24T09:30:34.613Z] Schritt abgeschlossen in 241417ms | Angewandt: 1
+[2026-01-24T09:30:34.633Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5444/8188MB | Temp: 41°C
+[2026-01-24T09:32:33.316Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5444/8188MB | Temp: 42°C
+[2026-01-24T09:32:33.317Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T09:34:33.289Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
+[2026-01-24T09:35:58.141Z] Protokoll anvon sanitized: {"original":{"from":"ÖBB Infrastruktur"},"sanitized":"ÖBB Infrastruktur"}
+[2026-01-24T09:35:58.141Z] LLM-Operationen: {"boardCreate":0,"boardUpdate":0,"taskCreate":0,"taskUpdate":0,"protoCreate":1}
+[2026-01-24T09:35:58.149Z] Protokoll-Create angewandt: cb-prot-1769247358149-fomycr
+[2026-01-24T09:35:58.150Z] Action-History aktualisiert: 1 neue Einträge
+[2026-01-24T09:35:58.150Z] Schritt abgeschlossen in 204859ms | Angewandt: 1
+[2026-01-24T09:35:58.171Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5444/8188MB | Temp: 41°C
+[2026-01-24T09:36:33.349Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5444/8188MB | Temp: 41°C
+[2026-01-24T09:36:33.350Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T09:38:33.321Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
+[2026-01-24T09:39:47.352Z] Protokoll anvon sanitized: {"original":{"from":"Bezirkshauptmannschaft"},"sanitized":"Bezirkshauptmannschaft"}
+[2026-01-24T09:39:47.352Z] LLM-Operationen: {"boardCreate":0,"boardUpdate":0,"taskCreate":0,"taskUpdate":0,"protoCreate":1}
+[2026-01-24T09:39:47.354Z] Protokoll-Create angewandt: cb-prot-1769247587354-nwsb2e
+[2026-01-24T09:39:47.355Z] Action-History aktualisiert: 1 neue Einträge
+[2026-01-24T09:39:47.355Z] Schritt abgeschlossen in 194032ms | Angewandt: 1
+[2026-01-24T09:39:47.374Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5444/8188MB | Temp: 41°C
+[2026-01-24T09:40:33.391Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5444/8188MB | Temp: 41°C
+[2026-01-24T09:40:33.393Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T09:42:33.366Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
+[2026-01-24T09:44:33.366Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
+[2026-01-24T09:45:28.024Z] LLM-Operationen: {"boardCreate":1,"boardUpdate":0,"taskCreate":0,"taskUpdate":0,"protoCreate":0}
+[2026-01-24T09:45:28.024Z] Board-Create angewandt: cb-incident-1769247928024-3kthw5
+[2026-01-24T09:45:28.042Z] Action-History aktualisiert: 1 neue Einträge
+[2026-01-24T09:45:28.042Z] Schritt abgeschlossen in 294675ms | Angewandt: 1
+[2026-01-24T09:45:28.061Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5444/8188MB | Temp: 41°C
+[2026-01-24T09:46:33.440Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5444/8188MB | Temp: 42°C
+[2026-01-24T09:46:33.441Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T09:48:33.412Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
+[2026-01-24T09:50:33.413Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
+[2026-01-24T09:50:41.272Z] Protokoll anvon sanitized: {"original":{"from":"Gemeinde Gnesau"},"sanitized":"Gemeinde Gnesau"}
+[2026-01-24T09:50:41.272Z] LLM-Operationen: {"boardCreate":0,"boardUpdate":0,"taskCreate":0,"taskUpdate":0,"protoCreate":1}
+[2026-01-24T09:50:41.280Z] Protokoll-Create angewandt: cb-prot-1769248241280-s1bvgf
+[2026-01-24T09:50:41.299Z] Action-History aktualisiert: 1 neue Einträge
+[2026-01-24T09:50:41.299Z] Schritt abgeschlossen in 247884ms | Angewandt: 1
+[2026-01-24T09:50:41.316Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5444/8188MB | Temp: 41°C
+[2026-01-24T09:52:33.534Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5444/8188MB | Temp: 42°C
+[2026-01-24T09:52:33.536Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T09:54:33.507Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
+[2026-01-24T09:55:39.900Z] Protokoll anvon sanitized: {"original":{"from":"Apotheke Feldkirchen"},"sanitized":"Apotheke Feldkirchen"}
+[2026-01-24T09:55:39.900Z] LLM-Operationen: {"boardCreate":0,"boardUpdate":0,"taskCreate":0,"taskUpdate":0,"protoCreate":1}
+[2026-01-24T09:55:39.902Z] Protokoll-Create angewandt: cb-prot-1769248539902-ykskea
+[2026-01-24T09:55:39.903Z] Action-History aktualisiert: 1 neue Einträge
+[2026-01-24T09:55:39.903Z] Schritt abgeschlossen in 186393ms | Angewandt: 1
+[2026-01-24T09:55:39.923Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5444/8188MB | Temp: 42°C
+[2026-01-24T09:56:33.588Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5444/8188MB | Temp: 42°C
+[2026-01-24T09:56:33.590Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T09:58:33.559Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
+[2026-01-24T10:00:18.028Z] LLM-Operationen: {"boardCreate":0,"boardUpdate":0,"taskCreate":0,"taskUpdate":0,"protoCreate":0}
+[2026-01-24T10:00:18.037Z] Schritt abgeschlossen in 224476ms | Angewandt: 0
+[2026-01-24T10:00:18.057Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5444/8188MB | Temp: 42°C
+[2026-01-24T10:00:33.596Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5444/8188MB | Temp: 42°C
+[2026-01-24T10:00:33.599Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T10:02:33.572Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
+[2026-01-24T10:03:18.844Z] Protokoll anvon sanitized: {"original":{"from":"Rotes Kreuz Feldkirchen"},"sanitized":"Rotes Kreuz Feldkirchen"}
+[2026-01-24T10:03:18.844Z] LLM-Operationen: {"boardCreate":0,"boardUpdate":0,"taskCreate":0,"taskUpdate":0,"protoCreate":1}
+[2026-01-24T10:03:18.852Z] Protokoll-Create angewandt: cb-prot-1769248998852-68jyv5
+[2026-01-24T10:03:18.853Z] Action-History aktualisiert: 1 neue Einträge
+[2026-01-24T10:03:18.853Z] Schritt abgeschlossen in 165277ms | Angewandt: 1
+[2026-01-24T10:03:18.871Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5444/8188MB | Temp: 41°C
+[2026-01-24T10:04:33.671Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5444/8188MB | Temp: 42°C
+[2026-01-24T10:04:33.673Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T10:06:28.195Z] LLM-Operationen: {"boardCreate":0,"boardUpdate":0,"taskCreate":0,"taskUpdate":0,"protoCreate":0}
+[2026-01-24T10:06:28.202Z] Schritt abgeschlossen in 114556ms | Angewandt: 0
+[2026-01-24T10:06:28.223Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5444/8188MB | Temp: 42°C
+[2026-01-24T10:06:33.668Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5444/8188MB | Temp: 41°C
+[2026-01-24T10:06:33.670Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T10:08:33.648Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
+[2026-01-24T10:10:12.303Z] LLM-Operationen: {"boardCreate":0,"boardUpdate":0,"taskCreate":0,"taskUpdate":0,"protoCreate":1}
+[2026-01-24T10:10:12.312Z] Protokoll-Create angewandt: cb-prot-1769249412312-7ty43i
+[2026-01-24T10:10:12.313Z] Action-History aktualisiert: 1 neue Einträge
+[2026-01-24T10:10:12.313Z] Schritt abgeschlossen in 218665ms | Angewandt: 1
+[2026-01-24T10:10:12.333Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5444/8188MB | Temp: 41°C
+[2026-01-24T10:10:33.693Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5444/8188MB | Temp: 41°C
+[2026-01-24T10:10:33.694Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T10:12:33.668Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
+[2026-01-24T10:14:33.668Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
+[2026-01-24T10:14:39.209Z] Protokoll anvon sanitized: {"original":{"from":"LZ Feldkirchen"},"sanitized":"LZ Feldkirchen"}
+[2026-01-24T10:14:39.209Z] LLM-Operationen: {"boardCreate":0,"boardUpdate":0,"taskCreate":0,"taskUpdate":0,"protoCreate":1}
+[2026-01-24T10:14:39.211Z] Protokoll-Create angewandt: cb-prot-1769249679211-c4swn7
+[2026-01-24T10:14:39.212Z] Action-History aktualisiert: 1 neue Einträge
+[2026-01-24T10:14:39.212Z] Schritt abgeschlossen in 245543ms | Angewandt: 1
+[2026-01-24T10:14:39.230Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5444/8188MB | Temp: 41°C
+[2026-01-24T10:16:33.732Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5444/8188MB | Temp: 42°C
+[2026-01-24T10:16:33.733Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T10:18:33.704Z] Vorheriger Worker-Durchlauf läuft noch – überspringe.
+[2026-01-24T10:20:02.794Z] Protokoll anvon sanitized: {"original":{"from":"Bundesheer Kärnten"},"sanitized":"Bundesheer Kärnten"}
+[2026-01-24T10:20:02.795Z] LLM-Operationen: {"boardCreate":0,"boardUpdate":0,"taskCreate":0,"taskUpdate":0,"protoCreate":1}
+[2026-01-24T10:20:02.803Z] Protokoll-Create angewandt: cb-prot-1769250002803-izwr72
+[2026-01-24T10:20:02.805Z] Action-History aktualisiert: 1 neue Einträge
+[2026-01-24T10:20:02.805Z] Schritt abgeschlossen in 209098ms | Angewandt: 1
+[2026-01-24T10:20:02.824Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 5444/8188MB | Temp: 43°C
+                                                                                                                                                                             [2026-01-24T15:18:09.041Z] Worker dataDir: /home/bfkdo/kanban/server/data
+[2026-01-24T15:18:09.041Z] Worker erwartet roles.json an: /home/bfkdo/kanban/server/data/roles.json
+[2026-01-24T15:18:09.050Z] Chatbot-Worker gestartet, Intervall: 30000 ms
+[2026-01-24T15:18:09.099Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 186/8188MB | Temp: 28°C
+[2026-01-24T15:18:09.105Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T15:18:09.985Z] HTTP-Fehler: 500 {"ok":false,"reason":"not_running"}
+[2026-01-24T15:18:09.985Z] Max. Retries (10) erreicht oder Fehler aufgetreten.
+[2026-01-24T15:18:39.116Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 1010/8188MB | Temp: 29°C
+[2026-01-24T15:18:39.117Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T15:18:39.120Z] HTTP-Fehler: 500 {"ok":false,"reason":"not_running"}
+[2026-01-24T15:18:39.120Z] Max. Retries (10) erreicht oder Fehler aufgetreten.
+[2026-01-24T15:19:09.142Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 1000/8188MB | Temp: 30°C
+[2026-01-24T15:19:09.144Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T15:19:09.148Z] HTTP-Fehler: 500 {"ok":false,"reason":"not_running"}
+[2026-01-24T15:19:09.148Z] Max. Retries (10) erreicht oder Fehler aufgetreten.
+[2026-01-24T15:19:39.146Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 1000/8188MB | Temp: 30°C
+[2026-01-24T15:19:39.147Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T15:19:39.150Z] HTTP-Fehler: 500 {"ok":false,"reason":"not_running"}
+[2026-01-24T15:19:39.150Z] Max. Retries (10) erreicht oder Fehler aufgetreten.
+[2026-01-24T15:20:09.167Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 1000/8188MB | Temp: 30°C
+[2026-01-24T15:20:09.168Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T15:20:09.170Z] HTTP-Fehler: 500 {"ok":false,"reason":"not_running"}
+[2026-01-24T15:20:09.171Z] Max. Retries (10) erreicht oder Fehler aufgetreten.
+[2026-01-24T15:20:39.190Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 1000/8188MB | Temp: 30°C
+[2026-01-24T15:20:39.191Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T15:20:39.193Z] HTTP-Fehler: 500 {"ok":false,"reason":"not_running"}
+[2026-01-24T15:20:39.193Z] Max. Retries (10) erreicht oder Fehler aufgetreten.
+[2026-01-24T15:21:09.203Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 1000/8188MB | Temp: 30°C
+[2026-01-24T15:21:09.205Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T15:21:09.207Z] HTTP-Fehler: 500 {"ok":false,"reason":"not_running"}
+[2026-01-24T15:21:09.207Z] Max. Retries (10) erreicht oder Fehler aufgetreten.
+[2026-01-24T15:21:39.227Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 1000/8188MB | Temp: 31°C
+[2026-01-24T15:21:39.228Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T15:21:39.230Z] HTTP-Fehler: 500 {"ok":false,"reason":"not_running"}
+[2026-01-24T15:21:39.230Z] Max. Retries (10) erreicht oder Fehler aufgetreten.
+[2026-01-24T15:22:09.253Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 1000/8188MB | Temp: 31°C
+[2026-01-24T15:22:09.254Z] Starte Simulationsschritt | aktive Rollen: 0
+[2026-01-24T15:22:09.257Z] HTTP-Fehler: 500 {"ok":false,"reason":"not_running"}
+[2026-01-24T15:22:09.257Z] Max. Retries (10) erreicht oder Fehler aufgetreten.
