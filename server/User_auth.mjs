@@ -306,7 +306,18 @@ export function User_createRouter({ dataDir, secureCookies=false }){
     res.json({ ok:true });
   });
 
-  r.get("/online-roles", User_requireAuth, (_req, res) => {
+  // Middleware: Allow chatbot-worker or authenticated users
+  const allowChatbotWorkerOrAuth = (req, res, next) => {
+    // Allow if request is from chatbot-worker (internal service)
+    const requestedBy = req.headers['x-requested-by'];
+    if (requestedBy === 'chatbot-worker') {
+      return next();
+    }
+    // Otherwise require authentication
+    return User_requireAuth(req, res, next);
+  };
+
+  r.get("/online-roles", allowChatbotWorkerOrAuth, (_req, res) => {
     res.set("Cache-Control", "no-store");
     res.json({ roles: User_onlineRoleIds({ activeWithinMs: ONLINE_ROLE_ACTIVE_LIMIT_MS }) });
   });

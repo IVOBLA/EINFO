@@ -20,6 +20,8 @@ export class SimulationState {
     this.elapsedMinutes = 0;
     this.startTime = null;
     this.stepCount = 0;
+    this.activeRoles = [];  // Aktiv besetzte Rollen
+    this.missingRoles = []; // Zu simulierende Rollen
   }
 
   /**
@@ -129,6 +131,19 @@ export class SimulationState {
   }
 
   /**
+   * Aktualisiert die aktiven und fehlenden Rollen
+   * @param {Object} roles - { active: string[], missing: string[] }
+   */
+  updateRoles(roles) {
+    if (roles && Array.isArray(roles.active)) {
+      this.activeRoles = [...roles.active];
+    }
+    if (roles && Array.isArray(roles.missing)) {
+      this.missingRoles = [...roles.missing];
+    }
+  }
+
+  /**
    * Serialisiert den State zu JSON
    * @returns {Object}
    */
@@ -143,6 +158,8 @@ export class SimulationState {
       startTime: this.startTime,
       stepCount: this.stepCount,
       lastCompressedBoard: this.lastCompressedBoard,
+      activeRoles: this.activeRoles,
+      missingRoles: this.missingRoles,
       // lastSnapshot ist zu groß für Serialisierung
     };
   }
@@ -164,6 +181,8 @@ export class SimulationState {
       startTime: data.startTime || null,
       stepCount: data.stepCount || 0,
       lastCompressedBoard: data.lastCompressedBoard || "[]",
+      activeRoles: data.activeRoles || [],
+      missingRoles: data.missingRoles || [],
       lastSnapshot: null // Muss neu geladen werden
     });
     return state;
@@ -184,7 +203,9 @@ export class SimulationState {
       scenarioActive: !!this.activeScenario,
       scenarioId: this.activeScenario?.id || null,
       scenarioTitle: this.activeScenario?.title || null,
-      uptime: this.startTime ? Date.now() - this.startTime : 0
+      uptime: this.startTime ? Date.now() - this.startTime : 0,
+      activeRoles: this.activeRoles,
+      missingRoles: this.missingRoles
     };
   }
 }
