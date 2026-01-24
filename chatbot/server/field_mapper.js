@@ -151,7 +151,7 @@ function addProtocolDefaults(entry) {
     // PFLICHTFELDER mit Standardwerten
     datum: entry.datum || now.toISOString().split("T")[0],
     zeit: entry.zeit || now.toTimeString().slice(0, 5),
-    anvon: entry.anvon || "",
+    anvon: entry.anvon || "LTSTB",  // Default: Leiter Technischer Stab (gültige Stabsrolle)
     infoTyp: entry.infoTyp || "Info",
     information: entry.information || "",
 

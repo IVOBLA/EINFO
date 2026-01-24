@@ -626,7 +626,7 @@ async function applyAufgabenOperations(taskOps, activeRoles, staffRoles = []) {
       },
       originProtocolNr: op.linkedProtocolId || null,
       assignedBy: assignedBy,
-      createdBy: "CHATBOT",
+      createdBy: "LTSTB",  // Leiter Technischer Stab (Stabsrolle)
       relatedIncidentId: op.relatedIncidentId || null,
       incidentTitle: null,
       linkedProtocolNrs: op.linkedProtocolId ? [op.linkedProtocolId] : [],
@@ -740,7 +740,7 @@ function resolveProtokollAnvon(op) {
     }
   }
   // Default bei Statuswechsel oder wenn keine Rolle gefunden
-  return "bot";
+  return "LTSTB";
 }
 
 /**
@@ -798,8 +798,8 @@ function sanitizeOperations(ops) {
 
       // BUGFIX C: Stelle sicher dass anvon nie null ist
       if (!sanitized.anvon) {
-        sanitized.anvon = "bot";
-        log("Protokoll anvon fehlte - gesetzt auf bot");
+        sanitized.anvon = "LTSTB";
+        log("Protokoll anvon fehlte - gesetzt auf LTSTB");
       }
 
       // BUGFIX: Stelle sicher dass richtung gesetzt ist
@@ -858,6 +858,7 @@ function isBotEntry(entry) {
   const kanalNr = entry?.uebermittlungsart?.kanalNr || "";
   return (
     createdBy === "CHATBOT" ||
+    createdBy === "LTSTB" ||
     createdBy === "simulation-worker" ||
     createdBy === "bot" ||
     kanalNr === "bot" ||
@@ -1014,12 +1015,12 @@ async function applyProtokollOperations(protoOps, activeRoles, staffRoles) {
         {
           ts: now.getTime(),
           action: "create",
-          by: op.originRole || "CHATBOT",
+          by: op.originRole || "LTSTB",
           after: {} // nicht nötig, kann leer bleiben oder minimal
         }
       ],
-      lastBy: op.originRole || "CHATBOT",
-      createdBy: "CHATBOT",
+      lastBy: op.originRole || "LTSTB",
+      createdBy: "LTSTB",  // Leiter Technischer Stab (Stabsrolle)
       zu: ""
     };
 
