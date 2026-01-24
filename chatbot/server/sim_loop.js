@@ -642,6 +642,9 @@ export async function stepSimulation(options = {}) {
     const { roles, board, aufgaben, protokoll } = einfoData;
     setEinfoSnapshot({ aufgaben, protokoll });
 
+    // Aktualisiere die Rollen im SimulationState
+    simulationState.updateRoles(roles);
+
     const { delta: boardDelta, snapshot: boardSnapshot } = buildDelta(
       board,
       simulationState.lastSnapshot?.board,
