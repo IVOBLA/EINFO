@@ -36,10 +36,12 @@ import {
 const CHATBOT_STEP_URL = "http://127.0.0.1:3100/api/sim/step";
 const CHATBOT_SCENARIO_URL = "http://127.0.0.1:3100/api/sim/scenario";
 const WORKER_INTERVAL_MS = 30000;
+const WORKER_CONFIG_FILE = path.join(process.cwd(), "data", "conf", "worker_config.json");
 let isRunning = false; // <--- NEU
 let workerIntervalId = null; // Store interval ID for cleanup
 let currentWorkerIntervalMs = WORKER_INTERVAL_MS;
 let cachedScenario = null;
+let configCheckIntervalId = null; // Für Config-Datei-Überwachung
 // Pfad zu deinen echten Daten:
 // Wir gehen davon aus, dass du den Worker IMMER aus dem server-Ordner startest:
 //   cd C:\kanban41\server
@@ -153,6 +155,43 @@ async function fetchActiveScenario() {
   } catch (err) {
     log("Fehler beim Laden des aktiven Szenarios:", err?.message || err);
     return null;
+  }
+}
+
+/**
+ * Lädt Worker-Konfiguration aus worker_config.json
+ * Falls Datei nicht existiert, wird Default-Config verwendet
+ */
+async function loadWorkerConfig() {
+  try {
+    const raw = await fsPromises.readFile(WORKER_CONFIG_FILE, "utf8");
+    const config = JSON.parse(raw);
+    return {
+      intervalMs: config.intervalMs || WORKER_INTERVAL_MS,
+      enabled: config.enabled !== false
+    };
+  } catch (err) {
+    // Datei existiert nicht oder ist ungültig - verwende Defaults
+    return {
+      intervalMs: WORKER_INTERVAL_MS,
+      enabled: true
+    };
+  }
+}
+
+/**
+ * Überwacht worker_config.json und passt Intervall an
+ */
+async function checkWorkerConfig() {
+  const config = await loadWorkerConfig();
+
+  if (!config.enabled) {
+    // Worker sollte deaktiviert werden (wird nicht implementiert, da stopWorker() nötig)
+    return;
+  }
+
+  if (config.intervalMs !== currentWorkerIntervalMs) {
+    restartWorkerInterval(config.intervalMs);
   }
 }
 
@@ -1294,18 +1333,29 @@ async function runOnce() {
   }
 }
 
-function startWorker() {
+async function startWorker() {
+  // Lade initiale Config
+  const config = await loadWorkerConfig();
+  currentWorkerIntervalMs = config.intervalMs;
+
   log("Chatbot-Worker gestartet, Intervall:", currentWorkerIntervalMs, "ms");
   runOnce();
   workerIntervalId = setInterval(runOnce, currentWorkerIntervalMs);
+
+  // Starte Config-Überwachung (alle 10 Sekunden)
+  configCheckIntervalId = setInterval(checkWorkerConfig, 10000);
 }
 
 function stopWorker() {
   if (workerIntervalId !== null) {
     clearInterval(workerIntervalId);
     workerIntervalId = null;
-    log("Chatbot-Worker gestoppt");
   }
+  if (configCheckIntervalId !== null) {
+    clearInterval(configCheckIntervalId);
+    configCheckIntervalId = null;
+  }
+  log("Chatbot-Worker gestoppt");
 }
 
 async function bootstrap() {
@@ -1317,7 +1367,7 @@ async function bootstrap() {
     return;
   }
 
-  startWorker();
+  await startWorker();
 }
 
 bootstrap();

@@ -517,5 +517,84 @@ export default function createAdminMaintenanceRoutes({ baseDir }) {
     }
   });
 
+  // ===========================================================================
+  // WORKER CONFIG (Intervall-Einstellung)
+  // ===========================================================================
+
+  const WORKER_CONFIG_FILE = path.join(BASE_DIR, "conf", "worker_config.json");
+
+  // Worker-Config laden
+  router.get("/worker/config", async (_req, res) => {
+    try {
+      await ensureDir(path.dirname(WORKER_CONFIG_FILE));
+
+      // Versuche Config zu laden, falls nicht vorhanden verwende Defaults
+      let config = { intervalMs: 30000, enabled: true };
+      try {
+        const raw = await fs.readFile(WORKER_CONFIG_FILE, "utf8");
+        config = JSON.parse(raw);
+      } catch (err) {
+        // Datei existiert nicht - verwende Defaults
+        if (err?.code !== "ENOENT") {
+          console.error("Worker config read error:", err);
+        }
+      }
+
+      res.json({ ok: true, config });
+    } catch (err) {
+      console.error("Worker config get error:", err);
+      res.status(500).json({ ok: false, error: err.message });
+    }
+  });
+
+  // Worker-Config speichern
+  router.patch("/worker/config", async (req, res) => {
+    try {
+      const { intervalMs, enabled } = req.body;
+
+      // Validierung
+      if (intervalMs !== undefined && (typeof intervalMs !== "number" || intervalMs < 5000)) {
+        return res.status(400).json({
+          ok: false,
+          error: "intervalMs muss eine Zahl >= 5000 (5 Sekunden) sein"
+        });
+      }
+
+      if (enabled !== undefined && typeof enabled !== "boolean") {
+        return res.status(400).json({
+          ok: false,
+          error: "enabled muss ein Boolean sein"
+        });
+      }
+
+      await ensureDir(path.dirname(WORKER_CONFIG_FILE));
+
+      // Lade aktuelle Config
+      let config = { intervalMs: 30000, enabled: true };
+      try {
+        const raw = await fs.readFile(WORKER_CONFIG_FILE, "utf8");
+        config = JSON.parse(raw);
+      } catch (err) {
+        // Datei existiert nicht - verwende Defaults
+      }
+
+      // Merge mit neuen Werten
+      if (intervalMs !== undefined) config.intervalMs = intervalMs;
+      if (enabled !== undefined) config.enabled = enabled;
+
+      // Speichere Config
+      await fs.writeFile(WORKER_CONFIG_FILE, JSON.stringify(config, null, 2));
+
+      res.json({
+        ok: true,
+        config,
+        message: `Worker-Intervall auf ${config.intervalMs}ms gesetzt (${(config.intervalMs / 1000).toFixed(1)}s)`
+      });
+    } catch (err) {
+      console.error("Worker config set error:", err);
+      res.status(500).json({ ok: false, error: err.message });
+    }
+  });
+
   return router;
 }
