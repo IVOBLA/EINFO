@@ -431,7 +431,8 @@ async function applyBoardOperations(boardOps, activeRoles, staffRoles) {
       isArea: false,
       areaCardId: null,
       areaColor: null,
-      humanId: null
+      humanId: null,
+      createdBy: "LAWZ" // Default-Anleger für alle Einsätze
     };
 
     boardRaw.columns["neu"].items.push(newItem);
@@ -602,10 +603,10 @@ async function applyAufgabenOperations(taskOps, activeRoles, staffRoles = []) {
     const now = Date.now();
     const nowIso = new Date(now).toISOString();
 
-    // Ersteller bestimmen: assignedBy → responsible → "LtStb"
+    // Ersteller bestimmen: assignedBy → responsible → "LTSTB"
     // Beim Erstellen von Aufgaben durch das LLM muss der Ersteller immer
-    // die Rolle sein, der sie zugeordnet wird, oder "LtStb"
-    const assignedBy = op.assignedBy || op.responsible || "LtStb";
+    // die Rolle sein, der sie zugeordnet wird, oder "LTSTB" (Default)
+    const assignedBy = op.assignedBy || op.responsible || "LTSTB";
 
     const newTask = {
       id,
@@ -816,14 +817,14 @@ function sanitizeOperations(ops) {
       const sanitized = { ...op };
 
       // BUGFIX B: assignedBy darf nicht in activeRoles sein
-      // Wenn assignedBy fehlt, setze es auf responsible oder "LtStb"
+      // Wenn assignedBy fehlt, setze es auf responsible oder "LTSTB"
       if (!sanitized.assignedBy) {
-        sanitized.assignedBy = sanitized.responsible || "LtStb";
+        sanitized.assignedBy = sanitized.responsible || "LTSTB";
       }
 
       // BUGFIX: Stelle sicher dass responsible gesetzt ist
       if (!sanitized.responsible) {
-        sanitized.responsible = sanitized.assignedBy || "LtStb";
+        sanitized.responsible = sanitized.assignedBy || "LTSTB";
       }
 
       return sanitized;

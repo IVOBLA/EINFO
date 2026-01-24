@@ -236,14 +236,18 @@ export async function applyAllFilteringRules(rawData, learnedWeights = {}) {
   }
 
   // Regel R5: Stabs-Fokus (modifiziert andere Regeln)
+  // WICHTIG: R5 NICHT anwenden wenn keine aktiven Rollen vorhanden sind
+  // Sonst werden alle Einsätze herausgefiltert und das LLM bekommt keinen Context!
   const r5Enabled = rules.rules.R5_STABS_FOKUS?.enabled;
+  const hasActiveRoles = Array.isArray(rawData.activeRoles) && rawData.activeRoles.length > 0;
   debug.rules.R5_STABS_FOKUS = {
     enabled: r5Enabled,
-    details: r5Enabled
+    skipped: r5Enabled && !hasActiveRoles ? "Keine aktiven Rollen - R5 übersprungen" : null,
+    details: r5Enabled && hasActiveRoles
       ? `aggregate=${rules.rules.R5_STABS_FOKUS.stab_mode?.aggregate_to_sections}, max_individual=${rules.rules.R5_STABS_FOKUS.stab_mode?.max_individual_incidents || 3}`
       : null
   };
-  if (r5Enabled) {
+  if (r5Enabled && hasActiveRoles) {
     const incidentsBefore = filtered.incidents.length;
     applyRule_R5(filtered, rawData, rules.rules.R5_STABS_FOKUS);
     debug.filtering.incidents = {
@@ -251,6 +255,8 @@ export async function applyAllFilteringRules(rawData, learnedWeights = {}) {
       after: filtered.incidents.length,
       reason: `Nur kritische Einzeleinsätze (max ${rules.rules.R5_STABS_FOKUS.stab_mode?.max_individual_incidents || 3})`
     };
+  } else if (r5Enabled && !hasActiveRoles) {
+    logDebug("R5_STABS_FOKUS übersprungen: Keine aktiven Rollen");
   }
 
   logDebug("Filterregeln angewendet", {
