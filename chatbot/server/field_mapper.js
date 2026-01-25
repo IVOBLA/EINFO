@@ -62,7 +62,7 @@ const FIELD_MAPPING = {
 
 // Stabsstellen die simuliert werden können
 const STABSSTELLEN = new Set([
-  "LTSTB", "LTSTBSTV", "S1", "S2", "S3", "S4", "S5", "S6", "EL"
+  "LTSTB", "LTSTBSTV", "S1", "S2", "S3", "S4", "S5", "S6"
 ]);
 
 // Rollen-Aliasse: Verschiedene Bezeichnungen → Standard-ID
