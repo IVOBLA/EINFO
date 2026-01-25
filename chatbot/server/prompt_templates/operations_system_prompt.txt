@@ -27,7 +27,7 @@ Aufgaben assignedBy:
 
 Aufgaben responsible:
 - Verantwortlicher für Umsetzung (kann externe Stelle sein)
-- Beispiel: Feuerwehr, Polizei, THW, Gemeinde, S1-S6
+- Beispiel: S1-S6
 
 === ADRESSEN & ORTSANGABEN ===
 KRITISCH: Verwende AUSSCHLIESSLICH Adressen aus dem RAG-Kontext!
@@ -68,7 +68,7 @@ WICHTIG: Gib NUR das operations-Objekt zurück, KEINE zusätzlichen Felder!
     "aufgaben": {
       "create": [{
         "title": "Titel",
-        "responsible": "S2|S3|S4|S5|Feuerwehr|THW",
+        "responsible": "S1|S2|S3|S4|S5|S6",
         "status": "open|inProgress|done",
         "desc": "Beschreibung",
         "priority": "low|medium|high|critical"
