@@ -100,8 +100,11 @@ const INTERNAL_ROLES = new Set([
  *
  * Identifiziert ausgehende Protokolleinträge die eine Antwort benötigen.
  *
+ * WICHTIG: Prüft ALLE ausgehenden Protokolleinträge (nicht nur Delta),
+ * damit auch ältere unbeantwortete Nachrichten erkannt werden.
+ *
  * @param {Array} protokoll - Alle Protokolleinträge
- * @param {Array} protokollDelta - Neue/geänderte Einträge
+ * @param {Array} protokollDelta - Neue/geänderte Einträge (wird nicht mehr verwendet)
  * @param {Object} roles - { active: [...] }
  * @returns {Array} Meldungen die Antwort benötigen
  */
@@ -110,11 +113,37 @@ export function identifyMessagesNeedingResponse(protokoll, protokollDelta, roles
   const activeSet = new Set(active.map(r => String(r).toUpperCase()));
   const needingResponse = [];
 
+  // Limit um Performance-Probleme bei großen Protokollen zu vermeiden
+  const MAX_RESPONSES_PER_STEP = 10;
+
   // PERFORMANCE: Erstelle Index für effiziente Suche (O(n) statt O(n²))
   const index = new ProtocolIndex(protokoll);
 
-  // Prüfe nur neue/geänderte Einträge (Delta)
-  for (const entry of protokollDelta) {
+  // BUGFIX: Prüfe ALLE Protokolleinträge, nicht nur Delta
+  // Damit werden auch ältere unbeantwortete ausgehende Nachrichten erkannt
+  // Sortiere nach Zeit (neueste zuerst) um die relevantesten zuerst zu finden
+  const sortedProtokoll = [...protokoll].sort((a, b) => {
+    const timeA = `${a.datum || ""} ${a.zeit || ""}`;
+    const timeB = `${b.datum || ""} ${b.zeit || ""}`;
+    return timeB.localeCompare(timeA); // Neueste zuerst
+  });
+
+  for (const entry of sortedProtokoll) {
+    // Limit erreicht - nicht mehr suchen
+    if (needingResponse.length >= MAX_RESPONSES_PER_STEP) break;
+
+    // BUGFIX: Ignoriere Bot-erstellte Nachrichten
+    // Wir wollen keine Antworten auf Simulations-Nachrichten generieren
+    const createdBy = entry.createdBy || entry.history?.[0]?.by || "";
+    const kanalNr = entry.uebermittlungsart?.kanalNr || "";
+    const isFromBot =
+      createdBy === "CHATBOT" ||
+      createdBy === "simulation-worker" ||
+      createdBy === "bot" ||
+      kanalNr === "bot";
+
+    if (isFromBot) continue;
+
     // Nur ausgehende Meldungen prüfen
     const richtung = entry.richtung || entry.uebermittlungsart?.richtung || "";
     const isOutgoing = /aus/i.test(richtung) ||
@@ -294,13 +323,12 @@ export function identifyOpenQuestions(protokoll, roles) {
         );
         if (hasRelevantContent) return true;
 
-        // Oder zeitlich kurz danach (innerhalb von 30 Min)
-        const entryTime = `${entry.datum || ""} ${entry.zeit || ""}`;
-        const pTime = `${p.datum || ""} ${p.zeit || ""}`;
-        if (pTime > entryTime) {
-          // Einfache zeitliche Nähe als Indikator
-          return true;
-        }
+        // BUGFIX: Zeitliche Nähe allein reicht NICHT als Indikator
+        // Eine Antwort muss entweder:
+        // - Explizite Referenz haben (bezugNr, referenzNr, antwortAuf - oben geprüft)
+        // - ODER relevante Keywords enthalten (oben geprüft)
+        // Nur "später vom Empfänger" ist zu ungenau und führt dazu dass
+        // Fragen fälschlich als beantwortet markiert werden.
       }
 
       return false;
