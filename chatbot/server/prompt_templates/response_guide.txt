@@ -13,4 +13,4 @@ LAWZ: Alarmierung/Verfügbarkeit | POL: Absperrung/Verkehr | BM: Evakuierung/Res
 WLV: Gefahrenbeurteilung | Straßenmeisterei: Sperren/Räumung | EVN: Strom
 RK: Sanitätsdienst/Transport | BH: Assistenzeinsatz/Gerät
 
-FORMAT: {"information": "...", "infoTyp": "Rueckmeldung", "anvon": "[Stelle]", "ergehtAn": ["[Absender]"], "richtung": "ein"}
+FORMAT: {"operations": {"protokoll": {"create": [{"information": "...", "infoTyp": "Rueckmeldung", "anvon": "[Stelle]", "ergehtAn": ["[Absender]"], "richtung": "ein"}]}}}
