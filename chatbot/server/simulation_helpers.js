@@ -30,8 +30,8 @@ import { validateCoordinates, validateFilePath } from "./input_validation.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Datenverzeichnis
-const DATA_DIR = process.env.EINFO_DATA_DIR || path.resolve(__dirname, "data");
+// Datenverzeichnis - muss zum server/data Verzeichnis zeigen (wie CONFIG.dataDir)
+const DATA_DIR = process.env.EINFO_DATA_DIR || path.resolve(__dirname, "../../server/data");
 
 // Einfacher Logger
 const log = (level, msg, data) => {
