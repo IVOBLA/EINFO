@@ -323,6 +323,47 @@ app.get("/", (req, res) => {
 });
 
 // ============================================================
+// Proxy-Route für Online-Rollen (an Haupt-Server weiterleiten)
+// Der Chatbot-Client benötigt diese Daten, aber der Endpunkt
+// ist nur auf dem Haupt-Server (Port 4040) verfügbar.
+// ============================================================
+app.get("/api/user/online-roles", async (_req, res) => {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    const response = await fetch(`${MAIN_SERVER_URL}/api/user/online-roles`, {
+      method: "GET",
+      headers: {
+        "Accept": "application/json",
+        "X-Requested-By": "chatbot-worker"
+      },
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      logError("Online-Rollen-Proxy: Fehler vom Haupt-Server", {
+        status: response.status,
+        body: text
+      });
+      return res.status(response.status).json({ error: text || `HTTP ${response.status}` });
+    }
+
+    const data = await response.json();
+    res.set("Cache-Control", "no-store");
+    res.json(data);
+  } catch (err) {
+    logError("Online-Rollen-Proxy: Fehler", { error: String(err) });
+    // Bei Fehler: Leeres Array zurückgeben (alle Rollen werden simuliert)
+    res.set("Cache-Control", "no-store");
+    res.json({ roles: [] });
+  }
+});
+
+// ============================================================
 // API-Routen für Szenarien
 // ============================================================
 
@@ -454,6 +495,25 @@ app.post("/api/sim/step", async (req, res) => {
   const options = req.body || {};
   try {
     const result = await stepSimulation(options);
+
+    // BUGFIX: Worker stoppen wenn Simulation wegen Timeout beendet wurde
+    // Der Worker darf nicht weiterlaufen wenn die Simulation gestoppt ist
+    if (result.reason === "timeout") {
+      logInfo("Simulation durch Timeout beendet - stoppe Worker", {
+        elapsedMinutes: simulationState.elapsedMinutes,
+        reason: result.reason
+      });
+      const workerResult = await stopWorker();
+      if (!workerResult.ok) {
+        logError("Worker konnte nach Timeout nicht gestoppt werden", { error: workerResult.error });
+      }
+      // Broadcast event for clients
+      broadcastSSE("simulation_timeout", {
+        message: result.message,
+        elapsedMinutes: simulationState.elapsedMinutes
+      });
+    }
+
     res.status(result.ok ? 200 : 500).json(result);
   } catch (err) {
     logError("Fehler beim Simulationsschritt-Endpunkt", { error: String(err) });

@@ -419,6 +419,14 @@ export default function User_AdminPanel() {
   }
   useEffect(() => { void refresh(); }, []);
 
+  // Auto-refresh für Chatbot/Worker Status (alle 5 Sekunden)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshChatbotStatus().catch(() => {});
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     if (user && !userHasAdminRole(user)) {
       notifyForbidden();
