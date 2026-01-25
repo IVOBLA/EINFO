@@ -92,6 +92,30 @@ export function getScenarioMinutesPerStep(scenario, fallbackMinutes) {
   return minutesPerStep || fallbackMinutes || DEFAULT_MINUTES_PER_STEP;
 }
 
+/**
+ * Gibt die Gesamtdauer der Simulation in Minuten zurück.
+ * Liest duration_minutes aus dem Szenario.
+ * @param {Object} scenario - Das aktive Szenario
+ * @returns {number|null} - Dauer in Minuten oder null wenn nicht definiert
+ */
+export function getScenarioDurationMinutes(scenario) {
+  if (!scenario) return null;
+  const duration = toNumber(scenario.duration_minutes);
+  return duration && duration > 0 ? duration : null;
+}
+
+/**
+ * Prüft ob die Simulationszeit das Limit überschritten hat.
+ * @param {Object} scenario - Das aktive Szenario
+ * @param {number} elapsedMinutes - Bisher vergangene Simulationsminuten
+ * @returns {boolean} - true wenn Zeit abgelaufen
+ */
+export function isSimulationTimeExceeded(scenario, elapsedMinutes) {
+  const durationMinutes = getScenarioDurationMinutes(scenario);
+  if (durationMinutes === null) return false;
+  return elapsedMinutes >= durationMinutes;
+}
+
 export function getScenarioPhase(behaviorPhases = [], elapsedMinutes = 0) {
   if (!behaviorPhases.length) {
     return null;
