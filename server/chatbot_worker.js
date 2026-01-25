@@ -665,11 +665,6 @@ async function applyAufgabenOperations(taskOps, activeRoles, staffRoles = []) {
     const now = Date.now();
     const nowIso = new Date(now).toISOString();
 
-    // Ersteller bestimmen: assignedBy → responsible → "LTSTB"
-    // Beim Erstellen von Aufgaben durch das LLM muss der Ersteller immer
-    // die Rolle sein, der sie zugeordnet wird, oder "LTSTB" (Default)
-    const assignedBy = op.assignedBy || op.responsible || "LTSTB";
-
     const newTask = {
       id,
       clientId: null,
@@ -687,8 +682,8 @@ async function applyAufgabenOperations(taskOps, activeRoles, staffRoles = []) {
         protoNr: op.linkedProtocolId || null
       },
       originProtocolNr: op.linkedProtocolId || null,
-      assignedBy: assignedBy,
-      createdBy: "LTSTB",  // Leiter Technischer Stab (Stabsrolle)
+      assignedBy: "LTSTB",  // Immer LTSTB - Aufgaben werden vom Leiter Technischer Stab vergeben
+      createdBy: "LTSTB",   // Leiter Technischer Stab (Stabsrolle)
       relatedIncidentId: op.relatedIncidentId || null,
       incidentTitle: null,
       linkedProtocolNrs: op.linkedProtocolId ? [op.linkedProtocolId] : [],
@@ -878,15 +873,12 @@ function sanitizeOperations(ops) {
     ops.aufgaben.create = ops.aufgaben.create.map((op) => {
       const sanitized = { ...op };
 
-      // BUGFIX B: assignedBy darf nicht in activeRoles sein
-      // Wenn assignedBy fehlt, setze es auf responsible oder "LTSTB"
-      if (!sanitized.assignedBy) {
-        sanitized.assignedBy = sanitized.responsible || "LTSTB";
-      }
+      // assignedBy ist immer LTSTB - Aufgaben werden vom Leiter Technischer Stab vergeben
+      sanitized.assignedBy = "LTSTB";
 
       // BUGFIX: Stelle sicher dass responsible gesetzt ist
       if (!sanitized.responsible) {
-        sanitized.responsible = sanitized.assignedBy || "LTSTB";
+        sanitized.responsible = "LTSTB";
       }
 
       return sanitized;
