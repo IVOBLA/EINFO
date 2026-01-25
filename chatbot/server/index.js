@@ -111,6 +111,51 @@ import fs from "fs/promises";
 const SCENARIOS_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "scenarios");
 const SERVER_DATA_DIR = "/home/bfkdo/kanban/server/data";
 
+// ============================================================
+// Worker-Steuerung (Worker läuft nur während aktiver Simulation)
+// ============================================================
+const MAIN_SERVER_URL = process.env.MAIN_SERVER_URL || "http://127.0.0.1:4040";
+
+async function startWorker() {
+  try {
+    const res = await fetch(`${MAIN_SERVER_URL}/chatbot/worker/start`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" }
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      logError("Worker-Start fehlgeschlagen", { status: res.status, body: text });
+      return { ok: false, error: text || `HTTP ${res.status}` };
+    }
+    const data = await res.json().catch(() => ({}));
+    logInfo("Worker gestartet", data);
+    return { ok: true, ...data };
+  } catch (err) {
+    logError("Worker-Start Fehler", { error: String(err) });
+    return { ok: false, error: String(err) };
+  }
+}
+
+async function stopWorker() {
+  try {
+    const res = await fetch(`${MAIN_SERVER_URL}/chatbot/worker/stop`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" }
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      logError("Worker-Stop fehlgeschlagen", { status: res.status, body: text });
+      return { ok: false, error: text || `HTTP ${res.status}` };
+    }
+    const data = await res.json().catch(() => ({}));
+    logInfo("Worker gestoppt", data);
+    return { ok: true, ...data };
+  } catch (err) {
+    logError("Worker-Stop Fehler", { error: String(err) });
+    return { ok: false, error: String(err) };
+  }
+}
+
 async function cleanupServerData() {
   const entries = await fs.readdir(SERVER_DATA_DIR, { withFileTypes: true });
   const deletions = [];
@@ -348,6 +393,12 @@ app.post("/api/sim/start", async (req, res) => {
     // NEU: Szenario wird jetzt an startSimulation übergeben und in sim_loop.js verwaltet
     await startSimulation(scenario);
 
+    // Worker starten (läuft nur während aktiver Simulation)
+    const workerResult = await startWorker();
+    if (!workerResult.ok) {
+      logError("Worker konnte nicht gestartet werden", { error: workerResult.error });
+    }
+
     const activeScenario = getActiveScenario();
     res.json({ ok: true, scenario: activeScenario ? { id: activeScenario.id, title: activeScenario.title } : null });
   } catch (err) {
@@ -387,8 +438,15 @@ app.get("/api/sim/status", (_req, res) => {
   }
 });
 
-app.post("/api/sim/pause", (req, res) => {
+app.post("/api/sim/pause", async (req, res) => {
   pauseSimulation();
+
+  // Worker stoppen (läuft nur während aktiver Simulation)
+  const workerResult = await stopWorker();
+  if (!workerResult.ok) {
+    logError("Worker konnte nicht gestoppt werden", { error: workerResult.error });
+  }
+
   res.json({ ok: true });
 });
 
