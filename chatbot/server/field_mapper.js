@@ -62,8 +62,32 @@ const FIELD_MAPPING = {
 
 // Stabsstellen die simuliert werden können
 const STABSSTELLEN = new Set([
-  "LTSTB", "LTSTBSTV", "S1", "S2", "S3", "S4", "S5", "S6"
+  "LTSTB", "LTSTBSTV", "S1", "S2", "S3", "S4", "S5", "S6", "EL"
 ]);
+
+// Rollen-Aliasse: Verschiedene Bezeichnungen → Standard-ID
+// Das LLM verwendet manchmal volle Namen, diese werden auf die Standard-IDs gemappt
+const ROLE_ALIASES = {
+  "EINSATZLEITER": "LTSTB",
+  "EINSATZLEITERIN": "LTSTB",
+  "LEITER TECHNISCHER STAB": "LTSTB",
+  "LEITERIN TECHNISCHER STAB": "LTSTB",
+  "LT STB": "LTSTB",
+  "STELLVERTRETER LTSTB": "LTSTBSTV",
+  "STELLVERTRETERIN LTSTB": "LTSTBSTV",
+  "SACHGEBIET 1": "S1",
+  "SACHGEBIET 2": "S2",
+  "SACHGEBIET 3": "S3",
+  "SACHGEBIET 4": "S4",
+  "SACHGEBIET 5": "S5",
+  "SACHGEBIET 6": "S6",
+  "FEUERWEHR": "S3",
+  "POLIZEI": "POL",
+  "ROTES KREUZ": "RK",
+  "BEZIRKSHAUPTMANNSCHAFT": "BH",
+  "GEMEINDE": "GEM",
+  "LEITSTELLE": "LST"
+};
 
 // Externe Stellen (für Simulation von ein-/ausgehenden Meldungen)
 const EXTERNE_STELLEN = new Set([
@@ -422,13 +446,18 @@ export function getAllExterneStellen() {
 }
 
 /**
- * Normalisiert eine Rolle zu Großbuchstaben ohne Leerzeichen
+ * Normalisiert eine Rolle zu Großbuchstaben und wendet Aliasse an.
+ * Das LLM verwendet manchmal volle Namen wie "Einsatzleiter" statt "LTSTB",
+ * diese werden auf die Standard-IDs gemappt.
+ *
  * @param {string} role - Die zu normalisierende Rolle
- * @returns {string} - Die normalisierte Rolle
+ * @returns {string} - Die normalisierte Rolle (Standard-ID)
  */
 export function normalizeRole(role) {
   if (!role) return "";
-  return String(role).trim().toUpperCase();
+  const normalized = String(role).trim().toUpperCase();
+  // Alias-Mapping anwenden falls vorhanden
+  return ROLE_ALIASES[normalized] || normalized;
 }
 
 /**
@@ -456,6 +485,7 @@ export const __test__ = {
   STABSSTELLEN,
   EXTERNE_STELLEN,
   MELDESTELLE,
+  ROLE_ALIASES,
   addProtocolDefaults,
   normalizeFieldNames,
   normalizeOperationsFormat
