@@ -435,13 +435,50 @@ app.post("/api/sim/start", async (req, res) => {
     await startSimulation(scenario);
 
     // Worker starten (läuft nur während aktiver Simulation)
-    const workerResult = await startWorker();
+    // BUGFIX: Worker-Start mit Retry und besserer Fehlerbehandlung
+    let workerResult = { ok: false, error: "not_started" };
+    let workerRetries = 0;
+    const maxWorkerRetries = 3;
+
+    while (!workerResult.ok && workerRetries < maxWorkerRetries) {
+      workerRetries++;
+      logInfo(`Worker-Start Versuch ${workerRetries}/${maxWorkerRetries}...`);
+
+      try {
+        workerResult = await startWorker();
+        if (workerResult.ok) {
+          logInfo("Worker erfolgreich gestartet", {
+            attempt: workerRetries,
+            workerPid: workerResult.worker?.pid || workerResult.status?.worker?.pid
+          });
+        } else {
+          logError(`Worker-Start fehlgeschlagen (Versuch ${workerRetries})`, { error: workerResult.error });
+          if (workerRetries < maxWorkerRetries) {
+            await new Promise(resolve => setTimeout(resolve, 1000)); // 1s warten vor Retry
+          }
+        }
+      } catch (err) {
+        logError(`Worker-Start Exception (Versuch ${workerRetries})`, { error: String(err) });
+        if (workerRetries < maxWorkerRetries) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      }
+    }
+
     if (!workerResult.ok) {
-      logError("Worker konnte nicht gestartet werden", { error: workerResult.error });
+      logError("Worker konnte nach allen Versuchen nicht gestartet werden", {
+        error: workerResult.error,
+        attempts: workerRetries
+      });
     }
 
     const activeScenario = getActiveScenario();
-    res.json({ ok: true, scenario: activeScenario ? { id: activeScenario.id, title: activeScenario.title } : null });
+    res.json({
+      ok: true,
+      scenario: activeScenario ? { id: activeScenario.id, title: activeScenario.title } : null,
+      workerStarted: workerResult.ok,
+      workerError: workerResult.ok ? null : workerResult.error
+    });
   } catch (err) {
     logError("Fehler beim Starten der Simulation", { error: String(err) });
     res.status(500).json({ ok: false, error: String(err) });
