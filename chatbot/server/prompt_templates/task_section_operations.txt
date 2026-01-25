@@ -45,10 +45,9 @@ HANDLUNGSSCHRITTE (in dieser Reihenfolge)
    a) NEUE AUFGABEN (operations.aufgaben.create)
       - Prüfe welche Stabsstellen NICHT in activeRoles sind
       - Erstelle Aufgaben die diese Rollen normalerweise vergeben würden
-      - assignedBy: LTSTB oder S2 (falls nicht in activeRoles)
-      - responsible: S2/S3/S4/S5/S6 (Zuständigkeit gemäß RAG-Wissen)
+      - assignedBy: LTSTB
+      - responsible: S1/S2/S3/S4/S5/S6 (Zuständigkeit gemäß RAG-Wissen)
       - Zuordnung: S1=Personal, S2=Lage, S3=Einsatz, S4=Versorgung, S5=Öffentlichkeit, S6=IT
-      - Im Zweifelsfall: assignedBy="LTSTB"
 
    b) AUFGABEN-STATUS AKTUALISIEREN (operations.aufgaben.update)
       - NUR für Aufgaben deren responsible NICHT in activeRoles ist
@@ -79,3 +78,4 @@ REGELN
   - Erfundene Adressen oder Adressen außerhalb des Szenario-Bereichs
 
 ═══════════════════════════════════════════════════════════════════════════════
+
