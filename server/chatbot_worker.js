@@ -35,6 +35,7 @@ import {
 
 const CHATBOT_STEP_URL = "http://127.0.0.1:3100/api/sim/step";
 const CHATBOT_SCENARIO_URL = "http://127.0.0.1:3100/api/sim/scenario";
+const CHATBOT_STATUS_URL = "http://127.0.0.1:3100/api/sim/status";
 const WORKER_INTERVAL_MS = 30000;
 const WORKER_CONFIG_FILE = path.join(process.cwd(), "data", "conf", "worker_config.json");
 let isRunning = false; // <--- NEU
@@ -155,6 +156,28 @@ async function fetchActiveScenario() {
   } catch (err) {
     log("Fehler beim Laden des aktiven Szenarios:", err?.message || err);
     return null;
+  }
+}
+
+/**
+ * Prüft ob die Simulation aktuell läuft
+ * @returns {Promise<{running: boolean, paused: boolean}>}
+ */
+async function fetchSimulationStatus() {
+  try {
+    const res = await fetch(CHATBOT_STATUS_URL);
+    if (!res.ok) {
+      log("Status-Check fehlgeschlagen:", res.status);
+      return { running: false, paused: false };
+    }
+    const data = await res.json();
+    return {
+      running: data?.simulation?.running || false,
+      paused: data?.simulation?.paused || false
+    };
+  } catch (err) {
+    log("Fehler beim Laden des Simulationsstatus:", err?.message || err);
+    return { running: false, paused: false };
   }
 }
 
@@ -1083,10 +1106,23 @@ async function runOnce() {
     return;
   }
 
+  // Prüfe ob Simulation aktiv ist - Worker wird nur für Simulation gebraucht
+  const simStatus = await fetchSimulationStatus();
+  if (!simStatus.running && !simStatus.paused) {
+    // Keine aktive Simulation - nichts zu tun
+    return;
+  }
+
+  if (simStatus.paused) {
+    // Simulation ist pausiert - nichts zu tun, aber loggen
+    log("Simulation pausiert – überspringe Schritt.");
+    return;
+  }
+
   // Zuerst roles.json synchronisieren
   const { active, missing } = await syncRolesFile();
 
-  
+
   isRunning = true;
   const startTime = Date.now();
   
@@ -1156,6 +1192,14 @@ async function runOnce() {
           await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
           continue;
         }
+
+        // Simulation beendet (timeout oder manuell) - Worker beenden
+        if (data.reason === "timeout" || data.reason === "not_running") {
+          log(`Simulation beendet (${data.reason}) – Worker wird beendet.`);
+          stopWorker();
+          process.exit(0);
+        }
+
         log("Schritt nicht ok:", data.error || data.reason);
         break;  // Fehler: Verlasse Schleife korrekt
       }

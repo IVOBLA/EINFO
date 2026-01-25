@@ -352,7 +352,7 @@ export async function syncAiAnalysisLoop() {
 export async function startAll() {
   const results = { chatbot: null, worker: null };
 
-  // Chatbot zuerst starten
+  // Chatbot starten (Worker wird separat mit Simulation gestartet)
   if (!processIsAlive(chatbotProcess)) {
     try {
       results.chatbot = await chatbotServerStart();
@@ -363,18 +363,8 @@ export async function startAll() {
     results.chatbot = { note: "Chatbot läuft bereits" };
   }
 
-  // Kurz warten, dann Worker starten
-  await new Promise((r) => setTimeout(r, 1000));
-
-  if (!processIsAlive(workerProcess)) {
-    try {
-      results.worker = await workerStart();
-    } catch (err) {
-      results.worker = { error: err.message };
-    }
-  } else {
-    results.worker = { note: "Worker läuft bereits" };
-  }
+  // Worker wird NICHT mehr automatisch gestartet - er startet mit der Simulation
+  results.worker = { note: "Worker startet automatisch mit Simulation" };
 
   await syncAiAnalysisLoop();
 
