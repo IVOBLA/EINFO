@@ -24,8 +24,8 @@ const __dirname = path.dirname(__filename);
 const MAIN_SERVER_URL = process.env.MAIN_SERVER_URL || "http://localhost:4040";
 const ONLINE_ROLES_ENDPOINT = "/api/user/online-roles";
 
-// Pfad zur roles.json
-const DATA_DIR = process.env.EINFO_DATA_DIR || path.resolve(__dirname, "data");
+// Pfad zur roles.json - muss zum server/data Verzeichnis zeigen (wie CONFIG.dataDir)
+const DATA_DIR = process.env.EINFO_DATA_DIR || path.resolve(__dirname, "../../server/data");
 const ROLES_FILE = path.join(DATA_DIR, "roles.json");
 
 // Stabsstellen die simuliert werden können (aus Anforderung)

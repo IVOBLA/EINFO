@@ -582,8 +582,14 @@ export async function startSimulation(scenario = null) {
     existingScenario?.id &&
     nextScenario?.id &&
     existingScenario.id === nextScenario.id;
-  const shouldResume = (hasSnapshotData || hasCompressedBoard) && (!scenario || isSameScenario);
-  const resetState = !shouldResume || (scenario && !isSameScenario);
+
+  // BUGFIX: Bei vorherigem Timeout oder Stop immer zurücksetzen
+  // Die Simulation muss nach einem Timeout oder manuellem Stop neu gestartet werden können
+  const wasStoppedByTimeout = simulationState.stoppedReason === "timeout";
+  const wasStopped = simulationState.stoppedReason !== null && !simulationState.running && !simulationState.paused;
+
+  const shouldResume = (hasSnapshotData || hasCompressedBoard) && (!scenario || isSameScenario) && !wasStoppedByTimeout && !wasStopped;
+  const resetState = !shouldResume || (scenario && !isSameScenario) || wasStoppedByTimeout || wasStopped;
 
   if (resetState) {
     try {
