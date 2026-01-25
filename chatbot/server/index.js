@@ -118,7 +118,7 @@ const MAIN_SERVER_URL = process.env.MAIN_SERVER_URL || "http://127.0.0.1:4040";
 
 async function startWorker() {
   try {
-    const res = await fetch(`${MAIN_SERVER_URL}/chatbot/worker/start`, {
+    const res = await fetch(`${MAIN_SERVER_URL}/api/user/admin/chatbot/worker/start`, {
       method: "POST",
       headers: { "Content-Type": "application/json" }
     });
@@ -138,7 +138,7 @@ async function startWorker() {
 
 async function stopWorker() {
   try {
-    const res = await fetch(`${MAIN_SERVER_URL}/chatbot/worker/stop`, {
+    const res = await fetch(`${MAIN_SERVER_URL}/api/user/admin/chatbot/worker/stop`, {
       method: "POST",
       headers: { "Content-Type": "application/json" }
     });
