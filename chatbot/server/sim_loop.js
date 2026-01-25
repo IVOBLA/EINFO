@@ -23,7 +23,9 @@ import {
 import { isAnalysisInProgress } from "./situation_analyzer.js";
 import {
   buildScenarioControlSummary,
-  getScenarioMinutesPerStep
+  getScenarioMinutesPerStep,
+  getScenarioDurationMinutes,
+  isSimulationTimeExceeded
 } from "./scenario_controls.js";
 import {
   isStabsstelle,
@@ -628,6 +630,35 @@ export async function stepSimulation(options = {}) {
   }
   if (simulationState.stepInProgress && !options.forceConcurrent)
     return { ok: false, reason: "step_in_progress" };
+
+  // ============================================================
+  // TIMEOUT-PRÜFUNG: Simulation beenden wenn Zeit abgelaufen
+  // ============================================================
+  if (isSimulationTimeExceeded(simulationState.activeScenario, simulationState.elapsedMinutes)) {
+    const durationMinutes = getScenarioDurationMinutes(simulationState.activeScenario);
+    logInfo("Simulation beendet - Zeit abgelaufen", {
+      elapsedMinutes: simulationState.elapsedMinutes,
+      durationMinutes,
+      scenarioId: simulationState.activeScenario?.id
+    });
+
+    // Audit-Event loggen (vor stop() um scenarioId noch zu haben)
+    logEvent("simulation", "timeout_stop", {
+      elapsedMinutes: simulationState.elapsedMinutes,
+      durationMinutes,
+      scenarioId: simulationState.activeScenario?.id,
+      stepCount: simulationState.stepCount
+    });
+
+    // Simulation stoppen mit Grund "timeout"
+    simulationState.stop("timeout");
+
+    return {
+      ok: false,
+      reason: "timeout",
+      message: `Simulationszeit abgelaufen (${durationMinutes} Minuten erreicht)`
+    };
+  }
 
   simulationState.stepInProgress = true;
   const source = options.source || "manual";

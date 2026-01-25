@@ -22,6 +22,8 @@ export class SimulationState {
     this.stepCount = 0;
     this.activeRoles = [];  // Aktiv besetzte Rollen
     this.missingRoles = []; // Zu simulierende Rollen
+    this.stoppedReason = null; // Grund für Simulation-Stop (z.B. "timeout", "manual")
+    this.stoppedAt = null; // Zeitpunkt des Stops
   }
 
   /**
@@ -35,6 +37,8 @@ export class SimulationState {
     this.stepInProgress = false;
     this.justStarted = resetState;
     this.activeScenario = scenario;
+    this.stoppedReason = null;
+    this.stoppedAt = null;
     if (resetState) {
       this.elapsedMinutes = 0;
       this.startTime = Date.now();
@@ -65,16 +69,20 @@ export class SimulationState {
 
   /**
    * Stoppt die Simulation komplett
+   * @param {string} reason - Grund für das Stoppen (z.B. "timeout", "manual")
    */
-  stop() {
+  stop(reason = "manual") {
     const wasRunning = this.running;
     this.running = false;
     this.paused = false;
     this.stepInProgress = false;
     this.justStarted = false;
+    this.stoppedReason = reason;
+    this.stoppedAt = Date.now();
 
     if (wasRunning) {
       logInfo("Simulation gestoppt", {
+        reason,
         elapsedMinutes: this.elapsedMinutes,
         stepCount: this.stepCount,
         duration: this.startTime ? Date.now() - this.startTime : 0
@@ -94,6 +102,8 @@ export class SimulationState {
     this.stepCount = 0;
     this.lastSnapshot = null;
     this.lastCompressedBoard = "[]";
+    this.stoppedReason = null;
+    this.stoppedAt = null;
 
     logDebug("Simulation State zurückgesetzt");
   }
@@ -160,6 +170,8 @@ export class SimulationState {
       lastCompressedBoard: this.lastCompressedBoard,
       activeRoles: this.activeRoles,
       missingRoles: this.missingRoles,
+      stoppedReason: this.stoppedReason,
+      stoppedAt: this.stoppedAt,
       // lastSnapshot ist zu groß für Serialisierung
     };
   }
@@ -183,6 +195,8 @@ export class SimulationState {
       lastCompressedBoard: data.lastCompressedBoard || "[]",
       activeRoles: data.activeRoles || [],
       missingRoles: data.missingRoles || [],
+      stoppedReason: data.stoppedReason || null,
+      stoppedAt: data.stoppedAt || null,
       lastSnapshot: null // Muss neu geladen werden
     });
     return state;
@@ -193,6 +207,12 @@ export class SimulationState {
    * @returns {Object}
    */
   getStatus() {
+    // Gesamtdauer aus Szenario extrahieren (falls vorhanden)
+    const durationMinutes = this.activeScenario?.duration_minutes || null;
+    const timeRemaining = durationMinutes !== null
+      ? Math.max(0, durationMinutes - this.elapsedMinutes)
+      : null;
+
     return {
       running: this.running,
       paused: this.paused,
@@ -203,6 +223,10 @@ export class SimulationState {
       scenarioActive: !!this.activeScenario,
       scenarioId: this.activeScenario?.id || null,
       scenarioTitle: this.activeScenario?.title || null,
+      durationMinutes,
+      timeRemaining,
+      stoppedReason: this.stoppedReason,
+      stoppedAt: this.stoppedAt,
       uptime: this.startTime ? Date.now() - this.startTime : 0,
       activeRoles: this.activeRoles,
       missingRoles: this.missingRoles
