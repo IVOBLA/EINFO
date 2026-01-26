@@ -627,6 +627,18 @@ export async function stepSimulation(options = {}) {
     return { ok: false, reason: "step_in_progress" };
 
   // ============================================================
+  // PAUSE: Simulation pausiert wenn auf Rollen gewartet wird
+  // Keine Schritte überspringen - stattdessen pausieren
+  // ============================================================
+  if (simulationState.waitingForRoles) {
+    logInfo("Simulation pausiert - wartet auf aktive Rollen", {
+      elapsedMinutes: simulationState.elapsedMinutes,
+      stepCount: simulationState.stepCount
+    });
+    return { ok: false, reason: "waiting_for_roles", paused: true };
+  }
+
+  // ============================================================
   // TIMEOUT-PRÜFUNG: Simulation beenden wenn Zeit abgelaufen
   // ============================================================
   if (isSimulationTimeExceeded(simulationState.activeScenario, simulationState.elapsedMinutes)) {
