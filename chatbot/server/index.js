@@ -114,7 +114,7 @@ const SERVER_DATA_DIR = "/home/bfkdo/kanban/server/data";
 // ============================================================
 // Worker-Steuerung (Worker läuft nur während aktiver Simulation)
 // ============================================================
-const MAIN_SERVER_URL = process.env.MAIN_SERVER_URL || "http://127.0.0.1:4040";
+const MAIN_SERVER_URL = process.env.MAIN_SERVER_URL || "http://127.0.0.1:4000";
 
 async function startWorker() {
   try {
