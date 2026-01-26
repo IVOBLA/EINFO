@@ -476,7 +476,31 @@ app.post("/api/sim/start", async (req, res) => {
     // NEU: Szenario wird jetzt an startSimulation übergeben und in sim_loop.js verwaltet
     await startSimulation(scenario);
 
+    // Erster Schritt sofort ausführen (nur bei neuem Start, nicht bei Resume)
+    // WICHTIG: Muss VOR Worker-Start erfolgen, damit der initiale Schritt
+    // nicht durch "waitingForRoles" im Worker unterbrochen wird.
+    // Der initiale Schritt muss IMMER durchgeführt werden, auch wenn keine Rollen aktiv sind.
+    let firstStepResult = null;
+    if (!resumeRequested) {
+      logInfo("Führe ersten Simulationsschritt aus...");
+      try {
+        firstStepResult = await stepSimulation({ source: "initial" });
+        if (firstStepResult.ok) {
+          logInfo("Erster Simulationsschritt erfolgreich", {
+            stepCount: simulationState.stepCount
+          });
+        } else {
+          logError("Erster Simulationsschritt fehlgeschlagen", {
+            error: firstStepResult.error || firstStepResult.reason
+          });
+        }
+      } catch (err) {
+        logError("Fehler beim ersten Simulationsschritt", { error: String(err) });
+      }
+    }
+
     // Worker starten (läuft nur während aktiver Simulation)
+    // NACH dem initialen Schritt, um Race-Conditions zu vermeiden
     let workerResult = { ok: false, error: "not_started" };
     let workerRetries = 0;
     const maxWorkerRetries = 3;
@@ -514,26 +538,6 @@ app.post("/api/sim/start", async (req, res) => {
           ? "Haupt-Server (Port 4040) muss laufen bevor Simulation gestartet wird"
           : null
       });
-    }
-
-    // Erster Schritt sofort ausführen (nur bei neuem Start, nicht bei Resume)
-    let firstStepResult = null;
-    if (!resumeRequested) {
-      logInfo("Führe ersten Simulationsschritt aus...");
-      try {
-        firstStepResult = await stepSimulation({ source: "initial" });
-        if (firstStepResult.ok) {
-          logInfo("Erster Simulationsschritt erfolgreich", {
-            stepCount: simulationState.stepCount
-          });
-        } else {
-          logError("Erster Simulationsschritt fehlgeschlagen", {
-            error: firstStepResult.error || firstStepResult.reason
-          });
-        }
-      } catch (err) {
-        logError("Fehler beim ersten Simulationsschritt", { error: String(err) });
-      }
     }
 
     const activeScenario = getActiveScenario();
