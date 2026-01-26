@@ -926,8 +926,16 @@ function isQuestionEntry(entry) {
   return /rueckfrage|rückfrage/i.test(infoTyp) || information.includes("?");
 }
 
+/**
+ * Markiert eine Frage als beantwortet durch Setzen von rueckmeldung2="answered".
+ *
+ * Wird aufgerufen wenn das LLM eine Antwort (Rückmeldung) erstellt.
+ * Die Original-Frage wird über bezugNr oder Sender/Empfänger-Matching gefunden.
+ */
 function markAnsweredQuestion(protokoll, responseEntry) {
   if (!responseEntry || !Array.isArray(protokoll)) return;
+
+  // Nur bei Rückmeldungen (Antworten) markieren
   const infoTyp = String(responseEntry.infoTyp || responseEntry.typ || "");
   if (!/rueckmeldung|rückmeldung/i.test(infoTyp)) return;
 
@@ -937,23 +945,35 @@ function markAnsweredQuestion(protokoll, responseEntry) {
   );
   if (!responseSender || responseRecipients.length === 0) return;
 
+  // Fall 1: Direkte Referenz über bezugNr
   const refNr =
     responseEntry.bezugNr || responseEntry.referenzNr || responseEntry.antwortAuf;
   if (refNr) {
     const directMatch = protokoll.find((entry) => String(entry.nr) === String(refNr));
-    if (directMatch && !hasZu(directMatch)) {
-      directMatch.zu = String(responseEntry.nr);
+    if (directMatch && !directMatch.rueckmeldung2) {
+      directMatch.rueckmeldung2 = "answered";
+      log("Frage als beantwortet markiert (bezugNr):", { questionNr: directMatch.nr, answerNr: responseEntry.nr });
     }
     return;
   }
 
+  // Fall 2: Matching über Sender/Empfänger
   const candidates = protokoll.filter((entry) => {
-    if (hasZu(entry) || isBotEntry(entry) || !isQuestionEntry(entry)) return false;
+    // Bereits beantwortet? (rueckmeldung2 gesetzt)
+    if (entry.rueckmeldung2) return false;
+    // Vom Bot erstellt?
+    if (isBotEntry(entry)) return false;
+    // Ist es eine Frage?
+    if (!isQuestionEntry(entry)) return false;
+
     const questionSender = normalizeRole(entry.anvon || "");
     const questionRecipients = normalizeRecipients(
       entry.ergehtAn || entry.ergehtAnText || []
     );
     if (!questionSender || questionRecipients.length === 0) return false;
+
+    // Antwort-Sender war Empfänger der Frage UND
+    // Antwort-Empfänger war Sender der Frage
     return (
       questionRecipients.includes(responseSender) &&
       responseRecipients.includes(questionSender)
@@ -962,6 +982,7 @@ function markAnsweredQuestion(protokoll, responseEntry) {
 
   if (!candidates.length) return;
 
+  // Neueste passende Frage finden
   const target = candidates.reduce((latest, entry) => {
     const latestNr = Number(latest.nr);
     const entryNr = Number(entry.nr);
@@ -973,7 +994,9 @@ function markAnsweredQuestion(protokoll, responseEntry) {
     return entryTime > latestTime ? entry : latest;
   });
 
-  target.zu = String(responseEntry.nr);
+  // Frage als beantwortet markieren
+  target.rueckmeldung2 = "answered";
+  log("Frage als beantwortet markiert (matching):", { questionNr: target.nr, answerNr: responseEntry.nr });
 }
 
 async function applyProtokollOperations(protoOps, activeRoles, staffRoles) {
