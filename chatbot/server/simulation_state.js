@@ -227,6 +227,7 @@ export class SimulationState {
       timeRemaining,
       stoppedReason: this.stoppedReason,
       stoppedAt: this.stoppedAt,
+      startTime: this.startTime,
       uptime: this.startTime ? Date.now() - this.startTime : 0,
       activeRoles: this.activeRoles,
       missingRoles: this.missingRoles

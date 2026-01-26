@@ -517,11 +517,13 @@ app.post("/api/sim/start", async (req, res) => {
     }
 
     const activeScenario = getActiveScenario();
+    const simStatus = simulationState.getStatus();
     res.json({
       ok: true,
       scenario: activeScenario ? { id: activeScenario.id, title: activeScenario.title } : null,
       workerStarted: workerResult.ok,
-      workerError: workerResult.ok ? null : workerResult.error
+      workerError: workerResult.ok ? null : workerResult.error,
+      startTime: simStatus.startTime
     });
   } catch (err) {
     logError("Fehler beim Starten der Simulation", { error: String(err) });

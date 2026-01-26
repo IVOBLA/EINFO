@@ -804,7 +804,10 @@
         if (data.ok) {
           simulationRunning = true;
           simulationPaused = false;
-          if (!resumeRequested || !startTime) {
+          // Verwende startTime vom Server, falls vorhanden
+          if (data.startTime) {
+            startTime = data.startTime;
+          } else if (!resumeRequested || !startTime) {
             startTime = Date.now();
           }
           startDurationTimer();
@@ -1147,8 +1150,15 @@
 
         if (simStatus.startTime) {
           startTime = simStatus.startTime;
-          statDuration.textContent = formatDuration(Date.now() - startTime);
-          startDurationTimer();
+          // Wenn Simulation gestoppt wurde, zeige die finale Dauer (stoppedAt - startTime)
+          if (simStatus.stoppedAt && !simStatus.running && !simStatus.paused) {
+            statDuration.textContent = formatDuration(simStatus.stoppedAt - startTime);
+            stopDurationTimer();
+          } else {
+            // Simulation läuft oder ist pausiert - Timer weiterlaufen lassen
+            statDuration.textContent = formatDuration(Date.now() - startTime);
+            startDurationTimer();
+          }
         } else {
           startTime = null;
           stopDurationTimer();
