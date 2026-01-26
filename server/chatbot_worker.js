@@ -163,24 +163,38 @@ async function fetchActiveScenario() {
 
 /**
  * Prüft ob die Simulation aktuell läuft
- * @returns {Promise<{running: boolean, paused: boolean, stoppedReason: string|null}>}
+ * @returns {Promise<{running: boolean, paused: boolean, stoppedReason: string|null, justStarted: boolean, stepCount: number}>}
  */
 async function fetchSimulationStatus() {
   try {
     const res = await fetch(CHATBOT_STATUS_URL);
     if (!res.ok) {
       log("Status-Check fehlgeschlagen:", res.status);
-      return { running: false, paused: false, stoppedReason: null };
+      return {
+        running: false,
+        paused: false,
+        stoppedReason: null,
+        justStarted: false,
+        stepCount: 0
+      };
     }
     const data = await res.json();
     return {
       running: data?.simulation?.running || false,
       paused: data?.simulation?.paused || false,
-      stoppedReason: data?.simulation?.stoppedReason || null
+      stoppedReason: data?.simulation?.stoppedReason || null,
+      justStarted: data?.simulation?.justStarted || false,
+      stepCount: data?.simulation?.stepCount || 0
     };
   } catch (err) {
     log("Fehler beim Laden des Simulationsstatus:", err?.message || err);
-    return { running: false, paused: false, stoppedReason: null };
+    return {
+      running: false,
+      paused: false,
+      stoppedReason: null,
+      justStarted: false,
+      stepCount: 0
+    };
   }
 }
 
@@ -1147,8 +1161,9 @@ async function runOnce() {
 
   // Prüfe ob activeRoles leer sind - wenn ja, pausiere Zeit und überspringe Schritt
   const noActiveRoles = !active || active.length === 0;
+  const allowInitialStepWithoutRoles = noActiveRoles && simStatus.justStarted;
 
-  if (noActiveRoles) {
+  if (noActiveRoles && !allowInitialStepWithoutRoles) {
     // Nur einmal loggen wenn Status wechselt
     if (!wasWaitingForRoles) {
       log("Keine aktiven Rollen vorhanden – warte auf Rollen, Zeit wird pausiert.");
@@ -1168,6 +1183,10 @@ async function runOnce() {
 
     // Schritt überspringen, aber Worker weiter laufen lassen um auf Rollen zu warten
     return;
+  }
+
+  if (allowInitialStepWithoutRoles) {
+    log("Keine aktiven Rollen vorhanden – initialer Simulationsschritt wird trotzdem ausgeführt.");
   }
 
   // Rollen sind wieder aktiv - Zeit wieder aktivieren wenn wir gewartet haben
