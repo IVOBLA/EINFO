@@ -2324,12 +2324,8 @@ USER_SESSION_IDLE_TIMEOUT_MS=900000
 # Sitzungs-Cleanup-Intervall (ms)
 USER_SESSION_SWEEP_INTERVAL_MS=60000
 
-# Aktive Rollenanzeige-Dauer (Minuten)
-USER_ONLINE_ROLE_ACTIVE_MIN=5
-USER_ONLINE_ROLE_ACTIVE_MS=300000
-
-# Kürzliche Aktivität Zeitfenster (ms)
-USER_ONLINE_ROLE_RECENT_MS=900000
+# Hinweis: Online-Role-Aktivitätsfenster = Session-Timeout
+# Eine Rolle gilt als aktiv solange die Session gültig ist.
 ```
 
 ---

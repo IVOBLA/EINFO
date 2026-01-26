@@ -65,33 +65,9 @@ const SESSION_SWEEP_INTERVAL_MS = (() => {
   return Math.min(SESSION_IDLE_TIMEOUT_MS, 60_000);
 })();
 
-const ONLINE_ROLE_ACTIVE_LIMIT_MS = (() => {
-  const minuteCandidates = [
-    process.env.USER_ONLINE_ROLE_ACTIVE_MIN,
-    process.env.USER_ONLINE_ROLE_ACTIVE_MINUTES,
-    process.env.USER_ONLINE_ACTIVE_MINUTES,
-  ];
-  for (const value of minuteCandidates) {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed) && parsed > 0) {
-      return parsed * 60_000;
-    }
-  }
-  const msCandidates = [
-    process.env.USER_ONLINE_ROLE_ACTIVE_MS,
-    process.env.USER_ONLINE_ACTIVE_MS,
-    process.env.USER_ONLINE_ROLE_RECENT_MS,
-  ];
-  for (const value of msCandidates) {
-    const parsed = Number(value);
-    if (Number.isFinite(parsed) && parsed > 0) {
-      return parsed;
-    }
-  }
-  // Fallback: Gleicher Wert wie Session-Timeout
-  // Rolle bleibt aktiv solange die Session gültig ist
-  return Math.max(15_000, SESSION_IDLE_TIMEOUT_MS);
-})();
+// Online-Role-Aktivitätsfenster = Session-Timeout
+// Eine Rolle gilt als aktiv solange die Session gültig ist
+const ONLINE_ROLE_ACTIVE_LIMIT_MS = SESSION_IDLE_TIMEOUT_MS;
 
 const SESSION_IDLE_TIMEOUT_SECONDS = Math.max(1, Math.floor(SESSION_IDLE_TIMEOUT_MS / 1000));
 
