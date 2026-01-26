@@ -88,9 +88,9 @@ const ONLINE_ROLE_ACTIVE_LIMIT_MS = (() => {
       return parsed;
     }
   }
-  const fallback = 2 * 60_000; // 2 Minuten – synchronisiert S3-Fallback schneller
-  const limit = Math.min(SESSION_IDLE_TIMEOUT_MS, fallback);
-  return Math.max(15_000, limit);
+  // Fallback: Gleicher Wert wie Session-Timeout
+  // Rolle bleibt aktiv solange die Session gültig ist
+  return Math.max(15_000, SESSION_IDLE_TIMEOUT_MS);
 })();
 
 const SESSION_IDLE_TIMEOUT_SECONDS = Math.max(1, Math.floor(SESSION_IDLE_TIMEOUT_MS / 1000));
