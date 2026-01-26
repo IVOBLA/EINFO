@@ -131,8 +131,17 @@ async function startWorker() {
     logInfo("Worker gestartet", data);
     return { ok: true, ...data };
   } catch (err) {
-    logError("Worker-Start Fehler", { error: String(err) });
-    return { ok: false, error: String(err) };
+    // Bessere Fehlermeldung bei Verbindungsproblemen
+    const errorMsg = String(err);
+    const isFetchFailed = errorMsg.includes("fetch failed") || errorMsg.includes("ECONNREFUSED");
+    if (isFetchFailed) {
+      return {
+        ok: false,
+        error: `Haupt-Server nicht erreichbar (${MAIN_SERVER_URL})`,
+        cause: "connection_failed"
+      };
+    }
+    return { ok: false, error: errorMsg };
   }
 }
 
@@ -151,8 +160,17 @@ async function stopWorker() {
     logInfo("Worker gestoppt", data);
     return { ok: true, ...data };
   } catch (err) {
-    logError("Worker-Stop Fehler", { error: String(err) });
-    return { ok: false, error: String(err) };
+    // Bessere Fehlermeldung bei Verbindungsproblemen
+    const errorMsg = String(err);
+    const isFetchFailed = errorMsg.includes("fetch failed") || errorMsg.includes("ECONNREFUSED");
+    if (isFetchFailed) {
+      return {
+        ok: false,
+        error: `Haupt-Server nicht erreichbar (${MAIN_SERVER_URL})`,
+        cause: "connection_failed"
+      };
+    }
+    return { ok: false, error: errorMsg };
   }
 }
 
@@ -327,6 +345,11 @@ app.get("/", (req, res) => {
 // Der Chatbot-Client benötigt diese Daten, aber der Endpunkt
 // ist nur auf dem Haupt-Server (Port 4040) verfügbar.
 // ============================================================
+// Rate-Limiting für Fehler-Logs (verhindert Log-Spam bei Verbindungsproblemen)
+let onlineRolesLastErrorLog = 0;
+const ONLINE_ROLES_ERROR_LOG_INTERVAL_MS = 60000; // Max. 1 Fehler-Log pro Minute
+let onlineRolesErrorCount = 0;
+
 app.get("/api/user/online-roles", async (_req, res) => {
   try {
     const controller = new AbortController();
@@ -353,10 +376,29 @@ app.get("/api/user/online-roles", async (_req, res) => {
     }
 
     const data = await response.json();
+    // Bei Erfolg: Fehlerzähler zurücksetzen
+    if (onlineRolesErrorCount > 0) {
+      logInfo("Online-Rollen-Proxy: Verbindung wiederhergestellt", {
+        suppressedErrors: onlineRolesErrorCount
+      });
+      onlineRolesErrorCount = 0;
+    }
     res.set("Cache-Control", "no-store");
     res.json(data);
   } catch (err) {
-    logError("Online-Rollen-Proxy: Fehler", { error: String(err) });
+    onlineRolesErrorCount++;
+    const now = Date.now();
+    // Rate-limited Logging: Max. 1 Fehler pro Minute loggen
+    if (now - onlineRolesLastErrorLog > ONLINE_ROLES_ERROR_LOG_INTERVAL_MS) {
+      const errorMsg = String(err);
+      const isFetchFailed = errorMsg.includes("fetch failed") || errorMsg.includes("ECONNREFUSED");
+      logError("Online-Rollen-Proxy: Verbindung fehlgeschlagen", {
+        error: isFetchFailed ? `Haupt-Server nicht erreichbar (${MAIN_SERVER_URL})` : errorMsg,
+        errorsSinceLastLog: onlineRolesErrorCount
+      });
+      onlineRolesLastErrorLog = now;
+      onlineRolesErrorCount = 0;
+    }
     // Bei Fehler: Leeres Array zurückgeben (alle Rollen werden simuliert)
     res.set("Cache-Control", "no-store");
     res.json({ roles: [] });
@@ -435,40 +477,42 @@ app.post("/api/sim/start", async (req, res) => {
     await startSimulation(scenario);
 
     // Worker starten (läuft nur während aktiver Simulation)
-    // BUGFIX: Worker-Start mit Retry und besserer Fehlerbehandlung
     let workerResult = { ok: false, error: "not_started" };
     let workerRetries = 0;
     const maxWorkerRetries = 3;
 
+    logDebug("Starte Worker...");
+
     while (!workerResult.ok && workerRetries < maxWorkerRetries) {
       workerRetries++;
-      logInfo(`Worker-Start Versuch ${workerRetries}/${maxWorkerRetries}...`);
-
       try {
         workerResult = await startWorker();
-        if (workerResult.ok) {
-          logInfo("Worker erfolgreich gestartet", {
-            attempt: workerRetries,
-            workerPid: workerResult.worker?.pid || workerResult.status?.worker?.pid
-          });
-        } else {
-          logError(`Worker-Start fehlgeschlagen (Versuch ${workerRetries})`, { error: workerResult.error });
-          if (workerRetries < maxWorkerRetries) {
-            await new Promise(resolve => setTimeout(resolve, 1000)); // 1s warten vor Retry
-          }
+        if (!workerResult.ok && workerRetries < maxWorkerRetries) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
       } catch (err) {
-        logError(`Worker-Start Exception (Versuch ${workerRetries})`, { error: String(err) });
+        workerResult = { ok: false, error: String(err) };
         if (workerRetries < maxWorkerRetries) {
           await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
     }
 
-    if (!workerResult.ok) {
-      logError("Worker konnte nach allen Versuchen nicht gestartet werden", {
+    // Einmaliges Log-Statement mit Zusammenfassung
+    if (workerResult.ok) {
+      logInfo("Worker gestartet", {
+        attempts: workerRetries,
+        workerPid: workerResult.worker?.pid || workerResult.status?.worker?.pid
+      });
+    } else {
+      // Bei Verbindungsproblemen: Hilfreiche Meldung
+      const isConnectionError = workerResult.cause === "connection_failed";
+      logError("Worker-Start fehlgeschlagen", {
         error: workerResult.error,
-        attempts: workerRetries
+        attempts: workerRetries,
+        hinweis: isConnectionError
+          ? "Haupt-Server (Port 4040) muss laufen bevor Simulation gestartet wird"
+          : null
       });
     }
 
@@ -521,8 +565,9 @@ app.post("/api/sim/pause", async (req, res) => {
 
   // Worker stoppen (läuft nur während aktiver Simulation)
   const workerResult = await stopWorker();
-  if (!workerResult.ok) {
-    logError("Worker konnte nicht gestoppt werden", { error: workerResult.error });
+  if (!workerResult.ok && workerResult.cause !== "connection_failed") {
+    // Bei Verbindungsproblemen kein Fehler-Log (Worker läuft dann ohnehin nicht)
+    logError("Worker-Stop fehlgeschlagen", { error: workerResult.error });
   }
 
   res.json({ ok: true });
@@ -541,8 +586,9 @@ app.post("/api/sim/step", async (req, res) => {
         reason: result.reason
       });
       const workerResult = await stopWorker();
-      if (!workerResult.ok) {
-        logError("Worker konnte nach Timeout nicht gestoppt werden", { error: workerResult.error });
+      if (!workerResult.ok && workerResult.cause !== "connection_failed") {
+        // Bei Verbindungsproblemen kein Fehler-Log (Worker läuft dann ohnehin nicht)
+        logError("Worker-Stop fehlgeschlagen", { error: workerResult.error });
       }
       // Broadcast event for clients
       broadcastSSE("simulation_timeout", {
