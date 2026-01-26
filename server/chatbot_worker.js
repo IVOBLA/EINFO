@@ -161,23 +161,24 @@ async function fetchActiveScenario() {
 
 /**
  * Prüft ob die Simulation aktuell läuft
- * @returns {Promise<{running: boolean, paused: boolean}>}
+ * @returns {Promise<{running: boolean, paused: boolean, stoppedReason: string|null}>}
  */
 async function fetchSimulationStatus() {
   try {
     const res = await fetch(CHATBOT_STATUS_URL);
     if (!res.ok) {
       log("Status-Check fehlgeschlagen:", res.status);
-      return { running: false, paused: false };
+      return { running: false, paused: false, stoppedReason: null };
     }
     const data = await res.json();
     return {
       running: data?.simulation?.running || false,
-      paused: data?.simulation?.paused || false
+      paused: data?.simulation?.paused || false,
+      stoppedReason: data?.simulation?.stoppedReason || null
     };
   } catch (err) {
     log("Fehler beim Laden des Simulationsstatus:", err?.message || err);
-    return { running: false, paused: false };
+    return { running: false, paused: false, stoppedReason: null };
   }
 }
 
@@ -1124,6 +1125,12 @@ async function runOnce() {
   // Prüfe ob Simulation aktiv ist - Worker wird nur für Simulation gebraucht
   const simStatus = await fetchSimulationStatus();
   if (!simStatus.running && !simStatus.paused) {
+    // Simulation wurde beendet (timeout oder manuell) - Worker beenden
+    if (simStatus.stoppedReason) {
+      log(`Simulation wurde beendet (${simStatus.stoppedReason}) – Worker wird gestoppt.`);
+      stopWorker();
+      process.exit(0);
+    }
     // Keine aktive Simulation - nichts zu tun
     return;
   }
