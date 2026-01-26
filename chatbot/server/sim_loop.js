@@ -239,8 +239,8 @@ export function identifyMessagesNeedingResponse(protokoll, protokollDelta, roles
 /**
  * Findet alle offenen Fragen im Protokoll die noch nicht beantwortet wurden.
  *
- * Eine Frage gilt als beantwortet wenn rueckmeldung2="answered" gesetzt ist.
- * Nur Fragen mit leerem rueckmeldung2 werden an das LLM weitergegeben.
+ * Eine Frage gilt als beantwortet wenn rueckmeldung1="answered" gesetzt ist.
+ * Nur Fragen mit leerem rueckmeldung1 werden an das LLM weitergegeben.
  *
  * @param {Array} protokoll - Alle Protokolleinträge
  * @param {Object} roles - { active: [...] }
@@ -252,9 +252,9 @@ export function identifyOpenQuestions(protokoll, roles) {
   const openQuestions = [];
 
   for (const entry of protokoll) {
-    // Kriterium 1: rueckmeldung2 muss leer sein (nicht beantwortet)
-    const rueckmeldung2 = (entry.rueckmeldung2 || "").trim();
-    if (rueckmeldung2) continue;
+    // Kriterium 1: rueckmeldung1 muss leer sein (nicht beantwortet)
+    const rueckmeldung1 = (entry.rueckmeldung1 || "").trim();
+    if (rueckmeldung1) continue;
 
     // Kriterium 2: NICHT vom CHATBOT erstellt
     const createdBy = entry.createdBy || entry.history?.[0]?.by || "";
@@ -297,7 +297,7 @@ export function identifyOpenQuestions(protokoll, roles) {
     const isQuestion = hasQuestionMark || targetsNonActiveInternal || targetsExternal;
     if (!isQuestion) continue;
 
-    // Diese Frage ist noch offen (rueckmeldung2 ist leer)
+    // Diese Frage ist noch offen (rueckmeldung1 ist leer)
     openQuestions.push({
       id: entry.id,
       nr: entry.nr,

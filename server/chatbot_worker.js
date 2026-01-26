@@ -928,7 +928,7 @@ function isQuestionEntry(entry) {
 }
 
 /**
- * Markiert eine Frage als beantwortet durch Setzen von rueckmeldung2="answered".
+ * Markiert eine Frage als beantwortet durch Setzen von rueckmeldung1="answered".
  *
  * Wird aufgerufen wenn das LLM eine Antwort (Rückmeldung) erstellt.
  * Die Original-Frage wird über bezugNr oder Sender/Empfänger-Matching gefunden.
@@ -951,8 +951,8 @@ function markAnsweredQuestion(protokoll, responseEntry) {
     responseEntry.bezugNr || responseEntry.referenzNr || responseEntry.antwortAuf;
   if (refNr) {
     const directMatch = protokoll.find((entry) => String(entry.nr) === String(refNr));
-    if (directMatch && !directMatch.rueckmeldung2) {
-      directMatch.rueckmeldung2 = "answered";
+    if (directMatch && !directMatch.rueckmeldung1) {
+      directMatch.rueckmeldung1 = "answered";
       log("Frage als beantwortet markiert (bezugNr):", { questionNr: directMatch.nr, answerNr: responseEntry.nr });
     }
     return;
@@ -960,8 +960,8 @@ function markAnsweredQuestion(protokoll, responseEntry) {
 
   // Fall 2: Matching über Sender/Empfänger
   const candidates = protokoll.filter((entry) => {
-    // Bereits beantwortet? (rueckmeldung2 gesetzt)
-    if (entry.rueckmeldung2) return false;
+    // Bereits beantwortet? (rueckmeldung1 gesetzt)
+    if (entry.rueckmeldung1) return false;
     // Vom Bot erstellt?
     if (isBotEntry(entry)) return false;
     // Ist es eine Frage?
@@ -996,7 +996,7 @@ function markAnsweredQuestion(protokoll, responseEntry) {
   });
 
   // Frage als beantwortet markieren
-  target.rueckmeldung2 = "answered";
+  target.rueckmeldung1 = "answered";
   log("Frage als beantwortet markiert (matching):", { questionNr: target.nr, answerNr: responseEntry.nr });
 }
 
@@ -1057,7 +1057,6 @@ async function applyProtokollOperations(protoOps, activeRoles, staffRoles) {
       },
       information: op.information || "",
       rueckmeldung1: "",
-      rueckmeldung2: "",
       ergehtAn: Array.isArray(op.ergehtAn) ? op.ergehtAn : (op.ergehtAn ? [op.ergehtAn] : []),
       ergehtAnText: Array.isArray(op.ergehtAn) ? op.ergehtAn.join(", ") : (op.ergehtAn || ""),
       lagebericht: "",
