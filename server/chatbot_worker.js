@@ -36,6 +36,7 @@ import {
 const CHATBOT_STEP_URL = "http://127.0.0.1:3100/api/sim/step";
 const CHATBOT_SCENARIO_URL = "http://127.0.0.1:3100/api/sim/scenario";
 const CHATBOT_STATUS_URL = "http://127.0.0.1:3100/api/sim/status";
+const CHATBOT_WAITING_URL = "http://127.0.0.1:3100/api/sim/waiting-for-roles";
 const WORKER_INTERVAL_MS = 30000;
 const WORKER_CONFIG_FILE = path.join(process.cwd(), "data", "conf", "worker_config.json");
 let isRunning = false; // <--- NEU
@@ -43,6 +44,7 @@ let workerIntervalId = null; // Store interval ID for cleanup
 let currentWorkerIntervalMs = WORKER_INTERVAL_MS;
 let cachedScenario = null;
 let configCheckIntervalId = null; // Für Config-Datei-Überwachung
+let wasWaitingForRoles = false; // Tracking ob wir auf Rollen gewartet haben
 // Pfad zu deinen echten Daten:
 // Wir gehen davon aus, dass du den Worker IMMER aus dem server-Ordner startest:
 //   cd C:\kanban41\server
@@ -1143,13 +1145,53 @@ async function runOnce() {
   // Zuerst roles.json synchronisieren
   const { active, missing } = await syncRolesFile();
 
+  // Prüfe ob activeRoles leer sind - wenn ja, pausiere Zeit und überspringe Schritt
+  const noActiveRoles = !active || active.length === 0;
+
+  if (noActiveRoles) {
+    // Nur einmal loggen wenn Status wechselt
+    if (!wasWaitingForRoles) {
+      log("Keine aktiven Rollen vorhanden – warte auf Rollen, Zeit wird pausiert.");
+      wasWaitingForRoles = true;
+    }
+
+    // Dem Server mitteilen, dass wir auf Rollen warten (pausiert die Zeit)
+    try {
+      await fetch(CHATBOT_WAITING_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ waiting: true })
+      });
+    } catch (err) {
+      log("Fehler beim Setzen von waitingForRoles:", err?.message || err);
+    }
+
+    // Schritt überspringen, aber Worker weiter laufen lassen um auf Rollen zu warten
+    return;
+  }
+
+  // Rollen sind wieder aktiv - Zeit wieder aktivieren wenn wir gewartet haben
+  if (wasWaitingForRoles) {
+    log("Rollen wieder aktiv – Simulation wird fortgesetzt.");
+    wasWaitingForRoles = false;
+
+    try {
+      await fetch(CHATBOT_WAITING_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ waiting: false })
+      });
+    } catch (err) {
+      log("Fehler beim Zurücksetzen von waitingForRoles:", err?.message || err);
+    }
+  }
 
   isRunning = true;
   const startTime = Date.now();
-  
+
   try {
     await logGpuStatus();
-    
+
     const scenario = await fetchActiveScenario();
     if (scenario?.id !== cachedScenario?.id) {
       log("Aktives Szenario geändert:", scenario?.id || "kein Szenario");
@@ -1410,6 +1452,9 @@ async function startWorker() {
   // Lade initiale Config
   const config = await loadWorkerConfig();
   currentWorkerIntervalMs = config.intervalMs;
+
+  // Reset waiting status beim Start
+  wasWaitingForRoles = false;
 
   log("Chatbot-Worker gestartet, Intervall:", currentWorkerIntervalMs, "ms");
   runOnce();
