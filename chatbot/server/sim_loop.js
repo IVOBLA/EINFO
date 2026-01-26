@@ -32,6 +32,7 @@ import {
   isMeldestelle,
   normalizeRole
 } from "./field_mapper.js";
+import { syncRolesFile } from "./roles_sync.js";
 
 // Neue Module (Verbesserungen)
 import { simulationState } from "./simulation_state.js";
@@ -663,12 +664,23 @@ export async function stepSimulation(options = {}) {
     : [];
 
   try {
+    // ============================================================
+    // ROLLEN-SYNCHRONISATION: Aktuelle Online-Rollen vom Server holen
+    // Stellt sicher dass neu angemeldete Rollen vor dem Schritt erkannt werden
+    // ============================================================
+    await syncRolesFile();
+
     const einfoData = await readEinfoInputs();
     const { roles, board, aufgaben, protokoll } = einfoData;
     setEinfoSnapshot({ aufgaben, protokoll });
 
     // Aktualisiere die Rollen im SimulationState
     simulationState.updateRoles(roles);
+
+    logDebug("Aktive Rollen für Simulationsschritt", {
+      active: roles.active,
+      missing: roles.missing
+    });
 
     const { delta: boardDelta, snapshot: boardSnapshot } = buildDelta(
       board,
