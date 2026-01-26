@@ -21,7 +21,7 @@ const __dirname = path.dirname(__filename);
 // ============================================================
 
 // URL zum EINFO Haupt-Server
-const MAIN_SERVER_URL = process.env.MAIN_SERVER_URL || "http://localhost:4040";
+const MAIN_SERVER_URL = process.env.MAIN_SERVER_URL || "http://localhost:4000";
 const ONLINE_ROLES_ENDPOINT = "/api/user/online-roles";
 
 // Pfad zur roles.json - muss zum server/data Verzeichnis zeigen (wie CONFIG.dataDir)
@@ -120,10 +120,18 @@ export async function fetchOnlineRoles() {
   } catch (err) {
     // Bei Fehler: Leeres Array zurückgeben
     // Das bedeutet: ALLE Stabsstellen werden simuliert
+    const isNetworkError = err.name === "AbortError" ||
+                           err.message?.includes("fetch failed") ||
+                           err.message?.includes("ECONNREFUSED") ||
+                           err.message?.includes("ENOTFOUND");
+
     log("error", "Fehler beim Abrufen der Online-Rollen", {
       url,
       error: err.message,
-      hint: "Alle Stabsstellen werden simuliert"
+      errorType: isNetworkError ? "NETWORK_ERROR" : "UNKNOWN_ERROR",
+      hint: isNetworkError
+        ? `Haupt-Server nicht erreichbar unter ${url}. Prüfen Sie ob der Server läuft.`
+        : "Alle Stabsstellen werden simuliert"
     });
 
     return [];

@@ -9,10 +9,10 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
-    // Optional: API-Proxy auf deinen Express-Server (http://localhost:4040)
+    // Optional: API-Proxy auf deinen Express-Server (http://localhost:4000)
     proxy: {
       '/api': {
-        target: 'http://localhost:4040',
+        target: 'http://localhost:4000',
         changeOrigin: true,
         // falls du Cookies/Auth hast:
         // cookieDomainRewrite: 'localhost'

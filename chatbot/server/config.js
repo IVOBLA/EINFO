@@ -248,7 +248,7 @@ export const simulationConfig = {
     workerIntervalMs: Number(process.env.SIM_WORKER_INTERVAL_MS || "60000"),
     maxRetries: Number(process.env.SIM_MAX_RETRIES || "3"),
     retryDelayMs: Number(process.env.SIM_RETRY_DELAY_MS || "5000"),
-    mainServerUrl: process.env.MAIN_SERVER_URL || "http://localhost:4040",
+    mainServerUrl: process.env.MAIN_SERVER_URL || "http://localhost:4000",
     onlineRolesEndpoint: "/api/user/online-roles"
   }
   // HINWEIS: Feldnamen-Mapping, Rollen und Feuerwehr-Standorte sind in
