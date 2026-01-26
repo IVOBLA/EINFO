@@ -1201,6 +1201,14 @@ async function runOnce() {
           continue;
         }
 
+        // BUGFIX: Auch bei HTTP-Fehler auf Timeout prüfen und Worker beenden
+        // Der Server gibt HTTP 500 mit reason="timeout" zurück wenn die Zeit abgelaufen ist
+        if (reason === "timeout" || reason === "not_running") {
+          log(`Simulation beendet (${reason}) – Worker wird beendet.`);
+          stopWorker();
+          process.exit(0);
+        }
+
         log("HTTP-Fehler:", res.status, bodyText.slice(0, 200));
         break;  // Fehler: Verlasse Schleife korrekt
       }
