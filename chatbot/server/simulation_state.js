@@ -24,6 +24,9 @@ export class SimulationState {
     this.missingRoles = []; // Zu simulierende Rollen
     this.stoppedReason = null; // Grund für Simulation-Stop (z.B. "timeout", "manual")
     this.stoppedAt = null; // Zeitpunkt des Stops
+    this.waitingForRoles = false; // Wartet auf aktive Rollen
+    this.totalPausedMs = 0; // Gesamte pausierte Zeit in ms
+    this.lastPausedAt = null; // Zeitpunkt wann zuletzt pausiert wurde
   }
 
   /**
@@ -45,6 +48,9 @@ export class SimulationState {
       this.stepCount = 0;
       this.lastSnapshot = null;
       this.lastCompressedBoard = "[]";
+      this.waitingForRoles = false;
+      this.totalPausedMs = 0;
+      this.lastPausedAt = null;
     } else if (!this.startTime) {
       this.startTime = Date.now();
     }
@@ -65,6 +71,48 @@ export class SimulationState {
       elapsedMinutes: this.elapsedMinutes,
       stepCount: this.stepCount
     });
+  }
+
+  /**
+   * Setzt den waitingForRoles-Status (pausiert die Zeit)
+   * @param {boolean} waiting - ob auf Rollen gewartet wird
+   */
+  setWaitingForRoles(waiting) {
+    if (waiting && !this.waitingForRoles) {
+      // Starte Pause-Timer
+      this.waitingForRoles = true;
+      this.lastPausedAt = Date.now();
+      logInfo("Simulation wartet auf aktive Rollen", {
+        elapsedMinutes: this.elapsedMinutes,
+        stepCount: this.stepCount
+      });
+    } else if (!waiting && this.waitingForRoles) {
+      // Beende Pause-Timer und addiere pausierte Zeit
+      this.waitingForRoles = false;
+      if (this.lastPausedAt) {
+        this.totalPausedMs += Date.now() - this.lastPausedAt;
+        this.lastPausedAt = null;
+      }
+      logInfo("Simulation fortgesetzt - Rollen wieder aktiv", {
+        totalPausedMs: this.totalPausedMs
+      });
+    }
+  }
+
+  /**
+   * Berechnet die effektive Laufzeit (ohne pausierte Zeit)
+   * @returns {number} Effektive Laufzeit in Millisekunden
+   */
+  getEffectiveUptime() {
+    if (!this.startTime) return 0;
+    let uptime = Date.now() - this.startTime;
+    // Abzug der gesamten pausierten Zeit
+    uptime -= this.totalPausedMs;
+    // Wenn aktuell pausiert, auch die aktuelle Pause abziehen
+    if (this.waitingForRoles && this.lastPausedAt) {
+      uptime -= (Date.now() - this.lastPausedAt);
+    }
+    return Math.max(0, uptime);
   }
 
   /**
@@ -104,6 +152,9 @@ export class SimulationState {
     this.lastCompressedBoard = "[]";
     this.stoppedReason = null;
     this.stoppedAt = null;
+    this.waitingForRoles = false;
+    this.totalPausedMs = 0;
+    this.lastPausedAt = null;
 
     logDebug("Simulation State zurückgesetzt");
   }
@@ -172,6 +223,9 @@ export class SimulationState {
       missingRoles: this.missingRoles,
       stoppedReason: this.stoppedReason,
       stoppedAt: this.stoppedAt,
+      waitingForRoles: this.waitingForRoles,
+      totalPausedMs: this.totalPausedMs,
+      lastPausedAt: this.lastPausedAt,
       // lastSnapshot ist zu groß für Serialisierung
     };
   }
@@ -197,6 +251,9 @@ export class SimulationState {
       missingRoles: data.missingRoles || [],
       stoppedReason: data.stoppedReason || null,
       stoppedAt: data.stoppedAt || null,
+      waitingForRoles: data.waitingForRoles || false,
+      totalPausedMs: data.totalPausedMs || 0,
+      lastPausedAt: data.lastPausedAt || null,
       lastSnapshot: null // Muss neu geladen werden
     });
     return state;
@@ -228,7 +285,9 @@ export class SimulationState {
       stoppedReason: this.stoppedReason,
       stoppedAt: this.stoppedAt,
       startTime: this.startTime,
-      uptime: this.startTime ? Date.now() - this.startTime : 0,
+      uptime: this.getEffectiveUptime(),
+      waitingForRoles: this.waitingForRoles,
+      totalPausedMs: this.totalPausedMs,
       activeRoles: this.activeRoles,
       missingRoles: this.missingRoles
     };

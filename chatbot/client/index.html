@@ -477,6 +477,14 @@
           <div class="stat-value" id="stat-duration">0:00</div>
           <div class="stat-label">Dauer</div>
         </div>
+        <div class="stat-item" id="stat-remaining-container" style="display: none;">
+          <div class="stat-value" id="stat-remaining">--:--</div>
+          <div class="stat-label">Restzeit</div>
+        </div>
+        <div class="stat-item" id="stat-waiting-container" style="display: none;">
+          <div class="stat-value" id="stat-waiting" style="color: #f59e0b;">⏸</div>
+          <div class="stat-label">Wartet auf Rollen</div>
+        </div>
       </div>
 
       <h2 style="margin-top: 1rem;">Rollen-Status</h2>
@@ -642,6 +650,15 @@
     const statTasks = document.getElementById("stat-tasks");
     const statIncidents = document.getElementById("stat-incidents");
     const statDuration = document.getElementById("stat-duration");
+    const statRemainingContainer = document.getElementById("stat-remaining-container");
+    const statRemaining = document.getElementById("stat-remaining");
+    const statWaitingContainer = document.getElementById("stat-waiting-container");
+
+    // Zusätzlicher State für Simulation
+    let timeRemaining = null; // Restzeit in Minuten (aus Szenario)
+    let durationMinutes = null; // Gesamtdauer des Szenarios
+    let waitingForRoles = false; // Ob Simulation auf Rollen wartet
+    let totalPausedMs = 0; // Gesamte pausierte Zeit in ms (vom Server)
 
     // Chat
     const chatInput = document.getElementById("chat-input");
@@ -717,6 +734,22 @@
       eventSource.addEventListener("audit_event", (e) => {
         const event = JSON.parse(e.data);
         handleAuditEvent(event);
+      });
+
+      eventSource.addEventListener("roles_status_changed", (e) => {
+        const data = JSON.parse(e.data);
+        waitingForRoles = !!data.waitingForRoles;
+        totalPausedMs = data.totalPausedMs || 0;
+
+        if (waitingForRoles) {
+          addEventToLog("simulation", "Wartet auf aktive Rollen – Zeit pausiert");
+          stopDurationTimer();
+        } else {
+          addEventToLog("simulation", "Rollen wieder aktiv – Simulation fortgesetzt");
+          startDurationTimer();
+        }
+
+        updateStats();
       });
 
       eventSource.onmessage = (e) => {
@@ -956,6 +989,39 @@
       statProtocols.textContent = statistics.protocolsCreated || 0;
       statTasks.textContent = statistics.tasksCreated || 0;
       statIncidents.textContent = statistics.incidentsCreated || 0;
+
+      // Restzeit anzeigen wenn Szenario mit Zeitlimit aktiv ist
+      if (timeRemaining !== null && durationMinutes !== null) {
+        statRemainingContainer.style.display = "";
+        statRemaining.textContent = formatMinutes(timeRemaining);
+        // Farbkodierung: rot wenn < 10 Minuten, orange wenn < 30 Minuten
+        if (timeRemaining < 10) {
+          statRemaining.style.color = "#ef4444";
+        } else if (timeRemaining < 30) {
+          statRemaining.style.color = "#f59e0b";
+        } else {
+          statRemaining.style.color = "#38bdf8";
+        }
+      } else {
+        statRemainingContainer.style.display = "none";
+      }
+
+      // Wartet-auf-Rollen Status anzeigen
+      if (waitingForRoles) {
+        statWaitingContainer.style.display = "";
+      } else {
+        statWaitingContainer.style.display = "none";
+      }
+    }
+
+    function formatMinutes(minutes) {
+      if (minutes === null || minutes === undefined) return "--:--";
+      const h = Math.floor(minutes / 60);
+      const m = Math.round(minutes % 60);
+      if (h > 0) {
+        return `${h}:${m.toString().padStart(2, "0")}h`;
+      }
+      return `${m} Min`;
     }
 
     function appendSimLog(line) {
@@ -1103,8 +1169,10 @@
     function startDurationTimer() {
       stopDurationTimer();
       durationInterval = setInterval(() => {
-        if (startTime) {
-          statDuration.textContent = formatDuration(Date.now() - startTime);
+        if (startTime && !waitingForRoles) {
+          // Berechne effektive Laufzeit: Gesamtzeit minus pausierte Zeit
+          const effectiveUptime = Date.now() - startTime - totalPausedMs;
+          statDuration.textContent = formatDuration(Math.max(0, effectiveUptime));
         }
       }, 1000);
     }
@@ -1148,15 +1216,26 @@
         simulationRunning = !!simStatus.running;
         simulationPaused = !!simStatus.paused;
 
+        // Zeitbasierte Werte laden
+        timeRemaining = simStatus.timeRemaining;
+        durationMinutes = simStatus.durationMinutes;
+        waitingForRoles = !!simStatus.waitingForRoles;
+        totalPausedMs = simStatus.totalPausedMs || 0;
+
         if (simStatus.startTime) {
           startTime = simStatus.startTime;
           // Wenn Simulation gestoppt wurde, zeige die finale Dauer (stoppedAt - startTime)
           if (simStatus.stoppedAt && !simStatus.running && !simStatus.paused) {
             statDuration.textContent = formatDuration(simStatus.stoppedAt - startTime);
             stopDurationTimer();
+          } else if (waitingForRoles) {
+            // Wenn auf Rollen gewartet wird, zeige die pausierte Zeit (uptime vom Server)
+            statDuration.textContent = formatDuration(simStatus.uptime || 0);
+            stopDurationTimer(); // Timer stoppen, Zeit ist pausiert
           } else {
             // Simulation läuft oder ist pausiert - Timer weiterlaufen lassen
-            statDuration.textContent = formatDuration(Date.now() - startTime);
+            // Verwende uptime vom Server (berücksichtigt bereits pausierte Zeit)
+            statDuration.textContent = formatDuration(simStatus.uptime || 0);
             startDurationTimer();
           }
         } else {

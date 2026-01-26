@@ -516,6 +516,26 @@ app.post("/api/sim/start", async (req, res) => {
       });
     }
 
+    // Erster Schritt sofort ausführen (nur bei neuem Start, nicht bei Resume)
+    let firstStepResult = null;
+    if (!resumeRequested) {
+      logInfo("Führe ersten Simulationsschritt aus...");
+      try {
+        firstStepResult = await stepSimulation({ source: "initial" });
+        if (firstStepResult.ok) {
+          logInfo("Erster Simulationsschritt erfolgreich", {
+            stepCount: simulationState.stepCount
+          });
+        } else {
+          logError("Erster Simulationsschritt fehlgeschlagen", {
+            error: firstStepResult.error || firstStepResult.reason
+          });
+        }
+      } catch (err) {
+        logError("Fehler beim ersten Simulationsschritt", { error: String(err) });
+      }
+    }
+
     const activeScenario = getActiveScenario();
     const simStatus = simulationState.getStatus();
     res.json({
@@ -523,7 +543,8 @@ app.post("/api/sim/start", async (req, res) => {
       scenario: activeScenario ? { id: activeScenario.id, title: activeScenario.title } : null,
       workerStarted: workerResult.ok,
       workerError: workerResult.ok ? null : workerResult.error,
-      startTime: simStatus.startTime
+      startTime: simStatus.startTime,
+      firstStep: firstStepResult ? { ok: firstStepResult.ok, error: firstStepResult.error || firstStepResult.reason } : null
     });
   } catch (err) {
     logError("Fehler beim Starten der Simulation", { error: String(err) });
@@ -573,6 +594,31 @@ app.post("/api/sim/pause", async (req, res) => {
   }
 
   res.json({ ok: true });
+});
+
+// Endpunkt zum Setzen des waitingForRoles-Status (pausiert Zeit wenn keine Rollen aktiv)
+app.post("/api/sim/waiting-for-roles", (req, res) => {
+  const { waiting } = req.body || {};
+  const wasWaiting = simulationState.waitingForRoles;
+
+  if (typeof waiting === "boolean") {
+    simulationState.setWaitingForRoles(waiting);
+
+    // SSE-Broadcast über Statusänderung
+    if (waiting !== wasWaiting) {
+      broadcastSSE("roles_status_changed", {
+        waitingForRoles: waiting,
+        activeRoles: simulationState.activeRoles,
+        totalPausedMs: simulationState.totalPausedMs
+      });
+    }
+  }
+
+  res.json({
+    ok: true,
+    waitingForRoles: simulationState.waitingForRoles,
+    totalPausedMs: simulationState.totalPausedMs
+  });
 });
 
 app.post("/api/sim/step", async (req, res) => {
