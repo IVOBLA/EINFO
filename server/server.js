@@ -58,7 +58,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app  = express();
-const PORT = process.env.PORT || 4040;
+const PORT = process.env.PORT || 4000;
 const SECURE_COOKIES = process.env.KANBAN_COOKIE_SECURE === "1";
 
 const ROOT      = path.join(__dirname);
