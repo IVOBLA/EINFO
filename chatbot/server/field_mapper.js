@@ -201,7 +201,6 @@ function addProtocolDefaults(entry) {
     // Weitere Pflichtfelder mit leeren Defaults
     ergehtAn: entry.ergehtAn || [],
     rueckmeldung1: entry.rueckmeldung1 || "",
-    rueckmeldung2: entry.rueckmeldung2 || "",
     lagebericht: entry.lagebericht || "",
 
     // Maßnahmen-Array (5 leere Slots)
