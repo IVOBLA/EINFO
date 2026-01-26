@@ -23,6 +23,8 @@ import { forbiddenError, notifyForbidden } from "../../forbidden.js";
 import { ensureValidDueOffset, getFallbackDueOffsetMinutes } from "../utils/defaultDueOffset.js";
 import CornerHelpLogout from "../components/CornerHelpLogout.jsx";
 import useOnlineRoles from "../hooks/useOnlineRoles.js";
+import useSimulationStatus from "../hooks/useSimulationStatus.js";
+import SimulationActiveIcon from "../components/SimulationActiveIcon.jsx";
 
 const STATUS = { NEW: "Neu", IN_PROGRESS: "In Bearbeitung", DONE: "Erledigt" };
 const COLS = [STATUS.NEW, STATUS.IN_PROGRESS, STATUS.DONE];
@@ -244,6 +246,8 @@ export default function AufgApp() {
   const [aufgabenConfig, setAufgabenConfig] = useState(() => ({
     defaultDueOffsetMinutes: FALLBACK_DUE_OFFSET_MINUTES,
   }));
+  const simulationStatus = useSimulationStatus();
+  const simulationActive = simulationStatus.running || simulationStatus.paused;
 
 
   const user = getCurrentUser();
@@ -860,7 +864,10 @@ export default function AufgApp() {
       <header className="mb-4 flex flex-col gap-3">
         <div className="flex flex-wrap items-center gap-3 w-full">
           <div className="flex items-center gap-3">
-            <h1 className="text-lg font-bold">Aufgaben</h1>
+            <h1 className="text-lg font-bold flex items-center gap-2">
+              {simulationActive && <SimulationActiveIcon className="h-5 w-5" />}
+              <span>Aufgaben</span>
+            </h1>
             <div className="flex items-center gap-2 text-xs">
               <span className="text-gray-600">Rolle:</span>
               <select

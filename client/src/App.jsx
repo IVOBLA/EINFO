@@ -22,12 +22,14 @@ import ProtokollOverview from "./pages/ProtokollOverview.jsx";
 import ProtokollPage from "./pages/ProtokollPage.jsx";
 import { useUserAuth } from "./components/User_AuthProvider.jsx";
 import useOnlineRoles from "./hooks/useOnlineRoles.js";
+import useSimulationStatus from "./hooks/useSimulationStatus.js";
 
 // Start/Stop + Import (Icon & Button)
 import FFFetchControl from "./components/FFFetchControl.jsx";
 import { initRolePolicy, canEditApp, hasRole } from "./auth/roleUtils";
 import StatusPage from "./StatusPage.jsx";
 import CornerHelpLogout from "./components/CornerHelpLogout.jsx";
+import SimulationActiveIcon from "./components/SimulationActiveIcon.jsx";
 
 import {
   fetchBoard,
@@ -164,6 +166,8 @@ export default function App() {
   if (typeof window !== "undefined" && window.location.pathname === "/status") {
   return <StatusPage />;
 }
+  const simulationStatus = useSimulationStatus();
+  const simulationActive = simulationStatus.running || simulationStatus.paused;
 
   // role gating
 const [policyReady, setPolicyReady] = useState(false);
@@ -1972,7 +1976,10 @@ if (route.startsWith("/protokoll")) {
         navButtons={getNavButtons("meldestelle")}
       />
       <header className="flex flex-wrap items-center justify-between gap-3 p-3 border-b bg-white shadow">
-        <h1 className="text-xl font-bold">Meldungsübersicht</h1>
+        <h1 className="text-xl font-bold flex items-center gap-2">
+          {simulationActive && <SimulationActiveIcon className="h-5 w-5" />}
+          <span>Meldungsübersicht</span>
+        </h1>
         <div className="flex flex-1 flex-wrap items-center justify-end gap-2 min-w-0">
   <input
     id="protocolSearch"
@@ -2043,7 +2050,10 @@ if (route.startsWith("/protokoll")) {
 
       <header className="flex flex-wrap items-center justify-between gap-3 mb-2">
         <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-xl md:text-2xl font-bold">Einsatzstellen-Übersicht-Feuerwehr</h1>
+          <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+            {simulationActive && <SimulationActiveIcon className="h-5 w-5" />}
+            <span>Einsatzstellen-Übersicht-Feuerwehr</span>
+          </h1>
           <div
             title={`Quelle: ${importInfo.file || "list_filtered.json"}`}
             className="inline-flex items-center h-9 rounded-full px-3 py-1.5 text-sm border bg-white text-gray-700"
