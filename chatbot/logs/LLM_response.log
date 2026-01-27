@@ -1,5 +1,5 @@
 {
-  "ts": "2026-01-26T19:16:36.362Z",
+  "ts": "2026-01-27T09:42:35.992Z",
   "type": "LLM",
   "phase": "response",
   "model": "einfo-balanced:latest",
@@ -11,142 +11,19 @@
 rawResponse:
 {
   "model": "einfo-balanced:latest",
-  "created_at": "2026-01-26T19:16:36.360890763Z",
+  "created_at": "2026-01-27T09:42:35.991871283Z",
   "message": {
     "role": "assistant",
-    "content": "{\n  \"operations\": [\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"data\": [\n        {\"name\": \"Brand in Wohnhaus\", \"address\": \"Gemeindegebiet Steuerberg\", \"description\": \"Ein Brand bricht im zweiten Stock eines Wohnhauses aus.\", \"severity\": 3},\n        {\"name\": \"Verkehrsunfall mit Verletzten\", \"address\": \"Ragendorf - Hauptstraße\", \"description\": \"An der Kreuzung Hauptstraße/Eisenbahnstraße liegt ein schwerer Unfall vor, Fahrzeuge sind kollidiert.\", \"severity\": 4},\n        {\"name\": \"Gasleck in Industrieanlage\", \"address\": \"Gemeindegebiet Steuerberg\", \"description\": \"Ein Gasleck wurde bei einer nahegelegenen Industrieanlage gemeldet. Es besteht eine Explosiongefahr.\", \"severity\": 5}\n      ]\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"data\": [\n        {\"infoTyp\": \"Lagemeldung\", \"richtung\": \"ein\", \"sender\": \"POL Steuerberg\", \"text\": \"Verkehrsaufkommen in der Gemeindegebiet Steuerberg ist stark erhöht. Bitte evakuieren Sie die nahegelegene Schule.\"},\n        {\"infoTyp\": \"Lagemeldung\", \"richtung\": \"ein\", \"sender\": \"RK Steuerberg\", \"text\": \"Sanitätseinsatz für Verletzte am Unfallort Hauptstraße/Eisenbahnstraße. Bitte Bereitschaftswagen bereitstellen.\"},\n        {\"infoTyp\": \"Info\", \"richtung\": \"ein\", \"sender\": \"BH Steuerberg\", \"text\": \"Bitte alle Ressourcen zur Verfügung stellen, die notwendig sind für den Brandbekämpfungseinsatz in der Gemeindegebiet Steuerberg.\"}\n      ]\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"data\": [\n        {\"assignedBy\": \"LtStb\", \"responsible\": \"S1\", \"text\": \"Bitte Personalplanung für den Brandbekämpfungseinsatz in der Gemeindegebiet Steuerberg vorbereiten.\"},\n        {\"assignedBy\": \"LtStb\", \"responsible\": \"S3\", \"text\": \"Einsatzleitung für das Verkehrsunfall mit Verletzten am Unfallort Hauptstraße/Eisenbahnstraße organisieren und durchführen.\"}\n      ]\n    },\n    {\n      \"type\": \"aufgaben.update\",\n      \"data\": [\n        {\"id\": 1, \"status\": \"inProgress\", \"text\": \"Personalplanung für den Brandbekämpfungseinsatz in der Gemeindegebiet Steuerberg wird vorbereitet.\"},\n        {\"id\": 2, \"status\": \"done\", \"text\": \"Einsatzleitung für das Verkehrsunfall mit Verletzten am Unfallort Hauptstraße/Eisenbahnstraße wurde erfolgreich durchgeführt.\"}\n      ]\n    }\n  ]\n}"
+    "content": "{\n  \"operations\": {\n    \"board\": {\"createIncidentSites\": [{\"content\": \"Massenkarambolage B317\", \"status\": \"aktiv\", \"ort\": \"B317 km 12, Höhe Steuerberg\", \"description\": \"7 PKW und 1 LKW in Massenkarambolage verwickelt. Mindestens 4 verletzte Personen, LKW blockiert beide Fahrspuren.\", \"latitude\": null, \"longitude\": null, \"typ\": \"T4\", \"humanId\": \"E-1\", \"alerted\": true, \"assignedVehicles\": []},\n                                      {\"content\": \"Dachlawine auf Fahrzeuge\", \"status\": \"aktiv\", \"ort\": \"Hauptplatz 8, Feldkirchen\", \"description\": \"Schneemassen von Geschäftsdach auf 2 geparkte PKW gestürzt. Personen in Fahrzeugen eingeschlossen, unverletzt aber in Panik.\", \"latitude\": null, \"longitude\": null, \"typ\": \"T3\", \"humanId\": \"E-2\", \"alerted\": true, \"assignedVehicles\": []},\n                                      {\"content\": \"Altenheim ohne Strom\", \"status\": \"aktiv\", \"ort\": \"Seniorenheim Sonnenhof, Himmelberg\", \"description\": \"42 Bewohner, davon 8 auf Sauerstoff angewiesen. Notstromaggregat springt nicht an.\", \"latitude\": null, \"longitude\": null, \"typ\": \"T3\", \"humanId\": \"E-3\", \"alerted\": true, \"assignedVehicles\": []},\n                                      {\"content\": \"Linienbus eingeschneit\", \"status\": \"aktiv\", \"ort\": \"L95, Abzweigung Gnesau\", \"description\": \"Schulbus mit 23 Kindern (8-12 Jahre) steckt in Schneeverwehung fest. Kinder frieren.\", \"latitude\": null, \"longitude\": null, \"typ\": \"T2\", \"humanId\": \"E-4\", \"alerted\": true, \"assignedVehicles\": []},\n                                      {\"content\": \"Dacheinsturzgefahr Supermarkt\", \"status\": \"aktiv\", \"ort\": \"Einkaufszentrum Feldkirchen-Süd\", \"description\": \"Statiker meldet akute Einsturzgefahr durch Schneelast. Ca. 60 Kunden und 15 Mitarbeiter im Gebäude.\", \"latitude\": null, \"longitude\": null, \"typ\": \"T3\", \"humanId\": \"E-5\", \"alerted\": true, \"assignedVehicles\": []},\n                                      {\"content\": \"Stromleitung gerissen\", \"status\": \"aktiv\", \"ort\": \"Glödnitzer Straße, Deutsch-Griffen\", \"description\": \"Freileitung unter Schneelast gerissen, liegt quer über Gemeindestraße. Funkenflug beobachtet.\", \"latitude\": null, \"longitude\": null, \"typ\": \"T3\", \"humanId\": \"E-6\", \"alerted\": true, \"assignedVehicles\": []}]},\n    \"aufgaben\": {\"create\": [{\"title\": \"Rettungskräfte zur Massenkarambolage B317 entsenden\", \"responsible\": \"Feuerwehr Feldkirchen\", \"status\": \"offen\", \"desc\": \"Sofortige Rettungsmaßnahmen durchführen und Verletzte evakuieren.\", \"priority\": 2, \"assignedBy\": \"Einsatzleiter\"},\n                            {\"title\": \"Notstromversorgung für Altenheim Sonnenhof organisieren\", \"responsible\": \"Technisches Hilfswerk Feldkirchen\", \"status\": \"offen\", \"desc\": \"Sofortige Notstromversorgung durchführen und Heizungsanlage reparieren.\", \"priority\": 1, \"assignedBy\": \"Einsatzleiter\"},\n                            {\"title\": \"Kinder aus eingeschneiten Schulbus befreien\", \"responsible\": \"Feuerwehr Gnesau\", \"status\": \"offen\", \"desc\": \"Sofortige Befreiungsmaßnahmen durchführen und Kinder sicherstellen.\", \"priority\": 1, \"assignedBy\": \"Einsatzleiter\"}]},\n    \"protokoll\": {\"create\": [{\"information\": \"Katastrophenalarm um 05:30 Uhr ausgerufen\", \"infoTyp\": \"Alarmierung\", \"anvon\": null, \"ergehtAn\": null, \"richtung\": null},\n                             {\"information\": \"Bundesheer wurde angefordert und wird in 90 Minuten eintreffen.\", \"infoTyp\": \"Ressourcenplanung\", \"anvon\": null, \"ergehtAn\": null, \"richtung\": null}]}\n  },\n  \"analysis\": \"...\",\n  \"meta\": {\"historySummary\": \"...\", \"historyState\": {}}\n}"
   },
   "done": true,
   "done_reason": "stop",
-  "total_duration": 125143374951,
-  "load_duration": 65004245,
-  "prompt_eval_count": 4096,
-  "prompt_eval_duration": 9021536344,
-  "eval_count": 653,
-  "eval_duration": 105776319579
-}
-parsedResponse:
-{
-  "operations": [
-    {
-      "type": "board.createIncidentSites",
-      "data": [
-        {
-          "name": "Brand in Wohnhaus",
-          "address": "Gemeindegebiet Steuerberg",
-          "description": "Ein Brand bricht im zweiten Stock eines Wohnhauses aus.",
-          "severity": 3
-        },
-        {
-          "name": "Verkehrsunfall mit Verletzten",
-          "address": "Ragendorf - Hauptstraße",
-          "description": "An der Kreuzung Hauptstraße/Eisenbahnstraße liegt ein schwerer Unfall vor, Fahrzeuge sind kollidiert.",
-          "severity": 4
-        },
-        {
-          "name": "Gasleck in Industrieanlage",
-          "address": "Gemeindegebiet Steuerberg",
-          "description": "Ein Gasleck wurde bei einer nahegelegenen Industrieanlage gemeldet. Es besteht eine Explosiongefahr.",
-          "severity": 5
-        }
-      ]
-    },
-    {
-      "type": "protokoll.create",
-      "data": [
-        {
-          "infoTyp": "Lagemeldung",
-          "richtung": "ein",
-          "sender": "POL Steuerberg",
-          "text": "Verkehrsaufkommen in der Gemeindegebiet Steuerberg ist stark erhöht. Bitte evakuieren Sie die nahegelegene Schule."
-        },
-        {
-          "infoTyp": "Lagemeldung",
-          "richtung": "ein",
-          "sender": "RK Steuerberg",
-          "text": "Sanitätseinsatz für Verletzte am Unfallort Hauptstraße/Eisenbahnstraße. Bitte Bereitschaftswagen bereitstellen."
-        },
-        {
-          "infoTyp": "Info",
-          "richtung": "ein",
-          "sender": "BH Steuerberg",
-          "text": "Bitte alle Ressourcen zur Verfügung stellen, die notwendig sind für den Brandbekämpfungseinsatz in der Gemeindegebiet Steuerberg."
-        }
-      ]
-    },
-    {
-      "type": "aufgaben.create",
-      "data": [
-        {
-          "assignedBy": "LtStb",
-          "responsible": "S1",
-          "text": "Bitte Personalplanung für den Brandbekämpfungseinsatz in der Gemeindegebiet Steuerberg vorbereiten."
-        },
-        {
-          "assignedBy": "LtStb",
-          "responsible": "S3",
-          "text": "Einsatzleitung für das Verkehrsunfall mit Verletzten am Unfallort Hauptstraße/Eisenbahnstraße organisieren und durchführen."
-        }
-      ]
-    },
-    {
-      "type": "aufgaben.update",
-      "data": [
-        {
-          "id": 1,
-          "status": "inProgress",
-          "text": "Personalplanung für den Brandbekämpfungseinsatz in der Gemeindegebiet Steuerberg wird vorbereitet."
-        },
-        {
-          "id": 2,
-          "status": "done",
-          "text": "Einsatzleitung für das Verkehrsunfall mit Verletzten am Unfallort Hauptstraße/Eisenbahnstraße wurde erfolgreich durchgeführt."
-        }
-      ]
-    }
-  ]
-}
-{
-  "ts": "2026-01-26T19:19:29.560Z",
-  "type": "LLM",
-  "phase": "response_error",
-  "model": "einfo-balanced:latest",
-  "extra": {
-    "phase": "ops",
-    "error": "AbortError: This operation was aborted",
-    "messageCount": 2
-  }
-}
-rawResponse:
-AbortError: This operation was aborted
-parsedResponse:
-null
-{
-  "ts": "2026-01-26T19:23:30.373Z",
-  "type": "LLM",
-  "phase": "response",
-  "model": "einfo-balanced:latest",
-  "extra": {
-    "phase": "ops",
-    "messageCount": 2
-  }
-}
-rawResponse:
-{
-  "model": "einfo-balanced:latest",
-  "created_at": "2026-01-26T19:23:30.372976437Z",
-  "message": {
-    "role": "assistant",
-    "content": "{\n  \"operations\": {\n    \"board\": {\"createIncidentSites\": [{\"content\": \"Massenkarambolage B317\", \"status\": \"offen\", \"ort\": \"B317 km 12, Höhe Steuerberg\", \"description\": \"7 PKW und 1 LKW in Massenkarambolage verwickelt. Mindestens 4 verletzte Personen, LKW blockiert beide Fahrspuren.\", \"latitude\": null, \"longitude\": null, \"typ\": \"T4\", \"humanId\": \"E-1\", \"alerted\": true, \"assignedVehicles\": []},\n                                      {\"content\": \"Dachlawine auf Fahrzeuge\", \"status\": \"offen\", \"ort\": \"Hauptplatz 8, Feldkirchen\", \"description\": \"Schneemassen von Geschäftsdach auf 2 geparkte PKW gestürzt. Personen in Fahrzeugen eingeschlossen, unverletzt aber in Panik.\", \"latitude\": null, \"longitude\": null, \"typ\": \"T3\", \"humanId\": \"E-2\", \"alerted\": true, \"assignedVehicles\": []},\n                                      {\"content\": \"Altenheim ohne Strom\", \"status\": \"offen\", \"ort\": \"Seniorenheim Sonnenhof, Himmelberg\", \"description\": \"42 Bewohner, davon 8 auf Sauerstoff angewiesen. Notstromaggregat springt nicht an.\", \"latitude\": null, \"longitude\": null, \"typ\": \"T3\", \"humanId\": \"E-3\", \"alerted\": true, \"assignedVehicles\": []},\n                                      {\"content\": \"Linienbus eingeschneit\", \"status\": \"offen\", \"ort\": \"L95, Abzweigung Gnesau\", \"description\": \"Schulbus mit 23 Kindern (8-12 Jahre) steckt in Schneeverwehung fest. Kinder frieren.\", \"latitude\": null, \"longitude\": null, \"typ\": \"T2\", \"humanId\": \"E-4\", \"alerted\": true, \"assignedVehicles\": []},\n                                      {\"content\": \"Dacheinsturzgefahr Supermarkt\", \"status\": \"offen\", \"ort\": \"Einkaufszentrum Feldkirchen-Süd\", \"description\": \"Statiker meldet akute Einsturzgefahr durch Schneelast. Ca. 60 Kunden und 15 Mitarbeiter im Gebäude.\", \"latitude\": null, \"longitude\": null, \"typ\": \"T3\", \"humanId\": \"E-5\", \"alerted\": true, \"assignedVehicles\": []},\n                                      {\"content\": \"Stromleitung gerissen\", \"status\": \"offen\", \"ort\": \"Glödnitzer Straße, Deutsch-Griffen\", \"description\": \"Freileitung unter Schneelast gerissen, liegt quer über Gemeindestraße. Funkenflug beobachtet.\", \"latitude\": null, \"longitude\": null, \"typ\": \"T3\", \"humanId\": \"E-6\", \"alerted\": true, \"assignedVehicles\": []}]},\n    \"aufgaben\": {\"create\": [{\"title\": \"Rettungskräfte zur Massenkarambolage B317 entsenden\", \"responsible\": \"S2\", \"status\": \"offen\", \"desc\": \"Zwei Rettungsstreifen mit 4 Fahrzeugen und Notfallausrüstungen zu Einsatzort schicken.\", \"priority\": \"hoch\", \"assignedBy\": \"EINFO\"},\n                            {\"title\": \"Notstromversorgung für Altenheim Sonnenhof organisieren\", \"responsible\": \"S3\", \"status\": \"offen\", \"desc\": \"Kontakt mit Notfallorganisation aufnehmen und Generator zur Verfügung stellen.\", \"priority\": \"hoch\", \"assignedBy\": \"EINFO\"},\n                            {\"title\": \"Evakuierung des Supermarktes durchführen\", \"responsible\": \"S4\", \"status\": \"offen\", \"desc\": \"Alle Kunden und Mitarbeiter sicher aus dem Gebäude geleiten. Evakuierungsplan nachvollziehbar.\", \"priority\": \"mittel\", \"assignedBy\": \"EINFO\"},\n                            {\"title\": \"Kinder im eingeschneiten Bus evakuieren\", \"responsible\": \"S5\", \"status\": \"offen\", \"desc\": \"Spezialfahrzeug mit Schaufeln und Heizdecken zur Unterstützung.\", \"priority\": \"hoch\", \"assignedBy\": \"EINFO\"},\n                            {\"title\": \"Kommunikation mit Bevölkerung aufbauen\", \"responsible\": \"S6\", \"status\": \"offen\", \"desc\": \"Informationen über aktuelle Lage und Maßnahmen verbreiten.\", \"priority\": \"mittel\", \"assignedBy\": \"EINFO\"}]},\n    \"protokoll\": {\"create\": [{\"information\": \"Katastrophenalarm um 05:30 Uhr ausgerufen. Extremere Schneefälle erwartet.\", \"infoTyp\": \"Information\", \"anvon\": \"Leitstelle Feldkirchen\", \"ergehtAn\": \"EINFO-Bezirksstab\"},\n                             {\"information\": \"Bundesheer wurde angefordert, Eintreffen in 90 Minuten erwartet. Kettenfahrzeuge für kritische Zufahrten.\", \"infoTyp\": \"Information\", \"anvon\": \"Leitstelle Feldkirchen\", \"ergehtAn\": \"EINFO-Bezirksstab\"},\n                             {\"information\": \"Stromausfall in Gnesau und Glödnitz. Priorisierung Altenheime und medizinische Einrichtungen.\", \"infoTyp\": \"Information\", \"anvon\": \"Leitstelle Feldkirchen\", \"ergehtAn\": \"EINFO-Bezirksstab\"}]}\n}  \n   \n  }"
-  },
-  "done": true,
-  "done_reason": "stop",
-  "total_duration": 239808213319,
-  "load_duration": 65040760,
-  "prompt_eval_count": 2379,
-  "prompt_eval_duration": 160868485,
-  "eval_count": 1284,
-  "eval_duration": 219411387558
+  "total_duration": 165006321817,
+  "load_duration": 2207809505,
+  "prompt_eval_count": 2372,
+  "prompt_eval_duration": 4702298320,
+  "eval_count": 1077,
+  "eval_duration": 141082831150
 }
 parsedResponse:
 {
@@ -155,7 +32,7 @@ parsedResponse:
       "createIncidentSites": [
         {
           "content": "Massenkarambolage B317",
-          "status": "offen",
+          "status": "aktiv",
           "ort": "B317 km 12, Höhe Steuerberg",
           "description": "7 PKW und 1 LKW in Massenkarambolage verwickelt. Mindestens 4 verletzte Personen, LKW blockiert beide Fahrspuren.",
           "latitude": null,
@@ -167,7 +44,7 @@ parsedResponse:
         },
         {
           "content": "Dachlawine auf Fahrzeuge",
-          "status": "offen",
+          "status": "aktiv",
           "ort": "Hauptplatz 8, Feldkirchen",
           "description": "Schneemassen von Geschäftsdach auf 2 geparkte PKW gestürzt. Personen in Fahrzeugen eingeschlossen, unverletzt aber in Panik.",
           "latitude": null,
@@ -179,7 +56,7 @@ parsedResponse:
         },
         {
           "content": "Altenheim ohne Strom",
-          "status": "offen",
+          "status": "aktiv",
           "ort": "Seniorenheim Sonnenhof, Himmelberg",
           "description": "42 Bewohner, davon 8 auf Sauerstoff angewiesen. Notstromaggregat springt nicht an.",
           "latitude": null,
@@ -191,7 +68,7 @@ parsedResponse:
         },
         {
           "content": "Linienbus eingeschneit",
-          "status": "offen",
+          "status": "aktiv",
           "ort": "L95, Abzweigung Gnesau",
           "description": "Schulbus mit 23 Kindern (8-12 Jahre) steckt in Schneeverwehung fest. Kinder frieren.",
           "latitude": null,
@@ -203,7 +80,7 @@ parsedResponse:
         },
         {
           "content": "Dacheinsturzgefahr Supermarkt",
-          "status": "offen",
+          "status": "aktiv",
           "ort": "Einkaufszentrum Feldkirchen-Süd",
           "description": "Statiker meldet akute Einsturzgefahr durch Schneelast. Ca. 60 Kunden und 15 Mitarbeiter im Gebäude.",
           "latitude": null,
@@ -215,7 +92,7 @@ parsedResponse:
         },
         {
           "content": "Stromleitung gerissen",
-          "status": "offen",
+          "status": "aktiv",
           "ort": "Glödnitzer Straße, Deutsch-Griffen",
           "description": "Freileitung unter Schneelast gerissen, liegt quer über Gemeindestraße. Funkenflug beobachtet.",
           "latitude": null,
@@ -231,72 +108,57 @@ parsedResponse:
       "create": [
         {
           "title": "Rettungskräfte zur Massenkarambolage B317 entsenden",
-          "responsible": "S2",
+          "responsible": "Feuerwehr Feldkirchen",
           "status": "offen",
-          "desc": "Zwei Rettungsstreifen mit 4 Fahrzeugen und Notfallausrüstungen zu Einsatzort schicken.",
-          "priority": "hoch",
-          "assignedBy": "EINFO"
+          "desc": "Sofortige Rettungsmaßnahmen durchführen und Verletzte evakuieren.",
+          "priority": 2,
+          "assignedBy": "Einsatzleiter"
         },
         {
           "title": "Notstromversorgung für Altenheim Sonnenhof organisieren",
-          "responsible": "S3",
+          "responsible": "Technisches Hilfswerk Feldkirchen",
           "status": "offen",
-          "desc": "Kontakt mit Notfallorganisation aufnehmen und Generator zur Verfügung stellen.",
-          "priority": "hoch",
-          "assignedBy": "EINFO"
+          "desc": "Sofortige Notstromversorgung durchführen und Heizungsanlage reparieren.",
+          "priority": 1,
+          "assignedBy": "Einsatzleiter"
         },
         {
-          "title": "Evakuierung des Supermarktes durchführen",
-          "responsible": "S4",
+          "title": "Kinder aus eingeschneiten Schulbus befreien",
+          "responsible": "Feuerwehr Gnesau",
           "status": "offen",
-          "desc": "Alle Kunden und Mitarbeiter sicher aus dem Gebäude geleiten. Evakuierungsplan nachvollziehbar.",
-          "priority": "mittel",
-          "assignedBy": "EINFO"
-        },
-        {
-          "title": "Kinder im eingeschneiten Bus evakuieren",
-          "responsible": "S5",
-          "status": "offen",
-          "desc": "Spezialfahrzeug mit Schaufeln und Heizdecken zur Unterstützung.",
-          "priority": "hoch",
-          "assignedBy": "EINFO"
-        },
-        {
-          "title": "Kommunikation mit Bevölkerung aufbauen",
-          "responsible": "S6",
-          "status": "offen",
-          "desc": "Informationen über aktuelle Lage und Maßnahmen verbreiten.",
-          "priority": "mittel",
-          "assignedBy": "EINFO"
+          "desc": "Sofortige Befreiungsmaßnahmen durchführen und Kinder sicherstellen.",
+          "priority": 1,
+          "assignedBy": "Einsatzleiter"
         }
       ]
     },
     "protokoll": {
       "create": [
         {
-          "information": "Katastrophenalarm um 05:30 Uhr ausgerufen. Extremere Schneefälle erwartet.",
-          "infoTyp": "Information",
-          "anvon": "Leitstelle Feldkirchen",
-          "ergehtAn": "EINFO-Bezirksstab"
+          "information": "Katastrophenalarm um 05:30 Uhr ausgerufen",
+          "infoTyp": "Alarmierung",
+          "anvon": null,
+          "ergehtAn": null,
+          "richtung": null
         },
         {
-          "information": "Bundesheer wurde angefordert, Eintreffen in 90 Minuten erwartet. Kettenfahrzeuge für kritische Zufahrten.",
-          "infoTyp": "Information",
-          "anvon": "Leitstelle Feldkirchen",
-          "ergehtAn": "EINFO-Bezirksstab"
-        },
-        {
-          "information": "Stromausfall in Gnesau und Glödnitz. Priorisierung Altenheime und medizinische Einrichtungen.",
-          "infoTyp": "Information",
-          "anvon": "Leitstelle Feldkirchen",
-          "ergehtAn": "EINFO-Bezirksstab"
+          "information": "Bundesheer wurde angefordert und wird in 90 Minuten eintreffen.",
+          "infoTyp": "Ressourcenplanung",
+          "anvon": null,
+          "ergehtAn": null,
+          "richtung": null
         }
       ]
     }
+  },
+  "analysis": "...",
+  "meta": {
+    "historySummary": "...",
+    "historyState": {}
   }
 }
 {
-  "ts": "2026-01-26T19:26:06.874Z",
+  "ts": "2026-01-27T09:47:37.066Z",
   "type": "LLM",
   "phase": "response",
   "model": "einfo-balanced:latest",
@@ -308,2110 +170,158 @@ parsedResponse:
 rawResponse:
 {
   "model": "einfo-balanced:latest",
-  "created_at": "2026-01-26T19:26:06.87412661Z",
+  "created_at": "2026-01-27T09:47:37.065976209Z",
   "message": {
     "role": "assistant",
-    "content": "{\n  \"operations\": [\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"data\": [\n        {\"address\": \"Gemeindegebiet Steuerberg\", \"description\": \"Brand in einem Holzverschlag\"},\n        {\"address\": \"Ried im Innkreis, Hauptstraße 123\", \"description\": \"Verkehrsunfall mit mehreren Fahrzeugen\"},\n        {\"address\": \"Höhenrieder Straße 456, Ried im Innkreis\", \"description\": \"Gasleck in einem Wohnhaus\"},\n        {\"address\": \"Gemeindegebiet Steuerberg\", \"description\": \"Erdbeben nachwirkende Schäden an öffentlichen Gebäuden\"},\n        {\"address\": \"Ried im Innkreis, Industriestraße 789\", \"description\": \"Brand in einem Lagerhaus\"},\n        {\"address\": \"Gemeindegebiet Steuerberg\", \"description\": \"Überschwemmung durch starken Regenfall\"},\n        {\"address\": \"Höhenrieder Straße 456, Ried im Innkreis\", \"description\": \"Notruf wegen kranken Patienten\"}\n      ]\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"data\": [\n        {\"senderRole\": \"POL\", \"text\": \"Verkehrsunfall auf der Hauptstraße 123, Ried im Innkreis. Absperrung notwendig.\"},\n        {\"senderRole\": \"LST\", \"text\": \"Alarmierung für Sanitätseinsatz bei Notruf wegen kranken Patienten in Höhenrieder Straße 456, Ried im Innkreis.\"},\n        {\"senderRole\": \"RK\", \"text\": \"Sanitätsversorgung durch Einsatz von LAWZ erforderlich. Verletzte an Ort und Stelle versorgen.\"},\n        {\"senderRole\": \"BH\", \"text\": \"Behördliche Anordnung: Bereitstellung zusätzlicher Ressourcen für Erdbeben nachwirkende Schäden in Steuerberg.\"},\n        {\"senderRole\": \"BM\", \"text\": \"Lokale Schadensmeldung aus Gemeindegebiet Steuerberg. Brand im Holzverschlag.\"},\n        {\"senderRole\": \"POL\", \"text\": \"Verkehrsaufkommen erhöht aufgrund der Absperrung am Unfallort in Ried im Innkreis.\"}\n      ]\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"data\": [\n        {\"assignedBy\": \"LtStb\", \"responsibleRole\": \"S1\", \"text\": \"Personalplan für zusätzliche Einsätze aufgrund erhöhten Verkehrsaufkommens.\"},\n        {\"assignedBy\": \"LtStb\", \"responsibleRole\": \"S2\", \"text\": \"Überprüfung der aktuellen Lage und Vorbereitung des nächsten Lagevortrags.\"},\n        {\"assignedBy\": \"LtStb\", \"responsibleRole\": \"S4\", \"text\": \"Versorgung von Sanitätsversorgungsressourcen für LAWZ bei Notfall in Steuerberg.\"}\n      ]\n    },\n    {\n      \"type\": \"aufgaben.update\",\n      \"data\": [\n        {\"id\": 1, \"status\": \"inProgress\"},\n        {\"id\": 2, \"status\": \"done\"}\n      ],\n      \"protokollData\": [\n        {\"senderRole\": \"S4\", \"text\": \"Versorgung von Sanitätsversorgungsressourcen für LAWZ bei Notfall in Steuerberg abgeschlossen.\"},\n        {\"senderRole\": \"S2\", \"text\": \"Lagevortrag für den nächsten Lagebericht vorbereitet.\"}\n      ]\n    }\n  ]\n}"
+    "content": "{\n  \"operations\": {\n    \"board\": {\n      \"createIncidentSites\": [\n        {\"content\": \"Einsturzgefahr in Altenheim Sonnenhof\", \"status\": \"open\", \"ort\": \"Altenheim Sonnenhof, Himmelberg\", \"description\": \"Statiker meldet akute Einsturzgefahr durch Schneelast. Ca. 20 Bewohner im Gebäude.\", \"latitude\": 46.531897, \"longitude\": 14.289999, \"typ\": \"Sonstig\", \"humanId\": \"E-11\"},\n        {\"content\": \"Verkehrsunfall auf B90 bei Feldkirchen Nord\", \"status\": \"open\", \"ort\": \"B90 km 56, Feldkirchen Nord\", \"description\": \"Unfall mit mehreren Fahrzeugen. Verletzte und blockierte Straße.\", \"latitude\": 46.531897, \"longitude\": 14.289999, \"typ\": \"Verkehr\", \"humanId\": \"E-12\"},\n        {\"content\": \"Notfall bei Apothekenkette in Feldkirchen Zentrum\", \"status\": \"open\", \"ort\": \"Apothekengruppe Feldkirchen, Hauptplatz 5\", \"description\": \"Kritischer Medikamentenmangel für chronisch kranke Patienten.\", \"latitude\": 46.531897, \"longitude\": 14.289999, \"typ\": \"Sonstig\", \"humanId\": \"E-13\"},\n        {\"content\": \"Stromausfall in Wohnsiedlung Steuerberg\", \"status\": \"open\", \"ort\": \"Wohnsiedlung Steuerberg, Feldkirchen\", \"description\": \"Kritischer Stromausfall bei 50 Haushalten. Notstromversorgung notwendig.\", \"latitude\": 46.531897, \"longitude\": 14.289999, \"typ\": \"Sonstig\", \"humanId\": \"E-14\"},\n        {\"content\": \"Notfall bei Tierheim Feldkirchen\", \"status\": \"open\", \"ort\": \"Tierheim Feldkirchen, Bergstraße 34\", \"description\": \"Stall-Dach eingestürzt; Notunterbringung für Tiere notwendig.\", \"latitude\": 46.531897, \"longitude\": 14.289999, \"typ\": \"Sonstig\", \"humanId\": \"E-15\"}\n      ],\n      \"updateIncidentSites\": [\n        {\"incidentId\": \"uuid\", \"changes\": {\"status\": \"active\"}}\n      ]\n    },\n    \"aufgaben\": {\n      \"create\": [\n        {\"title\": \"Koordination der Räumfahrzeuge für ÖBB\", \"responsible\": \"S3\", \"status\": \"open\", \"desc\": \"ÖBB benötigt Unterstützung bei Bahnsteig- und Zufahrtsräumen.\", \"priority\": \"high\"},\n        {\"title\": \"Priorisierung von Notstromversorgungen\", \"responsible\": \"S4\", \"status\": \"inProgress\", \"desc\": \"Kritische Infrastrukturen (Altenheime, Trinkwasser) müssen vorrangig versorgt werden.\", \"priority\": \"critical\"},\n        {\"title\": \"Informationskampagne für Bevölkerung\", \"responsible\": \"S5\", \"status\": \"open\", \"desc\": \"Kommunikation über aktuelle Lage und Empfehlungen zur Sicherheit.\", \"priority\": \"high\"}\n      ],\n      \"update\": [\n        {\"taskId\": \"uuid\", \"changes\": {\"status\": \"done\"}}\n      ]\n    },\n    \"protokoll\": {\n      \"create\": [\n        {\"information\": \"Polizei Feldkirchen: Verkehrslage B317 verschärft; Rettungszufahrt behindert.\", \"infoTyp\": \"Lagemeldung\", \"ergehtAn\": [\"S2\"], \"richtung\": \"ein\"},\n        {\"information\": \"KELAG Störungsdienst: Stromausfall breitet sich aus. Betroffen Altenheim Sonnenhof und Pumpwerk Feldkirchen.\", \"infoTyp\": \"Lagemeldung\", \"ergehtAn\": [\"S4\"], \"richtung\": \"ein\"},\n        {\"information\": \"ÖBB Infrastruktur: Zugverkehr kann erst wieder aufgenommen werden, wenn Bahnsteige geräumt sind. Bedarf an Räumfahrzeugen.\", \"infoTyp\": \"Lagemeldung\", \"ergehtAn\": [\"S3\"], \"richtung\": \"ein\"},\n        {\"information\": \"Bezirkshauptmannschaft: Bitte um Lageeinschätzung zur möglichen Ausrufung des Katastrophenfalls.\", \"infoTyp\": \"Info\", \"ergehtAn\": [\"LTSTB\"], \"richtung\": \"ein\"}\n      ]\n    }\n  }\n}"
   },
   "done": true,
   "done_reason": "stop",
-  "total_duration": 155402702745,
-  "load_duration": 58525586,
-  "prompt_eval_count": 4096,
-  "prompt_eval_duration": 9040522616,
-  "eval_count": 817,
-  "eval_duration": 133312241156
-}
-parsedResponse:
-{
-  "operations": [
-    {
-      "type": "board.createIncidentSites",
-      "data": [
-        {
-          "address": "Gemeindegebiet Steuerberg",
-          "description": "Brand in einem Holzverschlag"
-        },
-        {
-          "address": "Ried im Innkreis, Hauptstraße 123",
-          "description": "Verkehrsunfall mit mehreren Fahrzeugen"
-        },
-        {
-          "address": "Höhenrieder Straße 456, Ried im Innkreis",
-          "description": "Gasleck in einem Wohnhaus"
-        },
-        {
-          "address": "Gemeindegebiet Steuerberg",
-          "description": "Erdbeben nachwirkende Schäden an öffentlichen Gebäuden"
-        },
-        {
-          "address": "Ried im Innkreis, Industriestraße 789",
-          "description": "Brand in einem Lagerhaus"
-        },
-        {
-          "address": "Gemeindegebiet Steuerberg",
-          "description": "Überschwemmung durch starken Regenfall"
-        },
-        {
-          "address": "Höhenrieder Straße 456, Ried im Innkreis",
-          "description": "Notruf wegen kranken Patienten"
-        }
-      ]
-    },
-    {
-      "type": "protokoll.create",
-      "data": [
-        {
-          "senderRole": "POL",
-          "text": "Verkehrsunfall auf der Hauptstraße 123, Ried im Innkreis. Absperrung notwendig."
-        },
-        {
-          "senderRole": "LST",
-          "text": "Alarmierung für Sanitätseinsatz bei Notruf wegen kranken Patienten in Höhenrieder Straße 456, Ried im Innkreis."
-        },
-        {
-          "senderRole": "RK",
-          "text": "Sanitätsversorgung durch Einsatz von LAWZ erforderlich. Verletzte an Ort und Stelle versorgen."
-        },
-        {
-          "senderRole": "BH",
-          "text": "Behördliche Anordnung: Bereitstellung zusätzlicher Ressourcen für Erdbeben nachwirkende Schäden in Steuerberg."
-        },
-        {
-          "senderRole": "BM",
-          "text": "Lokale Schadensmeldung aus Gemeindegebiet Steuerberg. Brand im Holzverschlag."
-        },
-        {
-          "senderRole": "POL",
-          "text": "Verkehrsaufkommen erhöht aufgrund der Absperrung am Unfallort in Ried im Innkreis."
-        }
-      ]
-    },
-    {
-      "type": "aufgaben.create",
-      "data": [
-        {
-          "assignedBy": "LtStb",
-          "responsibleRole": "S1",
-          "text": "Personalplan für zusätzliche Einsätze aufgrund erhöhten Verkehrsaufkommens."
-        },
-        {
-          "assignedBy": "LtStb",
-          "responsibleRole": "S2",
-          "text": "Überprüfung der aktuellen Lage und Vorbereitung des nächsten Lagevortrags."
-        },
-        {
-          "assignedBy": "LtStb",
-          "responsibleRole": "S4",
-          "text": "Versorgung von Sanitätsversorgungsressourcen für LAWZ bei Notfall in Steuerberg."
-        }
-      ]
-    },
-    {
-      "type": "aufgaben.update",
-      "data": [
-        {
-          "id": 1,
-          "status": "inProgress"
-        },
-        {
-          "id": 2,
-          "status": "done"
-        }
-      ],
-      "protokollData": [
-        {
-          "senderRole": "S4",
-          "text": "Versorgung von Sanitätsversorgungsressourcen für LAWZ bei Notfall in Steuerberg abgeschlossen."
-        },
-        {
-          "senderRole": "S2",
-          "text": "Lagevortrag für den nächsten Lagebericht vorbereitet."
-        }
-      ]
-    }
-  ]
-}
-{
-  "ts": "2026-01-26T19:30:47.177Z",
-  "type": "LLM",
-  "phase": "response",
-  "model": "einfo-balanced:latest",
-  "extra": {
-    "phase": "ops",
-    "messageCount": 2
-  }
-}
-rawResponse:
-{
-  "model": "einfo-balanced:latest",
-  "created_at": "2026-01-26T19:30:47.176367609Z",
-  "message": {
-    "role": "assistant",
-    "content": "{\n  \"operations\": [\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"data\": [\n        {\"address\": \"Gemeindegebiet Steuerberg\", \"description\": \"Brand in Wohnhaus, Vermutung von Personen im Haus.\", \"severity\": \"high\"},\n        {\"address\": \"Ragendorf Straße 123\", \"description\": \"Verkehrsunfall mit mehreren Fahrzeugen und Verletzten.\", \"severity\": \"medium\"},\n        {\"address\": \"Gemeindegebiet St. Egidien an der Glatz\", \"description\": \"Erdbeben nachwirkende Schäden in Wohnhäusern, Evakuierung notwendig.\", \"severity\": \"high\"},\n        {\"address\": \"Ragendorf Bahnhofstraße 456\", \"description\": \"Gasleck bei Industriebetrieb mit Gefahr von Explosionen.\", \"severity\": \"critical\"},\n        {\"address\": \"Gemeindegebiet St. Egidien an der Glatz\", \"description\": \"Überschwemmungen in Wohnviertel, Notfallunterkünfte benötigt.\", \"severity\": \"high\"}\n      ]\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"data\": [\n        {\"richtung\": \"ein\", \"infoTyp\": \"Lagemeldung\", \"sender\": \"POL Steuerberg\", \"text\": \"Verkehrsaufkommen in Steuerberg stark erhöht, Absperrungen notwendig.\"},\n        {\"richtung\": \"ein\", \"infoTyp\": \"Info\", \"sender\": \"LST St. Egidien an der Glatz\", \"text\": \"Einsatzmittel-Status: 3 Rettungsfahrzeuge und 2 Sanitätsstreifen im Einsatz.\"},\n        {\"richtung\": \"ein\", \"infoTyp\": \"Lagemeldung\", \"sender\": \"RK St. Egidien an der Glatz\", \"text\": \"Sanitätseinsatz für Verletzte nach Erdbeben, Notfallstation aufgebaut.\"},\n        {\"richtung\": \"ein\", \"infoTyp\": \"Info\", \"sender\": \"BH Steuerberg\", \"text\": \"Behördliche Anordnung: Alle Ressourcen zur Unterstützung der Katastrophenschutzmaßnahmen bereitstellen.\"},\n        {\"richtung\": \"ein\", \"infoTyp\": \"Lagemeldung\", \"sender\": \"BM St. Egidien an der Glatz\", \"text\": \"Notfallunterkünfte für Evakuierte in Gemeindegebiet benötigt, Hilfsgesuche ausgestellt.\"},\n        {\"richtung\": \"ein\", \"infoTyp\": \"Info\", \"sender\": \"POL Ragendorf\", \"text\": \"Verkehrsunfälle mit Verletzten auf der Hauptstraße 1234567890, Sanitätsdienstleistung anfordern.\"},\n        {\"richtung\": \"ein\", \"infoTyp\": \"Lagemeldung\", \"sender\": \"BM Ragendorf\", \"text\": \"Gasleck bei Industriebetrieb in Bahnhofstraße 456 gemeldet, Evakuierung im Gange.\"}\n      ]\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"data\": [\n        {\"assignedBy\": \"LtStb\", \"responsible\": \"S1\", \"description\": \"Personalplanung für den Einsatz in Steuerberg: Bereitstellung von Feuerwehrmannschaften.\"},\n        {\"assignedBy\": \"LtStb\", \"responsible\": \"S2\", \"description\": \"Lageanalyse der aktuellen Katastrophensituation und Vorschlag zur Priorisierung der Einsätze.\"},\n        {\"assignedBy\": \"LtStb\", \"responsible\": \"S3\", \"description\": \"Einsatzleitung für den Brand in Ragendorf: Einsatzplanung und Koordination.\"},\n        {\"assignedBy\": \"LtStb\", \"responsible\": \"S4\", \"description\": \"Versorgungsmanagement: Bereitstellung von Notfallunterkünften und Lebensmittelversorgung.\"},\n        {\"assignedBy\": \"LtStb\", \"responsible\": \"S5\", \"description\": \"Öffentlichkeitsarbeit: Erstellen einer Pressemitteilung zur aktuellen Katastrophensituation.\"}\n      ]\n    },\n    {\n      \"type\": \"aufgaben.update\",\n      \"data\": [\n        {\"id\": 1, \"status\": \"inProgress\"},\n        {\"id\": 2, \"status\": \"done\", \"text\": \"Lageanalyse abgeschlossen: Priorität für Evakuierung und Sanitätsdienstleistung.\"},\n        {\"id\": 3, \"status\": \"open\"}\n      ]\n    }\n  ]\n}"
-  },
-  "done": true,
-  "done_reason": "stop",
-  "total_duration": 195705100170,
-  "load_duration": 61454326,
-  "prompt_eval_count": 4096,
-  "prompt_eval_duration": 9084445493,
-  "eval_count": 1033,
-  "eval_duration": 170101364853
-}
-parsedResponse:
-{
-  "operations": [
-    {
-      "type": "board.createIncidentSites",
-      "data": [
-        {
-          "address": "Gemeindegebiet Steuerberg",
-          "description": "Brand in Wohnhaus, Vermutung von Personen im Haus.",
-          "severity": "high"
-        },
-        {
-          "address": "Ragendorf Straße 123",
-          "description": "Verkehrsunfall mit mehreren Fahrzeugen und Verletzten.",
-          "severity": "medium"
-        },
-        {
-          "address": "Gemeindegebiet St. Egidien an der Glatz",
-          "description": "Erdbeben nachwirkende Schäden in Wohnhäusern, Evakuierung notwendig.",
-          "severity": "high"
-        },
-        {
-          "address": "Ragendorf Bahnhofstraße 456",
-          "description": "Gasleck bei Industriebetrieb mit Gefahr von Explosionen.",
-          "severity": "critical"
-        },
-        {
-          "address": "Gemeindegebiet St. Egidien an der Glatz",
-          "description": "Überschwemmungen in Wohnviertel, Notfallunterkünfte benötigt.",
-          "severity": "high"
-        }
-      ]
-    },
-    {
-      "type": "protokoll.create",
-      "data": [
-        {
-          "richtung": "ein",
-          "infoTyp": "Lagemeldung",
-          "sender": "POL Steuerberg",
-          "text": "Verkehrsaufkommen in Steuerberg stark erhöht, Absperrungen notwendig."
-        },
-        {
-          "richtung": "ein",
-          "infoTyp": "Info",
-          "sender": "LST St. Egidien an der Glatz",
-          "text": "Einsatzmittel-Status: 3 Rettungsfahrzeuge und 2 Sanitätsstreifen im Einsatz."
-        },
-        {
-          "richtung": "ein",
-          "infoTyp": "Lagemeldung",
-          "sender": "RK St. Egidien an der Glatz",
-          "text": "Sanitätseinsatz für Verletzte nach Erdbeben, Notfallstation aufgebaut."
-        },
-        {
-          "richtung": "ein",
-          "infoTyp": "Info",
-          "sender": "BH Steuerberg",
-          "text": "Behördliche Anordnung: Alle Ressourcen zur Unterstützung der Katastrophenschutzmaßnahmen bereitstellen."
-        },
-        {
-          "richtung": "ein",
-          "infoTyp": "Lagemeldung",
-          "sender": "BM St. Egidien an der Glatz",
-          "text": "Notfallunterkünfte für Evakuierte in Gemeindegebiet benötigt, Hilfsgesuche ausgestellt."
-        },
-        {
-          "richtung": "ein",
-          "infoTyp": "Info",
-          "sender": "POL Ragendorf",
-          "text": "Verkehrsunfälle mit Verletzten auf der Hauptstraße 1234567890, Sanitätsdienstleistung anfordern."
-        },
-        {
-          "richtung": "ein",
-          "infoTyp": "Lagemeldung",
-          "sender": "BM Ragendorf",
-          "text": "Gasleck bei Industriebetrieb in Bahnhofstraße 456 gemeldet, Evakuierung im Gange."
-        }
-      ]
-    },
-    {
-      "type": "aufgaben.create",
-      "data": [
-        {
-          "assignedBy": "LtStb",
-          "responsible": "S1",
-          "description": "Personalplanung für den Einsatz in Steuerberg: Bereitstellung von Feuerwehrmannschaften."
-        },
-        {
-          "assignedBy": "LtStb",
-          "responsible": "S2",
-          "description": "Lageanalyse der aktuellen Katastrophensituation und Vorschlag zur Priorisierung der Einsätze."
-        },
-        {
-          "assignedBy": "LtStb",
-          "responsible": "S3",
-          "description": "Einsatzleitung für den Brand in Ragendorf: Einsatzplanung und Koordination."
-        },
-        {
-          "assignedBy": "LtStb",
-          "responsible": "S4",
-          "description": "Versorgungsmanagement: Bereitstellung von Notfallunterkünften und Lebensmittelversorgung."
-        },
-        {
-          "assignedBy": "LtStb",
-          "responsible": "S5",
-          "description": "Öffentlichkeitsarbeit: Erstellen einer Pressemitteilung zur aktuellen Katastrophensituation."
-        }
-      ]
-    },
-    {
-      "type": "aufgaben.update",
-      "data": [
-        {
-          "id": 1,
-          "status": "inProgress"
-        },
-        {
-          "id": 2,
-          "status": "done",
-          "text": "Lageanalyse abgeschlossen: Priorität für Evakuierung und Sanitätsdienstleistung."
-        },
-        {
-          "id": 3,
-          "status": "open"
-        }
-      ]
-    }
-  ]
-}
-{
-  "ts": "2026-01-26T19:34:24.239Z",
-  "type": "LLM",
-  "phase": "response",
-  "model": "einfo-balanced:latest",
-  "extra": {
-    "phase": "ops",
-    "messageCount": 2
-  }
-}
-rawResponse:
-{
-  "model": "einfo-balanced:latest",
-  "created_at": "2026-01-26T19:34:24.238162916Z",
-  "message": {
-    "role": "assistant",
-    "content": "{\n  \"operations\": [\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"data\": [\n        {\"name\": \"Dachdeckschaden\", \"address\": \"Gemeindegebiet Steuerberg\", \"description\": \"Starkes Regenwasseransammlung auf Dächern, Gefahr von Schäden durch Wassereinbruch.\", \"type\": \"Schadensmeldung\"},\n        {\"name\": \"Verkehrsunfall\", \"address\": \"Gemeindegebiet Steuerberg\", \"description\": \"Mehrere Fahrzeuge in einem Unfall gestrandet. Verletzte vorhanden, Notruf aktiviert.\", \"type\": \"Unfall\"},\n        {\"name\": \"Erdbebenfolgeschäden\", \"address\": \"Ried im Innkreis\", \"description\": \"Nach dem Erdbeben sind weitere Gebäude instabil und drohen zu einstürzen. Evakuierung notwendig.\", \"type\": \"Schadensmeldung\"},\n        {\"name\": \"Brand in Industriegebiet\", \"address\": \"Gemeindegebiet Steuerberg\", \"description\": \"Rauchentwicklung aus einem Industriegelände, Verdacht auf Brand.\", \"type\": \"Brand\"},\n        {\"name\": \"Überschwemmung\", \"address\": \"Ried im Innkreis\", \"description\": \"Starkes Hochwasser in Wohngebieten. Evakuierung und Rettungsmaßnahmen notwendig.\", \"type\": \"Schadensmeldung\"}\n      ]\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"data\": [\n        {\"senderRole\": \"POL\", \"infoTyp\": \"Lagemeldung\", \"richtung\": \"ein\", \"text\": \"Verkehrsunfall auf der A10, Richtung Steuerberg. Mehrere Fahrzeuge beteiligt.\"},\n        {\"senderRole\": \"LST\", \"infoTyp\": \"Info\", \"richtung\": \"ein\", \"text\": \"Einsatzmittel-Status: 3 Löschfahrzeuge und ein Rettungsboot bereit für den Einsatz.\"},\n        {\"senderRole\": \"RK\", \"infoTyp\": \"Lagemeldung\", \"richtung\": \"ein\", \"text\": \"Sanitätseinsätze in Steuerberg. Verletzte aus dem Unfall auf der A10.\"},\n        {\"senderRole\": \"BH\", \"infoTyp\": \"Info\", \"richtung\": \"ein\", \"text\": \"Behördliche Anordnung: Alle Rettungsmaßnahmen sind Priorität 1.\"},\n        {\"senderRole\": \"BM_Steuerberg\", \"infoTyp\": \"Lagemeldung\", \"richtung\": \"ein\", \"text\": \"Schäden durch Überschwemmungen in Steuerberg. Evakuierung notwendig.\"},\n        {\"senderRole\": \"POL\", \"infoTyp\": \"Info\", \"richtung\": \"ein\", \"text\": \"Verkehrsaufkommen erhöht aufgrund der Unfallstelle, Absperrung erforderlich.\"}\n      ]\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"data\": [\n        {\"assignedByRole\": \"LtStb\", \"responsibleRole\": \"S1\", \"text\": \"Personalplan für den Einsatz auf der Überschwemmungsstelle in Steuerberg erstellen.\"},\n        {\"assignedByRole\": \"LtStb\", \"responsibleRole\": \"S2\", \"text\": \"Lagebild aktualisieren und Einsatzzentrum informieren über aktuelle Schäden und Verletzte.\"},\n        {\"assignedByRole\": \"LtStb\", \"responsibleRole\": \"S4\", \"text\": \"Versorgung der Einsatzkräfte mit Nahrung, Trinkwasser und Ausrüstung organisieren.\"}\n      ]\n    },\n    {\n      \"type\": \"aufgaben.update\",\n      \"data\": [\n        {\"id\": 123, \"status\": \"inProgress\"},\n        {\"id\": 456, \"status\": \"done\", \"text\": \"Personalplan für den Einsatz auf der Überschwemmungsstelle in Steuerberg erstellt und übermittelt.\"}\n      ]\n    }\n  ]\n}"
-  },
-  "done": true,
-  "done_reason": "stop",
-  "total_duration": 172754094263,
-  "load_duration": 62238088,
-  "prompt_eval_count": 4096,
-  "prompt_eval_duration": 9018568043,
-  "eval_count": 911,
-  "eval_duration": 149222038330
-}
-parsedResponse:
-{
-  "operations": [
-    {
-      "type": "board.createIncidentSites",
-      "data": [
-        {
-          "name": "Dachdeckschaden",
-          "address": "Gemeindegebiet Steuerberg",
-          "description": "Starkes Regenwasseransammlung auf Dächern, Gefahr von Schäden durch Wassereinbruch.",
-          "type": "Schadensmeldung"
-        },
-        {
-          "name": "Verkehrsunfall",
-          "address": "Gemeindegebiet Steuerberg",
-          "description": "Mehrere Fahrzeuge in einem Unfall gestrandet. Verletzte vorhanden, Notruf aktiviert.",
-          "type": "Unfall"
-        },
-        {
-          "name": "Erdbebenfolgeschäden",
-          "address": "Ried im Innkreis",
-          "description": "Nach dem Erdbeben sind weitere Gebäude instabil und drohen zu einstürzen. Evakuierung notwendig.",
-          "type": "Schadensmeldung"
-        },
-        {
-          "name": "Brand in Industriegebiet",
-          "address": "Gemeindegebiet Steuerberg",
-          "description": "Rauchentwicklung aus einem Industriegelände, Verdacht auf Brand.",
-          "type": "Brand"
-        },
-        {
-          "name": "Überschwemmung",
-          "address": "Ried im Innkreis",
-          "description": "Starkes Hochwasser in Wohngebieten. Evakuierung und Rettungsmaßnahmen notwendig.",
-          "type": "Schadensmeldung"
-        }
-      ]
-    },
-    {
-      "type": "protokoll.create",
-      "data": [
-        {
-          "senderRole": "POL",
-          "infoTyp": "Lagemeldung",
-          "richtung": "ein",
-          "text": "Verkehrsunfall auf der A10, Richtung Steuerberg. Mehrere Fahrzeuge beteiligt."
-        },
-        {
-          "senderRole": "LST",
-          "infoTyp": "Info",
-          "richtung": "ein",
-          "text": "Einsatzmittel-Status: 3 Löschfahrzeuge und ein Rettungsboot bereit für den Einsatz."
-        },
-        {
-          "senderRole": "RK",
-          "infoTyp": "Lagemeldung",
-          "richtung": "ein",
-          "text": "Sanitätseinsätze in Steuerberg. Verletzte aus dem Unfall auf der A10."
-        },
-        {
-          "senderRole": "BH",
-          "infoTyp": "Info",
-          "richtung": "ein",
-          "text": "Behördliche Anordnung: Alle Rettungsmaßnahmen sind Priorität 1."
-        },
-        {
-          "senderRole": "BM_Steuerberg",
-          "infoTyp": "Lagemeldung",
-          "richtung": "ein",
-          "text": "Schäden durch Überschwemmungen in Steuerberg. Evakuierung notwendig."
-        },
-        {
-          "senderRole": "POL",
-          "infoTyp": "Info",
-          "richtung": "ein",
-          "text": "Verkehrsaufkommen erhöht aufgrund der Unfallstelle, Absperrung erforderlich."
-        }
-      ]
-    },
-    {
-      "type": "aufgaben.create",
-      "data": [
-        {
-          "assignedByRole": "LtStb",
-          "responsibleRole": "S1",
-          "text": "Personalplan für den Einsatz auf der Überschwemmungsstelle in Steuerberg erstellen."
-        },
-        {
-          "assignedByRole": "LtStb",
-          "responsibleRole": "S2",
-          "text": "Lagebild aktualisieren und Einsatzzentrum informieren über aktuelle Schäden und Verletzte."
-        },
-        {
-          "assignedByRole": "LtStb",
-          "responsibleRole": "S4",
-          "text": "Versorgung der Einsatzkräfte mit Nahrung, Trinkwasser und Ausrüstung organisieren."
-        }
-      ]
-    },
-    {
-      "type": "aufgaben.update",
-      "data": [
-        {
-          "id": 123,
-          "status": "inProgress"
-        },
-        {
-          "id": 456,
-          "status": "done",
-          "text": "Personalplan für den Einsatz auf der Überschwemmungsstelle in Steuerberg erstellt und übermittelt."
-        }
-      ]
-    }
-  ]
-}
-{
-  "ts": "2026-01-26T19:39:52.211Z",
-  "type": "LLM",
-  "phase": "response",
-  "model": "einfo-balanced:latest",
-  "extra": {
-    "phase": "ops",
-    "messageCount": 2
-  }
-}
-rawResponse:
-{
-  "model": "einfo-balanced:latest",
-  "created_at": "2026-01-26T19:39:52.210757145Z",
-  "message": {
-    "role": "assistant",
-    "content": "{\n  \"operations\": [\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"data\": [\n        {\"address\": \"Gemeindegebiet Steuerberg\", \"description\": \"Verkehrsunfall auf der B123, Fahrzeuge blockieren Straße.\", \"severity\": \"medium\"},\n        {\"address\": \"Ragau Hauptstraße 45\", \"description\": \"Brand in einem Einzelhandelsgeschäft. Feuermeldung von Passanten.\", \"severity\": \"high\"},\n        {\"address\": \"Gemeindegebiet Leopoldsdorf\", \"description\": \"Einwohner berichten über Wasserschäden nach starkem Regen.\", \"severity\": \"low\"},\n        {\"address\": \"Ragau Bahnhofstraße 12\", \"description\": \"Unfall mit Verletzten am Straßenrand. Erste Hilfe notwendig.\", \"severity\": \"medium\"},\n        {\"address\": \"Gemeindegebiet Neufeld an der Triesting\", \"description\": \"Einwohner melden, dass ein Baum auf eine Straße gefallen ist und den Verkehr behindert.\", \"severity\": \"low\"}\n      ]\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"data\": [\n        {\"senderRole\": \"POL\", \"infoTyp\": \"Lagemeldung\", \"text\": \"Verkehrsbehinderungen aufgrund mehrerer Unfälle in der Region. Bitte Fahrzeuge umleiten.\"},\n        {\"senderRole\": \"LST\", \"infoTyp\": \"Info\", \"text\": \"Einsatzmittel sind zurzeit voll ausgelastet, bitte Priorisierung beachten.\"},\n        {\"senderRole\": \"RK\", \"infoTyp\": \"Lagemeldung\", \"text\": \"Sanitätseinsätze in mehreren Ortschaften. Notfallversorgung wird beansprucht.\"},\n        {\"senderRole\": \"BH\", \"infoTyp\": \"Info\", \"text\": \"Behördliche Anordnung: Alle Ressourcen sollen zur Verfügung gestellt werden, um die Katastrophe zu bewältigen.\"},\n        {\"senderRole\": \"BM_Steuerberg\", \"infoTyp\": \"Lagemeldung\", \"text\": \"Einwohner melden Wasserschäden in mehreren Häusern. Notfallunterkünfte bereitstellen.\"}\n      ]\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"data\": [\n        {\"assignedBy\": \"LtStb\", \"responsibleRole\": \"S1\", \"description\": \"Überprüfen der Personalverfügbarkeit und -zufriedenheit.\"},\n        {\"assignedBy\": \"LtStb\", \"responsibleRole\": \"S3\", \"description\": \"Einsatzplanung für die nächsten 24 Stunden unter Berücksichtigung der aktuellen Lage.\"},\n        {\"assignedBy\": \"LtStb\", \"responsibleRole\": \"S5\", \"description\": \"Erstellen eines Pressemitteilens zur aktuellen Katastrophensituation.\"}\n      ]\n    },\n    {\n      \"type\": \"aufgaben.update\",\n      \"data\": [\n        {\"id\": 1, \"status\": \"inProgress\"},\n        {\"id\": 2, \"status\": \"done\", \"note\": \"Einsatzplan für die nächsten Stunden fertiggestellt.\"},\n        {\"id\": 3, \"status\": \"open\"}\n      ]\n    }\n  ]\n}"
-  },
-  "done": true,
-  "done_reason": "stop",
-  "total_duration": 140709904693,
-  "load_duration": 59992629,
-  "prompt_eval_count": 4096,
-  "prompt_eval_duration": 9065551188,
-  "eval_count": 739,
-  "eval_duration": 119878575114
-}
-parsedResponse:
-{
-  "operations": [
-    {
-      "type": "board.createIncidentSites",
-      "data": [
-        {
-          "address": "Gemeindegebiet Steuerberg",
-          "description": "Verkehrsunfall auf der B123, Fahrzeuge blockieren Straße.",
-          "severity": "medium"
-        },
-        {
-          "address": "Ragau Hauptstraße 45",
-          "description": "Brand in einem Einzelhandelsgeschäft. Feuermeldung von Passanten.",
-          "severity": "high"
-        },
-        {
-          "address": "Gemeindegebiet Leopoldsdorf",
-          "description": "Einwohner berichten über Wasserschäden nach starkem Regen.",
-          "severity": "low"
-        },
-        {
-          "address": "Ragau Bahnhofstraße 12",
-          "description": "Unfall mit Verletzten am Straßenrand. Erste Hilfe notwendig.",
-          "severity": "medium"
-        },
-        {
-          "address": "Gemeindegebiet Neufeld an der Triesting",
-          "description": "Einwohner melden, dass ein Baum auf eine Straße gefallen ist und den Verkehr behindert.",
-          "severity": "low"
-        }
-      ]
-    },
-    {
-      "type": "protokoll.create",
-      "data": [
-        {
-          "senderRole": "POL",
-          "infoTyp": "Lagemeldung",
-          "text": "Verkehrsbehinderungen aufgrund mehrerer Unfälle in der Region. Bitte Fahrzeuge umleiten."
-        },
-        {
-          "senderRole": "LST",
-          "infoTyp": "Info",
-          "text": "Einsatzmittel sind zurzeit voll ausgelastet, bitte Priorisierung beachten."
-        },
-        {
-          "senderRole": "RK",
-          "infoTyp": "Lagemeldung",
-          "text": "Sanitätseinsätze in mehreren Ortschaften. Notfallversorgung wird beansprucht."
-        },
-        {
-          "senderRole": "BH",
-          "infoTyp": "Info",
-          "text": "Behördliche Anordnung: Alle Ressourcen sollen zur Verfügung gestellt werden, um die Katastrophe zu bewältigen."
-        },
-        {
-          "senderRole": "BM_Steuerberg",
-          "infoTyp": "Lagemeldung",
-          "text": "Einwohner melden Wasserschäden in mehreren Häusern. Notfallunterkünfte bereitstellen."
-        }
-      ]
-    },
-    {
-      "type": "aufgaben.create",
-      "data": [
-        {
-          "assignedBy": "LtStb",
-          "responsibleRole": "S1",
-          "description": "Überprüfen der Personalverfügbarkeit und -zufriedenheit."
-        },
-        {
-          "assignedBy": "LtStb",
-          "responsibleRole": "S3",
-          "description": "Einsatzplanung für die nächsten 24 Stunden unter Berücksichtigung der aktuellen Lage."
-        },
-        {
-          "assignedBy": "LtStb",
-          "responsibleRole": "S5",
-          "description": "Erstellen eines Pressemitteilens zur aktuellen Katastrophensituation."
-        }
-      ]
-    },
-    {
-      "type": "aufgaben.update",
-      "data": [
-        {
-          "id": 1,
-          "status": "inProgress"
-        },
-        {
-          "id": 2,
-          "status": "done",
-          "note": "Einsatzplan für die nächsten Stunden fertiggestellt."
-        },
-        {
-          "id": 3,
-          "status": "open"
-        }
-      ]
-    }
-  ]
-}
-{
-  "ts": "2026-01-26T19:43:46.560Z",
-  "type": "LLM",
-  "phase": "response",
-  "model": "einfo-balanced:latest",
-  "extra": {
-    "phase": "ops",
-    "messageCount": 2
-  }
-}
-rawResponse:
-{
-  "model": "einfo-balanced:latest",
-  "created_at": "2026-01-26T19:43:46.559202309Z",
-  "message": {
-    "role": "assistant",
-    "content": "{\n  \"operations\": [\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"data\": [\n        {\"name\": \"Brand in Wohnhaus\", \"address\": \"Gemeindegebiet Steuerberg\", \"severity\": \"medium\"},\n        {\"name\": \"Verkehrsunfall mit Verletzten\", \"address\": \"Ragendorf Straße 123, Ragendorf\", \"severity\": \"high\"},\n        {\"name\": \"Stromausfall in Wohnsiedlung\", \"address\": \"Gemeindegebiet Steuerberg\", \"severity\": \"low\"},\n        {\"name\": \"Einzugsstau auf Bundesstraße\", \"address\": \"Ragendorfer Straße, Ragendorf\", \"severity\": \"medium\"},\n        {\"name\": \"Notruf von vermisstem Kind\", \"address\": \"Gemeindegebiet Steuerberg\", \"severity\": \"high\"}\n      ]\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"data\": [\n        {\"senderRole\": \"POL\", \"receiverRoles\": [\"LtStb\"], \"infoTyp\": \"Lagemeldung\", \"text\": \"Verkehrsunfall auf Bundesstraße 123, Richtung Ragendorf. Absperrung notwendig.\"},\n        {\"senderRole\": \"LST\", \"receiverRoles\": [\"LtStb\"], \"infoTyp\": \"Info\", \"text\": \"Einsatzmittel-Status: Feuerwehrwagen und Rettungswagen bereit für Einsätze.\"},\n        {\"senderRole\": \"RK\", \"receiverRoles\": [\"LtStb\"], \"infoTyp\": \"Lagemeldung\", \"text\": \"Sanitätseinsatz bei Verkehrsunfall. 2 Schwerverletzte.\"},\n        {\"senderRole\": \"BH\", \"receiverRoles\": [\"LtStb\"], \"infoTyp\": \"Info\", \"text\": \"Behördliche Anordnung: Erhöhung der Einsatzkräfte für den Brand in Ragendorf.\"},\n        {\"senderRole\": \"BM_Ragendorf\", \"receiverRoles\": [\"LtStb\"], \"infoTyp\": \"Lagemeldung\", \"text\": \"Brandmelder Alarmierung im Wohnhaus. Feuerwehr sofort vor Ort benötigt.\"}\n      ]\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"data\": [\n        {\"assignedByRole\": \"LtStb\", \"responsibleRole\": \"S1\", \"title\": \"Personalplanung für zusätzliche Einsätze\"},\n        {\"assignedByRole\": \"LtStb\", \"responsibleRole\": \"S2\", \"title\": \"Überprüfung der aktuellen Lage und Vorschlag zur Priorisierung von Einsätzen\"},\n        {\"assignedByRole\": \"LtStb\", \"responsibleRole\": \"S4\", \"title\": \"Versorgungssituation für die Einsatzkräfte überprüfen\"}\n      ]\n    },\n    {\n      \"type\": \"aufgaben.update\",\n      \"data\": [\n        {\"id\": 1, \"status\": \"inProgress\"},\n        {\"id\": 2, \"status\": \"done\", \"note\": \"Priorisierung vorgestellt: Brand in Ragendorf als höchste Priorität.\"},\n        {\"id\": 3, \"status\": \"open\"}\n      ]\n    }\n  ]\n}"
-  },
-  "done": true,
-  "done_reason": "stop",
-  "total_duration": 135048378971,
-  "load_duration": 58470750,
-  "prompt_eval_count": 4096,
-  "prompt_eval_duration": 9013310310,
-  "eval_count": 708,
-  "eval_duration": 114737592503
-}
-parsedResponse:
-{
-  "operations": [
-    {
-      "type": "board.createIncidentSites",
-      "data": [
-        {
-          "name": "Brand in Wohnhaus",
-          "address": "Gemeindegebiet Steuerberg",
-          "severity": "medium"
-        },
-        {
-          "name": "Verkehrsunfall mit Verletzten",
-          "address": "Ragendorf Straße 123, Ragendorf",
-          "severity": "high"
-        },
-        {
-          "name": "Stromausfall in Wohnsiedlung",
-          "address": "Gemeindegebiet Steuerberg",
-          "severity": "low"
-        },
-        {
-          "name": "Einzugsstau auf Bundesstraße",
-          "address": "Ragendorfer Straße, Ragendorf",
-          "severity": "medium"
-        },
-        {
-          "name": "Notruf von vermisstem Kind",
-          "address": "Gemeindegebiet Steuerberg",
-          "severity": "high"
-        }
-      ]
-    },
-    {
-      "type": "protokoll.create",
-      "data": [
-        {
-          "senderRole": "POL",
-          "receiverRoles": [
-            "LtStb"
-          ],
-          "infoTyp": "Lagemeldung",
-          "text": "Verkehrsunfall auf Bundesstraße 123, Richtung Ragendorf. Absperrung notwendig."
-        },
-        {
-          "senderRole": "LST",
-          "receiverRoles": [
-            "LtStb"
-          ],
-          "infoTyp": "Info",
-          "text": "Einsatzmittel-Status: Feuerwehrwagen und Rettungswagen bereit für Einsätze."
-        },
-        {
-          "senderRole": "RK",
-          "receiverRoles": [
-            "LtStb"
-          ],
-          "infoTyp": "Lagemeldung",
-          "text": "Sanitätseinsatz bei Verkehrsunfall. 2 Schwerverletzte."
-        },
-        {
-          "senderRole": "BH",
-          "receiverRoles": [
-            "LtStb"
-          ],
-          "infoTyp": "Info",
-          "text": "Behördliche Anordnung: Erhöhung der Einsatzkräfte für den Brand in Ragendorf."
-        },
-        {
-          "senderRole": "BM_Ragendorf",
-          "receiverRoles": [
-            "LtStb"
-          ],
-          "infoTyp": "Lagemeldung",
-          "text": "Brandmelder Alarmierung im Wohnhaus. Feuerwehr sofort vor Ort benötigt."
-        }
-      ]
-    },
-    {
-      "type": "aufgaben.create",
-      "data": [
-        {
-          "assignedByRole": "LtStb",
-          "responsibleRole": "S1",
-          "title": "Personalplanung für zusätzliche Einsätze"
-        },
-        {
-          "assignedByRole": "LtStb",
-          "responsibleRole": "S2",
-          "title": "Überprüfung der aktuellen Lage und Vorschlag zur Priorisierung von Einsätzen"
-        },
-        {
-          "assignedByRole": "LtStb",
-          "responsibleRole": "S4",
-          "title": "Versorgungssituation für die Einsatzkräfte überprüfen"
-        }
-      ]
-    },
-    {
-      "type": "aufgaben.update",
-      "data": [
-        {
-          "id": 1,
-          "status": "inProgress"
-        },
-        {
-          "id": 2,
-          "status": "done",
-          "note": "Priorisierung vorgestellt: Brand in Ragendorf als höchste Priorität."
-        },
-        {
-          "id": 3,
-          "status": "open"
-        }
-      ]
-    }
-  ]
-}
-{
-  "ts": "2026-01-26T19:47:51.850Z",
-  "type": "LLM",
-  "phase": "response",
-  "model": "einfo-balanced:latest",
-  "extra": {
-    "phase": "ops",
-    "messageCount": 2
-  }
-}
-rawResponse:
-{
-  "model": "einfo-balanced:latest",
-  "created_at": "2026-01-26T19:47:51.849708363Z",
-  "message": {
-    "role": "assistant",
-    "content": "{\n  \"operations\": [\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"data\": [\n        {\"address\": \"Gemeindegebiet Steuerberg\", \"description\": \"Brand in einem Wohnhaus, Vermutung von Personen im Haus.\", \"severity\": \"high\"},\n        {\"address\": \"Ragendorf Straße 123\", \"description\": \"Verkehrsunfall mit mehreren Fahrzeugen und Verletzten.\", \"severity\": \"medium\"},\n        {\"address\": \"Gemeindegebiet St. Egidien an der Glatte\", \"description\": \"Einsturz einer Mauer, Gefahr für Passanten.\", \"severity\": \"high\"},\n        {\"address\": \"Ragendorf Bahnhofstraße 456\", \"description\": \"Gasleck in einem Gewerbegebäude, Evakuierung notwendig.\", \"severity\": \"medium\"},\n        {\"address\": \"Gemeindegebiet St. Egidien an der Glatte\", \"description\": \"Überschwemmung eines Wohnviertels nach Starkregen.\", \"severity\": \"high\"}\n      ]\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"data\": [\n        {\"senderRole\": \"POL\", \"receiverRole\": null, \"infoTyp\": \"Lagemeldung\", \"message\": \"Verkehrsaufkommen in Ragendorf stark erhöht. Absperrungen notwendig.\"},\n        {\"senderRole\": \"LST\", \"receiverRole\": null, \"infoTyp\": \"Info\", \"message\": \"Einsatzmittel-Status: 3 Rettungswagen und ein Feuerwehrfahrzeug im Einsatz.\"},\n        {\"senderRole\": \"RK\", \"receiverRole\": null, \"infoTyp\": \"Lagemeldung\", \"message\": \"Sanitätseinsätze in mehreren Gebieten. Verletzte mit verschiedenen Schweregraden.\"},\n        {\"senderRole\": \"BH\", \"receiverRole\": null, \"infoTyp\": \"Info\", \"message\": \"Behördliche Anordnung: Erhöhung der Ressourcen für den Katastrophenfall.\"},\n        {\"senderRole\": \"BM_Ragendorf\", \"receiverRole\": null, \"infoTyp\": \"Lagemeldung\", \"message\": \"Schadensmeldungen in mehreren Gebieten. Hilfskräfte gebraucht.\"}\n      ]\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"data\": [\n        {\"assignedBy\": \"LtStb\", \"responsibleRole\": \"S1\", \"description\": \"Überprüfung der Personalverfügbarkeit für den Katastrophenfall.\"},\n        {\"assignedBy\": \"LtStb\", \"responsibleRole\": \"S3\", \"description\": \"Einsatzplanung und Koordination von Ressourcen.\"},\n        {\"assignedBy\": \"LtStb\", \"responsibleRole\": \"S5\", \"description\": \"Kommunikation mit der Öffentlichkeit über aktuelle Lage.\"}\n      ]\n    },\n    {\n      \"type\": \"aufgaben.update\",\n      \"data\": [\n        {\"id\": 1, \"status\": \"inProgress\"},\n        {\"id\": 2, \"status\": \"done\", \"message\": \"Einsatzplanung abgeschlossen und Ressourcen verteilt.\"},\n        {\"id\": 3, \"status\": \"open\"}\n      ]\n    }\n  ]\n}"
-  },
-  "done": true,
-  "done_reason": "stop",
-  "total_duration": 140328897214,
-  "load_duration": 60879039,
-  "prompt_eval_count": 4096,
-  "prompt_eval_duration": 9065612211,
-  "eval_count": 736,
-  "eval_duration": 119547759334
-}
-parsedResponse:
-{
-  "operations": [
-    {
-      "type": "board.createIncidentSites",
-      "data": [
-        {
-          "address": "Gemeindegebiet Steuerberg",
-          "description": "Brand in einem Wohnhaus, Vermutung von Personen im Haus.",
-          "severity": "high"
-        },
-        {
-          "address": "Ragendorf Straße 123",
-          "description": "Verkehrsunfall mit mehreren Fahrzeugen und Verletzten.",
-          "severity": "medium"
-        },
-        {
-          "address": "Gemeindegebiet St. Egidien an der Glatte",
-          "description": "Einsturz einer Mauer, Gefahr für Passanten.",
-          "severity": "high"
-        },
-        {
-          "address": "Ragendorf Bahnhofstraße 456",
-          "description": "Gasleck in einem Gewerbegebäude, Evakuierung notwendig.",
-          "severity": "medium"
-        },
-        {
-          "address": "Gemeindegebiet St. Egidien an der Glatte",
-          "description": "Überschwemmung eines Wohnviertels nach Starkregen.",
-          "severity": "high"
-        }
-      ]
-    },
-    {
-      "type": "protokoll.create",
-      "data": [
-        {
-          "senderRole": "POL",
-          "receiverRole": null,
-          "infoTyp": "Lagemeldung",
-          "message": "Verkehrsaufkommen in Ragendorf stark erhöht. Absperrungen notwendig."
-        },
-        {
-          "senderRole": "LST",
-          "receiverRole": null,
-          "infoTyp": "Info",
-          "message": "Einsatzmittel-Status: 3 Rettungswagen und ein Feuerwehrfahrzeug im Einsatz."
-        },
-        {
-          "senderRole": "RK",
-          "receiverRole": null,
-          "infoTyp": "Lagemeldung",
-          "message": "Sanitätseinsätze in mehreren Gebieten. Verletzte mit verschiedenen Schweregraden."
-        },
-        {
-          "senderRole": "BH",
-          "receiverRole": null,
-          "infoTyp": "Info",
-          "message": "Behördliche Anordnung: Erhöhung der Ressourcen für den Katastrophenfall."
-        },
-        {
-          "senderRole": "BM_Ragendorf",
-          "receiverRole": null,
-          "infoTyp": "Lagemeldung",
-          "message": "Schadensmeldungen in mehreren Gebieten. Hilfskräfte gebraucht."
-        }
-      ]
-    },
-    {
-      "type": "aufgaben.create",
-      "data": [
-        {
-          "assignedBy": "LtStb",
-          "responsibleRole": "S1",
-          "description": "Überprüfung der Personalverfügbarkeit für den Katastrophenfall."
-        },
-        {
-          "assignedBy": "LtStb",
-          "responsibleRole": "S3",
-          "description": "Einsatzplanung und Koordination von Ressourcen."
-        },
-        {
-          "assignedBy": "LtStb",
-          "responsibleRole": "S5",
-          "description": "Kommunikation mit der Öffentlichkeit über aktuelle Lage."
-        }
-      ]
-    },
-    {
-      "type": "aufgaben.update",
-      "data": [
-        {
-          "id": 1,
-          "status": "inProgress"
-        },
-        {
-          "id": 2,
-          "status": "done",
-          "message": "Einsatzplanung abgeschlossen und Ressourcen verteilt."
-        },
-        {
-          "id": 3,
-          "status": "open"
-        }
-      ]
-    }
-  ]
-}
-{
-  "ts": "2026-01-26T19:51:09.607Z",
-  "type": "LLM",
-  "phase": "response",
-  "model": "einfo-balanced:latest",
-  "extra": {
-    "phase": "ops",
-    "messageCount": 2
-  }
-}
-rawResponse:
-{
-  "model": "einfo-balanced:latest",
-  "created_at": "2026-01-26T19:51:09.606933592Z",
-  "message": {
-    "role": "assistant",
-    "content": "{\n  \"operations\": [\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"data\": [\n        {\"name\": \"Brand in Wohnhaus\", \"address\": \"Gemeindegebiet Steuerberg\", \"description\": \"Rauchmelder ausgelöst, Feuer im Erdgeschoss.\", \"severity\": 3},\n        {\"name\": \"Verkehrsunfall mit Verletzten\", \"address\": \"Ragendorf - Hauptstraße\", \"description\": \"Zwei Fahrzeuge kollidiert, Personen verletzt und eingeklemmt.\", \"severity\": 4}\n      ]\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"data\": [\n        {\"senderRole\": \"POL\", \"infoTyp\": \"Lagemeldung\", \"richtung\": \"ein\", \"text\": \"Verkehrsaufkommen erhöht aufgrund des Unfalls am Hauptplatz. Bitte um Unterstützung bei der Verkehrsregulierung.\"},\n        {\"senderRole\": \"RK\", \"infoTyp\": \"Info\", \"richtung\": \"ein\", \"text\": \"Sanitätskräfte sind zur Stelle und kümmern sich um die Verletzten im Wohnhausbrand.\"},\n        {\"senderRole\": \"BH\", \"infoTyp\": \"Lagemeldung\", \"richtung\": \"ein\", \"text\": \"Bitte um zusätzliche Feuerwehrkräfte für den Brand in Steuerberg, da der Einsatz bisher nicht unter Kontrolle ist.\"}\n      ]\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"data\": [\n        {\"assignedByRole\": \"LtStb\", \"responsibleRole\": \"S1\", \"description\": \"Überprüfen Sie die Personalverfügbarkeit für den kommenden Einsatz.\", \"status\": \"open\"},\n        {\"assignedByRole\": \"LtStb\", \"responsibleRole\": \"S3\", \"description\": \"Bereiten Sie eine Einsatzaufstellung für das Wohnhausbrand-Einsatz vor.\", \"status\": \"inProgress\"}\n      ]\n    },\n    {\n      \"type\": \"aufgaben.update\",\n      \"data\": [\n        {\"id\": 1, \"newStatus\": \"done\", \"comment\": \"Personalverfügbarkeit wurde überprüft und alle notwendigen Kräfte sind bereit.\"}\n      ]\n    }\n  ]\n}"
-  },
-  "done": true,
-  "done_reason": "stop",
-  "total_duration": 98082525961,
-  "load_duration": 68787779,
-  "prompt_eval_count": 4096,
-  "prompt_eval_duration": 9004583574,
-  "eval_count": 503,
-  "eval_duration": 81035967175
-}
-parsedResponse:
-{
-  "operations": [
-    {
-      "type": "board.createIncidentSites",
-      "data": [
-        {
-          "name": "Brand in Wohnhaus",
-          "address": "Gemeindegebiet Steuerberg",
-          "description": "Rauchmelder ausgelöst, Feuer im Erdgeschoss.",
-          "severity": 3
-        },
-        {
-          "name": "Verkehrsunfall mit Verletzten",
-          "address": "Ragendorf - Hauptstraße",
-          "description": "Zwei Fahrzeuge kollidiert, Personen verletzt und eingeklemmt.",
-          "severity": 4
-        }
-      ]
-    },
-    {
-      "type": "protokoll.create",
-      "data": [
-        {
-          "senderRole": "POL",
-          "infoTyp": "Lagemeldung",
-          "richtung": "ein",
-          "text": "Verkehrsaufkommen erhöht aufgrund des Unfalls am Hauptplatz. Bitte um Unterstützung bei der Verkehrsregulierung."
-        },
-        {
-          "senderRole": "RK",
-          "infoTyp": "Info",
-          "richtung": "ein",
-          "text": "Sanitätskräfte sind zur Stelle und kümmern sich um die Verletzten im Wohnhausbrand."
-        },
-        {
-          "senderRole": "BH",
-          "infoTyp": "Lagemeldung",
-          "richtung": "ein",
-          "text": "Bitte um zusätzliche Feuerwehrkräfte für den Brand in Steuerberg, da der Einsatz bisher nicht unter Kontrolle ist."
-        }
-      ]
-    },
-    {
-      "type": "aufgaben.create",
-      "data": [
-        {
-          "assignedByRole": "LtStb",
-          "responsibleRole": "S1",
-          "description": "Überprüfen Sie die Personalverfügbarkeit für den kommenden Einsatz.",
-          "status": "open"
-        },
-        {
-          "assignedByRole": "LtStb",
-          "responsibleRole": "S3",
-          "description": "Bereiten Sie eine Einsatzaufstellung für das Wohnhausbrand-Einsatz vor.",
-          "status": "inProgress"
-        }
-      ]
-    },
-    {
-      "type": "aufgaben.update",
-      "data": [
-        {
-          "id": 1,
-          "newStatus": "done",
-          "comment": "Personalverfügbarkeit wurde überprüft und alle notwendigen Kräfte sind bereit."
-        }
-      ]
-    }
-  ]
-}
-{
-  "ts": "2026-01-26T19:56:17.286Z",
-  "type": "LLM",
-  "phase": "response",
-  "model": "einfo-balanced:latest",
-  "extra": {
-    "phase": "ops",
-    "messageCount": 2
-  }
-}
-rawResponse:
-{
-  "model": "einfo-balanced:latest",
-  "created_at": "2026-01-26T19:56:17.285192409Z",
-  "message": {
-    "role": "assistant",
-    "content": "{\n  \"operations\": [\n    {\n      \"type\": \"protokoll.create\",\n      \"absenderId\": \"POL1234567890\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"richtung\": \"ein\",\n      \"text\": \"Verkehrsunfall auf der A1 in Richtung Steyr, Fahrzeuge müssen umgeleitet werden.\",\n      \"timestamp\": \"2023-11-15T14:37:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"absenderId\": \"LST9876543210\",\n      \"infoTyp\": \"Info\",\n      \"richtung\": \"ein\",\n      \"text\": \"Einsatzmittel-Status: 3 Löschfahrzeuge und ein Rettungsboot sind im Einsatz.\",\n      \"timestamp\": \"2023-11-15T14:38:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"absenderId\": \"RK7654321987\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"richtung\": \"ein\",\n      \"text\": \"Sanitätseinsatz in der Gemeinde Steyr: 5 Verletzte, Notfallversorgung durch Einsatzkräfte.\",\n      \"timestamp\": \"2023-11-15T14:39:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"absenderId\": \"BH6789012345\",\n      \"infoTyp\": \"Info\",\n      \"richtung\": \"ein\",\n      \"text\": \"Behördliche Anordnung: Alle Einsatzkräfte sollen sich auf die Ressourcenverteilung vorbereiten.\",\n      \"timestamp\": \"2023-11-15T14:40:00Z\"\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"absenderId\": \"BM8765432190\",\n      \"infoTyp\": \"Lagemeldung\",\n      \"richtung\": \"ein\",\n      \"text\": \"Gemeinde Steyr: Lokale Schadensmeldung, Gebäude beschädigt.\",\n      \"timestamp\": \"2023-11-15T14:41:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LtStb\",\n      \"responsible\": \"S1\",\n      \"text\": \"Überprüfen Sie die Personalverfügbarkeit und stellen Sie sicher, dass ausreichend Personal für den Einsatz zur Verfügung steht.\",\n      \"timestamp\": \"2023-11-15T14:42:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LtStb\",\n      \"responsible\": \"S2\",\n      \"text\": \"Erstellen Sie ein aktuelles Lagebild und aktualisieren Sie es regelmäßig.\",\n      \"timestamp\": \"2023-11-15T14:43:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LtStb\",\n      \"responsible\": \"S3\",\n      \"text\": \"Organisieren Sie den Einsatz von Rettungskräften und Fahrzeugen.\",\n      \"timestamp\": \"2023-11-15T14:44:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LtStb\",\n      \"responsible\": \"S4\",\n      \"text\": \"Bereiten Sie die Versorgung der Einsatzkräfte vor, einschließlich Nahrung und Medikamente.\",\n      \"timestamp\": \"2023-11-15T14:45:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LtStb\",\n      \"responsible\": \"S5\",\n      \"text\": \"Informieren Sie die Öffentlichkeit über den aktuellen Stand der Katastrophensituation.\",\n      \"timestamp\": \"2023-11-15T14:46:00Z\"\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"assignedBy\": \"LtStb\",\n      \"responsible\": \"S6\",\n      \"text\": \"Überprüfen Sie die Funkverbindungen und stellen Sie sicher, dass alle IT-Systeme funktionsfähig sind.\",\n      \"timestamp\": \"2023-11-15T14:47:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSite\",\n      \"adresse\": \"Gemeindegebiet Steyr, Hauptstraße 12\",\n      \"text\": \"Brand in einem Wohnhaus, mehrere Personen gefährdet.\",\n      \"timestamp\": \"2023-11-15T14:48:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSite\",\n      \"adresse\": \"Gemeindegebiet Steyr, Industriestraße 7\",\n      \"text\": \"Brand in einem Lagerhaus, gefährliche Chemikalien anwesend.\",\n      \"timestamp\": \"2023-11-15T14:49:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSite\",\n      \"adresse\": \"Gemeindegebiet Steyr, Parkstraße 3\",\n      \"text\": \"Verkehrsunfall mit mehreren Fahrzeugen.\",\n      \"timestamp\": \"2023-11-15T14:50:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSite\",\n      \"adresse\": \"Gemeindegebiet Steyr, Bahnhofstraße 9\",\n      \"text\": \"Brand in einem Geschäftshaus.\",\n      \"timestamp\": \"2023-11-15T14:51:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSite\",\n      \"adresse\": \"Gemeindegebiet Steyr, Alpenstraße 67\",\n      \"text\": \"Brand in einem Wohnhaus.\",\n      \"timestamp\": \"2023-11-15T14:52:00Z\"\n    },\n    {\n      \"type\": \"board.createIncidentSite\",\n      \"adresse\": \"Gemeindegebiet Steyr, Bergstraße 89\",\n      \"text\": \"Verkehrsunfall mit Personenschäden.\",\n      \"timestamp\": \"2023-11-15T14:53:00Z\"\n    }\n  ]\n}"
-  },
-  "done": true,
-  "done_reason": "stop",
-  "total_duration": 285746463904,
-  "load_duration": 60289715,
-  "prompt_eval_count": 4096,
-  "prompt_eval_duration": 9059319461,
-  "eval_count": 1508,
-  "eval_duration": 253207978575
-}
-parsedResponse:
-{
-  "operations": [
-    {
-      "type": "protokoll.create",
-      "absenderId": "POL1234567890",
-      "infoTyp": "Lagemeldung",
-      "richtung": "ein",
-      "text": "Verkehrsunfall auf der A1 in Richtung Steyr, Fahrzeuge müssen umgeleitet werden.",
-      "timestamp": "2023-11-15T14:37:00Z"
-    },
-    {
-      "type": "protokoll.create",
-      "absenderId": "LST9876543210",
-      "infoTyp": "Info",
-      "richtung": "ein",
-      "text": "Einsatzmittel-Status: 3 Löschfahrzeuge und ein Rettungsboot sind im Einsatz.",
-      "timestamp": "2023-11-15T14:38:00Z"
-    },
-    {
-      "type": "protokoll.create",
-      "absenderId": "RK7654321987",
-      "infoTyp": "Lagemeldung",
-      "richtung": "ein",
-      "text": "Sanitätseinsatz in der Gemeinde Steyr: 5 Verletzte, Notfallversorgung durch Einsatzkräfte.",
-      "timestamp": "2023-11-15T14:39:00Z"
-    },
-    {
-      "type": "protokoll.create",
-      "absenderId": "BH6789012345",
-      "infoTyp": "Info",
-      "richtung": "ein",
-      "text": "Behördliche Anordnung: Alle Einsatzkräfte sollen sich auf die Ressourcenverteilung vorbereiten.",
-      "timestamp": "2023-11-15T14:40:00Z"
-    },
-    {
-      "type": "protokoll.create",
-      "absenderId": "BM8765432190",
-      "infoTyp": "Lagemeldung",
-      "richtung": "ein",
-      "text": "Gemeinde Steyr: Lokale Schadensmeldung, Gebäude beschädigt.",
-      "timestamp": "2023-11-15T14:41:00Z"
-    },
-    {
-      "type": "aufgaben.create",
-      "assignedBy": "LtStb",
-      "responsible": "S1",
-      "text": "Überprüfen Sie die Personalverfügbarkeit und stellen Sie sicher, dass ausreichend Personal für den Einsatz zur Verfügung steht.",
-      "timestamp": "2023-11-15T14:42:00Z"
-    },
-    {
-      "type": "aufgaben.create",
-      "assignedBy": "LtStb",
-      "responsible": "S2",
-      "text": "Erstellen Sie ein aktuelles Lagebild und aktualisieren Sie es regelmäßig.",
-      "timestamp": "2023-11-15T14:43:00Z"
-    },
-    {
-      "type": "aufgaben.create",
-      "assignedBy": "LtStb",
-      "responsible": "S3",
-      "text": "Organisieren Sie den Einsatz von Rettungskräften und Fahrzeugen.",
-      "timestamp": "2023-11-15T14:44:00Z"
-    },
-    {
-      "type": "aufgaben.create",
-      "assignedBy": "LtStb",
-      "responsible": "S4",
-      "text": "Bereiten Sie die Versorgung der Einsatzkräfte vor, einschließlich Nahrung und Medikamente.",
-      "timestamp": "2023-11-15T14:45:00Z"
-    },
-    {
-      "type": "aufgaben.create",
-      "assignedBy": "LtStb",
-      "responsible": "S5",
-      "text": "Informieren Sie die Öffentlichkeit über den aktuellen Stand der Katastrophensituation.",
-      "timestamp": "2023-11-15T14:46:00Z"
-    },
-    {
-      "type": "aufgaben.create",
-      "assignedBy": "LtStb",
-      "responsible": "S6",
-      "text": "Überprüfen Sie die Funkverbindungen und stellen Sie sicher, dass alle IT-Systeme funktionsfähig sind.",
-      "timestamp": "2023-11-15T14:47:00Z"
-    },
-    {
-      "type": "board.createIncidentSite",
-      "adresse": "Gemeindegebiet Steyr, Hauptstraße 12",
-      "text": "Brand in einem Wohnhaus, mehrere Personen gefährdet.",
-      "timestamp": "2023-11-15T14:48:00Z"
-    },
-    {
-      "type": "board.createIncidentSite",
-      "adresse": "Gemeindegebiet Steyr, Industriestraße 7",
-      "text": "Brand in einem Lagerhaus, gefährliche Chemikalien anwesend.",
-      "timestamp": "2023-11-15T14:49:00Z"
-    },
-    {
-      "type": "board.createIncidentSite",
-      "adresse": "Gemeindegebiet Steyr, Parkstraße 3",
-      "text": "Verkehrsunfall mit mehreren Fahrzeugen.",
-      "timestamp": "2023-11-15T14:50:00Z"
-    },
-    {
-      "type": "board.createIncidentSite",
-      "adresse": "Gemeindegebiet Steyr, Bahnhofstraße 9",
-      "text": "Brand in einem Geschäftshaus.",
-      "timestamp": "2023-11-15T14:51:00Z"
-    },
-    {
-      "type": "board.createIncidentSite",
-      "adresse": "Gemeindegebiet Steyr, Alpenstraße 67",
-      "text": "Brand in einem Wohnhaus.",
-      "timestamp": "2023-11-15T14:52:00Z"
-    },
-    {
-      "type": "board.createIncidentSite",
-      "adresse": "Gemeindegebiet Steyr, Bergstraße 89",
-      "text": "Verkehrsunfall mit Personenschäden.",
-      "timestamp": "2023-11-15T14:53:00Z"
-    }
-  ]
-}
-{
-  "ts": "2026-01-27T06:05:41.541Z",
-  "type": "LLM",
-  "phase": "response",
-  "model": "einfo-balanced:latest",
-  "extra": {
-    "phase": "ops",
-    "messageCount": 2
-  }
-}
-rawResponse:
-{
-  "model": "einfo-balanced:latest",
-  "created_at": "2026-01-27T06:05:41.540178745Z",
-  "message": {
-    "role": "assistant",
-    "content": "{\n  \"operations\": [\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"data\": [\n        {\"id\": \"site10\", \"title\": \"Brand in Wohnhaus Steuerberg\", \"description\": \"Ein Brand bricht im zweiten Stock eines Wohnhauses aus.\", \"address\": \"Steuerberg, Gemeindegebiet\"},\n        {\"id\": \"site11\", \"title\": \"Verkehrsunfall auf A23 Richtung Graz\", \"description\": \"Schwere Verkehrsunfall mit mehreren Fahrzeugen und verstopfter Fahrbahn.\", \"address\": \"A23 bei Steuerberg, Gemeindegebiet\"},\n        {\"id\": \"site12\", \"title\": \"Gasleck in Industriepark\", \"description\": \"Ein Gasleck wurde gemeldet. Evakuierung notwendig!\", \"address\": \"Industriepark Steuerberg, Gemeindegebiet\"}\n      ]\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"data\": [\n        {\"id\": \"msg10\", \"richtung\": \"ein\", \"infoTyp\": \"Lagemeldung\", \"senderRole\": \"POL\", \"content\": \"Verkehrsunfall auf A23 Richtung Graz. Mehrere Fahrzeuge beteiligt, Verstopfung entlang der gesamten Strecke.\"},\n        {\"id\": \"msg11\", \"richtung\": \"ein\", \"infoTyp\": \"Lagemeldung\", \"senderRole\": \"RK\", \"content\": \"Sanitätseinsatz für schwer verletzte Person im Wohnhausbrand Steuerberg. Notfallmedizinische Unterstützung erforderlich.\"},\n        {\"id\": \"msg12\", \"richtung\": \"ein\", \"infoTyp\": \"Info\", \"senderRole\": \"BH\", \"content\": \"Behördliche Anordnung: Alle Feuerwehrteams sollen sich auf die Evakuierung im Industriepark vorbereiten.\"}\n      ]\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"data\": [\n        {\"id\": \"task10\", \"title\": \"Personalplanung für zusätzliche Einsätze\", \"description\": \"Aufgrund der erhöhten Anzahl an Einsätzen ist eine Überprüfung und Anpassung des Personalplans notwendig.\", \"assignedBy\": \"LtStb\", \"responsibleRole\": \"S1\"},\n        {\"id\": \"task11\", \"title\": \"Kommunikation mit Medien über aktuelle Lage\", \"description\": \"Einrichten einer Pressekonferenz zur aktuellen Katastrophensituation.\", \"assignedBy\": \"LtStb\", \"responsibleRole\": \"S5\"}\n      ]\n    },\n    {\n      \"type\": \"aufgaben.update\",\n      \"data\": [\n        {\"id\": \"task01\", \"status\": \"inProgress\"},\n        {\"id\": \"task02\", \"status\": \"done\", \"note\": \"Die Personalplanung wurde erfolgreich angepasst.\"}\n      ]\n    }\n  ]\n}"
-  },
-  "done": true,
-  "done_reason": "stop",
-  "total_duration": 127607412319,
-  "load_duration": 1587647495,
-  "prompt_eval_count": 4096,
-  "prompt_eval_duration": 8951836156,
-  "eval_count": 656,
-  "eval_duration": 106540493890
-}
-parsedResponse:
-{
-  "operations": [
-    {
-      "type": "board.createIncidentSites",
-      "data": [
-        {
-          "id": "site10",
-          "title": "Brand in Wohnhaus Steuerberg",
-          "description": "Ein Brand bricht im zweiten Stock eines Wohnhauses aus.",
-          "address": "Steuerberg, Gemeindegebiet"
-        },
-        {
-          "id": "site11",
-          "title": "Verkehrsunfall auf A23 Richtung Graz",
-          "description": "Schwere Verkehrsunfall mit mehreren Fahrzeugen und verstopfter Fahrbahn.",
-          "address": "A23 bei Steuerberg, Gemeindegebiet"
-        },
-        {
-          "id": "site12",
-          "title": "Gasleck in Industriepark",
-          "description": "Ein Gasleck wurde gemeldet. Evakuierung notwendig!",
-          "address": "Industriepark Steuerberg, Gemeindegebiet"
-        }
-      ]
-    },
-    {
-      "type": "protokoll.create",
-      "data": [
-        {
-          "id": "msg10",
-          "richtung": "ein",
-          "infoTyp": "Lagemeldung",
-          "senderRole": "POL",
-          "content": "Verkehrsunfall auf A23 Richtung Graz. Mehrere Fahrzeuge beteiligt, Verstopfung entlang der gesamten Strecke."
-        },
-        {
-          "id": "msg11",
-          "richtung": "ein",
-          "infoTyp": "Lagemeldung",
-          "senderRole": "RK",
-          "content": "Sanitätseinsatz für schwer verletzte Person im Wohnhausbrand Steuerberg. Notfallmedizinische Unterstützung erforderlich."
-        },
-        {
-          "id": "msg12",
-          "richtung": "ein",
-          "infoTyp": "Info",
-          "senderRole": "BH",
-          "content": "Behördliche Anordnung: Alle Feuerwehrteams sollen sich auf die Evakuierung im Industriepark vorbereiten."
-        }
-      ]
-    },
-    {
-      "type": "aufgaben.create",
-      "data": [
-        {
-          "id": "task10",
-          "title": "Personalplanung für zusätzliche Einsätze",
-          "description": "Aufgrund der erhöhten Anzahl an Einsätzen ist eine Überprüfung und Anpassung des Personalplans notwendig.",
-          "assignedBy": "LtStb",
-          "responsibleRole": "S1"
-        },
-        {
-          "id": "task11",
-          "title": "Kommunikation mit Medien über aktuelle Lage",
-          "description": "Einrichten einer Pressekonferenz zur aktuellen Katastrophensituation.",
-          "assignedBy": "LtStb",
-          "responsibleRole": "S5"
-        }
-      ]
-    },
-    {
-      "type": "aufgaben.update",
-      "data": [
-        {
-          "id": "task01",
-          "status": "inProgress"
-        },
-        {
-          "id": "task02",
-          "status": "done",
-          "note": "Die Personalplanung wurde erfolgreich angepasst."
-        }
-      ]
-    }
-  ]
-}
-{
-  "ts": "2026-01-27T06:09:45.171Z",
-  "type": "LLM",
-  "phase": "response",
-  "model": "einfo-balanced:latest",
-  "extra": {
-    "phase": "ops",
-    "messageCount": 2
-  }
-}
-rawResponse:
-{
-  "model": "einfo-balanced:latest",
-  "created_at": "2026-01-27T06:09:45.170727371Z",
-  "message": {
-    "role": "assistant",
-    "content": "{\n  \"operations\": [\n    {\n      \"type\": \"board.createIncidentSites\",\n      \"data\": [\n        {\"name\": \"Verkehrsunfall\", \"description\": \"Kollision zweier PKWs auf der A10 Richtung Steyr.\", \"address\": \"A10, km 54.23 (bei Steyer)\", \"type\": \"Accident\"},\n        {\"name\": \"Erdbeben Schäden\", \"description\": \"Bodenverschiebungen und Risse in Gebäuden im Gemeindegebiet von Steyr.\", \"address\": \"Gemeindegebiet Steyr\", \"type\": \"EarthquakeDamage\"}\n      ]\n    },\n    {\n      \"type\": \"protokoll.create\",\n      \"data\": [\n        {\"senderRole\": \"POL\", \"infoTyp\": \"Lagemeldung\", \"richtung\": \"ein\", \"text\": \"Verkehrsunfall auf der A10 Richtung Steyr. Bitte Evakuierung und Verkehrsleitplanung vorbereiten.\"},\n        {\n          \"type\": \"protokoll.create\",\n          \"senderRole\": \"RK\",\n          \"infoTyp\": \"Lagemeldung\",\n          \"richtung\": \"ein\",\n          \"text\": \"Sanitätseinsatz für 5 verletzte Personen im Verkehrsunfall auf der A10. Notfallversorgung und Evakuierung erforderlich.\"\n        },\n        {\n          \"type\": \"protokoll.create\",\n          \"senderRole\": \"BH\",\n          \"infoTyp\": \"Info\",\n          \"richtung\": \"ein\",\n          \"text\": \"Behördliche Anordnung: Alle Ressourcen zur Unterstützung der Evakuierung und Notfallversorgung bereitstellen.\"\n        },\n        {\n          \"type\": \"protokoll.create\",\n          \"senderRole\": \"Gemeinde Steyr\",\n          \"infoTyp\": \"Lagemeldung\",\n          \"richtung\": \"ein\",\n          \"text\": \"Erdbeben Schäden im Gemeindegebiet von Steyr. Gebäudeinspektionen und Evakuierung erforderlich.\"\n        }\n      ]\n    },\n    {\n      \"type\": \"aufgaben.create\",\n      \"data\": [\n        {\"assignedBy\": \"LtStb\", \"responsible\": \"S2\", \"description\": \"Lageanalyse für die aktuelle Katastrophensituation durchführen und Lagebilder erstellen.\"},\n        {\"assignedBy\": \"LtStb\", \"responsible\": \"S4\", \"description\": \"Versorgungslage einschließlich Nahrungsmittel, Wasser und Notfallausrüstungen überprüfen und sicherstellen.\"}\n      ]\n    },\n    {\n      \"type\": \"aufgaben.update\",\n      \"data\": [\n        {\"id\": 123, \"status\": \"inProgress\", \"text\": \"Lageanalyse für die aktuelle Katastrophensituation durchgeführt. Erste Lagebilder erstellt.\"},\n        {\"id\": 456, \"status\": \"done\", \"text\": \"Versorgungslage überprüft und sicher gestellt: Nahrungsmittel, Wasser und Notfallausrüstungen vorhanden.\"}\n      ]\n    }\n  ]\n}"
-  },
-  "done": true,
-  "done_reason": "stop",
-  "total_duration": 132117121799,
-  "load_duration": 58109192,
-  "prompt_eval_count": 4096,
-  "prompt_eval_duration": 9084951328,
-  "eval_count": 688,
-  "eval_duration": 111982782293
-}
-parsedResponse:
-{
-  "operations": [
-    {
-      "type": "board.createIncidentSites",
-      "data": [
-        {
-          "name": "Verkehrsunfall",
-          "description": "Kollision zweier PKWs auf der A10 Richtung Steyr.",
-          "address": "A10, km 54.23 (bei Steyer)",
-          "type": "Accident"
-        },
-        {
-          "name": "Erdbeben Schäden",
-          "description": "Bodenverschiebungen und Risse in Gebäuden im Gemeindegebiet von Steyr.",
-          "address": "Gemeindegebiet Steyr",
-          "type": "EarthquakeDamage"
-        }
-      ]
-    },
-    {
-      "type": "protokoll.create",
-      "data": [
-        {
-          "senderRole": "POL",
-          "infoTyp": "Lagemeldung",
-          "richtung": "ein",
-          "text": "Verkehrsunfall auf der A10 Richtung Steyr. Bitte Evakuierung und Verkehrsleitplanung vorbereiten."
-        },
-        {
-          "type": "protokoll.create",
-          "senderRole": "RK",
-          "infoTyp": "Lagemeldung",
-          "richtung": "ein",
-          "text": "Sanitätseinsatz für 5 verletzte Personen im Verkehrsunfall auf der A10. Notfallversorgung und Evakuierung erforderlich."
-        },
-        {
-          "type": "protokoll.create",
-          "senderRole": "BH",
-          "infoTyp": "Info",
-          "richtung": "ein",
-          "text": "Behördliche Anordnung: Alle Ressourcen zur Unterstützung der Evakuierung und Notfallversorgung bereitstellen."
-        },
-        {
-          "type": "protokoll.create",
-          "senderRole": "Gemeinde Steyr",
-          "infoTyp": "Lagemeldung",
-          "richtung": "ein",
-          "text": "Erdbeben Schäden im Gemeindegebiet von Steyr. Gebäudeinspektionen und Evakuierung erforderlich."
-        }
-      ]
-    },
-    {
-      "type": "aufgaben.create",
-      "data": [
-        {
-          "assignedBy": "LtStb",
-          "responsible": "S2",
-          "description": "Lageanalyse für die aktuelle Katastrophensituation durchführen und Lagebilder erstellen."
-        },
-        {
-          "assignedBy": "LtStb",
-          "responsible": "S4",
-          "description": "Versorgungslage einschließlich Nahrungsmittel, Wasser und Notfallausrüstungen überprüfen und sicherstellen."
-        }
-      ]
-    },
-    {
-      "type": "aufgaben.update",
-      "data": [
-        {
-          "id": 123,
-          "status": "inProgress",
-          "text": "Lageanalyse für die aktuelle Katastrophensituation durchgeführt. Erste Lagebilder erstellt."
-        },
-        {
-          "id": 456,
-          "status": "done",
-          "text": "Versorgungslage überprüft und sicher gestellt: Nahrungsmittel, Wasser und Notfallausrüstungen vorhanden."
-        }
-      ]
-    }
-  ]
-}
-{
-  "ts": "2026-01-27T06:12:05.334Z",
-  "type": "LLM",
-  "phase": "response",
-  "model": "einfo-balanced:latest",
-  "extra": {
-    "phase": "ops",
-    "messageCount": 2
-  }
-}
-rawResponse:
-{
-  "model": "einfo-balanced:latest",
-  "created_at": "2026-01-27T06:12:05.333841943Z",
-  "message": {
-    "role": "assistant",
-    "content": "{\n  \"operations\": {\n    \"protokoll\": {\n      \"create\": [\n        {\n          \"information\": \"Die Lage ist aktuell sehr angespannt, da mehrere Gebäude in Gefahr sind und die Rettungsstreifen unter hohem Druck stehen. Es gibt eine erhöhte Anzahl von Alarmierungen und Evakuierungsbefehlen durch POL und BM.\",\n          \"infoTyp\": \"Rueckmeldung\",\n          \"anvon\": \"EL\",\n          \"ergehtAn\": [\"Einsatzleitung\"],\n          \"richtung\": \"ein\"\n        }\n      ]\n    }\n  }\n}"
-  },
-  "done": true,
-  "done_reason": "stop",
-  "total_duration": 32244014936,
-  "load_duration": 60590655,
-  "prompt_eval_count": 4096,
-  "prompt_eval_duration": 9031525163,
-  "eval_count": 133,
-  "eval_duration": 21079019992
+  "total_duration": 299344856034,
+  "load_duration": 2198971460,
+  "prompt_eval_count": 6856,
+  "prompt_eval_duration": 12015797346,
+  "eval_count": 1116,
+  "eval_duration": 267585773050
 }
 parsedResponse:
 {
   "operations": {
-    "protokoll": {
-      "create": [
-        {
-          "information": "Die Lage ist aktuell sehr angespannt, da mehrere Gebäude in Gefahr sind und die Rettungsstreifen unter hohem Druck stehen. Es gibt eine erhöhte Anzahl von Alarmierungen und Evakuierungsbefehlen durch POL und BM.",
-          "infoTyp": "Rueckmeldung",
-          "anvon": "EL",
-          "ergehtAn": [
-            "Einsatzleitung"
-          ],
-          "richtung": "ein"
-        }
-      ]
-    }
-  }
-}
-{
-  "ts": "2026-01-27T06:14:09.130Z",
-  "type": "LLM",
-  "phase": "response",
-  "model": "einfo-balanced:latest",
-  "extra": {
-    "phase": "ops",
-    "messageCount": 2
-  }
-}
-rawResponse:
-{
-  "model": "einfo-balanced:latest",
-  "created_at": "2026-01-27T06:14:09.129431653Z",
-  "message": {
-    "role": "assistant",
-    "content": "{\n  \"operations\": {\n    \"protokoll\": {\n      \"create\": [\n        {\n          \"information\": \"Die Lage entwickelt sich weiterhin dramatisch, insbesondere durch die ständigen Schneefälle und vereisten Straßen. Es gibt aktuell mehrere Verkehrsunfälle sowie Absperrungen auf wichtigen Strecken. Die Einsatzkräfte sind voll ausgelastet und unterstützen auch lokale Hilfsdienste bei der Räumung von Gehwegen und Straßen.\",\n          \"infoTyp\": \"Rueckmeldung\",\n          \"anvon\": \"EL\",\n          \"ergehtAn\": [\"Einsatzleitung\"],\n          \"richtung\": \"ein\"\n        }\n      ]\n    }\n  }\n}"
-  },
-  "done": true,
-  "done_reason": "stop",
-  "total_duration": 36042822713,
-  "load_duration": 60308554,
-  "prompt_eval_count": 4096,
-  "prompt_eval_duration": 9095173672,
-  "eval_count": 154,
-  "eval_duration": 24475125345
-}
-parsedResponse:
-{
-  "operations": {
-    "protokoll": {
-      "create": [
-        {
-          "information": "Die Lage entwickelt sich weiterhin dramatisch, insbesondere durch die ständigen Schneefälle und vereisten Straßen. Es gibt aktuell mehrere Verkehrsunfälle sowie Absperrungen auf wichtigen Strecken. Die Einsatzkräfte sind voll ausgelastet und unterstützen auch lokale Hilfsdienste bei der Räumung von Gehwegen und Straßen.",
-          "infoTyp": "Rueckmeldung",
-          "anvon": "EL",
-          "ergehtAn": [
-            "Einsatzleitung"
-          ],
-          "richtung": "ein"
-        }
-      ]
-    }
-  }
-}
-{
-  "ts": "2026-01-27T06:16:16.063Z",
-  "type": "LLM",
-  "phase": "response",
-  "model": "einfo-balanced:latest",
-  "extra": {
-    "phase": "ops",
-    "messageCount": 2
-  }
-}
-rawResponse:
-{
-  "model": "einfo-balanced:latest",
-  "created_at": "2026-01-27T06:16:16.062188134Z",
-  "message": {
-    "role": "assistant",
-    "content": "{\n  \"operations\": {\n    \"protokoll\": {\n      \"create\": [\n        {\n          \"information\": \"Die Schneefälle sind aktuell stark und es wird für die kommenden Tage eine weitere Schneelage von bis zu 30 cm erwartet.\",\n          \"infoTyp\": \"Rueckmeldung\",\n          \"anvon\": \"EL\",\n          \"ergehtAn\": [\"Zamg\"],\n          \"richtung\": \"ein\"\n        },\n        {\n          \"information\": \"Die Lage entwickelt sich weiterhin komplex. Es gibt aktuell mehrere Einsätze im Gange, insbesondere bei Schneeverwehungen und gefährdeten Gebäuden.\",\n          \"infoTyp\": \"Rueckmeldung\",\n          \"anvon\": \"EL\",\n          \"ergehtAn\": [\"Einsatzleitung\"],\n          \"richtung\": \"ein\"\n        }\n      ]\n    }\n  }\n}"
-  },
-  "done": true,
-  "done_reason": "stop",
-  "total_duration": 42969482201,
-  "load_duration": 62067225,
-  "prompt_eval_count": 4096,
-  "prompt_eval_duration": 9117635793,
-  "eval_count": 194,
-  "eval_duration": 30776864726
-}
-parsedResponse:
-{
-  "operations": {
-    "protokoll": {
-      "create": [
-        {
-          "information": "Die Schneefälle sind aktuell stark und es wird für die kommenden Tage eine weitere Schneelage von bis zu 30 cm erwartet.",
-          "infoTyp": "Rueckmeldung",
-          "anvon": "EL",
-          "ergehtAn": [
-            "Zamg"
-          ],
-          "richtung": "ein"
-        },
-        {
-          "information": "Die Lage entwickelt sich weiterhin komplex. Es gibt aktuell mehrere Einsätze im Gange, insbesondere bei Schneeverwehungen und gefährdeten Gebäuden.",
-          "infoTyp": "Rueckmeldung",
-          "anvon": "EL",
-          "ergehtAn": [
-            "Einsatzleitung"
-          ],
-          "richtung": "ein"
-        }
-      ]
-    }
-  }
-}
-{
-  "ts": "2026-01-27T06:18:15.894Z",
-  "type": "LLM",
-  "phase": "response",
-  "model": "einfo-balanced:latest",
-  "extra": {
-    "phase": "ops",
-    "messageCount": 2
-  }
-}
-rawResponse:
-{
-  "model": "einfo-balanced:latest",
-  "created_at": "2026-01-27T06:18:15.893620047Z",
-  "message": {
-    "role": "assistant",
-    "content": "{\n  \"operations\": {\n    \"protokoll\": {\n      \"create\": [\n        {\n          \"information\": \"Die Schneefälle sind aktuell stark und es wird für die kommenden Tage eine weitere Schneelage von bis zu 30 cm erwartet.\",\n          \"infoTyp\": \"Rueckmeldung\",\n          \"anvon\": \"EL\",\n          \"ergehtAn\": [\"Zamg\"],\n          \"richtung\": \"ein\"\n        },\n        {\n          \"information\": \"Die Lage entwickelt sich weiterhin schwierig aufgrund der starken Schneefälle. Es gibt aktuell mehrere Einsätze und die Ressourcen sind beansprucht.\",\n          \"infoTyp\": \"Rueckmeldung\",\n          \"anvon\": \"EL\",\n          \"ergehtAn\": [\"Einsatzleitung\"],\n          \"richtung\": \"ein\"\n        }\n      ]\n    }\n  }\n}"
-  },
-  "done": true,
-  "done_reason": "stop",
-  "total_duration": 42798750582,
-  "load_duration": 64744141,
-  "prompt_eval_count": 4096,
-  "prompt_eval_duration": 9103564675,
-  "eval_count": 193,
-  "eval_duration": 30605370156
-}
-parsedResponse:
-{
-  "operations": {
-    "protokoll": {
-      "create": [
-        {
-          "information": "Die Schneefälle sind aktuell stark und es wird für die kommenden Tage eine weitere Schneelage von bis zu 30 cm erwartet.",
-          "infoTyp": "Rueckmeldung",
-          "anvon": "EL",
-          "ergehtAn": [
-            "Zamg"
-          ],
-          "richtung": "ein"
-        },
-        {
-          "information": "Die Lage entwickelt sich weiterhin schwierig aufgrund der starken Schneefälle. Es gibt aktuell mehrere Einsätze und die Ressourcen sind beansprucht.",
-          "infoTyp": "Rueckmeldung",
-          "anvon": "EL",
-          "ergehtAn": [
-            "Einsatzleitung"
-          ],
-          "richtung": "ein"
-        }
-      ]
-    }
-  }
-}
-{
-  "ts": "2026-01-27T06:20:15.077Z",
-  "type": "LLM",
-  "phase": "response",
-  "model": "einfo-balanced:latest",
-  "extra": {
-    "phase": "ops",
-    "messageCount": 2
-  }
-}
-rawResponse:
-{
-  "model": "einfo-balanced:latest",
-  "created_at": "2026-01-27T06:20:15.076784338Z",
-  "message": {
-    "role": "assistant",
-    "content": "{\n  \"operations\": {\n    \"protokoll\": {\n      \"create\": [\n        {\n          \"information\": \"Die Schneefälle sind aktuell stark und es wird für die kommenden Tage eine weitere Menge an Neuschnee erwartet.\",\n          \"infoTyp\": \"Rueckmeldung\",\n          \"anvon\": \"EL\",\n          \"ergehtAn\": [\"Zamg\"],\n          \"richtung\": \"ein\"\n        },\n        {\n          \"information\": \"Die Lage entwickelt sich weiterhin schwierig aufgrund der starken Schneefälle. Es gibt aktuell mehrere Einsätze und die Ressourcen sind beansprucht.\",\n          \"infoTyp\": \"Rueckmeldung\",\n          \"anvon\": \"EL\",\n          \"ergehtAn\": [\"Einsatzleitung\"],\n          \"richtung\": \"ein\"\n        }\n      ]\n    }\n  }\n}"
-  },
-  "done": true,
-  "done_reason": "stop",
-  "total_duration": 41972632386,
-  "load_duration": 63568354,
-  "prompt_eval_count": 4096,
-  "prompt_eval_duration": 9077497095,
-  "eval_count": 189,
-  "eval_duration": 29897170900
-}
-parsedResponse:
-{
-  "operations": {
-    "protokoll": {
-      "create": [
-        {
-          "information": "Die Schneefälle sind aktuell stark und es wird für die kommenden Tage eine weitere Menge an Neuschnee erwartet.",
-          "infoTyp": "Rueckmeldung",
-          "anvon": "EL",
-          "ergehtAn": [
-            "Zamg"
-          ],
-          "richtung": "ein"
-        },
-        {
-          "information": "Die Lage entwickelt sich weiterhin schwierig aufgrund der starken Schneefälle. Es gibt aktuell mehrere Einsätze und die Ressourcen sind beansprucht.",
-          "infoTyp": "Rueckmeldung",
-          "anvon": "EL",
-          "ergehtAn": [
-            "Einsatzleitung"
-          ],
-          "richtung": "ein"
-        }
-      ]
-    }
-  }
-}
-{
-  "ts": "2026-01-27T06:22:21.492Z",
-  "type": "LLM",
-  "phase": "response",
-  "model": "einfo-balanced:latest",
-  "extra": {
-    "phase": "ops",
-    "messageCount": 2
-  }
-}
-rawResponse:
-{
-  "model": "einfo-balanced:latest",
-  "created_at": "2026-01-27T06:22:21.491858122Z",
-  "message": {
-    "role": "assistant",
-    "content": "{\n  \"operations\": {\n    \"protokoll\": {\n      \"create\": [\n        {\n          \"information\": \"Die Schneefälle sind aktuell stark und es wird für die kommenden Tage eine weitere Erhöhung der Schneemenge erwartet. Bitte beachten Sie, dass dies zu erhöhter Gefahr von Einstürzen geführt hat.\",\n          \"infoTyp\": \"Rueckmeldung\",\n          \"anvon\": \"EL\",\n          \"ergehtAn\": [\"Zamg\"],\n          \"richtung\": \"ein\"\n        },\n        {\n          \"information\": \"Die Lage entwickelt sich weiterhin kritisch. Es gibt aktuell mehrere Einsätze im Bereich von Schneeverwehungen und Einstürzen, die durch den starken Schnee gefördert werden.\",\n          \"infoTyp\": \"Rueckmeldung\",\n          \"anvon\": \"EL\",\n          \"ergehtAn\": [\"Einsatzleitung\"],\n          \"richtung\": \"ein\"\n        }\n      ]\n    }\n  }\n}"
-  },
-  "done": true,
-  "done_reason": "stop",
-  "total_duration": 48388200946,
-  "load_duration": 57972501,
-  "prompt_eval_count": 4096,
-  "prompt_eval_duration": 9012829772,
-  "eval_count": 224,
-  "eval_duration": 35822579060
-}
-parsedResponse:
-{
-  "operations": {
-    "protokoll": {
-      "create": [
-        {
-          "information": "Die Schneefälle sind aktuell stark und es wird für die kommenden Tage eine weitere Erhöhung der Schneemenge erwartet. Bitte beachten Sie, dass dies zu erhöhter Gefahr von Einstürzen geführt hat.",
-          "infoTyp": "Rueckmeldung",
-          "anvon": "EL",
-          "ergehtAn": [
-            "Zamg"
-          ],
-          "richtung": "ein"
-        },
-        {
-          "information": "Die Lage entwickelt sich weiterhin kritisch. Es gibt aktuell mehrere Einsätze im Bereich von Schneeverwehungen und Einstürzen, die durch den starken Schnee gefördert werden.",
-          "infoTyp": "Rueckmeldung",
-          "anvon": "EL",
-          "ergehtAn": [
-            "Einsatzleitung"
-          ],
-          "richtung": "ein"
-        }
-      ]
-    }
-  }
-}
-{
-  "ts": "2026-01-27T06:24:15.817Z",
-  "type": "LLM",
-  "phase": "response",
-  "model": "einfo-balanced:latest",
-  "extra": {
-    "phase": "ops",
-    "messageCount": 2
-  }
-}
-rawResponse:
-{
-  "model": "einfo-balanced:latest",
-  "created_at": "2026-01-27T06:24:15.816762634Z",
-  "message": {
-    "role": "assistant",
-    "content": "{\n  \"operations\": {\n    \"protokoll\": {\n      \"create\": [\n        {\n          \"information\": \"Die Schneefälle sind aktuell stark und es wird für die kommenden Tage eine weitere Schneelage von bis zu 30 cm erwartet.\",\n          \"infoTyp\": \"Rueckmeldung\",\n          \"anvon\": \"EL\",\n          \"ergehtAn\": [\"Zamg\"],\n          \"richtung\": \"ein\"\n        },\n        {\n          \"information\": \"Die Lage entwickelt sich weiterhin schwierig aufgrund der starken Schneefälle. Es gibt aktuell mehrere Einsätze und die Ressourcen sind beansprucht.\",\n          \"infoTyp\": \"Rueckmeldung\",\n          \"anvon\": \"EL\",\n          \"ergehtAn\": [\"Einsatzleitung\"],\n          \"richtung\": \"ein\"\n        }\n      ]\n    }\n  }\n}"
-  },
-  "done": true,
-  "done_reason": "stop",
-  "total_duration": 42710785385,
-  "load_duration": 57836648,
-  "prompt_eval_count": 4096,
-  "prompt_eval_duration": 9031861477,
-  "eval_count": 193,
-  "eval_duration": 30622912606
-}
-parsedResponse:
-{
-  "operations": {
-    "protokoll": {
-      "create": [
-        {
-          "information": "Die Schneefälle sind aktuell stark und es wird für die kommenden Tage eine weitere Schneelage von bis zu 30 cm erwartet.",
-          "infoTyp": "Rueckmeldung",
-          "anvon": "EL",
-          "ergehtAn": [
-            "Zamg"
-          ],
-          "richtung": "ein"
-        },
-        {
-          "information": "Die Lage entwickelt sich weiterhin schwierig aufgrund der starken Schneefälle. Es gibt aktuell mehrere Einsätze und die Ressourcen sind beansprucht.",
-          "infoTyp": "Rueckmeldung",
-          "anvon": "EL",
-          "ergehtAn": [
-            "Einsatzleitung"
-          ],
-          "richtung": "ein"
-        }
-      ]
-    }
-  }
-}
-{
-  "ts": "2026-01-27T06:26:15.222Z",
-  "type": "LLM",
-  "phase": "response",
-  "model": "einfo-balanced:latest",
-  "extra": {
-    "phase": "ops",
-    "messageCount": 2
-  }
-}
-rawResponse:
-{
-  "model": "einfo-balanced:latest",
-  "created_at": "2026-01-27T06:26:15.221477638Z",
-  "message": {
-    "role": "assistant",
-    "content": "{\n  \"operations\": {\n    \"protokoll\": {\n      \"create\": [\n        {\n          \"information\": \"Die Schneefälle sind aktuell stark und es wird für die kommenden Tage eine weitere Menge an Neuschnee erwartet.\",\n          \"infoTyp\": \"Rueckmeldung\",\n          \"anvon\": \"EL\",\n          \"ergehtAn\": [\"Zamg\"],\n          \"richtung\": \"ein\"\n        },\n        {\n          \"information\": \"Die Lage entwickelt sich weiterhin schwierig aufgrund der starken Schneefälle. Es gibt aktuell mehrere Einsätze und die Ressourcen sind beansprucht.\",\n          \"infoTyp\": \"Rueckmeldung\",\n          \"anvon\": \"EL\",\n          \"ergehtAn\": [\"Einsatzleitung\"],\n          \"richtung\": \"ein\"\n        }\n      ]\n    }\n  }\n}"
-  },
-  "done": true,
-  "done_reason": "stop",
-  "total_duration": 42110521326,
-  "load_duration": 62640935,
-  "prompt_eval_count": 4096,
-  "prompt_eval_duration": 9094883055,
-  "eval_count": 189,
-  "eval_duration": 29961371006
-}
-parsedResponse:
-{
-  "operations": {
-    "protokoll": {
-      "create": [
-        {
-          "information": "Die Schneefälle sind aktuell stark und es wird für die kommenden Tage eine weitere Menge an Neuschnee erwartet.",
-          "infoTyp": "Rueckmeldung",
-          "anvon": "EL",
-          "ergehtAn": [
-            "Zamg"
-          ],
-          "richtung": "ein"
-        },
-        {
-          "information": "Die Lage entwickelt sich weiterhin schwierig aufgrund der starken Schneefälle. Es gibt aktuell mehrere Einsätze und die Ressourcen sind beansprucht.",
-          "infoTyp": "Rueckmeldung",
-          "anvon": "EL",
-          "ergehtAn": [
-            "Einsatzleitung"
-          ],
-          "richtung": "ein"
-        }
-      ]
-    }
-  }
-}
-{
-  "ts": "2026-01-27T06:28:14.488Z",
-  "type": "LLM",
-  "phase": "response",
-  "model": "einfo-balanced:latest",
-  "extra": {
-    "phase": "ops",
-    "messageCount": 2
-  }
-}
-rawResponse:
-{
-  "model": "einfo-balanced:latest",
-  "created_at": "2026-01-27T06:28:14.48749404Z",
-  "message": {
-    "role": "assistant",
-    "content": "{\n  \"operations\": {\n    \"protokoll\": {\n      \"create\": [\n        {\n          \"information\": \"Die Schneefälle sind aktuell stark und es wird für die kommenden Tage eine weitere Schneelast erwartet.\",\n          \"infoTyp\": \"Rueckmeldung\",\n          \"anvon\": \"EL\",\n          \"ergehtAn\": [\"Zamg\"],\n          \"richtung\": \"ein\"\n        },\n        {\n          \"information\": \"Die Lage entwickelt sich weiterhin komplex. Es gibt aktuell mehrere Schneeverwehungen und die Gefahr von Einsturzgefahr in Gebäuden.\",\n          \"infoTyp\": \"Rueckmeldung\",\n          \"anvon\": \"EL\",\n          \"ergehtAn\": [\"Einsatzleitung\"],\n          \"richtung\": \"ein\"\n        }\n      ]\n    }\n  }\n}"
-  },
-  "done": true,
-  "done_reason": "stop",
-  "total_duration": 41379225997,
-  "load_duration": 64205294,
-  "prompt_eval_count": 4096,
-  "prompt_eval_duration": 9073912782,
-  "eval_count": 185,
-  "eval_duration": 29352957213
-}
-parsedResponse:
-{
-  "operations": {
-    "protokoll": {
-      "create": [
-        {
-          "information": "Die Schneefälle sind aktuell stark und es wird für die kommenden Tage eine weitere Schneelast erwartet.",
-          "infoTyp": "Rueckmeldung",
-          "anvon": "EL",
-          "ergehtAn": [
-            "Zamg"
-          ],
-          "richtung": "ein"
-        },
-        {
-          "information": "Die Lage entwickelt sich weiterhin komplex. Es gibt aktuell mehrere Schneeverwehungen und die Gefahr von Einsturzgefahr in Gebäuden.",
-          "infoTyp": "Rueckmeldung",
-          "anvon": "EL",
-          "ergehtAn": [
-            "Einsatzleitung"
-          ],
-          "richtung": "ein"
-        }
-      ]
-    }
-  }
-}
-{
-  "ts": "2026-01-27T06:30:15.926Z",
-  "type": "LLM",
-  "phase": "response",
-  "model": "einfo-balanced:latest",
-  "extra": {
-    "phase": "ops",
-    "messageCount": 2
-  }
-}
-rawResponse:
-{
-  "model": "einfo-balanced:latest",
-  "created_at": "2026-01-27T06:30:15.925987904Z",
-  "message": {
-    "role": "assistant",
-    "content": "{\n  \"operations\": {\n    \"protokoll\": {\n      \"create\": [\n        {\n          \"information\": \"Die Schneefälle sind aktuell stark und es wird für die kommenden Tage eine weitere Schneelage von bis zu 30 cm erwartet.\",\n          \"infoTyp\": \"Rueckmeldung\",\n          \"anvon\": \"EL\",\n          \"ergehtAn\": [\"Zamg\"],\n          \"richtung\": \"ein\"\n        },\n        {\n          \"information\": \"Die Lage entwickelt sich weiterhin schwierig aufgrund der starken Schneefälle. Es gibt aktuell mehrere Einsätze und die Ressourcen sind beansprucht.\",\n          \"infoTyp\": \"Rueckmeldung\",\n          \"anvon\": \"EL\",\n          \"ergehtAn\": [\"Einsatzleitung\"],\n          \"richtung\": \"ein\"\n        }\n      ]\n    }\n  }\n}"
-  },
-  "done": true,
-  "done_reason": "stop",
-  "total_duration": 42809799023,
-  "load_duration": 61619358,
-  "prompt_eval_count": 4096,
-  "prompt_eval_duration": 9082781619,
-  "eval_count": 193,
-  "eval_duration": 30663237218
-}
-parsedResponse:
-{
-  "operations": {
-    "protokoll": {
-      "create": [
-        {
-          "information": "Die Schneefälle sind aktuell stark und es wird für die kommenden Tage eine weitere Schneelage von bis zu 30 cm erwartet.",
-          "infoTyp": "Rueckmeldung",
-          "anvon": "EL",
-          "ergehtAn": [
-            "Zamg"
-          ],
-          "richtung": "ein"
-        },
-        {
-          "information": "Die Lage entwickelt sich weiterhin schwierig aufgrund der starken Schneefälle. Es gibt aktuell mehrere Einsätze und die Ressourcen sind beansprucht.",
-          "infoTyp": "Rueckmeldung",
-          "anvon": "EL",
-          "ergehtAn": [
-            "Einsatzleitung"
-          ],
-          "richtung": "ein"
-        }
-      ]
-    }
-  }
-}
-{
-  "ts": "2026-01-27T06:32:15.586Z",
-  "type": "LLM",
-  "phase": "response",
-  "model": "einfo-balanced:latest",
-  "extra": {
-    "phase": "ops",
-    "messageCount": 2
-  }
-}
-rawResponse:
-{
-  "model": "einfo-balanced:latest",
-  "created_at": "2026-01-27T06:32:15.585614385Z",
-  "message": {
-    "role": "assistant",
-    "content": "{\n  \"operations\": {\n    \"protokoll\": {\n      \"create\": [\n        {\n          \"information\": \"Die Schneefälle sind aktuell stark und es wird für die kommenden Tage eine weitere Menge an Neuschnee erwartet.\",\n          \"infoTyp\": \"Rueckmeldung\",\n          \"anvon\": \"EL\",\n          \"ergehtAn\": [\"Zamg\"],\n          \"richtung\": \"ein\"\n        },\n        {\n          \"information\": \"Die Lage entwickelt sich weiterhin dynamisch. Es gibt aktuell mehrere Einsätze im Gange, insbesondere bei Schneeverwehungen und Gefahren durch gefährdete Gebäude.\",\n          \"infoTyp\": \"Rueckmeldung\",\n          \"anvon\": \"EL\",\n          \"ergehtAn\": [\"Einsatzleitung\"],\n          \"richtung\": \"ein\"\n        }\n      ]\n    }\n  }\n}"
-  },
-  "done": true,
-  "done_reason": "stop",
-  "total_duration": 42467531369,
-  "load_duration": 62382418,
-  "prompt_eval_count": 4096,
-  "prompt_eval_duration": 9028663907,
-  "eval_count": 192,
-  "eval_duration": 30409581287
-}
-parsedResponse:
-{
-  "operations": {
-    "protokoll": {
-      "create": [
-        {
-          "information": "Die Schneefälle sind aktuell stark und es wird für die kommenden Tage eine weitere Menge an Neuschnee erwartet.",
-          "infoTyp": "Rueckmeldung",
-          "anvon": "EL",
-          "ergehtAn": [
-            "Zamg"
-          ],
-          "richtung": "ein"
-        },
-        {
-          "information": "Die Lage entwickelt sich weiterhin dynamisch. Es gibt aktuell mehrere Einsätze im Gange, insbesondere bei Schneeverwehungen und Gefahren durch gefährdete Gebäude.",
-          "infoTyp": "Rueckmeldung",
-          "anvon": "EL",
-          "ergehtAn": [
-            "Einsatzleitung"
-          ],
-          "richtung": "ein"
-        }
-      ]
-    }
-  }
-}
-{
-  "ts": "2026-01-27T06:34:14.287Z",
-  "type": "LLM",
-  "phase": "response",
-  "model": "einfo-balanced:latest",
-  "extra": {
-    "phase": "ops",
-    "messageCount": 2
-  }
-}
-rawResponse:
-{
-  "model": "einfo-balanced:latest",
-  "created_at": "2026-01-27T06:34:14.286878669Z",
-  "message": {
-    "role": "assistant",
-    "content": "{\n  \"operations\": {\n    \"protokoll\": {\n      \"create\": [\n        {\n          \"information\": \"Die Schneefälle nehmen weiterhin zu, was die Gefahr von Einsturz und Verschüttung erhöht.\",\n          \"infoTyp\": \"Rueckmeldung\",\n          \"anvon\": \"LtStb\",\n          \"ergehtAn\": [\"Zamg\"],\n          \"richtung\": \"ein\"\n        },\n        {\n          \"information\": \"Die Lage entwickelt sich weiterhin dramatisch. Es gibt aktuell mehrere Schneeverwehungen und Einsturzgefahr.\",\n          \"infoTyp\": \"Rueckmeldung\",\n          \"anvon\": \"LtStb\",\n          \"ergehtAn\": [\"Einsatzleitung\"],\n          \"richtung\": \"ein\"\n        }\n      ]\n    }\n  }\n}"
-  },
-  "done": true,
-  "done_reason": "stop",
-  "total_duration": 41168138355,
-  "load_duration": 62964599,
-  "prompt_eval_count": 4096,
-  "prompt_eval_duration": 9078286835,
-  "eval_count": 184,
-  "eval_duration": 29172469924
-}
-parsedResponse:
-{
-  "operations": {
-    "protokoll": {
-      "create": [
-        {
-          "information": "Die Schneefälle nehmen weiterhin zu, was die Gefahr von Einsturz und Verschüttung erhöht.",
-          "infoTyp": "Rueckmeldung",
-          "anvon": "LtStb",
-          "ergehtAn": [
-            "Zamg"
-          ],
-          "richtung": "ein"
-        },
-        {
-          "information": "Die Lage entwickelt sich weiterhin dramatisch. Es gibt aktuell mehrere Schneeverwehungen und Einsturzgefahr.",
-          "infoTyp": "Rueckmeldung",
-          "anvon": "LtStb",
-          "ergehtAn": [
-            "Einsatzleitung"
-          ],
-          "richtung": "ein"
-        }
-      ]
-    }
-  }
-}
-{
-  "ts": "2026-01-27T06:36:16.162Z",
-  "type": "LLM",
-  "phase": "response",
-  "model": "einfo-balanced:latest",
-  "extra": {
-    "phase": "ops",
-    "messageCount": 2
-  }
-}
-rawResponse:
-{
-  "model": "einfo-balanced:latest",
-  "created_at": "2026-01-27T06:36:16.161624458Z",
-  "message": {
-    "role": "assistant",
-    "content": "{\n  \"operations\": {\n    \"protokoll\": {\n      \"create\": [\n        {\n          \"information\": \"Die Schneefälle sind aktuell stark und es wird für die kommenden Tage eine weitere Menge an Neuschnee erwartet.\",\n          \"infoTyp\": \"Rueckmeldung\",\n          \"anvon\": \"EL\",\n          \"ergehtAn\": [\"Zamg\"],\n          \"richtung\": \"ein\"\n        },\n        {\n          \"information\": \"Die Lage entwickelt sich weiterhin komplex mit starken Schneefällen und eingeschränktem Verkehr. Die Einsatzkräfte arbeiten intensiv daran, Straßen freizuräumen.\",\n          \"infoTyp\": \"Rueckmeldung\",\n          \"anvon\": \"EL\",\n          \"ergehtAn\": [\"Einsatzleitung\"],\n          \"richtung\": \"ein\"\n        }\n      ]\n    }\n  }\n}"
-  },
-  "done": true,
-  "done_reason": "stop",
-  "total_duration": 43039943408,
-  "load_duration": 61187038,
-  "prompt_eval_count": 4096,
-  "prompt_eval_duration": 9135661941,
-  "eval_count": 194,
-  "eval_duration": 30833360322
-}
-parsedResponse:
-{
-  "operations": {
-    "protokoll": {
-      "create": [
-        {
-          "information": "Die Schneefälle sind aktuell stark und es wird für die kommenden Tage eine weitere Menge an Neuschnee erwartet.",
-          "infoTyp": "Rueckmeldung",
-          "anvon": "EL",
-          "ergehtAn": [
-            "Zamg"
-          ],
-          "richtung": "ein"
-        },
-        {
-          "information": "Die Lage entwickelt sich weiterhin komplex mit starken Schneefällen und eingeschränktem Verkehr. Die Einsatzkräfte arbeiten intensiv daran, Straßen freizuräumen.",
-          "infoTyp": "Rueckmeldung",
-          "anvon": "EL",
-          "ergehtAn": [
-            "Einsatzleitung"
-          ],
-          "richtung": "ein"
-        }
-      ]
-    }
-  }
-}
-{
-  "ts": "2026-01-27T06:39:48.790Z",
-  "type": "LLM",
-  "phase": "response",
-  "model": "einfo-balanced:latest",
-  "extra": {
-    "phase": "ops",
-    "messageCount": 2
-  }
-}
-rawResponse:
-{
-  "model": "einfo-balanced:latest",
-  "created_at": "2026-01-27T06:39:48.789879193Z",
-  "message": {
-    "role": "assistant",
-    "content": "{\n  \"operations\": {\n    \"protokoll\": {\n      \"create\": [\n        {\n          \"information\": \"Die Schneefälle sind vorläufig stabil, jedoch weiterhin stark und bedrohlich für die Straßeninfrastruktur.\",\n          \"infoTyp\": \"Rueckmeldung\",\n          \"anvon\": \"LtStb\",\n          \"ergehtAn\": [\"Zamg\"],\n          \"richtung\": \"ein\"\n        },\n        {\n          \"information\": \"Die Lage entwickelt sich weiterhin schwierig. Die Schneefälle belasten die Straßen und erfordern kontinuierliche Räumungsmaßnahmen.\",\n          \"infoTyp\": \"Rueckmeldung\",\n          \"anvon\": \"LtStb\",\n          \"ergehtAn\": [\"Einsatzleitung\"],\n          \"richtung\": \"ein\"\n        }\n      ]\n    },\n    \"board\": {\n      \"createIncidentSites\": [\n        {\n          \"name\": \"Schneeverwehung am Ortsteil Nord\",\n          \"description\": \"Erhebliche Schneeverwehungen blockieren den Durchgang.\",\n          \"address\": \"Ortsteil Nord, Hauptstraße 123\"\n        },\n        {\n          \"name\": \"Stromausfall in Wohnsiedlung Süd\",\n          \"description\": \"Ein Stromausfall hat die Wasserversorgung beeinträchtigt.\",\n          \"address\": \"Wohnsiedlung Süd, Lindenweg 456\"\n        }\n      ],\n      \"updateIncidentSites\": [\n        {\n          \"name\": \"Schneeverwehung am Ortsteil Nord\",\n          \"status\": \"alerted\",\n          \"assignedVehicles\": [\"Schiene 12\", \"Fördegerät 3\"]\n        },\n        {\n          \"name\": \"Stromausfall in Wohnsiedlung Süd\",\n          \"status\": \"inProgress\",\n          \"additionalInfo\": \"Sanitätsdienst und Wasserversorgung eingesetzt.\"\n        }\n      ]\n    },\n    \"aufgaben\": {\n      \"createAufgaben\": [\n        {\n          \"titel\": \"Räumungsmaßnahmen am Ortsteil Nord\",\n          \"beschreibung\": \"Schiene 12 und Fördegerät 3 sollen die Schneeverwehungen beseitigen.\",\n          \"status\": \"open\"\n        },\n        {\n          \"titel\": \"Wasserversorgung in Wohnsiedlung Süd\",\n          \"beschreibung\": \"Sanitätsdienst und Wasserversorgung müssen den Wasserbedarf sichern.\",\n          \"status\": \"inProgress\"\n        }\n      ],\n      \"updateAufgaben\": [\n        {\n          \"id\": 1,\n          \"titel\": \"Räumungsmaßnahmen am Ortsteil Nord\",\n          \"beschreibung\": \"Schiene 12 und Fördegerät 3 sollen die Schneeverwehungen beseitigen.\",\n          \"status\": \"inProgress\"\n        },\n        {\n          \"id\": 2,\n          \"titel\": \"Wasserversorgung in Wohnsiedlung Süd\",\n          \"beschreibung\": \"Sanitätsdienst und Wasserversorgung müssen den Wasserbedarf sichern.\",\n          \"status\": \"done\"\n        }\n      ]\n    }\n  }\n}"
-  },
-  "done": true,
-  "done_reason": "stop",
-  "total_duration": 135667446404,
-  "load_duration": 61364354,
-  "prompt_eval_count": 4096,
-  "prompt_eval_duration": 9099379334,
-  "eval_count": 709,
-  "eval_duration": 115488403692
-}
-parsedResponse:
-{
-  "operations": {
-    "protokoll": {
-      "create": [
-        {
-          "information": "Die Schneefälle sind vorläufig stabil, jedoch weiterhin stark und bedrohlich für die Straßeninfrastruktur.",
-          "infoTyp": "Rueckmeldung",
-          "anvon": "LtStb",
-          "ergehtAn": [
-            "Zamg"
-          ],
-          "richtung": "ein"
-        },
-        {
-          "information": "Die Lage entwickelt sich weiterhin schwierig. Die Schneefälle belasten die Straßen und erfordern kontinuierliche Räumungsmaßnahmen.",
-          "infoTyp": "Rueckmeldung",
-          "anvon": "LtStb",
-          "ergehtAn": [
-            "Einsatzleitung"
-          ],
-          "richtung": "ein"
-        }
-      ]
-    },
     "board": {
       "createIncidentSites": [
         {
-          "name": "Schneeverwehung am Ortsteil Nord",
-          "description": "Erhebliche Schneeverwehungen blockieren den Durchgang.",
-          "address": "Ortsteil Nord, Hauptstraße 123"
+          "content": "Einsturzgefahr in Altenheim Sonnenhof",
+          "status": "open",
+          "ort": "Altenheim Sonnenhof, Himmelberg",
+          "description": "Statiker meldet akute Einsturzgefahr durch Schneelast. Ca. 20 Bewohner im Gebäude.",
+          "latitude": 46.531897,
+          "longitude": 14.289999,
+          "typ": "Sonstig",
+          "humanId": "E-11"
         },
         {
-          "name": "Stromausfall in Wohnsiedlung Süd",
-          "description": "Ein Stromausfall hat die Wasserversorgung beeinträchtigt.",
-          "address": "Wohnsiedlung Süd, Lindenweg 456"
+          "content": "Verkehrsunfall auf B90 bei Feldkirchen Nord",
+          "status": "open",
+          "ort": "B90 km 56, Feldkirchen Nord",
+          "description": "Unfall mit mehreren Fahrzeugen. Verletzte und blockierte Straße.",
+          "latitude": 46.531897,
+          "longitude": 14.289999,
+          "typ": "Verkehr",
+          "humanId": "E-12"
+        },
+        {
+          "content": "Notfall bei Apothekenkette in Feldkirchen Zentrum",
+          "status": "open",
+          "ort": "Apothekengruppe Feldkirchen, Hauptplatz 5",
+          "description": "Kritischer Medikamentenmangel für chronisch kranke Patienten.",
+          "latitude": 46.531897,
+          "longitude": 14.289999,
+          "typ": "Sonstig",
+          "humanId": "E-13"
+        },
+        {
+          "content": "Stromausfall in Wohnsiedlung Steuerberg",
+          "status": "open",
+          "ort": "Wohnsiedlung Steuerberg, Feldkirchen",
+          "description": "Kritischer Stromausfall bei 50 Haushalten. Notstromversorgung notwendig.",
+          "latitude": 46.531897,
+          "longitude": 14.289999,
+          "typ": "Sonstig",
+          "humanId": "E-14"
+        },
+        {
+          "content": "Notfall bei Tierheim Feldkirchen",
+          "status": "open",
+          "ort": "Tierheim Feldkirchen, Bergstraße 34",
+          "description": "Stall-Dach eingestürzt; Notunterbringung für Tiere notwendig.",
+          "latitude": 46.531897,
+          "longitude": 14.289999,
+          "typ": "Sonstig",
+          "humanId": "E-15"
         }
       ],
       "updateIncidentSites": [
         {
-          "name": "Schneeverwehung am Ortsteil Nord",
-          "status": "alerted",
-          "assignedVehicles": [
-            "Schiene 12",
-            "Fördegerät 3"
-          ]
-        },
-        {
-          "name": "Stromausfall in Wohnsiedlung Süd",
-          "status": "inProgress",
-          "additionalInfo": "Sanitätsdienst und Wasserversorgung eingesetzt."
+          "incidentId": "uuid",
+          "changes": {
+            "status": "active"
+          }
         }
       ]
     },
     "aufgaben": {
-      "createAufgaben": [
+      "create": [
         {
-          "titel": "Räumungsmaßnahmen am Ortsteil Nord",
-          "beschreibung": "Schiene 12 und Fördegerät 3 sollen die Schneeverwehungen beseitigen.",
-          "status": "open"
+          "title": "Koordination der Räumfahrzeuge für ÖBB",
+          "responsible": "S3",
+          "status": "open",
+          "desc": "ÖBB benötigt Unterstützung bei Bahnsteig- und Zufahrtsräumen.",
+          "priority": "high"
         },
         {
-          "titel": "Wasserversorgung in Wohnsiedlung Süd",
-          "beschreibung": "Sanitätsdienst und Wasserversorgung müssen den Wasserbedarf sichern.",
-          "status": "inProgress"
+          "title": "Priorisierung von Notstromversorgungen",
+          "responsible": "S4",
+          "status": "inProgress",
+          "desc": "Kritische Infrastrukturen (Altenheime, Trinkwasser) müssen vorrangig versorgt werden.",
+          "priority": "critical"
+        },
+        {
+          "title": "Informationskampagne für Bevölkerung",
+          "responsible": "S5",
+          "status": "open",
+          "desc": "Kommunikation über aktuelle Lage und Empfehlungen zur Sicherheit.",
+          "priority": "high"
         }
       ],
-      "updateAufgaben": [
+      "update": [
         {
-          "id": 1,
-          "titel": "Räumungsmaßnahmen am Ortsteil Nord",
-          "beschreibung": "Schiene 12 und Fördegerät 3 sollen die Schneeverwehungen beseitigen.",
-          "status": "inProgress"
+          "taskId": "uuid",
+          "changes": {
+            "status": "done"
+          }
+        }
+      ]
+    },
+    "protokoll": {
+      "create": [
+        {
+          "information": "Polizei Feldkirchen: Verkehrslage B317 verschärft; Rettungszufahrt behindert.",
+          "infoTyp": "Lagemeldung",
+          "ergehtAn": [
+            "S2"
+          ],
+          "richtung": "ein"
         },
         {
-          "id": 2,
-          "titel": "Wasserversorgung in Wohnsiedlung Süd",
-          "beschreibung": "Sanitätsdienst und Wasserversorgung müssen den Wasserbedarf sichern.",
-          "status": "done"
+          "information": "KELAG Störungsdienst: Stromausfall breitet sich aus. Betroffen Altenheim Sonnenhof und Pumpwerk Feldkirchen.",
+          "infoTyp": "Lagemeldung",
+          "ergehtAn": [
+            "S4"
+          ],
+          "richtung": "ein"
+        },
+        {
+          "information": "ÖBB Infrastruktur: Zugverkehr kann erst wieder aufgenommen werden, wenn Bahnsteige geräumt sind. Bedarf an Räumfahrzeugen.",
+          "infoTyp": "Lagemeldung",
+          "ergehtAn": [
+            "S3"
+          ],
+          "richtung": "ein"
+        },
+        {
+          "information": "Bezirkshauptmannschaft: Bitte um Lageeinschätzung zur möglichen Ausrufung des Katastrophenfalls.",
+          "infoTyp": "Info",
+          "ergehtAn": [
+            "LTSTB"
+          ],
+          "richtung": "ein"
         }
       ]
     }
   }
 }
 {
-  "ts": "2026-01-27T06:42:15.392Z",
+  "ts": "2026-01-27T09:54:07.335Z",
   "type": "LLM",
   "phase": "response",
   "model": "einfo-balanced:latest",
@@ -2423,40 +333,126 @@ parsedResponse:
 rawResponse:
 {
   "model": "einfo-balanced:latest",
-  "created_at": "2026-01-27T06:42:15.391576512Z",
+  "created_at": "2026-01-27T09:54:07.334614147Z",
   "message": {
     "role": "assistant",
-    "content": "{\n  \"operations\": {\n    \"protokoll\": {\n      \"create\": [\n        {\n          \"information\": \"Die Schneefälle sind aktuell stark und es wird für die kommenden Tage eine weitere Schneelast erwartet.\",\n          \"infoTyp\": \"Rueckmeldung\",\n          \"anvon\": \"EL\",\n          \"ergehtAn\": [\"Zamg\"],\n          \"richtung\": \"ein\"\n        },\n        {\n          \"information\": \"Die Lage entwickelt sich weiterhin komplex mit starken Schneefällen und gefährdeten Gebäuden. Die Einsatzkräfte arbeiten intensiv daran, die Situation zu stabilisieren.\",\n          \"infoTyp\": \"Rueckmeldung\",\n          \"anvon\": \"EL\",\n          \"ergehtAn\": [\"Einsatzleitung\"],\n          \"richtung\": \"ein\"\n        }\n      ]\n    }\n  }\n}"
+    "content": "{\n  \"operations\": {\n    \"board\": {\n      \"createIncidentSites\": [\n        {\"content\": \"Einsturzgefahr durch Schneelast\", \"status\": \"open\", \"ort\": \"Hauptplatz, Feldkirchen\", \"description\": \"Statiker meldet akute Einsturzgefahr im Hauptgebäude der Gemeinde. Ca. 50 Mitarbeiter und Besucher sind noch anwesend.\", \"latitude\": 46.789123, \"longitude\": 14.567890, \"typ\": \"Sonstig\", \"humanId\": \"E-11\"},\n        {\"content\": \"Verkehrsunfall mit Fahrzeugverschüttung\", \"status\": \"open\", \"ort\": \"B317 km 25, Feldkirchen Nord\", \"description\": \"Unfall mit schwerem Verletzten und blockierter Fahrbahn. Notruf von Passanten.\", \"latitude\": 46.809123, \"longitude\": 14.577890, \"typ\": \"Verkehr\", \"humanId\": \"E-12\"},\n        {\"content\": \"Stromausfall in Altenheim Sonnenhof\", \"status\": \"open\", \"ort\": \"Himmelbergstraße 3, Feldkirchen\", \"description\": \"KELAG meldet Stromversagen im Altenheim. Notstromaggregat läuft.\", \"latitude\": 46.798123, \"longitude\": 14.586890, \"typ\": \"Sonstig\", \"humanId\": \"E-13\"},\n        {\"content\": \"Notfall bei Apothekenlieferung\", \"status\": \"open\", \"ort\": \"Apotheke Feldkirchen, Hauptplatz 2\", \"description\": \"Krebspatient benötigt dringend Medikament. Lieferfahrzeug blockiert.\", \"latitude\": 46.789130, \"longitude\": 14.567900, \"typ\": \"Sonstig\", \"humanId\": \"E-14\"},\n        {\"content\": \"Notunterbringung für Tiere im Tierheim Feldkirchen\", \"status\": \"open\", \"ort\": \"Tierheim Feldkirchen, Albeckstraße 32\", \"description\": \"Stall-Dach eingestürzt; Notfallplanung notwendig.\", \"latitude\": 46.798150, \"longitude\": 14.586900, \"typ\": \"Sonstig\", \"humanId\": \"E-15\"}\n      ]\n    },\n    \"aufgaben\": {\n      \"create\": [\n        {\"title\": \"Koordination der Räumfahrzeuge für B317\", \"responsible\": \"S4\", \"status\": \"open\", \"desc\": \"Bereitstellung von Räumfahrzeugen zur Entblockung der Verkehrsader.\", \"priority\": \"high\"},\n        {\"title\": \"Notfallplanung im Altenheim Sonnenhof\", \"responsible\": \"S3\", \"status\": \"inProgress\", \"desc\": \"Entwicklung eines Notfallszenarios für den Fall einer Stromversorgungsunterbrechung.\", \"priority\": \"critical\"}\n      ]\n    },\n    \"protokoll\": {\n      \"create\": [\n        {\"information\": \"Verkehrsunfall mit Fahrzeugverschüttung auf B317 km 25, Feldkirchen Nord. Notruf von Passanten eingegangen; Rettungs- und Feuerwehr unterwegs.\", \"infoTyp\": \"Lagemeldung\", \"ergehtAn\": [\"S4\"], \"richtung\": \"ein\"},\n        {\"information\": \"KELAG: Stromversagen im Altenheim Sonnenhof. Notstromaggregat läuft; Bedarf an technischer Unterstützung und Ersatzteilen.\", \"infoTyp\": \"Lagemeldung\", \"ergehtAn\": [\"S4\"], \"richtung\": \"ein\"},\n        {\"information\": \"Apotheke Feldkirchen: Lieferfahrzeug blockiert auf Hauptplatz 2; Notfallmedikament für krebskrankes Kind muss heute aus Klagenfurt beschafft werden.\", \"infoTyp\": \"Lagemeldung\", \"ergehtAn\": [\"S4\"], \"richtung\": \"ein\"},\n        {\"information\": \"Tierheim Feldkirchen: Stall-Dach eingestürzt; Notunterbringung für 12 Hunde, 8 Katzen und Kleintiere notwendig.\", \"infoTyp\": \"Lagemeldung\", \"ergehtAn\": [\"S4\"], \"richtung\": \"ein\"}\n      ]\n    }\n  }\n}"
   },
   "done": true,
   "done_reason": "stop",
-  "total_duration": 42265690788,
-  "load_duration": 58671246,
-  "prompt_eval_count": 4096,
-  "prompt_eval_duration": 9076815421,
-  "eval_count": 190,
-  "eval_duration": 30185964778
+  "total_duration": 279776473794,
+  "load_duration": 2276174621,
+  "prompt_eval_count": 6857,
+  "prompt_eval_duration": 11949783514,
+  "eval_count": 1043,
+  "eval_duration": 249166029572
 }
 parsedResponse:
 {
   "operations": {
+    "board": {
+      "createIncidentSites": [
+        {
+          "content": "Einsturzgefahr durch Schneelast",
+          "status": "open",
+          "ort": "Hauptplatz, Feldkirchen",
+          "description": "Statiker meldet akute Einsturzgefahr im Hauptgebäude der Gemeinde. Ca. 50 Mitarbeiter und Besucher sind noch anwesend.",
+          "latitude": 46.789123,
+          "longitude": 14.56789,
+          "typ": "Sonstig",
+          "humanId": "E-11"
+        },
+        {
+          "content": "Verkehrsunfall mit Fahrzeugverschüttung",
+          "status": "open",
+          "ort": "B317 km 25, Feldkirchen Nord",
+          "description": "Unfall mit schwerem Verletzten und blockierter Fahrbahn. Notruf von Passanten.",
+          "latitude": 46.809123,
+          "longitude": 14.57789,
+          "typ": "Verkehr",
+          "humanId": "E-12"
+        },
+        {
+          "content": "Stromausfall in Altenheim Sonnenhof",
+          "status": "open",
+          "ort": "Himmelbergstraße 3, Feldkirchen",
+          "description": "KELAG meldet Stromversagen im Altenheim. Notstromaggregat läuft.",
+          "latitude": 46.798123,
+          "longitude": 14.58689,
+          "typ": "Sonstig",
+          "humanId": "E-13"
+        },
+        {
+          "content": "Notfall bei Apothekenlieferung",
+          "status": "open",
+          "ort": "Apotheke Feldkirchen, Hauptplatz 2",
+          "description": "Krebspatient benötigt dringend Medikament. Lieferfahrzeug blockiert.",
+          "latitude": 46.78913,
+          "longitude": 14.5679,
+          "typ": "Sonstig",
+          "humanId": "E-14"
+        },
+        {
+          "content": "Notunterbringung für Tiere im Tierheim Feldkirchen",
+          "status": "open",
+          "ort": "Tierheim Feldkirchen, Albeckstraße 32",
+          "description": "Stall-Dach eingestürzt; Notfallplanung notwendig.",
+          "latitude": 46.79815,
+          "longitude": 14.5869,
+          "typ": "Sonstig",
+          "humanId": "E-15"
+        }
+      ]
+    },
+    "aufgaben": {
+      "create": [
+        {
+          "title": "Koordination der Räumfahrzeuge für B317",
+          "responsible": "S4",
+          "status": "open",
+          "desc": "Bereitstellung von Räumfahrzeugen zur Entblockung der Verkehrsader.",
+          "priority": "high"
+        },
+        {
+          "title": "Notfallplanung im Altenheim Sonnenhof",
+          "responsible": "S3",
+          "status": "inProgress",
+          "desc": "Entwicklung eines Notfallszenarios für den Fall einer Stromversorgungsunterbrechung.",
+          "priority": "critical"
+        }
+      ]
+    },
     "protokoll": {
       "create": [
         {
-          "information": "Die Schneefälle sind aktuell stark und es wird für die kommenden Tage eine weitere Schneelast erwartet.",
-          "infoTyp": "Rueckmeldung",
-          "anvon": "EL",
+          "information": "Verkehrsunfall mit Fahrzeugverschüttung auf B317 km 25, Feldkirchen Nord. Notruf von Passanten eingegangen; Rettungs- und Feuerwehr unterwegs.",
+          "infoTyp": "Lagemeldung",
           "ergehtAn": [
-            "Zamg"
+            "S4"
           ],
           "richtung": "ein"
         },
         {
-          "information": "Die Lage entwickelt sich weiterhin komplex mit starken Schneefällen und gefährdeten Gebäuden. Die Einsatzkräfte arbeiten intensiv daran, die Situation zu stabilisieren.",
-          "infoTyp": "Rueckmeldung",
-          "anvon": "EL",
+          "information": "KELAG: Stromversagen im Altenheim Sonnenhof. Notstromaggregat läuft; Bedarf an technischer Unterstützung und Ersatzteilen.",
+          "infoTyp": "Lagemeldung",
           "ergehtAn": [
-            "Einsatzleitung"
+            "S4"
+          ],
+          "richtung": "ein"
+        },
+        {
+          "information": "Apotheke Feldkirchen: Lieferfahrzeug blockiert auf Hauptplatz 2; Notfallmedikament für krebskrankes Kind muss heute aus Klagenfurt beschafft werden.",
+          "infoTyp": "Lagemeldung",
+          "ergehtAn": [
+            "S4"
+          ],
+          "richtung": "ein"
+        },
+        {
+          "information": "Tierheim Feldkirchen: Stall-Dach eingestürzt; Notunterbringung für 12 Hunde, 8 Katzen und Kleintiere notwendig.",
+          "infoTyp": "Lagemeldung",
+          "ergehtAn": [
+            "S4"
           ],
           "richtung": "ein"
         }
@@ -2465,110 +461,47 @@ parsedResponse:
   }
 }
 {
-  "ts": "2026-01-27T06:44:15.188Z",
+  "ts": "2026-01-27T10:01:07.677Z",
   "type": "LLM",
-  "phase": "response",
+  "phase": "response_error",
   "model": "einfo-balanced:latest",
   "extra": {
     "phase": "ops",
+    "error": "AbortError: This operation was aborted",
     "messageCount": 2
   }
 }
 rawResponse:
-{
-  "model": "einfo-balanced:latest",
-  "created_at": "2026-01-27T06:44:15.187999278Z",
-  "message": {
-    "role": "assistant",
-    "content": "{\n  \"operations\": {\n    \"protokoll\": {\n      \"create\": [\n        {\n          \"information\": \"Die Schneefälle sind aktuell stark und es wird für die kommenden Tage eine weitere Schneelast erwartet.\",\n          \"infoTyp\": \"Rueckmeldung\",\n          \"anvon\": \"EL\",\n          \"ergehtAn\": [\"Zamg\"],\n          \"richtung\": \"ein\"\n        },\n        {\n          \"information\": \"Die Lage entwickelt sich weiterhin komplex mit starken Schneefällen und gefährdeten Gebäuden. Die Einsatzkräfte arbeiten intensiv daran, die Situation zu stabilisieren.\",\n          \"infoTyp\": \"Rueckmeldung\",\n          \"anvon\": \"EL\",\n          \"ergehtAn\": [\"Einsatzleitung\"],\n          \"richtung\": \"ein\"\n        }\n      ]\n    }\n  }\n}"
-  },
-  "done": true,
-  "done_reason": "stop",
-  "total_duration": 42062195025,
-  "load_duration": 56554419,
-  "prompt_eval_count": 4096,
-  "prompt_eval_duration": 9109266695,
-  "eval_count": 190,
-  "eval_duration": 29961070628
-}
+AbortError: This operation was aborted
 parsedResponse:
+null
 {
-  "operations": {
-    "protokoll": {
-      "create": [
-        {
-          "information": "Die Schneefälle sind aktuell stark und es wird für die kommenden Tage eine weitere Schneelast erwartet.",
-          "infoTyp": "Rueckmeldung",
-          "anvon": "EL",
-          "ergehtAn": [
-            "Zamg"
-          ],
-          "richtung": "ein"
-        },
-        {
-          "information": "Die Lage entwickelt sich weiterhin komplex mit starken Schneefällen und gefährdeten Gebäuden. Die Einsatzkräfte arbeiten intensiv daran, die Situation zu stabilisieren.",
-          "infoTyp": "Rueckmeldung",
-          "anvon": "EL",
-          "ergehtAn": [
-            "Einsatzleitung"
-          ],
-          "richtung": "ein"
-        }
-      ]
-    }
-  }
-}
-{
-  "ts": "2026-01-27T06:46:15.225Z",
+  "ts": "2026-01-27T10:06:09.338Z",
   "type": "LLM",
-  "phase": "response",
+  "phase": "response_error",
   "model": "einfo-balanced:latest",
   "extra": {
     "phase": "ops",
+    "error": "TypeError: fetch failed",
     "messageCount": 2
   }
 }
 rawResponse:
-{
-  "model": "einfo-balanced:latest",
-  "created_at": "2026-01-27T06:46:15.224654577Z",
-  "message": {
-    "role": "assistant",
-    "content": "{\n  \"operations\": {\n    \"protokoll\": {\n      \"create\": [\n        {\n          \"information\": \"Die Schneefälle sind aktuell stark und es wird für die kommenden Tage eine weitere Menge an Neuschnee erwartet.\",\n          \"infoTyp\": \"Rueckmeldung\",\n          \"anvon\": \"EL\",\n          \"ergehtAn\": [\"Zamg\"],\n          \"richtung\": \"ein\"\n        },\n        {\n          \"information\": \"Die Lage entwickelt sich weiterhin schwierig aufgrund der starken Schneefälle. Es gibt aktuell mehrere Einsätze und die Ressourcen sind beansprucht.\",\n          \"infoTyp\": \"Rueckmeldung\",\n          \"anvon\": \"EL\",\n          \"ergehtAn\": [\"Einsatzleitung\"],\n          \"richtung\": \"ein\"\n        }\n      ]\n    }\n  }\n}"
-  },
-  "done": true,
-  "done_reason": "stop",
-  "total_duration": 42095219159,
-  "load_duration": 65297286,
-  "prompt_eval_count": 4096,
-  "prompt_eval_duration": 9101966504,
-  "eval_count": 189,
-  "eval_duration": 30000583911
-}
+TypeError: fetch failed
 parsedResponse:
+null
 {
-  "operations": {
-    "protokoll": {
-      "create": [
-        {
-          "information": "Die Schneefälle sind aktuell stark und es wird für die kommenden Tage eine weitere Menge an Neuschnee erwartet.",
-          "infoTyp": "Rueckmeldung",
-          "anvon": "EL",
-          "ergehtAn": [
-            "Zamg"
-          ],
-          "richtung": "ein"
-        },
-        {
-          "information": "Die Lage entwickelt sich weiterhin schwierig aufgrund der starken Schneefälle. Es gibt aktuell mehrere Einsätze und die Ressourcen sind beansprucht.",
-          "infoTyp": "Rueckmeldung",
-          "anvon": "EL",
-          "ergehtAn": [
-            "Einsatzleitung"
-          ],
-          "richtung": "ein"
-        }
-      ]
-    }
+  "ts": "2026-01-27T10:11:11.994Z",
+  "type": "LLM",
+  "phase": "response_error",
+  "model": "einfo-balanced:latest",
+  "extra": {
+    "phase": "ops",
+    "error": "TypeError: fetch failed",
+    "messageCount": 2
   }
 }
+rawResponse:
+TypeError: fetch failed
+parsedResponse:
+null
