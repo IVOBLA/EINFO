@@ -1,5 +1,245 @@
 ═══════════════════════════════════════════════════════════════════════════════
-PROMPT-KOMPOSITION @ 2026-01-24T08:36:32.478Z
+PROMPT-KOMPOSITION @ 2026-01-26T19:15:49.557Z
+═══════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ ANGEWENDETE FILTERREGELN
+├─────────────────────────────────────────────────────────────────────────────
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ FILTERUNG (vorher → nachher)
+├─────────────────────────────────────────────────────────────────────────────
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ ✓ systemPrompt                 869 chars  (~  218 tokens)
+│ ✓ userPrompt                  6189 chars  (~ 1548 tokens)
+│ ✓ scenarioContext            22648 chars  (~ 5662 tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ GESAMT: 29706 chars (~7428 tokens)
+└─────────────────────────────────────────────────────────────────────────────
+
+───────────────────────────────────────────────────────────────────────────────
+RAW JSON:
+{
+  "ts": "2026-01-26T19:15:49.557Z",
+  "type": "PROMPT_COMPOSITION",
+  "phase": "start",
+  "rules": {},
+  "filtering": {},
+  "components": {
+    "systemPrompt": {
+      "chars": 869,
+      "tokens": 218
+    },
+    "userPrompt": {
+      "chars": 6189,
+      "tokens": 1548
+    },
+    "scenarioContext": {
+      "chars": 22648,
+      "included": true
+    }
+  }
+}
+
+═══════════════════════════════════════════════════════════════════════════════
+PROMPT-KOMPOSITION @ 2026-01-26T19:23:31.470Z
+═══════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ ANGEWENDETE FILTERREGELN
+├─────────────────────────────────────────────────────────────────────────────
+│ R1_ABSCHNITTE_PRIORITAET: ✅ AKTIV
+│   └─ max_items=5
+│ R2_PROTOKOLL_RELEVANZ: ✅ AKTIV
+│   └─ min_score=0.6, max_entries=10
+│ R3_TRENDS_ERKENNUNG: ✅ AKTIV
+│   └─ time_windows=[60,120]
+│ R4_RESSOURCEN_STATUS: ✅ AKTIV
+│   └─ threshold=80%
+│ R5_STABS_FOKUS: ✅ AKTIV
+│   └─ aggregate=true, max_individual=3
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ FILTERUNG (vorher → nachher)
+├─────────────────────────────────────────────────────────────────────────────
+│ abschnitte: 0 → 0 (0 gefiltert)
+│   └─ Grund: Top 5 nach Priority-Score
+│ protocol: 0 → 0 (0 gefiltert)
+│   └─ Grund: Score >= 0.6, max 10 Einträge
+│ trends: n/a → 1 (NaN gefiltert)
+│   └─ Grund: Trend: stable (weak)
+│ resources: 0 → 0 (0 gefiltert)
+│   └─ Grund: Auslastung: 0%, Engpass: NEIN
+│ incidents: 0 → 0 (0 gefiltert)
+│   └─ Grund: Nur kritische Einzeleinsätze (max 3)
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ ✓ systemPrompt                4961 chars  (~ 1241 tokens)
+│   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
+│ ✓ userPrompt                 15500 chars  (~ 3875 tokens)
+│ ✓ compressedBoard                2 chars  (~    1 tokens)
+│   └─ "[]"
+│ ✓ compressedAufgaben             2 chars  (~    1 tokens)
+│ ✓ compressedProtokoll            2 chars  (~    1 tokens)
+│ ✓ knowledgeContext            2498 chars  (~  625 tokens)
+│ ✓ disasterContext              380 chars  (~   95 tokens)
+│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: initial | Dauer: 18 Min↵Tren"
+│ ✗ learnedResponses               0 chars  (~    0 tokens)
+│ ✓ memorySnippets               694 chars  (~  174 tokens)
+│ ✗ messagesNeedingResponse        0 chars  (~    0 tokens)
+│ ✗ openQuestions                  0 chars  (~    0 tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ GESAMT: 24039 chars (~6013 tokens)
+└─────────────────────────────────────────────────────────────────────────────
+
+───────────────────────────────────────────────────────────────────────────────
+RAW JSON:
+{
+  "ts": "2026-01-26T19:23:31.470Z",
+  "type": "PROMPT_COMPOSITION",
+  "phase": "operations",
+  "rules": {
+    "R1_ABSCHNITTE_PRIORITAET": {
+      "enabled": true,
+      "details": "max_items=5"
+    },
+    "R2_PROTOKOLL_RELEVANZ": {
+      "enabled": true,
+      "details": "min_score=0.6, max_entries=10"
+    },
+    "R3_TRENDS_ERKENNUNG": {
+      "enabled": true,
+      "details": "time_windows=[60,120]"
+    },
+    "R4_RESSOURCEN_STATUS": {
+      "enabled": true,
+      "details": "threshold=80%"
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "skipped": null,
+      "details": "aggregate=true, max_individual=3"
+    }
+  },
+  "filtering": {
+    "abschnitte": {
+      "before": 0,
+      "after": 0,
+      "reason": "Top 5 nach Priority-Score"
+    },
+    "protocol": {
+      "before": 0,
+      "after": 0,
+      "reason": "Score >= 0.6, max 10 Einträge"
+    },
+    "trends": {
+      "before": "n/a",
+      "after": 1,
+      "reason": "Trend: stable (weak)"
+    },
+    "resources": {
+      "before": 0,
+      "after": 0,
+      "reason": "Auslastung: 0%, Engpass: NEIN",
+      "deployed_personnel": 0,
+      "total_personnel": 66
+    },
+    "incidents": {
+      "before": 0,
+      "after": 0,
+      "reason": "Nur kritische Einzeleinsätze (max 3)"
+    }
+  },
+  "appliedRules": {
+    "R1_ABSCHNITTE": {
+      "enabled": true,
+      "items_shown": 0,
+      "max_items": 5
+    },
+    "R2_PROTOKOLL": {
+      "enabled": true,
+      "items_shown": 0,
+      "max_items": 10
+    },
+    "R3_TRENDS": {
+      "enabled": true,
+      "direction": "stable",
+      "strength": "weak"
+    },
+    "R4_RESSOURCEN": {
+      "enabled": true,
+      "shortage": false,
+      "utilization": 0
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "individual_incidents_shown": 0
+    }
+  },
+  "components": {
+    "systemPrompt": {
+      "chars": 4961,
+      "tokens": 1241,
+      "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
+    },
+    "userPrompt": {
+      "chars": 15500,
+      "tokens": 3875
+    },
+    "compressedBoard": {
+      "chars": 2,
+      "tokens": 1,
+      "preview": "[]"
+    },
+    "compressedAufgaben": {
+      "chars": 2,
+      "tokens": 1
+    },
+    "compressedProtokoll": {
+      "chars": 2,
+      "tokens": 1
+    },
+    "knowledgeContext": {
+      "chars": 2498,
+      "tokens": 625,
+      "included": true
+    },
+    "disasterContext": {
+      "chars": 380,
+      "tokens": 95,
+      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: initial | Dauer: 18 Min\nTren"
+    },
+    "learnedResponses": {
+      "chars": 0,
+      "tokens": 0,
+      "included": false
+    },
+    "memorySnippets": {
+      "chars": 694,
+      "count": 5
+    },
+    "messagesNeedingResponse": {
+      "count": 0,
+      "included": false
+    },
+    "openQuestions": {
+      "count": 0,
+      "included": false
+    }
+  }
+}
+
+═══════════════════════════════════════════════════════════════════════════════
+PROMPT-KOMPOSITION @ 2026-01-26T19:27:31.469Z
 ═══════════════════════════════════════════════════════════════════════════════
 
 ┌─────────────────────────────────────────────────────────────────────────────
@@ -35,28 +275,28 @@ PROMPT-KOMPOSITION @ 2026-01-24T08:36:32.478Z
 ┌─────────────────────────────────────────────────────────────────────────────
 │ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
 ├─────────────────────────────────────────────────────────────────────────────
-│ ✓ systemPrompt                4206 chars  (~ 1052 tokens)
+│ ✓ systemPrompt                4961 chars  (~ 1241 tokens)
 │   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
-│ ✓ userPrompt                 14928 chars  (~ 3732 tokens)
+│ ✓ userPrompt                 16081 chars  (~ 4021 tokens)
 │ ✓ compressedBoard                2 chars  (~    1 tokens)
 │   └─ "[]"
-│ ✓ compressedAufgaben             2 chars  (~    1 tokens)
-│ ✓ compressedProtokoll          257 chars  (~   65 tokens)
+│ ✓ compressedAufgaben           169 chars  (~   43 tokens)
+│ ✓ compressedProtokoll          246 chars  (~   62 tokens)
 │ ✓ knowledgeContext            2498 chars  (~  625 tokens)
 │ ✓ disasterContext              550 chars  (~  138 tokens)
-│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: initial | Dauer: 24 Min↵Tren"
+│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: initial | Dauer: 18 Min↵Tren"
 │ ✗ learnedResponses               0 chars  (~    0 tokens)
-│ ✓ memorySnippets               651 chars  (~  163 tokens)
+│ ✓ memorySnippets               694 chars  (~  174 tokens)
 │ ✗ messagesNeedingResponse        0 chars  (~    0 tokens)
 │ ✗ openQuestions                  0 chars  (~    0 tokens)
 ├─────────────────────────────────────────────────────────────────────────────
-│ GESAMT: 23094 chars (~5777 tokens)
+│ GESAMT: 25201 chars (~6305 tokens)
 └─────────────────────────────────────────────────────────────────────────────
 
 ───────────────────────────────────────────────────────────────────────────────
 RAW JSON:
 {
-  "ts": "2026-01-24T08:36:32.478Z",
+  "ts": "2026-01-26T19:27:31.469Z",
   "type": "PROMPT_COMPOSITION",
   "phase": "operations",
   "rules": {
@@ -78,6 +318,7 @@ RAW JSON:
     },
     "R5_STABS_FOKUS": {
       "enabled": true,
+      "skipped": null,
       "details": "aggregate=true, max_individual=3"
     }
   },
@@ -138,13 +379,13 @@ RAW JSON:
   },
   "components": {
     "systemPrompt": {
-      "chars": 4206,
-      "tokens": 1052,
+      "chars": 4961,
+      "tokens": 1241,
       "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
     },
     "userPrompt": {
-      "chars": 14928,
-      "tokens": 3732
+      "chars": 16081,
+      "tokens": 4021
     },
     "compressedBoard": {
       "chars": 2,
@@ -152,12 +393,12 @@ RAW JSON:
       "preview": "[]"
     },
     "compressedAufgaben": {
-      "chars": 2,
-      "tokens": 1
+      "chars": 169,
+      "tokens": 43
     },
     "compressedProtokoll": {
-      "chars": 257,
-      "tokens": 65
+      "chars": 246,
+      "tokens": 62
     },
     "knowledgeContext": {
       "chars": 2498,
@@ -167,7 +408,7 @@ RAW JSON:
     "disasterContext": {
       "chars": 550,
       "tokens": 138,
-      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: initial | Dauer: 24 Min\nTren"
+      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: initial | Dauer: 18 Min\nTren"
     },
     "learnedResponses": {
       "chars": 0,
@@ -175,7 +416,7 @@ RAW JSON:
       "included": false
     },
     "memorySnippets": {
-      "chars": 651,
+      "chars": 694,
       "count": 5
     },
     "messagesNeedingResponse": {
@@ -190,962 +431,7 @@ RAW JSON:
 }
 
 ═══════════════════════════════════════════════════════════════════════════════
-PROMPT-KOMPOSITION @ 2026-01-24T08:42:32.481Z
-═══════════════════════════════════════════════════════════════════════════════
-
-┌─────────────────────────────────────────────────────────────────────────────
-│ ANGEWENDETE FILTERREGELN
-├─────────────────────────────────────────────────────────────────────────────
-│ R1_ABSCHNITTE_PRIORITAET: ✅ AKTIV
-│   └─ max_items=5
-│ R2_PROTOKOLL_RELEVANZ: ✅ AKTIV
-│   └─ min_score=0.6, max_entries=10
-│ R3_TRENDS_ERKENNUNG: ✅ AKTIV
-│   └─ time_windows=[60,120]
-│ R4_RESSOURCEN_STATUS: ✅ AKTIV
-│   └─ threshold=80%
-│ R5_STABS_FOKUS: ✅ AKTIV
-│   └─ aggregate=true, max_individual=3
-└─────────────────────────────────────────────────────────────────────────────
-
-┌─────────────────────────────────────────────────────────────────────────────
-│ FILTERUNG (vorher → nachher)
-├─────────────────────────────────────────────────────────────────────────────
-│ abschnitte: 0 → 0 (0 gefiltert)
-│   └─ Grund: Top 5 nach Priority-Score
-│ protocol: 1 → 1 (0 gefiltert)
-│   └─ Grund: Score >= 0.6, max 10 Einträge
-│ trends: n/a → 1 (NaN gefiltert)
-│   └─ Grund: Trend: stable (weak)
-│ resources: 0 → 0 (0 gefiltert)
-│   └─ Grund: Auslastung: 0%, Engpass: NEIN
-│ incidents: 0 → 0 (0 gefiltert)
-│   └─ Grund: Nur kritische Einzeleinsätze (max 3)
-└─────────────────────────────────────────────────────────────────────────────
-
-┌─────────────────────────────────────────────────────────────────────────────
-│ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
-├─────────────────────────────────────────────────────────────────────────────
-│ ✓ systemPrompt                4206 chars  (~ 1052 tokens)
-│   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
-│ ✓ userPrompt                 14928 chars  (~ 3732 tokens)
-│ ✓ compressedBoard                2 chars  (~    1 tokens)
-│   └─ "[]"
-│ ✓ compressedAufgaben             2 chars  (~    1 tokens)
-│ ✓ compressedProtokoll          257 chars  (~   65 tokens)
-│ ✓ knowledgeContext            2498 chars  (~  625 tokens)
-│ ✓ disasterContext              550 chars  (~  138 tokens)
-│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: initial | Dauer: 30 Min↵Tren"
-│ ✗ learnedResponses               0 chars  (~    0 tokens)
-│ ✓ memorySnippets               651 chars  (~  163 tokens)
-│ ✗ messagesNeedingResponse        0 chars  (~    0 tokens)
-│ ✗ openQuestions                  0 chars  (~    0 tokens)
-├─────────────────────────────────────────────────────────────────────────────
-│ GESAMT: 23094 chars (~5777 tokens)
-└─────────────────────────────────────────────────────────────────────────────
-
-───────────────────────────────────────────────────────────────────────────────
-RAW JSON:
-{
-  "ts": "2026-01-24T08:42:32.481Z",
-  "type": "PROMPT_COMPOSITION",
-  "phase": "operations",
-  "rules": {
-    "R1_ABSCHNITTE_PRIORITAET": {
-      "enabled": true,
-      "details": "max_items=5"
-    },
-    "R2_PROTOKOLL_RELEVANZ": {
-      "enabled": true,
-      "details": "min_score=0.6, max_entries=10"
-    },
-    "R3_TRENDS_ERKENNUNG": {
-      "enabled": true,
-      "details": "time_windows=[60,120]"
-    },
-    "R4_RESSOURCEN_STATUS": {
-      "enabled": true,
-      "details": "threshold=80%"
-    },
-    "R5_STABS_FOKUS": {
-      "enabled": true,
-      "details": "aggregate=true, max_individual=3"
-    }
-  },
-  "filtering": {
-    "abschnitte": {
-      "before": 0,
-      "after": 0,
-      "reason": "Top 5 nach Priority-Score"
-    },
-    "protocol": {
-      "before": 1,
-      "after": 1,
-      "reason": "Score >= 0.6, max 10 Einträge"
-    },
-    "trends": {
-      "before": "n/a",
-      "after": 1,
-      "reason": "Trend: stable (weak)"
-    },
-    "resources": {
-      "before": 0,
-      "after": 0,
-      "reason": "Auslastung: 0%, Engpass: NEIN",
-      "deployed_personnel": 0,
-      "total_personnel": 66
-    },
-    "incidents": {
-      "before": 0,
-      "after": 0,
-      "reason": "Nur kritische Einzeleinsätze (max 3)"
-    }
-  },
-  "appliedRules": {
-    "R1_ABSCHNITTE": {
-      "enabled": true,
-      "items_shown": 0,
-      "max_items": 5
-    },
-    "R2_PROTOKOLL": {
-      "enabled": true,
-      "items_shown": 1,
-      "max_items": 10
-    },
-    "R3_TRENDS": {
-      "enabled": true,
-      "direction": "stable",
-      "strength": "weak"
-    },
-    "R4_RESSOURCEN": {
-      "enabled": true,
-      "shortage": false,
-      "utilization": 0
-    },
-    "R5_STABS_FOKUS": {
-      "enabled": true,
-      "individual_incidents_shown": 0
-    }
-  },
-  "components": {
-    "systemPrompt": {
-      "chars": 4206,
-      "tokens": 1052,
-      "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
-    },
-    "userPrompt": {
-      "chars": 14928,
-      "tokens": 3732
-    },
-    "compressedBoard": {
-      "chars": 2,
-      "tokens": 1,
-      "preview": "[]"
-    },
-    "compressedAufgaben": {
-      "chars": 2,
-      "tokens": 1
-    },
-    "compressedProtokoll": {
-      "chars": 257,
-      "tokens": 65
-    },
-    "knowledgeContext": {
-      "chars": 2498,
-      "tokens": 625,
-      "included": true
-    },
-    "disasterContext": {
-      "chars": 550,
-      "tokens": 138,
-      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: initial | Dauer: 30 Min\nTren"
-    },
-    "learnedResponses": {
-      "chars": 0,
-      "tokens": 0,
-      "included": false
-    },
-    "memorySnippets": {
-      "chars": 651,
-      "count": 5
-    },
-    "messagesNeedingResponse": {
-      "count": 0,
-      "included": false
-    },
-    "openQuestions": {
-      "count": 0,
-      "included": false
-    }
-  }
-}
-
-═══════════════════════════════════════════════════════════════════════════════
-PROMPT-KOMPOSITION @ 2026-01-24T08:58:32.793Z
-═══════════════════════════════════════════════════════════════════════════════
-
-┌─────────────────────────────────────────────────────────────────────────────
-│ ANGEWENDETE FILTERREGELN
-├─────────────────────────────────────────────────────────────────────────────
-│ R1_ABSCHNITTE_PRIORITAET: ✅ AKTIV
-│   └─ max_items=5
-│ R2_PROTOKOLL_RELEVANZ: ✅ AKTIV
-│   └─ min_score=0.6, max_entries=10
-│ R3_TRENDS_ERKENNUNG: ✅ AKTIV
-│   └─ time_windows=[60,120]
-│ R4_RESSOURCEN_STATUS: ✅ AKTIV
-│   └─ threshold=80%
-│ R5_STABS_FOKUS: ✅ AKTIV
-│   └─ aggregate=true, max_individual=3
-└─────────────────────────────────────────────────────────────────────────────
-
-┌─────────────────────────────────────────────────────────────────────────────
-│ FILTERUNG (vorher → nachher)
-├─────────────────────────────────────────────────────────────────────────────
-│ abschnitte: 0 → 0 (0 gefiltert)
-│   └─ Grund: Top 5 nach Priority-Score
-│ protocol: 1 → 1 (0 gefiltert)
-│   └─ Grund: Score >= 0.6, max 10 Einträge
-│ trends: n/a → 1 (NaN gefiltert)
-│   └─ Grund: Trend: stable (weak)
-│ resources: 0 → 0 (0 gefiltert)
-│   └─ Grund: Auslastung: 0%, Engpass: NEIN
-│ incidents: 0 → 0 (0 gefiltert)
-│   └─ Grund: Nur kritische Einzeleinsätze (max 3)
-└─────────────────────────────────────────────────────────────────────────────
-
-┌─────────────────────────────────────────────────────────────────────────────
-│ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
-├─────────────────────────────────────────────────────────────────────────────
-│ ✓ systemPrompt                4206 chars  (~ 1052 tokens)
-│   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
-│ ✓ userPrompt                 14928 chars  (~ 3732 tokens)
-│ ✓ compressedBoard                2 chars  (~    1 tokens)
-│   └─ "[]"
-│ ✓ compressedAufgaben             2 chars  (~    1 tokens)
-│ ✓ compressedProtokoll          257 chars  (~   65 tokens)
-│ ✓ knowledgeContext            2498 chars  (~  625 tokens)
-│ ✓ disasterContext              550 chars  (~  138 tokens)
-│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: initial | Dauer: 42 Min↵Tren"
-│ ✗ learnedResponses               0 chars  (~    0 tokens)
-│ ✓ memorySnippets               651 chars  (~  163 tokens)
-│ ✗ messagesNeedingResponse        0 chars  (~    0 tokens)
-│ ✗ openQuestions                  0 chars  (~    0 tokens)
-├─────────────────────────────────────────────────────────────────────────────
-│ GESAMT: 23094 chars (~5777 tokens)
-└─────────────────────────────────────────────────────────────────────────────
-
-───────────────────────────────────────────────────────────────────────────────
-RAW JSON:
-{
-  "ts": "2026-01-24T08:58:32.793Z",
-  "type": "PROMPT_COMPOSITION",
-  "phase": "operations",
-  "rules": {
-    "R1_ABSCHNITTE_PRIORITAET": {
-      "enabled": true,
-      "details": "max_items=5"
-    },
-    "R2_PROTOKOLL_RELEVANZ": {
-      "enabled": true,
-      "details": "min_score=0.6, max_entries=10"
-    },
-    "R3_TRENDS_ERKENNUNG": {
-      "enabled": true,
-      "details": "time_windows=[60,120]"
-    },
-    "R4_RESSOURCEN_STATUS": {
-      "enabled": true,
-      "details": "threshold=80%"
-    },
-    "R5_STABS_FOKUS": {
-      "enabled": true,
-      "details": "aggregate=true, max_individual=3"
-    }
-  },
-  "filtering": {
-    "abschnitte": {
-      "before": 0,
-      "after": 0,
-      "reason": "Top 5 nach Priority-Score"
-    },
-    "protocol": {
-      "before": 1,
-      "after": 1,
-      "reason": "Score >= 0.6, max 10 Einträge"
-    },
-    "trends": {
-      "before": "n/a",
-      "after": 1,
-      "reason": "Trend: stable (weak)"
-    },
-    "resources": {
-      "before": 0,
-      "after": 0,
-      "reason": "Auslastung: 0%, Engpass: NEIN",
-      "deployed_personnel": 0,
-      "total_personnel": 66
-    },
-    "incidents": {
-      "before": 0,
-      "after": 0,
-      "reason": "Nur kritische Einzeleinsätze (max 3)"
-    }
-  },
-  "appliedRules": {
-    "R1_ABSCHNITTE": {
-      "enabled": true,
-      "items_shown": 0,
-      "max_items": 5
-    },
-    "R2_PROTOKOLL": {
-      "enabled": true,
-      "items_shown": 1,
-      "max_items": 10
-    },
-    "R3_TRENDS": {
-      "enabled": true,
-      "direction": "stable",
-      "strength": "weak"
-    },
-    "R4_RESSOURCEN": {
-      "enabled": true,
-      "shortage": false,
-      "utilization": 0
-    },
-    "R5_STABS_FOKUS": {
-      "enabled": true,
-      "individual_incidents_shown": 0
-    }
-  },
-  "components": {
-    "systemPrompt": {
-      "chars": 4206,
-      "tokens": 1052,
-      "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
-    },
-    "userPrompt": {
-      "chars": 14928,
-      "tokens": 3732
-    },
-    "compressedBoard": {
-      "chars": 2,
-      "tokens": 1,
-      "preview": "[]"
-    },
-    "compressedAufgaben": {
-      "chars": 2,
-      "tokens": 1
-    },
-    "compressedProtokoll": {
-      "chars": 257,
-      "tokens": 65
-    },
-    "knowledgeContext": {
-      "chars": 2498,
-      "tokens": 625,
-      "included": true
-    },
-    "disasterContext": {
-      "chars": 550,
-      "tokens": 138,
-      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: initial | Dauer: 42 Min\nTren"
-    },
-    "learnedResponses": {
-      "chars": 0,
-      "tokens": 0,
-      "included": false
-    },
-    "memorySnippets": {
-      "chars": 651,
-      "count": 5
-    },
-    "messagesNeedingResponse": {
-      "count": 0,
-      "included": false
-    },
-    "openQuestions": {
-      "count": 0,
-      "included": false
-    }
-  }
-}
-
-═══════════════════════════════════════════════════════════════════════════════
-PROMPT-KOMPOSITION @ 2026-01-24T09:04:32.812Z
-═══════════════════════════════════════════════════════════════════════════════
-
-┌─────────────────────────────────────────────────────────────────────────────
-│ ANGEWENDETE FILTERREGELN
-├─────────────────────────────────────────────────────────────────────────────
-│ R1_ABSCHNITTE_PRIORITAET: ✅ AKTIV
-│   └─ max_items=5
-│ R2_PROTOKOLL_RELEVANZ: ✅ AKTIV
-│   └─ min_score=0.6, max_entries=10
-│ R3_TRENDS_ERKENNUNG: ✅ AKTIV
-│   └─ time_windows=[60,120]
-│ R4_RESSOURCEN_STATUS: ✅ AKTIV
-│   └─ threshold=80%
-│ R5_STABS_FOKUS: ✅ AKTIV
-│   └─ aggregate=true, max_individual=3
-└─────────────────────────────────────────────────────────────────────────────
-
-┌─────────────────────────────────────────────────────────────────────────────
-│ FILTERUNG (vorher → nachher)
-├─────────────────────────────────────────────────────────────────────────────
-│ abschnitte: 0 → 0 (0 gefiltert)
-│   └─ Grund: Top 5 nach Priority-Score
-│ protocol: 1 → 1 (0 gefiltert)
-│   └─ Grund: Score >= 0.6, max 10 Einträge
-│ trends: n/a → 1 (NaN gefiltert)
-│   └─ Grund: Trend: stable (weak)
-│ resources: 0 → 0 (0 gefiltert)
-│   └─ Grund: Auslastung: 0%, Engpass: NEIN
-│ incidents: 0 → 0 (0 gefiltert)
-│   └─ Grund: Nur kritische Einzeleinsätze (max 3)
-└─────────────────────────────────────────────────────────────────────────────
-
-┌─────────────────────────────────────────────────────────────────────────────
-│ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
-├─────────────────────────────────────────────────────────────────────────────
-│ ✓ systemPrompt                4206 chars  (~ 1052 tokens)
-│   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
-│ ✓ userPrompt                 14928 chars  (~ 3732 tokens)
-│ ✓ compressedBoard                2 chars  (~    1 tokens)
-│   └─ "[]"
-│ ✓ compressedAufgaben             2 chars  (~    1 tokens)
-│ ✓ compressedProtokoll          257 chars  (~   65 tokens)
-│ ✓ knowledgeContext            2498 chars  (~  625 tokens)
-│ ✓ disasterContext              550 chars  (~  138 tokens)
-│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: initial | Dauer: 48 Min↵Tren"
-│ ✗ learnedResponses               0 chars  (~    0 tokens)
-│ ✓ memorySnippets               651 chars  (~  163 tokens)
-│ ✗ messagesNeedingResponse        0 chars  (~    0 tokens)
-│ ✗ openQuestions                  0 chars  (~    0 tokens)
-├─────────────────────────────────────────────────────────────────────────────
-│ GESAMT: 23094 chars (~5777 tokens)
-└─────────────────────────────────────────────────────────────────────────────
-
-───────────────────────────────────────────────────────────────────────────────
-RAW JSON:
-{
-  "ts": "2026-01-24T09:04:32.812Z",
-  "type": "PROMPT_COMPOSITION",
-  "phase": "operations",
-  "rules": {
-    "R1_ABSCHNITTE_PRIORITAET": {
-      "enabled": true,
-      "details": "max_items=5"
-    },
-    "R2_PROTOKOLL_RELEVANZ": {
-      "enabled": true,
-      "details": "min_score=0.6, max_entries=10"
-    },
-    "R3_TRENDS_ERKENNUNG": {
-      "enabled": true,
-      "details": "time_windows=[60,120]"
-    },
-    "R4_RESSOURCEN_STATUS": {
-      "enabled": true,
-      "details": "threshold=80%"
-    },
-    "R5_STABS_FOKUS": {
-      "enabled": true,
-      "details": "aggregate=true, max_individual=3"
-    }
-  },
-  "filtering": {
-    "abschnitte": {
-      "before": 0,
-      "after": 0,
-      "reason": "Top 5 nach Priority-Score"
-    },
-    "protocol": {
-      "before": 1,
-      "after": 1,
-      "reason": "Score >= 0.6, max 10 Einträge"
-    },
-    "trends": {
-      "before": "n/a",
-      "after": 1,
-      "reason": "Trend: stable (weak)"
-    },
-    "resources": {
-      "before": 0,
-      "after": 0,
-      "reason": "Auslastung: 0%, Engpass: NEIN",
-      "deployed_personnel": 0,
-      "total_personnel": 66
-    },
-    "incidents": {
-      "before": 0,
-      "after": 0,
-      "reason": "Nur kritische Einzeleinsätze (max 3)"
-    }
-  },
-  "appliedRules": {
-    "R1_ABSCHNITTE": {
-      "enabled": true,
-      "items_shown": 0,
-      "max_items": 5
-    },
-    "R2_PROTOKOLL": {
-      "enabled": true,
-      "items_shown": 1,
-      "max_items": 10
-    },
-    "R3_TRENDS": {
-      "enabled": true,
-      "direction": "stable",
-      "strength": "weak"
-    },
-    "R4_RESSOURCEN": {
-      "enabled": true,
-      "shortage": false,
-      "utilization": 0
-    },
-    "R5_STABS_FOKUS": {
-      "enabled": true,
-      "individual_incidents_shown": 0
-    }
-  },
-  "components": {
-    "systemPrompt": {
-      "chars": 4206,
-      "tokens": 1052,
-      "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
-    },
-    "userPrompt": {
-      "chars": 14928,
-      "tokens": 3732
-    },
-    "compressedBoard": {
-      "chars": 2,
-      "tokens": 1,
-      "preview": "[]"
-    },
-    "compressedAufgaben": {
-      "chars": 2,
-      "tokens": 1
-    },
-    "compressedProtokoll": {
-      "chars": 257,
-      "tokens": 65
-    },
-    "knowledgeContext": {
-      "chars": 2498,
-      "tokens": 625,
-      "included": true
-    },
-    "disasterContext": {
-      "chars": 550,
-      "tokens": 138,
-      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: initial | Dauer: 48 Min\nTren"
-    },
-    "learnedResponses": {
-      "chars": 0,
-      "tokens": 0,
-      "included": false
-    },
-    "memorySnippets": {
-      "chars": 651,
-      "count": 5
-    },
-    "messagesNeedingResponse": {
-      "count": 0,
-      "included": false
-    },
-    "openQuestions": {
-      "count": 0,
-      "included": false
-    }
-  }
-}
-
-═══════════════════════════════════════════════════════════════════════════════
-PROMPT-KOMPOSITION @ 2026-01-24T09:20:33.184Z
-═══════════════════════════════════════════════════════════════════════════════
-
-┌─────────────────────────────────────────────────────────────────────────────
-│ ANGEWENDETE FILTERREGELN
-├─────────────────────────────────────────────────────────────────────────────
-│ R1_ABSCHNITTE_PRIORITAET: ✅ AKTIV
-│   └─ max_items=5
-│ R2_PROTOKOLL_RELEVANZ: ✅ AKTIV
-│   └─ min_score=0.6, max_entries=10
-│ R3_TRENDS_ERKENNUNG: ✅ AKTIV
-│   └─ time_windows=[60,120]
-│ R4_RESSOURCEN_STATUS: ✅ AKTIV
-│   └─ threshold=80%
-│ R5_STABS_FOKUS: ✅ AKTIV
-│   └─ aggregate=true, max_individual=3
-└─────────────────────────────────────────────────────────────────────────────
-
-┌─────────────────────────────────────────────────────────────────────────────
-│ FILTERUNG (vorher → nachher)
-├─────────────────────────────────────────────────────────────────────────────
-│ abschnitte: 0 → 0 (0 gefiltert)
-│   └─ Grund: Top 5 nach Priority-Score
-│ protocol: 1 → 1 (0 gefiltert)
-│   └─ Grund: Score >= 0.6, max 10 Einträge
-│ trends: n/a → 1 (NaN gefiltert)
-│   └─ Grund: Trend: stable (weak)
-│ resources: 0 → 0 (0 gefiltert)
-│   └─ Grund: Auslastung: 0%, Engpass: NEIN
-│ incidents: 0 → 0 (0 gefiltert)
-│   └─ Grund: Nur kritische Einzeleinsätze (max 3)
-└─────────────────────────────────────────────────────────────────────────────
-
-┌─────────────────────────────────────────────────────────────────────────────
-│ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
-├─────────────────────────────────────────────────────────────────────────────
-│ ✓ systemPrompt                4206 chars  (~ 1052 tokens)
-│   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
-│ ✓ userPrompt                 14928 chars  (~ 3732 tokens)
-│ ✓ compressedBoard                2 chars  (~    1 tokens)
-│   └─ "[]"
-│ ✓ compressedAufgaben             2 chars  (~    1 tokens)
-│ ✓ compressedProtokoll          257 chars  (~   65 tokens)
-│ ✓ knowledgeContext            2498 chars  (~  625 tokens)
-│ ✓ disasterContext              550 chars  (~  138 tokens)
-│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: initial | Dauer: 66 Min↵Tren"
-│ ✗ learnedResponses               0 chars  (~    0 tokens)
-│ ✓ memorySnippets               651 chars  (~  163 tokens)
-│ ✗ messagesNeedingResponse        0 chars  (~    0 tokens)
-│ ✗ openQuestions                  0 chars  (~    0 tokens)
-├─────────────────────────────────────────────────────────────────────────────
-│ GESAMT: 23094 chars (~5777 tokens)
-└─────────────────────────────────────────────────────────────────────────────
-
-───────────────────────────────────────────────────────────────────────────────
-RAW JSON:
-{
-  "ts": "2026-01-24T09:20:33.184Z",
-  "type": "PROMPT_COMPOSITION",
-  "phase": "operations",
-  "rules": {
-    "R1_ABSCHNITTE_PRIORITAET": {
-      "enabled": true,
-      "details": "max_items=5"
-    },
-    "R2_PROTOKOLL_RELEVANZ": {
-      "enabled": true,
-      "details": "min_score=0.6, max_entries=10"
-    },
-    "R3_TRENDS_ERKENNUNG": {
-      "enabled": true,
-      "details": "time_windows=[60,120]"
-    },
-    "R4_RESSOURCEN_STATUS": {
-      "enabled": true,
-      "details": "threshold=80%"
-    },
-    "R5_STABS_FOKUS": {
-      "enabled": true,
-      "details": "aggregate=true, max_individual=3"
-    }
-  },
-  "filtering": {
-    "abschnitte": {
-      "before": 0,
-      "after": 0,
-      "reason": "Top 5 nach Priority-Score"
-    },
-    "protocol": {
-      "before": 1,
-      "after": 1,
-      "reason": "Score >= 0.6, max 10 Einträge"
-    },
-    "trends": {
-      "before": "n/a",
-      "after": 1,
-      "reason": "Trend: stable (weak)"
-    },
-    "resources": {
-      "before": 0,
-      "after": 0,
-      "reason": "Auslastung: 0%, Engpass: NEIN",
-      "deployed_personnel": 0,
-      "total_personnel": 66
-    },
-    "incidents": {
-      "before": 0,
-      "after": 0,
-      "reason": "Nur kritische Einzeleinsätze (max 3)"
-    }
-  },
-  "appliedRules": {
-    "R1_ABSCHNITTE": {
-      "enabled": true,
-      "items_shown": 0,
-      "max_items": 5
-    },
-    "R2_PROTOKOLL": {
-      "enabled": true,
-      "items_shown": 1,
-      "max_items": 10
-    },
-    "R3_TRENDS": {
-      "enabled": true,
-      "direction": "stable",
-      "strength": "weak"
-    },
-    "R4_RESSOURCEN": {
-      "enabled": true,
-      "shortage": false,
-      "utilization": 0
-    },
-    "R5_STABS_FOKUS": {
-      "enabled": true,
-      "individual_incidents_shown": 0
-    }
-  },
-  "components": {
-    "systemPrompt": {
-      "chars": 4206,
-      "tokens": 1052,
-      "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
-    },
-    "userPrompt": {
-      "chars": 14928,
-      "tokens": 3732
-    },
-    "compressedBoard": {
-      "chars": 2,
-      "tokens": 1,
-      "preview": "[]"
-    },
-    "compressedAufgaben": {
-      "chars": 2,
-      "tokens": 1
-    },
-    "compressedProtokoll": {
-      "chars": 257,
-      "tokens": 65
-    },
-    "knowledgeContext": {
-      "chars": 2498,
-      "tokens": 625,
-      "included": true
-    },
-    "disasterContext": {
-      "chars": 550,
-      "tokens": 138,
-      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: initial | Dauer: 66 Min\nTren"
-    },
-    "learnedResponses": {
-      "chars": 0,
-      "tokens": 0,
-      "included": false
-    },
-    "memorySnippets": {
-      "chars": 651,
-      "count": 5
-    },
-    "messagesNeedingResponse": {
-      "count": 0,
-      "included": false
-    },
-    "openQuestions": {
-      "count": 0,
-      "included": false
-    }
-  }
-}
-
-═══════════════════════════════════════════════════════════════════════════════
-PROMPT-KOMPOSITION @ 2026-01-24T09:26:33.230Z
-═══════════════════════════════════════════════════════════════════════════════
-
-┌─────────────────────────────────────────────────────────────────────────────
-│ ANGEWENDETE FILTERREGELN
-├─────────────────────────────────────────────────────────────────────────────
-│ R1_ABSCHNITTE_PRIORITAET: ✅ AKTIV
-│   └─ max_items=5
-│ R2_PROTOKOLL_RELEVANZ: ✅ AKTIV
-│   └─ min_score=0.6, max_entries=10
-│ R3_TRENDS_ERKENNUNG: ✅ AKTIV
-│   └─ time_windows=[60,120]
-│ R4_RESSOURCEN_STATUS: ✅ AKTIV
-│   └─ threshold=80%
-│ R5_STABS_FOKUS: ✅ AKTIV
-│   └─ aggregate=true, max_individual=3
-└─────────────────────────────────────────────────────────────────────────────
-
-┌─────────────────────────────────────────────────────────────────────────────
-│ FILTERUNG (vorher → nachher)
-├─────────────────────────────────────────────────────────────────────────────
-│ abschnitte: 0 → 0 (0 gefiltert)
-│   └─ Grund: Top 5 nach Priority-Score
-│ protocol: 1 → 1 (0 gefiltert)
-│   └─ Grund: Score >= 0.6, max 10 Einträge
-│ trends: n/a → 1 (NaN gefiltert)
-│   └─ Grund: Trend: stable (weak)
-│ resources: 0 → 0 (0 gefiltert)
-│   └─ Grund: Auslastung: 0%, Engpass: NEIN
-│ incidents: 0 → 0 (0 gefiltert)
-│   └─ Grund: Nur kritische Einzeleinsätze (max 3)
-└─────────────────────────────────────────────────────────────────────────────
-
-┌─────────────────────────────────────────────────────────────────────────────
-│ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
-├─────────────────────────────────────────────────────────────────────────────
-│ ✓ systemPrompt                4206 chars  (~ 1052 tokens)
-│   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
-│ ✓ userPrompt                 14928 chars  (~ 3732 tokens)
-│ ✓ compressedBoard                2 chars  (~    1 tokens)
-│   └─ "[]"
-│ ✓ compressedAufgaben             2 chars  (~    1 tokens)
-│ ✓ compressedProtokoll          257 chars  (~   65 tokens)
-│ ✓ knowledgeContext            2498 chars  (~  625 tokens)
-│ ✓ disasterContext              550 chars  (~  138 tokens)
-│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: initial | Dauer: 72 Min↵Tren"
-│ ✗ learnedResponses               0 chars  (~    0 tokens)
-│ ✓ memorySnippets               651 chars  (~  163 tokens)
-│ ✗ messagesNeedingResponse        0 chars  (~    0 tokens)
-│ ✗ openQuestions                  0 chars  (~    0 tokens)
-├─────────────────────────────────────────────────────────────────────────────
-│ GESAMT: 23094 chars (~5777 tokens)
-└─────────────────────────────────────────────────────────────────────────────
-
-───────────────────────────────────────────────────────────────────────────────
-RAW JSON:
-{
-  "ts": "2026-01-24T09:26:33.230Z",
-  "type": "PROMPT_COMPOSITION",
-  "phase": "operations",
-  "rules": {
-    "R1_ABSCHNITTE_PRIORITAET": {
-      "enabled": true,
-      "details": "max_items=5"
-    },
-    "R2_PROTOKOLL_RELEVANZ": {
-      "enabled": true,
-      "details": "min_score=0.6, max_entries=10"
-    },
-    "R3_TRENDS_ERKENNUNG": {
-      "enabled": true,
-      "details": "time_windows=[60,120]"
-    },
-    "R4_RESSOURCEN_STATUS": {
-      "enabled": true,
-      "details": "threshold=80%"
-    },
-    "R5_STABS_FOKUS": {
-      "enabled": true,
-      "details": "aggregate=true, max_individual=3"
-    }
-  },
-  "filtering": {
-    "abschnitte": {
-      "before": 0,
-      "after": 0,
-      "reason": "Top 5 nach Priority-Score"
-    },
-    "protocol": {
-      "before": 1,
-      "after": 1,
-      "reason": "Score >= 0.6, max 10 Einträge"
-    },
-    "trends": {
-      "before": "n/a",
-      "after": 1,
-      "reason": "Trend: stable (weak)"
-    },
-    "resources": {
-      "before": 0,
-      "after": 0,
-      "reason": "Auslastung: 0%, Engpass: NEIN",
-      "deployed_personnel": 0,
-      "total_personnel": 66
-    },
-    "incidents": {
-      "before": 0,
-      "after": 0,
-      "reason": "Nur kritische Einzeleinsätze (max 3)"
-    }
-  },
-  "appliedRules": {
-    "R1_ABSCHNITTE": {
-      "enabled": true,
-      "items_shown": 0,
-      "max_items": 5
-    },
-    "R2_PROTOKOLL": {
-      "enabled": true,
-      "items_shown": 1,
-      "max_items": 10
-    },
-    "R3_TRENDS": {
-      "enabled": true,
-      "direction": "stable",
-      "strength": "weak"
-    },
-    "R4_RESSOURCEN": {
-      "enabled": true,
-      "shortage": false,
-      "utilization": 0
-    },
-    "R5_STABS_FOKUS": {
-      "enabled": true,
-      "individual_incidents_shown": 0
-    }
-  },
-  "components": {
-    "systemPrompt": {
-      "chars": 4206,
-      "tokens": 1052,
-      "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
-    },
-    "userPrompt": {
-      "chars": 14928,
-      "tokens": 3732
-    },
-    "compressedBoard": {
-      "chars": 2,
-      "tokens": 1,
-      "preview": "[]"
-    },
-    "compressedAufgaben": {
-      "chars": 2,
-      "tokens": 1
-    },
-    "compressedProtokoll": {
-      "chars": 257,
-      "tokens": 65
-    },
-    "knowledgeContext": {
-      "chars": 2498,
-      "tokens": 625,
-      "included": true
-    },
-    "disasterContext": {
-      "chars": 550,
-      "tokens": 138,
-      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: initial | Dauer: 72 Min\nTren"
-    },
-    "learnedResponses": {
-      "chars": 0,
-      "tokens": 0,
-      "included": false
-    },
-    "memorySnippets": {
-      "chars": 651,
-      "count": 5
-    },
-    "messagesNeedingResponse": {
-      "count": 0,
-      "included": false
-    },
-    "openQuestions": {
-      "count": 0,
-      "included": false
-    }
-  }
-}
-
-═══════════════════════════════════════════════════════════════════════════════
-PROMPT-KOMPOSITION @ 2026-01-24T09:32:33.352Z
+PROMPT-KOMPOSITION @ 2026-01-26T19:31:31.482Z
 ═══════════════════════════════════════════════════════════════════════════════
 
 ┌─────────────────────────────────────────────────────────────────────────────
@@ -1181,28 +467,28 @@ PROMPT-KOMPOSITION @ 2026-01-24T09:32:33.352Z
 ┌─────────────────────────────────────────────────────────────────────────────
 │ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
 ├─────────────────────────────────────────────────────────────────────────────
-│ ✓ systemPrompt                4206 chars  (~ 1052 tokens)
+│ ✓ systemPrompt                4961 chars  (~ 1241 tokens)
 │   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
-│ ✓ userPrompt                 15306 chars  (~ 3827 tokens)
+│ ✓ userPrompt                 16616 chars  (~ 4154 tokens)
 │ ✓ compressedBoard                2 chars  (~    1 tokens)
 │   └─ "[]"
-│ ✓ compressedAufgaben             2 chars  (~    1 tokens)
-│ ✓ compressedProtokoll          511 chars  (~  128 tokens)
+│ ✓ compressedAufgaben           337 chars  (~   85 tokens)
+│ ✓ compressedProtokoll          491 chars  (~  123 tokens)
 │ ✓ knowledgeContext            2498 chars  (~  625 tokens)
 │ ✓ disasterContext              672 chars  (~  168 tokens)
-│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: initial | Dauer: 78 Min↵Tren"
+│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: initial | Dauer: 24 Min↵Tren"
 │ ✗ learnedResponses               0 chars  (~    0 tokens)
-│ ✓ memorySnippets               651 chars  (~  163 tokens)
+│ ✓ memorySnippets               694 chars  (~  174 tokens)
 │ ✗ messagesNeedingResponse        0 chars  (~    0 tokens)
 │ ✗ openQuestions                  0 chars  (~    0 tokens)
 ├─────────────────────────────────────────────────────────────────────────────
-│ GESAMT: 23848 chars (~5965 tokens)
+│ GESAMT: 26271 chars (~6571 tokens)
 └─────────────────────────────────────────────────────────────────────────────
 
 ───────────────────────────────────────────────────────────────────────────────
 RAW JSON:
 {
-  "ts": "2026-01-24T09:32:33.352Z",
+  "ts": "2026-01-26T19:31:31.482Z",
   "type": "PROMPT_COMPOSITION",
   "phase": "operations",
   "rules": {
@@ -1224,6 +510,7 @@ RAW JSON:
     },
     "R5_STABS_FOKUS": {
       "enabled": true,
+      "skipped": null,
       "details": "aggregate=true, max_individual=3"
     }
   },
@@ -1284,13 +571,13 @@ RAW JSON:
   },
   "components": {
     "systemPrompt": {
-      "chars": 4206,
-      "tokens": 1052,
+      "chars": 4961,
+      "tokens": 1241,
       "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
     },
     "userPrompt": {
-      "chars": 15306,
-      "tokens": 3827
+      "chars": 16616,
+      "tokens": 4154
     },
     "compressedBoard": {
       "chars": 2,
@@ -1298,12 +585,12 @@ RAW JSON:
       "preview": "[]"
     },
     "compressedAufgaben": {
-      "chars": 2,
-      "tokens": 1
+      "chars": 337,
+      "tokens": 85
     },
     "compressedProtokoll": {
-      "chars": 511,
-      "tokens": 128
+      "chars": 491,
+      "tokens": 123
     },
     "knowledgeContext": {
       "chars": 2498,
@@ -1313,7 +600,7 @@ RAW JSON:
     "disasterContext": {
       "chars": 672,
       "tokens": 168,
-      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: initial | Dauer: 78 Min\nTren"
+      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: initial | Dauer: 24 Min\nTren"
     },
     "learnedResponses": {
       "chars": 0,
@@ -1321,7 +608,7 @@ RAW JSON:
       "included": false
     },
     "memorySnippets": {
-      "chars": 651,
+      "chars": 694,
       "count": 5
     },
     "messagesNeedingResponse": {
@@ -1336,7 +623,7 @@ RAW JSON:
 }
 
 ═══════════════════════════════════════════════════════════════════════════════
-PROMPT-KOMPOSITION @ 2026-01-24T09:36:33.381Z
+PROMPT-KOMPOSITION @ 2026-01-26T19:37:31.499Z
 ═══════════════════════════════════════════════════════════════════════════════
 
 ┌─────────────────────────────────────────────────────────────────────────────
@@ -1372,28 +659,28 @@ PROMPT-KOMPOSITION @ 2026-01-24T09:36:33.381Z
 ┌─────────────────────────────────────────────────────────────────────────────
 │ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
 ├─────────────────────────────────────────────────────────────────────────────
-│ ✓ systemPrompt                4206 chars  (~ 1052 tokens)
+│ ✓ systemPrompt                4961 chars  (~ 1241 tokens)
 │   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
-│ ✓ userPrompt                 15680 chars  (~ 3920 tokens)
+│ ✓ userPrompt                 16994 chars  (~ 4249 tokens)
 │ ✓ compressedBoard                2 chars  (~    1 tokens)
 │   └─ "[]"
-│ ✓ compressedAufgaben             2 chars  (~    1 tokens)
-│ ✓ compressedProtokoll          764 chars  (~  191 tokens)
+│ ✓ compressedAufgaben           337 chars  (~   85 tokens)
+│ ✓ compressedProtokoll          745 chars  (~  187 tokens)
 │ ✓ knowledgeContext            2498 chars  (~  625 tokens)
 │ ✓ disasterContext              794 chars  (~  199 tokens)
-│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: initial | Dauer: 84 Min↵Tren"
+│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: initial | Dauer: 30 Min↵Tren"
 │ ✗ learnedResponses               0 chars  (~    0 tokens)
-│ ✓ memorySnippets               651 chars  (~  163 tokens)
+│ ✓ memorySnippets               694 chars  (~  174 tokens)
 │ ✗ messagesNeedingResponse        0 chars  (~    0 tokens)
 │ ✗ openQuestions                  0 chars  (~    0 tokens)
 ├─────────────────────────────────────────────────────────────────────────────
-│ GESAMT: 24597 chars (~6152 tokens)
+│ GESAMT: 27025 chars (~6761 tokens)
 └─────────────────────────────────────────────────────────────────────────────
 
 ───────────────────────────────────────────────────────────────────────────────
 RAW JSON:
 {
-  "ts": "2026-01-24T09:36:33.381Z",
+  "ts": "2026-01-26T19:37:31.499Z",
   "type": "PROMPT_COMPOSITION",
   "phase": "operations",
   "rules": {
@@ -1415,6 +702,7 @@ RAW JSON:
     },
     "R5_STABS_FOKUS": {
       "enabled": true,
+      "skipped": null,
       "details": "aggregate=true, max_individual=3"
     }
   },
@@ -1475,13 +763,13 @@ RAW JSON:
   },
   "components": {
     "systemPrompt": {
-      "chars": 4206,
-      "tokens": 1052,
+      "chars": 4961,
+      "tokens": 1241,
       "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
     },
     "userPrompt": {
-      "chars": 15680,
-      "tokens": 3920
+      "chars": 16994,
+      "tokens": 4249
     },
     "compressedBoard": {
       "chars": 2,
@@ -1489,12 +777,12 @@ RAW JSON:
       "preview": "[]"
     },
     "compressedAufgaben": {
-      "chars": 2,
-      "tokens": 1
+      "chars": 337,
+      "tokens": 85
     },
     "compressedProtokoll": {
-      "chars": 764,
-      "tokens": 191
+      "chars": 745,
+      "tokens": 187
     },
     "knowledgeContext": {
       "chars": 2498,
@@ -1504,7 +792,7 @@ RAW JSON:
     "disasterContext": {
       "chars": 794,
       "tokens": 199,
-      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: initial | Dauer: 84 Min\nTren"
+      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: initial | Dauer: 30 Min\nTren"
     },
     "learnedResponses": {
       "chars": 0,
@@ -1512,7 +800,7 @@ RAW JSON:
       "included": false
     },
     "memorySnippets": {
-      "chars": 651,
+      "chars": 694,
       "count": 5
     },
     "messagesNeedingResponse": {
@@ -1527,7 +815,7 @@ RAW JSON:
 }
 
 ═══════════════════════════════════════════════════════════════════════════════
-PROMPT-KOMPOSITION @ 2026-01-24T09:40:33.423Z
+PROMPT-KOMPOSITION @ 2026-01-26T19:41:31.509Z
 ═══════════════════════════════════════════════════════════════════════════════
 
 ┌─────────────────────────────────────────────────────────────────────────────
@@ -1563,28 +851,28 @@ PROMPT-KOMPOSITION @ 2026-01-24T09:40:33.423Z
 ┌─────────────────────────────────────────────────────────────────────────────
 │ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
 ├─────────────────────────────────────────────────────────────────────────────
-│ ✓ systemPrompt                4206 chars  (~ 1052 tokens)
+│ ✓ systemPrompt                4961 chars  (~ 1241 tokens)
 │   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
-│ ✓ userPrompt                 16060 chars  (~ 4015 tokens)
+│ ✓ userPrompt                 17525 chars  (~ 4382 tokens)
 │ ✓ compressedBoard                2 chars  (~    1 tokens)
 │   └─ "[]"
-│ ✓ compressedAufgaben             2 chars  (~    1 tokens)
-│ ✓ compressedProtokoll         1022 chars  (~  256 tokens)
+│ ✓ compressedAufgaben           502 chars  (~  126 tokens)
+│ ✓ compressedProtokoll          990 chars  (~  248 tokens)
 │ ✓ knowledgeContext            2498 chars  (~  625 tokens)
 │ ✓ disasterContext              916 chars  (~  229 tokens)
-│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: initial | Dauer: 84 Min↵Tren"
+│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: initial | Dauer: 36 Min↵Tren"
 │ ✗ learnedResponses               0 chars  (~    0 tokens)
-│ ✓ memorySnippets               651 chars  (~  163 tokens)
+│ ✓ memorySnippets               694 chars  (~  174 tokens)
 │ ✗ messagesNeedingResponse        0 chars  (~    0 tokens)
 │ ✗ openQuestions                  0 chars  (~    0 tokens)
 ├─────────────────────────────────────────────────────────────────────────────
-│ GESAMT: 25357 chars (~6342 tokens)
+│ GESAMT: 28088 chars (~7026 tokens)
 └─────────────────────────────────────────────────────────────────────────────
 
 ───────────────────────────────────────────────────────────────────────────────
 RAW JSON:
 {
-  "ts": "2026-01-24T09:40:33.423Z",
+  "ts": "2026-01-26T19:41:31.509Z",
   "type": "PROMPT_COMPOSITION",
   "phase": "operations",
   "rules": {
@@ -1606,6 +894,7 @@ RAW JSON:
     },
     "R5_STABS_FOKUS": {
       "enabled": true,
+      "skipped": null,
       "details": "aggregate=true, max_individual=3"
     }
   },
@@ -1666,13 +955,13 @@ RAW JSON:
   },
   "components": {
     "systemPrompt": {
-      "chars": 4206,
-      "tokens": 1052,
+      "chars": 4961,
+      "tokens": 1241,
       "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
     },
     "userPrompt": {
-      "chars": 16060,
-      "tokens": 4015
+      "chars": 17525,
+      "tokens": 4382
     },
     "compressedBoard": {
       "chars": 2,
@@ -1680,12 +969,12 @@ RAW JSON:
       "preview": "[]"
     },
     "compressedAufgaben": {
-      "chars": 2,
-      "tokens": 1
+      "chars": 502,
+      "tokens": 126
     },
     "compressedProtokoll": {
-      "chars": 1022,
-      "tokens": 256
+      "chars": 990,
+      "tokens": 248
     },
     "knowledgeContext": {
       "chars": 2498,
@@ -1695,7 +984,7 @@ RAW JSON:
     "disasterContext": {
       "chars": 916,
       "tokens": 229,
-      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: initial | Dauer: 84 Min\nTren"
+      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: initial | Dauer: 36 Min\nTren"
     },
     "learnedResponses": {
       "chars": 0,
@@ -1703,7 +992,7 @@ RAW JSON:
       "included": false
     },
     "memorySnippets": {
-      "chars": 651,
+      "chars": 694,
       "count": 5
     },
     "messagesNeedingResponse": {
@@ -1718,7 +1007,7 @@ RAW JSON:
 }
 
 ═══════════════════════════════════════════════════════════════════════════════
-PROMPT-KOMPOSITION @ 2026-01-24T09:46:33.475Z
+PROMPT-KOMPOSITION @ 2026-01-26T19:45:31.519Z
 ═══════════════════════════════════════════════════════════════════════════════
 
 ┌─────────────────────────────────────────────────────────────────────────────
@@ -1741,41 +1030,41 @@ PROMPT-KOMPOSITION @ 2026-01-24T09:46:33.475Z
 ├─────────────────────────────────────────────────────────────────────────────
 │ abschnitte: 0 → 0 (0 gefiltert)
 │   └─ Grund: Top 5 nach Priority-Score
-│ protocol: 4 → 4 (0 gefiltert)
+│ protocol: 5 → 5 (0 gefiltert)
 │   └─ Grund: Score >= 0.6, max 10 Einträge
 │ trends: n/a → 1 (NaN gefiltert)
-│   └─ Grund: Trend: escalating (strong)
-│ resources: 1 → 0 (1 gefiltert)
+│   └─ Grund: Trend: stable (weak)
+│ resources: 0 → 0 (0 gefiltert)
 │   └─ Grund: Auslastung: 0%, Engpass: NEIN
-│ incidents: 1 → 0 (1 gefiltert)
+│ incidents: 0 → 0 (0 gefiltert)
 │   └─ Grund: Nur kritische Einzeleinsätze (max 3)
 └─────────────────────────────────────────────────────────────────────────────
 
 ┌─────────────────────────────────────────────────────────────────────────────
 │ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
 ├─────────────────────────────────────────────────────────────────────────────
-│ ✓ systemPrompt                4206 chars  (~ 1052 tokens)
+│ ✓ systemPrompt                4961 chars  (~ 1241 tokens)
 │   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
-│ ✓ userPrompt                 16440 chars  (~ 4110 tokens)
-│ ✓ compressedBoard              321 chars  (~   81 tokens)
-│   └─ "[{"id":"cb-incident-1769247928024-3kthw5","content":"Dialyse-Patient in Not","st"
-│ ✓ compressedAufgaben             2 chars  (~    1 tokens)
-│ ✓ compressedProtokoll         1022 chars  (~  256 tokens)
+│ ✓ userPrompt                 18063 chars  (~ 4516 tokens)
+│ ✓ compressedBoard                2 chars  (~    1 tokens)
+│   └─ "[]"
+│ ✓ compressedAufgaben           673 chars  (~  169 tokens)
+│ ✓ compressedProtokoll         1235 chars  (~  309 tokens)
 │ ✓ knowledgeContext            2498 chars  (~  625 tokens)
-│ ✓ disasterContext              977 chars  (~  245 tokens)
-│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: escalation | Dauer: 90 Min↵T"
+│ ✓ disasterContext             1038 chars  (~  260 tokens)
+│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: initial | Dauer: 36 Min↵Tren"
 │ ✗ learnedResponses               0 chars  (~    0 tokens)
-│ ✓ memorySnippets               651 chars  (~  163 tokens)
+│ ✓ memorySnippets               694 chars  (~  174 tokens)
 │ ✗ messagesNeedingResponse        0 chars  (~    0 tokens)
 │ ✗ openQuestions                  0 chars  (~    0 tokens)
 ├─────────────────────────────────────────────────────────────────────────────
-│ GESAMT: 26117 chars (~6533 tokens)
+│ GESAMT: 29164 chars (~7295 tokens)
 └─────────────────────────────────────────────────────────────────────────────
 
 ───────────────────────────────────────────────────────────────────────────────
 RAW JSON:
 {
-  "ts": "2026-01-24T09:46:33.475Z",
+  "ts": "2026-01-26T19:45:31.519Z",
   "type": "PROMPT_COMPOSITION",
   "phase": "operations",
   "rules": {
@@ -1797,6 +1086,7 @@ RAW JSON:
     },
     "R5_STABS_FOKUS": {
       "enabled": true,
+      "skipped": null,
       "details": "aggregate=true, max_individual=3"
     }
   },
@@ -1807,24 +1097,24 @@ RAW JSON:
       "reason": "Top 5 nach Priority-Score"
     },
     "protocol": {
-      "before": 4,
-      "after": 4,
+      "before": 5,
+      "after": 5,
       "reason": "Score >= 0.6, max 10 Einträge"
     },
     "trends": {
       "before": "n/a",
       "after": 1,
-      "reason": "Trend: escalating (strong)"
+      "reason": "Trend: stable (weak)"
     },
     "resources": {
-      "before": 1,
+      "before": 0,
       "after": 0,
       "reason": "Auslastung: 0%, Engpass: NEIN",
       "deployed_personnel": 0,
       "total_personnel": 66
     },
     "incidents": {
-      "before": 1,
+      "before": 0,
       "after": 0,
       "reason": "Nur kritische Einzeleinsätze (max 3)"
     }
@@ -1837,13 +1127,13 @@ RAW JSON:
     },
     "R2_PROTOKOLL": {
       "enabled": true,
-      "items_shown": 4,
+      "items_shown": 5,
       "max_items": 10
     },
     "R3_TRENDS": {
       "enabled": true,
-      "direction": "escalating",
-      "strength": "strong"
+      "direction": "stable",
+      "strength": "weak"
     },
     "R4_RESSOURCEN": {
       "enabled": true,
@@ -1857,26 +1147,26 @@ RAW JSON:
   },
   "components": {
     "systemPrompt": {
-      "chars": 4206,
-      "tokens": 1052,
+      "chars": 4961,
+      "tokens": 1241,
       "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
     },
     "userPrompt": {
-      "chars": 16440,
-      "tokens": 4110
+      "chars": 18063,
+      "tokens": 4516
     },
     "compressedBoard": {
-      "chars": 321,
-      "tokens": 81,
-      "preview": "[{\"id\":\"cb-incident-1769247928024-3kthw5\",\"content\":\"Dialyse-Patient in Not\",\"st"
+      "chars": 2,
+      "tokens": 1,
+      "preview": "[]"
     },
     "compressedAufgaben": {
-      "chars": 2,
-      "tokens": 1
+      "chars": 673,
+      "tokens": 169
     },
     "compressedProtokoll": {
-      "chars": 1022,
-      "tokens": 256
+      "chars": 1235,
+      "tokens": 309
     },
     "knowledgeContext": {
       "chars": 2498,
@@ -1884,9 +1174,9 @@ RAW JSON:
       "included": true
     },
     "disasterContext": {
-      "chars": 977,
-      "tokens": 245,
-      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: escalation | Dauer: 90 Min\nT"
+      "chars": 1038,
+      "tokens": 260,
+      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: initial | Dauer: 36 Min\nTren"
     },
     "learnedResponses": {
       "chars": 0,
@@ -1894,7 +1184,7 @@ RAW JSON:
       "included": false
     },
     "memorySnippets": {
-      "chars": 651,
+      "chars": 694,
       "count": 5
     },
     "messagesNeedingResponse": {
@@ -1909,7 +1199,7 @@ RAW JSON:
 }
 
 ═══════════════════════════════════════════════════════════════════════════════
-PROMPT-KOMPOSITION @ 2026-01-24T09:52:33.567Z
+PROMPT-KOMPOSITION @ 2026-01-26T19:49:31.523Z
 ═══════════════════════════════════════════════════════════════════════════════
 
 ┌─────────────────────────────────────────────────────────────────────────────
@@ -1945,28 +1235,28 @@ PROMPT-KOMPOSITION @ 2026-01-24T09:52:33.567Z
 ┌─────────────────────────────────────────────────────────────────────────────
 │ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
 ├─────────────────────────────────────────────────────────────────────────────
-│ ✓ systemPrompt                4206 chars  (~ 1052 tokens)
+│ ✓ systemPrompt                4961 chars  (~ 1241 tokens)
 │   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
-│ ✓ userPrompt                 16813 chars  (~ 4204 tokens)
+│ ✓ userPrompt                 18443 chars  (~ 4611 tokens)
 │ ✓ compressedBoard              321 chars  (~   81 tokens)
-│   └─ "[{"id":"cb-incident-1769247928024-3kthw5","content":"Dialyse-Patient in Not","st"
-│ ✓ compressedAufgaben             2 chars  (~    1 tokens)
-│ ✓ compressedProtokoll         1273 chars  (~  319 tokens)
+│   └─ "[{"id":"cb-incident-1769456871893-e5cx3o","content":"Dialyse-Patient in Not","st"
+│ ✓ compressedAufgaben           673 chars  (~  169 tokens)
+│ ✓ compressedProtokoll         1235 chars  (~  309 tokens)
 │ ✓ knowledgeContext            2498 chars  (~  625 tokens)
 │ ✓ disasterContext             1099 chars  (~  275 tokens)
-│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: escalation | Dauer: 96 Min↵T"
+│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: escalation | Dauer: 42 Min↵T"
 │ ✗ learnedResponses               0 chars  (~    0 tokens)
-│ ✓ memorySnippets               651 chars  (~  163 tokens)
+│ ✓ memorySnippets               694 chars  (~  174 tokens)
 │ ✗ messagesNeedingResponse        0 chars  (~    0 tokens)
 │ ✗ openQuestions                  0 chars  (~    0 tokens)
 ├─────────────────────────────────────────────────────────────────────────────
-│ GESAMT: 26863 chars (~6720 tokens)
+│ GESAMT: 29924 chars (~7485 tokens)
 └─────────────────────────────────────────────────────────────────────────────
 
 ───────────────────────────────────────────────────────────────────────────────
 RAW JSON:
 {
-  "ts": "2026-01-24T09:52:33.567Z",
+  "ts": "2026-01-26T19:49:31.523Z",
   "type": "PROMPT_COMPOSITION",
   "phase": "operations",
   "rules": {
@@ -1988,6 +1278,7 @@ RAW JSON:
     },
     "R5_STABS_FOKUS": {
       "enabled": true,
+      "skipped": null,
       "details": "aggregate=true, max_individual=3"
     }
   },
@@ -2048,26 +1339,26 @@ RAW JSON:
   },
   "components": {
     "systemPrompt": {
-      "chars": 4206,
-      "tokens": 1052,
+      "chars": 4961,
+      "tokens": 1241,
       "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
     },
     "userPrompt": {
-      "chars": 16813,
-      "tokens": 4204
+      "chars": 18443,
+      "tokens": 4611
     },
     "compressedBoard": {
       "chars": 321,
       "tokens": 81,
-      "preview": "[{\"id\":\"cb-incident-1769247928024-3kthw5\",\"content\":\"Dialyse-Patient in Not\",\"st"
+      "preview": "[{\"id\":\"cb-incident-1769456871893-e5cx3o\",\"content\":\"Dialyse-Patient in Not\",\"st"
     },
     "compressedAufgaben": {
-      "chars": 2,
-      "tokens": 1
+      "chars": 673,
+      "tokens": 169
     },
     "compressedProtokoll": {
-      "chars": 1273,
-      "tokens": 319
+      "chars": 1235,
+      "tokens": 309
     },
     "knowledgeContext": {
       "chars": 2498,
@@ -2077,7 +1368,7 @@ RAW JSON:
     "disasterContext": {
       "chars": 1099,
       "tokens": 275,
-      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: escalation | Dauer: 96 Min\nT"
+      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: escalation | Dauer: 42 Min\nT"
     },
     "learnedResponses": {
       "chars": 0,
@@ -2085,7 +1376,7 @@ RAW JSON:
       "included": false
     },
     "memorySnippets": {
-      "chars": 651,
+      "chars": 694,
       "count": 5
     },
     "messagesNeedingResponse": {
@@ -2100,7 +1391,7 @@ RAW JSON:
 }
 
 ═══════════════════════════════════════════════════════════════════════════════
-PROMPT-KOMPOSITION @ 2026-01-24T09:56:33.624Z
+PROMPT-KOMPOSITION @ 2026-01-26T19:51:31.537Z
 ═══════════════════════════════════════════════════════════════════════════════
 
 ┌─────────────────────────────────────────────────────────────────────────────
@@ -2136,28 +1427,28 @@ PROMPT-KOMPOSITION @ 2026-01-24T09:56:33.624Z
 ┌─────────────────────────────────────────────────────────────────────────────
 │ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
 ├─────────────────────────────────────────────────────────────────────────────
-│ ✓ systemPrompt                4102 chars  (~ 1026 tokens)
+│ ✓ systemPrompt                4991 chars  (~ 1248 tokens)
 │   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
-│ ✓ userPrompt                 17072 chars  (~ 4268 tokens)
+│ ✓ userPrompt                 19002 chars  (~ 4751 tokens)
 │ ✓ compressedBoard              321 chars  (~   81 tokens)
-│   └─ "[{"id":"cb-incident-1769247928024-3kthw5","content":"Dialyse-Patient in Not","st"
-│ ✓ compressedAufgaben             2 chars  (~    1 tokens)
-│ ✓ compressedProtokoll         1529 chars  (~  383 tokens)
+│   └─ "[{"id":"cb-incident-1769456871893-e5cx3o","content":"Dialyse-Patient in Not","st"
+│ ✓ compressedAufgaben           835 chars  (~  209 tokens)
+│ ✓ compressedProtokoll         1480 chars  (~  370 tokens)
 │ ✓ knowledgeContext            2498 chars  (~  625 tokens)
-│ ✓ disasterContext             1222 chars  (~  306 tokens)
-│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: escalation | Dauer: 102 Min↵"
+│ ✓ disasterContext             1221 chars  (~  306 tokens)
+│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: escalation | Dauer: 42 Min↵T"
 │ ✗ learnedResponses               0 chars  (~    0 tokens)
-│ ✓ memorySnippets               547 chars  (~  137 tokens)
+│ ✓ memorySnippets               724 chars  (~  181 tokens)
 │ ✗ messagesNeedingResponse        0 chars  (~    0 tokens)
 │ ✗ openQuestions                  0 chars  (~    0 tokens)
 ├─────────────────────────────────────────────────────────────────────────────
-│ GESAMT: 27293 chars (~6827 tokens)
+│ GESAMT: 31072 chars (~7771 tokens)
 └─────────────────────────────────────────────────────────────────────────────
 
 ───────────────────────────────────────────────────────────────────────────────
 RAW JSON:
 {
-  "ts": "2026-01-24T09:56:33.624Z",
+  "ts": "2026-01-26T19:51:31.537Z",
   "type": "PROMPT_COMPOSITION",
   "phase": "operations",
   "rules": {
@@ -2179,6 +1470,7 @@ RAW JSON:
     },
     "R5_STABS_FOKUS": {
       "enabled": true,
+      "skipped": null,
       "details": "aggregate=true, max_individual=3"
     }
   },
@@ -2239,26 +1531,26 @@ RAW JSON:
   },
   "components": {
     "systemPrompt": {
-      "chars": 4102,
-      "tokens": 1026,
+      "chars": 4991,
+      "tokens": 1248,
       "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
     },
     "userPrompt": {
-      "chars": 17072,
-      "tokens": 4268
+      "chars": 19002,
+      "tokens": 4751
     },
     "compressedBoard": {
       "chars": 321,
       "tokens": 81,
-      "preview": "[{\"id\":\"cb-incident-1769247928024-3kthw5\",\"content\":\"Dialyse-Patient in Not\",\"st"
+      "preview": "[{\"id\":\"cb-incident-1769456871893-e5cx3o\",\"content\":\"Dialyse-Patient in Not\",\"st"
     },
     "compressedAufgaben": {
-      "chars": 2,
-      "tokens": 1
+      "chars": 835,
+      "tokens": 209
     },
     "compressedProtokoll": {
-      "chars": 1529,
-      "tokens": 383
+      "chars": 1480,
+      "tokens": 370
     },
     "knowledgeContext": {
       "chars": 2498,
@@ -2266,9 +1558,9 @@ RAW JSON:
       "included": true
     },
     "disasterContext": {
-      "chars": 1222,
+      "chars": 1221,
       "tokens": 306,
-      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: escalation | Dauer: 102 Min\n"
+      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: escalation | Dauer: 42 Min\nT"
     },
     "learnedResponses": {
       "chars": 0,
@@ -2276,7 +1568,7 @@ RAW JSON:
       "included": false
     },
     "memorySnippets": {
-      "chars": 547,
+      "chars": 724,
       "count": 5
     },
     "messagesNeedingResponse": {
@@ -2291,198 +1583,7 @@ RAW JSON:
 }
 
 ═══════════════════════════════════════════════════════════════════════════════
-PROMPT-KOMPOSITION @ 2026-01-24T10:00:33.610Z
-═══════════════════════════════════════════════════════════════════════════════
-
-┌─────────────────────────────────────────────────────────────────────────────
-│ ANGEWENDETE FILTERREGELN
-├─────────────────────────────────────────────────────────────────────────────
-│ R1_ABSCHNITTE_PRIORITAET: ✅ AKTIV
-│   └─ max_items=5
-│ R2_PROTOKOLL_RELEVANZ: ✅ AKTIV
-│   └─ min_score=0.6, max_entries=10
-│ R3_TRENDS_ERKENNUNG: ✅ AKTIV
-│   └─ time_windows=[60,120]
-│ R4_RESSOURCEN_STATUS: ✅ AKTIV
-│   └─ threshold=80%
-│ R5_STABS_FOKUS: ✅ AKTIV
-│   └─ aggregate=true, max_individual=3
-└─────────────────────────────────────────────────────────────────────────────
-
-┌─────────────────────────────────────────────────────────────────────────────
-│ FILTERUNG (vorher → nachher)
-├─────────────────────────────────────────────────────────────────────────────
-│ abschnitte: 0 → 0 (0 gefiltert)
-│   └─ Grund: Top 5 nach Priority-Score
-│ protocol: 6 → 6 (0 gefiltert)
-│   └─ Grund: Score >= 0.6, max 10 Einträge
-│ trends: n/a → 1 (NaN gefiltert)
-│   └─ Grund: Trend: escalating (strong)
-│ resources: 1 → 0 (1 gefiltert)
-│   └─ Grund: Auslastung: 0%, Engpass: NEIN
-│ incidents: 1 → 0 (1 gefiltert)
-│   └─ Grund: Nur kritische Einzeleinsätze (max 3)
-└─────────────────────────────────────────────────────────────────────────────
-
-┌─────────────────────────────────────────────────────────────────────────────
-│ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
-├─────────────────────────────────────────────────────────────────────────────
-│ ✓ systemPrompt                4102 chars  (~ 1026 tokens)
-│   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
-│ ✓ userPrompt                 17072 chars  (~ 4268 tokens)
-│ ✓ compressedBoard              321 chars  (~   81 tokens)
-│   └─ "[{"id":"cb-incident-1769247928024-3kthw5","content":"Dialyse-Patient in Not","st"
-│ ✓ compressedAufgaben             2 chars  (~    1 tokens)
-│ ✓ compressedProtokoll         1529 chars  (~  383 tokens)
-│ ✓ knowledgeContext            2498 chars  (~  625 tokens)
-│ ✓ disasterContext             1222 chars  (~  306 tokens)
-│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: escalation | Dauer: 108 Min↵"
-│ ✗ learnedResponses               0 chars  (~    0 tokens)
-│ ✓ memorySnippets               547 chars  (~  137 tokens)
-│ ✗ messagesNeedingResponse        0 chars  (~    0 tokens)
-│ ✗ openQuestions                  0 chars  (~    0 tokens)
-├─────────────────────────────────────────────────────────────────────────────
-│ GESAMT: 27293 chars (~6827 tokens)
-└─────────────────────────────────────────────────────────────────────────────
-
-───────────────────────────────────────────────────────────────────────────────
-RAW JSON:
-{
-  "ts": "2026-01-24T10:00:33.610Z",
-  "type": "PROMPT_COMPOSITION",
-  "phase": "operations",
-  "rules": {
-    "R1_ABSCHNITTE_PRIORITAET": {
-      "enabled": true,
-      "details": "max_items=5"
-    },
-    "R2_PROTOKOLL_RELEVANZ": {
-      "enabled": true,
-      "details": "min_score=0.6, max_entries=10"
-    },
-    "R3_TRENDS_ERKENNUNG": {
-      "enabled": true,
-      "details": "time_windows=[60,120]"
-    },
-    "R4_RESSOURCEN_STATUS": {
-      "enabled": true,
-      "details": "threshold=80%"
-    },
-    "R5_STABS_FOKUS": {
-      "enabled": true,
-      "details": "aggregate=true, max_individual=3"
-    }
-  },
-  "filtering": {
-    "abschnitte": {
-      "before": 0,
-      "after": 0,
-      "reason": "Top 5 nach Priority-Score"
-    },
-    "protocol": {
-      "before": 6,
-      "after": 6,
-      "reason": "Score >= 0.6, max 10 Einträge"
-    },
-    "trends": {
-      "before": "n/a",
-      "after": 1,
-      "reason": "Trend: escalating (strong)"
-    },
-    "resources": {
-      "before": 1,
-      "after": 0,
-      "reason": "Auslastung: 0%, Engpass: NEIN",
-      "deployed_personnel": 0,
-      "total_personnel": 66
-    },
-    "incidents": {
-      "before": 1,
-      "after": 0,
-      "reason": "Nur kritische Einzeleinsätze (max 3)"
-    }
-  },
-  "appliedRules": {
-    "R1_ABSCHNITTE": {
-      "enabled": true,
-      "items_shown": 0,
-      "max_items": 5
-    },
-    "R2_PROTOKOLL": {
-      "enabled": true,
-      "items_shown": 6,
-      "max_items": 10
-    },
-    "R3_TRENDS": {
-      "enabled": true,
-      "direction": "escalating",
-      "strength": "strong"
-    },
-    "R4_RESSOURCEN": {
-      "enabled": true,
-      "shortage": false,
-      "utilization": 0
-    },
-    "R5_STABS_FOKUS": {
-      "enabled": true,
-      "individual_incidents_shown": 0
-    }
-  },
-  "components": {
-    "systemPrompt": {
-      "chars": 4102,
-      "tokens": 1026,
-      "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
-    },
-    "userPrompt": {
-      "chars": 17072,
-      "tokens": 4268
-    },
-    "compressedBoard": {
-      "chars": 321,
-      "tokens": 81,
-      "preview": "[{\"id\":\"cb-incident-1769247928024-3kthw5\",\"content\":\"Dialyse-Patient in Not\",\"st"
-    },
-    "compressedAufgaben": {
-      "chars": 2,
-      "tokens": 1
-    },
-    "compressedProtokoll": {
-      "chars": 1529,
-      "tokens": 383
-    },
-    "knowledgeContext": {
-      "chars": 2498,
-      "tokens": 625,
-      "included": true
-    },
-    "disasterContext": {
-      "chars": 1222,
-      "tokens": 306,
-      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: escalation | Dauer: 108 Min\n"
-    },
-    "learnedResponses": {
-      "chars": 0,
-      "tokens": 0,
-      "included": false
-    },
-    "memorySnippets": {
-      "chars": 547,
-      "count": 5
-    },
-    "messagesNeedingResponse": {
-      "count": 0,
-      "included": false
-    },
-    "openQuestions": {
-      "count": 0,
-      "included": false
-    }
-  }
-}
-
-═══════════════════════════════════════════════════════════════════════════════
-PROMPT-KOMPOSITION @ 2026-01-24T10:04:33.715Z
+PROMPT-KOMPOSITION @ 2026-01-27T06:03:33.931Z
 ═══════════════════════════════════════════════════════════════════════════════
 
 ┌─────────────────────────────────────────────────────────────────────────────
@@ -2508,7 +1609,7 @@ PROMPT-KOMPOSITION @ 2026-01-24T10:04:33.715Z
 │ protocol: 7 → 7 (0 gefiltert)
 │   └─ Grund: Score >= 0.6, max 10 Einträge
 │ trends: n/a → 1 (NaN gefiltert)
-│   └─ Grund: Trend: escalating (strong)
+│   └─ Grund: Trend: stable (weak)
 │ resources: 1 → 0 (1 gefiltert)
 │   └─ Grund: Auslastung: 0%, Engpass: NEIN
 │ incidents: 1 → 0 (1 gefiltert)
@@ -2518,28 +1619,28 @@ PROMPT-KOMPOSITION @ 2026-01-24T10:04:33.715Z
 ┌─────────────────────────────────────────────────────────────────────────────
 │ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
 ├─────────────────────────────────────────────────────────────────────────────
-│ ✓ systemPrompt                4206 chars  (~ 1052 tokens)
+│ ✓ systemPrompt                4941 chars  (~ 1236 tokens)
 │   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
-│ ✓ userPrompt                 17557 chars  (~ 4390 tokens)
+│ ✓ userPrompt                 19437 chars  (~ 4860 tokens)
 │ ✓ compressedBoard              321 chars  (~   81 tokens)
-│   └─ "[{"id":"cb-incident-1769247928024-3kthw5","content":"Dialyse-Patient in Not","st"
-│ ✓ compressedAufgaben             2 chars  (~    1 tokens)
-│ ✓ compressedProtokoll         1788 chars  (~  447 tokens)
+│   └─ "[{"id":"cb-incident-1769456871893-e5cx3o","content":"Dialyse-Patient in Not","st"
+│ ✓ compressedAufgaben          1003 chars  (~  251 tokens)
+│ ✓ compressedProtokoll         1721 chars  (~  431 tokens)
 │ ✓ knowledgeContext            2498 chars  (~  625 tokens)
-│ ✓ disasterContext             1344 chars  (~  336 tokens)
-│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: escalation | Dauer: 108 Min↵"
+│ ✓ disasterContext             1332 chars  (~  333 tokens)
+│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: escalation | Dauer: 654 Min↵"
 │ ✗ learnedResponses               0 chars  (~    0 tokens)
-│ ✓ memorySnippets               651 chars  (~  163 tokens)
+│ ✓ memorySnippets               674 chars  (~  169 tokens)
 │ ✗ messagesNeedingResponse        0 chars  (~    0 tokens)
 │ ✗ openQuestions                  0 chars  (~    0 tokens)
 ├─────────────────────────────────────────────────────────────────────────────
-│ GESAMT: 28367 chars (~7095 tokens)
+│ GESAMT: 31927 chars (~7986 tokens)
 └─────────────────────────────────────────────────────────────────────────────
 
 ───────────────────────────────────────────────────────────────────────────────
 RAW JSON:
 {
-  "ts": "2026-01-24T10:04:33.715Z",
+  "ts": "2026-01-27T06:03:33.931Z",
   "type": "PROMPT_COMPOSITION",
   "phase": "operations",
   "rules": {
@@ -2561,6 +1662,7 @@ RAW JSON:
     },
     "R5_STABS_FOKUS": {
       "enabled": true,
+      "skipped": null,
       "details": "aggregate=true, max_individual=3"
     }
   },
@@ -2578,7 +1680,7 @@ RAW JSON:
     "trends": {
       "before": "n/a",
       "after": 1,
-      "reason": "Trend: escalating (strong)"
+      "reason": "Trend: stable (weak)"
     },
     "resources": {
       "before": 1,
@@ -2606,8 +1708,8 @@ RAW JSON:
     },
     "R3_TRENDS": {
       "enabled": true,
-      "direction": "escalating",
-      "strength": "strong"
+      "direction": "stable",
+      "strength": "weak"
     },
     "R4_RESSOURCEN": {
       "enabled": true,
@@ -2621,26 +1723,26 @@ RAW JSON:
   },
   "components": {
     "systemPrompt": {
-      "chars": 4206,
-      "tokens": 1052,
+      "chars": 4941,
+      "tokens": 1236,
       "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
     },
     "userPrompt": {
-      "chars": 17557,
-      "tokens": 4390
+      "chars": 19437,
+      "tokens": 4860
     },
     "compressedBoard": {
       "chars": 321,
       "tokens": 81,
-      "preview": "[{\"id\":\"cb-incident-1769247928024-3kthw5\",\"content\":\"Dialyse-Patient in Not\",\"st"
+      "preview": "[{\"id\":\"cb-incident-1769456871893-e5cx3o\",\"content\":\"Dialyse-Patient in Not\",\"st"
     },
     "compressedAufgaben": {
-      "chars": 2,
-      "tokens": 1
+      "chars": 1003,
+      "tokens": 251
     },
     "compressedProtokoll": {
-      "chars": 1788,
-      "tokens": 447
+      "chars": 1721,
+      "tokens": 431
     },
     "knowledgeContext": {
       "chars": 2498,
@@ -2648,9 +1750,9 @@ RAW JSON:
       "included": true
     },
     "disasterContext": {
-      "chars": 1344,
-      "tokens": 336,
-      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: escalation | Dauer: 108 Min\n"
+      "chars": 1332,
+      "tokens": 333,
+      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: escalation | Dauer: 654 Min\n"
     },
     "learnedResponses": {
       "chars": 0,
@@ -2658,7 +1760,7 @@ RAW JSON:
       "included": false
     },
     "memorySnippets": {
-      "chars": 651,
+      "chars": 674,
       "count": 5
     },
     "messagesNeedingResponse": {
@@ -2673,7 +1775,7 @@ RAW JSON:
 }
 
 ═══════════════════════════════════════════════════════════════════════════════
-PROMPT-KOMPOSITION @ 2026-01-24T10:06:33.682Z
+PROMPT-KOMPOSITION @ 2026-01-27T06:07:33.051Z
 ═══════════════════════════════════════════════════════════════════════════════
 
 ┌─────────────────────────────────────────────────────────────────────────────
@@ -2699,7 +1801,7 @@ PROMPT-KOMPOSITION @ 2026-01-24T10:06:33.682Z
 │ protocol: 7 → 7 (0 gefiltert)
 │   └─ Grund: Score >= 0.6, max 10 Einträge
 │ trends: n/a → 1 (NaN gefiltert)
-│   └─ Grund: Trend: escalating (strong)
+│   └─ Grund: Trend: stable (weak)
 │ resources: 1 → 0 (1 gefiltert)
 │   └─ Grund: Auslastung: 0%, Engpass: NEIN
 │ incidents: 1 → 0 (1 gefiltert)
@@ -2709,28 +1811,28 @@ PROMPT-KOMPOSITION @ 2026-01-24T10:06:33.682Z
 ┌─────────────────────────────────────────────────────────────────────────────
 │ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
 ├─────────────────────────────────────────────────────────────────────────────
-│ ✓ systemPrompt                4206 chars  (~ 1052 tokens)
+│ ✓ systemPrompt                4941 chars  (~ 1236 tokens)
 │   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
-│ ✓ userPrompt                 17557 chars  (~ 4390 tokens)
-│ ✓ compressedBoard              321 chars  (~   81 tokens)
-│   └─ "[{"id":"cb-incident-1769247928024-3kthw5","content":"Dialyse-Patient in Not","st"
-│ ✓ compressedAufgaben             2 chars  (~    1 tokens)
-│ ✓ compressedProtokoll         1788 chars  (~  447 tokens)
+│ ✓ userPrompt                 19448 chars  (~ 4862 tokens)
+│ ✓ compressedBoard              332 chars  (~   83 tokens)
+│   └─ "[{"id":"cb-incident-1769456871893-e5cx3o","content":"Dialyse-Patient in Not","st"
+│ ✓ compressedAufgaben          1003 chars  (~  251 tokens)
+│ ✓ compressedProtokoll         1721 chars  (~  431 tokens)
 │ ✓ knowledgeContext            2498 chars  (~  625 tokens)
-│ ✓ disasterContext             1344 chars  (~  336 tokens)
-│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: escalation | Dauer: 114 Min↵"
+│ ✓ disasterContext             1332 chars  (~  333 tokens)
+│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: escalation | Dauer: 660 Min↵"
 │ ✗ learnedResponses               0 chars  (~    0 tokens)
-│ ✓ memorySnippets               651 chars  (~  163 tokens)
+│ ✓ memorySnippets               674 chars  (~  169 tokens)
 │ ✗ messagesNeedingResponse        0 chars  (~    0 tokens)
 │ ✗ openQuestions                  0 chars  (~    0 tokens)
 ├─────────────────────────────────────────────────────────────────────────────
-│ GESAMT: 28367 chars (~7095 tokens)
+│ GESAMT: 31949 chars (~7990 tokens)
 └─────────────────────────────────────────────────────────────────────────────
 
 ───────────────────────────────────────────────────────────────────────────────
 RAW JSON:
 {
-  "ts": "2026-01-24T10:06:33.682Z",
+  "ts": "2026-01-27T06:07:33.051Z",
   "type": "PROMPT_COMPOSITION",
   "phase": "operations",
   "rules": {
@@ -2752,6 +1854,7 @@ RAW JSON:
     },
     "R5_STABS_FOKUS": {
       "enabled": true,
+      "skipped": null,
       "details": "aggregate=true, max_individual=3"
     }
   },
@@ -2769,7 +1872,7 @@ RAW JSON:
     "trends": {
       "before": "n/a",
       "after": 1,
-      "reason": "Trend: escalating (strong)"
+      "reason": "Trend: stable (weak)"
     },
     "resources": {
       "before": 1,
@@ -2797,8 +1900,8 @@ RAW JSON:
     },
     "R3_TRENDS": {
       "enabled": true,
-      "direction": "escalating",
-      "strength": "strong"
+      "direction": "stable",
+      "strength": "weak"
     },
     "R4_RESSOURCEN": {
       "enabled": true,
@@ -2812,26 +1915,26 @@ RAW JSON:
   },
   "components": {
     "systemPrompt": {
-      "chars": 4206,
-      "tokens": 1052,
+      "chars": 4941,
+      "tokens": 1236,
       "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
     },
     "userPrompt": {
-      "chars": 17557,
-      "tokens": 4390
+      "chars": 19448,
+      "tokens": 4862
     },
     "compressedBoard": {
-      "chars": 321,
-      "tokens": 81,
-      "preview": "[{\"id\":\"cb-incident-1769247928024-3kthw5\",\"content\":\"Dialyse-Patient in Not\",\"st"
+      "chars": 332,
+      "tokens": 83,
+      "preview": "[{\"id\":\"cb-incident-1769456871893-e5cx3o\",\"content\":\"Dialyse-Patient in Not\",\"st"
     },
     "compressedAufgaben": {
-      "chars": 2,
-      "tokens": 1
+      "chars": 1003,
+      "tokens": 251
     },
     "compressedProtokoll": {
-      "chars": 1788,
-      "tokens": 447
+      "chars": 1721,
+      "tokens": 431
     },
     "knowledgeContext": {
       "chars": 2498,
@@ -2839,9 +1942,9 @@ RAW JSON:
       "included": true
     },
     "disasterContext": {
-      "chars": 1344,
-      "tokens": 336,
-      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: escalation | Dauer: 114 Min\n"
+      "chars": 1332,
+      "tokens": 333,
+      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: escalation | Dauer: 660 Min\n"
     },
     "learnedResponses": {
       "chars": 0,
@@ -2849,7 +1952,7 @@ RAW JSON:
       "included": false
     },
     "memorySnippets": {
-      "chars": 651,
+      "chars": 674,
       "count": 5
     },
     "messagesNeedingResponse": {
@@ -2864,198 +1967,7 @@ RAW JSON:
 }
 
 ═══════════════════════════════════════════════════════════════════════════════
-PROMPT-KOMPOSITION @ 2026-01-24T10:10:33.724Z
-═══════════════════════════════════════════════════════════════════════════════
-
-┌─────────────────────────────────────────────────────────────────────────────
-│ ANGEWENDETE FILTERREGELN
-├─────────────────────────────────────────────────────────────────────────────
-│ R1_ABSCHNITTE_PRIORITAET: ✅ AKTIV
-│   └─ max_items=5
-│ R2_PROTOKOLL_RELEVANZ: ✅ AKTIV
-│   └─ min_score=0.6, max_entries=10
-│ R3_TRENDS_ERKENNUNG: ✅ AKTIV
-│   └─ time_windows=[60,120]
-│ R4_RESSOURCEN_STATUS: ✅ AKTIV
-│   └─ threshold=80%
-│ R5_STABS_FOKUS: ✅ AKTIV
-│   └─ aggregate=true, max_individual=3
-└─────────────────────────────────────────────────────────────────────────────
-
-┌─────────────────────────────────────────────────────────────────────────────
-│ FILTERUNG (vorher → nachher)
-├─────────────────────────────────────────────────────────────────────────────
-│ abschnitte: 0 → 0 (0 gefiltert)
-│   └─ Grund: Top 5 nach Priority-Score
-│ protocol: 8 → 8 (0 gefiltert)
-│   └─ Grund: Score >= 0.6, max 10 Einträge
-│ trends: n/a → 1 (NaN gefiltert)
-│   └─ Grund: Trend: escalating (strong)
-│ resources: 1 → 0 (1 gefiltert)
-│   └─ Grund: Auslastung: 0%, Engpass: NEIN
-│ incidents: 1 → 0 (1 gefiltert)
-│   └─ Grund: Nur kritische Einzeleinsätze (max 3)
-└─────────────────────────────────────────────────────────────────────────────
-
-┌─────────────────────────────────────────────────────────────────────────────
-│ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
-├─────────────────────────────────────────────────────────────────────────────
-│ ✓ systemPrompt                4157 chars  (~ 1040 tokens)
-│   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
-│ ✓ userPrompt                 17900 chars  (~ 4475 tokens)
-│ ✓ compressedBoard              321 chars  (~   81 tokens)
-│   └─ "[{"id":"cb-incident-1769247928024-3kthw5","content":"Dialyse-Patient in Not","st"
-│ ✓ compressedAufgaben             2 chars  (~    1 tokens)
-│ ✓ compressedProtokoll         2058 chars  (~  515 tokens)
-│ ✓ knowledgeContext            2498 chars  (~  625 tokens)
-│ ✓ disasterContext             1466 chars  (~  367 tokens)
-│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: escalation | Dauer: 114 Min↵"
-│ ✗ learnedResponses               0 chars  (~    0 tokens)
-│ ✓ memorySnippets               602 chars  (~  151 tokens)
-│ ✗ messagesNeedingResponse        0 chars  (~    0 tokens)
-│ ✗ openQuestions                  0 chars  (~    0 tokens)
-├─────────────────────────────────────────────────────────────────────────────
-│ GESAMT: 29004 chars (~7255 tokens)
-└─────────────────────────────────────────────────────────────────────────────
-
-───────────────────────────────────────────────────────────────────────────────
-RAW JSON:
-{
-  "ts": "2026-01-24T10:10:33.724Z",
-  "type": "PROMPT_COMPOSITION",
-  "phase": "operations",
-  "rules": {
-    "R1_ABSCHNITTE_PRIORITAET": {
-      "enabled": true,
-      "details": "max_items=5"
-    },
-    "R2_PROTOKOLL_RELEVANZ": {
-      "enabled": true,
-      "details": "min_score=0.6, max_entries=10"
-    },
-    "R3_TRENDS_ERKENNUNG": {
-      "enabled": true,
-      "details": "time_windows=[60,120]"
-    },
-    "R4_RESSOURCEN_STATUS": {
-      "enabled": true,
-      "details": "threshold=80%"
-    },
-    "R5_STABS_FOKUS": {
-      "enabled": true,
-      "details": "aggregate=true, max_individual=3"
-    }
-  },
-  "filtering": {
-    "abschnitte": {
-      "before": 0,
-      "after": 0,
-      "reason": "Top 5 nach Priority-Score"
-    },
-    "protocol": {
-      "before": 8,
-      "after": 8,
-      "reason": "Score >= 0.6, max 10 Einträge"
-    },
-    "trends": {
-      "before": "n/a",
-      "after": 1,
-      "reason": "Trend: escalating (strong)"
-    },
-    "resources": {
-      "before": 1,
-      "after": 0,
-      "reason": "Auslastung: 0%, Engpass: NEIN",
-      "deployed_personnel": 0,
-      "total_personnel": 66
-    },
-    "incidents": {
-      "before": 1,
-      "after": 0,
-      "reason": "Nur kritische Einzeleinsätze (max 3)"
-    }
-  },
-  "appliedRules": {
-    "R1_ABSCHNITTE": {
-      "enabled": true,
-      "items_shown": 0,
-      "max_items": 5
-    },
-    "R2_PROTOKOLL": {
-      "enabled": true,
-      "items_shown": 8,
-      "max_items": 10
-    },
-    "R3_TRENDS": {
-      "enabled": true,
-      "direction": "escalating",
-      "strength": "strong"
-    },
-    "R4_RESSOURCEN": {
-      "enabled": true,
-      "shortage": false,
-      "utilization": 0
-    },
-    "R5_STABS_FOKUS": {
-      "enabled": true,
-      "individual_incidents_shown": 0
-    }
-  },
-  "components": {
-    "systemPrompt": {
-      "chars": 4157,
-      "tokens": 1040,
-      "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
-    },
-    "userPrompt": {
-      "chars": 17900,
-      "tokens": 4475
-    },
-    "compressedBoard": {
-      "chars": 321,
-      "tokens": 81,
-      "preview": "[{\"id\":\"cb-incident-1769247928024-3kthw5\",\"content\":\"Dialyse-Patient in Not\",\"st"
-    },
-    "compressedAufgaben": {
-      "chars": 2,
-      "tokens": 1
-    },
-    "compressedProtokoll": {
-      "chars": 2058,
-      "tokens": 515
-    },
-    "knowledgeContext": {
-      "chars": 2498,
-      "tokens": 625,
-      "included": true
-    },
-    "disasterContext": {
-      "chars": 1466,
-      "tokens": 367,
-      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: escalation | Dauer: 114 Min\n"
-    },
-    "learnedResponses": {
-      "chars": 0,
-      "tokens": 0,
-      "included": false
-    },
-    "memorySnippets": {
-      "chars": 602,
-      "count": 5
-    },
-    "messagesNeedingResponse": {
-      "count": 0,
-      "included": false
-    },
-    "openQuestions": {
-      "count": 0,
-      "included": false
-    }
-  }
-}
-
-═══════════════════════════════════════════════════════════════════════════════
-PROMPT-KOMPOSITION @ 2026-01-24T10:16:33.765Z
+PROMPT-KOMPOSITION @ 2026-01-27T06:11:33.088Z
 ═══════════════════════════════════════════════════════════════════════════════
 
 ┌─────────────────────────────────────────────────────────────────────────────
@@ -3081,7 +1993,7 @@ PROMPT-KOMPOSITION @ 2026-01-24T10:16:33.765Z
 │ protocol: 9 → 9 (0 gefiltert)
 │   └─ Grund: Score >= 0.6, max 10 Einträge
 │ trends: n/a → 1 (NaN gefiltert)
-│   └─ Grund: Trend: escalating (strong)
+│   └─ Grund: Trend: stable (weak)
 │ resources: 1 → 0 (1 gefiltert)
 │   └─ Grund: Auslastung: 0%, Engpass: NEIN
 │ incidents: 1 → 0 (1 gefiltert)
@@ -3091,28 +2003,28 @@ PROMPT-KOMPOSITION @ 2026-01-24T10:16:33.765Z
 ┌─────────────────────────────────────────────────────────────────────────────
 │ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
 ├─────────────────────────────────────────────────────────────────────────────
-│ ✓ systemPrompt                4206 chars  (~ 1052 tokens)
+│ ✓ systemPrompt                4912 chars  (~ 1228 tokens)
 │   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
-│ ✓ userPrompt                 18248 chars  (~ 4562 tokens)
-│ ✓ compressedBoard              321 chars  (~   81 tokens)
-│   └─ "[{"id":"cb-incident-1769247928024-3kthw5","content":"Dialyse-Patient in Not","st"
-│ ✓ compressedAufgaben             2 chars  (~    1 tokens)
-│ ✓ compressedProtokoll         2308 chars  (~  577 tokens)
+│ ✓ userPrompt                 23458 chars  (~ 5865 tokens)
+│ ✓ compressedBoard              332 chars  (~   83 tokens)
+│   └─ "[{"id":"cb-incident-1769456871893-e5cx3o","content":"Dialyse-Patient in Not","st"
+│ ✓ compressedAufgaben          1171 chars  (~  293 tokens)
+│ ✓ compressedProtokoll         2202 chars  (~  551 tokens)
 │ ✓ knowledgeContext            2498 chars  (~  625 tokens)
-│ ✓ disasterContext             1514 chars  (~  397 tokens)
-│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: escalation | Dauer: 120 Min↵"
+│ ✓ disasterContext             1514 chars  (~  376 tokens)
+│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: escalation | Dauer: 666 Min↵"
 │ ✗ learnedResponses               0 chars  (~    0 tokens)
-│ ✓ memorySnippets               651 chars  (~  163 tokens)
-│ ✗ messagesNeedingResponse        0 chars  (~    0 tokens)
-│ ✗ openQuestions                  0 chars  (~    0 tokens)
+│ ✓ memorySnippets               645 chars  (~  162 tokens)
+│ ✓ messagesNeedingResponse        0 chars  (~    0 tokens)
+│ ✓ openQuestions                  0 chars  (~    0 tokens)
 ├─────────────────────────────────────────────────────────────────────────────
-│ GESAMT: 29748 chars (~7458 tokens)
+│ GESAMT: 36732 chars (~9183 tokens)
 └─────────────────────────────────────────────────────────────────────────────
 
 ───────────────────────────────────────────────────────────────────────────────
 RAW JSON:
 {
-  "ts": "2026-01-24T10:16:33.765Z",
+  "ts": "2026-01-27T06:11:33.088Z",
   "type": "PROMPT_COMPOSITION",
   "phase": "operations",
   "rules": {
@@ -3134,6 +2046,7 @@ RAW JSON:
     },
     "R5_STABS_FOKUS": {
       "enabled": true,
+      "skipped": null,
       "details": "aggregate=true, max_individual=3"
     }
   },
@@ -3151,7 +2064,7 @@ RAW JSON:
     "trends": {
       "before": "n/a",
       "after": 1,
-      "reason": "Trend: escalating (strong)"
+      "reason": "Trend: stable (weak)"
     },
     "resources": {
       "before": 1,
@@ -3179,6 +2092,966 @@ RAW JSON:
     },
     "R3_TRENDS": {
       "enabled": true,
+      "direction": "stable",
+      "strength": "weak"
+    },
+    "R4_RESSOURCEN": {
+      "enabled": true,
+      "shortage": false,
+      "utilization": 0
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "individual_incidents_shown": 0
+    }
+  },
+  "components": {
+    "systemPrompt": {
+      "chars": 4912,
+      "tokens": 1228,
+      "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
+    },
+    "userPrompt": {
+      "chars": 23458,
+      "tokens": 5865
+    },
+    "compressedBoard": {
+      "chars": 332,
+      "tokens": 83,
+      "preview": "[{\"id\":\"cb-incident-1769456871893-e5cx3o\",\"content\":\"Dialyse-Patient in Not\",\"st"
+    },
+    "compressedAufgaben": {
+      "chars": 1171,
+      "tokens": 293
+    },
+    "compressedProtokoll": {
+      "chars": 2202,
+      "tokens": 551
+    },
+    "knowledgeContext": {
+      "chars": 2498,
+      "tokens": 625,
+      "included": true
+    },
+    "disasterContext": {
+      "chars": 1514,
+      "tokens": 376,
+      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: escalation | Dauer: 666 Min\n"
+    },
+    "learnedResponses": {
+      "chars": 0,
+      "tokens": 0,
+      "included": false
+    },
+    "memorySnippets": {
+      "chars": 645,
+      "count": 5
+    },
+    "messagesNeedingResponse": {
+      "count": 1,
+      "included": true
+    },
+    "openQuestions": {
+      "count": 1,
+      "included": true
+    }
+  }
+}
+
+═══════════════════════════════════════════════════════════════════════════════
+PROMPT-KOMPOSITION @ 2026-01-27T06:13:33.085Z
+═══════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ ANGEWENDETE FILTERREGELN
+├─────────────────────────────────────────────────────────────────────────────
+│ R1_ABSCHNITTE_PRIORITAET: ✅ AKTIV
+│   └─ max_items=5
+│ R2_PROTOKOLL_RELEVANZ: ✅ AKTIV
+│   └─ min_score=0.6, max_entries=10
+│ R3_TRENDS_ERKENNUNG: ✅ AKTIV
+│   └─ time_windows=[60,120]
+│ R4_RESSOURCEN_STATUS: ✅ AKTIV
+│   └─ threshold=80%
+│ R5_STABS_FOKUS: ✅ AKTIV
+│   └─ aggregate=true, max_individual=3
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ FILTERUNG (vorher → nachher)
+├─────────────────────────────────────────────────────────────────────────────
+│ abschnitte: 0 → 0 (0 gefiltert)
+│   └─ Grund: Top 5 nach Priority-Score
+│ protocol: 10 → 10 (0 gefiltert)
+│   └─ Grund: Score >= 0.6, max 10 Einträge
+│ trends: n/a → 1 (NaN gefiltert)
+│   └─ Grund: Trend: stable (weak)
+│ resources: 1 → 0 (1 gefiltert)
+│   └─ Grund: Auslastung: 0%, Engpass: NEIN
+│ incidents: 1 → 0 (1 gefiltert)
+│   └─ Grund: Nur kritische Einzeleinsätze (max 3)
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ ✓ systemPrompt                4961 chars  (~ 1241 tokens)
+│   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
+│ ✓ userPrompt                 23766 chars  (~ 5942 tokens)
+│ ✓ compressedBoard              332 chars  (~   83 tokens)
+│   └─ "[{"id":"cb-incident-1769456871893-e5cx3o","content":"Dialyse-Patient in Not","st"
+│ ✓ compressedAufgaben          1171 chars  (~  293 tokens)
+│ ✓ compressedProtokoll         2461 chars  (~  616 tokens)
+│ ✓ knowledgeContext            2498 chars  (~  625 tokens)
+│ ✓ disasterContext             1514 chars  (~  407 tokens)
+│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: escalation | Dauer: 666 Min↵"
+│ ✗ learnedResponses               0 chars  (~    0 tokens)
+│ ✓ memorySnippets               694 chars  (~  174 tokens)
+│ ✓ messagesNeedingResponse        0 chars  (~    0 tokens)
+│ ✓ openQuestions                  0 chars  (~    0 tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ GESAMT: 37397 chars (~9381 tokens)
+└─────────────────────────────────────────────────────────────────────────────
+
+───────────────────────────────────────────────────────────────────────────────
+RAW JSON:
+{
+  "ts": "2026-01-27T06:13:33.085Z",
+  "type": "PROMPT_COMPOSITION",
+  "phase": "operations",
+  "rules": {
+    "R1_ABSCHNITTE_PRIORITAET": {
+      "enabled": true,
+      "details": "max_items=5"
+    },
+    "R2_PROTOKOLL_RELEVANZ": {
+      "enabled": true,
+      "details": "min_score=0.6, max_entries=10"
+    },
+    "R3_TRENDS_ERKENNUNG": {
+      "enabled": true,
+      "details": "time_windows=[60,120]"
+    },
+    "R4_RESSOURCEN_STATUS": {
+      "enabled": true,
+      "details": "threshold=80%"
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "skipped": null,
+      "details": "aggregate=true, max_individual=3"
+    }
+  },
+  "filtering": {
+    "abschnitte": {
+      "before": 0,
+      "after": 0,
+      "reason": "Top 5 nach Priority-Score"
+    },
+    "protocol": {
+      "before": 10,
+      "after": 10,
+      "reason": "Score >= 0.6, max 10 Einträge"
+    },
+    "trends": {
+      "before": "n/a",
+      "after": 1,
+      "reason": "Trend: stable (weak)"
+    },
+    "resources": {
+      "before": 1,
+      "after": 0,
+      "reason": "Auslastung: 0%, Engpass: NEIN",
+      "deployed_personnel": 0,
+      "total_personnel": 66
+    },
+    "incidents": {
+      "before": 1,
+      "after": 0,
+      "reason": "Nur kritische Einzeleinsätze (max 3)"
+    }
+  },
+  "appliedRules": {
+    "R1_ABSCHNITTE": {
+      "enabled": true,
+      "items_shown": 0,
+      "max_items": 5
+    },
+    "R2_PROTOKOLL": {
+      "enabled": true,
+      "items_shown": 10,
+      "max_items": 10
+    },
+    "R3_TRENDS": {
+      "enabled": true,
+      "direction": "stable",
+      "strength": "weak"
+    },
+    "R4_RESSOURCEN": {
+      "enabled": true,
+      "shortage": false,
+      "utilization": 0
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "individual_incidents_shown": 0
+    }
+  },
+  "components": {
+    "systemPrompt": {
+      "chars": 4961,
+      "tokens": 1241,
+      "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
+    },
+    "userPrompt": {
+      "chars": 23766,
+      "tokens": 5942
+    },
+    "compressedBoard": {
+      "chars": 332,
+      "tokens": 83,
+      "preview": "[{\"id\":\"cb-incident-1769456871893-e5cx3o\",\"content\":\"Dialyse-Patient in Not\",\"st"
+    },
+    "compressedAufgaben": {
+      "chars": 1171,
+      "tokens": 293
+    },
+    "compressedProtokoll": {
+      "chars": 2461,
+      "tokens": 616
+    },
+    "knowledgeContext": {
+      "chars": 2498,
+      "tokens": 625,
+      "included": true
+    },
+    "disasterContext": {
+      "chars": 1514,
+      "tokens": 407,
+      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: escalation | Dauer: 666 Min\n"
+    },
+    "learnedResponses": {
+      "chars": 0,
+      "tokens": 0,
+      "included": false
+    },
+    "memorySnippets": {
+      "chars": 694,
+      "count": 5
+    },
+    "messagesNeedingResponse": {
+      "count": 1,
+      "included": true
+    },
+    "openQuestions": {
+      "count": 1,
+      "included": true
+    }
+  }
+}
+
+═══════════════════════════════════════════════════════════════════════════════
+PROMPT-KOMPOSITION @ 2026-01-27T06:15:33.091Z
+═══════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ ANGEWENDETE FILTERREGELN
+├─────────────────────────────────────────────────────────────────────────────
+│ R1_ABSCHNITTE_PRIORITAET: ✅ AKTIV
+│   └─ max_items=5
+│ R2_PROTOKOLL_RELEVANZ: ✅ AKTIV
+│   └─ min_score=0.6, max_entries=10
+│ R3_TRENDS_ERKENNUNG: ✅ AKTIV
+│   └─ time_windows=[60,120]
+│ R4_RESSOURCEN_STATUS: ✅ AKTIV
+│   └─ threshold=80%
+│ R5_STABS_FOKUS: ✅ AKTIV
+│   └─ aggregate=true, max_individual=3
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ FILTERUNG (vorher → nachher)
+├─────────────────────────────────────────────────────────────────────────────
+│ abschnitte: 0 → 0 (0 gefiltert)
+│   └─ Grund: Top 5 nach Priority-Score
+│ protocol: 13 → 10 (3 gefiltert)
+│   └─ Grund: Score >= 0.6, max 10 Einträge
+│ trends: n/a → 1 (NaN gefiltert)
+│   └─ Grund: Trend: stable (weak)
+│ resources: 1 → 0 (1 gefiltert)
+│   └─ Grund: Auslastung: 0%, Engpass: NEIN
+│ incidents: 1 → 0 (1 gefiltert)
+│   └─ Grund: Nur kritische Einzeleinsätze (max 3)
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ ✓ systemPrompt                4961 chars  (~ 1241 tokens)
+│   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
+│ ✓ userPrompt                 25750 chars  (~ 6438 tokens)
+│ ✓ compressedBoard              332 chars  (~   83 tokens)
+│   └─ "[{"id":"cb-incident-1769456871893-e5cx3o","content":"Dialyse-Patient in Not","st"
+│ ✓ compressedAufgaben          1171 chars  (~  293 tokens)
+│ ✓ compressedProtokoll         3231 chars  (~  808 tokens)
+│ ✓ knowledgeContext            2498 chars  (~  625 tokens)
+│ ✓ disasterContext             1514 chars  (~  411 tokens)
+│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: escalation | Dauer: 666 Min↵"
+│ ✗ learnedResponses               0 chars  (~    0 tokens)
+│ ✓ memorySnippets               694 chars  (~  174 tokens)
+│ ✓ messagesNeedingResponse        0 chars  (~    0 tokens)
+│ ✓ openQuestions                  0 chars  (~    0 tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ GESAMT: 40151 chars (~10073 tokens)
+└─────────────────────────────────────────────────────────────────────────────
+
+───────────────────────────────────────────────────────────────────────────────
+RAW JSON:
+{
+  "ts": "2026-01-27T06:15:33.091Z",
+  "type": "PROMPT_COMPOSITION",
+  "phase": "operations",
+  "rules": {
+    "R1_ABSCHNITTE_PRIORITAET": {
+      "enabled": true,
+      "details": "max_items=5"
+    },
+    "R2_PROTOKOLL_RELEVANZ": {
+      "enabled": true,
+      "details": "min_score=0.6, max_entries=10"
+    },
+    "R3_TRENDS_ERKENNUNG": {
+      "enabled": true,
+      "details": "time_windows=[60,120]"
+    },
+    "R4_RESSOURCEN_STATUS": {
+      "enabled": true,
+      "details": "threshold=80%"
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "skipped": null,
+      "details": "aggregate=true, max_individual=3"
+    }
+  },
+  "filtering": {
+    "abschnitte": {
+      "before": 0,
+      "after": 0,
+      "reason": "Top 5 nach Priority-Score"
+    },
+    "protocol": {
+      "before": 13,
+      "after": 10,
+      "reason": "Score >= 0.6, max 10 Einträge"
+    },
+    "trends": {
+      "before": "n/a",
+      "after": 1,
+      "reason": "Trend: stable (weak)"
+    },
+    "resources": {
+      "before": 1,
+      "after": 0,
+      "reason": "Auslastung: 0%, Engpass: NEIN",
+      "deployed_personnel": 0,
+      "total_personnel": 66
+    },
+    "incidents": {
+      "before": 1,
+      "after": 0,
+      "reason": "Nur kritische Einzeleinsätze (max 3)"
+    }
+  },
+  "appliedRules": {
+    "R1_ABSCHNITTE": {
+      "enabled": true,
+      "items_shown": 0,
+      "max_items": 5
+    },
+    "R2_PROTOKOLL": {
+      "enabled": true,
+      "items_shown": 10,
+      "max_items": 10
+    },
+    "R3_TRENDS": {
+      "enabled": true,
+      "direction": "stable",
+      "strength": "weak"
+    },
+    "R4_RESSOURCEN": {
+      "enabled": true,
+      "shortage": false,
+      "utilization": 0
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "individual_incidents_shown": 0
+    }
+  },
+  "components": {
+    "systemPrompt": {
+      "chars": 4961,
+      "tokens": 1241,
+      "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
+    },
+    "userPrompt": {
+      "chars": 25750,
+      "tokens": 6438
+    },
+    "compressedBoard": {
+      "chars": 332,
+      "tokens": 83,
+      "preview": "[{\"id\":\"cb-incident-1769456871893-e5cx3o\",\"content\":\"Dialyse-Patient in Not\",\"st"
+    },
+    "compressedAufgaben": {
+      "chars": 1171,
+      "tokens": 293
+    },
+    "compressedProtokoll": {
+      "chars": 3231,
+      "tokens": 808
+    },
+    "knowledgeContext": {
+      "chars": 2498,
+      "tokens": 625,
+      "included": true
+    },
+    "disasterContext": {
+      "chars": 1514,
+      "tokens": 411,
+      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: escalation | Dauer: 666 Min\n"
+    },
+    "learnedResponses": {
+      "chars": 0,
+      "tokens": 0,
+      "included": false
+    },
+    "memorySnippets": {
+      "chars": 694,
+      "count": 5
+    },
+    "messagesNeedingResponse": {
+      "count": 2,
+      "included": true
+    },
+    "openQuestions": {
+      "count": 2,
+      "included": true
+    }
+  }
+}
+
+═══════════════════════════════════════════════════════════════════════════════
+PROMPT-KOMPOSITION @ 2026-01-27T06:17:33.093Z
+═══════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ ANGEWENDETE FILTERREGELN
+├─────────────────────────────────────────────────────────────────────────────
+│ R1_ABSCHNITTE_PRIORITAET: ✅ AKTIV
+│   └─ max_items=5
+│ R2_PROTOKOLL_RELEVANZ: ✅ AKTIV
+│   └─ min_score=0.6, max_entries=10
+│ R3_TRENDS_ERKENNUNG: ✅ AKTIV
+│   └─ time_windows=[60,120]
+│ R4_RESSOURCEN_STATUS: ✅ AKTIV
+│   └─ threshold=80%
+│ R5_STABS_FOKUS: ✅ AKTIV
+│   └─ aggregate=true, max_individual=3
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ FILTERUNG (vorher → nachher)
+├─────────────────────────────────────────────────────────────────────────────
+│ abschnitte: 0 → 0 (0 gefiltert)
+│   └─ Grund: Top 5 nach Priority-Score
+│ protocol: 16 → 10 (6 gefiltert)
+│   └─ Grund: Score >= 0.6, max 10 Einträge
+│ trends: n/a → 1 (NaN gefiltert)
+│   └─ Grund: Trend: stable (weak)
+│ resources: 1 → 0 (1 gefiltert)
+│   └─ Grund: Auslastung: 0%, Engpass: NEIN
+│ incidents: 1 → 0 (1 gefiltert)
+│   └─ Grund: Nur kritische Einzeleinsätze (max 3)
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ ✓ systemPrompt                4961 chars  (~ 1241 tokens)
+│   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
+│ ✓ userPrompt                 26663 chars  (~ 6666 tokens)
+│ ✓ compressedBoard              332 chars  (~   83 tokens)
+│   └─ "[{"id":"cb-incident-1769456871893-e5cx3o","content":"Dialyse-Patient in Not","st"
+│ ✓ compressedAufgaben          1330 chars  (~  333 tokens)
+│ ✓ compressedProtokoll         3984 chars  (~  996 tokens)
+│ ✓ knowledgeContext            2498 chars  (~  625 tokens)
+│ ✓ disasterContext             1514 chars  (~  411 tokens)
+│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: escalation | Dauer: 672 Min↵"
+│ ✗ learnedResponses               0 chars  (~    0 tokens)
+│ ✓ memorySnippets               694 chars  (~  174 tokens)
+│ ✓ messagesNeedingResponse        0 chars  (~    0 tokens)
+│ ✓ openQuestions                  0 chars  (~    0 tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ GESAMT: 41976 chars (~10529 tokens)
+└─────────────────────────────────────────────────────────────────────────────
+
+───────────────────────────────────────────────────────────────────────────────
+RAW JSON:
+{
+  "ts": "2026-01-27T06:17:33.093Z",
+  "type": "PROMPT_COMPOSITION",
+  "phase": "operations",
+  "rules": {
+    "R1_ABSCHNITTE_PRIORITAET": {
+      "enabled": true,
+      "details": "max_items=5"
+    },
+    "R2_PROTOKOLL_RELEVANZ": {
+      "enabled": true,
+      "details": "min_score=0.6, max_entries=10"
+    },
+    "R3_TRENDS_ERKENNUNG": {
+      "enabled": true,
+      "details": "time_windows=[60,120]"
+    },
+    "R4_RESSOURCEN_STATUS": {
+      "enabled": true,
+      "details": "threshold=80%"
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "skipped": null,
+      "details": "aggregate=true, max_individual=3"
+    }
+  },
+  "filtering": {
+    "abschnitte": {
+      "before": 0,
+      "after": 0,
+      "reason": "Top 5 nach Priority-Score"
+    },
+    "protocol": {
+      "before": 16,
+      "after": 10,
+      "reason": "Score >= 0.6, max 10 Einträge"
+    },
+    "trends": {
+      "before": "n/a",
+      "after": 1,
+      "reason": "Trend: stable (weak)"
+    },
+    "resources": {
+      "before": 1,
+      "after": 0,
+      "reason": "Auslastung: 0%, Engpass: NEIN",
+      "deployed_personnel": 0,
+      "total_personnel": 66
+    },
+    "incidents": {
+      "before": 1,
+      "after": 0,
+      "reason": "Nur kritische Einzeleinsätze (max 3)"
+    }
+  },
+  "appliedRules": {
+    "R1_ABSCHNITTE": {
+      "enabled": true,
+      "items_shown": 0,
+      "max_items": 5
+    },
+    "R2_PROTOKOLL": {
+      "enabled": true,
+      "items_shown": 10,
+      "max_items": 10
+    },
+    "R3_TRENDS": {
+      "enabled": true,
+      "direction": "stable",
+      "strength": "weak"
+    },
+    "R4_RESSOURCEN": {
+      "enabled": true,
+      "shortage": false,
+      "utilization": 0
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "individual_incidents_shown": 0
+    }
+  },
+  "components": {
+    "systemPrompt": {
+      "chars": 4961,
+      "tokens": 1241,
+      "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
+    },
+    "userPrompt": {
+      "chars": 26663,
+      "tokens": 6666
+    },
+    "compressedBoard": {
+      "chars": 332,
+      "tokens": 83,
+      "preview": "[{\"id\":\"cb-incident-1769456871893-e5cx3o\",\"content\":\"Dialyse-Patient in Not\",\"st"
+    },
+    "compressedAufgaben": {
+      "chars": 1330,
+      "tokens": 333
+    },
+    "compressedProtokoll": {
+      "chars": 3984,
+      "tokens": 996
+    },
+    "knowledgeContext": {
+      "chars": 2498,
+      "tokens": 625,
+      "included": true
+    },
+    "disasterContext": {
+      "chars": 1514,
+      "tokens": 411,
+      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: escalation | Dauer: 672 Min\n"
+    },
+    "learnedResponses": {
+      "chars": 0,
+      "tokens": 0,
+      "included": false
+    },
+    "memorySnippets": {
+      "chars": 694,
+      "count": 5
+    },
+    "messagesNeedingResponse": {
+      "count": 2,
+      "included": true
+    },
+    "openQuestions": {
+      "count": 2,
+      "included": true
+    }
+  }
+}
+
+═══════════════════════════════════════════════════════════════════════════════
+PROMPT-KOMPOSITION @ 2026-01-27T06:19:33.102Z
+═══════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ ANGEWENDETE FILTERREGELN
+├─────────────────────────────────────────────────────────────────────────────
+│ R1_ABSCHNITTE_PRIORITAET: ✅ AKTIV
+│   └─ max_items=5
+│ R2_PROTOKOLL_RELEVANZ: ✅ AKTIV
+│   └─ min_score=0.6, max_entries=10
+│ R3_TRENDS_ERKENNUNG: ✅ AKTIV
+│   └─ time_windows=[60,120]
+│ R4_RESSOURCEN_STATUS: ✅ AKTIV
+│   └─ threshold=80%
+│ R5_STABS_FOKUS: ✅ AKTIV
+│   └─ aggregate=true, max_individual=3
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ FILTERUNG (vorher → nachher)
+├─────────────────────────────────────────────────────────────────────────────
+│ abschnitte: 0 → 0 (0 gefiltert)
+│   └─ Grund: Top 5 nach Priority-Score
+│ protocol: 19 → 10 (9 gefiltert)
+│   └─ Grund: Score >= 0.6, max 10 Einträge
+│ trends: n/a → 1 (NaN gefiltert)
+│   └─ Grund: Trend: stable (weak)
+│ resources: 1 → 0 (1 gefiltert)
+│   └─ Grund: Auslastung: 0%, Engpass: NEIN
+│ incidents: 1 → 0 (1 gefiltert)
+│   └─ Grund: Nur kritische Einzeleinsätze (max 3)
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ ✓ systemPrompt                4961 chars  (~ 1241 tokens)
+│   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
+│ ✓ userPrompt                 27589 chars  (~ 6898 tokens)
+│ ✓ compressedBoard              332 chars  (~   83 tokens)
+│   └─ "[{"id":"cb-incident-1769456871893-e5cx3o","content":"Dialyse-Patient in Not","st"
+│ ✓ compressedAufgaben          1498 chars  (~  375 tokens)
+│ ✓ compressedProtokoll         4743 chars  (~ 1186 tokens)
+│ ✓ knowledgeContext            2498 chars  (~  625 tokens)
+│ ✓ disasterContext             1514 chars  (~  411 tokens)
+│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: escalation | Dauer: 672 Min↵"
+│ ✗ learnedResponses               0 chars  (~    0 tokens)
+│ ✓ memorySnippets               694 chars  (~  174 tokens)
+│ ✓ messagesNeedingResponse        0 chars  (~    0 tokens)
+│ ✓ openQuestions                  0 chars  (~    0 tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ GESAMT: 43829 chars (~10993 tokens)
+└─────────────────────────────────────────────────────────────────────────────
+
+───────────────────────────────────────────────────────────────────────────────
+RAW JSON:
+{
+  "ts": "2026-01-27T06:19:33.102Z",
+  "type": "PROMPT_COMPOSITION",
+  "phase": "operations",
+  "rules": {
+    "R1_ABSCHNITTE_PRIORITAET": {
+      "enabled": true,
+      "details": "max_items=5"
+    },
+    "R2_PROTOKOLL_RELEVANZ": {
+      "enabled": true,
+      "details": "min_score=0.6, max_entries=10"
+    },
+    "R3_TRENDS_ERKENNUNG": {
+      "enabled": true,
+      "details": "time_windows=[60,120]"
+    },
+    "R4_RESSOURCEN_STATUS": {
+      "enabled": true,
+      "details": "threshold=80%"
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "skipped": null,
+      "details": "aggregate=true, max_individual=3"
+    }
+  },
+  "filtering": {
+    "abschnitte": {
+      "before": 0,
+      "after": 0,
+      "reason": "Top 5 nach Priority-Score"
+    },
+    "protocol": {
+      "before": 19,
+      "after": 10,
+      "reason": "Score >= 0.6, max 10 Einträge"
+    },
+    "trends": {
+      "before": "n/a",
+      "after": 1,
+      "reason": "Trend: stable (weak)"
+    },
+    "resources": {
+      "before": 1,
+      "after": 0,
+      "reason": "Auslastung: 0%, Engpass: NEIN",
+      "deployed_personnel": 0,
+      "total_personnel": 66
+    },
+    "incidents": {
+      "before": 1,
+      "after": 0,
+      "reason": "Nur kritische Einzeleinsätze (max 3)"
+    }
+  },
+  "appliedRules": {
+    "R1_ABSCHNITTE": {
+      "enabled": true,
+      "items_shown": 0,
+      "max_items": 5
+    },
+    "R2_PROTOKOLL": {
+      "enabled": true,
+      "items_shown": 10,
+      "max_items": 10
+    },
+    "R3_TRENDS": {
+      "enabled": true,
+      "direction": "stable",
+      "strength": "weak"
+    },
+    "R4_RESSOURCEN": {
+      "enabled": true,
+      "shortage": false,
+      "utilization": 0
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "individual_incidents_shown": 0
+    }
+  },
+  "components": {
+    "systemPrompt": {
+      "chars": 4961,
+      "tokens": 1241,
+      "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
+    },
+    "userPrompt": {
+      "chars": 27589,
+      "tokens": 6898
+    },
+    "compressedBoard": {
+      "chars": 332,
+      "tokens": 83,
+      "preview": "[{\"id\":\"cb-incident-1769456871893-e5cx3o\",\"content\":\"Dialyse-Patient in Not\",\"st"
+    },
+    "compressedAufgaben": {
+      "chars": 1498,
+      "tokens": 375
+    },
+    "compressedProtokoll": {
+      "chars": 4743,
+      "tokens": 1186
+    },
+    "knowledgeContext": {
+      "chars": 2498,
+      "tokens": 625,
+      "included": true
+    },
+    "disasterContext": {
+      "chars": 1514,
+      "tokens": 411,
+      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: escalation | Dauer: 672 Min\n"
+    },
+    "learnedResponses": {
+      "chars": 0,
+      "tokens": 0,
+      "included": false
+    },
+    "memorySnippets": {
+      "chars": 694,
+      "count": 5
+    },
+    "messagesNeedingResponse": {
+      "count": 2,
+      "included": true
+    },
+    "openQuestions": {
+      "count": 2,
+      "included": true
+    }
+  }
+}
+
+═══════════════════════════════════════════════════════════════════════════════
+PROMPT-KOMPOSITION @ 2026-01-27T06:21:33.102Z
+═══════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ ANGEWENDETE FILTERREGELN
+├─────────────────────────────────────────────────────────────────────────────
+│ R1_ABSCHNITTE_PRIORITAET: ✅ AKTIV
+│   └─ max_items=5
+│ R2_PROTOKOLL_RELEVANZ: ✅ AKTIV
+│   └─ min_score=0.6, max_entries=10
+│ R3_TRENDS_ERKENNUNG: ✅ AKTIV
+│   └─ time_windows=[60,120]
+│ R4_RESSOURCEN_STATUS: ✅ AKTIV
+│   └─ threshold=80%
+│ R5_STABS_FOKUS: ✅ AKTIV
+│   └─ aggregate=true, max_individual=3
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ FILTERUNG (vorher → nachher)
+├─────────────────────────────────────────────────────────────────────────────
+│ abschnitte: 0 → 0 (0 gefiltert)
+│   └─ Grund: Top 5 nach Priority-Score
+│ protocol: 21 → 10 (11 gefiltert)
+│   └─ Grund: Score >= 0.6, max 10 Einträge
+│ trends: n/a → 1 (NaN gefiltert)
+│   └─ Grund: Trend: escalating (strong)
+│ resources: 2 → 0 (2 gefiltert)
+│   └─ Grund: Auslastung: 0%, Engpass: NEIN
+│ incidents: 2 → 0 (2 gefiltert)
+│   └─ Grund: Nur kritische Einzeleinsätze (max 3)
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ ✓ systemPrompt                4984 chars  (~ 1246 tokens)
+│   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
+│ ✓ userPrompt                 28410 chars  (~ 7103 tokens)
+│ ✓ compressedBoard              622 chars  (~  156 tokens)
+│   └─ "[{"id":"cb-incident-1769494815124-w9hxdp","content":"Pflegeheim Notruf","status""
+│ ✓ compressedAufgaben          1498 chars  (~  375 tokens)
+│ ✓ compressedProtokoll         5251 chars  (~ 1313 tokens)
+│ ✓ knowledgeContext            2498 chars  (~  625 tokens)
+│ ✓ disasterContext             1514 chars  (~  414 tokens)
+│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: escalation | Dauer: 672 Min↵"
+│ ✗ learnedResponses               0 chars  (~    0 tokens)
+│ ✓ memorySnippets               717 chars  (~  180 tokens)
+│ ✓ messagesNeedingResponse        0 chars  (~    0 tokens)
+│ ✓ openQuestions                  0 chars  (~    0 tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ GESAMT: 45494 chars (~11412 tokens)
+└─────────────────────────────────────────────────────────────────────────────
+
+───────────────────────────────────────────────────────────────────────────────
+RAW JSON:
+{
+  "ts": "2026-01-27T06:21:33.102Z",
+  "type": "PROMPT_COMPOSITION",
+  "phase": "operations",
+  "rules": {
+    "R1_ABSCHNITTE_PRIORITAET": {
+      "enabled": true,
+      "details": "max_items=5"
+    },
+    "R2_PROTOKOLL_RELEVANZ": {
+      "enabled": true,
+      "details": "min_score=0.6, max_entries=10"
+    },
+    "R3_TRENDS_ERKENNUNG": {
+      "enabled": true,
+      "details": "time_windows=[60,120]"
+    },
+    "R4_RESSOURCEN_STATUS": {
+      "enabled": true,
+      "details": "threshold=80%"
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "skipped": null,
+      "details": "aggregate=true, max_individual=3"
+    }
+  },
+  "filtering": {
+    "abschnitte": {
+      "before": 0,
+      "after": 0,
+      "reason": "Top 5 nach Priority-Score"
+    },
+    "protocol": {
+      "before": 21,
+      "after": 10,
+      "reason": "Score >= 0.6, max 10 Einträge"
+    },
+    "trends": {
+      "before": "n/a",
+      "after": 1,
+      "reason": "Trend: escalating (strong)"
+    },
+    "resources": {
+      "before": 2,
+      "after": 0,
+      "reason": "Auslastung: 0%, Engpass: NEIN",
+      "deployed_personnel": 0,
+      "total_personnel": 66
+    },
+    "incidents": {
+      "before": 2,
+      "after": 0,
+      "reason": "Nur kritische Einzeleinsätze (max 3)"
+    }
+  },
+  "appliedRules": {
+    "R1_ABSCHNITTE": {
+      "enabled": true,
+      "items_shown": 0,
+      "max_items": 5
+    },
+    "R2_PROTOKOLL": {
+      "enabled": true,
+      "items_shown": 10,
+      "max_items": 10
+    },
+    "R3_TRENDS": {
+      "enabled": true,
       "direction": "escalating",
       "strength": "strong"
     },
@@ -3194,26 +3067,26 @@ RAW JSON:
   },
   "components": {
     "systemPrompt": {
-      "chars": 4206,
-      "tokens": 1052,
+      "chars": 4984,
+      "tokens": 1246,
       "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
     },
     "userPrompt": {
-      "chars": 18248,
-      "tokens": 4562
+      "chars": 28410,
+      "tokens": 7103
     },
     "compressedBoard": {
-      "chars": 321,
-      "tokens": 81,
-      "preview": "[{\"id\":\"cb-incident-1769247928024-3kthw5\",\"content\":\"Dialyse-Patient in Not\",\"st"
+      "chars": 622,
+      "tokens": 156,
+      "preview": "[{\"id\":\"cb-incident-1769494815124-w9hxdp\",\"content\":\"Pflegeheim Notruf\",\"status\""
     },
     "compressedAufgaben": {
-      "chars": 2,
-      "tokens": 1
+      "chars": 1498,
+      "tokens": 375
     },
     "compressedProtokoll": {
-      "chars": 2308,
-      "tokens": 577
+      "chars": 5251,
+      "tokens": 1313
     },
     "knowledgeContext": {
       "chars": 2498,
@@ -3222,8 +3095,8 @@ RAW JSON:
     },
     "disasterContext": {
       "chars": 1514,
-      "tokens": 397,
-      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: escalation | Dauer: 120 Min\n"
+      "tokens": 414,
+      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: escalation | Dauer: 672 Min\n"
     },
     "learnedResponses": {
       "chars": 0,
@@ -3231,18 +3104,2129 @@ RAW JSON:
       "included": false
     },
     "memorySnippets": {
-      "chars": 651,
+      "chars": 717,
       "count": 5
     },
     "messagesNeedingResponse": {
-      "count": 0,
-      "included": false
+      "count": 2,
+      "included": true
     },
     "openQuestions": {
-      "count": 0,
-      "included": false
+      "count": 2,
+      "included": true
     }
   }
 }
 
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
+═══════════════════════════════════════════════════════════════════════════════
+PROMPT-KOMPOSITION @ 2026-01-27T06:23:33.104Z
+═══════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ ANGEWENDETE FILTERREGELN
+├─────────────────────────────────────────────────────────────────────────────
+│ R1_ABSCHNITTE_PRIORITAET: ✅ AKTIV
+│   └─ max_items=5
+│ R2_PROTOKOLL_RELEVANZ: ✅ AKTIV
+│   └─ min_score=0.6, max_entries=10
+│ R3_TRENDS_ERKENNUNG: ✅ AKTIV
+│   └─ time_windows=[60,120]
+│ R4_RESSOURCEN_STATUS: ✅ AKTIV
+│   └─ threshold=80%
+│ R5_STABS_FOKUS: ✅ AKTIV
+│   └─ aggregate=true, max_individual=3
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ FILTERUNG (vorher → nachher)
+├─────────────────────────────────────────────────────────────────────────────
+│ abschnitte: 0 → 0 (0 gefiltert)
+│   └─ Grund: Top 5 nach Priority-Score
+│ protocol: 23 → 10 (13 gefiltert)
+│   └─ Grund: Score >= 0.6, max 10 Einträge
+│ trends: n/a → 1 (NaN gefiltert)
+│   └─ Grund: Trend: escalating (strong)
+│ resources: 2 → 0 (2 gefiltert)
+│   └─ Grund: Auslastung: 0%, Engpass: NEIN
+│ incidents: 2 → 0 (2 gefiltert)
+│   └─ Grund: Nur kritische Einzeleinsätze (max 3)
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ ✓ systemPrompt                4961 chars  (~ 1241 tokens)
+│   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
+│ ✓ userPrompt                 28895 chars  (~ 7224 tokens)
+│ ✓ compressedBoard              622 chars  (~  156 tokens)
+│   └─ "[{"id":"cb-incident-1769494815124-w9hxdp","content":"Pflegeheim Notruf","status""
+│ ✓ compressedAufgaben          1498 chars  (~  375 tokens)
+│ ✓ compressedProtokoll         5759 chars  (~ 1440 tokens)
+│ ✓ knowledgeContext            2498 chars  (~  625 tokens)
+│ ✓ disasterContext             1514 chars  (~  428 tokens)
+│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: escalation | Dauer: 678 Min↵"
+│ ✗ learnedResponses               0 chars  (~    0 tokens)
+│ ✓ memorySnippets               694 chars  (~  174 tokens)
+│ ✓ messagesNeedingResponse        0 chars  (~    0 tokens)
+│ ✓ openQuestions                  0 chars  (~    0 tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ GESAMT: 46441 chars (~11663 tokens)
+└─────────────────────────────────────────────────────────────────────────────
+
+───────────────────────────────────────────────────────────────────────────────
+RAW JSON:
+{
+  "ts": "2026-01-27T06:23:33.104Z",
+  "type": "PROMPT_COMPOSITION",
+  "phase": "operations",
+  "rules": {
+    "R1_ABSCHNITTE_PRIORITAET": {
+      "enabled": true,
+      "details": "max_items=5"
+    },
+    "R2_PROTOKOLL_RELEVANZ": {
+      "enabled": true,
+      "details": "min_score=0.6, max_entries=10"
+    },
+    "R3_TRENDS_ERKENNUNG": {
+      "enabled": true,
+      "details": "time_windows=[60,120]"
+    },
+    "R4_RESSOURCEN_STATUS": {
+      "enabled": true,
+      "details": "threshold=80%"
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "skipped": null,
+      "details": "aggregate=true, max_individual=3"
+    }
+  },
+  "filtering": {
+    "abschnitte": {
+      "before": 0,
+      "after": 0,
+      "reason": "Top 5 nach Priority-Score"
+    },
+    "protocol": {
+      "before": 23,
+      "after": 10,
+      "reason": "Score >= 0.6, max 10 Einträge"
+    },
+    "trends": {
+      "before": "n/a",
+      "after": 1,
+      "reason": "Trend: escalating (strong)"
+    },
+    "resources": {
+      "before": 2,
+      "after": 0,
+      "reason": "Auslastung: 0%, Engpass: NEIN",
+      "deployed_personnel": 0,
+      "total_personnel": 66
+    },
+    "incidents": {
+      "before": 2,
+      "after": 0,
+      "reason": "Nur kritische Einzeleinsätze (max 3)"
+    }
+  },
+  "appliedRules": {
+    "R1_ABSCHNITTE": {
+      "enabled": true,
+      "items_shown": 0,
+      "max_items": 5
+    },
+    "R2_PROTOKOLL": {
+      "enabled": true,
+      "items_shown": 10,
+      "max_items": 10
+    },
+    "R3_TRENDS": {
+      "enabled": true,
+      "direction": "escalating",
+      "strength": "strong"
+    },
+    "R4_RESSOURCEN": {
+      "enabled": true,
+      "shortage": false,
+      "utilization": 0
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "individual_incidents_shown": 0
+    }
+  },
+  "components": {
+    "systemPrompt": {
+      "chars": 4961,
+      "tokens": 1241,
+      "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
+    },
+    "userPrompt": {
+      "chars": 28895,
+      "tokens": 7224
+    },
+    "compressedBoard": {
+      "chars": 622,
+      "tokens": 156,
+      "preview": "[{\"id\":\"cb-incident-1769494815124-w9hxdp\",\"content\":\"Pflegeheim Notruf\",\"status\""
+    },
+    "compressedAufgaben": {
+      "chars": 1498,
+      "tokens": 375
+    },
+    "compressedProtokoll": {
+      "chars": 5759,
+      "tokens": 1440
+    },
+    "knowledgeContext": {
+      "chars": 2498,
+      "tokens": 625,
+      "included": true
+    },
+    "disasterContext": {
+      "chars": 1514,
+      "tokens": 428,
+      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: escalation | Dauer: 678 Min\n"
+    },
+    "learnedResponses": {
+      "chars": 0,
+      "tokens": 0,
+      "included": false
+    },
+    "memorySnippets": {
+      "chars": 694,
+      "count": 5
+    },
+    "messagesNeedingResponse": {
+      "count": 2,
+      "included": true
+    },
+    "openQuestions": {
+      "count": 2,
+      "included": true
+    }
+  }
+}
+
+═══════════════════════════════════════════════════════════════════════════════
+PROMPT-KOMPOSITION @ 2026-01-27T06:25:33.109Z
+═══════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ ANGEWENDETE FILTERREGELN
+├─────────────────────────────────────────────────────────────────────────────
+│ R1_ABSCHNITTE_PRIORITAET: ✅ AKTIV
+│   └─ max_items=5
+│ R2_PROTOKOLL_RELEVANZ: ✅ AKTIV
+│   └─ min_score=0.6, max_entries=10
+│ R3_TRENDS_ERKENNUNG: ✅ AKTIV
+│   └─ time_windows=[60,120]
+│ R4_RESSOURCEN_STATUS: ✅ AKTIV
+│   └─ threshold=80%
+│ R5_STABS_FOKUS: ✅ AKTIV
+│   └─ aggregate=true, max_individual=3
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ FILTERUNG (vorher → nachher)
+├─────────────────────────────────────────────────────────────────────────────
+│ abschnitte: 0 → 0 (0 gefiltert)
+│   └─ Grund: Top 5 nach Priority-Score
+│ protocol: 26 → 10 (16 gefiltert)
+│   └─ Grund: Score >= 0.6, max 10 Einträge
+│ trends: n/a → 1 (NaN gefiltert)
+│   └─ Grund: Trend: escalating (strong)
+│ resources: 2 → 0 (2 gefiltert)
+│   └─ Grund: Auslastung: 0%, Engpass: NEIN
+│ incidents: 2 → 0 (2 gefiltert)
+│   └─ Grund: Nur kritische Einzeleinsätze (max 3)
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ ✓ systemPrompt                4967 chars  (~ 1242 tokens)
+│   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
+│ ✓ userPrompt                 29822 chars  (~ 7456 tokens)
+│ ✓ compressedBoard              622 chars  (~  156 tokens)
+│   └─ "[{"id":"cb-incident-1769494815124-w9hxdp","content":"Pflegeheim Notruf","status""
+│ ✓ compressedAufgaben          1666 chars  (~  417 tokens)
+│ ✓ compressedProtokoll         6512 chars  (~ 1628 tokens)
+│ ✓ knowledgeContext            2498 chars  (~  625 tokens)
+│ ✓ disasterContext             1514 chars  (~  428 tokens)
+│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: escalation | Dauer: 678 Min↵"
+│ ✗ learnedResponses               0 chars  (~    0 tokens)
+│ ✓ memorySnippets               700 chars  (~  175 tokens)
+│ ✓ messagesNeedingResponse        0 chars  (~    0 tokens)
+│ ✓ openQuestions                  0 chars  (~    0 tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ GESAMT: 48301 chars (~12127 tokens)
+└─────────────────────────────────────────────────────────────────────────────
+
+───────────────────────────────────────────────────────────────────────────────
+RAW JSON:
+{
+  "ts": "2026-01-27T06:25:33.109Z",
+  "type": "PROMPT_COMPOSITION",
+  "phase": "operations",
+  "rules": {
+    "R1_ABSCHNITTE_PRIORITAET": {
+      "enabled": true,
+      "details": "max_items=5"
+    },
+    "R2_PROTOKOLL_RELEVANZ": {
+      "enabled": true,
+      "details": "min_score=0.6, max_entries=10"
+    },
+    "R3_TRENDS_ERKENNUNG": {
+      "enabled": true,
+      "details": "time_windows=[60,120]"
+    },
+    "R4_RESSOURCEN_STATUS": {
+      "enabled": true,
+      "details": "threshold=80%"
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "skipped": null,
+      "details": "aggregate=true, max_individual=3"
+    }
+  },
+  "filtering": {
+    "abschnitte": {
+      "before": 0,
+      "after": 0,
+      "reason": "Top 5 nach Priority-Score"
+    },
+    "protocol": {
+      "before": 26,
+      "after": 10,
+      "reason": "Score >= 0.6, max 10 Einträge"
+    },
+    "trends": {
+      "before": "n/a",
+      "after": 1,
+      "reason": "Trend: escalating (strong)"
+    },
+    "resources": {
+      "before": 2,
+      "after": 0,
+      "reason": "Auslastung: 0%, Engpass: NEIN",
+      "deployed_personnel": 0,
+      "total_personnel": 66
+    },
+    "incidents": {
+      "before": 2,
+      "after": 0,
+      "reason": "Nur kritische Einzeleinsätze (max 3)"
+    }
+  },
+  "appliedRules": {
+    "R1_ABSCHNITTE": {
+      "enabled": true,
+      "items_shown": 0,
+      "max_items": 5
+    },
+    "R2_PROTOKOLL": {
+      "enabled": true,
+      "items_shown": 10,
+      "max_items": 10
+    },
+    "R3_TRENDS": {
+      "enabled": true,
+      "direction": "escalating",
+      "strength": "strong"
+    },
+    "R4_RESSOURCEN": {
+      "enabled": true,
+      "shortage": false,
+      "utilization": 0
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "individual_incidents_shown": 0
+    }
+  },
+  "components": {
+    "systemPrompt": {
+      "chars": 4967,
+      "tokens": 1242,
+      "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
+    },
+    "userPrompt": {
+      "chars": 29822,
+      "tokens": 7456
+    },
+    "compressedBoard": {
+      "chars": 622,
+      "tokens": 156,
+      "preview": "[{\"id\":\"cb-incident-1769494815124-w9hxdp\",\"content\":\"Pflegeheim Notruf\",\"status\""
+    },
+    "compressedAufgaben": {
+      "chars": 1666,
+      "tokens": 417
+    },
+    "compressedProtokoll": {
+      "chars": 6512,
+      "tokens": 1628
+    },
+    "knowledgeContext": {
+      "chars": 2498,
+      "tokens": 625,
+      "included": true
+    },
+    "disasterContext": {
+      "chars": 1514,
+      "tokens": 428,
+      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: escalation | Dauer: 678 Min\n"
+    },
+    "learnedResponses": {
+      "chars": 0,
+      "tokens": 0,
+      "included": false
+    },
+    "memorySnippets": {
+      "chars": 700,
+      "count": 5
+    },
+    "messagesNeedingResponse": {
+      "count": 2,
+      "included": true
+    },
+    "openQuestions": {
+      "count": 2,
+      "included": true
+    }
+  }
+}
+
+═══════════════════════════════════════════════════════════════════════════════
+PROMPT-KOMPOSITION @ 2026-01-27T06:27:33.106Z
+═══════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ ANGEWENDETE FILTERREGELN
+├─────────────────────────────────────────────────────────────────────────────
+│ R1_ABSCHNITTE_PRIORITAET: ✅ AKTIV
+│   └─ max_items=5
+│ R2_PROTOKOLL_RELEVANZ: ✅ AKTIV
+│   └─ min_score=0.6, max_entries=10
+│ R3_TRENDS_ERKENNUNG: ✅ AKTIV
+│   └─ time_windows=[60,120]
+│ R4_RESSOURCEN_STATUS: ✅ AKTIV
+│   └─ threshold=80%
+│ R5_STABS_FOKUS: ✅ AKTIV
+│   └─ aggregate=true, max_individual=3
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ FILTERUNG (vorher → nachher)
+├─────────────────────────────────────────────────────────────────────────────
+│ abschnitte: 0 → 0 (0 gefiltert)
+│   └─ Grund: Top 5 nach Priority-Score
+│ protocol: 29 → 10 (19 gefiltert)
+│   └─ Grund: Score >= 0.6, max 10 Einträge
+│ trends: n/a → 1 (NaN gefiltert)
+│   └─ Grund: Trend: escalating (strong)
+│ resources: 2 → 0 (2 gefiltert)
+│   └─ Grund: Auslastung: 0%, Engpass: NEIN
+│ incidents: 2 → 0 (2 gefiltert)
+│   └─ Grund: Nur kritische Einzeleinsätze (max 3)
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ ✓ systemPrompt                4961 chars  (~ 1241 tokens)
+│   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
+│ ✓ userPrompt                 30529 chars  (~ 7633 tokens)
+│ ✓ compressedBoard              622 chars  (~  156 tokens)
+│   └─ "[{"id":"cb-incident-1769494815124-w9hxdp","content":"Pflegeheim Notruf","status""
+│ ✓ compressedAufgaben          1829 chars  (~  458 tokens)
+│ ✓ compressedProtokoll         7265 chars  (~ 1817 tokens)
+│ ✓ knowledgeContext            2498 chars  (~  625 tokens)
+│ ✓ disasterContext             1514 chars  (~  428 tokens)
+│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: escalation | Dauer: 678 Min↵"
+│ ✗ learnedResponses               0 chars  (~    0 tokens)
+│ ✓ memorySnippets               694 chars  (~  174 tokens)
+│ ✓ messagesNeedingResponse        0 chars  (~    0 tokens)
+│ ✓ openQuestions                  0 chars  (~    0 tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ GESAMT: 49912 chars (~12532 tokens)
+└─────────────────────────────────────────────────────────────────────────────
+
+───────────────────────────────────────────────────────────────────────────────
+RAW JSON:
+{
+  "ts": "2026-01-27T06:27:33.106Z",
+  "type": "PROMPT_COMPOSITION",
+  "phase": "operations",
+  "rules": {
+    "R1_ABSCHNITTE_PRIORITAET": {
+      "enabled": true,
+      "details": "max_items=5"
+    },
+    "R2_PROTOKOLL_RELEVANZ": {
+      "enabled": true,
+      "details": "min_score=0.6, max_entries=10"
+    },
+    "R3_TRENDS_ERKENNUNG": {
+      "enabled": true,
+      "details": "time_windows=[60,120]"
+    },
+    "R4_RESSOURCEN_STATUS": {
+      "enabled": true,
+      "details": "threshold=80%"
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "skipped": null,
+      "details": "aggregate=true, max_individual=3"
+    }
+  },
+  "filtering": {
+    "abschnitte": {
+      "before": 0,
+      "after": 0,
+      "reason": "Top 5 nach Priority-Score"
+    },
+    "protocol": {
+      "before": 29,
+      "after": 10,
+      "reason": "Score >= 0.6, max 10 Einträge"
+    },
+    "trends": {
+      "before": "n/a",
+      "after": 1,
+      "reason": "Trend: escalating (strong)"
+    },
+    "resources": {
+      "before": 2,
+      "after": 0,
+      "reason": "Auslastung: 0%, Engpass: NEIN",
+      "deployed_personnel": 0,
+      "total_personnel": 66
+    },
+    "incidents": {
+      "before": 2,
+      "after": 0,
+      "reason": "Nur kritische Einzeleinsätze (max 3)"
+    }
+  },
+  "appliedRules": {
+    "R1_ABSCHNITTE": {
+      "enabled": true,
+      "items_shown": 0,
+      "max_items": 5
+    },
+    "R2_PROTOKOLL": {
+      "enabled": true,
+      "items_shown": 10,
+      "max_items": 10
+    },
+    "R3_TRENDS": {
+      "enabled": true,
+      "direction": "escalating",
+      "strength": "strong"
+    },
+    "R4_RESSOURCEN": {
+      "enabled": true,
+      "shortage": false,
+      "utilization": 0
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "individual_incidents_shown": 0
+    }
+  },
+  "components": {
+    "systemPrompt": {
+      "chars": 4961,
+      "tokens": 1241,
+      "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
+    },
+    "userPrompt": {
+      "chars": 30529,
+      "tokens": 7633
+    },
+    "compressedBoard": {
+      "chars": 622,
+      "tokens": 156,
+      "preview": "[{\"id\":\"cb-incident-1769494815124-w9hxdp\",\"content\":\"Pflegeheim Notruf\",\"status\""
+    },
+    "compressedAufgaben": {
+      "chars": 1829,
+      "tokens": 458
+    },
+    "compressedProtokoll": {
+      "chars": 7265,
+      "tokens": 1817
+    },
+    "knowledgeContext": {
+      "chars": 2498,
+      "tokens": 625,
+      "included": true
+    },
+    "disasterContext": {
+      "chars": 1514,
+      "tokens": 428,
+      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: escalation | Dauer: 678 Min\n"
+    },
+    "learnedResponses": {
+      "chars": 0,
+      "tokens": 0,
+      "included": false
+    },
+    "memorySnippets": {
+      "chars": 694,
+      "count": 5
+    },
+    "messagesNeedingResponse": {
+      "count": 2,
+      "included": true
+    },
+    "openQuestions": {
+      "count": 2,
+      "included": true
+    }
+  }
+}
+
+═══════════════════════════════════════════════════════════════════════════════
+PROMPT-KOMPOSITION @ 2026-01-27T06:29:33.114Z
+═══════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ ANGEWENDETE FILTERREGELN
+├─────────────────────────────────────────────────────────────────────────────
+│ R1_ABSCHNITTE_PRIORITAET: ✅ AKTIV
+│   └─ max_items=5
+│ R2_PROTOKOLL_RELEVANZ: ✅ AKTIV
+│   └─ min_score=0.6, max_entries=10
+│ R3_TRENDS_ERKENNUNG: ✅ AKTIV
+│   └─ time_windows=[60,120]
+│ R4_RESSOURCEN_STATUS: ✅ AKTIV
+│   └─ threshold=80%
+│ R5_STABS_FOKUS: ✅ AKTIV
+│   └─ aggregate=true, max_individual=3
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ FILTERUNG (vorher → nachher)
+├─────────────────────────────────────────────────────────────────────────────
+│ abschnitte: 0 → 0 (0 gefiltert)
+│   └─ Grund: Top 5 nach Priority-Score
+│ protocol: 31 → 10 (21 gefiltert)
+│   └─ Grund: Score >= 0.6, max 10 Einträge
+│ trends: n/a → 1 (NaN gefiltert)
+│   └─ Grund: Trend: escalating (strong)
+│ resources: 3 → 0 (3 gefiltert)
+│   └─ Grund: Auslastung: 0%, Engpass: NEIN
+│ incidents: 3 → 0 (3 gefiltert)
+│   └─ Grund: Nur kritische Einzeleinsätze (max 3)
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ ✓ systemPrompt                4913 chars  (~ 1229 tokens)
+│   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
+│ ✓ userPrompt                 31083 chars  (~ 7771 tokens)
+│ ✓ compressedBoard              961 chars  (~  241 tokens)
+│   └─ "[{"id":"cb-incident-1769494815124-w9hxdp","content":"Pflegeheim Notruf","status""
+│ ✓ compressedAufgaben          1829 chars  (~  458 tokens)
+│ ✓ compressedProtokoll         7528 chars  (~ 1882 tokens)
+│ ✓ knowledgeContext            2498 chars  (~  625 tokens)
+│ ✓ disasterContext             1514 chars  (~  428 tokens)
+│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: escalation | Dauer: 684 Min↵"
+│ ✗ learnedResponses               0 chars  (~    0 tokens)
+│ ✓ memorySnippets               646 chars  (~  162 tokens)
+│ ✓ messagesNeedingResponse        0 chars  (~    0 tokens)
+│ ✓ openQuestions                  0 chars  (~    0 tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ GESAMT: 50972 chars (~12796 tokens)
+└─────────────────────────────────────────────────────────────────────────────
+
+───────────────────────────────────────────────────────────────────────────────
+RAW JSON:
+{
+  "ts": "2026-01-27T06:29:33.114Z",
+  "type": "PROMPT_COMPOSITION",
+  "phase": "operations",
+  "rules": {
+    "R1_ABSCHNITTE_PRIORITAET": {
+      "enabled": true,
+      "details": "max_items=5"
+    },
+    "R2_PROTOKOLL_RELEVANZ": {
+      "enabled": true,
+      "details": "min_score=0.6, max_entries=10"
+    },
+    "R3_TRENDS_ERKENNUNG": {
+      "enabled": true,
+      "details": "time_windows=[60,120]"
+    },
+    "R4_RESSOURCEN_STATUS": {
+      "enabled": true,
+      "details": "threshold=80%"
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "skipped": null,
+      "details": "aggregate=true, max_individual=3"
+    }
+  },
+  "filtering": {
+    "abschnitte": {
+      "before": 0,
+      "after": 0,
+      "reason": "Top 5 nach Priority-Score"
+    },
+    "protocol": {
+      "before": 31,
+      "after": 10,
+      "reason": "Score >= 0.6, max 10 Einträge"
+    },
+    "trends": {
+      "before": "n/a",
+      "after": 1,
+      "reason": "Trend: escalating (strong)"
+    },
+    "resources": {
+      "before": 3,
+      "after": 0,
+      "reason": "Auslastung: 0%, Engpass: NEIN",
+      "deployed_personnel": 0,
+      "total_personnel": 66
+    },
+    "incidents": {
+      "before": 3,
+      "after": 0,
+      "reason": "Nur kritische Einzeleinsätze (max 3)"
+    }
+  },
+  "appliedRules": {
+    "R1_ABSCHNITTE": {
+      "enabled": true,
+      "items_shown": 0,
+      "max_items": 5
+    },
+    "R2_PROTOKOLL": {
+      "enabled": true,
+      "items_shown": 10,
+      "max_items": 10
+    },
+    "R3_TRENDS": {
+      "enabled": true,
+      "direction": "escalating",
+      "strength": "strong"
+    },
+    "R4_RESSOURCEN": {
+      "enabled": true,
+      "shortage": false,
+      "utilization": 0
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "individual_incidents_shown": 0
+    }
+  },
+  "components": {
+    "systemPrompt": {
+      "chars": 4913,
+      "tokens": 1229,
+      "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
+    },
+    "userPrompt": {
+      "chars": 31083,
+      "tokens": 7771
+    },
+    "compressedBoard": {
+      "chars": 961,
+      "tokens": 241,
+      "preview": "[{\"id\":\"cb-incident-1769494815124-w9hxdp\",\"content\":\"Pflegeheim Notruf\",\"status\""
+    },
+    "compressedAufgaben": {
+      "chars": 1829,
+      "tokens": 458
+    },
+    "compressedProtokoll": {
+      "chars": 7528,
+      "tokens": 1882
+    },
+    "knowledgeContext": {
+      "chars": 2498,
+      "tokens": 625,
+      "included": true
+    },
+    "disasterContext": {
+      "chars": 1514,
+      "tokens": 428,
+      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: escalation | Dauer: 684 Min\n"
+    },
+    "learnedResponses": {
+      "chars": 0,
+      "tokens": 0,
+      "included": false
+    },
+    "memorySnippets": {
+      "chars": 646,
+      "count": 5
+    },
+    "messagesNeedingResponse": {
+      "count": 2,
+      "included": true
+    },
+    "openQuestions": {
+      "count": 2,
+      "included": true
+    }
+  }
+}
+
+═══════════════════════════════════════════════════════════════════════════════
+PROMPT-KOMPOSITION @ 2026-01-27T06:31:33.116Z
+═══════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ ANGEWENDETE FILTERREGELN
+├─────────────────────────────────────────────────────────────────────────────
+│ R1_ABSCHNITTE_PRIORITAET: ✅ AKTIV
+│   └─ max_items=5
+│ R2_PROTOKOLL_RELEVANZ: ✅ AKTIV
+│   └─ min_score=0.6, max_entries=10
+│ R3_TRENDS_ERKENNUNG: ✅ AKTIV
+│   └─ time_windows=[60,120]
+│ R4_RESSOURCEN_STATUS: ✅ AKTIV
+│   └─ threshold=80%
+│ R5_STABS_FOKUS: ✅ AKTIV
+│   └─ aggregate=true, max_individual=3
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ FILTERUNG (vorher → nachher)
+├─────────────────────────────────────────────────────────────────────────────
+│ abschnitte: 0 → 0 (0 gefiltert)
+│   └─ Grund: Top 5 nach Priority-Score
+│ protocol: 34 → 10 (24 gefiltert)
+│   └─ Grund: Score >= 0.6, max 10 Einträge
+│ trends: n/a → 1 (NaN gefiltert)
+│   └─ Grund: Trend: escalating (strong)
+│ resources: 3 → 0 (3 gefiltert)
+│   └─ Grund: Auslastung: 0%, Engpass: NEIN
+│ incidents: 3 → 0 (3 gefiltert)
+│   └─ Grund: Nur kritische Einzeleinsätze (max 3)
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ ✓ systemPrompt                5007 chars  (~ 1252 tokens)
+│   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
+│ ✓ userPrompt                 31304 chars  (~ 7826 tokens)
+│ ✓ compressedBoard              961 chars  (~  241 tokens)
+│   └─ "[{"id":"cb-incident-1769494815124-w9hxdp","content":"Pflegeheim Notruf","status""
+│ ✓ compressedAufgaben          1991 chars  (~  498 tokens)
+│ ✓ compressedProtokoll         7493 chars  (~ 1874 tokens)
+│ ✓ knowledgeContext            2498 chars  (~  625 tokens)
+│ ✓ disasterContext             1514 chars  (~  428 tokens)
+│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: escalation | Dauer: 684 Min↵"
+│ ✗ learnedResponses               0 chars  (~    0 tokens)
+│ ✓ memorySnippets               740 chars  (~  185 tokens)
+│ ✓ messagesNeedingResponse        0 chars  (~    0 tokens)
+│ ✓ openQuestions                  0 chars  (~    0 tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ GESAMT: 51508 chars (~12929 tokens)
+└─────────────────────────────────────────────────────────────────────────────
+
+───────────────────────────────────────────────────────────────────────────────
+RAW JSON:
+{
+  "ts": "2026-01-27T06:31:33.116Z",
+  "type": "PROMPT_COMPOSITION",
+  "phase": "operations",
+  "rules": {
+    "R1_ABSCHNITTE_PRIORITAET": {
+      "enabled": true,
+      "details": "max_items=5"
+    },
+    "R2_PROTOKOLL_RELEVANZ": {
+      "enabled": true,
+      "details": "min_score=0.6, max_entries=10"
+    },
+    "R3_TRENDS_ERKENNUNG": {
+      "enabled": true,
+      "details": "time_windows=[60,120]"
+    },
+    "R4_RESSOURCEN_STATUS": {
+      "enabled": true,
+      "details": "threshold=80%"
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "skipped": null,
+      "details": "aggregate=true, max_individual=3"
+    }
+  },
+  "filtering": {
+    "abschnitte": {
+      "before": 0,
+      "after": 0,
+      "reason": "Top 5 nach Priority-Score"
+    },
+    "protocol": {
+      "before": 34,
+      "after": 10,
+      "reason": "Score >= 0.6, max 10 Einträge"
+    },
+    "trends": {
+      "before": "n/a",
+      "after": 1,
+      "reason": "Trend: escalating (strong)"
+    },
+    "resources": {
+      "before": 3,
+      "after": 0,
+      "reason": "Auslastung: 0%, Engpass: NEIN",
+      "deployed_personnel": 0,
+      "total_personnel": 66
+    },
+    "incidents": {
+      "before": 3,
+      "after": 0,
+      "reason": "Nur kritische Einzeleinsätze (max 3)"
+    }
+  },
+  "appliedRules": {
+    "R1_ABSCHNITTE": {
+      "enabled": true,
+      "items_shown": 0,
+      "max_items": 5
+    },
+    "R2_PROTOKOLL": {
+      "enabled": true,
+      "items_shown": 10,
+      "max_items": 10
+    },
+    "R3_TRENDS": {
+      "enabled": true,
+      "direction": "escalating",
+      "strength": "strong"
+    },
+    "R4_RESSOURCEN": {
+      "enabled": true,
+      "shortage": false,
+      "utilization": 0
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "individual_incidents_shown": 0
+    }
+  },
+  "components": {
+    "systemPrompt": {
+      "chars": 5007,
+      "tokens": 1252,
+      "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
+    },
+    "userPrompt": {
+      "chars": 31304,
+      "tokens": 7826
+    },
+    "compressedBoard": {
+      "chars": 961,
+      "tokens": 241,
+      "preview": "[{\"id\":\"cb-incident-1769494815124-w9hxdp\",\"content\":\"Pflegeheim Notruf\",\"status\""
+    },
+    "compressedAufgaben": {
+      "chars": 1991,
+      "tokens": 498
+    },
+    "compressedProtokoll": {
+      "chars": 7493,
+      "tokens": 1874
+    },
+    "knowledgeContext": {
+      "chars": 2498,
+      "tokens": 625,
+      "included": true
+    },
+    "disasterContext": {
+      "chars": 1514,
+      "tokens": 428,
+      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: escalation | Dauer: 684 Min\n"
+    },
+    "learnedResponses": {
+      "chars": 0,
+      "tokens": 0,
+      "included": false
+    },
+    "memorySnippets": {
+      "chars": 740,
+      "count": 5
+    },
+    "messagesNeedingResponse": {
+      "count": 2,
+      "included": true
+    },
+    "openQuestions": {
+      "count": 2,
+      "included": true
+    }
+  }
+}
+
+═══════════════════════════════════════════════════════════════════════════════
+PROMPT-KOMPOSITION @ 2026-01-27T06:33:33.117Z
+═══════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ ANGEWENDETE FILTERREGELN
+├─────────────────────────────────────────────────────────────────────────────
+│ R1_ABSCHNITTE_PRIORITAET: ✅ AKTIV
+│   └─ max_items=5
+│ R2_PROTOKOLL_RELEVANZ: ✅ AKTIV
+│   └─ min_score=0.6, max_entries=10
+│ R3_TRENDS_ERKENNUNG: ✅ AKTIV
+│   └─ time_windows=[60,120]
+│ R4_RESSOURCEN_STATUS: ✅ AKTIV
+│   └─ threshold=80%
+│ R5_STABS_FOKUS: ✅ AKTIV
+│   └─ aggregate=true, max_individual=3
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ FILTERUNG (vorher → nachher)
+├─────────────────────────────────────────────────────────────────────────────
+│ abschnitte: 0 → 0 (0 gefiltert)
+│   └─ Grund: Top 5 nach Priority-Score
+│ protocol: 37 → 10 (27 gefiltert)
+│   └─ Grund: Score >= 0.6, max 10 Einträge
+│ trends: n/a → 1 (NaN gefiltert)
+│   └─ Grund: Trend: escalating (strong)
+│ resources: 3 → 0 (3 gefiltert)
+│   └─ Grund: Auslastung: 0%, Engpass: NEIN
+│ incidents: 3 → 0 (3 gefiltert)
+│   └─ Grund: Nur kritische Einzeleinsätze (max 3)
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ ✓ systemPrompt                5059 chars  (~ 1265 tokens)
+│   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
+│ ✓ userPrompt                 31514 chars  (~ 7879 tokens)
+│ ✓ compressedBoard              961 chars  (~  241 tokens)
+│   └─ "[{"id":"cb-incident-1769494815124-w9hxdp","content":"Pflegeheim Notruf","status""
+│ ✓ compressedAufgaben          2153 chars  (~  539 tokens)
+│ ✓ compressedProtokoll         7489 chars  (~ 1873 tokens)
+│ ✓ knowledgeContext            2498 chars  (~  625 tokens)
+│ ✓ disasterContext             1514 chars  (~  428 tokens)
+│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: escalation | Dauer: 684 Min↵"
+│ ✗ learnedResponses               0 chars  (~    0 tokens)
+│ ✓ memorySnippets               792 chars  (~  198 tokens)
+│ ✓ messagesNeedingResponse        0 chars  (~    0 tokens)
+│ ✓ openQuestions                  0 chars  (~    0 tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ GESAMT: 51980 chars (~13048 tokens)
+└─────────────────────────────────────────────────────────────────────────────
+
+───────────────────────────────────────────────────────────────────────────────
+RAW JSON:
+{
+  "ts": "2026-01-27T06:33:33.117Z",
+  "type": "PROMPT_COMPOSITION",
+  "phase": "operations",
+  "rules": {
+    "R1_ABSCHNITTE_PRIORITAET": {
+      "enabled": true,
+      "details": "max_items=5"
+    },
+    "R2_PROTOKOLL_RELEVANZ": {
+      "enabled": true,
+      "details": "min_score=0.6, max_entries=10"
+    },
+    "R3_TRENDS_ERKENNUNG": {
+      "enabled": true,
+      "details": "time_windows=[60,120]"
+    },
+    "R4_RESSOURCEN_STATUS": {
+      "enabled": true,
+      "details": "threshold=80%"
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "skipped": null,
+      "details": "aggregate=true, max_individual=3"
+    }
+  },
+  "filtering": {
+    "abschnitte": {
+      "before": 0,
+      "after": 0,
+      "reason": "Top 5 nach Priority-Score"
+    },
+    "protocol": {
+      "before": 37,
+      "after": 10,
+      "reason": "Score >= 0.6, max 10 Einträge"
+    },
+    "trends": {
+      "before": "n/a",
+      "after": 1,
+      "reason": "Trend: escalating (strong)"
+    },
+    "resources": {
+      "before": 3,
+      "after": 0,
+      "reason": "Auslastung: 0%, Engpass: NEIN",
+      "deployed_personnel": 0,
+      "total_personnel": 66
+    },
+    "incidents": {
+      "before": 3,
+      "after": 0,
+      "reason": "Nur kritische Einzeleinsätze (max 3)"
+    }
+  },
+  "appliedRules": {
+    "R1_ABSCHNITTE": {
+      "enabled": true,
+      "items_shown": 0,
+      "max_items": 5
+    },
+    "R2_PROTOKOLL": {
+      "enabled": true,
+      "items_shown": 10,
+      "max_items": 10
+    },
+    "R3_TRENDS": {
+      "enabled": true,
+      "direction": "escalating",
+      "strength": "strong"
+    },
+    "R4_RESSOURCEN": {
+      "enabled": true,
+      "shortage": false,
+      "utilization": 0
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "individual_incidents_shown": 0
+    }
+  },
+  "components": {
+    "systemPrompt": {
+      "chars": 5059,
+      "tokens": 1265,
+      "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
+    },
+    "userPrompt": {
+      "chars": 31514,
+      "tokens": 7879
+    },
+    "compressedBoard": {
+      "chars": 961,
+      "tokens": 241,
+      "preview": "[{\"id\":\"cb-incident-1769494815124-w9hxdp\",\"content\":\"Pflegeheim Notruf\",\"status\""
+    },
+    "compressedAufgaben": {
+      "chars": 2153,
+      "tokens": 539
+    },
+    "compressedProtokoll": {
+      "chars": 7489,
+      "tokens": 1873
+    },
+    "knowledgeContext": {
+      "chars": 2498,
+      "tokens": 625,
+      "included": true
+    },
+    "disasterContext": {
+      "chars": 1514,
+      "tokens": 428,
+      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: escalation | Dauer: 684 Min\n"
+    },
+    "learnedResponses": {
+      "chars": 0,
+      "tokens": 0,
+      "included": false
+    },
+    "memorySnippets": {
+      "chars": 792,
+      "count": 5
+    },
+    "messagesNeedingResponse": {
+      "count": 2,
+      "included": true
+    },
+    "openQuestions": {
+      "count": 2,
+      "included": true
+    }
+  }
+}
+
+═══════════════════════════════════════════════════════════════════════════════
+PROMPT-KOMPOSITION @ 2026-01-27T06:35:33.119Z
+═══════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ ANGEWENDETE FILTERREGELN
+├─────────────────────────────────────────────────────────────────────────────
+│ R1_ABSCHNITTE_PRIORITAET: ✅ AKTIV
+│   └─ max_items=5
+│ R2_PROTOKOLL_RELEVANZ: ✅ AKTIV
+│   └─ min_score=0.6, max_entries=10
+│ R3_TRENDS_ERKENNUNG: ✅ AKTIV
+│   └─ time_windows=[60,120]
+│ R4_RESSOURCEN_STATUS: ✅ AKTIV
+│   └─ threshold=80%
+│ R5_STABS_FOKUS: ✅ AKTIV
+│   └─ aggregate=true, max_individual=3
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ FILTERUNG (vorher → nachher)
+├─────────────────────────────────────────────────────────────────────────────
+│ abschnitte: 0 → 0 (0 gefiltert)
+│   └─ Grund: Top 5 nach Priority-Score
+│ protocol: 40 → 10 (30 gefiltert)
+│   └─ Grund: Score >= 0.6, max 10 Einträge
+│ trends: n/a → 1 (NaN gefiltert)
+│   └─ Grund: Trend: escalating (strong)
+│ resources: 3 → 0 (3 gefiltert)
+│   └─ Grund: Auslastung: 0%, Engpass: NEIN
+│ incidents: 3 → 0 (3 gefiltert)
+│   └─ Grund: Nur kritische Einzeleinsätze (max 3)
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ ✓ systemPrompt                4983 chars  (~ 1246 tokens)
+│   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
+│ ✓ userPrompt                 31568 chars  (~ 7892 tokens)
+│ ✓ compressedBoard              961 chars  (~  241 tokens)
+│   └─ "[{"id":"cb-incident-1769494815124-w9hxdp","content":"Pflegeheim Notruf","status""
+│ ✓ compressedAufgaben          2321 chars  (~  581 tokens)
+│ ✓ compressedProtokoll         7451 chars  (~ 1863 tokens)
+│ ✓ knowledgeContext            2498 chars  (~  625 tokens)
+│ ✓ disasterContext             1514 chars  (~  428 tokens)
+│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: escalation | Dauer: 690 Min↵"
+│ ✗ learnedResponses               0 chars  (~    0 tokens)
+│ ✓ memorySnippets               716 chars  (~  179 tokens)
+│ ✓ messagesNeedingResponse        0 chars  (~    0 tokens)
+│ ✓ openQuestions                  0 chars  (~    0 tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ GESAMT: 52012 chars (~13055 tokens)
+└─────────────────────────────────────────────────────────────────────────────
+
+───────────────────────────────────────────────────────────────────────────────
+RAW JSON:
+{
+  "ts": "2026-01-27T06:35:33.119Z",
+  "type": "PROMPT_COMPOSITION",
+  "phase": "operations",
+  "rules": {
+    "R1_ABSCHNITTE_PRIORITAET": {
+      "enabled": true,
+      "details": "max_items=5"
+    },
+    "R2_PROTOKOLL_RELEVANZ": {
+      "enabled": true,
+      "details": "min_score=0.6, max_entries=10"
+    },
+    "R3_TRENDS_ERKENNUNG": {
+      "enabled": true,
+      "details": "time_windows=[60,120]"
+    },
+    "R4_RESSOURCEN_STATUS": {
+      "enabled": true,
+      "details": "threshold=80%"
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "skipped": null,
+      "details": "aggregate=true, max_individual=3"
+    }
+  },
+  "filtering": {
+    "abschnitte": {
+      "before": 0,
+      "after": 0,
+      "reason": "Top 5 nach Priority-Score"
+    },
+    "protocol": {
+      "before": 40,
+      "after": 10,
+      "reason": "Score >= 0.6, max 10 Einträge"
+    },
+    "trends": {
+      "before": "n/a",
+      "after": 1,
+      "reason": "Trend: escalating (strong)"
+    },
+    "resources": {
+      "before": 3,
+      "after": 0,
+      "reason": "Auslastung: 0%, Engpass: NEIN",
+      "deployed_personnel": 0,
+      "total_personnel": 66
+    },
+    "incidents": {
+      "before": 3,
+      "after": 0,
+      "reason": "Nur kritische Einzeleinsätze (max 3)"
+    }
+  },
+  "appliedRules": {
+    "R1_ABSCHNITTE": {
+      "enabled": true,
+      "items_shown": 0,
+      "max_items": 5
+    },
+    "R2_PROTOKOLL": {
+      "enabled": true,
+      "items_shown": 10,
+      "max_items": 10
+    },
+    "R3_TRENDS": {
+      "enabled": true,
+      "direction": "escalating",
+      "strength": "strong"
+    },
+    "R4_RESSOURCEN": {
+      "enabled": true,
+      "shortage": false,
+      "utilization": 0
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "individual_incidents_shown": 0
+    }
+  },
+  "components": {
+    "systemPrompt": {
+      "chars": 4983,
+      "tokens": 1246,
+      "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
+    },
+    "userPrompt": {
+      "chars": 31568,
+      "tokens": 7892
+    },
+    "compressedBoard": {
+      "chars": 961,
+      "tokens": 241,
+      "preview": "[{\"id\":\"cb-incident-1769494815124-w9hxdp\",\"content\":\"Pflegeheim Notruf\",\"status\""
+    },
+    "compressedAufgaben": {
+      "chars": 2321,
+      "tokens": 581
+    },
+    "compressedProtokoll": {
+      "chars": 7451,
+      "tokens": 1863
+    },
+    "knowledgeContext": {
+      "chars": 2498,
+      "tokens": 625,
+      "included": true
+    },
+    "disasterContext": {
+      "chars": 1514,
+      "tokens": 428,
+      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: escalation | Dauer: 690 Min\n"
+    },
+    "learnedResponses": {
+      "chars": 0,
+      "tokens": 0,
+      "included": false
+    },
+    "memorySnippets": {
+      "chars": 716,
+      "count": 5
+    },
+    "messagesNeedingResponse": {
+      "count": 2,
+      "included": true
+    },
+    "openQuestions": {
+      "count": 2,
+      "included": true
+    }
+  }
+}
+
+═══════════════════════════════════════════════════════════════════════════════
+PROMPT-KOMPOSITION @ 2026-01-27T06:37:33.120Z
+═══════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ ANGEWENDETE FILTERREGELN
+├─────────────────────────────────────────────────────────────────────────────
+│ R1_ABSCHNITTE_PRIORITAET: ✅ AKTIV
+│   └─ max_items=5
+│ R2_PROTOKOLL_RELEVANZ: ✅ AKTIV
+│   └─ min_score=0.6, max_entries=10
+│ R3_TRENDS_ERKENNUNG: ✅ AKTIV
+│   └─ time_windows=[60,120]
+│ R4_RESSOURCEN_STATUS: ✅ AKTIV
+│   └─ threshold=80%
+│ R5_STABS_FOKUS: ✅ AKTIV
+│   └─ aggregate=true, max_individual=3
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ FILTERUNG (vorher → nachher)
+├─────────────────────────────────────────────────────────────────────────────
+│ abschnitte: 0 → 0 (0 gefiltert)
+│   └─ Grund: Top 5 nach Priority-Score
+│ protocol: 43 → 10 (33 gefiltert)
+│   └─ Grund: Score >= 0.6, max 10 Einträge
+│ trends: n/a → 1 (NaN gefiltert)
+│   └─ Grund: Trend: escalating (strong)
+│ resources: 3 → 0 (3 gefiltert)
+│   └─ Grund: Auslastung: 0%, Engpass: NEIN
+│ incidents: 3 → 0 (3 gefiltert)
+│   └─ Grund: Nur kritische Einzeleinsätze (max 3)
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ ✓ systemPrompt                4935 chars  (~ 1234 tokens)
+│   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
+│ ✓ userPrompt                 31513 chars  (~ 7879 tokens)
+│ ✓ compressedBoard              961 chars  (~  241 tokens)
+│   └─ "[{"id":"cb-incident-1769494815124-w9hxdp","content":"Pflegeheim Notruf","status""
+│ ✓ compressedAufgaben          2321 chars  (~  581 tokens)
+│ ✓ compressedProtokoll         7443 chars  (~ 1861 tokens)
+│ ✓ knowledgeContext            2498 chars  (~  625 tokens)
+│ ✓ disasterContext             1514 chars  (~  428 tokens)
+│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: escalation | Dauer: 690 Min↵"
+│ ✗ learnedResponses               0 chars  (~    0 tokens)
+│ ✓ memorySnippets               668 chars  (~  167 tokens)
+│ ✓ messagesNeedingResponse        0 chars  (~    0 tokens)
+│ ✓ openQuestions                  0 chars  (~    0 tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ GESAMT: 51853 chars (~13016 tokens)
+└─────────────────────────────────────────────────────────────────────────────
+
+───────────────────────────────────────────────────────────────────────────────
+RAW JSON:
+{
+  "ts": "2026-01-27T06:37:33.120Z",
+  "type": "PROMPT_COMPOSITION",
+  "phase": "operations",
+  "rules": {
+    "R1_ABSCHNITTE_PRIORITAET": {
+      "enabled": true,
+      "details": "max_items=5"
+    },
+    "R2_PROTOKOLL_RELEVANZ": {
+      "enabled": true,
+      "details": "min_score=0.6, max_entries=10"
+    },
+    "R3_TRENDS_ERKENNUNG": {
+      "enabled": true,
+      "details": "time_windows=[60,120]"
+    },
+    "R4_RESSOURCEN_STATUS": {
+      "enabled": true,
+      "details": "threshold=80%"
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "skipped": null,
+      "details": "aggregate=true, max_individual=3"
+    }
+  },
+  "filtering": {
+    "abschnitte": {
+      "before": 0,
+      "after": 0,
+      "reason": "Top 5 nach Priority-Score"
+    },
+    "protocol": {
+      "before": 43,
+      "after": 10,
+      "reason": "Score >= 0.6, max 10 Einträge"
+    },
+    "trends": {
+      "before": "n/a",
+      "after": 1,
+      "reason": "Trend: escalating (strong)"
+    },
+    "resources": {
+      "before": 3,
+      "after": 0,
+      "reason": "Auslastung: 0%, Engpass: NEIN",
+      "deployed_personnel": 0,
+      "total_personnel": 66
+    },
+    "incidents": {
+      "before": 3,
+      "after": 0,
+      "reason": "Nur kritische Einzeleinsätze (max 3)"
+    }
+  },
+  "appliedRules": {
+    "R1_ABSCHNITTE": {
+      "enabled": true,
+      "items_shown": 0,
+      "max_items": 5
+    },
+    "R2_PROTOKOLL": {
+      "enabled": true,
+      "items_shown": 10,
+      "max_items": 10
+    },
+    "R3_TRENDS": {
+      "enabled": true,
+      "direction": "escalating",
+      "strength": "strong"
+    },
+    "R4_RESSOURCEN": {
+      "enabled": true,
+      "shortage": false,
+      "utilization": 0
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "individual_incidents_shown": 0
+    }
+  },
+  "components": {
+    "systemPrompt": {
+      "chars": 4935,
+      "tokens": 1234,
+      "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
+    },
+    "userPrompt": {
+      "chars": 31513,
+      "tokens": 7879
+    },
+    "compressedBoard": {
+      "chars": 961,
+      "tokens": 241,
+      "preview": "[{\"id\":\"cb-incident-1769494815124-w9hxdp\",\"content\":\"Pflegeheim Notruf\",\"status\""
+    },
+    "compressedAufgaben": {
+      "chars": 2321,
+      "tokens": 581
+    },
+    "compressedProtokoll": {
+      "chars": 7443,
+      "tokens": 1861
+    },
+    "knowledgeContext": {
+      "chars": 2498,
+      "tokens": 625,
+      "included": true
+    },
+    "disasterContext": {
+      "chars": 1514,
+      "tokens": 428,
+      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: escalation | Dauer: 690 Min\n"
+    },
+    "learnedResponses": {
+      "chars": 0,
+      "tokens": 0,
+      "included": false
+    },
+    "memorySnippets": {
+      "chars": 668,
+      "count": 5
+    },
+    "messagesNeedingResponse": {
+      "count": 2,
+      "included": true
+    },
+    "openQuestions": {
+      "count": 2,
+      "included": true
+    }
+  }
+}
+
+═══════════════════════════════════════════════════════════════════════════════
+PROMPT-KOMPOSITION @ 2026-01-27T06:41:33.124Z
+═══════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ ANGEWENDETE FILTERREGELN
+├─────────────────────────────────────────────────────────────────────────────
+│ R1_ABSCHNITTE_PRIORITAET: ✅ AKTIV
+│   └─ max_items=5
+│ R2_PROTOKOLL_RELEVANZ: ✅ AKTIV
+│   └─ min_score=0.6, max_entries=10
+│ R3_TRENDS_ERKENNUNG: ✅ AKTIV
+│   └─ time_windows=[60,120]
+│ R4_RESSOURCEN_STATUS: ✅ AKTIV
+│   └─ threshold=80%
+│ R5_STABS_FOKUS: ✅ AKTIV
+│   └─ aggregate=true, max_individual=3
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ FILTERUNG (vorher → nachher)
+├─────────────────────────────────────────────────────────────────────────────
+│ abschnitte: 0 → 0 (0 gefiltert)
+│   └─ Grund: Top 5 nach Priority-Score
+│ protocol: 46 → 10 (36 gefiltert)
+│   └─ Grund: Score >= 0.6, max 10 Einträge
+│ trends: n/a → 1 (NaN gefiltert)
+│   └─ Grund: Trend: escalating (strong)
+│ resources: 5 → 0 (5 gefiltert)
+│   └─ Grund: Auslastung: 0%, Engpass: NEIN
+│ incidents: 5 → 0 (5 gefiltert)
+│   └─ Grund: Nur kritische Einzeleinsätze (max 3)
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ ✓ systemPrompt                4961 chars  (~ 1241 tokens)
+│   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
+│ ✓ userPrompt                 32064 chars  (~ 8016 tokens)
+│ ✓ compressedBoard             1318 chars  (~  330 tokens)
+│   └─ "[{"id":"cb-incident-1769494815124-w9hxdp","content":"Pflegeheim Notruf","status""
+│ ✓ compressedAufgaben          2488 chars  (~  622 tokens)
+│ ✓ compressedProtokoll         7445 chars  (~ 1862 tokens)
+│ ✓ knowledgeContext            2498 chars  (~  625 tokens)
+│ ✓ disasterContext             1514 chars  (~  428 tokens)
+│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: escalation | Dauer: 696 Min↵"
+│ ✗ learnedResponses               0 chars  (~    0 tokens)
+│ ✓ memorySnippets               694 chars  (~  174 tokens)
+│ ✓ messagesNeedingResponse        0 chars  (~    0 tokens)
+│ ✓ openQuestions                  0 chars  (~    0 tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ GESAMT: 52982 chars (~13298 tokens)
+└─────────────────────────────────────────────────────────────────────────────
+
+───────────────────────────────────────────────────────────────────────────────
+RAW JSON:
+{
+  "ts": "2026-01-27T06:41:33.124Z",
+  "type": "PROMPT_COMPOSITION",
+  "phase": "operations",
+  "rules": {
+    "R1_ABSCHNITTE_PRIORITAET": {
+      "enabled": true,
+      "details": "max_items=5"
+    },
+    "R2_PROTOKOLL_RELEVANZ": {
+      "enabled": true,
+      "details": "min_score=0.6, max_entries=10"
+    },
+    "R3_TRENDS_ERKENNUNG": {
+      "enabled": true,
+      "details": "time_windows=[60,120]"
+    },
+    "R4_RESSOURCEN_STATUS": {
+      "enabled": true,
+      "details": "threshold=80%"
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "skipped": null,
+      "details": "aggregate=true, max_individual=3"
+    }
+  },
+  "filtering": {
+    "abschnitte": {
+      "before": 0,
+      "after": 0,
+      "reason": "Top 5 nach Priority-Score"
+    },
+    "protocol": {
+      "before": 46,
+      "after": 10,
+      "reason": "Score >= 0.6, max 10 Einträge"
+    },
+    "trends": {
+      "before": "n/a",
+      "after": 1,
+      "reason": "Trend: escalating (strong)"
+    },
+    "resources": {
+      "before": 5,
+      "after": 0,
+      "reason": "Auslastung: 0%, Engpass: NEIN",
+      "deployed_personnel": 0,
+      "total_personnel": 66
+    },
+    "incidents": {
+      "before": 5,
+      "after": 0,
+      "reason": "Nur kritische Einzeleinsätze (max 3)"
+    }
+  },
+  "appliedRules": {
+    "R1_ABSCHNITTE": {
+      "enabled": true,
+      "items_shown": 0,
+      "max_items": 5
+    },
+    "R2_PROTOKOLL": {
+      "enabled": true,
+      "items_shown": 10,
+      "max_items": 10
+    },
+    "R3_TRENDS": {
+      "enabled": true,
+      "direction": "escalating",
+      "strength": "strong"
+    },
+    "R4_RESSOURCEN": {
+      "enabled": true,
+      "shortage": false,
+      "utilization": 0
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "individual_incidents_shown": 0
+    }
+  },
+  "components": {
+    "systemPrompt": {
+      "chars": 4961,
+      "tokens": 1241,
+      "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
+    },
+    "userPrompt": {
+      "chars": 32064,
+      "tokens": 8016
+    },
+    "compressedBoard": {
+      "chars": 1318,
+      "tokens": 330,
+      "preview": "[{\"id\":\"cb-incident-1769494815124-w9hxdp\",\"content\":\"Pflegeheim Notruf\",\"status\""
+    },
+    "compressedAufgaben": {
+      "chars": 2488,
+      "tokens": 622
+    },
+    "compressedProtokoll": {
+      "chars": 7445,
+      "tokens": 1862
+    },
+    "knowledgeContext": {
+      "chars": 2498,
+      "tokens": 625,
+      "included": true
+    },
+    "disasterContext": {
+      "chars": 1514,
+      "tokens": 428,
+      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: escalation | Dauer: 696 Min\n"
+    },
+    "learnedResponses": {
+      "chars": 0,
+      "tokens": 0,
+      "included": false
+    },
+    "memorySnippets": {
+      "chars": 694,
+      "count": 5
+    },
+    "messagesNeedingResponse": {
+      "count": 2,
+      "included": true
+    },
+    "openQuestions": {
+      "count": 2,
+      "included": true
+    }
+  }
+}
+
+═══════════════════════════════════════════════════════════════════════════════
+PROMPT-KOMPOSITION @ 2026-01-27T06:43:33.123Z
+═══════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ ANGEWENDETE FILTERREGELN
+├─────────────────────────────────────────────────────────────────────────────
+│ R1_ABSCHNITTE_PRIORITAET: ✅ AKTIV
+│   └─ max_items=5
+│ R2_PROTOKOLL_RELEVANZ: ✅ AKTIV
+│   └─ min_score=0.6, max_entries=10
+│ R3_TRENDS_ERKENNUNG: ✅ AKTIV
+│   └─ time_windows=[60,120]
+│ R4_RESSOURCEN_STATUS: ✅ AKTIV
+│   └─ threshold=80%
+│ R5_STABS_FOKUS: ✅ AKTIV
+│   └─ aggregate=true, max_individual=3
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ FILTERUNG (vorher → nachher)
+├─────────────────────────────────────────────────────────────────────────────
+│ abschnitte: 0 → 0 (0 gefiltert)
+│   └─ Grund: Top 5 nach Priority-Score
+│ protocol: 49 → 10 (39 gefiltert)
+│   └─ Grund: Score >= 0.6, max 10 Einträge
+│ trends: n/a → 1 (NaN gefiltert)
+│   └─ Grund: Trend: escalating (strong)
+│ resources: 5 → 0 (5 gefiltert)
+│   └─ Grund: Auslastung: 0%, Engpass: NEIN
+│ incidents: 5 → 0 (5 gefiltert)
+│   └─ Grund: Nur kritische Einzeleinsätze (max 3)
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ ✓ systemPrompt                4961 chars  (~ 1241 tokens)
+│   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
+│ ✓ userPrompt                 32230 chars  (~ 8058 tokens)
+│ ✓ compressedBoard             1318 chars  (~  330 tokens)
+│   └─ "[{"id":"cb-incident-1769494815124-w9hxdp","content":"Pflegeheim Notruf","status""
+│ ✓ compressedAufgaben          2654 chars  (~  664 tokens)
+│ ✓ compressedProtokoll         7445 chars  (~ 1862 tokens)
+│ ✓ knowledgeContext            2498 chars  (~  625 tokens)
+│ ✓ disasterContext             1514 chars  (~  428 tokens)
+│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: escalation | Dauer: 696 Min↵"
+│ ✗ learnedResponses               0 chars  (~    0 tokens)
+│ ✓ memorySnippets               694 chars  (~  174 tokens)
+│ ✓ messagesNeedingResponse        0 chars  (~    0 tokens)
+│ ✓ openQuestions                  0 chars  (~    0 tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ GESAMT: 53314 chars (~13382 tokens)
+└─────────────────────────────────────────────────────────────────────────────
+
+───────────────────────────────────────────────────────────────────────────────
+RAW JSON:
+{
+  "ts": "2026-01-27T06:43:33.123Z",
+  "type": "PROMPT_COMPOSITION",
+  "phase": "operations",
+  "rules": {
+    "R1_ABSCHNITTE_PRIORITAET": {
+      "enabled": true,
+      "details": "max_items=5"
+    },
+    "R2_PROTOKOLL_RELEVANZ": {
+      "enabled": true,
+      "details": "min_score=0.6, max_entries=10"
+    },
+    "R3_TRENDS_ERKENNUNG": {
+      "enabled": true,
+      "details": "time_windows=[60,120]"
+    },
+    "R4_RESSOURCEN_STATUS": {
+      "enabled": true,
+      "details": "threshold=80%"
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "skipped": null,
+      "details": "aggregate=true, max_individual=3"
+    }
+  },
+  "filtering": {
+    "abschnitte": {
+      "before": 0,
+      "after": 0,
+      "reason": "Top 5 nach Priority-Score"
+    },
+    "protocol": {
+      "before": 49,
+      "after": 10,
+      "reason": "Score >= 0.6, max 10 Einträge"
+    },
+    "trends": {
+      "before": "n/a",
+      "after": 1,
+      "reason": "Trend: escalating (strong)"
+    },
+    "resources": {
+      "before": 5,
+      "after": 0,
+      "reason": "Auslastung: 0%, Engpass: NEIN",
+      "deployed_personnel": 0,
+      "total_personnel": 66
+    },
+    "incidents": {
+      "before": 5,
+      "after": 0,
+      "reason": "Nur kritische Einzeleinsätze (max 3)"
+    }
+  },
+  "appliedRules": {
+    "R1_ABSCHNITTE": {
+      "enabled": true,
+      "items_shown": 0,
+      "max_items": 5
+    },
+    "R2_PROTOKOLL": {
+      "enabled": true,
+      "items_shown": 10,
+      "max_items": 10
+    },
+    "R3_TRENDS": {
+      "enabled": true,
+      "direction": "escalating",
+      "strength": "strong"
+    },
+    "R4_RESSOURCEN": {
+      "enabled": true,
+      "shortage": false,
+      "utilization": 0
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "individual_incidents_shown": 0
+    }
+  },
+  "components": {
+    "systemPrompt": {
+      "chars": 4961,
+      "tokens": 1241,
+      "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
+    },
+    "userPrompt": {
+      "chars": 32230,
+      "tokens": 8058
+    },
+    "compressedBoard": {
+      "chars": 1318,
+      "tokens": 330,
+      "preview": "[{\"id\":\"cb-incident-1769494815124-w9hxdp\",\"content\":\"Pflegeheim Notruf\",\"status\""
+    },
+    "compressedAufgaben": {
+      "chars": 2654,
+      "tokens": 664
+    },
+    "compressedProtokoll": {
+      "chars": 7445,
+      "tokens": 1862
+    },
+    "knowledgeContext": {
+      "chars": 2498,
+      "tokens": 625,
+      "included": true
+    },
+    "disasterContext": {
+      "chars": 1514,
+      "tokens": 428,
+      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: escalation | Dauer: 696 Min\n"
+    },
+    "learnedResponses": {
+      "chars": 0,
+      "tokens": 0,
+      "included": false
+    },
+    "memorySnippets": {
+      "chars": 694,
+      "count": 5
+    },
+    "messagesNeedingResponse": {
+      "count": 2,
+      "included": true
+    },
+    "openQuestions": {
+      "count": 2,
+      "included": true
+    }
+  }
+}
+
+═══════════════════════════════════════════════════════════════════════════════
+PROMPT-KOMPOSITION @ 2026-01-27T06:45:33.127Z
+═══════════════════════════════════════════════════════════════════════════════
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ ANGEWENDETE FILTERREGELN
+├─────────────────────────────────────────────────────────────────────────────
+│ R1_ABSCHNITTE_PRIORITAET: ✅ AKTIV
+│   └─ max_items=5
+│ R2_PROTOKOLL_RELEVANZ: ✅ AKTIV
+│   └─ min_score=0.6, max_entries=10
+│ R3_TRENDS_ERKENNUNG: ✅ AKTIV
+│   └─ time_windows=[60,120]
+│ R4_RESSOURCEN_STATUS: ✅ AKTIV
+│   └─ threshold=80%
+│ R5_STABS_FOKUS: ✅ AKTIV
+│   └─ aggregate=true, max_individual=3
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ FILTERUNG (vorher → nachher)
+├─────────────────────────────────────────────────────────────────────────────
+│ abschnitte: 0 → 0 (0 gefiltert)
+│   └─ Grund: Top 5 nach Priority-Score
+│ protocol: 51 → 10 (41 gefiltert)
+│   └─ Grund: Score >= 0.6, max 10 Einträge
+│ trends: n/a → 1 (NaN gefiltert)
+│   └─ Grund: Trend: escalating (strong)
+│ resources: 6 → 0 (6 gefiltert)
+│   └─ Grund: Auslastung: 0%, Engpass: NEIN
+│ incidents: 6 → 0 (6 gefiltert)
+│   └─ Grund: Nur kritische Einzeleinsätze (max 3)
+└─────────────────────────────────────────────────────────────────────────────
+
+┌─────────────────────────────────────────────────────────────────────────────
+│ PROMPT-KOMPONENTEN (Zeichen / geschätzte Tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ ✓ systemPrompt                4961 chars  (~ 1241 tokens)
+│   └─ "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.↵↵=== ANTWORTFORMAT ===↵- ..."
+│ ✓ userPrompt                 32532 chars  (~ 8133 tokens)
+│ ✓ compressedBoard             1616 chars  (~  404 tokens)
+│   └─ "[{"id":"cb-incident-1769494815124-w9hxdp","content":"Pflegeheim Notruf","status""
+│ ✓ compressedAufgaben          2654 chars  (~  664 tokens)
+│ ✓ compressedProtokoll         7449 chars  (~ 1863 tokens)
+│ ✓ knowledgeContext            2498 chars  (~  625 tokens)
+│ ✓ disasterContext             1514 chars  (~  428 tokens)
+│   └─ "### GESAMTLAGE ###↵Typ: Winter-Katastrophe | Phase: escalation | Dauer: 696 Min↵"
+│ ✗ learnedResponses               0 chars  (~    0 tokens)
+│ ✓ memorySnippets               694 chars  (~  174 tokens)
+│ ✓ messagesNeedingResponse        0 chars  (~    0 tokens)
+│ ✓ openQuestions                  0 chars  (~    0 tokens)
+├─────────────────────────────────────────────────────────────────────────────
+│ GESAMT: 53918 chars (~13532 tokens)
+└─────────────────────────────────────────────────────────────────────────────
+
+───────────────────────────────────────────────────────────────────────────────
+RAW JSON:
+{
+  "ts": "2026-01-27T06:45:33.127Z",
+  "type": "PROMPT_COMPOSITION",
+  "phase": "operations",
+  "rules": {
+    "R1_ABSCHNITTE_PRIORITAET": {
+      "enabled": true,
+      "details": "max_items=5"
+    },
+    "R2_PROTOKOLL_RELEVANZ": {
+      "enabled": true,
+      "details": "min_score=0.6, max_entries=10"
+    },
+    "R3_TRENDS_ERKENNUNG": {
+      "enabled": true,
+      "details": "time_windows=[60,120]"
+    },
+    "R4_RESSOURCEN_STATUS": {
+      "enabled": true,
+      "details": "threshold=80%"
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "skipped": null,
+      "details": "aggregate=true, max_individual=3"
+    }
+  },
+  "filtering": {
+    "abschnitte": {
+      "before": 0,
+      "after": 0,
+      "reason": "Top 5 nach Priority-Score"
+    },
+    "protocol": {
+      "before": 51,
+      "after": 10,
+      "reason": "Score >= 0.6, max 10 Einträge"
+    },
+    "trends": {
+      "before": "n/a",
+      "after": 1,
+      "reason": "Trend: escalating (strong)"
+    },
+    "resources": {
+      "before": 6,
+      "after": 0,
+      "reason": "Auslastung: 0%, Engpass: NEIN",
+      "deployed_personnel": 0,
+      "total_personnel": 66
+    },
+    "incidents": {
+      "before": 6,
+      "after": 0,
+      "reason": "Nur kritische Einzeleinsätze (max 3)"
+    }
+  },
+  "appliedRules": {
+    "R1_ABSCHNITTE": {
+      "enabled": true,
+      "items_shown": 0,
+      "max_items": 5
+    },
+    "R2_PROTOKOLL": {
+      "enabled": true,
+      "items_shown": 10,
+      "max_items": 10
+    },
+    "R3_TRENDS": {
+      "enabled": true,
+      "direction": "escalating",
+      "strength": "strong"
+    },
+    "R4_RESSOURCEN": {
+      "enabled": true,
+      "shortage": false,
+      "utilization": 0
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "individual_incidents_shown": 0
+    }
+  },
+  "components": {
+    "systemPrompt": {
+      "chars": 4961,
+      "tokens": 1241,
+      "preview": "Du bist der EINFO-Chatbot für den Bezirks-Einsatzstab.\n\n=== ANTWORTFORMAT ===\n- ERSTE Zeichen: \"{\", "
+    },
+    "userPrompt": {
+      "chars": 32532,
+      "tokens": 8133
+    },
+    "compressedBoard": {
+      "chars": 1616,
+      "tokens": 404,
+      "preview": "[{\"id\":\"cb-incident-1769494815124-w9hxdp\",\"content\":\"Pflegeheim Notruf\",\"status\""
+    },
+    "compressedAufgaben": {
+      "chars": 2654,
+      "tokens": 664
+    },
+    "compressedProtokoll": {
+      "chars": 7449,
+      "tokens": 1863
+    },
+    "knowledgeContext": {
+      "chars": 2498,
+      "tokens": 625,
+      "included": true
+    },
+    "disasterContext": {
+      "chars": 1514,
+      "tokens": 428,
+      "preview": "### GESAMTLAGE ###\nTyp: Winter-Katastrophe | Phase: escalation | Dauer: 696 Min\n"
+    },
+    "learnedResponses": {
+      "chars": 0,
+      "tokens": 0,
+      "included": false
+    },
+    "memorySnippets": {
+      "chars": 694,
+      "count": 5
+    },
+    "messagesNeedingResponse": {
+      "count": 2,
+      "included": true
+    },
+    "openQuestions": {
+      "count": 2,
+      "included": true
+    }
+  }
+}
+
