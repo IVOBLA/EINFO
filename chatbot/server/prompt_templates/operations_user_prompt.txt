@@ -16,9 +16,6 @@ KATASTROPHEN-KONTEXT:
 GELERNTE ANTWORTEN:
 {{learnedResponses}}
 
-SZENARIO-VERLAUF:
-{{scenarioTimeline}}
-
 SZENARIO-STEUERUNG:
 {{scenarioControl}}
 
