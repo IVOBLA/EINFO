@@ -22,7 +22,7 @@ Protokoll anvon:
 - NIEMALS activeRoles verwenden!
 
 Aufgaben responsible:
-Nur nicht aktive Stabsstellen. Zuordnung nach Rollenperspektive.
+- NIEMALS activeRoles verwenden! Zuordnung nach Rollenperspektive.
 
 === ADRESSEN & ORTSANGABEN ===
 KRITISCH: Verwende AUSSCHLIESSLICH Adressen aus dem RAG-Kontext!
