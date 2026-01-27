@@ -2,23 +2,23 @@
   "globalModelOverride": null,
   "tasks": {
     "start": {
-      "model": "einfo-balanced",
-      "temperature": 0.1,
+      "model": "einfo-balanced:latest",
+      "temperature": 0.02,
       "maxTokens": 4000,
       "timeout": 220000,
-      "numGpu": 20,
-      "numCtx": 4096,
+      "numGpu": 25,
+      "numCtx": 8192,
       "topP": 0.92,
       "topK": 50,
       "repeatPenalty": 1.15
     },
     "operations": {
-      "model": "einfo-balanced",
-      "temperature": 0.05,
+      "model": "einfo-balanced:latest",
+      "temperature": 0.02,
       "maxTokens": 4000,
       "timeout": 300000,
-      "numGpu": 20,
-      "numCtx": 4096,
+      "numGpu": 25,
+      "numCtx": 8192,
       "topP": 0.92,
       "topK": 50,
       "repeatPenalty": 1.15
