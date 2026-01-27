@@ -1,2 +1,0 @@
-{"ts":"2026-01-27T06:39:48.927Z","kind":"board.update","op":{"name":"Schneeverwehung am Ortsteil Nord","status":"alerted","assignedVehicles":["Schiene 12","Fördegerät 3"]},"reason":"board.update abgelehnt: S2 ist angemeldet und führt Updates selbst durch.","activeRoles":["S2"]}
-{"ts":"2026-01-27T06:39:48.927Z","kind":"board.update","op":{"name":"Stromausfall in Wohnsiedlung Süd","status":"inProgress","additionalInfo":"Sanitätsdienst und Wasserversorgung eingesetzt."},"reason":"board.update abgelehnt: S2 ist angemeldet und führt Updates selbst durch.","activeRoles":["S2"]}
