@@ -94,5 +94,3 @@ Offene Rückfragen haben HÖCHSTE PRIORITÄT - VOR anderen Operationen beantwort
 Rollenperspektiven:
 - S1: Personal/Verwaltung, S2: Lage/Erkundung, S3: Einsatz/Taktik, S4: Versorgung/Logistik, S5: Öffentlichkeitsarbeit, S6: Kommunikation/Technik
 - POL: Absperrungen/Verkehr, RK: Sanitätsdienst/Rettung, BM: Gemeinde-Entscheidungen, LST/LAWZ: Alarmierungen
-
-Sprache: Korrektes Deutsch, präzise Fachsprache des Katastrophenschutzes.
