@@ -489,6 +489,30 @@ app.post("/api/sim/start", async (req, res) => {
           logInfo("Erster Simulationsschritt erfolgreich", {
             stepCount: simulationState.stepCount
           });
+
+          // BUGFIX: Operationen des ersten Schritts für Worker speichern
+          // Der Worker ist der einzige, der die apply-Funktionen hat.
+          // Wir speichern die Operationen in einer Datei, die der Worker beim Start verarbeitet.
+          if (firstStepResult.operations) {
+            const pendingOpsPath = path.resolve(__dirname, "../../server/data/pending_initial_ops.json");
+            try {
+              const pendingOps = {
+                timestamp: new Date().toISOString(),
+                source: "initial",
+                operations: firstStepResult.operations
+              };
+              await import("fs/promises").then(fs =>
+                fs.writeFile(pendingOpsPath, JSON.stringify(pendingOps, null, 2), "utf8")
+              );
+              logInfo("Initiale Operationen für Worker gespeichert", {
+                boardCreate: firstStepResult.operations?.board?.createIncidentSites?.length || 0,
+                taskCreate: firstStepResult.operations?.aufgaben?.create?.length || 0,
+                protoCreate: firstStepResult.operations?.protokoll?.create?.length || 0
+              });
+            } catch (writeErr) {
+              logError("Fehler beim Speichern der initialen Operationen", { error: String(writeErr) });
+            }
+          }
         } else {
           logError("Erster Simulationsschritt fehlgeschlagen", {
             error: firstStepResult.error || firstStepResult.reason
