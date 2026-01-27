@@ -71,7 +71,7 @@ WICHTIG: Gib NUR das operations-Objekt zurück, KEINE zusätzlichen Felder, halt
       "create": [{
         "information": "Meldungstext",
         "infoTyp": "Lagemeldung|Auftrag|Rueckfrage|Rueckmeldung|Info",
-        "ergehtAn": ["Empfänger"],
+        "ergehtAn": ["Liste der zuständigen Stabsstellen"],
         "richtung": "ein|aus",
 		"anvon": "Meldende Quelle"
       }]
