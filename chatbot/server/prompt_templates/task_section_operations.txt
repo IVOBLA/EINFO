@@ -3,10 +3,7 @@ DEINE AUFGABE: PROAKTIVE LAGEENTWICKLUNG
 ═══════════════════════════════════════════════════════════════════════════════
 
 Du simulierst eine DYNAMISCHE Katastrophenlage für alle NICHT-ANGEMELDETEN Rollen.
-
-WICHTIG: Du darfst KEINE Operationen für Rollen in activeRoles erstellen!
-- activeRoles = reale Personen (bereits angemeldet)
-- Du simulierst: Externe Stellen (POL, LST, RK, BH, Gemeinden) + nicht-angemeldete Stabsstellen
+Du simulierst: Externe Stellen (POL, LST, RK, BH, Gemeinden) + nicht-angemeldete Stabsstellen
 
 ═══════════════════════════════════════════════════════════════════════════════
 PHASEN-REQUIREMENTS FÜR DIESEN SCHRITT
@@ -30,8 +27,6 @@ HANDLUNGSSCHRITTE (in dieser Reihenfolge)
       - Erstelle neue Schadensmeldungen passend zur Katastrophenlage
       - Beachte Phasen-Intensität (steigend/gleichbleibend/abnehmend)
       - Variiere Einsatztyp und -schwere realitätsgetreu
-      - ⚠️ ADRESSEN: NUR aus RAG-Kontext verwenden, passend zum Szenario-Bereich
-      - Falls keine RAG-Adresse: Allgemeine Ortsangabe (z.B. "Gemeindegebiet Steuerberg")
 
    b) EXTERNE MELDUNGEN (operations.protokoll.create, richtung: "ein")
       - Von POL: Verkehrsmeldungen, Absperrungen, Evakuierungen
@@ -58,24 +53,6 @@ HANDLUNGSSCHRITTE (in dieser Reihenfolge)
    - Verschärfungen/Eskalationen bestehender Einsätze
    - Status-Änderungen (nur bei automatischen Updates, nicht bei User-Aktionen)
    - Ergänzende Informationen (alerted, assignedVehicles)
-
-═══════════════════════════════════════════════════════════════════════════════
-REGELN
-═══════════════════════════════════════════════════════════════════════════════
-
-✅ IMMER:
-  - Phasen-Requirements ERFÜLLEN (min/max Anzahl Entities)
-  - Realistische, zur Katastrophe passende Inhalte
-  - Korrektes Deutsch, Feuerwehr-Fachsprache
-  - Absender NIEMALS aus activeRoles
-  - Adressen NUR aus RAG-Kontext, passend zum Szenario-Bereich
-
-❌ NIEMALS:
-  - Operationen für Rollen in activeRoles
-  - Meldestelle (MST) simulieren
-  - Unrealistische oder zu dramatische Inhalte
-  - Absender ohne Rolle oder mit falscher Rolle
-  - Erfundene Adressen oder Adressen außerhalb des Szenario-Bereichs
 
 ═══════════════════════════════════════════════════════════════════════════════
 

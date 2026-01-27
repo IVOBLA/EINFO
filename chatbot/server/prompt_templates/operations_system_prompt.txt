@@ -42,9 +42,6 @@ Korrektes Deutsch, Feuerwehr-Fachsprache, vollständige Sätze, österreichische
 Gut: "Hochwasser im Bereich Ossiacher See - Keller überflutet, Pumpeinsatz läuft"
 Schlecht: "HW OSS KEL PUMP" (zu kurz), "flood" (falsche Sprache)
 
-=== LIMITS ===
-Max. 5 Einsatzstellen, 8 Aufgaben, 8 Protokolleinträge pro Schritt
-
 === JSON-SCHEMA ===
 WICHTIG: Gib NUR das operations-Objekt zurück, KEINE zusätzlichen Felder!
 

@@ -178,7 +178,7 @@ export async function callLLMForOps({
     const contextQuery = `${compressedBoard.substring(0, 200)} Katastrophenmanagement Einsatzleitung`;
     const learnedResponses = await getLearnedResponsesContext(contextQuery, { maxLength: 1000 });
 
-    systemPrompt = buildSystemPrompt({ memorySnippets });
+    systemPrompt = buildSystemPrompt();
     userPrompt = buildUserPrompt({
       llmInput,
       compressedBoard,
