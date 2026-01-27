@@ -50,7 +50,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const LOG_DIRS_TO_CLEAR = [
   path.resolve(__dirname, "../logs"),
-  path.resolve(__dirname, "../../server/logs")
+  path.resolve(__dirname, "../../server/log")
 ];
 
 async function clearLogFiles(dir) {
