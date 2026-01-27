@@ -1,0 +1,69 @@
+[2026-01-27T09:42:37.426Z] Worker dataDir: /home/bfkdo/kanban/server/data
+[2026-01-27T09:42:37.426Z] Worker erwartet roles.json an: /home/bfkdo/kanban/server/data/roles.json
+[2026-01-27T09:42:37.478Z] Chatbot-Worker gestartet, Intervall: 400000 ms
+[2026-01-27T09:42:37.533Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 923/8188MB | Temp: 38°C
+[2026-01-27T09:42:37.536Z] Aktives Szenario geändert: winter_extremschneefall
+[2026-01-27T09:42:37.536Z] Worker-Intervall angepasst: 120000 ms
+[2026-01-27T09:42:37.537Z] Starte Simulationsschritt | aktive Rollen: 1
+[2026-01-27T09:42:47.495Z] Worker-Intervall angepasst: 400000 ms
+[2026-01-27T09:47:38.241Z] Fehler: fetch failed
+[2026-01-27T09:49:27.537Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 923/8188MB | Temp: 40°C
+[2026-01-27T09:49:27.540Z] Worker-Intervall angepasst: 120000 ms
+[2026-01-27T09:49:27.541Z] Starte Simulationsschritt | aktive Rollen: 1
+[2026-01-27T09:49:27.586Z] Worker-Intervall angepasst: 400000 ms
+[2026-01-27T09:54:08.726Z] LLM-Operationen: {"boardCreate":5,"boardUpdate":0,"taskCreate":3,"taskUpdate":0,"protoCreate":5}
+[2026-01-27T09:54:08.727Z] Board-Create angewandt: cb-incident-1769507648727-6kik0l
+[2026-01-27T09:54:08.727Z] Board-Create angewandt: cb-incident-1769507648727-2tlctb
+[2026-01-27T09:54:08.727Z] Board-Create angewandt: cb-incident-1769507648727-ghfbot
+[2026-01-27T09:54:08.727Z] Board-Create angewandt: cb-incident-1769507648727-mqp8o3
+[2026-01-27T09:54:08.727Z] Board-Create angewandt: cb-incident-1769507648727-xwfr6e
+[2026-01-27T09:54:08.728Z] Aufgabe-Create angewandt: cb-task-1769507648728-cnzrch
+[2026-01-27T09:54:08.728Z] Aufgabe-Create angewandt: cb-task-1769507648728-2fnqvo
+[2026-01-27T09:54:08.728Z] Aufgabe-Create angewandt: cb-task-1769507648728-26mp6u
+[2026-01-27T09:54:08.735Z] Protokoll-Create angewandt: cb-prot-1769507648735-kqowrr
+[2026-01-27T09:54:08.735Z] Protokoll-Create angewandt: cb-prot-1769507648735-e8acmb
+[2026-01-27T09:54:08.735Z] Protokoll-Create angewandt: cb-prot-1769507648735-tee6bc
+[2026-01-27T09:54:08.735Z] Protokoll-Create angewandt: cb-prot-1769507648735-m1ndxk
+[2026-01-27T09:54:08.735Z] Protokoll-Create angewandt: cb-prot-1769507648735-hh1xy0
+[2026-01-27T09:54:08.758Z] Action-History aktualisiert: 13 neue Einträge
+[2026-01-27T09:54:08.758Z] Schritt abgeschlossen in 281248ms | Angewandt: 13
+[2026-01-27T09:54:08.779Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 923/8188MB | Temp: 38°C
+[2026-01-27T09:56:07.626Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 923/8188MB | Temp: 40°C
+[2026-01-27T09:56:07.627Z] Worker-Intervall angepasst: 120000 ms
+[2026-01-27T09:56:07.627Z] Starte Simulationsschritt | aktive Rollen: 1
+[2026-01-27T09:56:07.684Z] Worker-Intervall angepasst: 400000 ms
+[2026-01-27T10:01:08.341Z] Fehler: fetch failed
+[2026-01-27T10:02:47.728Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 6891/8188MB | Temp: 38°C
+[2026-01-27T10:02:47.731Z] Worker-Intervall angepasst: 120000 ms
+[2026-01-27T10:02:47.731Z] Starte Simulationsschritt | aktive Rollen: 1
+[2026-01-27T10:02:47.739Z] LLM läuft noch (1/10) – warte 5000ms...
+[2026-01-27T10:02:47.766Z] Worker-Intervall angepasst: 400000 ms
+[2026-01-27T10:02:52.745Z] LLM läuft noch (2/10) – warte 5000ms...
+[2026-01-27T10:02:57.751Z] LLM läuft noch (3/10) – warte 5000ms...
+[2026-01-27T10:03:02.756Z] LLM läuft noch (4/10) – warte 5000ms...
+[2026-01-27T10:03:07.762Z] LLM läuft noch (5/10) – warte 5000ms...
+[2026-01-27T10:03:12.768Z] LLM läuft noch (6/10) – warte 5000ms...
+[2026-01-27T10:03:17.772Z] LLM läuft noch (7/10) – warte 5000ms...
+[2026-01-27T10:03:22.778Z] LLM läuft noch (8/10) – warte 5000ms...
+[2026-01-27T10:03:27.781Z] LLM läuft noch (9/10) – warte 5000ms...
+[2026-01-27T10:03:32.788Z] LLM läuft noch (10/10) – warte 5000ms...
+[2026-01-27T10:03:37.788Z] Max. Retries (10) erreicht oder Fehler aufgetreten.
+[2026-01-27T10:09:27.801Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 6891/8188MB | Temp: 39°C
+[2026-01-27T10:09:27.804Z] Worker-Intervall angepasst: 120000 ms
+[2026-01-27T10:09:27.804Z] Starte Simulationsschritt | aktive Rollen: 1
+[2026-01-27T10:09:27.812Z] LLM läuft noch (1/10) – warte 5000ms...
+[2026-01-27T10:09:28.086Z] Worker-Intervall angepasst: 400000 ms
+[2026-01-27T10:09:32.816Z] LLM läuft noch (2/10) – warte 5000ms...
+[2026-01-27T10:09:37.821Z] LLM läuft noch (3/10) – warte 5000ms...
+[2026-01-27T10:09:42.826Z] LLM läuft noch (4/10) – warte 5000ms...
+[2026-01-27T10:09:47.831Z] LLM läuft noch (5/10) – warte 5000ms...
+[2026-01-27T10:09:52.836Z] LLM läuft noch (6/10) – warte 5000ms...
+[2026-01-27T10:09:57.840Z] LLM läuft noch (7/10) – warte 5000ms...
+[2026-01-27T10:10:02.845Z] LLM läuft noch (8/10) – warte 5000ms...
+[2026-01-27T10:10:07.850Z] LLM läuft noch (9/10) – warte 5000ms...
+[2026-01-27T10:10:12.853Z] LLM läuft noch (10/10) – warte 5000ms...
+[2026-01-27T10:10:17.855Z] Max. Retries (10) erreicht oder Fehler aufgetreten.
+[2026-01-27T10:16:08.123Z] GPU: NVIDIA GeForce RTX 4070 Laptop GPU | VRAM: 6891/8188MB | Temp: 41°C
+[2026-01-27T10:16:08.125Z] Worker-Intervall angepasst: 120000 ms
+[2026-01-27T10:16:08.126Z] Starte Simulationsschritt | aktive Rollen: 1
+[2026-01-27T10:16:08.364Z] Worker-Intervall angepasst: 400000 ms
