@@ -62,17 +62,10 @@ export const jsonRepairSystemPrompt = loadPromptTemplate("json_repair_system.txt
  * - Operations-Schema
  * - Kompaktheit / JSON-Disziplin
  */
-export function buildSystemPrompt({ memorySnippets = [] } = {}) {
-  let systemPrompt = operationsSystemPrompt;
-
-  if (memorySnippets && memorySnippets.length > 0) {
-    systemPrompt += "\n\nBisher bekannte Lage / Erinnerungen:\n";
-    for (const snippet of memorySnippets) {
-      systemPrompt += `- ${snippet}\n`;
-    }
-  }
-
-  return systemPrompt;
+export function buildSystemPrompt() {
+  // Erinnerungen werden NUR im User-Prompt gesendet (via {{formattedMemorySnippets}})
+  // um Redundanz zu vermeiden
+  return operationsSystemPrompt;
 }
 
 /**

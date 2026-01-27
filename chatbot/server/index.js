@@ -1470,7 +1470,7 @@ ${ragResult.context}`;
           })
         };
 
-        systemPrompt = buildSystemPrompt({ memorySnippets });
+        systemPrompt = buildSystemPrompt();
         userPrompt = buildUserPrompt({
           llmInput: opsContext,
           compressedBoard,
