@@ -1467,6 +1467,155 @@ async function runOnce() {
   }
 }
 
+// BUGFIX: Verarbeite die vom Chatbot-Server gespeicherten initialen Operationen
+// Diese werden beim ersten Simulationsschritt generiert, bevor der Worker startet.
+const PENDING_INITIAL_OPS_FILE = path.join(dataDir, "pending_initial_ops.json");
+
+async function processInitialPendingOps() {
+  try {
+    // Prüfe ob Datei existiert
+    if (!fs.existsSync(PENDING_INITIAL_OPS_FILE)) {
+      return { processed: false, reason: "no_file" };
+    }
+
+    const pendingOps = await safeReadJson(PENDING_INITIAL_OPS_FILE, null);
+    if (!pendingOps || !pendingOps.operations) {
+      // Datei löschen wenn leer oder ungültig
+      await fsPromises.unlink(PENDING_INITIAL_OPS_FILE).catch(() => {});
+      return { processed: false, reason: "invalid_content" };
+    }
+
+    log("Verarbeite initiale Operationen vom Chatbot-Server...", {
+      timestamp: pendingOps.timestamp,
+      source: pendingOps.source
+    });
+
+    // Synchronisiere Rollen für die apply-Funktionen
+    const { active, missing } = await syncRolesFile();
+    const staffRoles = [...active, ...missing];
+
+    // Transform LLM short field names to JSON long names
+    let ops = transformLlmOperationsToJson(pendingOps.operations || {});
+
+    // Sanitize operations
+    ops = sanitizeOperations(ops);
+
+    const counts = {
+      boardCreate: (ops.board?.createIncidentSites || []).length,
+      boardUpdate: (ops.board?.updateIncidentSites || []).length,
+      taskCreate: (ops.aufgaben?.create || []).length,
+      taskUpdate: (ops.aufgaben?.update || []).length,
+      protoCreate: (ops.protokoll?.create || []).length
+    };
+
+    log("Initiale LLM-Operationen:", counts);
+
+    // Wende Operationen an
+    const applyResults = {
+      board: { appliedCount: 0, appliedOps: {} },
+      aufgaben: { appliedCount: 0, appliedOps: {} },
+      protokoll: { appliedCount: 0, appliedOps: {} }
+    };
+
+    try {
+      // Für initiale Operationen: alle Rollen erlauben (da noch keine aktiven Rollen)
+      const initialActiveRoles = active.length > 0 ? active : staffRoles;
+
+      applyResults.board = await applyBoardOperations(
+        ops.board || {},
+        initialActiveRoles,
+        staffRoles
+      );
+      applyResults.aufgaben = await applyAufgabenOperations(
+        ops.aufgaben || {},
+        initialActiveRoles,
+        staffRoles
+      );
+      applyResults.protokoll = await applyProtokollOperations(
+        ops.protokoll || {},
+        initialActiveRoles,
+        staffRoles
+      );
+    } catch (err) {
+      log("Fehler beim Anwenden der initialen Operationen:", err?.message || err);
+    }
+
+    const totalApplied =
+      applyResults.board.appliedCount +
+      applyResults.aufgaben.appliedCount +
+      applyResults.protokoll.appliedCount;
+
+    log(`Initiale Operationen verarbeitet | Angewandt: ${totalApplied}`);
+
+    // Speichere in Action-History
+    if (totalApplied > 0) {
+      const actionHistoryEntries = [];
+
+      // Einsatz-Creates
+      const boardCreates = applyResults.board.appliedOps?.createIncidentSites || [];
+      for (const op of boardCreates) {
+        actionHistoryEntries.push(buildActionHistoryEntry(
+          "create",
+          "einsatz",
+          {
+            content: op.content || "Einsatzstelle (KI)",
+            ort: op.ort || "",
+            description: op.description || ""
+          },
+          op.id || null
+        ));
+      }
+
+      // Aufgaben-Creates
+      const taskCreates = applyResults.aufgaben.appliedOps?.create || [];
+      for (const op of taskCreates) {
+        actionHistoryEntries.push(buildActionHistoryEntry(
+          "create",
+          "aufgabe",
+          {
+            title: op.title || "Aufgabe (KI)",
+            type: op.type || "Auftrag",
+            responsible: op.responsible || "",
+            desc: op.desc || ""
+          },
+          op.id || null
+        ));
+      }
+
+      // Protokoll-Creates
+      const protoCreates = applyResults.protokoll.appliedOps?.create || [];
+      for (const op of protoCreates) {
+        actionHistoryEntries.push(buildActionHistoryEntry(
+          "create",
+          "protokoll",
+          {
+            information: op.information || "",
+            infoTyp: op.infoTyp || "Info",
+            anvon: op.anvon || "",
+            ergehtAn: op.ergehtAn || []
+          },
+          op.id || null
+        ));
+      }
+
+      if (actionHistoryEntries.length > 0) {
+        await appendActionHistory(actionHistoryEntries);
+        log(`Action-History aktualisiert: ${actionHistoryEntries.length} initiale Einträge`);
+      }
+    }
+
+    // Datei löschen nach erfolgreicher Verarbeitung
+    await fsPromises.unlink(PENDING_INITIAL_OPS_FILE).catch(() => {});
+
+    return { processed: true, totalApplied, applyResults };
+  } catch (err) {
+    log("Fehler beim Verarbeiten der initialen Operationen:", err?.message || err);
+    // Bei Fehler trotzdem Datei löschen, um Endlosschleifen zu vermeiden
+    await fsPromises.unlink(PENDING_INITIAL_OPS_FILE).catch(() => {});
+    return { processed: false, error: err?.message || String(err) };
+  }
+}
+
 async function startWorker() {
   // Lade initiale Config
   const config = await loadWorkerConfig();
@@ -1476,6 +1625,11 @@ async function startWorker() {
   wasWaitingForRoles = false;
 
   log("Chatbot-Worker gestartet, Intervall:", currentWorkerIntervalMs, "ms");
+
+  // BUGFIX: Verarbeite zuerst die initialen Operationen vom Chatbot-Server
+  // Diese wurden beim ersten Simulationsschritt generiert, bevor der Worker startete.
+  await processInitialPendingOps();
+
   runOnce();
   workerIntervalId = setInterval(runOnce, currentWorkerIntervalMs);
 
