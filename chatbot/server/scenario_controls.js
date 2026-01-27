@@ -321,3 +321,120 @@ export function buildScenarioTimelineSummary(scenario = null) {
 
   return lines.join("\n");
 }
+
+/**
+ * Optimierte Version: Nur Trigger für den aktuellen Step-Zeitraum
+ * @param {Object} scenario - Das Szenario-Objekt
+ * @param {number} elapsedMinutes - Bereits vergangene Simulationsminuten
+ * @param {number} minutesPerStep - Minuten pro Simulationsschritt
+ * @returns {string} - Nur die Trigger die in diesem Step relevant sind
+ */
+export function buildCurrentStepTriggersSummary(scenario = null, elapsedMinutes = 0, minutesPerStep = 5) {
+  const triggers = Array.isArray(scenario?.triggers) ? scenario.triggers : [];
+  if (!triggers.length) {
+    return "";
+  }
+
+  // Zeitfenster für aktuellen Step
+  const stepStart = elapsedMinutes;
+  const stepEnd = elapsedMinutes + minutesPerStep;
+
+  // Nur time_elapsed Trigger im aktuellen Zeitfenster filtern
+  const relevantTriggers = triggers.filter((trigger) => {
+    const condition = trigger.condition;
+    if (!condition) return false;
+
+    if (condition.type === "time_elapsed") {
+      const triggerMinutes = toNumber(condition.minutes);
+      if (triggerMinutes === null) return false;
+      // Trigger ist relevant wenn er in diesem Step-Zeitfenster liegt
+      return triggerMinutes >= stepStart && triggerMinutes < stepEnd;
+    }
+
+    // Andere Trigger-Typen (z.B. incident_count) behalten wir erstmal
+    // da sie nicht zeitbasiert sind
+    return false;
+  });
+
+  if (!relevantTriggers.length) {
+    return "";
+  }
+
+  const lines = relevantTriggers.map((trigger) => {
+    const condition = describeTriggerCondition(trigger.condition);
+    const action = describeTriggerAction(trigger.action);
+    return `${condition} → ${action}`;
+  });
+
+  return lines.join("\n");
+}
+
+/**
+ * Optimierte kompakte Szenario-Steuerung (ohne vollständigen Phasenplan)
+ * Enthält nur die aktuell relevanten Informationen für den LLM
+ */
+export function buildCompactScenarioControl({ scenario, elapsedMinutes = 0, minutesPerStep = 5 } = {}) {
+  if (!scenario?.simulation) {
+    return "(keine Szenario-Steuerung definiert)";
+  }
+
+  const {
+    minutesPerStep: scenarioMinutesPerStep,
+    incidentLimits,
+    behaviorPhases
+  } = normalizeScenarioSimulation(scenario);
+
+  const effectiveMinutesPerStep = scenarioMinutesPerStep || minutesPerStep;
+
+  const lines = [
+    `Simulationszeit pro Schritt: ${effectiveMinutesPerStep} Minuten`,
+    `Bisher simuliert: ${Math.max(0, Math.round(elapsedMinutes))} Minuten`
+  ];
+
+  if (incidentLimits.maxNewPerStep || incidentLimits.maxTotal) {
+    const limits = [];
+    if (incidentLimits.maxNewPerStep) {
+      limits.push(`max. ${incidentLimits.maxNewPerStep} neue Einsätze je Schritt`);
+    }
+    if (incidentLimits.maxTotal) {
+      limits.push(`max. ${incidentLimits.maxTotal} Einsätze gesamt`);
+    }
+    lines.push(`Einsatz-Limits: ${limits.join(", ")}`);
+  }
+
+  if (behaviorPhases.length > 0) {
+    const phase = getScenarioPhase(behaviorPhases, elapsedMinutes);
+    if (phase) {
+      const intensityInfo = phase.intensity ? ` (${phase.intensity})` : "";
+      lines.push(
+        `Aktuelle Phase: ${phase.label}${intensityInfo} (seit ${Math.round(
+          phase.elapsedInPhase
+        )} Min, noch ${Math.round(phase.remainingMinutes)} Min)`
+      );
+      if (phase.guidance) {
+        lines.push(`Phasen-Hinweis: ${phase.guidance}`);
+      }
+    }
+
+    // Kompakter Phasenplan: nur Zeitfenster und Name, ohne Guidance
+    let offset = 0;
+    const phaseLines = behaviorPhases.map((entry) => {
+      const start = offset;
+      offset += entry.durationMinutes;
+      const range = `${start}-${offset} Min`;
+      const intensityInfo = entry.intensity ? ` (${entry.intensity})` : "";
+      return `${range}: ${entry.label}${intensityInfo}`;
+    });
+    lines.push(`Phasenplan: ${phaseLines.join(" | ")}`);
+  }
+
+  // Aktuelle Step-Trigger hinzufügen
+  const currentTriggers = buildCurrentStepTriggersSummary(scenario, elapsedMinutes, effectiveMinutesPerStep);
+  if (currentTriggers) {
+    lines.push("");
+    lines.push("AKTIONEN IN DIESEM SCHRITT:");
+    lines.push(currentTriggers);
+  }
+
+  return lines.join("\n");
+}

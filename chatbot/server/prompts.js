@@ -11,8 +11,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   buildScenarioControlSummary,
-  buildScenarioTimelineSummary,
-  buildPhaseRequirementsSummary
+  buildPhaseRequirementsSummary,
+  buildCompactScenarioControl,
+  getScenarioMinutesPerStep
 } from "./scenario_controls.js";
 
 
@@ -227,6 +228,15 @@ export function buildUserPrompt({
     openQuestionsSection += "\n═══════════════════════════════════════════════════════════════════════════════\n";
   }
 
+  // OPTIMIERUNG: Kompakte Szenario-Steuerung mit nur aktuellen Informationen
+  // statt vollständigem Szenario-Verlauf (spart signifikant Tokens)
+  const minutesPerStep = getScenarioMinutesPerStep(scenario, 5);
+  const compactControl = buildCompactScenarioControl({
+    scenario,
+    elapsedMinutes: llmInput.elapsedMinutes || 0,
+    minutesPerStep
+  });
+
   return fillTemplate(operationsUserPromptTemplate, {
     rolesPart,
     compressedBoard,
@@ -235,12 +245,12 @@ export function buildUserPrompt({
     formattedMemorySnippets,
     knowledgeContext: knowledgeContext || (allowPlaceholders ? "(kein Knowledge-Kontext verfügbar)" : ""),
     taskSection,
-    responseRequests,  // NEU
-    openQuestionsSection,  // NEU: Offene Rückfragen
-    disasterContext: disasterContext || (allowPlaceholders ? "(kein Katastrophen-Kontext verfügbar)" : ""),  // NEU
-    learnedResponses: learnedResponses || (allowPlaceholders ? "(keine gelernten Antworten verfügbar)" : ""),  // NEU
-    scenarioTimeline: buildScenarioTimelineSummary(scenario),
-    scenarioControl: llmInput.scenarioControl || "(keine Szenario-Steuerung definiert)"
+    responseRequests,
+    openQuestionsSection,
+    disasterContext: disasterContext || (allowPlaceholders ? "(kein Katastrophen-Kontext verfügbar)" : ""),
+    learnedResponses: learnedResponses || (allowPlaceholders ? "(keine gelernten Antworten verfügbar)" : ""),
+    // OPTIMIERUNG: Kompakte Steuerung mit nur aktueller Phase + Step-Aktionen
+    scenarioControl: compactControl
   });
 }
 
