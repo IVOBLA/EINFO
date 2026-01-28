@@ -1606,6 +1606,7 @@ async function proxyChatbotRequest(req, res) {
 
 // Proxy für /api/llm/* Anfragen an Chatbot Server
 app.use("/api/llm", proxyChatbotRequest);
+app.use("/api/sim", proxyChatbotRequest);
 
 // Proxy für spezifische /api/situation/* Anfragen an Chatbot Server (KI-Situationsanalyse)
 // Hinweis: /api/situation/analysis-config wird lokal im Main-Server verarbeitet (Zeile ~3811)
