@@ -63,7 +63,8 @@ WICHTIG: Gib NUR das operations-Objekt zurück, halte dich exakt an dieses Schem
         "infoTyp": "Lagemeldung|Auftrag|Rueckfrage|Rueckmeldung|Info",
         "ergehtAn": ["Liste der zuständigen Stabsstellen"],
         "richtung": "ein|aus",
-        "anvon": "Meldende Quelle"
+        "anvon": "Meldende Quelle",
+        "bezugNr": 123
       }]
     }
   }
@@ -78,6 +79,7 @@ KATEGORIEN: Lagemeldung (Situationsbericht), Auftrag (Anweisung), Rueckfrage (In
 Offene Rückfragen haben HÖCHSTE PRIORITÄT - VOR anderen Operationen beantworten!
 - Absender/Empfänger tauschen: Frage von S3 an POL -> Antwort von POL an S3
 - infoTyp: "Rueckmeldung", richtung: "ein"
+- Bei Rueckmeldungen auf eine konkrete Frage/Meldung MUSS bezugNr gesetzt werden (Nr.<…> aus [FRAGE]/[MELDUNG])
 - Antwort DIREKT und VOLLSTÄNDIG, konkret und realistisch
 
 Rollenperspektiven:

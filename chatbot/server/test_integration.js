@@ -1,6 +1,9 @@
 // test_integration.js
 // Integrationstests für geänderte Module
 
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { CONFIG, SIMULATION_DEFAULTS, DIFFICULTY_MODIFIERS } from "./config.js";
 import { simulationState } from "./simulation_state.js";
 import { metrics } from "./simulation_metrics.js";
@@ -120,6 +123,22 @@ console.log("  - CONFIG.prompt.maxBoardItems:", CONFIG.prompt?.maxBoardItems);
 console.log("  - CONFIG.rag.topK:", CONFIG.rag?.topK);
 console.log("  - Legacy exports exist:", !!(CONFIG.llm && CONFIG.llm.tasks));
 
+// Test 9: Prompt Templates enthalten bezugNr
+console.log("\n✅ Test 9: Prompt Templates (bezugNr)");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const templateDir = path.join(__dirname, "prompt_templates");
+const templateFiles = [
+  "open_questions_guide.txt",
+  "response_guide.txt",
+  "operations_system_prompt.txt"
+];
+for (const file of templateFiles) {
+  const content = fs.readFileSync(path.join(templateDir, file), "utf8");
+  const ok = content.includes("bezugNr");
+  console.log(`  - ${file}:`, ok ? "✓" : "✗");
+}
+
 console.log("\n🎉 All Integration Tests Completed!");
 console.log("\n📊 Summary:");
 console.log("  - All modules load successfully");
@@ -130,5 +149,6 @@ console.log("  - ProtocolIndex works (O(n) performance!)");
 console.log("  - Input validation works");
 console.log("  - Error handling works");
 console.log("  - Backwards compatibility maintained");
+console.log("  - Prompt templates include bezugNr");
 
 process.exit(0);

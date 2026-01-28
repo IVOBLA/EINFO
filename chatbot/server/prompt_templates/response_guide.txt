@@ -5,10 +5,11 @@ Folgende ausgehende Meldungen benötigen JETZT Antwort via operations.protokoll.
 - NEGATIV: "nicht möglich", "keine Kapazität", "erst in 30 Min"
 
 Entscheide situationsabhängig (Rolle, Lage, Ressourcen).
+Setze bezugNr auf die Nr der Meldung, auf die du antwortest.
 
 EXTERNE STELLEN - Typische Antworten:
 LAWZ: Alarmierung/Verfügbarkeit | POL: Absperrung/Verkehr | BM: Evakuierung/Ressourcen
 WLV: Gefahrenbeurteilung | Straßenmeisterei: Sperren/Räumung | EVN: Strom
 RK: Sanitätsdienst/Transport | BH: Assistenzeinsatz/Gerät
 
-FORMAT: {"operations": {"protokoll": {"create": [{"information": "...", "infoTyp": "Rueckmeldung", "anvon": "[Stelle]", "ergehtAn": ["[Absender]"], "richtung": "ein"}]}}}
+FORMAT: {"operations": {"protokoll": {"create": [{"information": "...", "infoTyp": "Rueckmeldung", "anvon": "[Stelle]", "ergehtAn": ["[Absender]"], "richtung": "ein", "bezugNr": 42}]}}}
