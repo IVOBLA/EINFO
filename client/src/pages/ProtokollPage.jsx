@@ -3,6 +3,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { initRolePolicy, canEditApp, hasRole } from "../auth/roleUtils";
 import { useUserAuth } from "../components/User_AuthProvider.jsx";
 import useOnlineRoles from "../hooks/useOnlineRoles.js";
+import useSimulationStatus from "../hooks/useSimulationStatus.js";
+import SimulationActiveIcon from "../components/SimulationActiveIcon.jsx";
 import {
   getLastChangeInfo,
   resolveSeenStorageKey,
@@ -206,6 +208,8 @@ export default function ProtokollPage({
 
   const { user } = useUserAuth() || {};
   const userRoleLabel = useMemo(() => resolveUserRoleLabel(user), [user]);
+  const simulationStatus = useSimulationStatus();
+  const simulationActive = simulationStatus.running || simulationStatus.paused;
   const [creatingTask, setCreatingTask] = useState(false);
   const [taskOverrideActive, setTaskOverrideActive] = useState(false);
   const [taskPrefill, setTaskPrefill] = useState(null);
@@ -1277,10 +1281,13 @@ const startPdfPrint = (fileUrl) => {
       {/* Sticky Actionbar */}
       <div className="prot-actionbar sticky top-0 z-30 -mx-2 md:mx-0 px-2 md:px-0">
         <div className="bg-white/95 backdrop-blur border-b rounded-t-xl px-3 py-2 flex items-center justify-between shadow-sm">
-          <div className="text-sm font-semibold">
-            {isEditMode
-              ? `Protokoll – Bearbeiten (NR ${nr ?? "—"}${zu ? ` · ZU ${zu}` : ""})`
-              : "Protokoll – Neuer Eintrag"}
+          <div className="text-sm font-semibold flex items-center gap-2">
+            {simulationActive && <SimulationActiveIcon className="h-5 w-5" />}
+            <span>
+              {isEditMode
+                ? `Protokoll – Bearbeiten (NR ${nr ?? "—"}${zu ? ` · ZU ${zu}` : ""})`
+                : "Protokoll – Neuer Eintrag"}
+            </span>
           </div>
           <div className="flex gap-2">
             <button type="button" onClick={handleCancel} className="px-3 py-1.5 rounded-md border" title="Maske schließen und zur Übersicht wechseln (ESC)">Abbrechen</button>
