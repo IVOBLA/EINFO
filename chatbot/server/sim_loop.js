@@ -353,15 +353,18 @@ export function compressBoard(board) {
     .filter((i) => i.status !== "erledigt" && i.column !== "erledigt")
     .slice(0, maxItems);
 
-  // Volle Feldnamen für bessere Verständlichkeit
-  const compact = filtered.map((i) => ({
-    id: i.id,
-    content: (i.desc ?? i.content ?? "").slice(0, 80),
-    status: i.status ?? i.column ?? "",
-    ort: (i.location ?? i.ort ?? "").slice(0, 40),
-    typ: i.typ || "",
-    updatedAt: i.timestamp || i.raw?.updatedAt || null
-  }));
+  // Kompaktes Format: nur notwendige Felder, keine null-Werte
+  const compact = filtered.map((i) => {
+    const entry = {
+      id: i.id,
+      content: (i.desc ?? i.content ?? "").slice(0, 80),
+      status: i.status ?? i.column ?? "",
+      ort: (i.location ?? i.ort ?? "").slice(0, 40)
+    };
+    // Nur hinzufügen wenn vorhanden
+    if (i.typ) entry.typ = i.typ;
+    return entry;
+  });
 
   return JSON.stringify(compact);
 }
@@ -381,14 +384,18 @@ export function compressAufgaben(aufgaben) {
     return 0;
   });
 
-  // Volle Feldnamen für bessere Verständlichkeit
-  const compact = sorted.slice(0, maxItems).map((a) => ({
-    id: a.id,
-    title: (a.title || a.description || "").slice(0, 60),
-    responsible: a.responsible || "",
-    status: a.status || "",
-    relatedIncidentId: a.relatedIncidentId || null
-  }));
+  // Kompaktes Format: nur notwendige Felder, keine null-Werte
+  const compact = sorted.slice(0, maxItems).map((a) => {
+    const entry = {
+      id: a.id,
+      title: (a.title || a.description || "").slice(0, 60),
+      responsible: a.responsible || "",
+      status: a.status || ""
+    };
+    // Nur hinzufügen wenn vorhanden
+    if (a.relatedIncidentId) entry.relatedIncidentId = a.relatedIncidentId;
+    return entry;
+  });
 
   return JSON.stringify(compact);
 }
@@ -407,16 +414,20 @@ export function compressProtokoll(protokoll) {
     return tB.localeCompare(tA);
   });
 
-  // Volle Feldnamen für bessere Verständlichkeit
-  const compact = sorted.slice(0, maxItems).map((p) => ({
-    id: p.id,
-    information: (p.information || "").slice(0, 100),
-    datum: p.datum,
-    zeit: p.zeit,
-    anvon: p.anvon || "",
-    ergehtAn: p.ergehtAn || [],
-    infoTyp: p.infoTyp || p.typ || ""
-  }));
+  // Kompaktes Format: nur notwendige Felder, keine leeren Arrays
+  const compact = sorted.slice(0, maxItems).map((p) => {
+    const entry = {
+      id: p.id,
+      information: (p.information || "").slice(0, 100),
+      datum: p.datum,
+      zeit: p.zeit,
+      anvon: p.anvon || "",
+      infoTyp: p.infoTyp || p.typ || ""
+    };
+    // Nur hinzufügen wenn nicht leer
+    if (p.ergehtAn && p.ergehtAn.length > 0) entry.ergehtAn = p.ergehtAn;
+    return entry;
+  });
 
   return JSON.stringify(compact);
 }

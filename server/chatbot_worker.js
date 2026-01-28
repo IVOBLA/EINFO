@@ -113,7 +113,7 @@ async function appendActionHistory(actions) {
 
 function buildActionHistoryEntry(type, category, data, relatedId = null) {
   return {
-    id: `action-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    id: `a-${Math.random().toString(36).slice(2, 8)}`,
     timestamp: new Date().toISOString(),
     type,      // "create" | "update"
     category,  // "protokoll" | "aufgabe" | "einsatz"
@@ -483,9 +483,7 @@ async function applyBoardOperations(boardOps, activeRoles, staffRoles) {
       continue;
     }
 
-    const id = `cb-incident-${Date.now()}-${Math.random()
-      .toString(36)
-      .slice(2, 8)}`;
+    const id = `i-${Math.random().toString(36).slice(2, 8)}`;
     const nowIso = new Date().toISOString();
 
     const newItem = {
@@ -676,9 +674,7 @@ async function applyAufgabenOperations(taskOps, activeRoles, staffRoles = []) {
 
       continue;
     }
-    const id = `cb-task-${Date.now()}-${Math.random()
-      .toString(36)
-      .slice(2, 8)}`;
+    const id = `t-${Math.random().toString(36).slice(2, 8)}`;
     const now = Date.now();
     const nowIso = new Date(now).toISOString();
 
@@ -1050,9 +1046,7 @@ async function applyProtokollOperations(protoOps, activeRoles, staffRoles) {
     }
 
     const now = new Date();
-    const id = `cb-prot-${now.getTime()}-${Math.random()
-      .toString(36)
-      .slice(2, 8)}`;
+    const id = `p-${Math.random().toString(36).slice(2, 8)}`;
 
     const datum = now.toISOString().slice(0, 10); // YYYY-MM-DD
     const zeit = now.toISOString().slice(11, 16); // HH:MM

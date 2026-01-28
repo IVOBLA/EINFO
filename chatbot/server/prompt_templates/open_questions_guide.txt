@@ -1,6 +1,4 @@
-═══════════════════════════════════════════════════════════════════════════════
 OFFENE RÜCKFRAGEN VON BENUTZERN
-═══════════════════════════════════════════════════════════════════════════════
 
 Folgende Rückfragen MÜSSEN beantwortet werden via operations.protokoll.create:
 
@@ -13,4 +11,4 @@ REGELN:
 - Externe Stelle: Realistisch aus deren Sicht antworten
 
 BEISPIEL: Frage von S3 an POL: "Status Absperrung B317?"
-→ Antwort: {"operations": {"protokoll": {"create": [{"information": "Absperrung B317 eingerichtet, Umleitung über L78", "infoTyp": "Rueckmeldung", "anvon": "POL", "ergehtAn": ["S3"], "richtung": "ein"}]}}}
+Antwort: {"operations": {"protokoll": {"create": [{"information": "Absperrung B317 eingerichtet, Umleitung über L78", "infoTyp": "Rueckmeldung", "anvon": "POL", "ergehtAn": ["S3"], "richtung": "ein"}]}}}
