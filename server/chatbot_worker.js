@@ -634,29 +634,20 @@ async function loadAufgabenBoardsForRoles(roles) {
 }
 
 async function applyAufgabenOperations(taskOps, activeRoles, staffRoles = []) {
+  // DEAKTIVIERT: Aufgaben werden NUR von angemeldeten Benutzern verwaltet
+  // Das LLM darf keine Aufgaben erstellen oder bearbeiten
   const createOps = taskOps?.create || [];
   const updateOps = taskOps?.update || [];
-  const staffRoleSet = new Set(
-    staffRoles.map((role) => normalizeRole(role)).filter(Boolean)
-  );
-  const isAllowedStaffRole = (role) => {
-    if (staffRoleSet.size > 0) {
-      return staffRoleSet.has(normalizeRole(role));
-    }
-    return isStabsstelle(role);
-  };
-  const allowedOptions = { allowedRoles: Array.from(staffRoleSet) };
-  const roleCandidates = [
-    ...staffRoles,
-    ...createOps.map(resolveTaskBoardRoleId),
-    ...updateOps.map((op) => resolveTaskBoardRoleId(op?.changes))
-  ]
-    .filter(Boolean)
-    .filter((role) => isAllowedStaffRole(role));
-  const boardsByRole = await loadAufgabenBoardsForRoles(roleCandidates);
 
-  const appliedCreate = [];
-  const appliedUpdate = [];
+  if (createOps.length > 0 || updateOps.length > 0) {
+    log("Aufgaben-Operationen ignoriert (nur Benutzer dürfen Aufgaben verwalten):", {
+      createCount: createOps.length,
+      updateCount: updateOps.length
+    });
+  }
+
+  return { appliedCreate: [], appliedUpdate: [] };
+}
 
   // CREATE → neue Aufgabe im S2-Board
   for (const op of createOps) {

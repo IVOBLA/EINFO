@@ -43,10 +43,9 @@ export class TriggerManager {
       }
     }
 
-    // Actions ausführen
+    // Actions ausführen (Aufgaben werden NUR von Benutzern verwaltet)
     const operations = {
       board: { createIncidentSites: [], updateIncidentSites: [] },
-      aufgaben: { create: [], update: [] },
       protokoll: { create: [] }
     };
 
@@ -152,7 +151,6 @@ export class TriggerManager {
   async executeAction(action, context) {
     const operations = {
       board: { createIncidentSites: [], updateIncidentSites: [] },
-      aufgaben: { create: [], update: [] },
       protokoll: { create: [] }
     };
 
@@ -192,14 +190,10 @@ export class TriggerManager {
         }
 
         case 'create_task': {
-          const task = {
-            ...action.data,
-            createdBy: 'scenario-trigger',
-            status: 'Neu',
-            datum: new Date().toLocaleDateString('de-DE'),
-            zeit: new Date().toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
-          };
-          operations.aufgaben.create.push(task);
+          // DEAKTIVIERT: Aufgaben werden NUR von Benutzern verwaltet
+          logDebug("Trigger create_task ignoriert (Aufgaben nur durch Benutzer)", {
+            title: action.data?.title
+          });
           break;
         }
 
@@ -236,9 +230,7 @@ export class TriggerManager {
     if (source.protokoll?.create) {
       target.protokoll.create.push(...source.protokoll.create);
     }
-    if (source.aufgaben?.create) {
-      target.aufgaben.create.push(...source.aufgaben.create);
-    }
+    // Aufgaben werden NUR von Benutzern verwaltet - keine Merge mehr
     if (source.aufgaben?.update) {
       target.aufgaben.update.push(...source.aufgaben.update);
     }

@@ -897,7 +897,6 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
     // ============================================================
     let triggerOperations = {
       board: { createIncidentSites: [], updateIncidentSites: [] },
-      aufgaben: { create: [], update: [] },
       protokoll: { create: [] }
     };
 
@@ -917,8 +916,7 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
             triggerOperations.protokoll.create.length > 0) {
           logInfo("Szenario-Trigger ausgeführt", {
             incidents: triggerOperations.board.createIncidentSites.length,
-            protokoll: triggerOperations.protokoll.create.length,
-            aufgaben: triggerOperations.aufgaben.create.length
+            protokoll: triggerOperations.protokoll.create.length
           });
         }
       } catch (err) {
@@ -984,15 +982,8 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
       llmOperations.board.updateIncidentSites = [];
     }
 
-    if (!llmOperations.aufgaben) {
-      llmOperations.aufgaben = { create: [], update: [] };
-    }
-    if (!llmOperations.aufgaben.create) {
-      llmOperations.aufgaben.create = [];
-    }
-    if (!llmOperations.aufgaben.update) {
-      llmOperations.aufgaben.update = [];
-    }
+    // Aufgaben werden NUR von Benutzern verwaltet - LLM-Aufgaben ignorieren
+    delete llmOperations.aufgaben;
 
     if (!llmOperations.protokoll) {
       llmOperations.protokoll = { create: [] };
@@ -1004,13 +995,12 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
     logDebug("LLM-Operations normalisiert", {
       boardCreate: llmOperations.board?.createIncidentSites?.length || 0,
       boardUpdate: llmOperations.board?.updateIncidentSites?.length || 0,
-      aufgabenCreate: llmOperations.aufgaben?.create?.length || 0,
-      aufgabenUpdate: llmOperations.aufgaben?.update?.length || 0,
       protokollCreate: llmOperations.protokoll?.create?.length || 0
     });
 
     // ============================================================
     // OPERATIONS ZUSAMMENFÜHREN: Trigger + LLM
+    // HINWEIS: Aufgaben werden NUR von Benutzern verwaltet, nicht vom LLM
     // ============================================================
     const operations = {
       board: {
@@ -1023,16 +1013,7 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
           ...(llmOperations.board?.updateIncidentSites || [])
         ]
       },
-      aufgaben: {
-        create: [
-          ...triggerOperations.aufgaben.create,
-          ...(llmOperations.aufgaben?.create || [])
-        ],
-        update: [
-          ...triggerOperations.aufgaben.update,
-          ...(llmOperations.aufgaben?.update || [])
-        ]
-      },
+      aufgaben: { create: [], update: [] }, // Deaktiviert - nur Benutzer verwalten Aufgaben
       protokoll: {
         create: [
           ...triggerOperations.protokoll.create,
@@ -1053,10 +1034,6 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
       operations.board.updateIncidentSites.length
     );
     metrics.incrementCounter('simulation_operations_total',
-      { type: 'aufgaben_create', source },
-      operations.aufgaben.create.length
-    );
-    metrics.incrementCounter('simulation_operations_total',
       { type: 'protokoll_create', source },
       operations.protokoll.create.length
     );
@@ -1066,10 +1043,6 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
       hasBoardOps:
         (operations.board?.createIncidentSites?.length || 0) +
           (operations.board?.updateIncidentSites?.length || 0) >
-        0,
-      hasAufgabenOps:
-        (operations.aufgaben?.create?.length || 0) +
-          (operations.aufgaben?.update?.length || 0) >
         0,
       hasProtokollOps: operations.protokoll?.create?.length > 0
     });
@@ -1088,7 +1061,6 @@ simulationState.lastCompressedBoard = opsContext.compressedBoard;
       stepId,
       durationMs: stepDuration,
       protocolsCreated: operations.protokoll?.create?.length || 0,
-      tasksCreated: operations.aufgaben?.create?.length || 0,
       incidentsCreated: operations.board?.createIncidentSites?.length || 0,
       responsesGenerated: messagesNeedingResponse.length
     });
@@ -1105,11 +1077,6 @@ simulationState.lastCompressedBoard = opsContext.compressedBoard;
         await indexIncident(incident, "updated");
       }
 
-      // Aufgaben indizieren
-      for (const task of operations.aufgaben?.create || []) {
-        await indexTask(task, "created");
-      }
-
       // Protokolleinträge indizieren
       for (const entry of operations.protokoll?.create || []) {
         await indexProtocolEntry(entry);
@@ -1118,7 +1085,6 @@ simulationState.lastCompressedBoard = opsContext.compressedBoard;
       logDebug("RAG-Indizierung abgeschlossen", {
         incidents: (operations.board?.createIncidentSites?.length || 0) +
                    (operations.board?.updateIncidentSites?.length || 0),
-        tasks: operations.aufgaben?.create?.length || 0,
         protocols: operations.protokoll?.create?.length || 0
       });
     } catch (indexError) {
