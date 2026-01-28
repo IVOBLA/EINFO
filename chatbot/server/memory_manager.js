@@ -51,6 +51,11 @@ export async function initMemoryStore() {
 export async function addMemory({ text, meta }) {
   if (!text || !text.trim()) return;
 
+  // Deduplizierung: Prüfe ob identischer Text bereits existiert
+  const normalizedText = text.trim();
+  const exists = memoryItems.some(item => item.text.trim() === normalizedText);
+  if (exists) return;
+
   ensureMemoryDir();
   const embedding = await embedText(text);
 

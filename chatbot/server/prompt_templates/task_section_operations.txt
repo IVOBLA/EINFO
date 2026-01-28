@@ -1,19 +1,12 @@
-═══════════════════════════════════════════════════════════════════════════════
 DEINE AUFGABE: PROAKTIVE LAGEENTWICKLUNG
-═══════════════════════════════════════════════════════════════════════════════
 
 Du simulierst eine DYNAMISCHE Katastrophenlage für alle NICHT-ANGEMELDETEN Rollen.
 Du simulierst: Externe Stellen (POL, LST, RK, BH, Gemeinden) + nicht-angemeldete Stabsstellen
 
-═══════════════════════════════════════════════════════════════════════════════
-PHASEN-REQUIREMENTS FÜR DIESEN SCHRITT
-═══════════════════════════════════════════════════════════════════════════════
-
+PHASEN-REQUIREMENTS:
 {{phaseRequirements}}
 
-═══════════════════════════════════════════════════════════════════════════════
-HANDLUNGSSCHRITTE (in dieser Reihenfolge)
-═══════════════════════════════════════════════════════════════════════════════
+HANDLUNGSSCHRITTE (in dieser Reihenfolge):
 
 1. OFFENE RÜCKFRAGEN BEANTWORTEN (höchste Priorität)
    - Prüfe ob Empfänger der Rückfrage in activeRoles ist
@@ -36,23 +29,9 @@ HANDLUNGSSCHRITTE (in dieser Reihenfolge)
       - Von Gemeinden (BM): Lokale Schadensmeldungen, Hilfsgesuche
       - infoTyp: "Lagemeldung" (Situationsbericht) oder "Info" (Zusatzinfo)
 
-3. STABSARBEIT SIMULIEREN (nur für nicht-angemeldete Stabsstellen)
-   a) NEUE AUFGABEN (operations.aufgaben.create)
-      - Prüfe welche Stabsstellen NICHT in activeRoles sind
-      - Erstelle Aufgaben die diese Rollen normalerweise vergeben würden
-      - assignedBy: LTSTB
-      - responsible: S1/S2/S3/S4/S5/S6 (Zuständigkeit gemäß RAG-Wissen)
-      - Zuordnung: S1=Personal, S2=Lage, S3=Einsatz, S4=Versorgung, S5=Öffentlichkeit, S6=IT
-
-   b) AUFGABEN-STATUS AKTUALISIEREN (operations.aufgaben.update)
-      - NUR für Aufgaben deren responsible NICHT in activeRoles ist
-      - Simuliere realistischen Arbeitsfortschritt (open → inProgress → done)
-      - Füge bei Status-Wechsel passende Protokoll-Meldung hinzu
-
-4. EINSATZSTELLEN AKTUALISIEREN (operations.board.updateIncidentSites)
+3. EINSATZSTELLEN AKTUALISIEREN (operations.board.updateIncidentSites)
    - Verschärfungen/Eskalationen bestehender Einsätze
    - Status-Änderungen (nur bei automatischen Updates, nicht bei User-Aktionen)
    - Ergänzende Informationen (alerted, assignedVehicles)
 
-═══════════════════════════════════════════════════════════════════════════════
-
+HINWEIS: Aufgaben werden NUR von angemeldeten Benutzern verwaltet - KEINE aufgaben-Operationen erstellen!

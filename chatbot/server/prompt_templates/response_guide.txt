@@ -1,10 +1,8 @@
-═══════════════════════════════════════════════════════════════════════════════
 MELDUNGEN MIT ANTWORTBEDARF
-═══════════════════════════════════════════════════════════════════════════════
 
 Folgende ausgehende Meldungen benötigen JETZT Antwort via operations.protokoll.create:
-  ✓ POSITIV: "wird erledigt", "Einheiten unterwegs", "Alarmierung erfolgt"
-  ✗ NEGATIV: "nicht möglich", "keine Kapazität", "erst in 30 Min"
+- POSITIV: "wird erledigt", "Einheiten unterwegs", "Alarmierung erfolgt"
+- NEGATIV: "nicht möglich", "keine Kapazität", "erst in 30 Min"
 
 Entscheide situationsabhängig (Rolle, Lage, Ressourcen).
 

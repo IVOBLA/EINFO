@@ -91,10 +91,12 @@ export function buildUserPrompt({
   const safeMemorySnippets = Array.isArray(memorySnippets)
     ? memorySnippets
     : [];
+  // Dedupliziere Memory-Snippets
+  const uniqueSnippets = [...new Set(safeMemorySnippets)];
   const formattedMemorySnippets =
-    safeMemorySnippets.length > 0
-      ? safeMemorySnippets.map((m) => `- ${m}`).join("\n")
-      : (allowPlaceholders ? "(keine RAG-Erinnerungen gefunden)" : "");
+    uniqueSnippets.length > 0
+      ? uniqueSnippets.map((m) => `- ${m}`).join("\n")
+      : "";
   const rolesPart = JSON.stringify(
     { active: llmInput.roles?.active || [] },
     null,
@@ -146,86 +148,39 @@ export function buildUserPrompt({
     taskSection = fillTemplate(taskSectionOperations, { phaseRequirements });
   }
 
-  // ============================================================
-  // Formatiere Meldungen die Antwort benötigen
-  // ============================================================
+  // Formatiere Meldungen die Antwort benötigen (kompakt)
   let responseRequests = "";
   if (messagesNeedingResponse && messagesNeedingResponse.length > 0) {
-    // Response-Guide aus Template laden
     responseRequests = "\n\n" + responseGuideTemplate + "\n\n";
-
-    // Einzelne Meldungen auflisten
     for (let i = 0; i < messagesNeedingResponse.length; i++) {
       const msg = messagesNeedingResponse[i];
-      responseRequests += `
-┌─────────────────────────────────────────────────────────────────────────────
-│ MELDUNG ${i + 1} - Protokoll-Nr. ${msg.nr || "?"} (${msg.datum || ""} ${msg.zeit || ""})
-├─────────────────────────────────────────────────────────────────────────────
-│ Von:     ${msg.anvon}
-│ An:      ${msg.allRecipients.join(", ")}`;
-
+      responseRequests += `[MELDUNG ${i + 1}] Nr.${msg.nr || "?"} ${msg.datum || ""} ${msg.zeit || ""}\n`;
+      responseRequests += `Von: ${msg.anvon} | An: ${msg.allRecipients.join(", ")}`;
       if (msg.externalRecipients.length > 0) {
-        responseRequests += `
-│ ⚠️  EXTERNE: ${msg.externalRecipients.join(", ")}`;
+        responseRequests += ` | EXTERN: ${msg.externalRecipients.join(", ")}`;
       }
-
-      responseRequests += `
-│ Typ:     ${msg.infoTyp}
-│ Inhalt:  "${msg.information}"
-│
-│ → Erstelle Antwort von: ${msg.allRecipients.join(" ODER ")}
-└─────────────────────────────────────────────────────────────────────────────
-`;
+      responseRequests += `\nTyp: ${msg.infoTyp} | "${msg.information}"\n`;
+      responseRequests += `Antwort von: ${msg.allRecipients.join(" ODER ")}\n\n`;
     }
-
-    responseRequests += "\n═══════════════════════════════════════════════════════════════════════════════\n";
   }
 
-  // ============================================================
-  // Formatiere offene Rückfragen die beantwortet werden müssen
-  // ============================================================
+  // Formatiere offene Rückfragen (kompakt)
   let openQuestionsSection = "";
   if (openQuestions && openQuestions.length > 0) {
-    // Guide für offene Rückfragen aus Template laden
     openQuestionsSection = "\n\n" + openQuestionsGuideTemplate + "\n\n";
-
-    // Einzelne Rückfragen auflisten
     for (let i = 0; i < openQuestions.length; i++) {
       const q = openQuestions[i];
       const recipients = Array.isArray(q.ergehtAn) ? q.ergehtAn.join(", ") : q.ergehtAn || "";
-
-      openQuestionsSection += `
-┌─────────────────────────────────────────────────────────────────────────────
-│ RÜCKFRAGE ${i + 1} - Protokoll-Nr. ${q.nr || "?"} (${q.datum || ""} ${q.zeit || ""})
-├─────────────────────────────────────────────────────────────────────────────
-│ Fragesteller:  ${q.anvon}
-│ Gefragt wurde: ${recipients}`;
-
-      if (q.hasQuestionMark) {
-        openQuestionsSection += `
-│ ❓ Enthält Fragezeichen`;
-      }
-      if (q.targetsNonActiveInternal) {
-        openQuestionsSection += `
-│ ⚠️  An nicht-aktive interne Rolle gerichtet`;
-      }
-      if (q.targetsExternal) {
-        openQuestionsSection += `
-│ 🌐 An externe Stelle gerichtet`;
-      }
-
-      openQuestionsSection += `
-│ Typ:     ${q.infoTyp}
-│ Frage:   "${q.information}"
-│
-│ → Erstelle Antwort VON: ${recipients}
-│ → Erstelle Antwort AN:  ${q.anvon}
-│ → Verwende infoTyp: "Rueckmeldung"
-└─────────────────────────────────────────────────────────────────────────────
-`;
+      let flags = [];
+      if (q.hasQuestionMark) flags.push("?");
+      if (q.targetsNonActiveInternal) flags.push("intern");
+      if (q.targetsExternal) flags.push("extern");
+      openQuestionsSection += `[FRAGE ${i + 1}] Nr.${q.nr || "?"} ${q.datum || ""} ${q.zeit || ""}\n`;
+      openQuestionsSection += `Von: ${q.anvon} | An: ${recipients}`;
+      if (flags.length > 0) openQuestionsSection += ` | ${flags.join(",")}`;
+      openQuestionsSection += `\nTyp: ${q.infoTyp} | "${q.information}"\n`;
+      openQuestionsSection += `Antwort VON: ${recipients} AN: ${q.anvon} (infoTyp: Rueckmeldung)\n\n`;
     }
-
-    openQuestionsSection += "\n═══════════════════════════════════════════════════════════════════════════════\n";
   }
 
   // OPTIMIERUNG: Kompakte Szenario-Steuerung mit nur aktuellen Informationen
@@ -243,13 +198,12 @@ export function buildUserPrompt({
     compressedAufgaben,
     compressedProtokoll,
     formattedMemorySnippets,
-    knowledgeContext: knowledgeContext || (allowPlaceholders ? "(kein Knowledge-Kontext verfügbar)" : ""),
+    knowledgeContext: knowledgeContext || "",
     taskSection,
     responseRequests,
     openQuestionsSection,
-    disasterContext: disasterContext || (allowPlaceholders ? "(kein Katastrophen-Kontext verfügbar)" : ""),
-    learnedResponses: learnedResponses || (allowPlaceholders ? "(keine gelernten Antworten verfügbar)" : ""),
-    // OPTIMIERUNG: Kompakte Steuerung mit nur aktueller Phase + Step-Aktionen
+    disasterContext: disasterContext || "",
+    learnedResponses: learnedResponses || "",
     scenarioControl: compactControl
   });
 }

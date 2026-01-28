@@ -13,7 +13,7 @@ function normalizeBehaviorPhase(phase = {}) {
     return null;
   }
 
-  // Entity Requirements normalisieren
+  // Entity Requirements normalisieren (Aufgaben werden NUR von Benutzern verwaltet)
   const rawReqs = phase.entity_requirements || phase.entityRequirements || {};
   const entityRequirements = {
     einsatzstellen: {
@@ -23,10 +23,6 @@ function normalizeBehaviorPhase(phase = {}) {
     meldungen: {
       min: toNumber(rawReqs.meldungen?.min) || 0,
       max: toNumber(rawReqs.meldungen?.max) || null
-    },
-    aufgaben: {
-      min: toNumber(rawReqs.aufgaben?.min) || 0,
-      max: toNumber(rawReqs.aufgaben?.max) || null
     }
   };
 
@@ -168,9 +164,9 @@ export function buildPhaseRequirementsSummary({ scenario, elapsedMinutes = 0 } =
     const min = reqs.einsatzstellen.min || 0;
     const max = reqs.einsatzstellen.max;
     if (max) {
-      lines.push(`📍 EINSATZSTELLEN: ${min}-${max} neue Einsatzstellen`);
+      lines.push(`EINSATZSTELLEN: ${min}-${max} neue Einsatzstellen`);
     } else {
-      lines.push(`📍 EINSATZSTELLEN: mindestens ${min} neue Einsatzstellen`);
+      lines.push(`EINSATZSTELLEN: mindestens ${min} neue Einsatzstellen`);
     }
   }
 
@@ -179,22 +175,12 @@ export function buildPhaseRequirementsSummary({ scenario, elapsedMinutes = 0 } =
     const min = reqs.meldungen.min || 0;
     const max = reqs.meldungen.max;
     if (max) {
-      lines.push(`📨 MELDUNGEN: ${min}-${max} eingehende Meldungen (von POL, LST, RK, BH, Gemeinden)`);
+      lines.push(`MELDUNGEN: ${min}-${max} eingehende Meldungen (von POL, LST, RK, BH, Gemeinden)`);
     } else {
-      lines.push(`📨 MELDUNGEN: mindestens ${min} eingehende Meldungen (von POL, LST, RK, BH, Gemeinden)`);
+      lines.push(`MELDUNGEN: mindestens ${min} eingehende Meldungen (von POL, LST, RK, BH, Gemeinden)`);
     }
   }
-
-  // Aufgaben
-  if (reqs.aufgaben.min > 0 || reqs.aufgaben.max) {
-    const min = reqs.aufgaben.min || 0;
-    const max = reqs.aufgaben.max;
-    if (max) {
-      lines.push(`📋 AUFGABEN: ${min}-${max} neue Aufgaben für Stabsstellen`);
-    } else {
-      lines.push(`📋 AUFGABEN: mindestens ${min} neue Aufgaben für Stabsstellen`);
-    }
-  }
+  // Aufgaben werden NUR von Benutzern verwaltet - keine Requirements mehr
 
   if (lines.length === 0) {
     return "(keine Entity-Requirements für diese Phase)";

@@ -166,8 +166,8 @@ function addProtocolDefaults(entry) {
 
   // Standardwerte zusammenführen
   return {
-    // ID generieren wenn nicht vorhanden
-    id: entry.id || `prot-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    // ID generieren wenn nicht vorhanden (kompakt)
+    id: entry.id || `p-${Math.random().toString(36).slice(2, 8)}`,
 
     // Vom LLM kommende Felder (mit Fallbacks)
     ...entry,

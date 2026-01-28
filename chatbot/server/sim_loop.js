@@ -353,42 +353,51 @@ export function compressBoard(board) {
     .filter((i) => i.status !== "erledigt" && i.column !== "erledigt")
     .slice(0, maxItems);
 
-  // Volle Feldnamen für bessere Verständlichkeit
-  const compact = filtered.map((i) => ({
-    id: i.id,
-    content: (i.desc ?? i.content ?? "").slice(0, 80),
-    status: i.status ?? i.column ?? "",
-    ort: (i.location ?? i.ort ?? "").slice(0, 40),
-    typ: i.typ || "",
-    updatedAt: i.timestamp || i.raw?.updatedAt || null
-  }));
+  // Kompaktes Format: nur notwendige Felder, keine null-Werte
+  const compact = filtered.map((i) => {
+    const entry = {
+      id: i.id,
+      content: (i.desc ?? i.content ?? "").slice(0, 80),
+      status: i.status ?? i.column ?? "",
+      ort: (i.location ?? i.ort ?? "").slice(0, 40)
+    };
+    // Nur hinzufügen wenn vorhanden
+    if (i.typ) entry.typ = i.typ;
+    return entry;
+  });
 
   return JSON.stringify(compact);
 }
 // Aufg_board_S2.json: S2-Aufgaben
+// Nur relevante Felder für LLM-Kontext (read-only)
 
-export function compressAufgaben(aufgaben) {
+export function compressAufgaben(aufgaben, activeRoles = []) {
   if (!Array.isArray(aufgaben)) return "[]";
 
-  const maxItems = CONFIG.prompt?.maxAufgabenItems || 50;
+  const maxItems = CONFIG.prompt?.maxAufgabenItems || 30;
+  const activeSet = new Set(activeRoles.map(r => String(r).toUpperCase()));
 
-  // Nicht-erledigte zuerst, dann limitieren
-  const sorted = [...aufgaben].sort((a, b) => {
-    const aErledigt = a.status === "Erledigt" || a.status === "Storniert";
-    const bErledigt = b.status === "Erledigt" || b.status === "Storniert";
-    if (aErledigt && !bErledigt) return 1;
-    if (!aErledigt && bErledigt) return -1;
-    return 0;
+  // Nur Aufgaben der aktiven Rollen, nicht-erledigte zuerst
+  const filtered = aufgaben
+    .filter(a => {
+      // Nur Aufgaben der aktiven Rollen
+      const responsible = String(a.responsible || "").toUpperCase();
+      return activeSet.has(responsible);
+    })
+    .filter(a => a.status !== "Erledigt" && a.status !== "Storniert")
+    .slice(0, maxItems);
+
+  // Kompaktes Format: nur desc, status + optionale Referenzen
+  const compact = filtered.map((a) => {
+    const entry = {
+      desc: (a.desc || a.title || a.description || "").slice(0, 80),
+      status: a.status || ""
+    };
+    // Nur hinzufügen wenn vorhanden (Referenzen)
+    if (a.originProtocolNr) entry.protNr = a.originProtocolNr;
+    if (a.relatedIncidentId) entry.incidentId = a.relatedIncidentId;
+    return entry;
   });
-
-  // Volle Feldnamen für bessere Verständlichkeit
-  const compact = sorted.slice(0, maxItems).map((a) => ({
-    id: a.id,
-    title: (a.title || a.description || "").slice(0, 60),
-    responsible: a.responsible || "",
-    status: a.status || "",
-    relatedIncidentId: a.relatedIncidentId || null
-  }));
 
   return JSON.stringify(compact);
 }
@@ -407,16 +416,20 @@ export function compressProtokoll(protokoll) {
     return tB.localeCompare(tA);
   });
 
-  // Volle Feldnamen für bessere Verständlichkeit
-  const compact = sorted.slice(0, maxItems).map((p) => ({
-    id: p.id,
-    information: (p.information || "").slice(0, 100),
-    datum: p.datum,
-    zeit: p.zeit,
-    anvon: p.anvon || "",
-    ergehtAn: p.ergehtAn || [],
-    infoTyp: p.infoTyp || p.typ || ""
-  }));
+  // Kompaktes Format: nur notwendige Felder, keine leeren Arrays
+  const compact = sorted.slice(0, maxItems).map((p) => {
+    const entry = {
+      id: p.id,
+      information: (p.information || "").slice(0, 100),
+      datum: p.datum,
+      zeit: p.zeit,
+      anvon: p.anvon || "",
+      infoTyp: p.infoTyp || p.typ || ""
+    };
+    // Nur hinzufügen wenn nicht leer
+    if (p.ergehtAn && p.ergehtAn.length > 0) entry.ergehtAn = p.ergehtAn;
+    return entry;
+  });
 
   return JSON.stringify(compact);
 }
@@ -823,7 +836,7 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
       compressedBoard: boardUnchanged
         ? simulationState.lastCompressedBoard
         : compressBoard(boardSnapshot),
-      compressedAufgaben: compressAufgaben(aufgaben),
+      compressedAufgaben: compressAufgaben(aufgaben, roles.active),
       compressedProtokoll: compressProtokoll(protokoll),
       firstStep: isFirstStep,
       elapsedMinutes: simulationState.elapsedMinutes,  // NEU: Für phasenbasierte Requirements
@@ -886,7 +899,6 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
     // ============================================================
     let triggerOperations = {
       board: { createIncidentSites: [], updateIncidentSites: [] },
-      aufgaben: { create: [], update: [] },
       protokoll: { create: [] }
     };
 
@@ -906,8 +918,7 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
             triggerOperations.protokoll.create.length > 0) {
           logInfo("Szenario-Trigger ausgeführt", {
             incidents: triggerOperations.board.createIncidentSites.length,
-            protokoll: triggerOperations.protokoll.create.length,
-            aufgaben: triggerOperations.aufgaben.create.length
+            protokoll: triggerOperations.protokoll.create.length
           });
         }
       } catch (err) {
@@ -973,15 +984,8 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
       llmOperations.board.updateIncidentSites = [];
     }
 
-    if (!llmOperations.aufgaben) {
-      llmOperations.aufgaben = { create: [], update: [] };
-    }
-    if (!llmOperations.aufgaben.create) {
-      llmOperations.aufgaben.create = [];
-    }
-    if (!llmOperations.aufgaben.update) {
-      llmOperations.aufgaben.update = [];
-    }
+    // Aufgaben werden NUR von Benutzern verwaltet - LLM-Aufgaben ignorieren
+    delete llmOperations.aufgaben;
 
     if (!llmOperations.protokoll) {
       llmOperations.protokoll = { create: [] };
@@ -993,13 +997,12 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
     logDebug("LLM-Operations normalisiert", {
       boardCreate: llmOperations.board?.createIncidentSites?.length || 0,
       boardUpdate: llmOperations.board?.updateIncidentSites?.length || 0,
-      aufgabenCreate: llmOperations.aufgaben?.create?.length || 0,
-      aufgabenUpdate: llmOperations.aufgaben?.update?.length || 0,
       protokollCreate: llmOperations.protokoll?.create?.length || 0
     });
 
     // ============================================================
     // OPERATIONS ZUSAMMENFÜHREN: Trigger + LLM
+    // HINWEIS: Aufgaben werden NUR von Benutzern verwaltet, nicht vom LLM
     // ============================================================
     const operations = {
       board: {
@@ -1012,16 +1015,7 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
           ...(llmOperations.board?.updateIncidentSites || [])
         ]
       },
-      aufgaben: {
-        create: [
-          ...triggerOperations.aufgaben.create,
-          ...(llmOperations.aufgaben?.create || [])
-        ],
-        update: [
-          ...triggerOperations.aufgaben.update,
-          ...(llmOperations.aufgaben?.update || [])
-        ]
-      },
+      aufgaben: { create: [], update: [] }, // Deaktiviert - nur Benutzer verwalten Aufgaben
       protokoll: {
         create: [
           ...triggerOperations.protokoll.create,
@@ -1042,10 +1036,6 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
       operations.board.updateIncidentSites.length
     );
     metrics.incrementCounter('simulation_operations_total',
-      { type: 'aufgaben_create', source },
-      operations.aufgaben.create.length
-    );
-    metrics.incrementCounter('simulation_operations_total',
       { type: 'protokoll_create', source },
       operations.protokoll.create.length
     );
@@ -1055,10 +1045,6 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
       hasBoardOps:
         (operations.board?.createIncidentSites?.length || 0) +
           (operations.board?.updateIncidentSites?.length || 0) >
-        0,
-      hasAufgabenOps:
-        (operations.aufgaben?.create?.length || 0) +
-          (operations.aufgaben?.update?.length || 0) >
         0,
       hasProtokollOps: operations.protokoll?.create?.length > 0
     });
@@ -1077,7 +1063,6 @@ simulationState.lastCompressedBoard = opsContext.compressedBoard;
       stepId,
       durationMs: stepDuration,
       protocolsCreated: operations.protokoll?.create?.length || 0,
-      tasksCreated: operations.aufgaben?.create?.length || 0,
       incidentsCreated: operations.board?.createIncidentSites?.length || 0,
       responsesGenerated: messagesNeedingResponse.length
     });
@@ -1094,11 +1079,6 @@ simulationState.lastCompressedBoard = opsContext.compressedBoard;
         await indexIncident(incident, "updated");
       }
 
-      // Aufgaben indizieren
-      for (const task of operations.aufgaben?.create || []) {
-        await indexTask(task, "created");
-      }
-
       // Protokolleinträge indizieren
       for (const entry of operations.protokoll?.create || []) {
         await indexProtocolEntry(entry);
@@ -1107,7 +1087,6 @@ simulationState.lastCompressedBoard = opsContext.compressedBoard;
       logDebug("RAG-Indizierung abgeschlossen", {
         incidents: (operations.board?.createIncidentSites?.length || 0) +
                    (operations.board?.updateIncidentSites?.length || 0),
-        tasks: operations.aufgaben?.create?.length || 0,
         protocols: operations.protokoll?.create?.length || 0
       });
     } catch (indexError) {

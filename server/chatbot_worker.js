@@ -113,7 +113,7 @@ async function appendActionHistory(actions) {
 
 function buildActionHistoryEntry(type, category, data, relatedId = null) {
   return {
-    id: `action-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    id: `a-${Math.random().toString(36).slice(2, 8)}`,
     timestamp: new Date().toISOString(),
     type,      // "create" | "update"
     category,  // "protokoll" | "aufgabe" | "einsatz"
@@ -483,9 +483,7 @@ async function applyBoardOperations(boardOps, activeRoles, staffRoles) {
       continue;
     }
 
-    const id = `cb-incident-${Date.now()}-${Math.random()
-      .toString(36)
-      .slice(2, 8)}`;
+    const id = `i-${Math.random().toString(36).slice(2, 8)}`;
     const nowIso = new Date().toISOString();
 
     const newItem = {
@@ -636,29 +634,20 @@ async function loadAufgabenBoardsForRoles(roles) {
 }
 
 async function applyAufgabenOperations(taskOps, activeRoles, staffRoles = []) {
+  // DEAKTIVIERT: Aufgaben werden NUR von angemeldeten Benutzern verwaltet
+  // Das LLM darf keine Aufgaben erstellen oder bearbeiten
   const createOps = taskOps?.create || [];
   const updateOps = taskOps?.update || [];
-  const staffRoleSet = new Set(
-    staffRoles.map((role) => normalizeRole(role)).filter(Boolean)
-  );
-  const isAllowedStaffRole = (role) => {
-    if (staffRoleSet.size > 0) {
-      return staffRoleSet.has(normalizeRole(role));
-    }
-    return isStabsstelle(role);
-  };
-  const allowedOptions = { allowedRoles: Array.from(staffRoleSet) };
-  const roleCandidates = [
-    ...staffRoles,
-    ...createOps.map(resolveTaskBoardRoleId),
-    ...updateOps.map((op) => resolveTaskBoardRoleId(op?.changes))
-  ]
-    .filter(Boolean)
-    .filter((role) => isAllowedStaffRole(role));
-  const boardsByRole = await loadAufgabenBoardsForRoles(roleCandidates);
 
-  const appliedCreate = [];
-  const appliedUpdate = [];
+  if (createOps.length > 0 || updateOps.length > 0) {
+    log("Aufgaben-Operationen ignoriert (nur Benutzer dürfen Aufgaben verwalten):", {
+      createCount: createOps.length,
+      updateCount: updateOps.length
+    });
+  }
+
+  return { appliedCreate: [], appliedUpdate: [] };
+}
 
   // CREATE → neue Aufgabe im S2-Board
   for (const op of createOps) {
@@ -676,9 +665,7 @@ async function applyAufgabenOperations(taskOps, activeRoles, staffRoles = []) {
 
       continue;
     }
-    const id = `cb-task-${Date.now()}-${Math.random()
-      .toString(36)
-      .slice(2, 8)}`;
+    const id = `t-${Math.random().toString(36).slice(2, 8)}`;
     const now = Date.now();
     const nowIso = new Date(now).toISOString();
 
@@ -1050,9 +1037,7 @@ async function applyProtokollOperations(protoOps, activeRoles, staffRoles) {
     }
 
     const now = new Date();
-    const id = `cb-prot-${now.getTime()}-${Math.random()
-      .toString(36)
-      .slice(2, 8)}`;
+    const id = `p-${Math.random().toString(36).slice(2, 8)}`;
 
     const datum = now.toISOString().slice(0, 10); // YYYY-MM-DD
     const zeit = now.toISOString().slice(11, 16); // HH:MM
