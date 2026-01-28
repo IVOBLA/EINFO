@@ -155,6 +155,7 @@ export function buildUserPrompt({
     for (let i = 0; i < messagesNeedingResponse.length; i++) {
       const msg = messagesNeedingResponse[i];
       responseRequests += `[MELDUNG ${i + 1}] Nr.${msg.nr || "?"} ${msg.datum || ""} ${msg.zeit || ""}\n`;
+      responseRequests += `bezugNr (Pflicht für Rueckmeldung): ${msg.nr || "?"}\n`;
       responseRequests += `Von: ${msg.anvon} | An: ${msg.allRecipients.join(", ")}`;
       if (msg.externalRecipients.length > 0) {
         responseRequests += ` | EXTERN: ${msg.externalRecipients.join(", ")}`;
@@ -176,6 +177,7 @@ export function buildUserPrompt({
       if (q.targetsNonActiveInternal) flags.push("intern");
       if (q.targetsExternal) flags.push("extern");
       openQuestionsSection += `[FRAGE ${i + 1}] Nr.${q.nr || "?"} ${q.datum || ""} ${q.zeit || ""}\n`;
+      openQuestionsSection += `bezugNr (Pflicht für Rueckmeldung): ${q.nr || "?"}\n`;
       openQuestionsSection += `Von: ${q.anvon} | An: ${recipients}`;
       if (flags.length > 0) openQuestionsSection += ` | ${flags.join(",")}`;
       openQuestionsSection += `\nTyp: ${q.infoTyp} | "${q.information}"\n`;

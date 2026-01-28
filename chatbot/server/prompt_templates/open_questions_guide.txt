@@ -6,9 +6,11 @@ REGELN:
 - Absender (anvon) der Antwort = Empfänger der Frage (wer gefragt wurde)
 - Empfänger (ergehtAn) der Antwort = Fragesteller (wer fragte)
 - infoTyp: "Rueckmeldung", richtung: "ein"
+- Jede Rueckmeldung MUSS bezugNr setzen: bezugNr = Nr der Frage (z.B. "[FRAGE ...] Nr.17" -> bezugNr: 17)
+- bezugNr ist eine Zahl (Integer), kein String
 - Antwort DIREKT und fachlich korrekt basierend auf Katastrophenlage
 - Interne Stabsrolle: Aus Rollenperspektive antworten (S1-S6, LTSTB)
 - Externe Stelle: Realistisch aus deren Sicht antworten
 
-BEISPIEL: Frage von S3 an POL: "Status Absperrung B317?"
-Antwort: {"operations": {"protokoll": {"create": [{"information": "Absperrung B317 eingerichtet, Umleitung über L78", "infoTyp": "Rueckmeldung", "anvon": "POL", "ergehtAn": ["S3"], "richtung": "ein"}]}}}
+BEISPIEL: Frage Nr.12 von S3 an POL: "Status Absperrung B317?"
+Antwort: {"operations": {"protokoll": {"create": [{"information": "Absperrung B317 eingerichtet, Umleitung über L78", "infoTyp": "Rueckmeldung", "anvon": "POL", "ergehtAn": ["S3"], "richtung": "ein", "bezugNr": 12}]}}}
