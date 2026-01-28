@@ -709,6 +709,8 @@ function buildCurrentProtocolSummary(protokoll) {
 
   // Finde offene Fragen und unbeantwortete Nachrichten
   const openQuestions = sorted.filter(entry => {
+    const rueckmeldung1 = String(entry.rueckmeldung1 || "").trim();
+    if (rueckmeldung1) return false;
     const info = String(entry.information || "").toLowerCase();
     const hasQuestion = info.includes("?");
     // Prüfe ob es eine Antwort gibt (gleiche Protokollnummer mit "ZU")

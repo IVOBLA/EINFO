@@ -799,6 +799,34 @@ function isQuestionEntry(entry) {
   return /rueckfrage|rückfrage/i.test(infoTyp) || information.includes("?");
 }
 
+function resolveProtocolNr(entry) {
+  return Number(entry?.nr ?? entry?.Nr ?? entry?.NR);
+}
+
+/**
+ * Markiert einen Protokolleintrag anhand der bezugNr als beantwortet.
+ * bezugNr hat absolute Priorität gegenüber Rollen-/Sender-Matching.
+ */
+function markAnsweredByBezugNr(protokoll, bezugNr) {
+  if (!Array.isArray(protokoll)) return;
+  const refNr = Number(bezugNr);
+  if (!Number.isFinite(refNr)) return;
+
+  const target = protokoll.find((entry) => resolveProtocolNr(entry) === refNr);
+  if (!target) {
+    log(`bezugNr=${refNr} not found in protocol`);
+    return;
+  }
+
+  if (target.rueckmeldung1 === "answered") {
+    log(`bezugNr=${refNr} already answered`);
+    return;
+  }
+
+  target.rueckmeldung1 = "answered";
+  log(`Marked answered via bezugNr=${refNr} -> nr=${target.nr ?? target.Nr ?? target.NR}`);
+}
+
 /**
  * Markiert eine Frage als beantwortet durch Setzen von rueckmeldung1="answered".
  *
@@ -812,23 +840,17 @@ function markAnsweredQuestion(protokoll, responseEntry) {
   const infoTyp = String(responseEntry.infoTyp || responseEntry.typ || "");
   if (!/rueckmeldung|rückmeldung/i.test(infoTyp)) return;
 
+  const refNr = responseEntry.bezugNr ?? responseEntry.referenzNr ?? responseEntry.antwortAuf;
+  if (Number.isFinite(Number(refNr))) {
+    markAnsweredByBezugNr(protokoll, refNr);
+    return;
+  }
+
   const responseSender = normalizeRole(responseEntry.anvon || "");
   const responseRecipients = normalizeRecipients(
     responseEntry.ergehtAn || responseEntry.ergehtAnText || []
   );
   if (!responseSender || responseRecipients.length === 0) return;
-
-  // Fall 1: Direkte Referenz über bezugNr
-  const refNr =
-    responseEntry.bezugNr || responseEntry.referenzNr || responseEntry.antwortAuf;
-  if (refNr) {
-    const directMatch = protokoll.find((entry) => String(entry.nr) === String(refNr));
-    if (directMatch && !directMatch.rueckmeldung1) {
-      directMatch.rueckmeldung1 = "answered";
-      log("Frage als beantwortet markiert (bezugNr):", { questionNr: directMatch.nr, answerNr: responseEntry.nr });
-    }
-    return;
-  }
 
   // Fall 2: Matching über Sender/Empfänger
   const candidates = protokoll.filter((entry) => {
@@ -971,8 +993,12 @@ async function applyProtokollOperations(protoOps, activeRoles, staffRoles) {
       zu: ""
     };
 
-    markAnsweredQuestion(prot, entry);
     prot.push(entry);
+    if (Number.isFinite(op.bezugNr)) {
+      markAnsweredByBezugNr(prot, op.bezugNr);
+    } else {
+      markAnsweredQuestion(prot, entry);
+    }
     appliedCreate.push(op);
     log("Protokoll-Create angewandt:", id);
   }
