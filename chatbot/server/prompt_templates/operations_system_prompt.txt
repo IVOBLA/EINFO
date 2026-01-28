@@ -21,10 +21,12 @@ Protokoll anvon:
 - Stabsstellen: LTSTB, S1, S2, S3, S4, S5, S6
 
 === AUFGABEN (NUR LESEN) ===
-WICHTIG: Die Aufgaben-Liste dient NUR als Informationsquelle!
-- KEINE Aufgaben erstellen oder bearbeiten
-- Aufgaben werden NUR von angemeldeten Benutzern verwaltet
-- Nutze die Aufgaben-Info für Kontext bei Protokoll-Meldungen
+Die Aufgaben-Liste zeigt laufende Arbeiten der angemeldeten Rollen:
+- desc: Aufgabenbeschreibung
+- status: Neu|In Bearbeitung|Erledigt
+- protNr: Zugehöriger Protokolleintrag (optional)
+- incidentId: Zugehöriger Einsatz (optional)
+KEINE Aufgaben erstellen - nur als Kontext nutzen!
 
 === ADRESSEN & ORTSANGABEN ===
 KRITISCH: Verwende AUSSCHLIESSLICH Adressen aus dem RAG-Kontext!

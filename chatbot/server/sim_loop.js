@@ -369,31 +369,33 @@ export function compressBoard(board) {
   return JSON.stringify(compact);
 }
 // Aufg_board_S2.json: S2-Aufgaben
+// Nur relevante Felder für LLM-Kontext (read-only)
 
-export function compressAufgaben(aufgaben) {
+export function compressAufgaben(aufgaben, activeRoles = []) {
   if (!Array.isArray(aufgaben)) return "[]";
 
-  const maxItems = CONFIG.prompt?.maxAufgabenItems || 50;
+  const maxItems = CONFIG.prompt?.maxAufgabenItems || 30;
+  const activeSet = new Set(activeRoles.map(r => String(r).toUpperCase()));
 
-  // Nicht-erledigte zuerst, dann limitieren
-  const sorted = [...aufgaben].sort((a, b) => {
-    const aErledigt = a.status === "Erledigt" || a.status === "Storniert";
-    const bErledigt = b.status === "Erledigt" || b.status === "Storniert";
-    if (aErledigt && !bErledigt) return 1;
-    if (!aErledigt && bErledigt) return -1;
-    return 0;
-  });
+  // Nur Aufgaben der aktiven Rollen, nicht-erledigte zuerst
+  const filtered = aufgaben
+    .filter(a => {
+      // Nur Aufgaben der aktiven Rollen
+      const responsible = String(a.responsible || "").toUpperCase();
+      return activeSet.has(responsible);
+    })
+    .filter(a => a.status !== "Erledigt" && a.status !== "Storniert")
+    .slice(0, maxItems);
 
-  // Kompaktes Format: nur notwendige Felder, keine null-Werte
-  const compact = sorted.slice(0, maxItems).map((a) => {
+  // Kompaktes Format: nur desc, status + optionale Referenzen
+  const compact = filtered.map((a) => {
     const entry = {
-      id: a.id,
-      title: (a.title || a.description || "").slice(0, 60),
-      responsible: a.responsible || "",
+      desc: (a.desc || a.title || a.description || "").slice(0, 80),
       status: a.status || ""
     };
-    // Nur hinzufügen wenn vorhanden
-    if (a.relatedIncidentId) entry.relatedIncidentId = a.relatedIncidentId;
+    // Nur hinzufügen wenn vorhanden (Referenzen)
+    if (a.originProtocolNr) entry.protNr = a.originProtocolNr;
+    if (a.relatedIncidentId) entry.incidentId = a.relatedIncidentId;
     return entry;
   });
 
@@ -834,7 +836,7 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
       compressedBoard: boardUnchanged
         ? simulationState.lastCompressedBoard
         : compressBoard(boardSnapshot),
-      compressedAufgaben: compressAufgaben(aufgaben),
+      compressedAufgaben: compressAufgaben(aufgaben, roles.active),
       compressedProtokoll: compressProtokoll(protokoll),
       firstStep: isFirstStep,
       elapsedMinutes: simulationState.elapsedMinutes,  // NEU: Für phasenbasierte Requirements
