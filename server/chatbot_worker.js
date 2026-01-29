@@ -274,6 +274,22 @@ function limitIncidentCreates(ops, scenarioSimulation, boardCount) {
       requested: createOps.length,
       boardCount
     });
+    const removed = createOps.slice(limited.length);
+    const meta = {
+      allowed,
+      requested: createOps.length,
+      boardCount,
+      maxNewPerStep,
+      maxTotal
+    };
+    for (const op of removed) {
+      appendOpsVerworfenLog({
+        kind: "board.create",
+        op,
+        reason: "limited_by_scenario",
+        meta
+      });
+    }
   }
 
   return {
@@ -646,7 +662,27 @@ async function applyAufgabenOperations(taskOps, activeRoles, staffRoles = []) {
     });
   }
 
-  return { appliedCreate: [], appliedUpdate: [] };
+  for (const op of createOps) {
+    appendOpsVerworfenLog({
+      kind: "aufgaben.create",
+      op,
+      reason: "disabled_task_ops",
+      activeRoles
+    });
+  }
+  for (const op of updateOps) {
+    appendOpsVerworfenLog({
+      kind: "aufgaben.update",
+      op,
+      reason: "disabled_task_ops",
+      activeRoles
+    });
+  }
+
+  return {
+    appliedCount: 0,
+    appliedOps: { create: [], update: [] }
+  };
 }
 
 function resolveProtokollAnvon(op) {
@@ -1230,9 +1266,9 @@ async function runOnce() {
       }
 
       const totalApplied =
-        applyResults.board.appliedCount +
-        applyResults.aufgaben.appliedCount +
-        applyResults.protokoll.appliedCount;
+        (applyResults.board?.appliedCount ?? 0) +
+        (applyResults.aufgaben?.appliedCount ?? 0) +
+        (applyResults.protokoll?.appliedCount ?? 0);
 
       if (totalApplied > 0) {
         const stateAfter = await readStateCounts();
@@ -1421,9 +1457,9 @@ async function processInitialPendingOps() {
     }
 
     const totalApplied =
-      applyResults.board.appliedCount +
-      applyResults.aufgaben.appliedCount +
-      applyResults.protokoll.appliedCount;
+      (applyResults.board?.appliedCount ?? 0) +
+      (applyResults.aufgaben?.appliedCount ?? 0) +
+      (applyResults.protokoll?.appliedCount ?? 0);
 
     log(`Initiale Operationen verarbeitet | Angewandt: ${totalApplied}`);
 
