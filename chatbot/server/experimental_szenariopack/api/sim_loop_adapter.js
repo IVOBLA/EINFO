@@ -4,8 +4,7 @@ import * as experimental from "./sim_loop_szenariopack.js";
 const useExperimental = process.env.EINFO_EXPERIMENTAL_SCENARIOPACK === "1";
 const source = useExperimental ? experimental : base;
 
-export const identifyMessagesNeedingResponse = source.identifyMessagesNeedingResponse;
-export const identifyOpenQuestions = source.identifyOpenQuestions;
+export const identifyOpenFollowUps = source.identifyOpenFollowUps;
 export const buildMemoryQueryFromState = source.buildMemoryQueryFromState;
 export const compressBoard = source.compressBoard;
 export const compressAufgaben = source.compressAufgaben;

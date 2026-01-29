@@ -14,8 +14,7 @@ import {
   compressBoard,
   compressAufgaben,
   compressProtokoll,
-  identifyMessagesNeedingResponse,
-  identifyOpenQuestions,
+  identifyOpenFollowUps,
   buildMemoryQueryFromState,
   toComparableProtokoll
 } from "./sim_loop.js";  
@@ -1438,13 +1437,7 @@ ${ragResult.context}`;
       });
       const memorySnippets = memoryHits.map((hit) => hit.text);
 
-      const { delta: protokollDelta } = buildDelta(
-        protokoll,
-        simulationState.lastSnapshot?.protokoll,
-        toComparableProtokoll
-      );
-      const messagesNeedingResponse = identifyMessagesNeedingResponse(protokoll, protokollDelta, roles);
-      const openQuestions = identifyOpenQuestions(protokoll, roles);
+      const openQuestions = identifyOpenFollowUps(protokoll, roles);
 
       if (taskType === "start") {
         const startPrompts = buildStartPrompts({
@@ -1462,7 +1455,6 @@ ${ragResult.context}`;
           compressedProtokoll,
           firstStep: false,
           elapsedMinutes: simulationState.elapsedMinutes,
-          messagesNeedingResponse: messagesNeedingResponse.length > 0 ? messagesNeedingResponse : null,
           openQuestions: openQuestions.length > 0 ? openQuestions : null,
           scenarioControl: buildScenarioControlSummary({
             scenario,
@@ -1478,7 +1470,6 @@ ${ragResult.context}`;
           compressedProtokoll,
           knowledgeContext,
           memorySnippets,
-          messagesNeedingResponse: opsContext.messagesNeedingResponse,
           openQuestions: opsContext.openQuestions,
           disasterContext,
           learnedResponses,

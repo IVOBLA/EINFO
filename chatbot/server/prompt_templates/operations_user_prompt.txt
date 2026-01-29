@@ -28,8 +28,6 @@ WISSEN:
 AUFGABE:
 {{taskSection}}
 
-{{responseRequests}}
-
 {{openQuestionsSection}}
 
 Antworte NUR mit JSON. Keine ```.
