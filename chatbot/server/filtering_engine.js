@@ -238,22 +238,25 @@ export async function applyAllFilteringRules(rawData, learnedWeights = {}) {
   // Regel R5: Stabs-Fokus (modifiziert andere Regeln)
   // WICHTIG: R5 NICHT anwenden wenn keine aktiven Rollen vorhanden sind
   // Sonst werden alle Einsätze herausgefiltert und das LLM bekommt keinen Context!
-  const r5Enabled = rules.rules.R5_STABS_FOKUS?.enabled;
+  const r5Config = rules.rules.R5_STABS_FOKUS;
+  const r5Enabled = r5Config?.enabled;
   const hasActiveRoles = Array.isArray(rawData.activeRoles) && rawData.activeRoles.length > 0;
+  const r5Active = Boolean(r5Enabled && hasActiveRoles);
   debug.rules.R5_STABS_FOKUS = {
     enabled: r5Enabled,
+    active: r5Active,
     skipped: r5Enabled && !hasActiveRoles ? "Keine aktiven Rollen - R5 übersprungen" : null,
     details: r5Enabled && hasActiveRoles
-      ? `aggregate=${rules.rules.R5_STABS_FOKUS.stab_mode?.aggregate_to_sections}, max_individual=${rules.rules.R5_STABS_FOKUS.stab_mode?.max_individual_incidents || 3}`
+      ? `aggregate=${r5Config.stab_mode?.aggregate_to_sections}, max_individual=${r5Config.max_individual_incidents || r5Config.stab_mode?.max_individual_incidents || 3}, min_score=${r5Config.critical_scoring?.min_score ?? 0.6}`
       : null
   };
-  if (r5Enabled && hasActiveRoles) {
-    const incidentsBefore = filtered.incidents.length;
-    applyRule_R5(filtered, rawData, rules.rules.R5_STABS_FOKUS);
+  if (r5Active) {
+    const r5Meta = applyRule_R5(filtered, rawData, r5Config);
     debug.filtering.incidents = {
       before: rawIncidentsCount,
       after: filtered.incidents.length,
-      reason: `Nur kritische Einzeleinsätze (max ${rules.rules.R5_STABS_FOKUS.stab_mode?.max_individual_incidents || 3})`
+      reason: `Stabs-Fokus (max ${r5Meta.max_individual_incidents})${r5Meta.fallback_used ? ", Fallback aktiv" : ""}`,
+      ...r5Meta
     };
   } else if (r5Enabled && !hasActiveRoles) {
     logDebug("R5_STABS_FOKUS übersprungen: Keine aktiven Rollen");
@@ -501,29 +504,85 @@ function applyRule_R4(board, rule, vehicleData = null) {
  * R5: Stabs-Fokus (modifiziert andere Filter-Ergebnisse)
  */
 function applyRule_R5(filtered, rawData, rule) {
-  if (!rule.stab_mode?.aggregate_to_sections) return;
-
-  // Zeige nur kritische Einzeleinsätze
-  const maxIndividual = rule.stab_mode.max_individual_incidents || 3;
-  const board = rawData.board;
-
-  if (board && board.columns) {
-    const criticalIncidents = getAllIncidents(board).filter(incident => {
-      // Prüfe Bedingungen
-      for (const condition of rule.stab_mode.show_individual_incidents_only_if || []) {
-        if (condition.field === "priority" && incident.priority === condition.value) {
-          return true;
-        }
-        if (condition.field === "has_open_questions") {
-          // TODO: Implementieren
-          return false;
-        }
-      }
-      return false;
-    });
-
-    filtered.incidents = criticalIncidents.slice(0, maxIndividual);
+  const aggregateToSections = rule.stab_mode?.aggregate_to_sections !== false;
+  if (!aggregateToSections) {
+    return {
+      max_individual_incidents: rule.max_individual_incidents || rule.stab_mode?.max_individual_incidents || 3,
+      min_required: rule.min_required ?? 1,
+      fallback_top_n: rule.fallback_top_n ?? (rule.max_individual_incidents || rule.stab_mode?.max_individual_incidents || 3),
+      min_score: rule.critical_scoring?.min_score ?? 0.6,
+      critical_candidates: 0,
+      selected_count: 0,
+      fallback_used: false,
+      top_scores: []
+    };
   }
+
+  const board = rawData.board;
+  const scoringConfig = rule.critical_scoring || {};
+  const minScore = scoringConfig.min_score ?? 0.6;
+  const maxIndividual = rule.max_individual_incidents || rule.stab_mode?.max_individual_incidents || 3;
+  const minRequired = rule.min_required ?? 1;
+  const fallbackTopN = rule.fallback_top_n ?? maxIndividual;
+
+  if (!board || !board.columns) {
+    filtered.incidents = [];
+    return {
+      max_individual_incidents: maxIndividual,
+      min_required: minRequired,
+      fallback_top_n: fallbackTopN,
+      min_score: minScore,
+      critical_candidates: 0,
+      selected_count: 0,
+      fallback_used: false,
+      top_scores: []
+    };
+  }
+
+  const areaNameMap = buildAreaNameMap(board);
+  const activeIncidents = getAllIncidents(board).filter(incident => incident.column !== "erledigt");
+
+  const scoredIncidents = activeIncidents.map(incident => {
+    const areaName = areaNameMap.get(String(incident.areaCardId || incident.areaId || "")) || null;
+    const textBlob = buildIncidentTextBlob(incident, areaName);
+    const { score, matched } = scoreText(textBlob, scoringConfig);
+
+    return {
+      ...incident,
+      _critical_score: score,
+      _critical_hits: matched.slice(0, 5).map(name => ({ name })),
+      _area_name: areaName
+    };
+  });
+
+  const scoredSorted = [...scoredIncidents].sort(compareIncidentScore);
+  const criticalCandidates = scoredSorted.filter(incident => incident._critical_score >= minScore);
+  let selected = criticalCandidates.slice(0, maxIndividual);
+  let fallbackUsed = false;
+
+  if (selected.length < minRequired) {
+    fallbackUsed = true;
+    const fallbackSlice = scoredSorted.slice(0, fallbackTopN);
+    const dedupedFallback = dedupeIncidents(fallbackSlice).map(item => ({
+      ...item,
+      _r5_fallback: true,
+      _r5_reason: "top-by-score-below-threshold"
+    }));
+    selected = dedupedFallback;
+  }
+
+  filtered.incidents = selected;
+
+  return {
+    max_individual_incidents: maxIndividual,
+    min_required: minRequired,
+    fallback_top_n: fallbackTopN,
+    min_score: minScore,
+    critical_candidates: criticalCandidates.length,
+    selected_count: selected.length,
+    fallback_used: fallbackUsed,
+    top_scores: scoredSorted.slice(0, 3).map(item => item._critical_score)
+  };
 }
 
 // ============================================
@@ -582,6 +641,60 @@ function getIncidentsInArea(board, areaId) {
     }
   }
   return incidents;
+}
+
+function buildAreaNameMap(board) {
+  const map = new Map();
+  for (const area of getAreas(board)) {
+    if (!area) continue;
+    if (area.id != null) map.set(String(area.id), area.content || "");
+    if (area.humanId != null) map.set(String(area.humanId), area.content || "");
+  }
+  return map;
+}
+
+function buildIncidentTextBlob(incident, areaName) {
+  return [
+    incident.title,
+    incident.content,
+    incident.description,
+    incident.desc,
+    incident.notes,
+    incident.typ,
+    incident.ort,
+    incident.location,
+    incident.address,
+    areaName
+  ]
+    .filter(Boolean)
+    .map(value => String(value))
+    .join(" ");
+}
+
+function getIncidentTimestamp(incident) {
+  const raw = incident.timestamp || incident.createdAt || incident.updated || incident.statusSince || null;
+  if (!raw) return 0;
+  const parsed = typeof raw === "number" ? raw : Date.parse(raw);
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+function compareIncidentScore(a, b) {
+  if (b._critical_score !== a._critical_score) {
+    return b._critical_score - a._critical_score;
+  }
+  return getIncidentTimestamp(b) - getIncidentTimestamp(a);
+}
+
+function dedupeIncidents(incidents) {
+  const seen = new Set();
+  const result = [];
+  for (const incident of incidents) {
+    const key = incident.id || incident.humanId || `${incident.content || ""}-${incident.ort || ""}-${incident.timestamp || ""}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(incident);
+  }
+  return result;
 }
 
 /**
@@ -676,8 +789,6 @@ function calculateAreaStats(board, area, rule) {
  * Bewertet Protokoll-Eintrag
  */
 function scoreProtocolEntry(entry, rule, learnedWeights = {}) {
-  let score = rule.scoring?.base_score || 0.5;
-
   const text = [
     entry.information,  // Hauptfeld für Protokoll-Inhalt
     entry.info,         // Alternativfeld
@@ -694,20 +805,28 @@ function scoreProtocolEntry(entry, rule, learnedWeights = {}) {
     .map((value) => String(value))
     .join(" ")
     .toLowerCase();
+  const { score } = scoreText(text, rule.scoring || {}, learnedWeights);
+  return score;
+}
 
-  for (const factor of rule.scoring?.factors || []) {
+function scoreText(textInput, scoringConfig = {}, learnedWeights = {}) {
+  const baseScore = scoringConfig.base_score ?? 0;
+  let score = baseScore;
+  const matched = [];
+
+  const text = String(textInput || "").toLowerCase();
+
+  for (const factor of scoringConfig.factors || []) {
     let matches = false;
 
-    // Pattern-Matching (Regex)
     if (factor.pattern) {
       const regex = new RegExp(factor.pattern, "i");
       matches = regex.test(text);
     }
 
-    // Keyword-Matching
-    if (factor.keywords && Array.isArray(factor.keywords)) {
+    if (!matches && factor.keywords && Array.isArray(factor.keywords)) {
       for (const keyword of factor.keywords) {
-        if (text.includes(keyword.toLowerCase())) {
+        if (text.includes(String(keyword).toLowerCase())) {
           matches = true;
           break;
         }
@@ -715,16 +834,21 @@ function scoreProtocolEntry(entry, rule, learnedWeights = {}) {
     }
 
     if (matches) {
-      // Verwende gelerntes Gewicht falls vorhanden
-      const weight = factor.learnable && learnedWeights[factor.name]
+      const weight = factor.learnable && learnedWeights[factor.name] != null
         ? learnedWeights[factor.name]
-        : factor.weight;
+        : factor.weight || 0;
 
       score += weight;
+      if (factor.name) {
+        matched.push(factor.name);
+      }
     }
   }
 
-  return score;
+  return {
+    score,
+    matched
+  };
 }
 
 /**
