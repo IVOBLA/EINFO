@@ -1,6 +1,7 @@
 // test_integration.js
 // Integrationstests für geänderte Module
 
+import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -15,6 +16,7 @@ import {
   LLMCallError,
   handleSimulationError
 } from "./simulation_errors.js";
+import { selectProtokollDeltaForPrompt } from "./sim_loop.js";
 
 console.log("🧪 Starting Integration Tests...\n");
 
@@ -137,6 +139,44 @@ for (const file of templateFiles) {
   const ok = content.includes("bezugNr");
   console.log(`  - ${file}:`, ok ? "✓" : "✗");
 }
+
+// Test 10: PROTOKOLL Prompt Delta
+console.log("\n✅ Test 10: PROTOKOLL Prompt Delta");
+const previousSnapshotComparable = [
+  { id: "a", information: "lage ok", datum: "2026-01-29", zeit: "10:00" }
+];
+const protokollRaw = [
+  { id: "a", information: "lage ok", datum: "2026-01-29", zeit: "10:00" },
+  { id: "b", information: "Neuer Eintrag", datum: "2026-01-29", zeit: "10:05" },
+  { id: "c", information: "Neuer Eintrag", datum: "2026-01-29", zeit: "10:06" },
+  {
+    id: "d",
+    information: "Polizei gefragt?",
+    datum: "2026-01-29",
+    zeit: "10:07",
+    richtung: "aus",
+    ergehtAn: ["Polizei"]
+  }
+];
+const { entries: deltaEntries } = selectProtokollDeltaForPrompt({
+  protokollRaw,
+  previousSnapshotComparable,
+  rolesOrConstants: { INTERNAL_ROLES: new Set(["S1", "S2"]) }
+});
+assert.deepEqual(deltaEntries.map((entry) => entry.id), ["b"]);
+console.log("  - Filtered delta contains only id 'b': ✓");
+
+const protokollForSort = [
+  { id: "e", information: "Alt", datum: "2026-01-28", zeit: "10:00" },
+  { id: "f", information: "Neu", datum: "2026-01-29", zeit: "09:00" }
+];
+const { entries: sortedEntries } = selectProtokollDeltaForPrompt({
+  protokollRaw: protokollForSort,
+  previousSnapshotComparable: [],
+  rolesOrConstants: { INTERNAL_ROLES: new Set(["S1"]) }
+});
+assert.deepEqual(sortedEntries.map((entry) => entry.id), ["f", "e"]);
+console.log("  - Sorting by datum+zeit (neueste zuerst): ✓");
 
 console.log("\n🎉 All Integration Tests Completed!");
 console.log("\n📊 Summary:");

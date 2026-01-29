@@ -8,6 +8,7 @@ import {
   compressBoard,
   compressAufgaben,
   compressProtokoll,
+  selectProtokollDeltaForPrompt,
   toComparableProtokoll,
   buildDelta
 } from "../../sim_loop.js";
@@ -249,7 +250,13 @@ export async function stepSimulation(options = {}) {
 
   const compressedBoard = compressBoard(board);
   const compressedAufgaben = compressAufgaben(aufgaben);
-  const compressedProtokoll = compressProtokoll(protokoll);
+    const { entries: protokollForPrompt } = selectProtokollDeltaForPrompt({
+      protokollRaw: protokoll,
+      previousSnapshotComparable: prevSnapshot.protokoll,
+      rolesOrConstants: roles,
+      maxItems: config?.ops?.maxProtokollItems ?? undefined
+    });
+    const compressedProtokoll = compressProtokoll(protokollForPrompt);
 
   decayEffects({ state, currentTick: state.tick });
 
