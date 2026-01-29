@@ -66,6 +66,7 @@ import {
   resumeExercise,
   getFilteredEvents,
   logEvent,
+  getLlmExchange,
   setStatisticsChangeCallback,
   setEventLoggedCallback
 } from "./audit_trail.js";
@@ -192,13 +193,14 @@ async function cleanupServerData() {
   });
 }
 
-function logLlmRequest({ source, model, durationMs, hasResponse, error }) {
+function logLlmRequest({ source, model, durationMs, hasResponse, error, exchangeId }) {
   logEvent("llm", "request", {
     source,
     model,
     durationMs,
     hasResponse,
-    error
+    error,
+    exchangeId
   });
 }
 
@@ -285,18 +287,23 @@ async function streamAnswer({ res, question }) {
 
   const startTime = Date.now();
   const taskConfig = getModelForTask("chat");
+  let exchangeId = null;
 
   try {
     await callLLMForChat({
       question,
       stream: true,
-      onToken: (token) => res.write(token)
+      onToken: (token) => res.write(token),
+      onExchangeId: (id) => {
+        exchangeId = id;
+      }
     });
     logLlmRequest({
       source: "chat",
       model: taskConfig?.model,
       durationMs: Date.now() - startTime,
-      hasResponse: true
+      hasResponse: true,
+      exchangeId
     });
   } catch (err) {
     logLlmRequest({
@@ -304,7 +311,8 @@ async function streamAnswer({ res, question }) {
       model: taskConfig?.model,
       durationMs: Date.now() - startTime,
       hasResponse: false,
-      error: String(err)
+      error: String(err),
+      exchangeId
     });
     logEvent("error", "llm_request_failed", {
       source: "chat",
@@ -798,6 +806,7 @@ app.post("/api/llm/test", rateLimit(RateLimitProfiles.STRICT), async (req, res) 
   }
 
   const startTime = Date.now();
+  let exchangeId = null;
 
   try {
     const models = await listAvailableLlmModels();
@@ -808,12 +817,19 @@ app.post("/api/llm/test", rateLimit(RateLimitProfiles.STRICT), async (req, res) 
         .json({ ok: false, error: "invalid_model", gpuStatus });
     }
 
-    const answer = await callLLMForChat({ question, model });
+    const answer = await callLLMForChat({
+      question,
+      model,
+      onExchangeId: (id) => {
+        exchangeId = id;
+      }
+    });
     logLlmRequest({
       source: "test",
       model,
       durationMs: Date.now() - startTime,
-      hasResponse: true
+      hasResponse: true,
+      exchangeId
     });
     res.json({ ok: true, answer, gpuStatus });
   } catch (err) {
@@ -823,7 +839,8 @@ app.post("/api/llm/test", rateLimit(RateLimitProfiles.STRICT), async (req, res) 
       model,
       durationMs: Date.now() - startTime,
       hasResponse: false,
-      error: String(err)
+      error: String(err),
+      exchangeId
     });
     logEvent("error", "llm_request_failed", {
       source: "test",
@@ -937,6 +954,7 @@ app.post("/api/llm/test-model", rateLimit(RateLimitProfiles.STRICT), async (req,
   const testPrompt = 'Antworte kurz auf Deutsch: Was ist 2+2? Gib nur die Zahl zurück.';
 
   const startTime = Date.now();
+  let exchangeId = null;
 
   try {
     // GPU-Status vorher
@@ -944,7 +962,10 @@ app.post("/api/llm/test-model", rateLimit(RateLimitProfiles.STRICT), async (req,
 
     const answer = await callLLMForChat({
       question: testPrompt,
-      model: modelConfig.name
+      model: modelConfig.name,
+      onExchangeId: (id) => {
+        exchangeId = id;
+      }
     });
 
     const duration = Date.now() - startTime;
@@ -956,7 +977,8 @@ app.post("/api/llm/test-model", rateLimit(RateLimitProfiles.STRICT), async (req,
       source: "test-model",
       model: modelConfig.name,
       durationMs: duration,
-      hasResponse: true
+      hasResponse: true,
+      exchangeId
     });
 
     logInfo("Modell-Test erfolgreich", { modelKey, duration });
@@ -986,7 +1008,8 @@ app.post("/api/llm/test-model", rateLimit(RateLimitProfiles.STRICT), async (req,
       model: modelConfig.name,
       durationMs: duration,
       hasResponse: false,
-      error: String(err)
+      error: String(err),
+      exchangeId
     });
     logEvent("error", "llm_request_failed", {
       source: "test-model",
@@ -1042,6 +1065,7 @@ app.post("/api/llm/test-with-metrics", rateLimit(RateLimitProfiles.STRICT), asyn
   let metricsInterval = null;
   let llmFinished = false;
   let previousCpuSnapshot = getCpuTimesSnapshot();
+  let exchangeId = null;
 
   // Alle Metriken im 2-Sekunden-Intervall sammeln (GPU + CPU + RAM)
   const collectAllMetrics = async () => {
@@ -1095,7 +1119,13 @@ app.post("/api/llm/test-with-metrics", rateLimit(RateLimitProfiles.STRICT), asyn
   metricsInterval = setInterval(collectAllMetrics, 2000);
 
   try {
-    const answer = await callLLMForChat({ question, model });
+    const answer = await callLLMForChat({
+      question,
+      model,
+      onExchangeId: (id) => {
+        exchangeId = id;
+      }
+    });
     llmFinished = true;
     clearInterval(metricsInterval);
 
@@ -1152,7 +1182,8 @@ app.post("/api/llm/test-with-metrics", rateLimit(RateLimitProfiles.STRICT), asyn
       source: "test-with-metrics",
       model,
       durationMs: duration,
-      hasResponse: true
+      hasResponse: true,
+      exchangeId
     });
 
     res.json({
@@ -1174,7 +1205,8 @@ app.post("/api/llm/test-with-metrics", rateLimit(RateLimitProfiles.STRICT), asyn
       model,
       durationMs: duration,
       hasResponse: false,
-      error: String(err)
+      error: String(err),
+      exchangeId
     });
     logEvent("error", "llm_request_failed", {
       source: "test-with-metrics",
@@ -1232,6 +1264,7 @@ app.post("/api/llm/test-with-metrics-stream", rateLimit(RateLimitProfiles.STRICT
   let llmFinished = false;
   let previousCpuSnapshot = getCpuTimesSnapshot();
   let fullAnswer = "";
+  let exchangeId = null;
 
   // Task-Config für den gewählten Task-Typ holen
   const taskConfig = getModelForTask(taskType);
@@ -1580,7 +1613,10 @@ ${ragResult.context}`;
       model,
       stream: true,
       onToken,
-      requireJson: taskType === "analysis"
+      requireJson: taskType === "analysis",
+      onExchangeId: (id) => {
+        exchangeId = id;
+      }
     });
     llmFinished = true;
     clearInterval(metricsInterval);
@@ -1634,7 +1670,8 @@ ${ragResult.context}`;
       source: "test-with-metrics-stream",
       model,
       durationMs: duration,
-      hasResponse: true
+      hasResponse: true,
+      exchangeId
     });
 
     // RAW Response zusammenstellen
@@ -1685,7 +1722,8 @@ ${ragResult.context}`;
       model,
       durationMs: duration,
       hasResponse: false,
-      error: String(err)
+      error: String(err),
+      exchangeId
     });
     logEvent("error", "llm_request_failed", {
       source: "test-with-metrics-stream",
@@ -1859,6 +1897,22 @@ app.get("/api/llm/action-history", async (req, res) => {
   } catch (err) {
     logError("Fehler beim Laden der Action-History", { error: String(err) });
     res.status(500).json({ error: "Fehler beim Laden der Action-History" });
+  }
+});
+
+app.get("/api/llm/exchange/:exchangeId", (req, res) => {
+  try {
+    const { exchangeId } = req.params || {};
+    const exchange = getLlmExchange(exchangeId);
+
+    if (!exchange) {
+      return res.status(404).json({ ok: false, error: "not_found" });
+    }
+
+    return res.json({ ok: true, exchange });
+  } catch (err) {
+    logError("Fehler beim Laden des LLM-Exchanges", { error: String(err) });
+    return res.status(500).json({ ok: false, error: String(err) });
   }
 });
 

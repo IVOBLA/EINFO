@@ -24,6 +24,10 @@ let statistics = {
   incidentsCreated: 0
 };
 
+const LLM_EXCHANGE_LIMIT = 200;
+let llmExchangeOrder = [];
+let llmExchangeById = new Map();
+
 // Callback für SSE-Broadcasts (wird von index.js gesetzt)
 let onStatisticsChange = null;
 let onEventLogged = null;
@@ -69,6 +73,7 @@ export async function startAuditTrail(options = {}) {
   
   currentExerciseId = `ex_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   events = [];
+  clearLlmExchanges();
   statistics = {
     simSteps: 0,
     llmCalls: 0,
@@ -252,12 +257,43 @@ export async function listAuditTrails() {
       }
     }
     
-    return trails.sort((a, b) => 
-      new Date(b.startedAt || 0) - new Date(a.startedAt || 0)
-    );
+  return trails.sort((a, b) => 
+    new Date(b.startedAt || 0) - new Date(a.startedAt || 0)
+  );
   } catch {
     return [];
   }
+}
+
+export function storeLlmExchange(exchange) {
+  if (!exchange?.exchangeId) return false;
+
+  const exchangeId = exchange.exchangeId;
+  const isNew = !llmExchangeById.has(exchangeId);
+  llmExchangeById.set(exchangeId, exchange);
+
+  if (isNew) {
+    llmExchangeOrder.push(exchangeId);
+  }
+
+  while (llmExchangeOrder.length > LLM_EXCHANGE_LIMIT) {
+    const oldest = llmExchangeOrder.shift();
+    if (oldest) {
+      llmExchangeById.delete(oldest);
+    }
+  }
+
+  return true;
+}
+
+export function getLlmExchange(exchangeId) {
+  if (!exchangeId) return null;
+  return llmExchangeById.get(exchangeId) || null;
+}
+
+export function clearLlmExchanges() {
+  llmExchangeOrder = [];
+  llmExchangeById = new Map();
 }
 // Am Ende von audit_trail.js hinzufügen (vor dem letzten Export):
 

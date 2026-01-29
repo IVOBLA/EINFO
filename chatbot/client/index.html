@@ -141,7 +141,10 @@
     .request-item {
       padding: 0.35rem 0.5rem;
       border-bottom: 1px solid #334155;
+      cursor: pointer;
+      transition: background 0.2s;
     }
+    .request-item:hover { background: #1e3a5f; }
     .request-meta { color: #94a3b8; font-size: 0.65rem; margin-top: 0.15rem; }
 
     /* Buttons */
@@ -623,6 +626,7 @@
     let selectedScenarioId = null;
     let activeScenario = null;
     let llmRequestEvents = [];
+    let llmRequestView = [];
     const chatEntries = [];
     const BOT_NAME = "Florian";
 
@@ -1098,11 +1102,147 @@
       return action;
     }
 
-    function formatLlmRequestItem(event) {
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function estimateTokens(value) {
+      return Math.ceil((value || "").length / 4);
+    }
+
+    function prettyPrintJson(value) {
+      if (value === null || value === undefined) return "";
+      const text = typeof value === "string" ? value : JSON.stringify(value);
+      try {
+        return JSON.stringify(JSON.parse(text), null, 2);
+      } catch {
+        return text;
+      }
+    }
+
+    function prettyPrintText(value) {
+      if (value === null || value === undefined) return "";
+      if (typeof value === "string") return value;
+      try {
+        return JSON.stringify(value, null, 2);
+      } catch {
+        return String(value);
+      }
+    }
+
+    function showLlmExchangeLoading(event) {
+      actionModalTitle.textContent = "LLM-Request Details";
+      actionModalTime.textContent = formatActionTime(event?.timestamp);
+      actionModalBody.innerHTML = '<div class="modal-field"><p>Lade Details...</p></div>';
+      actionModal.classList.remove("hidden");
+    }
+
+    function showLlmExchangeUnavailable(event) {
+      actionModalTitle.textContent = "LLM-Request Details";
+      actionModalTime.textContent = formatActionTime(event?.timestamp);
+      actionModalBody.innerHTML = '<div class="modal-field"><p>Keine Details verfuegbar.</p></div>';
+      actionModal.classList.remove("hidden");
+    }
+
+    function showLlmExchangeError({ event, error }) {
+      actionModalTitle.textContent = "LLM-Request Details";
+      actionModalTime.textContent = formatActionTime(event?.timestamp);
+      actionModalBody.innerHTML = `
+        <div class="modal-field">
+          <label>Fehler</label>
+          <p>${escapeHtml(error || "Unbekannter Fehler")}</p>
+        </div>
+      `;
+      actionModal.classList.remove("hidden");
+    }
+
+    function showLlmExchangeDetail({ event, exchange }) {
+      const data = event?.data || {};
+      const durationMs = exchange?.durationMs ?? data.durationMs;
+      const durationText = typeof durationMs === "number" ? `${Math.round(durationMs)} ms` : "-";
+      const errorText = exchange?.error || data.error || "-";
+      const modelText = exchange?.model || data.model || "-";
+      const phaseText = exchange?.phase || "-";
+      const attemptsText = Number.isFinite(exchange?.attemptCount) ? exchange.attemptCount : "-";
+      const exchangeId = exchange?.exchangeId || data.exchangeId || "-";
+      const rawRequest = exchange?.rawRequest || "";
+      const rawResponse = exchange?.rawResponse || "";
+      const parsedResponse = exchange?.parsedResponse ?? null;
+      const requestPretty = prettyPrintJson(rawRequest);
+      const responsePretty = prettyPrintJson(rawResponse);
+      const requestTokens = estimateTokens(rawRequest);
+      const responseTokens = estimateTokens(rawResponse);
+
+      actionModalTitle.textContent = "LLM-Request Details";
+      actionModalTime.textContent = formatActionTime(event?.timestamp);
+
+      let bodyHtml = `
+        <div class="modal-field">
+          <label>Exchange ID</label>
+          <p style="font-family: monospace; font-size: 0.8rem;">${escapeHtml(exchangeId)}</p>
+        </div>
+        <div class="modal-field">
+          <label>Modell</label>
+          <p>${escapeHtml(modelText)}</p>
+        </div>
+        <div class="modal-field">
+          <label>Phase</label>
+          <p>${escapeHtml(phaseText)}</p>
+        </div>
+        <div class="modal-field">
+          <label>Dauer</label>
+          <p>${escapeHtml(durationText)}</p>
+        </div>
+        <div class="modal-field">
+          <label>Attempts</label>
+          <p>${escapeHtml(attemptsText)}</p>
+        </div>
+        <div class="modal-field">
+          <label>Token (Request)</label>
+          <p>${escapeHtml(requestTokens)}</p>
+        </div>
+        <div class="modal-field">
+          <label>Token (Response)</label>
+          <p>${escapeHtml(responseTokens)}</p>
+        </div>
+        <div class="modal-field">
+          <label>Fehler</label>
+          <p>${escapeHtml(errorText)}</p>
+        </div>
+        <div class="modal-field">
+          <label>Request</label>
+          <pre>${escapeHtml(requestPretty || "-")}</pre>
+        </div>
+        <div class="modal-field">
+          <label>Response</label>
+          <pre>${escapeHtml(responsePretty || "-")}</pre>
+        </div>
+      `;
+
+      if (parsedResponse !== null && parsedResponse !== undefined && String(parsedResponse).trim() !== "") {
+        bodyHtml += `
+          <div class="modal-field">
+            <label>Parsed Response</label>
+            <pre>${escapeHtml(prettyPrintText(parsedResponse))}</pre>
+          </div>
+        `;
+      }
+
+      actionModalBody.innerHTML = bodyHtml;
+      actionModal.classList.remove("hidden");
+    }
+
+    function formatLlmRequestItem(event, index) {
       const time = event.timestamp
         ? new Date(event.timestamp).toLocaleTimeString("de-DE")
         : new Date().toLocaleTimeString("de-DE");
       const data = event.data || {};
+      const exchangeId = data.exchangeId || "";
       const modelInfo = data.model ? ` ${data.model}` : "";
       const duration = typeof data.durationMs === "number" ? `${Math.round(data.durationMs)} ms` : "n/a";
       const source = data.source ? `Quelle: ${data.source}` : "Quelle: unbekannt";
@@ -1110,7 +1250,7 @@
       const errorInfo = data.error ? ` • Fehler: ${data.error}` : "";
 
       return `
-        <div class="request-item">
+        <div class="request-item" data-index="${index}" data-exchange-id="${exchangeId}">
           <div>${time} • LLM-Aufruf${modelInfo}</div>
           <div class="request-meta">${duration} • ${source} • ${responseInfo}${errorInfo}</div>
         </div>
@@ -1119,12 +1259,14 @@
 
     function renderLlmRequestHistory(events = []) {
       if (!Array.isArray(events) || events.length === 0) {
+        llmRequestView = [];
         llmRequestLog.innerHTML = '<div class="request-item" style="color: #64748b;">Noch keine LLM Requests.</div>';
         return;
       }
 
       const sorted = [...events].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-      llmRequestLog.innerHTML = sorted.slice(0, 100).map(formatLlmRequestItem).join("");
+      llmRequestView = sorted.slice(0, 100);
+      llmRequestLog.innerHTML = llmRequestView.map(formatLlmRequestItem).join("");
     }
 
     function handleAuditEvent(event) {
@@ -1538,6 +1680,36 @@
     btnStep.addEventListener("click", stepSimulation);
     btnPause.addEventListener("click", togglePauseResume);
     btnEnd.addEventListener("click", endSimulation);
+
+    llmRequestLog.addEventListener("click", async (e) => {
+      const item = e.target.closest(".request-item");
+      if (!item || item.dataset.index === undefined) return;
+
+      const index = Number(item.dataset.index);
+      const event = Number.isFinite(index) ? llmRequestView[index] : null;
+      const exchangeId = item.dataset.exchangeId;
+
+      showLlmExchangeLoading(event);
+
+      if (!exchangeId) {
+        showLlmExchangeUnavailable(event);
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/llm/exchange/${encodeURIComponent(exchangeId)}`);
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        const payload = await res.json();
+        if (!payload?.ok) {
+          throw new Error(payload?.error || "Fehler beim Laden");
+        }
+        showLlmExchangeDetail({ event, exchange: payload.exchange });
+      } catch (err) {
+        showLlmExchangeError({ event, error: String(err) });
+      }
+    });
 
     // ============================================================
     // KI-Aktionen
