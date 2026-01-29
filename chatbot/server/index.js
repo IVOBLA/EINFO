@@ -1950,6 +1950,9 @@ app.get("/api/llm/ops-verworfen", async (req, res) => {
       };
     });
 
+    // Newest entries first (log is append-only, so reverse for recency)
+    items.reverse();
+
     if (category) {
       items = items.filter((entry) => entry.category === category);
     }
