@@ -16,6 +16,7 @@ import { getKnowledgeContextVector } from "./rag/rag_vector.js";
 import { getEnhancedContext } from "./rag/query_router.js";
 import { extractJsonObject, validateOperationsJson } from "./json_sanitizer.js";
 import { setLLMHistoryMeta } from "./state_store.js";
+import { storeLlmExchange } from "./audit_trail.js";
 
 // Imports für Disaster Context und Learned Responses
 import { getFilteredDisasterContextSummary } from "./disaster_context.js";
@@ -292,7 +293,7 @@ export async function callLLMForOps({
     messages
   };
 
-  const { parsed, rawText } = await doLLMCallWithRetry(body, "ops", null, {
+  const { parsed, rawText, exchangeId } = await doLLMCallWithRetry(body, "ops", null, {
     returnFullResponse: true,
     timeoutMs: taskConfig.timeout
   });
@@ -307,7 +308,7 @@ export async function callLLMForOps({
 
   setLLMHistoryMeta(parsed?.meta || {});
 
-  return { parsed, rawText, systemPrompt, userMessage: userPrompt, messages, model: taskConfig.model };
+  return { parsed, rawText, systemPrompt, userMessage: userPrompt, messages, model: taskConfig.model, exchangeId };
 }
 
 
@@ -367,7 +368,8 @@ export async function callLLMForChat(arg1, arg2, arg3) {
     const phaseLabel = taskType === "analysis" ? "analysis" :
                        taskType === "situation-question" ? "situation-question" : "chat";
     const result = await doLLMCallWithRetry(body, phaseLabel, tokenCollector, {
-      timeoutMs: taskConfig.timeout
+      timeoutMs: taskConfig.timeout,
+      onExchangeId: overrides.onExchangeId
     });
 
     // Bei Streaming ist result leer, daher gesammelten Response zurückgeben
@@ -378,7 +380,8 @@ export async function callLLMForChat(arg1, arg2, arg3) {
     question,
     stream = false,
     onToken,
-    model
+    model,
+    onExchangeId
   } = arg1 || {};
   // Enhanced Context via Query-Router (inkl. Geo, Session, Memory)
   const { context: enhancedContext, intent, stats } = await getEnhancedContext(question, {
@@ -432,7 +435,8 @@ export async function callLLMForChat(arg1, arg2, arg3) {
   };
 
   const answer = await doLLMCallWithRetry(body, "chat", onToken, {
-    timeoutMs: taskConfig.timeout
+    timeoutMs: taskConfig.timeout,
+    onExchangeId
   });
   return answer;
 }
@@ -570,10 +574,31 @@ async function requestJsonRepairFromLLM({
  * @returns {Promise<any>}
  */
 async function doLLMCallWithRetry(body, phaseLabel, onToken, options = {}, maxRetries = RETRY_CONFIG.maxRetries) {
+  const exchangeId = options.exchangeId
+    || `llm_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+  if (typeof options.onExchangeId === "function") {
+    options.onExchangeId(exchangeId);
+  }
+
+  const tracker = {
+    exchangeId,
+    phase: phaseLabel,
+    model: body.model,
+    startedAt: Date.now(),
+    attemptCount: 0,
+    durationMs: null,
+    error: null,
+    rawRequest: null,
+    rawResponse: null,
+    parsedResponse: null
+  };
+
   let lastError;
   let currentTimeout = options.timeoutMs || CONFIG.llmRequestTimeoutMs;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    tracker.attemptCount += 1;
     try {
       logDebug("LLM-Call Versuch", {
         attempt,
@@ -582,10 +607,21 @@ async function doLLMCallWithRetry(body, phaseLabel, onToken, options = {}, maxRe
         timeout: currentTimeout
       });
 
-      return await doLLMCall(body, phaseLabel, onToken, {
+      const result = await doLLMCall(body, phaseLabel, onToken, {
         ...options,
+        exchangeId,
+        exchangeTracker: tracker,
         timeoutMs: currentTimeout
       });
+
+      tracker.durationMs = Date.now() - tracker.startedAt;
+      storeLlmExchange(tracker);
+
+      if (options.returnFullResponse && result && typeof result === "object") {
+        return { ...result, exchangeId };
+      }
+
+      return result;
     } catch (err) {
       lastError = err;
       const errorMsg = String(err);
@@ -612,6 +648,9 @@ async function doLLMCallWithRetry(body, phaseLabel, onToken, options = {}, maxRe
           error: errorMsg,
           retryable: isRetryable
         });
+        tracker.durationMs = Date.now() - tracker.startedAt;
+        tracker.error = errorMsg;
+        storeLlmExchange(tracker);
         throw lastError;
       }
 
@@ -648,9 +687,14 @@ async function doLLMCall(body, phaseLabel, onToken, options = {}) {
   if (!textOnlyPhases.includes(phaseLabel)) {
     body.format = "json";
   }
+  const tracker = options.exchangeTracker;
   const messages = Array.isArray(body.messages) ? body.messages : [];
   const serializedRequest = JSON.stringify(body);
   const messageCount = messages.length;
+
+  if (tracker && !tracker.rawRequest) {
+    tracker.rawRequest = serializedRequest;
+  }
 
   logDebug("LLM-Request", { model: body.model, phase: phaseLabel });
 
@@ -679,6 +723,10 @@ async function doLLMCall(body, phaseLabel, onToken, options = {}) {
     );
   } catch (error) {
     const errorStr = String(error);
+    if (tracker) {
+      tracker.rawResponse = errorStr;
+      tracker.parsedResponse = null;
+    }
     logError("LLM-HTTP-Fehler", { error: errorStr, phase: phaseLabel });
 
     logLLMExchange({
@@ -711,6 +759,11 @@ async function doLLMCall(body, phaseLabel, onToken, options = {}) {
       statusText: resp.statusText,
       body: rawText
     });
+
+    if (tracker) {
+      tracker.rawResponse = rawText;
+      tracker.parsedResponse = null;
+    }
 
     logLLMExchange({
       phase: "response_error",
@@ -785,6 +838,11 @@ async function doLLMCall(body, phaseLabel, onToken, options = {}) {
       extra: { phase: phaseLabel, messageCount }
     });
 
+    if (tracker) {
+      tracker.rawResponse = rawStream;
+      tracker.parsedResponse = content;
+    }
+
     if (options?.returnFullResponse) {
       return { parsed: content, rawText: rawStream };
     }
@@ -839,6 +897,11 @@ async function doLLMCall(body, phaseLabel, onToken, options = {}) {
     parsedResponse: parsed,
     extra: { phase: phaseLabel, messageCount }
   });
+
+  if (tracker) {
+    tracker.rawResponse = rawText;
+    tracker.parsedResponse = parsed ?? null;
+  }
 
   if (options?.returnFullResponse) {
     return { parsed, rawText };
