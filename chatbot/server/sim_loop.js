@@ -119,8 +119,25 @@ function isOutgoingEntry(entry = {}) {
     entry.uebermittlungsart?.aus === "true";
 }
 
+function stripAnVonPrefix(value) {
+  if (value == null) return "";
+  return String(value)
+    .trim()
+    .replace(/^(an|von)\s*:\s*/i, "")
+    .trim();
+}
+
 function parseRecipients(entry = {}) {
   const recipients = [];
+  if (typeof entry.anvon === "string") {
+    const cleaned = stripAnVonPrefix(entry.anvon);
+    const fromAnvon = cleaned
+      .split(/[,;]/)
+      .map((r) => r.trim())
+      .filter(Boolean);
+    recipients.push(...fromAnvon);
+  }
+
   if (Array.isArray(entry.ergehtAn)) {
     recipients.push(...entry.ergehtAn);
   } else if (entry.ergehtAn) {
@@ -135,7 +152,17 @@ function parseRecipients(entry = {}) {
     recipients.push(...fromText);
   }
 
-  return [...new Set(recipients.filter(Boolean))];
+  const seen = new Set();
+  const uniqueRecipients = [];
+  for (const recipient of recipients) {
+    const cleaned = stripAnVonPrefix(recipient);
+    if (!cleaned) continue;
+    if (seen.has(cleaned)) continue;
+    seen.add(cleaned);
+    uniqueRecipients.push(cleaned);
+  }
+
+  return uniqueRecipients;
 }
 
 function compareByDateTimeAsc(a, b) {
@@ -183,10 +210,8 @@ export function identifyOpenFollowUps(protokoll, rolesOrConstants = {}) {
     });
     if (externalRecipients.length === 0) continue;
 
-    if (entry.rueckmeldung1 == null) continue;
-    const rueckmeldung1 = String(entry.rueckmeldung1).trim();
-    if (!rueckmeldung1) continue;
-    if (rueckmeldung1.toLowerCase() === "answered") continue;
+    const rueckmeldung1 = entry.rueckmeldung1;
+    if (rueckmeldung1 != null && String(rueckmeldung1).trim() !== "") continue;
 
     openFollowUps.push({
       id: entry.id,
