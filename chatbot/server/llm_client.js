@@ -186,7 +186,6 @@ export async function callLLMForOps({
       compressedProtokoll,
       knowledgeContext,
       memorySnippets,
-      messagesNeedingResponse: llmInput.messagesNeedingResponse || null,
       openQuestions: llmInput.openQuestions || null,  // NEU: Offene Rückfragen
       disasterContext,
       learnedResponses,
@@ -240,10 +239,6 @@ export async function callLLMForOps({
         memorySnippets: {
           chars: memorySnippets?.join?.("\n")?.length || 0,
           count: Array.isArray(memorySnippets) ? memorySnippets.length : 0
-        },
-        messagesNeedingResponse: {
-          count: llmInput.messagesNeedingResponse?.length || 0,
-          included: (llmInput.messagesNeedingResponse?.length || 0) > 0
         },
         openQuestions: {
           count: llmInput.openQuestions?.length || 0,

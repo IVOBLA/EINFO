@@ -36,7 +36,6 @@ import { syncRolesFile } from "./roles_sync.js";
 
 // Neue Module (Verbesserungen)
 import { simulationState } from "./simulation_state.js";
-import { ProtocolIndex } from "./protocol_index.js";
 import {
   handleSimulationError,
   safeExecute,
@@ -85,236 +84,125 @@ const INTERNAL_ROLES = new Set([
 ]);
 
 // ============================================================
-// Identifiziert ausgehende Protokolleinträge die Antworten benötigen
+// Identifiziert offene Rückfragen im Protokoll (Single-Source-of-Truth)
 // ============================================================
-/**
- * Findet alle ausgehenden Meldungen an Stellen, die nicht aktiv besetzt sind.
- * Das können interne Stabsrollen oder externe Stellen sein.
- * 
- * @param {Array} protokoll - Alle Protokolleinträge (nicht nur Delta!)
- * @param {Array} protokollDelta - Neue/geänderte Protokolleinträge
- * @param {Object} roles - { active: [...] }
- * @returns {Array} Meldungen die eine Antwort benötigen
- */
-/**
- * REFACTORED: Verwendet jetzt ProtocolIndex für O(n) statt O(n²) Performance
- *
- * Identifiziert ausgehende Protokolleinträge die eine Antwort benötigen.
- *
- * WICHTIG: Prüft ALLE ausgehenden Protokolleinträge (nicht nur Delta),
- * damit auch ältere unbeantwortete Nachrichten erkannt werden.
- *
- * @param {Array} protokoll - Alle Protokolleinträge
- * @param {Array} protokollDelta - Neue/geänderte Einträge (wird nicht mehr verwendet)
- * @param {Object} roles - { active: [...] }
- * @returns {Array} Meldungen die Antwort benötigen
- */
-export function identifyMessagesNeedingResponse(protokoll, protokollDelta, roles) {
-  const { active } = roles;
-  const activeSet = new Set(active.map(r => String(r).toUpperCase()));
-  const needingResponse = [];
+const BOT_INDICATORS = new Set([
+  "chatbot",
+  "bot",
+  "simulation-worker",
+  "sim-worker",
+  "simulation",
+  "sim"
+]);
 
-  // Limit um Performance-Probleme bei großen Protokollen zu vermeiden
-  const MAX_RESPONSES_PER_STEP = 10;
-
-  // PERFORMANCE: Erstelle Index für effiziente Suche (O(n) statt O(n²))
-  const index = new ProtocolIndex(protokoll);
-
-  // BUGFIX: Prüfe ALLE Protokolleinträge, nicht nur Delta
-  // Damit werden auch ältere unbeantwortete ausgehende Nachrichten erkannt
-  // Sortiere nach Zeit (neueste zuerst) um die relevantesten zuerst zu finden
-  const sortedProtokoll = [...protokoll].sort((a, b) => {
-    const timeA = `${a.datum || ""} ${a.zeit || ""}`;
-    const timeB = `${b.datum || ""} ${b.zeit || ""}`;
-    return timeB.localeCompare(timeA); // Neueste zuerst
-  });
-
-  for (const entry of sortedProtokoll) {
-    // Limit erreicht - nicht mehr suchen
-    if (needingResponse.length >= MAX_RESPONSES_PER_STEP) break;
-
-    // BUGFIX: Ignoriere Bot-erstellte Nachrichten
-    // Wir wollen keine Antworten auf Simulations-Nachrichten generieren
-    const createdBy = entry.createdBy || entry.history?.[0]?.by || "";
-    const kanalNr = entry.uebermittlungsart?.kanalNr || "";
-    const isFromBot =
-      createdBy === "CHATBOT" ||
-      createdBy === "simulation-worker" ||
-      createdBy === "bot" ||
-      kanalNr === "bot";
-
-    if (isFromBot) continue;
-
-    // Nur ausgehende Meldungen prüfen
-    const richtung = entry.richtung || entry.uebermittlungsart?.richtung || "";
-    const isOutgoing = /aus/i.test(richtung) ||
-                       entry.uebermittlungsart?.aus === true ||
-                       entry.uebermittlungsart?.aus === "true";
-
-    if (!isOutgoing) continue;
-
-    // PERFORMANCE: Nutze Index für Antwort-Suche (O(1) statt O(n))
-    const response = index.findResponseTo(entry);
-    if (response) continue;
-
-    // Sammle alle Empfänger
-    const ergehtAn = Array.isArray(entry.ergehtAn)
-      ? entry.ergehtAn
-      : (entry.ergehtAn ? [entry.ergehtAn] : []);
-
-    const ergehtAnText = entry.ergehtAnText || "";
-    const allRecipients = [...ergehtAn];
-
-    // Zusätzliche Empfänger aus Freitext
-    if (ergehtAnText) {
-      const textRecipients = ergehtAnText
-        .split(/[,;]/)
-        .map(r => r.trim())
-        .filter(Boolean);
-      allRecipients.push(...textRecipients);
-    }
-
-    // Filtere Duplikate
-    const uniqueRecipients = [...new Set(allRecipients)];
-
-    // Prüfe welche Empfänger NICHT aktiv besetzt sind
-    const nonActiveRecipients = uniqueRecipients.filter(r => {
-      const upper = String(r).toUpperCase();
-      return !activeSet.has(upper);
-    });
-
-    if (nonActiveRecipients.length === 0) continue;
-
-    // Unterscheide: Interne Stabsrollen vs. Externe Stellen
-    const internalMissing = [];
-    const externalRecipients = [];
-
-    for (const r of nonActiveRecipients) {
-      const upper = String(r).toUpperCase();
-      // Ist es eine bekannte interne Rolle?
-      if (INTERNAL_ROLES.has(upper)) {
-        internalMissing.push(r);
-      } else {
-        // Externe Stelle (Leitstelle, Polizei, Bürgermeister, etc.)
-        externalRecipients.push(r);
-      }
-    }
-
-    needingResponse.push({
-      id: entry.id,
-      nr: entry.nr,
-      datum: entry.datum || "",
-      zeit: entry.zeit || "",
-      infoTyp: entry.infoTyp || entry.typ || "",
-      anvon: entry.anvon || "Stab",
-      information: entry.information || "",
-      allRecipients: nonActiveRecipients,
-      internalMissing,
-      externalRecipients,
-      originalEntry: entry
-    });
-  }
-
-  return needingResponse;
+function normalizeIndicator(value) {
+  if (value == null) return "";
+  return String(value).trim().toLowerCase();
 }
 
-// ============================================================
-// Identifiziert offene Rückfragen im Protokoll
-// ============================================================
+function isBotEntry(entry = {}) {
+  const indicators = [
+    entry.createdBy,
+    entry.source,
+    entry.uebermittlungsart?.kanalNr,
+    entry.anvon,
+    entry.history?.[0]?.by
+  ].map(normalizeIndicator);
+
+  return indicators.some((value) => BOT_INDICATORS.has(value));
+}
+
+function isOutgoingEntry(entry = {}) {
+  const richtung = entry.richtung || entry.uebermittlungsart?.richtung || "";
+  return /aus/i.test(richtung) ||
+    entry.uebermittlungsart?.aus === true ||
+    entry.uebermittlungsart?.aus === "true";
+}
+
+function parseRecipients(entry = {}) {
+  const recipients = [];
+  if (Array.isArray(entry.ergehtAn)) {
+    recipients.push(...entry.ergehtAn);
+  } else if (entry.ergehtAn) {
+    recipients.push(entry.ergehtAn);
+  }
+
+  if (typeof entry.ergehtAnText === "string") {
+    const fromText = entry.ergehtAnText
+      .split(/[,;]/)
+      .map((r) => r.trim())
+      .filter(Boolean);
+    recipients.push(...fromText);
+  }
+
+  return [...new Set(recipients.filter(Boolean))];
+}
+
+function compareByDateTimeAsc(a, b) {
+  const timeA = `${a.datum || ""} ${a.zeit || ""}`;
+  const timeB = `${b.datum || ""} ${b.zeit || ""}`;
+  return timeA.localeCompare(timeB);
+}
+
 /**
- * Findet alle Protokolleinträge die NICHT vom CHATBOT erstellt wurden und
- * eine Rückfrage darstellen, die noch nicht beantwortet wurde.
+ * Findet alle offenen Rückfragen im Protokoll.
  *
- * Kriterien für eine Rückfrage:
- * 1. NICHT vom CHATBOT erstellt (createdBy !== 'CHATBOT' UND kanalNr !== 'bot')
- * 2. Die Information enthält ein Fragezeichen ODER
- *    geht an eine interne Rolle die keine aktive Rolle ist ODER
- *    geht an eine externe Rolle
- * 3. Die Frage wurde noch nicht beantwortet (kein nachfolgender CHATBOT-Eintrag)
+ * Kriterien:
+ * 1. NICHT vom Bot erstellt (createdBy/source/kanalNr/anvon Indikatoren)
+ * 2. richtung = "aus" oder uebermittlungsart.aus === true
+ * 3. information enthält "?"
+ * 4. mind. ein Empfänger ist extern (nicht in INTERNAL_ROLES)
+ * 5. rueckmeldung1 ist gesetzt und nicht "answered"
  *
  * @param {Array} protokoll - Alle Protokolleinträge
- * @param {Object} roles - { active: [...] }
- * @returns {Array} Offene Rückfragen die beantwortet werden müssen
+ * @param {Object} rolesOrConstants - optionales Objekt mit internalRoles
+ * @returns {Array} Offene Rückfragen (0..n)
  */
-/**
- * Findet alle offenen Fragen im Protokoll die noch nicht beantwortet wurden.
- *
- * Eine Frage gilt als beantwortet wenn rueckmeldung1="answered" gesetzt ist.
- * Nur Fragen mit leerem rueckmeldung1 werden an das LLM weitergegeben.
- *
- * @param {Array} protokoll - Alle Protokolleinträge
- * @param {Object} roles - { active: [...] }
- * @returns {Array} Offene Fragen die beantwortet werden müssen
- */
-export function identifyOpenQuestions(protokoll, roles) {
-  const { active } = roles;
-  const activeSet = new Set(active.map(r => String(r).toUpperCase()));
-  const openQuestions = [];
+export function identifyOpenFollowUps(protokoll, rolesOrConstants = {}) {
+  const openFollowUps = [];
+  const internalRoles =
+    rolesOrConstants?.internalRoles ||
+    rolesOrConstants?.INTERNAL_ROLES ||
+    INTERNAL_ROLES;
+  const internalRolesSet = new Set(
+    Array.from(internalRoles).map((role) => String(role).toUpperCase())
+  );
 
-  for (const entry of protokoll) {
-    // Kriterium 1: rueckmeldung1 muss leer sein (nicht beantwortet)
-    const rueckmeldung1 = (entry.rueckmeldung1 || "").trim();
-    if (rueckmeldung1) continue;
+  for (const entry of protokoll || []) {
+    if (isBotEntry(entry)) continue;
+    if (!isOutgoingEntry(entry)) continue;
 
-    // Kriterium 2: NICHT vom CHATBOT erstellt
-    const createdBy = entry.createdBy || entry.history?.[0]?.by || "";
-    const kanalNr = entry.uebermittlungsart?.kanalNr || "";
-    const isFromBot =
-      createdBy === "CHATBOT" ||
-      createdBy === "simulation-worker" ||
-      createdBy === "bot" ||
-      kanalNr === "bot" ||
-      kanalNr === "CHATBOT";
+    const information =
+      typeof entry.information === "string" ? entry.information.trim() : "";
+    if (!information.includes("?")) continue;
 
-    if (isFromBot) continue;
-
-    // Kriterium 3: Ist dies eine Frage?
-    const information = entry.information || "";
-    const hasQuestionMark = information.includes("?");
-
-    // Prüfe Empfänger: geht an interne nicht-aktive Rolle oder externe Rolle?
-    const ergehtAn = Array.isArray(entry.ergehtAn)
-      ? entry.ergehtAn
-      : (entry.ergehtAn ? [entry.ergehtAn] : []);
-
-    let targetsNonActiveInternal = false;
-    let targetsExternal = false;
-
-    for (const recipient of ergehtAn) {
+    const recipients = parseRecipients(entry);
+    const externalRecipients = recipients.filter((recipient) => {
       const upper = String(recipient).toUpperCase();
-      if (INTERNAL_ROLES.has(upper)) {
-        // Interne Rolle - prüfe ob aktiv
-        if (!activeSet.has(upper)) {
-          targetsNonActiveInternal = true;
-        }
-      } else {
-        // Externe Rolle
-        targetsExternal = true;
-      }
-    }
+      return !internalRolesSet.has(upper);
+    });
+    if (externalRecipients.length === 0) continue;
 
-    // Ist dies eine Frage?
-    const isQuestion = hasQuestionMark || targetsNonActiveInternal || targetsExternal;
-    if (!isQuestion) continue;
+    if (entry.rueckmeldung1 == null) continue;
+    const rueckmeldung1 = String(entry.rueckmeldung1).trim();
+    if (!rueckmeldung1) continue;
+    if (rueckmeldung1.toLowerCase() === "answered") continue;
 
-    // Diese Frage ist noch offen (rueckmeldung1 ist leer)
-    openQuestions.push({
+    openFollowUps.push({
       id: entry.id,
       nr: entry.nr,
       datum: entry.datum || "",
       zeit: entry.zeit || "",
       infoTyp: entry.infoTyp || entry.typ || "",
       anvon: entry.anvon || "",
-      ergehtAn: ergehtAn,
-      information: information,
-      hasQuestionMark,
-      targetsNonActiveInternal,
-      targetsExternal,
+      ergehtAn: recipients,
+      externalRecipients,
+      information,
       originalEntry: entry
     });
   }
 
-  return openQuestions;
+  return openFollowUps.sort(compareByDateTimeAsc);
 }
 
 // Merkt sich den letzten Stand der eingelesenen EINFO-Daten...
@@ -738,60 +626,17 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
     });
 
     // ============================================================
-    // NEU: Identifiziere Meldungen die eine Antwort benötigen
+    // NEU: Identifiziere offene Rückfragen (Single-Source-of-Truth)
     // ============================================================
-    const messagesNeedingResponse = identifyMessagesNeedingResponse(
-      protokoll,      // Alle Protokolleinträge (für Antwort-Check)
-      protokollDelta, // Nur neue/geänderte prüfen
-      roles
-    );
-    
-    if (messagesNeedingResponse.length > 0) {
-      logInfo("Meldungen benötigen Antwort", {
-        count: messagesNeedingResponse.length,
-        messages: messagesNeedingResponse.map(m => ({
-          nr: m.nr,
-          von: m.anvon,
-          an: m.allRecipients,
-          extern: m.externalRecipients,
-          info: (m.information || "").slice(0, 50)
-        }))
-      });
+    const openFollowUps = identifyOpenFollowUps(protokoll, roles);
 
-      // Audit-Event
-      logEvent("simulation", "response_needed", {
-        stepId,
-        messageCount: messagesNeedingResponse.length,
-        externalEntities: [...new Set(
-          messagesNeedingResponse.flatMap(m => m.externalRecipients)
-        )]
-      });
-    }
-
-    // ============================================================
-    // NEU: Identifiziere offene Rückfragen von echten Benutzern
-    // ============================================================
-    const openQuestions = identifyOpenQuestions(protokoll, roles);
-
-    if (openQuestions.length > 0) {
-      logInfo("Offene Rückfragen gefunden", {
-        count: openQuestions.length,
-        questions: openQuestions.map(q => ({
-          nr: q.nr,
-          von: q.anvon,
-          an: q.ergehtAn,
-          frage: (q.information || "").slice(0, 50),
-          hatFragezeichen: q.hasQuestionMark
-        }))
-      });
-
-      // Audit-Event
-      logEvent("simulation", "open_questions_found", {
-        stepId,
-        questionCount: openQuestions.length,
-        questioners: [...new Set(openQuestions.map(q => q.anvon))]
-      });
-    }
+    logInfo(`Offene Rueckfragen (${openFollowUps.length})`, {
+      count: openFollowUps.length,
+      preview: openFollowUps.slice(0, 2).map((entry) => ({
+        nr: entry.nr,
+        info: (entry.information || "").slice(0, 80)
+      }))
+    });
 
     // ============================================================
     // NEU: Disaster Context mit aktuellen EINFO-Daten aktualisieren
@@ -840,13 +685,9 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
       compressedProtokoll: compressProtokoll(protokoll),
       firstStep: isFirstStep,
       elapsedMinutes: simulationState.elapsedMinutes,  // NEU: Für phasenbasierte Requirements
-      // NEU: Meldungen die Antwort brauchen
-      messagesNeedingResponse: messagesNeedingResponse.length > 0
-        ? messagesNeedingResponse
-        : null,
-      // NEU: Offene Rückfragen von echten Benutzern
-      openQuestions: openQuestions.length > 0
-        ? openQuestions
+      // NEU: Offene Rückfragen (Single-Source-of-Truth)
+      openQuestions: openFollowUps.length > 0
+        ? openFollowUps
         : null,
       scenarioControl: buildScenarioControlSummary({
         scenario: simulationState.activeScenario,
@@ -1064,7 +905,7 @@ simulationState.lastCompressedBoard = opsContext.compressedBoard;
       durationMs: stepDuration,
       protocolsCreated: operations.protokoll?.create?.length || 0,
       incidentsCreated: operations.board?.createIncidentSites?.length || 0,
-      responsesGenerated: messagesNeedingResponse.length
+      openFollowUps: openFollowUps.length
     });
 
     // ============================================================

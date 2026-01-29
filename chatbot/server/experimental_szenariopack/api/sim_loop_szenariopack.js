@@ -3,8 +3,7 @@ import { logError, logInfo } from "../../logger.js";
 import { searchMemory } from "../../memory_manager.js";
 import { callLLMForOps } from "../../llm_client.js";
 import {
-  identifyMessagesNeedingResponse,
-  identifyOpenQuestions,
+  identifyOpenFollowUps,
   buildMemoryQueryFromState,
   compressBoard,
   compressAufgaben,
@@ -238,12 +237,15 @@ export async function stepSimulation(options = {}) {
   const aufgabenDeltaResult = buildDelta(aufgaben, prevSnapshot.aufgaben, toComparableAufgabe);
   const protokollDeltaResult = buildDelta(protokoll, prevSnapshot.protokoll, toComparableProtokoll);
 
-  const messagesNeedingResponse = identifyMessagesNeedingResponse(
-    protokoll,
-    protokollDeltaResult.delta,
-    roles
-  );
-  const openQuestions = identifyOpenQuestions(protokoll, roles);
+  const openQuestions = identifyOpenFollowUps(protokoll, roles);
+
+  logInfo(`Offene Rueckfragen (${openQuestions.length})`, {
+    count: openQuestions.length,
+    preview: openQuestions.slice(0, 2).map((entry) => ({
+      nr: entry.nr,
+      info: (entry.information || "").slice(0, 80)
+    }))
+  });
 
   const compressedBoard = compressBoard(board);
   const compressedAufgaben = compressAufgaben(aufgaben);
@@ -268,7 +270,6 @@ export async function stepSimulation(options = {}) {
     compressedProtokoll,
     firstStep: state.tick === 0,
     elapsedMinutes: state.tick * (activeScenario?.zeit?.schritt_minuten || 5),
-    messagesNeedingResponse,
     openQuestions,
     scenarioControl: buildScenarioControl({
       worldNow,
@@ -455,8 +456,7 @@ export async function handleUserFreitext({ role, text }) {
 }
 
 export {
-  identifyMessagesNeedingResponse,
-  identifyOpenQuestions,
+  identifyOpenFollowUps,
   buildMemoryQueryFromState,
   compressBoard,
   compressAufgaben,

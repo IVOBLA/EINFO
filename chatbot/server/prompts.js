@@ -46,7 +46,6 @@ const chatUserPromptTemplate = loadPromptTemplate("chat_user_prompt.txt");
 // NEU: Task-Abschnitt Templates
 const taskSectionFirstStep = loadPromptTemplate("task_section_first_step.txt");
 const taskSectionOperations = loadPromptTemplate("task_section_operations.txt");
-const responseGuideTemplate = loadPromptTemplate("response_guide.txt");
 const scenarioContextTemplate = loadPromptTemplate("scenario_context.txt");
 // NEU: Offene Rückfragen Template
 const openQuestionsGuideTemplate = loadPromptTemplate("open_questions_guide.txt");
@@ -81,7 +80,6 @@ export function buildUserPrompt({
   compressedProtokoll,
   knowledgeContext,
   memorySnippets,
-  messagesNeedingResponse,  // NEU
   openQuestions = null,      // NEU: Offene Rückfragen
   disasterContext = "",      // NEU
   learnedResponses = "",     // NEU
@@ -148,23 +146,6 @@ export function buildUserPrompt({
     taskSection = fillTemplate(taskSectionOperations, { phaseRequirements });
   }
 
-  // Formatiere Meldungen die Antwort benötigen (kompakt)
-  let responseRequests = "";
-  if (messagesNeedingResponse && messagesNeedingResponse.length > 0) {
-    responseRequests = "\n\n" + responseGuideTemplate + "\n\n";
-    for (let i = 0; i < messagesNeedingResponse.length; i++) {
-      const msg = messagesNeedingResponse[i];
-      responseRequests += `[MELDUNG ${i + 1}] Nr.${msg.nr || "?"} ${msg.datum || ""} ${msg.zeit || ""}\n`;
-      responseRequests += `bezugNr (Pflicht für Rueckmeldung): ${msg.nr || "?"}\n`;
-      responseRequests += `Von: ${msg.anvon} | An: ${msg.allRecipients.join(", ")}`;
-      if (msg.externalRecipients.length > 0) {
-        responseRequests += ` | EXTERN: ${msg.externalRecipients.join(", ")}`;
-      }
-      responseRequests += `\nTyp: ${msg.infoTyp} | "${msg.information}"\n`;
-      responseRequests += `Antwort von: ${msg.allRecipients.join(" ODER ")}\n\n`;
-    }
-  }
-
   // Formatiere offene Rückfragen (kompakt)
   let openQuestionsSection = "";
   if (openQuestions && openQuestions.length > 0) {
@@ -172,14 +153,12 @@ export function buildUserPrompt({
     for (let i = 0; i < openQuestions.length; i++) {
       const q = openQuestions[i];
       const recipients = Array.isArray(q.ergehtAn) ? q.ergehtAn.join(", ") : q.ergehtAn || "";
-      let flags = [];
-      if (q.hasQuestionMark) flags.push("?");
-      if (q.targetsNonActiveInternal) flags.push("intern");
-      if (q.targetsExternal) flags.push("extern");
       openQuestionsSection += `[FRAGE ${i + 1}] Nr.${q.nr || "?"} ${q.datum || ""} ${q.zeit || ""}\n`;
       openQuestionsSection += `bezugNr (Pflicht für Rueckmeldung): ${q.nr || "?"}\n`;
       openQuestionsSection += `Von: ${q.anvon} | An: ${recipients}`;
-      if (flags.length > 0) openQuestionsSection += ` | ${flags.join(",")}`;
+      if (q.externalRecipients?.length > 0) {
+        openQuestionsSection += ` | EXTERN: ${q.externalRecipients.join(", ")}`;
+      }
       openQuestionsSection += `\nTyp: ${q.infoTyp} | "${q.information}"\n`;
       openQuestionsSection += `Antwort VON: ${recipients} AN: ${q.anvon} (infoTyp: Rueckmeldung)\n\n`;
     }
@@ -202,7 +181,6 @@ export function buildUserPrompt({
     formattedMemorySnippets,
     knowledgeContext: knowledgeContext || "",
     taskSection,
-    responseRequests,
     openQuestionsSection,
     disasterContext: disasterContext || "",
     learnedResponses: learnedResponses || "",

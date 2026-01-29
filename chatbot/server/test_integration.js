@@ -130,7 +130,6 @@ const __dirname = path.dirname(__filename);
 const templateDir = path.join(__dirname, "prompt_templates");
 const templateFiles = [
   "open_questions_guide.txt",
-  "response_guide.txt",
   "operations_system_prompt.txt"
 ];
 for (const file of templateFiles) {
