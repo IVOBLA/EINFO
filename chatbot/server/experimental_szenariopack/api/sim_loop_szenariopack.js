@@ -12,6 +12,7 @@ import {
   toComparableProtokoll,
   buildDelta
 } from "../../sim_loop.js";
+import { getFilteredDisasterContextSummary } from "../../disaster_context.js";
 import { getExperimentalConfig } from "../config/config_loader.js";
 import { loadScenarioFromFile, assertScenarioStructure } from "../engine/loader.js";
 import { createInitialState, resetStateForScenario } from "../engine/state.js";
@@ -248,7 +249,15 @@ export async function stepSimulation(options = {}) {
     }))
   });
 
-  const compressedBoard = compressBoard(board);
+  let r5Active = false;
+  try {
+    const { appliedRules } = await getFilteredDisasterContextSummary({ maxLength: 200 });
+    r5Active = appliedRules?.R5_STABS_FOKUS?.active === true;
+  } catch (error) {
+    logInfo("Experimental ScenarioPack: R5-Status konnte nicht ermittelt werden", { error: String(error) });
+  }
+
+  const compressedBoard = r5Active ? null : compressBoard(board);
   const compressedAufgaben = compressAufgaben(aufgaben);
     const { entries: protokollForPrompt } = selectProtokollDeltaForPrompt({
       protokollRaw: protokoll,

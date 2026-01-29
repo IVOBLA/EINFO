@@ -1108,7 +1108,15 @@ export async function getFilteredDisasterContextSummary({ maxLength = 2500 } = {
       },
       R5_STABS_FOKUS: {
         enabled: rules.rules.R5_STABS_FOKUS?.enabled || false,
-        individual_incidents_shown: filtered.incidents?.length || 0
+        active: filterDebug?.rules?.R5_STABS_FOKUS?.active || false,
+        individual_incidents_shown: filtered.incidents?.length || 0,
+        critical_candidates: filterDebug?.filtering?.incidents?.critical_candidates || 0,
+        selected_count: filterDebug?.filtering?.incidents?.selected_count || 0,
+        fallback_used: filterDebug?.filtering?.incidents?.fallback_used || false,
+        fallback_top_n: filterDebug?.filtering?.incidents?.fallback_top_n || 0,
+        min_required: filterDebug?.filtering?.incidents?.min_required || 0,
+        min_score: filterDebug?.filtering?.incidents?.min_score ?? null,
+        top_scores: filterDebug?.filtering?.incidents?.top_scores || []
       }
     };
 
@@ -1219,6 +1227,22 @@ function buildFilteredSummary(filtered, fingerprint, rules) {
       const time = buildProtocolTimeLabel(entry);
       const content = String(entry.information || entry.info || "").substring(0, 100);
       summary += `- [${time}] ${content}\n`;
+    }
+    summary += `\n`;
+  }
+
+  if (filtered.incidents && filtered.incidents.length > 0) {
+    summary += `### STABS-FOKUS: KRITISCHE EINZELEINSÄTZE (${filtered.incidents.length}) ###\n`;
+    for (const incident of filtered.incidents) {
+      const status = String(incident.column || "unbekannt").toUpperCase();
+      const sectionName = incident._area_name || "ohne Abschnitt";
+      const location = incident.ort || incident.location || "Ort unbekannt";
+      const text = String(incident.content || incident.description || incident.title || "").substring(0, 100);
+      const score = typeof incident._critical_score === "number"
+        ? incident._critical_score.toFixed(2)
+        : "n/a";
+      const fallbackTag = incident._r5_fallback ? "(Fallback) " : "";
+      summary += `- [${status}] ${fallbackTag}${sectionName} @ ${location}: ${text} (Score: ${score})\n`;
     }
     summary += `\n`;
   }

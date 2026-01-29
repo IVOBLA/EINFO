@@ -174,15 +174,18 @@ export async function callLLMForOps({
       appliedRules,
       tokensUsed: disasterTokens
     } = await getFilteredDisasterContextSummary({ maxLength: 1500 });
+    const r5Active = appliedRules?.R5_STABS_FOKUS?.active === true;
+    const effectiveCompressedBoard = r5Active ? null : compressedBoard;
+    const compressedBoardForContext = typeof effectiveCompressedBoard === "string" ? effectiveCompressedBoard : "";
 
     // Learned Responses abrufen (basierend auf aktuellem Board-Context)
-    const contextQuery = `${compressedBoard.substring(0, 200)} Katastrophenmanagement Einsatzleitung`;
+    const contextQuery = `${compressedBoardForContext.substring(0, 200)} Katastrophenmanagement Einsatzleitung`;
     const learnedResponses = await getLearnedResponsesContext(contextQuery, { maxLength: 1000 });
 
     systemPrompt = buildSystemPrompt();
     userPrompt = buildUserPrompt({
       llmInput,
-      compressedBoard,
+      compressedBoard: effectiveCompressedBoard,
       compressedAufgaben,
       compressedProtokoll,
       knowledgeContext,
@@ -210,9 +213,10 @@ export async function callLLMForOps({
           tokens: Math.ceil(userPrompt.length / 4)
         },
         compressedBoard: {
-          chars: compressedBoard?.length || 0,
-          tokens: Math.ceil((compressedBoard?.length || 0) / 4),
-          preview: compressedBoard?.substring(0, 80)
+          chars: compressedBoardForContext.length,
+          tokens: Math.ceil(compressedBoardForContext.length / 4),
+          preview: compressedBoardForContext.substring(0, 80),
+          included: !r5Active
         },
         compressedAufgaben: {
           chars: compressedAufgaben?.length || 0,

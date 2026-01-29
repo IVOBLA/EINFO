@@ -82,6 +82,20 @@ const DEFAULT_RULES = {
       enabled: false,
       description: "Aggregiert Daten für Stabs-Ansicht (nur kritische Einzeleinsätze)",
       applies_to: "all",
+      critical_scoring: {
+        base_score: 0.0,
+        min_score: 0.6,
+        factors: [
+          { name: "Personen in Gefahr", keywords: ["verletzt", "eingeschlossen", "eingeklemmt", "vermisst", "reanimation"], weight: 0.4, learnable: false },
+          { name: "Brand/Explosion", keywords: ["brand", "feuer", "rauch", "explosion"], weight: 0.35, learnable: false },
+          { name: "Evakuierung/Gefahrstoff", keywords: ["evakuierung", "räumung", "gefahrstoff", "austritt", "kontamination"], weight: 0.3, learnable: false },
+          { name: "Infrastruktur/Kollaps", keywords: ["einsturz", "kollaps", "brücke", "gas", "stromausfall", "wasser"], weight: 0.25, learnable: false },
+          { name: "Unwetter/Umwelt", keywords: ["hochwasser", "überschwemmung", "sturm", "erdrutsch"], weight: 0.2, learnable: false }
+        ]
+      },
+      max_individual_incidents: 3,
+      min_required: 3,
+      fallback_top_n: 5,
       stab_mode: {
         aggregate_to_sections: true,
         max_individual_incidents: 3,

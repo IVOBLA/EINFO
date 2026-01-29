@@ -18,6 +18,7 @@ import {
 import { setEinfoSnapshot } from "./state_store.js";
 import {
   updateDisasterContextFromEinfo,
+  getFilteredDisasterContextSummary,
   incrementSimulationStep
 } from "./disaster_context.js";
 import { isAnalysisInProgress } from "./situation_analyzer.js";
@@ -830,13 +831,23 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
 
     logDebug("Protokoll Delta für Prompt", protokollStats);
 
+    let r5Active = false;
+    try {
+      const { appliedRules } = await getFilteredDisasterContextSummary({ maxLength: 200 });
+      r5Active = appliedRules?.R5_STABS_FOKUS?.active === true;
+    } catch (err) {
+      logDebug("R5-Status konnte nicht ermittelt werden", { error: String(err) });
+    }
+
     const opsContext = {
       roles: {
         active: roles.active
       },
-      compressedBoard: boardUnchanged
-        ? simulationState.lastCompressedBoard
-        : compressBoard(boardSnapshot),
+      compressedBoard: r5Active
+        ? null
+        : (boardUnchanged
+          ? simulationState.lastCompressedBoard
+          : compressBoard(boardSnapshot)),
       compressedAufgaben: compressAufgaben(aufgaben, roles.active),
       compressedProtokoll: compressProtokoll(protokollForPrompt),
       firstStep: isFirstStep,
@@ -852,7 +863,7 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
     };
 
     const estimatedDataTokens = Math.ceil(
-      (opsContext.compressedBoard.length +
+      ((opsContext.compressedBoard?.length || 0) +
         opsContext.compressedAufgaben.length +
         opsContext.compressedProtokoll.length) / 4
     );

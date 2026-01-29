@@ -173,9 +173,14 @@ export function buildUserPrompt({
     minutesPerStep
   });
 
-  return fillTemplate(operationsUserPromptTemplate, {
+  const includeBoard = typeof compressedBoard === "string" && compressedBoard.trim().length > 0;
+  const template = includeBoard
+    ? operationsUserPromptTemplate
+    : operationsUserPromptTemplate.replace(/\nEINSATZSTELLEN:\n\{\{compressedBoard\}\}\n\n/, "\n");
+
+  return fillTemplate(template, {
     rolesPart,
-    compressedBoard,
+    compressedBoard: includeBoard ? compressedBoard : "",
     compressedAufgaben,
     compressedProtokoll,
     formattedMemorySnippets,
