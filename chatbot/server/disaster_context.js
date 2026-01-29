@@ -11,6 +11,7 @@ import { CONFIG } from "./config.js";
 import { logDebug, logError, logInfo } from "./logger.js";
 import { getCurrentState } from "./state_store.js";
 import { loadPromptTemplate, fillTemplate } from "./prompts.js";
+import { normalizeRole, isStabsstelle, isMeldestelle } from "./field_mapper.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1213,7 +1214,8 @@ function buildFilteredSummary(filtered, fingerprint, rules) {
   // Protokoll (aus R2)
   if (filtered.protocol && filtered.protocol.length > 0) {
     summary += `### WICHTIGE PROTOKOLL-EINTRÄGE (${fingerprint.protocol_entries_total} gesamt) ###\n`;
-    for (const entry of filtered.protocol.slice(0, 10)) {
+    const importantProtocol = postProcessImportantProtocolEntries(filtered.protocol, { limit: 10 });
+    for (const entry of importantProtocol) {
       const time = buildProtocolTimeLabel(entry);
       const content = String(entry.information || entry.info || "").substring(0, 100);
       summary += `- [${time}] ${content}\n`;
@@ -1240,6 +1242,116 @@ function buildFilteredSummary(filtered, fingerprint, rules) {
   }
 
   return summary;
+}
+
+function normalizeProtocolText(text) {
+  return String(text || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
+function stripAnVonPrefix(value) {
+  return String(value || "")
+    .replace(/^\s*(an|von)\s*:\s*/i, "")
+    .trim();
+}
+
+function getProtocolText(entry) {
+  const raw = entry?.information ?? entry?.info ?? "";
+  return String(raw);
+}
+
+function isOutgoingEntry(entry) {
+  const richtung = entry?.richtung || entry?.uebermittlungsart?.richtung || "";
+  return /aus/i.test(richtung) || entry?.uebermittlungsart?.aus === true || entry?.uebermittlungsart?.aus === "true";
+}
+
+function parseRecipients(entry) {
+  const recipients = [];
+
+  const addRecipient = value => {
+    if (!value) return;
+    const cleaned = stripAnVonPrefix(value);
+    const normalized = normalizeRole(cleaned);
+    if (normalized) {
+      recipients.push(normalized);
+    }
+  };
+
+  const addValuesFromString = value => {
+    if (!value) return;
+    const parts = String(value)
+      .split(/[;,]/)
+      .map(part => part.trim())
+      .filter(Boolean);
+    for (const part of parts) {
+      addRecipient(part);
+    }
+  };
+
+  if (Array.isArray(entry?.ergehtAn)) {
+    for (const role of entry.ergehtAn) {
+      addRecipient(role);
+    }
+  } else if (typeof entry?.ergehtAn === "string") {
+    addValuesFromString(entry.ergehtAn);
+  }
+
+  if (typeof entry?.ergehtAnText === "string") {
+    addValuesFromString(entry.ergehtAnText);
+  }
+
+  if (typeof entry?.anvon === "string" && /^\s*(an|von)\s*:/i.test(entry.anvon)) {
+    addRecipient(entry.anvon);
+  }
+
+  return [...new Set(recipients)];
+}
+
+function isInternalRecipient(role) {
+  const normalized = normalizeRole(role);
+  return isStabsstelle(normalized) || isMeldestelle(normalized);
+}
+
+function isOutgoingExternalQuestion(entry) {
+  if (!isOutgoingEntry(entry)) {
+    return false;
+  }
+
+  const text = getProtocolText(entry).trim();
+  if (!text.includes("?")) {
+    return false;
+  }
+
+  const recipients = parseRecipients(entry);
+  const hasExternal = recipients.some(recipient => !isInternalRecipient(recipient));
+  return hasExternal;
+}
+
+function postProcessImportantProtocolEntries(protocolEntries, { limit = 10 } = {}) {
+  const result = [];
+  const seenTexts = new Set();
+
+  for (const entry of protocolEntries || []) {
+    if (isOutgoingExternalQuestion(entry)) {
+      continue;
+    }
+
+    const normalizedText = normalizeProtocolText(getProtocolText(entry));
+    if (!normalizedText) {
+      continue;
+    }
+
+    if (seenTexts.has(normalizedText)) {
+      continue;
+    }
+
+    seenTexts.add(normalizedText);
+    result.push(entry);
+  }
+
+  return result.slice(0, limit);
 }
 
 /**
