@@ -332,7 +332,8 @@
       margin-bottom: 0.75rem;
       flex-wrap: wrap;
     }
-    .filter-btn {
+    .action-category-btn,
+    .action-mode-btn {
       padding: 0.25rem 0.5rem;
       border-radius: 0.375rem;
       border: none;
@@ -341,14 +342,16 @@
       cursor: pointer;
       transition: all 0.2s;
     }
-    .filter-btn.all { background: #475569; color: #e2e8f0; }
-    .filter-btn.all.active { background: #64748b; }
-    .filter-btn.protokoll { background: #1e3a5f; color: #93c5fd; }
-    .filter-btn.protokoll.active { background: #1e40af; }
-    .filter-btn.aufgabe { background: #14532d; color: #86efac; }
-    .filter-btn.aufgabe.active { background: #166534; }
-    .filter-btn.einsatz { background: #450a0a; color: #fca5a5; }
-    .filter-btn.einsatz.active { background: #991b1b; }
+    .action-category-btn.all { background: #475569; color: #e2e8f0; }
+    .action-category-btn.all.active { background: #64748b; }
+    .action-category-btn.protokoll { background: #1e3a5f; color: #93c5fd; }
+    .action-category-btn.protokoll.active { background: #1e40af; }
+    .action-category-btn.aufgabe { background: #14532d; color: #86efac; }
+    .action-category-btn.aufgabe.active { background: #166534; }
+    .action-category-btn.einsatz { background: #450a0a; color: #fca5a5; }
+    .action-category-btn.einsatz.active { background: #991b1b; }
+    .action-mode-btn { background: #334155; color: #e2e8f0; }
+    .action-mode-btn.active { background: #475569; }
 
     /* Action Modal */
     .action-modal-overlay {
@@ -543,10 +546,14 @@
         </button>
       </h2>
       <div class="filter-group">
-        <button class="filter-btn all active" data-filter="">Alle</button>
-        <button class="filter-btn protokoll" data-filter="protokoll">Protokoll</button>
-        <button class="filter-btn aufgabe" data-filter="aufgabe">Aufgaben</button>
-        <button class="filter-btn einsatz" data-filter="einsatz">Einsaetze</button>
+        <button class="action-category-btn all active" data-filter="">Alle</button>
+        <button class="action-category-btn protokoll" data-filter="protokoll">Protokoll</button>
+        <button class="action-category-btn aufgabe" data-filter="aufgabe">Aufgaben</button>
+        <button class="action-category-btn einsatz" data-filter="einsatz">Einsaetze</button>
+      </div>
+      <div class="filter-group">
+        <button class="action-mode-btn active" data-mode="applied">Angewandt</button>
+        <button class="action-mode-btn" data-mode="rejected">Verworfen</button>
       </div>
       <div class="scrollable">
         <div id="action-list" class="action-list">
@@ -1716,7 +1723,8 @@
     // ============================================================
     const actionListEl = document.getElementById("action-list");
     const btnRefreshActions = document.getElementById("btn-refresh-actions");
-    const filterBtns = document.querySelectorAll(".filter-btn");
+    const actionCategoryBtns = document.querySelectorAll(".action-category-btn");
+    const actionModeBtns = document.querySelectorAll(".action-mode-btn");
     const actionModal = document.getElementById("action-modal");
     const actionModalTitle = document.getElementById("action-modal-title");
     const actionModalTime = document.getElementById("action-modal-time");
@@ -1725,6 +1733,7 @@
     const actionModalCloseBtn = document.getElementById("action-modal-close-btn");
 
     let currentActionFilter = "";
+    let currentActionMode = "applied";
     let llmActions = [];
 
     const CATEGORY_LABELS = {
@@ -1770,11 +1779,22 @@
       return `${typeLabel}: ${CATEGORY_LABELS[category] || category}`;
     }
 
+    function formatPayloadPreview(op) {
+      if (!op) return "-";
+      const raw = typeof op === "string" ? op : JSON.stringify(op);
+      return raw.length > 60 ? `${raw.slice(0, 60)}...` : raw;
+    }
+
     async function loadLlmActions() {
       try {
-        const url = currentActionFilter
-          ? `/api/llm/action-history?limit=100&category=${currentActionFilter}`
-          : "/api/llm/action-history?limit=100";
+        const baseUrl = currentActionMode === "rejected"
+          ? "/api/llm/ops-verworfen"
+          : "/api/llm/action-history";
+        const params = new URLSearchParams({ limit: "100" });
+        if (currentActionFilter) {
+          params.set("category", currentActionFilter);
+        }
+        const url = `${baseUrl}?${params.toString()}`;
 
         const res = await fetch(url);
         const data = await res.json();
@@ -1790,25 +1810,45 @@
 
     function renderActionList() {
       if (llmActions.length === 0) {
-        actionListEl.innerHTML = '<div class="empty-state">Keine KI-Aktionen vorhanden</div>';
+        actionListEl.innerHTML = currentActionMode === "rejected"
+          ? '<div class="empty-state">Keine verworfenen KI-Aktionen vorhanden</div>'
+          : '<div class="empty-state">Keine KI-Aktionen vorhanden</div>';
         return;
       }
 
-      actionListEl.innerHTML = llmActions.map((action, index) => `
-        <div class="action-item" data-index="${index}">
-          <span class="action-badge ${action.category}">${CATEGORY_LABELS[action.category] || action.category}</span>
-          <div class="action-content">
-            <div class="action-title">${getActionTitle(action)}</div>
-            <div class="action-time">${formatActionTime(action.timestamp)}</div>
+      if (currentActionMode === "rejected") {
+        actionListEl.innerHTML = llmActions.map((action, index) => `
+          <div class="action-item" data-index="${index}">
+            <span class="action-badge ${action.category || ""}">${CATEGORY_LABELS[action.category] || action.category || "Unbekannt"}</span>
+            <div class="action-content">
+              <div class="action-title">${action.kind || "Unbekannter Typ"}</div>
+              <div class="action-time">${formatPayloadPreview(action.op)}</div>
+              <div class="action-time">Grund: ${action.reason || "-"}</div>
+            </div>
+            <span class="action-arrow">→</span>
           </div>
-          <span class="action-arrow">→</span>
-        </div>
-      `).join("");
+        `).join("");
+      } else {
+        actionListEl.innerHTML = llmActions.map((action, index) => `
+          <div class="action-item" data-index="${index}">
+            <span class="action-badge ${action.category}">${CATEGORY_LABELS[action.category] || action.category}</span>
+            <div class="action-content">
+              <div class="action-title">${getActionTitle(action)}</div>
+              <div class="action-time">${formatActionTime(action.timestamp)}</div>
+            </div>
+            <span class="action-arrow">→</span>
+          </div>
+        `).join("");
+      }
 
       actionListEl.querySelectorAll(".action-item").forEach(item => {
         item.addEventListener("click", () => {
           const index = parseInt(item.dataset.index);
-          showActionDetail(llmActions[index]);
+          if (currentActionMode === "rejected") {
+            showRejectedActionDetail(llmActions[index]);
+          } else {
+            showActionDetail(llmActions[index]);
+          }
         });
       });
     }
@@ -1908,15 +1948,61 @@
       actionModal.classList.remove("hidden");
     }
 
+    function showRejectedActionDetail(action) {
+      if (!action) return;
+
+      actionModalTitle.textContent = `Verworfen: ${action.kind || "-"}`;
+      actionModalTime.textContent = formatActionTime(action.timestamp);
+
+      const bodyHtml = `
+        <div class="modal-field">
+          <label>Kind</label>
+          <p>${action.kind || "-"}</p>
+        </div>
+        <div class="modal-field">
+          <label>Reason</label>
+          <p>${action.reason || "-"}</p>
+        </div>
+        <div class="modal-field">
+          <label>Kategorie</label>
+          <p>${CATEGORY_LABELS[action.category] || action.category || "-"}</p>
+        </div>
+        <div class="modal-field">
+          <label>Payload</label>
+          <pre>${JSON.stringify(action.op || {}, null, 2)}</pre>
+        </div>
+        <div class="modal-field">
+          <label>Meta</label>
+          <pre>${JSON.stringify(action.meta || {}, null, 2)}</pre>
+        </div>
+        <div class="modal-field">
+          <label>Active Roles</label>
+          <pre>${JSON.stringify(action.activeRoles || [], null, 2)}</pre>
+        </div>
+      `;
+
+      actionModalBody.innerHTML = bodyHtml;
+      actionModal.classList.remove("hidden");
+    }
+
     function closeActionModal() {
       actionModal.classList.add("hidden");
     }
 
-    filterBtns.forEach(btn => {
+    actionCategoryBtns.forEach(btn => {
       btn.addEventListener("click", () => {
-        filterBtns.forEach(b => b.classList.remove("active"));
+        actionCategoryBtns.forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
         currentActionFilter = btn.dataset.filter;
+        loadLlmActions();
+      });
+    });
+
+    actionModeBtns.forEach(btn => {
+      btn.addEventListener("click", () => {
+        actionModeBtns.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        currentActionMode = btn.dataset.mode;
         loadLlmActions();
       });
     });

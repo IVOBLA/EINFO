@@ -1860,6 +1860,7 @@ app.put("/api/llm/prompt-templates/:name", rateLimit(RateLimitProfiles.STRICT), 
 // API für LLM Action-History (KI-Aktionen)
 // ============================================================
 const ACTION_HISTORY_FILE = path.resolve(__dirname, "../../server/data/llm_action_history.json");
+const OPS_VERWORFEN_LOG_FILE = path.resolve(__dirname, "../../server/logs/ops_verworfen.log");
 
 async function readJsonFile(filePath, defaultValue = []) {
   try {
@@ -1868,6 +1869,35 @@ async function readJsonFile(filePath, defaultValue = []) {
   } catch {
     return defaultValue;
   }
+}
+
+async function readLineDelimitedJson(filePath) {
+  try {
+    const content = await fs.readFile(filePath, "utf-8");
+    return content
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => {
+        try {
+          return JSON.parse(line);
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean);
+  } catch (err) {
+    if (err?.code === "ENOENT") return [];
+    throw err;
+  }
+}
+
+function mapOpsCategory(kind) {
+  if (typeof kind !== "string") return null;
+  if (kind.startsWith("board.")) return "einsatz";
+  if (kind.startsWith("protokoll.")) return "protokoll";
+  if (kind.startsWith("aufgaben.")) return "aufgabe";
+  return null;
 }
 
 app.get("/api/llm/action-history", async (req, res) => {
@@ -1897,6 +1927,46 @@ app.get("/api/llm/action-history", async (req, res) => {
   } catch (err) {
     logError("Fehler beim Laden der Action-History", { error: String(err) });
     res.status(500).json({ error: "Fehler beim Laden der Action-History" });
+  }
+});
+
+app.get("/api/llm/ops-verworfen", async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit, 10) || 100;
+    const offset = parseInt(req.query.offset, 10) || 0;
+    const category = req.query.category || null;
+
+    const rawEntries = await readLineDelimitedJson(OPS_VERWORFEN_LOG_FILE);
+    let items = rawEntries.map((entry) => {
+      const categoryValue = mapOpsCategory(entry.kind);
+      return {
+        timestamp: entry.ts,
+        kind: entry.kind,
+        reason: entry.reason,
+        category: categoryValue,
+        op: entry.op,
+        activeRoles: entry.activeRoles,
+        meta: entry.meta
+      };
+    });
+
+    if (category) {
+      items = items.filter((entry) => entry.category === category);
+    }
+
+    const total = items.length;
+    const paginated = items.slice(offset, offset + limit);
+
+    res.json({
+      items: paginated,
+      total,
+      limit,
+      offset,
+      hasMore: offset + limit < total
+    });
+  } catch (err) {
+    logError("Fehler beim Laden der verworfenen Ops", { error: String(err) });
+    res.status(500).json({ error: "Fehler beim Laden der verworfenen Ops" });
   }
 });
 
