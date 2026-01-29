@@ -166,10 +166,38 @@ function parseRecipients(entry = {}) {
   return uniqueRecipients;
 }
 
+function parseProtocolDateTimeMs(entry = {}) {
+  const dateRaw = String(entry.datum || "").trim();
+  const timeRaw = String(entry.zeit || "").trim();
+  let year;
+  let month;
+  let day;
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateRaw)) {
+    [year, month, day] = dateRaw.split("-").map(Number);
+  } else if (/^\d{2}\.\d{2}\.\d{4}$/.test(dateRaw)) {
+    [day, month, year] = dateRaw.split(".").map(Number);
+  } else {
+    return 0;
+  }
+
+  let hour = 0;
+  let minute = 0;
+  let second = 0;
+  if (timeRaw) {
+    const match = timeRaw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+    if (!match) return 0;
+    hour = Number(match[1]);
+    minute = Number(match[2]);
+    second = Number(match[3] || 0);
+  }
+
+  const dateTime = Date.UTC(year, month - 1, day, hour, minute, second);
+  return Number.isNaN(dateTime) ? 0 : dateTime;
+}
+
 function compareByDateTimeAsc(a, b) {
-  const timeA = `${a.datum || ""} ${a.zeit || ""}`;
-  const timeB = `${b.datum || ""} ${b.zeit || ""}`;
-  return timeA.localeCompare(timeB);
+  return parseProtocolDateTimeMs(a) - parseProtocolDateTimeMs(b);
 }
 
 /**
@@ -325,9 +353,7 @@ export function compressProtokoll(protokoll) {
 
   // Neueste zuerst
   const sorted = [...protokoll].sort((a, b) => {
-    const tA = a.zeit || "";
-    const tB = b.zeit || "";
-    return tB.localeCompare(tA);
+    return parseProtocolDateTimeMs(b) - parseProtocolDateTimeMs(a);
   });
 
   // Kompaktes Format: nur notwendige Felder, keine leeren Arrays
@@ -346,6 +372,100 @@ export function compressProtokoll(protokoll) {
   });
 
   return JSON.stringify(compact);
+}
+
+function normalizeInformation(text) {
+  return String(text || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+function isOutgoingExternalQuestion(entry = {}, rolesOrConstants = {}) {
+  if (!isOutgoingEntry(entry)) return false;
+  const information =
+    typeof entry.information === "string" ? entry.information : "";
+  if (!information.includes("?")) return false;
+
+  const recipients = parseRecipients(entry);
+  const internalRoles =
+    rolesOrConstants?.internalRoles ||
+    rolesOrConstants?.INTERNAL_ROLES ||
+    INTERNAL_ROLES;
+  const internalRolesSet = new Set(
+    Array.from(internalRoles).map((role) => String(role).toUpperCase())
+  );
+  const externalRecipients = recipients.filter((recipient) => {
+    const upper = String(recipient).toUpperCase();
+    return !internalRolesSet.has(upper);
+  });
+  return externalRecipients.length > 0;
+}
+
+export function selectProtokollDeltaForPrompt({
+  protokollRaw,
+  previousSnapshotComparable,
+  rolesOrConstants,
+  maxItems
+} = {}) {
+  const protokollList = Array.isArray(protokollRaw) ? protokollRaw : [];
+  const previousList = Array.isArray(previousSnapshotComparable)
+    ? previousSnapshotComparable
+    : [];
+  const hasPrevious = previousList.length > 0;
+  const previousIds = new Set(
+    previousList.map((entry) => entry?.id).filter(Boolean)
+  );
+  const deltaCreated = hasPrevious
+    ? protokollList.filter((entry) => entry?.id && !previousIds.has(entry.id))
+    : protokollList;
+
+  const prevTexts = new Set(
+    previousList
+      .map((entry) => normalizeInformation(entry?.information))
+      .filter(Boolean)
+  );
+  const seenTexts = new Set();
+  const sortedDeltaAsc = [...deltaCreated].sort(
+    (a, b) => parseProtocolDateTimeMs(a) - parseProtocolDateTimeMs(b)
+  );
+
+  const stats = {
+    totalProtokoll: protokollList.length,
+    deltaCreatedCount: deltaCreated.length,
+    afterFiltersCount: 0,
+    excludedDuplicates: 0,
+    excludedExternalQuestions: 0
+  };
+
+  const filtered = [];
+  for (const entry of sortedDeltaAsc) {
+    const normalized = normalizeInformation(entry?.information);
+    if (!normalized) continue;
+    if (prevTexts.has(normalized)) {
+      stats.excludedDuplicates += 1;
+      continue;
+    }
+    if (seenTexts.has(normalized)) {
+      stats.excludedDuplicates += 1;
+      continue;
+    }
+    if (isOutgoingExternalQuestion(entry, rolesOrConstants)) {
+      stats.excludedExternalQuestions += 1;
+      continue;
+    }
+    seenTexts.add(normalized);
+    filtered.push(entry);
+  }
+
+  const sortedFiltered = [...filtered].sort(
+    (a, b) => parseProtocolDateTimeMs(b) - parseProtocolDateTimeMs(a)
+  );
+  const limit = maxItems ?? CONFIG.prompt?.maxProtokollItems ?? 30;
+  const limited = sortedFiltered.slice(0, limit);
+  stats.afterFiltersCount = limited.length;
+
+  return { entries: limited, stats };
 }
 
 function toComparableBoardEntry(entry = {}) {
@@ -700,15 +820,25 @@ const { delta: protokollDelta, snapshot: protokollSnapshot } = buildDelta(
       simulationState.lastSnapshot?.board?.length === boardSnapshot.length &&
       boardDelta.length === 0;
 
-  const opsContext = {
-    roles: {
-      active: roles.active
-    },
+    const { entries: protokollForPrompt, stats: protokollStats } =
+      selectProtokollDeltaForPrompt({
+        protokollRaw: protokoll,
+        previousSnapshotComparable: simulationState.lastSnapshot?.protokoll,
+        rolesOrConstants: roles,
+        maxItems: CONFIG.prompt?.maxProtokollItems || 30
+      });
+
+    logDebug("Protokoll Delta für Prompt", protokollStats);
+
+    const opsContext = {
+      roles: {
+        active: roles.active
+      },
       compressedBoard: boardUnchanged
         ? simulationState.lastCompressedBoard
         : compressBoard(boardSnapshot),
       compressedAufgaben: compressAufgaben(aufgaben, roles.active),
-      compressedProtokoll: compressProtokoll(protokoll),
+      compressedProtokoll: compressProtokoll(protokollForPrompt),
       firstStep: isFirstStep,
       elapsedMinutes: simulationState.elapsedMinutes,  // NEU: Für phasenbasierte Requirements
       // NEU: Offene Rückfragen (Single-Source-of-Truth)
