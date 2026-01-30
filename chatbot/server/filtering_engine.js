@@ -247,7 +247,7 @@ export async function applyAllFilteringRules(rawData, learnedWeights = {}) {
     active: r5Active,
     skipped: r5Enabled && !hasActiveRoles ? "Keine aktiven Rollen - R5 übersprungen" : null,
     details: r5Enabled && hasActiveRoles
-      ? `aggregate=${r5Config.stab_mode?.aggregate_to_sections}, max_individual=${r5Config.max_individual_incidents || r5Config.stab_mode?.max_individual_incidents || 3}, min_score=${r5Config.critical_scoring?.min_score ?? 0.6}`
+      ? `aggregate=${r5Config.stab_mode?.aggregate_to_sections}, max_individual=${r5Config.output?.max_individual_incidents || r5Config.stab_mode?.max_individual_incidents || 3}, min_score=${r5Config.output?.min_score ?? r5Config.critical_scoring?.min_score ?? 0.6}`
       : null
   };
   if (r5Active) {
@@ -255,7 +255,7 @@ export async function applyAllFilteringRules(rawData, learnedWeights = {}) {
     debug.filtering.incidents = {
       before: rawIncidentsCount,
       after: filtered.incidents.length,
-      reason: `Stabs-Fokus (max ${r5Meta.max_individual_incidents})${r5Meta.fallback_used ? ", Fallback aktiv" : ""}`,
+      reason: `Stabs-Fokus (max ${r5Meta.max_individual_incidents}, kritisch ${r5Meta.critical_selected}, fallback ${r5Meta.fallback_selected})${r5Meta.fallback_used ? ", Fallback aktiv" : ""}`,
       ...r5Meta
     };
   } else if (r5Enabled && !hasActiveRoles) {
@@ -505,83 +505,101 @@ function applyRule_R4(board, rule, vehicleData = null) {
  */
 function applyRule_R5(filtered, rawData, rule) {
   const aggregateToSections = rule.stab_mode?.aggregate_to_sections !== false;
+  const outputConfig = rule.output || {};
+  const maxIndividual = outputConfig.max_individual_incidents
+    ?? rule.stab_mode?.max_individual_incidents
+    ?? rule.max_individual_incidents
+    ?? 3;
+  const minScore = outputConfig.min_score ?? rule.critical_scoring?.min_score ?? 0.6;
+  const fallbackTopN = outputConfig.fallback_top_n_incidents ?? rule.fallback_top_n ?? 0;
+  const showScore = outputConfig.show_score === true;
+
   if (!aggregateToSections) {
     return {
-      max_individual_incidents: rule.max_individual_incidents || rule.stab_mode?.max_individual_incidents || 3,
-      min_required: rule.min_required ?? 1,
-      fallback_top_n: rule.fallback_top_n ?? (rule.max_individual_incidents || rule.stab_mode?.max_individual_incidents || 3),
-      min_score: rule.critical_scoring?.min_score ?? 0.6,
-      critical_candidates: 0,
-      selected_count: 0,
-      fallback_used: false,
-      top_scores: []
-    };
-  }
-
-  const board = rawData.board;
-  const scoringConfig = rule.critical_scoring || {};
-  const minScore = scoringConfig.min_score ?? 0.6;
-  const maxIndividual = rule.max_individual_incidents || rule.stab_mode?.max_individual_incidents || 3;
-  const minRequired = rule.min_required ?? 1;
-  const fallbackTopN = rule.fallback_top_n ?? maxIndividual;
-
-  if (!board || !board.columns) {
-    filtered.incidents = [];
-    return {
       max_individual_incidents: maxIndividual,
-      min_required: minRequired,
+      min_required: rule.min_required ?? 1,
       fallback_top_n: fallbackTopN,
       min_score: minScore,
       critical_candidates: 0,
       selected_count: 0,
       fallback_used: false,
+      critical_selected: 0,
+      fallback_selected: 0,
       top_scores: []
     };
   }
 
-  const areaNameMap = buildAreaNameMap(board);
-  const activeIncidents = getAllIncidents(board).filter(incident => incident.column !== "erledigt");
-
-  const scoredIncidents = activeIncidents.map(incident => {
-    const areaName = areaNameMap.get(String(incident.areaCardId || incident.areaId || "")) || null;
-    const textBlob = buildIncidentTextBlob(incident, areaName);
-    const { score, matched } = scoreText(textBlob, scoringConfig);
-
+  const board = rawData.board;
+  if (!board || !board.columns) {
+    filtered.incidents = [];
     return {
-      ...incident,
-      _critical_score: score,
-      _critical_hits: matched.slice(0, 5).map(name => ({ name })),
-      _area_name: areaName
+      max_individual_incidents: maxIndividual,
+      min_required: rule.min_required ?? 1,
+      fallback_top_n: fallbackTopN,
+      min_score: minScore,
+      critical_candidates: 0,
+      selected_count: 0,
+      fallback_used: false,
+      critical_selected: 0,
+      fallback_selected: 0,
+      top_scores: []
+    };
+  }
+
+  const scoringConfig = rule.scoring || rule.critical_scoring || { base_score: 0.5, factors: [] };
+  const legacyConditions = rule.stab_mode?.show_individual_incidents_only_if || [];
+  const activeIncidents = getAllIncidents(board).filter(
+    incident => incident.column === "neu" || incident.column === "in-bearbeitung"
+  );
+
+  const candidates = activeIncidents.map(incident => {
+    const text = buildIncidentScoreText(incident);
+    const score = scoreIncidentEntry(incident, scoringConfig);
+    const hasOpenQuestions = text.includes("?");
+    const matchesLegacy = matchesLegacyConditions(incident, hasOpenQuestions, legacyConditions);
+    return {
+      incident,
+      score,
+      hasOpenQuestions,
+      matchesLegacy,
+      isCritical: score >= minScore || matchesLegacy,
+      column: incident.column,
+      timestamp: getIncidentTimestamp(incident),
+      alerted: Boolean(incident.alerted),
+      assignedCount: Array.isArray(incident.assignedVehicles) ? incident.assignedVehicles.length : 0
     };
   });
 
-  const scoredSorted = [...scoredIncidents].sort(compareIncidentScore);
-  const criticalCandidates = scoredSorted.filter(incident => incident._critical_score >= minScore);
+  const criticalCandidates = candidates.filter(item => item.isCritical);
+  criticalCandidates.sort(compareCriticalCandidates);
   let selected = criticalCandidates.slice(0, maxIndividual);
   let fallbackUsed = false;
 
-  if (selected.length < minRequired) {
+  if (selected.length === 0 && fallbackTopN > 0) {
     fallbackUsed = true;
-    const fallbackSlice = scoredSorted.slice(0, fallbackTopN);
-    const dedupedFallback = dedupeIncidents(fallbackSlice).map(item => ({
-      ...item,
-      _r5_fallback: true,
-      _r5_reason: "top-by-score-below-threshold"
-    }));
-    selected = dedupedFallback;
+    const fallbackCandidates = [...candidates].sort(compareFallbackCandidates);
+    selected = fallbackCandidates.slice(0, fallbackTopN);
   }
 
-  filtered.incidents = selected;
+  filtered.incidents = selected.map(item => {
+    const entry = { ...item.incident };
+    if (showScore) {
+      entry._r5_score = item.score;
+    }
+    return entry;
+  });
 
   return {
     max_individual_incidents: maxIndividual,
-    min_required: minRequired,
+    min_required: rule.min_required ?? 1,
     fallback_top_n: fallbackTopN,
     min_score: minScore,
     critical_candidates: criticalCandidates.length,
     selected_count: selected.length,
     fallback_used: fallbackUsed,
-    top_scores: scoredSorted.slice(0, 3).map(item => item._critical_score)
+    critical_selected: fallbackUsed ? 0 : selected.length,
+    fallback_selected: fallbackUsed ? selected.length : 0,
+    top_scores: criticalCandidates.slice(0, 3).map(item => item.score)
   };
 }
 
@@ -643,34 +661,6 @@ function getIncidentsInArea(board, areaId) {
   return incidents;
 }
 
-function buildAreaNameMap(board) {
-  const map = new Map();
-  for (const area of getAreas(board)) {
-    if (!area) continue;
-    if (area.id != null) map.set(String(area.id), area.content || "");
-    if (area.humanId != null) map.set(String(area.humanId), area.content || "");
-  }
-  return map;
-}
-
-function buildIncidentTextBlob(incident, areaName) {
-  return [
-    incident.title,
-    incident.content,
-    incident.description,
-    incident.desc,
-    incident.notes,
-    incident.typ,
-    incident.ort,
-    incident.location,
-    incident.address,
-    areaName
-  ]
-    .filter(Boolean)
-    .map(value => String(value))
-    .join(" ");
-}
-
 function getIncidentTimestamp(incident) {
   const raw = incident.timestamp || incident.createdAt || incident.updated || incident.statusSince || null;
   if (!raw) return 0;
@@ -678,23 +668,60 @@ function getIncidentTimestamp(incident) {
   return Number.isNaN(parsed) ? 0 : parsed;
 }
 
-function compareIncidentScore(a, b) {
-  if (b._critical_score !== a._critical_score) {
-    return b._critical_score - a._critical_score;
-  }
-  return getIncidentTimestamp(b) - getIncidentTimestamp(a);
+function buildIncidentScoreText(incident) {
+  const assignedVehiclesText = Array.isArray(incident.assignedVehicles)
+    ? incident.assignedVehicles.join(" ")
+    : "";
+  return [
+    incident.content,
+    incident.description,
+    incident.typ,
+    incident.ort,
+    incident.location,
+    incident.humanId,
+    assignedVehiclesText
+  ]
+    .filter(Boolean)
+    .map(value => String(value))
+    .join(" ")
+    .toLowerCase();
 }
 
-function dedupeIncidents(incidents) {
-  const seen = new Set();
-  const result = [];
-  for (const incident of incidents) {
-    const key = incident.id || incident.humanId || `${incident.content || ""}-${incident.ort || ""}-${incident.timestamp || ""}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    result.push(incident);
+function matchesLegacyConditions(incident, hasOpenQuestions, legacyConditions = []) {
+  for (const condition of legacyConditions) {
+    if (condition?.field === "priority" && condition.value != null) {
+      if (incident.priority === condition.value) return true;
+    }
+    if (condition?.field === "has_open_questions") {
+      if (hasOpenQuestions === condition.value) return true;
+    }
   }
-  return result;
+  return false;
+}
+
+function compareCriticalCandidates(a, b) {
+  if (b.score !== a.score) {
+    return b.score - a.score;
+  }
+  if (a.column !== b.column) {
+    if (a.column === "neu") return -1;
+    if (b.column === "neu") return 1;
+  }
+  return b.timestamp - a.timestamp;
+}
+
+function compareFallbackCandidates(a, b) {
+  if (a.alerted !== b.alerted) {
+    return a.alerted ? -1 : 1;
+  }
+  if (b.assignedCount !== a.assignedCount) {
+    return b.assignedCount - a.assignedCount;
+  }
+  if (a.column !== b.column) {
+    if (a.column === "neu") return -1;
+    if (b.column === "neu") return 1;
+  }
+  return b.timestamp - a.timestamp;
 }
 
 /**
@@ -806,6 +833,36 @@ function scoreProtocolEntry(entry, rule, learnedWeights = {}) {
     .join(" ")
     .toLowerCase();
   const { score } = scoreText(text, rule.scoring || {}, learnedWeights);
+  return score;
+}
+
+function scoreIncidentEntry(incident, scoringRule) {
+  const text = buildIncidentScoreText(incident);
+  const baseScore = scoringRule?.base_score ?? 0.5;
+  let score = baseScore;
+
+  for (const factor of scoringRule?.factors || []) {
+    let matches = false;
+
+    if (factor.pattern) {
+      const regex = new RegExp(factor.pattern, "i");
+      matches = regex.test(text);
+    }
+
+    if (!matches && factor.keywords && Array.isArray(factor.keywords)) {
+      for (const keyword of factor.keywords) {
+        if (text.includes(String(keyword).toLowerCase())) {
+          matches = true;
+          break;
+        }
+      }
+    }
+
+    if (matches) {
+      score += factor.weight || 0;
+    }
+  }
+
   return score;
 }
 
