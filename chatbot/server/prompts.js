@@ -21,9 +21,24 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const TEMPLATE_DIR = path.join(__dirname, "prompt_templates");
+const USE_EXPERIMENTAL_PROMPTS = process.env.EINFO_EXPERIMENTAL_SCENARIOPACK === "1";
+
+function resolveExperimentalTemplateName(fileName) {
+  const ext = path.extname(fileName);
+  const base = path.basename(fileName, ext);
+  return `${base}_experimental${ext}`;
+}
 
 export function loadPromptTemplate(fileName) {
-  const fullPath = path.join(TEMPLATE_DIR, fileName);
+  let resolvedName = fileName;
+  if (USE_EXPERIMENTAL_PROMPTS) {
+    const experimentalName = resolveExperimentalTemplateName(fileName);
+    const experimentalPath = path.join(TEMPLATE_DIR, experimentalName);
+    if (fs.existsSync(experimentalPath)) {
+      resolvedName = experimentalName;
+    }
+  }
+  const fullPath = path.join(TEMPLATE_DIR, resolvedName);
   return fs.readFileSync(fullPath, "utf8").trim();
 }
 
@@ -172,6 +187,12 @@ export function buildUserPrompt({
     elapsedMinutes: llmInput.elapsedMinutes || 0,
     minutesPerStep
   });
+  const scenarioControlText =
+    USE_EXPERIMENTAL_PROMPTS && typeof llmInput.scenarioControl === "string" && llmInput.scenarioControl.trim().length > 0
+      ? llmInput.scenarioControl
+      : compactControl;
+  const llmProtokollMin = llmInput.llmProtokollMin ?? "";
+  const llmProtokollMax = llmInput.llmProtokollMax ?? "";
 
   const includeBoard = typeof compressedBoard === "string" && compressedBoard.trim().length > 0;
   const template = includeBoard
@@ -189,7 +210,9 @@ export function buildUserPrompt({
     openQuestionsSection,
     disasterContext: disasterContext || "",
     learnedResponses: learnedResponses || "",
-    scenarioControl: compactControl
+    scenarioControl: scenarioControlText,
+    "scenarioControl.llm_protokoll_min": llmProtokollMin,
+    "scenarioControl.llm_protokoll_max": llmProtokollMax
   });
 }
 

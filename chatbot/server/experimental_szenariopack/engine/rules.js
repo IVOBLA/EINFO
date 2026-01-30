@@ -217,6 +217,29 @@ function applyStandingOrders({ state, pegel, tick, operations, activeRoles }) {
 
 export function applyTickRules({ scenario, state, tick, pegel, activeRoles }) {
   const operations = createEmptyOperations();
+  const stepPlan = Array.isArray(scenario?.verlauf?.step_plan)
+    ? scenario.verlauf.step_plan
+    : null;
+  if (stepPlan) {
+    const context = buildContext({ scenario, state, tick, pegel });
+    for (const entry of stepPlan) {
+      if (!entry || entry.takt !== tick) continue;
+      if (Array.isArray(entry.incidents)) {
+        for (const incidentConfig of entry.incidents) {
+          const incident = buildIncidentFromConfig(incidentConfig, { context });
+          addIncident(operations, incident);
+        }
+      }
+      if (Array.isArray(entry.protocols)) {
+        for (const protocolConfig of entry.protocols) {
+          const protocol = buildProtocolFromConfig(protocolConfig, { activeRoles, context });
+          addProtocol(operations, protocol);
+        }
+      }
+    }
+    return operations;
+  }
+
   const basis = scenario.standard?.basis_einsatz;
   if (basis && !state.incidents.has(basis.humanId)) {
     addIncident(

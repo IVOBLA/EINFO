@@ -1,0 +1,37 @@
+ROLLEN:
+{{rolesPart}}
+
+EINSATZSTELLEN:
+{{compressedBoard}}
+
+AUFGABEN:
+{{compressedAufgaben}}
+
+PROTOKOLL:
+{{compressedProtokoll}}
+
+KATASTROPHEN-KONTEXT:
+{{disasterContext}}
+
+GELERNTE ANTWORTEN:
+{{learnedResponses}}
+
+SZENARIO-STEUERUNG:
+{{scenarioControl}}
+
+LLM-PROTOKOLL-LIMITS:
+min={{scenarioControl.llm_protokoll_min}} max={{scenarioControl.llm_protokoll_max}}
+(Hinweis: Antworten auf offene Rückfragen MUESSEN bezugNr setzen und zählen NICHT gegen das Limit.)
+
+ERINNERUNGEN:
+{{formattedMemorySnippets}}
+
+WISSEN:
+{{knowledgeContext}}
+
+AUFGABE:
+{{taskSection}}
+
+{{openQuestionsSection}}
+
+Antworte NUR mit JSON. Keine ```.

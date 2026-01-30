@@ -38,6 +38,9 @@ export function createInitialState(scenario) {
       protokollKeys: [],
       protokollWindow: 20
     },
+    activeScenarioTemplate: null,
+    scenarioPack: null,
+    lastLlmUserActivityStamp: 0,
     lastSnapshot: { board: [], aufgaben: [], protokoll: [] },
     lastCompressedBoard: null,
     worldLast: null,
