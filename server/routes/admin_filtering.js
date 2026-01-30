@@ -82,16 +82,20 @@ const DEFAULT_RULES = {
       enabled: false,
       description: "Aggregiert Daten für Stabs-Ansicht (nur kritische Einzeleinsätze)",
       applies_to: "all",
-      critical_scoring: {
-        base_score: 0.0,
-        min_score: 0.6,
+      scoring: {
+        base_score: 0.5,
         factors: [
-          { name: "Personen in Gefahr", keywords: ["verletzt", "eingeschlossen", "eingeklemmt", "vermisst", "reanimation"], weight: 0.4, learnable: false },
-          { name: "Brand/Explosion", keywords: ["brand", "feuer", "rauch", "explosion"], weight: 0.35, learnable: false },
-          { name: "Evakuierung/Gefahrstoff", keywords: ["evakuierung", "räumung", "gefahrstoff", "austritt", "kontamination"], weight: 0.3, learnable: false },
-          { name: "Infrastruktur/Kollaps", keywords: ["einsturz", "kollaps", "brücke", "gas", "stromausfall", "wasser"], weight: 0.25, learnable: false },
-          { name: "Unwetter/Umwelt", keywords: ["hochwasser", "überschwemmung", "sturm", "erdrutsch"], weight: 0.2, learnable: false }
+          { name: "Offene Fragen", pattern: "\\?", weight: 0.3, learnable: true, custom: false },
+          { name: "Personen in Gefahr", keywords: ["eingeklemmt", "vermisst", "kind", "kinder", "verletzte", "bewusstlos"], weight: 0.5, learnable: true, custom: false },
+          { name: "Evakuierung", keywords: ["evaku", "räumung", "räumen"], weight: 0.45, learnable: true, custom: false },
+          { name: "Infrastruktur kritisch", keywords: ["strom", "wasserwerk", "damm", "brücke", "gas", "bahn", "öbb"], weight: 0.35, learnable: true, custom: false }
         ]
+      },
+      output: {
+        min_score: 0.6,
+        max_individual_incidents: 3,
+        fallback_top_n_incidents: 5,
+        show_score: false
       },
       max_individual_incidents: 3,
       min_required: 3,
@@ -114,7 +118,17 @@ const DEFAULT_RULES = {
 async function loadRulesOrDefault() {
   try {
     const rulesRaw = await fsPromises.readFile(RULES_FILE, "utf8");
-    return JSON.parse(rulesRaw);
+    const parsedRules = JSON.parse(rulesRaw);
+    const { normalizedRules, updated } = normalizeRules(parsedRules);
+    if (updated) {
+      await ensureDir(RULES_FILE);
+      await fsPromises.writeFile(
+        RULES_FILE,
+        JSON.stringify(normalizedRules, null, 2),
+        "utf8"
+      );
+    }
+    return normalizedRules;
   } catch (err) {
     // Datei existiert nicht - Standard-Regeln in Datei schreiben
     console.log("filtering_rules.json nicht gefunden, erstelle mit Standard-Regeln...");
@@ -127,6 +141,69 @@ async function loadRulesOrDefault() {
     console.log("filtering_rules.json erstellt:", RULES_FILE);
     return DEFAULT_RULES;
   }
+}
+
+function normalizeRules(inputRules = {}) {
+  const normalizedRules = {
+    ...inputRules,
+    rules: {
+      ...(inputRules.rules || {})
+    }
+  };
+  let updated = false;
+
+  const defaultR5 = DEFAULT_RULES.rules.R5_STABS_FOKUS;
+  if (!normalizedRules.rules.R5_STABS_FOKUS) {
+    normalizedRules.rules.R5_STABS_FOKUS = defaultR5;
+    updated = true;
+    return { normalizedRules, updated };
+  }
+
+  const r5 = { ...normalizedRules.rules.R5_STABS_FOKUS };
+  if (!r5.scoring && r5.critical_scoring) {
+    r5.scoring = { ...r5.critical_scoring };
+    updated = true;
+  } else if (!r5.scoring) {
+    r5.scoring = { ...defaultR5.scoring };
+    updated = true;
+  } else {
+    if (r5.scoring.base_score == null) {
+      r5.scoring.base_score = defaultR5.scoring.base_score;
+      updated = true;
+    }
+    if (!Array.isArray(r5.scoring.factors)) {
+      r5.scoring.factors = defaultR5.scoring.factors;
+      updated = true;
+    }
+  }
+
+  if (!r5.output) {
+    r5.output = { ...defaultR5.output };
+    updated = true;
+  } else {
+    for (const [key, value] of Object.entries(defaultR5.output || {})) {
+      if (r5.output[key] == null) {
+        r5.output[key] = value;
+        updated = true;
+      }
+    }
+  }
+
+  if (r5.output?.max_individual_incidents == null && r5.stab_mode?.max_individual_incidents != null) {
+    r5.output.max_individual_incidents = r5.stab_mode.max_individual_incidents;
+    updated = true;
+  }
+  if (r5.output?.fallback_top_n_incidents == null && r5.fallback_top_n != null) {
+    r5.output.fallback_top_n_incidents = r5.fallback_top_n;
+    updated = true;
+  }
+  if (r5.output?.min_score == null && r5.critical_scoring?.min_score != null) {
+    r5.output.min_score = r5.critical_scoring.min_score;
+    updated = true;
+  }
+
+  normalizedRules.rules.R5_STABS_FOKUS = r5;
+  return { normalizedRules, updated };
 }
 
 /**

@@ -1,5 +1,133 @@
 import React, { useEffect, useState } from "react";
 
+const DEFAULT_FACTOR_STATE = { name: "", keywords: "", weight: 0.2 };
+const DEFAULT_R5_OUTPUT = {
+  min_score: 0.6,
+  max_individual_incidents: 3,
+  fallback_top_n_incidents: 5,
+  show_score: false
+};
+const DEFAULT_R5_SCORING = {
+  base_score: 0.5,
+  factors: [
+    { name: "Offene Fragen", pattern: "\\?", weight: 0.3, learnable: true, custom: false },
+    { name: "Personen in Gefahr", keywords: ["eingeklemmt", "vermisst", "kind", "kinder", "verletzte", "bewusstlos"], weight: 0.5, learnable: true, custom: false },
+    { name: "Evakuierung", keywords: ["evaku", "räumung", "räumen"], weight: 0.45, learnable: true, custom: false },
+    { name: "Infrastruktur kritisch", keywords: ["strom", "wasserwerk", "damm", "brücke", "gas", "bahn", "öbb"], weight: 0.35, learnable: true, custom: false }
+  ]
+};
+
+function ScoringFactorsEditor({
+  factors,
+  showAdd,
+  newFactor,
+  onShowAdd,
+  onAddFactor,
+  onCancelAdd,
+  onNewFactorChange,
+  onUpdateWeight,
+  onRemove
+}) {
+  return (
+    <div className="mt-3 pt-3 border-t">
+      <div className="text-xs font-medium mb-2">Scoring-Faktoren (Keywords):</div>
+      <div className="space-y-2">
+        {factors.map((factor, idx) => (
+          <div key={idx} className="flex items-center gap-2 text-xs bg-white p-2 rounded border">
+            <span className="font-medium min-w-[120px]">{factor.name}</span>
+            <span className="text-gray-500 flex-1">
+              {factor.keywords ? factor.keywords.join(", ") : factor.pattern || "-"}
+            </span>
+            <div className="flex items-center gap-1">
+              <label>Gewicht:</label>
+              <input
+                type="number"
+                min="-1"
+                max="2"
+                step="0.05"
+                value={factor.weight}
+                onChange={(e) => onUpdateWeight(idx, e.target.value)}
+                className="w-16 px-1 py-0.5 border rounded text-xs"
+              />
+            </div>
+            {factor.custom && (
+              <button
+                type="button"
+                onClick={() => onRemove(idx)}
+                className="text-red-600 hover:text-red-800 px-1"
+                title="Faktor entfernen"
+              >
+                X
+              </button>
+            )}
+            {factor.learnable && (
+              <span className="text-blue-500 text-[10px]" title="Wird durch ML angepasst">ML</span>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {showAdd ? (
+        <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
+          <div className="text-xs font-medium mb-2">Neuen Faktor hinzufügen:</div>
+          <div className="space-y-2">
+            <input
+              type="text"
+              placeholder="Name (z.B. 'Evakuierung')"
+              value={newFactor.name}
+              onChange={(e) => onNewFactorChange({ name: e.target.value })}
+              className="w-full px-2 py-1 border rounded text-xs"
+            />
+            <input
+              type="text"
+              placeholder="Keywords (kommagetrennt, z.B. 'evakuieren, räumung, verlassen')"
+              value={newFactor.keywords}
+              onChange={(e) => onNewFactorChange({ keywords: e.target.value })}
+              className="w-full px-2 py-1 border rounded text-xs"
+            />
+            <div className="flex items-center gap-2">
+              <label className="text-xs">Gewicht:</label>
+              <input
+                type="number"
+                min="-1"
+                max="2"
+                step="0.05"
+                value={newFactor.weight}
+                onChange={(e) => onNewFactorChange({ weight: e.target.value })}
+                className="w-20 px-2 py-1 border rounded text-xs"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={onAddFactor}
+                className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs"
+              >
+                Hinzufügen
+              </button>
+              <button
+                type="button"
+                onClick={onCancelAdd}
+                className="px-3 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded text-xs"
+              >
+                Abbrechen
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={onShowAdd}
+          className="mt-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs"
+        >
+          + Eigenen Faktor hinzufügen
+        </button>
+      )}
+    </div>
+  );
+}
+
 /**
  * FilteringRulesPanel - Zeigt Informationen über das Hybrid-Filtersystem
  * - Angewendete Regeln und deren Status
@@ -17,8 +145,14 @@ export default function FilteringRulesPanel({ locked = false }) {
   const [editMode, setEditMode] = useState(false);
   const [editedRules, setEditedRules] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [showAddFactor, setShowAddFactor] = useState(false);
-  const [newFactor, setNewFactor] = useState({ name: "", keywords: "", weight: 0.2 });
+  const [showAddFactor, setShowAddFactor] = useState({
+    R2_PROTOKOLL_RELEVANZ: false,
+    R5_STABS_FOKUS: false
+  });
+  const [newFactor, setNewFactor] = useState({
+    R2_PROTOKOLL_RELEVANZ: { ...DEFAULT_FACTOR_STATE },
+    R5_STABS_FOKUS: { ...DEFAULT_FACTOR_STATE }
+  });
   const [showHelp, setShowHelp] = useState(false);
 
   // NEU: AI-Analyse-Konfiguration (LLM-Summarization)
@@ -203,8 +337,14 @@ export default function FilteringRulesPanel({ locked = false }) {
   function cancelEdit() {
     setEditedRules(JSON.parse(JSON.stringify(rules)));
     setEditMode(false);
-    setShowAddFactor(false);
-    setNewFactor({ name: "", keywords: "", weight: 0.2 });
+    setShowAddFactor({
+      R2_PROTOKOLL_RELEVANZ: false,
+      R5_STABS_FOKUS: false
+    });
+    setNewFactor({
+      R2_PROTOKOLL_RELEVANZ: { ...DEFAULT_FACTOR_STATE },
+      R5_STABS_FOKUS: { ...DEFAULT_FACTOR_STATE }
+    });
   }
 
   function toggleRuleEnabled(ruleId) {
@@ -239,86 +379,131 @@ export default function FilteringRulesPanel({ locked = false }) {
   }
 
   function updateRuleScoring(ruleId, field, value) {
-    if (!editedRules?.rules?.[ruleId]?.scoring) return;
-    setEditedRules(prev => ({
-      ...prev,
-      rules: {
-        ...prev.rules,
-        [ruleId]: {
-          ...prev.rules[ruleId],
-          scoring: {
-            ...prev.rules[ruleId].scoring,
-            [field]: value
+    if (!editedRules?.rules?.[ruleId]) return;
+    setEditedRules(prev => {
+      const rule = prev.rules[ruleId];
+      const scoring = rule.scoring || { base_score: 0.5, factors: [] };
+      return {
+        ...prev,
+        rules: {
+          ...prev.rules,
+          [ruleId]: {
+            ...rule,
+            scoring: {
+              ...scoring,
+              [field]: value
+            }
           }
         }
+      };
+    });
+  }
+
+  function updateNewFactor(ruleId, updates) {
+    setNewFactor(prev => ({
+      ...prev,
+      [ruleId]: {
+        ...DEFAULT_FACTOR_STATE,
+        ...(prev[ruleId] || {}),
+        ...updates
       }
     }));
   }
 
-  function addCustomFactor() {
-    if (!newFactor.name.trim() || !newFactor.keywords.trim()) return;
+  function getDefaultScoring(ruleId) {
+    if (ruleId === "R5_STABS_FOKUS") {
+      return {
+        base_score: DEFAULT_R5_SCORING.base_score,
+        factors: [...DEFAULT_R5_SCORING.factors]
+      };
+    }
+    return { base_score: 0.5, factors: [] };
+  }
 
-    const keywordsArray = newFactor.keywords.split(",").map(k => k.trim()).filter(k => k);
+  function addCustomFactor(ruleId) {
+    const currentFactor = newFactor[ruleId] || DEFAULT_FACTOR_STATE;
+    if (!currentFactor.name.trim() || !currentFactor.keywords.trim()) return;
+
+    const keywordsArray = currentFactor.keywords.split(",").map(k => k.trim()).filter(k => k);
     if (keywordsArray.length === 0) return;
 
     const factor = {
-      name: newFactor.name.trim(),
+      name: currentFactor.name.trim(),
       keywords: keywordsArray,
-      weight: parseFloat(newFactor.weight) || 0.2,
+      weight: parseFloat(currentFactor.weight) || 0.2,
       learnable: true,
       custom: true
     };
 
-    setEditedRules(prev => ({
-      ...prev,
-      rules: {
-        ...prev.rules,
-        R2_PROTOKOLL_RELEVANZ: {
-          ...prev.rules.R2_PROTOKOLL_RELEVANZ,
-          scoring: {
-            ...prev.rules.R2_PROTOKOLL_RELEVANZ.scoring,
-            factors: [...(prev.rules.R2_PROTOKOLL_RELEVANZ.scoring?.factors || []), factor]
+    setEditedRules(prev => {
+      const rule = prev.rules[ruleId];
+      const scoring = rule.scoring
+        ? { ...rule.scoring, factors: [...(rule.scoring.factors || [])] }
+        : getDefaultScoring(ruleId);
+      const factors = [...(scoring.factors || []), factor];
+      return {
+        ...prev,
+        rules: {
+          ...prev.rules,
+          [ruleId]: {
+            ...rule,
+            scoring: {
+              ...scoring,
+              factors
+            }
           }
         }
-      }
-    }));
+      };
+    });
 
-    setNewFactor({ name: "", keywords: "", weight: 0.2 });
-    setShowAddFactor(false);
+    updateNewFactor(ruleId, { ...DEFAULT_FACTOR_STATE });
+    setShowAddFactor(prev => ({ ...prev, [ruleId]: false }));
   }
 
-  function removeFactor(index) {
-    setEditedRules(prev => ({
-      ...prev,
-      rules: {
-        ...prev.rules,
-        R2_PROTOKOLL_RELEVANZ: {
-          ...prev.rules.R2_PROTOKOLL_RELEVANZ,
-          scoring: {
-            ...prev.rules.R2_PROTOKOLL_RELEVANZ.scoring,
-            factors: prev.rules.R2_PROTOKOLL_RELEVANZ.scoring.factors.filter((_, i) => i !== index)
+  function removeFactor(ruleId, index) {
+    setEditedRules(prev => {
+      const rule = prev.rules[ruleId];
+      const scoring = rule.scoring
+        ? { ...rule.scoring, factors: [...(rule.scoring.factors || [])] }
+        : getDefaultScoring(ruleId);
+      return {
+        ...prev,
+        rules: {
+          ...prev.rules,
+          [ruleId]: {
+            ...rule,
+            scoring: {
+              ...scoring,
+              factors: scoring.factors.filter((_, i) => i !== index)
+            }
           }
         }
-      }
-    }));
+      };
+    });
   }
 
-  function updateFactorWeight(index, weight) {
-    setEditedRules(prev => ({
-      ...prev,
-      rules: {
-        ...prev.rules,
-        R2_PROTOKOLL_RELEVANZ: {
-          ...prev.rules.R2_PROTOKOLL_RELEVANZ,
-          scoring: {
-            ...prev.rules.R2_PROTOKOLL_RELEVANZ.scoring,
-            factors: prev.rules.R2_PROTOKOLL_RELEVANZ.scoring.factors.map((f, i) =>
-              i === index ? { ...f, weight: parseFloat(weight) || 0 } : f
-            )
+  function updateFactorWeight(ruleId, index, weight) {
+    setEditedRules(prev => {
+      const rule = prev.rules[ruleId];
+      const scoring = rule.scoring
+        ? { ...rule.scoring, factors: [...(rule.scoring.factors || [])] }
+        : getDefaultScoring(ruleId);
+      return {
+        ...prev,
+        rules: {
+          ...prev.rules,
+          [ruleId]: {
+            ...rule,
+            scoring: {
+              ...scoring,
+              factors: scoring.factors.map((f, i) =>
+                i === index ? { ...f, weight: parseFloat(weight) || 0 } : f
+              )
+            }
           }
         }
-      }
-    }));
+      };
+    });
   }
 
   async function resetLearnedWeights() {
@@ -353,6 +538,11 @@ export default function FilteringRulesPanel({ locked = false }) {
   const appliedRules = lastAnalysis?.appliedRules;
   const fingerprint = lastAnalysis?.fingerprint;
   const currentRules = editMode ? editedRules : rules;
+  const r5Rule = currentRules?.rules?.R5_STABS_FOKUS;
+  const r5Output = { ...DEFAULT_R5_OUTPUT, ...(r5Rule?.output || {}) };
+  const r5Scoring = r5Rule?.scoring || DEFAULT_R5_SCORING;
+  const r5Factors = r5Scoring?.factors || DEFAULT_R5_SCORING.factors;
+  const r2Factors = currentRules?.rules?.R2_PROTOKOLL_RELEVANZ?.scoring?.factors || [];
 
   return (
     <div className="space-y-4 text-sm">
@@ -630,104 +820,21 @@ export default function FilteringRulesPanel({ locked = false }) {
               </div>
 
               {/* Scoring-Faktoren */}
-              {editMode && currentRules.rules.R2_PROTOKOLL_RELEVANZ?.enabled && currentRules.rules.R2_PROTOKOLL_RELEVANZ?.scoring?.factors && (
-                <div className="mt-3 pt-3 border-t">
-                  <div className="text-xs font-medium mb-2">Scoring-Faktoren (Keywords):</div>
-                  <div className="space-y-2">
-                    {currentRules.rules.R2_PROTOKOLL_RELEVANZ.scoring.factors.map((factor, idx) => (
-                      <div key={idx} className="flex items-center gap-2 text-xs bg-white p-2 rounded border">
-                        <span className="font-medium min-w-[120px]">{factor.name}</span>
-                        <span className="text-gray-500 flex-1">
-                          {factor.keywords ? factor.keywords.join(", ") : factor.pattern || "-"}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          <label>Gewicht:</label>
-                          <input
-                            type="number"
-                            min="-1"
-                            max="2"
-                            step="0.05"
-                            value={factor.weight}
-                            onChange={(e) => updateFactorWeight(idx, e.target.value)}
-                            className="w-16 px-1 py-0.5 border rounded text-xs"
-                          />
-                        </div>
-                        {factor.custom && (
-                          <button
-                            type="button"
-                            onClick={() => removeFactor(idx)}
-                            className="text-red-600 hover:text-red-800 px-1"
-                            title="Faktor entfernen"
-                          >
-                            X
-                          </button>
-                        )}
-                        {factor.learnable && (
-                          <span className="text-blue-500 text-[10px]" title="Wird durch ML angepasst">ML</span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Neuen Faktor hinzufügen */}
-                  {showAddFactor ? (
-                    <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
-                      <div className="text-xs font-medium mb-2">Neuen Faktor hinzufügen:</div>
-                      <div className="space-y-2">
-                        <input
-                          type="text"
-                          placeholder="Name (z.B. 'Evakuierung')"
-                          value={newFactor.name}
-                          onChange={(e) => setNewFactor(prev => ({ ...prev, name: e.target.value }))}
-                          className="w-full px-2 py-1 border rounded text-xs"
-                        />
-                        <input
-                          type="text"
-                          placeholder="Keywords (kommagetrennt, z.B. 'evakuieren, räumung, verlassen')"
-                          value={newFactor.keywords}
-                          onChange={(e) => setNewFactor(prev => ({ ...prev, keywords: e.target.value }))}
-                          className="w-full px-2 py-1 border rounded text-xs"
-                        />
-                        <div className="flex items-center gap-2">
-                          <label className="text-xs">Gewicht:</label>
-                          <input
-                            type="number"
-                            min="-1"
-                            max="2"
-                            step="0.05"
-                            value={newFactor.weight}
-                            onChange={(e) => setNewFactor(prev => ({ ...prev, weight: e.target.value }))}
-                            className="w-20 px-2 py-1 border rounded text-xs"
-                          />
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={addCustomFactor}
-                            className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs"
-                          >
-                            Hinzufügen
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => { setShowAddFactor(false); setNewFactor({ name: "", keywords: "", weight: 0.2 }); }}
-                            className="px-3 py-1 bg-gray-500 hover:bg-gray-600 text-white rounded text-xs"
-                          >
-                            Abbrechen
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setShowAddFactor(true)}
-                      className="mt-2 px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs"
-                    >
-                      + Eigenen Faktor hinzufügen
-                    </button>
-                  )}
-                </div>
+              {editMode && currentRules.rules.R2_PROTOKOLL_RELEVANZ?.enabled && (
+                <ScoringFactorsEditor
+                  factors={r2Factors}
+                  showAdd={showAddFactor.R2_PROTOKOLL_RELEVANZ}
+                  newFactor={newFactor.R2_PROTOKOLL_RELEVANZ || DEFAULT_FACTOR_STATE}
+                  onShowAdd={() => setShowAddFactor(prev => ({ ...prev, R2_PROTOKOLL_RELEVANZ: true }))}
+                  onAddFactor={() => addCustomFactor("R2_PROTOKOLL_RELEVANZ")}
+                  onCancelAdd={() => {
+                    setShowAddFactor(prev => ({ ...prev, R2_PROTOKOLL_RELEVANZ: false }));
+                    updateNewFactor("R2_PROTOKOLL_RELEVANZ", { ...DEFAULT_FACTOR_STATE });
+                  }}
+                  onNewFactorChange={(updates) => updateNewFactor("R2_PROTOKOLL_RELEVANZ", updates)}
+                  onUpdateWeight={(idx, value) => updateFactorWeight("R2_PROTOKOLL_RELEVANZ", idx, value)}
+                  onRemove={(idx) => removeFactor("R2_PROTOKOLL_RELEVANZ", idx)}
+                />
               )}
             </div>
 
@@ -817,10 +924,64 @@ export default function FilteringRulesPanel({ locked = false }) {
                   )}
                   <span className="font-medium">R5 Stabs-Fokus</span>
                 </div>
+                {editMode && currentRules.rules.R5_STABS_FOKUS?.enabled && (
+                  <div className="flex flex-wrap items-center gap-4 text-xs">
+                    <div className="flex items-center gap-2">
+                      <label>Max Einzeleinsätze (kritisch):</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="50"
+                        value={r5Output.max_individual_incidents}
+                        onChange={(e) => updateRuleOutput("R5_STABS_FOKUS", "max_individual_incidents", parseInt(e.target.value) || 0)}
+                        className="w-16 px-2 py-1 border rounded"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label>Fallback Top-N Einsätze:</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="50"
+                        value={r5Output.fallback_top_n_incidents}
+                        onChange={(e) => updateRuleOutput("R5_STABS_FOKUS", "fallback_top_n_incidents", parseInt(e.target.value) || 0)}
+                        className="w-16 px-2 py-1 border rounded"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <label>Min Score:</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="1"
+                        step="0.1"
+                        value={r5Output.min_score}
+                        onChange={(e) => updateRuleOutput("R5_STABS_FOKUS", "min_score", parseFloat(e.target.value) || 0)}
+                        className="w-16 px-2 py-1 border rounded"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="text-xs text-gray-600 mt-1">
                 {currentRules.rules.R5_STABS_FOKUS?.description}
               </div>
+              {editMode && currentRules.rules.R5_STABS_FOKUS?.enabled && (
+                <ScoringFactorsEditor
+                  factors={r5Factors}
+                  showAdd={showAddFactor.R5_STABS_FOKUS}
+                  newFactor={newFactor.R5_STABS_FOKUS || DEFAULT_FACTOR_STATE}
+                  onShowAdd={() => setShowAddFactor(prev => ({ ...prev, R5_STABS_FOKUS: true }))}
+                  onAddFactor={() => addCustomFactor("R5_STABS_FOKUS")}
+                  onCancelAdd={() => {
+                    setShowAddFactor(prev => ({ ...prev, R5_STABS_FOKUS: false }));
+                    updateNewFactor("R5_STABS_FOKUS", { ...DEFAULT_FACTOR_STATE });
+                  }}
+                  onNewFactorChange={(updates) => updateNewFactor("R5_STABS_FOKUS", updates)}
+                  onUpdateWeight={(idx, value) => updateFactorWeight("R5_STABS_FOKUS", idx, value)}
+                  onRemove={(idx) => removeFactor("R5_STABS_FOKUS", idx)}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -1078,6 +1239,9 @@ export default function FilteringRulesPanel({ locked = false }) {
               {appliedRules.R5_STABS_FOKUS?.enabled && (
                 <div className="text-xs text-gray-600">
                   {appliedRules.R5_STABS_FOKUS.individual_incidents_shown} Einzeleinsätze
+                  {appliedRules.R5_STABS_FOKUS.fallback_used && (
+                    <span className="ml-2 text-orange-600">Fallback aktiv</span>
+                  )}
                 </div>
               )}
             </div>
