@@ -176,7 +176,23 @@ function isUserActor(value, rolesActive = []) {
 }
 
 function parseTimestamp(value) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
   const ts = Date.parse(value);
+  return Number.isFinite(ts) ? ts : null;
+}
+
+function parseDatumZeit(datum, zeit) {
+  if (!datum || !zeit) return null;
+  const [day, month, year] = String(datum).split(".");
+  const [hour, minute] = String(zeit).split(":");
+  const d = new Date(
+    parseInt(year),
+    parseInt(month) - 1,
+    parseInt(day),
+    parseInt(hour),
+    parseInt(minute)
+  );
+  const ts = d.getTime();
   return Number.isFinite(ts) ? ts : null;
 }
 
@@ -190,7 +206,9 @@ function getUserActivityStamp({ protokoll = [], aufgaben = [], rolesActive = [] 
       entry?.geaendertVon ||
       null;
     if (!isUserActor(actor, rolesActive)) continue;
-    const ts = parseTimestamp(entry?.geaendertAm || entry?.erstelltAm);
+    const ts =
+      parseTimestamp(entry?.geaendertAm || entry?.erstelltAm) ||
+      parseDatumZeit(entry?.datum, entry?.zeit);
     if (ts && ts > latest) latest = ts;
   }
 
