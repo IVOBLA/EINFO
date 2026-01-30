@@ -1,0 +1,434 @@
+{
+  "metadaten": {
+    "id": "winter_6h_experimental",
+    "titel": "Winter 6h (Experiment)",
+    "beschreibung": "Deterministische 6h-Simulation mit 2-Minuten-Takt für Winterlage im Bezirk Feldkirchen.",
+    "version": "0.1",
+    "autor": "EINFO Experimental ScenarioPack",
+    "sprache": "de"
+  },
+  "zeit": {
+    "schritt_minuten": 2,
+    "dauer_stunden": 6,
+    "takte": 180,
+    "start_zeit": "2025-01-01T06:00:00Z"
+  },
+  "standard": {
+    "basis_einsatz": {
+      "humanId": "E-KOORD-WINTER",
+      "content": "Einsatzkoordination Winterlage",
+      "typ": "Winterlage",
+      "ort": "Bezirk Feldkirchen",
+      "description": "Dauer-Einsatzstelle zur Koordination der Winterlage"
+    }
+  },
+  "akteure": {
+    "stabsrollen": [
+      "LTSTB",
+      "S2",
+      "S3",
+      "S4",
+      "S5",
+      "S6"
+    ],
+    "externe": [
+      "POL",
+      "RK",
+      "BH",
+      "BGM",
+      "ÖBB",
+      "ASFINAG",
+      "ZAMG"
+    ],
+    "aktive_rollen_default": []
+  },
+  "welt": {
+    "zonen": [],
+    "kritische_objekte": []
+  },
+  "ressourcen": {
+    "geraete": {
+      "raeumfahrzeuge": {
+        "verfuegbar": 4
+      },
+      "streufahrzeuge": {
+        "verfuegbar": 3
+      },
+      "aggregate": {
+        "verfuegbar": 2
+      }
+    },
+    "logistik": {
+      "streugut_tonnen": 120,
+      "kraftstoff_liter": 900
+    }
+  },
+  "umwelt": {
+    "wetter": {
+      "lage": "Extremer Schneefall, -12°C, starker Wind",
+      "warnung": "Lawinenwarnstufe 4-5"
+    },
+    "messwerte": {
+      "pegel_name": "Schneelast",
+      "einheit": "cm"
+    }
+  },
+  "verlauf": {
+    "pegelkurve": [
+      {
+        "takt": 0,
+        "pegel_cm": 0
+      },
+      {
+        "takt": 180,
+        "pegel_cm": 0
+      }
+    ],
+    "step_plan": [
+      {
+        "takt": 0,
+        "incidents": [
+          {
+            "humanId": "E-1",
+            "content": "Massenkarambolage B317",
+            "typ": "T4, Verkehrsunfall mit Verletzten",
+            "ort": "B317 km 12, Höhe Steuerberg",
+            "description": "7 PKW und 1 LKW in Massenkarambolage verwickelt. Mindestens 4 verletzte Personen, LKW blockiert beide Fahrspuren. Rettungskräfte können aufgrund Schneelage nur schwer vorrücken."
+          },
+          {
+            "humanId": "E-2",
+            "content": "Dachlawine auf Fahrzeuge",
+            "typ": "T3, Menschenrettung",
+            "ort": "Hauptplatz 8, Feldkirchen",
+            "description": "Schneemassen von Geschäftsdach auf 2 geparkte PKW gestürzt. Personen in Fahrzeugen eingeschlossen, unverletzt aber in Panik. Weitere Dachlawinen möglich."
+          },
+          {
+            "humanId": "E-3",
+            "content": "Altenheim ohne Strom",
+            "typ": "T3, Notstromversorgung",
+            "ort": "Seniorenheim Sonnenhof, Himmelberg",
+            "description": "42 Bewohner, davon 8 auf Sauerstoff angewiesen. Notstromaggregat springt nicht an. Heizung fällt aus bei -12°C Außentemperatur."
+          },
+          {
+            "humanId": "E-4",
+            "content": "Linienbus eingeschneit",
+            "typ": "T2, Menschenrettung",
+            "ort": "L95, Abzweigung Gnesau",
+            "description": "Schulbus mit 23 Kindern (8-12 Jahre) steckt in Schneeverwehung fest. Kinder frieren, Bus-Heizung funktioniert noch. Straße nicht mehr befahrbar."
+          },
+          {
+            "humanId": "E-5",
+            "content": "Dacheinsturzgefahr Supermarkt",
+            "typ": "T3, Gebäudeevakuierung",
+            "ort": "Einkaufszentrum Feldkirchen-Süd",
+            "description": "Statiker meldet akute Einsturzgefahr durch Schneelast. Ca. 60 Kunden und 15 Mitarbeiter im Gebäude. Zufahrten verschneit."
+          },
+          {
+            "humanId": "E-6",
+            "content": "Stromleitung gerissen",
+            "typ": "T3, Gefahr durch Strom",
+            "ort": "Glödnitzer Straße, Deutsch-Griffen",
+            "description": "Freileitung unter Schneelast gerissen, liegt quer über Gemeindestraße. Funkenflug beobachtet. Weitere 180 Haushalte ohne Strom."
+          }
+        ]
+      },
+      {
+        "takt": 2,
+        "protocols": [
+          {
+            "information": "DRINGEND: Verkehrslage B317 verschärft die Situation an der Unfallstelle; Rettungszufahrt ist durch laufenden Verkehr behindert. Polizei benötigt verkehrsrechtliche Anordnung und Koordination für Sperre/Umleitung, um Rettungszufahrt sicherzustellen.",
+            "infoTyp": "Lagemeldung",
+            "anvon": "Polizei Feldkirchen",
+            "ergehtAn": [
+              "LTSTB"
+            ],
+            "richtung": "ein"
+          }
+        ]
+      },
+      {
+        "takt": 3,
+        "protocols": [
+          {
+            "information": "Stromausfall breitet sich aus. KELAG hat nur 2 Entstörungstrupps verfügbar; parallele Entstörung nicht möglich. Betroffen: Altenheim Sonnenhof (Himmelberg) und Pumpwerk Feldkirchen (Trinkwasserversorgung für ca. 2500 Haushalte).",
+            "infoTyp": "Lagemeldung",
+            "anvon": "KELAG Störungsdienst",
+            "ergehtAn": [
+              "LTSTB"
+            ],
+            "richtung": "ein"
+          }
+        ]
+      },
+      {
+        "takt": 4,
+        "protocols": [
+          {
+            "information": "ZAMG-Warnung: Schneefall verstärkt sich weiter. In den nächsten 2 Stunden weitere 25-30 cm Neuschnee erwartet. Lawinengefahr steigt auf Stufe 4-5 in exponierten Lagen.",
+            "infoTyp": "Warnung",
+            "anvon": "ZAMG",
+            "ergehtAn": [
+              "S1",
+              "S2",
+              "S3"
+            ],
+            "richtung": "aus"
+          }
+        ]
+      },
+      {
+        "takt": 5,
+        "protocols": [
+          {
+            "information": "ÖBB: Baum von Oberleitung entfernt. Zugverkehr kann erst wieder aufgenommen werden, wenn Bahnsteige und Zufahrten geräumt sind. ÖBB hat keine Räumkapazitäten verfügbar; Bedarf an Räumfahrzeugen/Koordination mit Gemeinden.",
+            "infoTyp": "Anforderung",
+            "anvon": "ÖBB Infrastruktur",
+            "ergehtAn": [
+              "LTSTB"
+            ],
+            "richtung": "ein"
+          }
+        ]
+      },
+      {
+        "takt": 6,
+        "protocols": [
+          {
+            "information": "Bezirkshauptmannschaft ersucht um Lageeinschätzung zur möglichen Ausrufung des Katastrophenfalls; Hinweis: dadurch schnellere Bundesheer-Unterstützung, aber formale/rechtliche Folgen.",
+            "infoTyp": "Lagemeldung",
+            "anvon": "Bezirkshauptmannschaft",
+            "ergehtAn": [
+              "LTSTB"
+            ],
+            "richtung": "ein"
+          }
+        ]
+      },
+      {
+        "takt": 8,
+        "protocols": [
+          {
+            "information": "Gemeinde Gnesau: Bauhof hat kein Streugut mehr; Nachlieferung aus Hauptlager aktuell nicht möglich. Es werden alternative Streumittel (Asche/Sand) in Erwägung gezogen; Bedarf an Empfehlung/Freigabe und Versorgungslösung.",
+            "infoTyp": "Anforderung",
+            "anvon": "Gemeinde Gnesau",
+            "ergehtAn": [
+              "LTSTB"
+            ],
+            "richtung": "ein"
+          }
+        ]
+      },
+      {
+        "takt": 9,
+        "protocols": [
+          {
+            "information": "Apotheke Feldkirchen: Notfallmedikament für krebskrankes Kind muss heute aus Klagenfurt beschafft werden (nicht lagernd). Reguläre Botenfahrt nicht möglich. Bedarf an Transportlösung über Behörden-/Einsatzmittel.",
+            "infoTyp": "Notfall",
+            "anvon": "Apotheke Feldkirchen",
+            "ergehtAn": [
+              "LTSTB"
+            ],
+            "richtung": "ein"
+          }
+        ]
+      },
+      {
+        "takt": 11,
+        "protocols": [
+          {
+            "information": "Rotes Kreuz Feldkirchen: Fahrzeuge kommen nicht mehr durch; 3 dringende Einsätze sind offen. Bedarf an geländegängiger Transport-/Rettungsunterstützung und Koordination geeigneter Mittel/Route.",
+            "infoTyp": "Anforderung",
+            "anvon": "Rotes Kreuz Feldkirchen",
+            "ergehtAn": [
+              "LTSTB"
+            ],
+            "richtung": "ein"
+          }
+        ]
+      },
+      {
+        "takt": 13,
+        "protocols": [
+          {
+            "information": "Lawinenwarndienst: KRITISCH - Lawinengefahr Stufe 5 (sehr groß) für Bergstraßen Richtung Nockberge. Evakuierung gefährdeter Weiler (Karlbad, Zojach) wird empfohlen. Ca. 45 Personen betroffen.",
+            "infoTyp": "Warnung",
+            "anvon": "Lawinenwarndienst Kärnten",
+            "ergehtAn": [
+              "S1",
+              "S2"
+            ],
+            "richtung": "aus"
+          }
+        ]
+      },
+      {
+        "takt": 14,
+        "protocols": [
+          {
+            "information": "Landeswarnzentrale: Prüfung einer Warnmaßnahme über Warnkanäle. Es wird eine aktuelle Lageeinschätzung und Kommunikationslinie für die Bevölkerung benötigt.",
+            "infoTyp": "Lagemeldung",
+            "anvon": "LZ Feldkirchen",
+            "ergehtAn": [
+              "LTSTB"
+            ],
+            "richtung": "ein"
+          }
+        ]
+      },
+      {
+        "takt": 15,
+        "protocols": [
+          {
+            "information": "Bundesheer: Pionierzug steht bereit (80 Soldaten, 12 Kettenfahrzeuge, 4 Räumgeräte). Einsatz benötigt Schwerpunktpriorisierung (z.B. Verkehrsachsen, Altenheime/Notstrom, Evakuierungsunterstützung).",
+            "infoTyp": "Ressourcenangebot",
+            "anvon": "Bundesheer Kärnten",
+            "ergehtAn": [
+              "LTSTB"
+            ],
+            "richtung": "ein"
+          }
+        ]
+      },
+      {
+        "takt": 18,
+        "protocols": [
+          {
+            "information": "LKH Klagenfurt: 2 Intensivbetten wären verfügbar. Transport aus dem Bezirk ist derzeit eingeschränkt. Das LKH benötigt eine Einschätzung zur Transportfähigkeit in den nächsten 2 Stunden für die Bettenplanung.",
+            "infoTyp": "Lagemeldung",
+            "anvon": "LKH Klagenfurt",
+            "ergehtAn": [
+              "LTSTB"
+            ],
+            "richtung": "ein"
+          }
+        ]
+      },
+      {
+        "takt": 19,
+        "protocols": [
+          {
+            "information": "ORF Kärnten: Live-Schalte in 15 Minuten geplant. Bedarf an Sprecher/O-Ton zur aktuellen Lage sowie Kernbotschaft/Verhaltenstipps für die Bevölkerung.",
+            "infoTyp": "Anforderung",
+            "anvon": "ORF Kärnten",
+            "ergehtAn": [
+              "LTSTB"
+            ],
+            "richtung": "ein"
+          }
+        ]
+      },
+      {
+        "takt": 21,
+        "protocols": [
+          {
+            "information": "Wirtschaftskammer Feldkirchen: 15 Betriebe melden Dacheinsturzgefahr; Statiker/Prüfer derzeit schwer erreichbar. Versicherungen verlangen Dokumentation; Betriebe sind unsicher bzgl. Absperren/Räumung.",
+            "infoTyp": "Lagemeldung",
+            "anvon": "Wirtschaftskammer Feldkirchen",
+            "ergehtAn": [
+              "LTSTB"
+            ],
+            "richtung": "ein"
+          }
+        ]
+      },
+      {
+        "takt": 22,
+        "protocols": [
+          {
+            "information": "Tierheim Feldkirchen: Stall-Dach eingestürzt; 12 Hunde, 8 Katzen, Kleintiere ohne Unterkunft bei -12°C. Bedarf an kurzfristiger Notunterbringung und Transport.",
+            "infoTyp": "Notfall",
+            "anvon": "Tierheim Feldkirchen",
+            "ergehtAn": [
+              "LTSTB"
+            ],
+            "richtung": "ein"
+          }
+        ]
+      },
+      {
+        "takt": 23,
+        "protocols": [
+          {
+            "information": "20+ Bürger rufen an: Heizöl geht aus, Zufahrt für Lieferanten nicht frei.",
+            "infoTyp": "Lagemeldung",
+            "anvon": "Bürgermeister Himmelberg",
+            "ergehtAn": [
+              "LTSTB"
+            ],
+            "richtung": "ein"
+          }
+        ]
+      },
+      {
+        "takt": 24,
+        "protocols": [
+          {
+            "information": "ZAMG Update: Schneefront zieht langsam ab. In 90 Minuten Wetterbesserung erwartet. Bis dahin noch 10-15 cm Neuschnee möglich. Temperaturen bleiben bei -12°C.",
+            "infoTyp": "Info",
+            "anvon": "ZAMG",
+            "ergehtAn": [
+              "S1",
+              "S2",
+              "S3"
+            ],
+            "richtung": "aus"
+          }
+        ]
+      },
+      {
+        "takt": 25,
+        "protocols": [
+          {
+            "information": "ASFINAG: A10 bei Friesach gesperrt; Umleitung führt 500+ Fahrzeuge in der nächsten Stunde durch den Bezirk. Risiko zusätzlicher Verkehrsblockaden.",
+            "infoTyp": "Lagemeldung",
+            "anvon": "ASFINAG",
+            "ergehtAn": [
+              "LTSTB"
+            ],
+            "richtung": "ein"
+          }
+        ]
+      },
+      {
+        "takt": 26,
+        "protocols": [
+          {
+            "information": "NMS Feldkirchen: 12 Kinder noch in der Schule; Eltern nicht erreichbar oder kommen nicht durch. Turnhalle/Küche vorhanden; Bedarf an Betreuung/Übernachtungslösung.",
+            "infoTyp": "Lagemeldung",
+            "anvon": "Direktor NMS Feldkirchen",
+            "ergehtAn": [
+              "LTSTB"
+            ],
+            "richtung": "ein"
+          }
+        ]
+      },
+      {
+        "takt": 28,
+        "protocols": [
+          {
+            "information": "Kärnten Netz: Netzlage kritisch; kontrollierte Abschaltungen (rolling blackouts) möglich. Bedarf an Prioritätenliste schützenswerter Bereiche (kritische Infrastruktur).",
+            "infoTyp": "Anforderung",
+            "anvon": "Kärnten Netz",
+            "ergehtAn": [
+              "LTSTB"
+            ],
+            "richtung": "ein"
+          }
+        ]
+      }
+    ]
+  },
+  "npc_agenten": [],
+  "regeln": {},
+  "startzustand": {
+    "zone_schweregrade": {},
+    "damm_status": "OK",
+    "strom_status": "OK"
+  },
+  "fragen_init": [],
+  "llm_protokoll": {
+    "min": 0,
+    "max": 2
+  }
+}

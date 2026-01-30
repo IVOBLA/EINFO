@@ -2,6 +2,9 @@ import { readEinfoInputs } from "../../einfo_io.js";
 import { logError, logInfo } from "../../logger.js";
 import { searchMemory } from "../../memory_manager.js";
 import { callLLMForOps } from "../../llm_client.js";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   identifyOpenFollowUps,
   buildMemoryQueryFromState,
@@ -14,7 +17,7 @@ import {
 } from "../../sim_loop.js";
 import { getFilteredDisasterContextSummary } from "../../disaster_context.js";
 import { getExperimentalConfig } from "../config/config_loader.js";
-import { loadScenarioFromFile, assertScenarioStructure } from "../engine/loader.js";
+import { loadScenarioFromFile } from "../engine/loader.js";
 import { createInitialState, resetStateForScenario } from "../engine/state.js";
 import { getPegelAtTick } from "../engine/timeline.js";
 import { applyTickRules, applyUserEvent } from "../engine/rules.js";
@@ -35,8 +38,31 @@ import { parseWithLlm } from "../nlu/llm_nlu.js";
 import { normalizeNluResult } from "../nlu/nlu_schema.js";
 
 const DEFAULT_SCENARIO_PATH = "szenariopakete/szenario_hochwasser_6h_de.json";
+const INTERNAL_ROLES = new Set([
+  "LTSTB",
+  "LTSTBSTV",
+  "S1",
+  "S2",
+  "S3",
+  "S4",
+  "S5",
+  "S6",
+  "MELDESTELLE",
+  "MS",
+  "MELDESTELLE/S6"
+]);
+const SYSTEM_ACTOR_PREFIXES = ["simulation-"];
+const SYSTEM_ACTOR_TOKENS = ["mail-auto", "scenario-trigger", "chatbot", "bot"];
 
-let activeScenario = null;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const OPS_VERWORFEN_LOG_FILE = path.resolve(
+  __dirname,
+  "../../../../server/logs/ops_verworfen.log"
+);
+
+let activeScenarioTemplate = null;
+let activeScenarioPack = null;
 const state = createInitialState({ startzustand: {}, ressourcen: {}, fragen_init: [] });
 
 function countOperations(operations) {
@@ -72,12 +98,17 @@ function buildScenarioControl({
   forecast,
   activeEffects,
   taskDeltaSummary,
-  budgets
+  budgets,
+  llmProtokollMin,
+  llmProtokollMax
 }) {
   const constraints = [
     "Erfinde keine Weltmesswerte. Verwende nur WORLD_NOW/DELTA.",
     "Neue Effekte nur, wenn TASK_DELTA_SUMMARY nicht leer ist.",
-    "Ausgabeformat: JSON mit Feld operations. Optional user_effects[]."
+    "Ausgabeformat: JSON mit Feld operations. Optional user_effects[].",
+    `LLM_PROTOKOLL_MIN: ${llmProtokollMin}`,
+    `LLM_PROTOKOLL_MAX: ${llmProtokollMax}`,
+    "Antworten auf offene Rückfragen MUESSEN bezugNr setzen. Zusaetzliche Protokolle ohne bezugNr auf LLM_PROTOKOLL_MAX begrenzen."
   ];
   return [
     `WORLD_NOW: ${JSON.stringify(worldNow)}`,
@@ -118,6 +149,127 @@ function mergeOperations(a, b) {
     ...(b.operations?.protokoll?.create || [])
   ];
   return result;
+}
+
+function normalizeActor(value) {
+  if (value == null) return "";
+  return String(value).trim();
+}
+
+function isSystemActor(value) {
+  const normalized = normalizeActor(value).toLowerCase();
+  if (!normalized) return false;
+  if (SYSTEM_ACTOR_TOKENS.some((token) => normalized.includes(token))) {
+    return true;
+  }
+  return SYSTEM_ACTOR_PREFIXES.some((prefix) => normalized.startsWith(prefix));
+}
+
+function isUserActor(value, rolesActive = []) {
+  const normalized = normalizeActor(value);
+  if (!normalized) return false;
+  if (isSystemActor(normalized)) return false;
+  const normalizedUpper = normalized.toUpperCase();
+  if (INTERNAL_ROLES.has(normalizedUpper)) return true;
+  const activeSet = new Set(rolesActive.map((role) => normalizeActor(role).toUpperCase()));
+  return activeSet.has(normalizedUpper);
+}
+
+function parseTimestamp(value) {
+  const ts = Date.parse(value);
+  return Number.isFinite(ts) ? ts : null;
+}
+
+function getUserActivityStamp({ protokoll = [], aufgaben = [], rolesActive = [] }) {
+  let latest = 0;
+
+  for (const entry of protokoll) {
+    const actor =
+      entry?.createdBy ||
+      entry?.erstelltVon ||
+      entry?.geaendertVon ||
+      null;
+    if (!isUserActor(actor, rolesActive)) continue;
+    const ts = parseTimestamp(entry?.geaendertAm || entry?.erstelltAm);
+    if (ts && ts > latest) latest = ts;
+  }
+
+  for (const task of aufgaben) {
+    if (!isUserActor(task?.createdBy, rolesActive)) continue;
+    const ts = parseTimestamp(task?.updatedAt || task?.createdAt);
+    if (ts && ts > latest) latest = ts;
+  }
+
+  return latest;
+}
+
+function appendOpsVerworfenLog(entry) {
+  const line = JSON.stringify({
+    ts: new Date().toISOString(),
+    ...entry
+  });
+  return fs.appendFile(OPS_VERWORFEN_LOG_FILE, `${line}\n`).catch((error) => {
+    logError("Experimental ScenarioPack: ops_verworfen.log konnte nicht geschrieben werden", {
+      error: String(error)
+    });
+  });
+}
+
+async function logDiscardedOps(entries = []) {
+  for (const entry of entries) {
+    await appendOpsVerworfenLog(entry);
+  }
+}
+
+function hasBezugNr(entry) {
+  if (!entry) return false;
+  const value = entry.bezugNr;
+  if (value === null || value === undefined) return false;
+  return String(value).trim().length > 0;
+}
+
+function filterLlmOperations(llmOpsContainer, { llmMax, activeRoles }) {
+  const filtered = createEmptyOperations();
+  const discarded = [];
+  if (!llmOpsContainer) {
+    return { filtered, discarded };
+  }
+
+  const ops = llmOpsContainer.operations || createEmptyOperations().operations;
+
+  for (const op of ops.board?.createIncidentSites || []) {
+    discarded.push({ kind: "board.create", op, reason: "llm_disallowed_operation", activeRoles });
+  }
+  for (const op of ops.board?.updateIncidentSites || []) {
+    discarded.push({ kind: "board.update", op, reason: "llm_disallowed_operation", activeRoles });
+  }
+  for (const op of ops.board?.transitionIncidentSites || []) {
+    discarded.push({ kind: "board.transition", op, reason: "llm_disallowed_operation", activeRoles });
+  }
+  for (const op of ops.aufgaben?.create || []) {
+    discarded.push({ kind: "aufgaben.create", op, reason: "llm_disallowed_operation", activeRoles });
+  }
+  for (const op of ops.aufgaben?.update || []) {
+    discarded.push({ kind: "aufgaben.update", op, reason: "llm_disallowed_operation", activeRoles });
+  }
+
+  const allProtocols = Array.isArray(ops.protokoll?.create) ? ops.protokoll.create : [];
+  const answers = allProtocols.filter((entry) => hasBezugNr(entry));
+  const extras = allProtocols.filter((entry) => !hasBezugNr(entry));
+  const limitedExtras = extras.slice(0, Math.max(0, llmMax));
+  const overflow = extras.slice(limitedExtras.length);
+  for (const entry of overflow) {
+    discarded.push({
+      kind: "protokoll.create",
+      op: entry,
+      reason: "llm_extra_protokoll_limit",
+      activeRoles,
+      meta: { llmMax }
+    });
+  }
+
+  filtered.operations.protokoll.create = [...answers, ...limitedExtras];
+  return { filtered, discarded };
 }
 
 function normalizeOperationsFromList(list = []) {
@@ -200,13 +352,22 @@ export function isSimulationRunning() {
 }
 
 export async function startSimulation(scenario = null) {
-  const scenarioData = scenario ? assertScenarioStructure(scenario) : await loadScenarioFromFile(DEFAULT_SCENARIO_PATH);
-  activeScenario = scenarioData;
-  resetStateForScenario(state, scenarioData);
+  const scenarioTemplate = scenario || null;
+  const packFile = scenarioTemplate?.experimental_szenariopack?.packFile;
+  const scenarioPack = packFile
+    ? await loadScenarioFromFile(packFile)
+    : await loadScenarioFromFile(DEFAULT_SCENARIO_PATH);
+  activeScenarioTemplate = scenarioTemplate;
+  activeScenarioPack = scenarioPack;
+  state.activeScenarioTemplate = scenarioTemplate;
+  state.scenarioPack = scenarioPack;
+  resetStateForScenario(state, scenarioPack);
   state.running = true;
+  state.lastLlmUserActivityStamp = 0;
   logInfo("Experimental ScenarioPack gestartet", {
-    scenarioId: scenarioData?.metadaten?.id,
-    title: scenarioData?.metadaten?.titel
+    scenarioId: scenarioPack?.metadaten?.id,
+    title: scenarioPack?.metadaten?.titel,
+    templateId: scenarioTemplate?.id || null
   });
 }
 
@@ -215,13 +376,19 @@ export function pauseSimulation() {
 }
 
 export function getActiveScenario() {
-  return activeScenario;
+  return state.activeScenarioTemplate || activeScenarioTemplate || activeScenarioPack;
 }
 
 export async function stepSimulation(options = {}) {
   if (!state.running) {
     return { ok: false, reason: "not_running" };
   }
+
+  const scenarioPack = state.scenarioPack || activeScenarioPack;
+  if (!scenarioPack) {
+    return { ok: false, reason: "no_scenario" };
+  }
+  const scenarioTemplate = state.activeScenarioTemplate || activeScenarioTemplate || scenarioPack;
 
   const config = getExperimentalConfig();
   const budgets = config?.ops?.budgets || {};
@@ -233,6 +400,7 @@ export async function stepSimulation(options = {}) {
   const protokoll = Array.isArray(einfoData.protokoll) ? einfoData.protokoll : [];
   const roles = einfoData.roles || { active: [] };
   const activeRoles = roles.active || [];
+  const userActivityStamp = getUserActivityStamp({ protokoll, aufgaben, rolesActive: activeRoles });
 
   const prevSnapshot = state.lastSnapshot || { board: [], aufgaben: [], protokoll: [] };
   const boardDeltaResult = buildDelta(board, prevSnapshot.board, toComparableBoardEntry);
@@ -259,18 +427,18 @@ export async function stepSimulation(options = {}) {
 
   const compressedBoard = r5Active ? null : compressBoard(board);
   const compressedAufgaben = compressAufgaben(aufgaben);
-    const { entries: protokollForPrompt } = selectProtokollDeltaForPrompt({
-      protokollRaw: protokoll,
-      previousSnapshotComparable: prevSnapshot.protokoll,
-      rolesOrConstants: roles,
-      maxItems: config?.ops?.maxProtokollItems ?? undefined
-    });
-    const compressedProtokoll = compressProtokoll(protokollForPrompt);
+  const { entries: protokollForPrompt } = selectProtokollDeltaForPrompt({
+    protokollRaw: protokoll,
+    previousSnapshotComparable: prevSnapshot.protokoll,
+    rolesOrConstants: roles,
+    maxItems: config?.ops?.maxProtokollItems ?? undefined
+  });
+  const compressedProtokoll = compressProtokoll(protokollForPrompt);
 
   decayEffects({ state, currentTick: state.tick });
 
   const { now: worldNow, delta: worldDelta, forecast } = computeWorld({
-    scenario: activeScenario,
+    scenario: scenarioPack,
     state,
     tick: state.tick,
     horizons: [30, 60]
@@ -278,6 +446,9 @@ export async function stepSimulation(options = {}) {
 
   const taskSnapshotMap = new Map(aufgaben.map((task) => [task.id, task]));
   const taskDeltaSummary = buildTaskDeltaSummary(aufgabenDeltaResult.delta, taskSnapshotMap);
+  const llmProtokollConfig = scenarioPack?.llm_protokoll || {};
+  const llmProtokollMin = Number.isFinite(Number(llmProtokollConfig.min)) ? Number(llmProtokollConfig.min) : 0;
+  const llmProtokollMax = Number.isFinite(Number(llmProtokollConfig.max)) ? Number(llmProtokollConfig.max) : 0;
 
   const llmInput = {
     roles: { active: activeRoles },
@@ -285,15 +456,19 @@ export async function stepSimulation(options = {}) {
     compressedAufgaben,
     compressedProtokoll,
     firstStep: state.tick === 0,
-    elapsedMinutes: state.tick * (activeScenario?.zeit?.schritt_minuten || 5),
+    elapsedMinutes: state.tick * (scenarioPack?.zeit?.schritt_minuten || 5),
     openQuestions,
+    llmProtokollMin,
+    llmProtokollMax,
     scenarioControl: buildScenarioControl({
       worldNow,
       worldDelta,
       forecast,
       activeEffects: state.activeEffects,
       taskDeltaSummary,
-      budgets
+      budgets,
+      llmProtokollMin,
+      llmProtokollMax
     })
   };
 
@@ -321,38 +496,54 @@ export async function stepSimulation(options = {}) {
   let llmModel = null;
   let llmAnalysis = null;
 
-  if (!options.skipLlm) {
+  const shouldCallLlm =
+    openQuestions.length > 0 || userActivityStamp > (state.lastLlmUserActivityStamp || 0);
+
+  if (!options.skipLlm && shouldCallLlm) {
     try {
       const llmResult = await callLLMForOps({
         llmInput,
         memorySnippets,
-        scenario: activeScenario
+        scenario: scenarioTemplate
       });
       llmResponse = llmResult.parsed || null;
       llmModel = llmResult.model || null;
       llmAnalysis = llmResponse?.analysis ? String(llmResponse.analysis).slice(0, 200) : null;
     } catch (error) {
       logError("Experimental ScenarioPack: LLM-Aufruf fehlgeschlagen", { error: String(error) });
+    } finally {
+      state.lastLlmUserActivityStamp = userActivityStamp;
     }
   }
 
   const baselineOps = applyTickRules({
-    scenario: activeScenario,
+    scenario: scenarioPack,
     state,
     tick: state.tick,
-    pegel: getPegelAtTick(activeScenario, state.tick),
+    pegel: getPegelAtTick(scenarioPack, state.tick),
     activeRoles
   });
 
-  let llmOpsContainer = normalizeLlMOperations(llmResponse);
-  try {
-    validateOperations(llmOpsContainer);
-  } catch (error) {
-    logError("Experimental ScenarioPack: LLM-Operations ungültig", { error: String(error) });
-    llmOpsContainer = createEmptyOperations();
+  let llmOpsContainer = null;
+  if (llmResponse && !options.skipLlm && shouldCallLlm) {
+    llmOpsContainer = normalizeLlMOperations(llmResponse);
+    try {
+      validateOperations(llmOpsContainer);
+    } catch (error) {
+      logError("Experimental ScenarioPack: LLM-Operations ungültig", { error: String(error) });
+      llmOpsContainer = createEmptyOperations();
+    }
   }
 
-  const mergedOperations = mergeOperations(baselineOps, llmOpsContainer);
+  const { filtered: filteredLlmOps, discarded } = filterLlmOperations(llmOpsContainer, {
+    llmMax: llmProtokollMax,
+    activeRoles
+  });
+  if (discarded.length > 0) {
+    await logDiscardedOps(discarded);
+  }
+
+  const mergedOperations = mergeOperations(baselineOps, filteredLlmOps);
 
   const effectsApplied =
     Array.isArray(llmResponse?.user_effects) && taskDeltaSummary.length > 0
@@ -403,7 +594,7 @@ export async function stepSimulation(options = {}) {
   state.history.push({ tick: state.tick, pegel: worldNow.pegel_cm });
   state.tick += 1;
 
-  if (state.tick >= activeScenario.zeit.takte) {
+  if (state.tick >= scenarioPack.zeit.takte) {
     state.running = false;
   }
 
@@ -414,7 +605,8 @@ export async function handleUserFreitext({ role, text }) {
   const config = getExperimentalConfig();
   const einfoData = await readEinfoInputs();
   const activeRoles = einfoData.roles?.active || [];
-  if (!activeScenario || !state.running) {
+  const scenarioPack = state.scenarioPack || activeScenarioPack;
+  if (!scenarioPack || !state.running) {
     const operations = createEmptyOperations();
     return {
       replyText: "Simulation noch nicht gestartet. Bitte zuerst /api/sim/start aufrufen.",
@@ -429,7 +621,7 @@ export async function handleUserFreitext({ role, text }) {
   }
 
   const { replyText, operations } = applyUserEvent({
-    scenario: activeScenario,
+    scenario: scenarioPack,
     state,
     nluResult,
     activeRoles,
