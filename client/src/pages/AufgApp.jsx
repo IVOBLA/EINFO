@@ -855,7 +855,8 @@ export default function AufgApp() {
   return (
     <div className="p-4 floating-actions-safe-area">
       <CornerHelpLogout
-        helpHref="/Hilfe.pdf"
+        helpHref="/Hilfe_Aufgabenboard.pdf"
+        helpTitle="Hilfe – Aufgabenboard"
         onAdd={handleAddOpen}
         addDisabled={!allowEdit}
         addTitle={allowEdit ? "Aufgabe anlegen" : "Keine Berechtigung"}
