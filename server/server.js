@@ -45,6 +45,7 @@ import {
 
 import { appendHistoryEntriesToCsv } from "./utils/protocolCsv.mjs";
 import { ensureTaskForRole } from "./utils/tasksService.mjs";
+import { fileMutex } from "./utils/fileMutex.mjs";
 
 // 🔐 Neues User-Management
 import { User_authMiddleware, User_createRouter, User_requireAuth, User_hasRole } from "./User_auth.mjs";
@@ -2130,32 +2131,37 @@ app.post("/api/vehicles", async (req,res)=>{
   const { ort, label, mannschaft=0, cloneOf="" } = req.body||{};
   if(!ort||!label) return res.status(400).json({ error:"ort und label sind erforderlich" });
 
-  const extra = await readExtraVehiclesRaw();
   const cloneTag = typeof cloneOf === "string" ? cloneOf.trim() : "";
   const isCloneRequest = !!cloneTag;
-  if (!isCloneRequest) {
-    const exists = extra.find(v => {
-      if ((v.ort||"")!==ort) return false;
-      if ((v.label||"")!==label) return false;
-      const existingCloneTag = typeof v.cloneOf === "string" ? v.cloneOf.trim() : "";
-      if (existingCloneTag) return false;
-      if (v.isClone === true) return false;
-      if (isCloneMarker(v.clone)) return false;
-      return true;
-    });
-    if(exists) return res.status(409).json({ error:"Einheit existiert bereits" });
-  }
 
-  const id = `X${Math.random().toString(36).slice(2,8)}`;
-  const v  = { id, ort, label, mannschaft: Number(mannschaft)||0 };
-  if (isCloneRequest) {
-    v.cloneOf = cloneTag;
-    v.isClone = true;
-    v.clone = "clone";
-  }
-  extra.push(v);
-  await writeJson(VEH_EXTRA, extra);
-  invalidateVehiclesCache();
+  const result = await fileMutex.withLock("vehicles-extra", async () => {
+    const extra = await readExtraVehiclesRaw();
+    if (!isCloneRequest) {
+      const exists = extra.find(v => {
+        if ((v.ort||"")!==ort) return false;
+        if ((v.label||"")!==label) return false;
+        const existingCloneTag = typeof v.cloneOf === "string" ? v.cloneOf.trim() : "";
+        if (existingCloneTag) return false;
+        if (v.isClone === true) return false;
+        if (isCloneMarker(v.clone)) return false;
+        return true;
+      });
+      if(exists) return { conflict: true };
+    }
+
+    const id = `X${Math.random().toString(36).slice(2,8)}`;
+    const v  = { id, ort, label, mannschaft: Number(mannschaft)||0 };
+    if (isCloneRequest) {
+      v.cloneOf = cloneTag;
+      v.isClone = true;
+      v.clone = "clone";
+    }
+    extra.push(v);
+    await writeJson(VEH_EXTRA, extra);
+    invalidateVehiclesCache();
+    return { vehicle: v };
+  });
+  if (result.conflict) return res.status(409).json({ error:"Einheit existiert bereits" });
 
   const action = isCloneRequest ? "Einheit geteilt" : "Einheit angelegt";
   await appendCsvRow(
@@ -2165,7 +2171,7 @@ app.post("/api/vehicles", async (req,res)=>{
     req,
     { autoTimestampField: "Zeitpunkt", autoUserField: "Benutzer" }
   );
-  res.json({ ok:true, vehicle:v });
+  res.json({ ok:true, vehicle:result.vehicle });
 });
 
 app.patch("/api/vehicles/:id/availability", async (req,res)=>{
@@ -2184,11 +2190,13 @@ app.patch("/api/vehicles/:id/availability", async (req,res)=>{
       untilIso = new Date(untilMs).toISOString();
     }
   }
-  const map = await readVehicleAvailability().catch(() => ({}));
-  if (available) delete map[id];
-  else if (untilIso) map[id] = { available: false, until: untilIso };
-  else map[id] = false;
-  await writeVehicleAvailability(map);
+  await fileMutex.withLock("vehicle-availability", async () => {
+    const map = await readVehicleAvailability().catch(() => ({}));
+    if (available) delete map[id];
+    else if (untilIso) map[id] = { available: false, until: untilIso };
+    else map[id] = false;
+    await writeVehicleAvailability(map);
+  });
   res.json({ ok:true, id, available, until: untilIso });
 });
 
@@ -2205,25 +2213,28 @@ app.patch("/api/groups/:name/availability", async (req,res)=>{
       untilIso = new Date(untilMs).toISOString();
     }
   }
-  const map = await readGroupAvailability().catch(() => ({}));
-  if (available) delete map[name];
-  else if (untilIso) map[name] = { available: false, until: untilIso };
-  else map[name] = false;
-  await writeGroupAvailability(map);
+  // Lock both group and vehicle availability together to prevent partial updates
+  await fileMutex.withLock("vehicle-availability", async () => {
+    const map = await readGroupAvailability().catch(() => ({}));
+    if (available) delete map[name];
+    else if (untilIso) map[name] = { available: false, until: untilIso };
+    else map[name] = false;
+    await writeGroupAvailability(map);
 
-  const vehicleAvailability = await readVehicleAvailability().catch(() => ({}));
-  const allVehicles = await getAllVehicles();
-  for (const vehicle of allVehicles) {
-    if (!vehicle) continue;
-    const ort = String(vehicle.ort ?? "");
-    if (ort !== name) continue;
-    const idStr = String(vehicle.id ?? "");
-    if (!idStr) continue;
-    if (available) delete vehicleAvailability[idStr];
-    else if (untilIso) vehicleAvailability[idStr] = { available: false, until: untilIso };
-    else vehicleAvailability[idStr] = false;
-  }
-  await writeVehicleAvailability(vehicleAvailability);
+    const vehicleAvailability = await readVehicleAvailability().catch(() => ({}));
+    const allVehicles = await getAllVehicles();
+    for (const vehicle of allVehicles) {
+      if (!vehicle) continue;
+      const ort = String(vehicle.ort ?? "");
+      if (ort !== name) continue;
+      const idStr = String(vehicle.id ?? "");
+      if (!idStr) continue;
+      if (available) delete vehicleAvailability[idStr];
+      else if (untilIso) vehicleAvailability[idStr] = { available: false, until: untilIso };
+      else vehicleAvailability[idStr] = false;
+    }
+    await writeVehicleAvailability(vehicleAvailability);
+  });
 
   res.json({ ok:true, name, available, until: untilIso });
 });
@@ -2252,65 +2263,66 @@ app.post("/api/cards", async (req, res) => {
     return res.status(400).json({ error: "title erforderlich" });
   }
 
-  const board = await ensureBoard();
+  const { board, card, key } = await fileMutex.withLock("board", async () => {
+    const board = await ensureBoard();
 
-  const now = new Date().toISOString();
-  const cleanTitle = stripTypePrefix(title);
-  const key = ["neu", "in-bearbeitung", "erledigt"].includes(columnId) ? columnId : "neu";
-  
-const nextHumanIdNumber = nextHumanNumber(board);
-  const manualHumanId = `${HUMAN_ID_PREFIX_MANUAL}-${nextHumanIdNumber}`;
-  const areaHumanId = `${HUMAN_ID_PREFIX_AREA}-${nextHumanIdNumber}`;
+    const now = new Date().toISOString();
+    const cleanTitle = stripTypePrefix(title);
+    const key = ["neu", "in-bearbeitung", "erledigt"].includes(columnId) ? columnId : "neu";
 
+    const nextHumanIdNumber = nextHumanNumber(board);
+    const manualHumanId = `${HUMAN_ID_PREFIX_MANUAL}-${nextHumanIdNumber}`;
+    const areaHumanId = `${HUMAN_ID_PREFIX_AREA}-${nextHumanIdNumber}`;
 
-  const latIn = latitude ?? req.body?.lat;
-  const lngIn = longitude ?? req.body?.lng;
+    const latIn = latitude ?? req.body?.lat;
+    const lngIn = longitude ?? req.body?.lng;
 
- const isAreaBool = !!isArea;
-  const areaIdStr = areaCardId ? String(areaCardId) : null;
-   const requestedAreaColor = areaColor;
+    const isAreaBool = !!isArea;
+    const areaIdStr = areaCardId ? String(areaCardId) : null;
+    const requestedAreaColor = areaColor;
 
+    const card = {
+      id: uid(),
+      content: cleanTitle,
+      createdAt: now,
+      statusSince: now,
+      assignedVehicles: [],
+      everVehicles: [],
+      everVehicleLabels: {},
+      everPersonnel: 0,
+      ort,
+      typ,
+      externalId,
+      alerted,
+      humanId: isAreaBool ? areaHumanId : manualHumanId,
+      latitude: Number.isFinite(+latIn) ? +latIn : null,
+      longitude: Number.isFinite(+lngIn) ? +lngIn : null,
+      location: String(location || ""),
+      description: String(description || "").trim(),
+      timestamp: timestamp ? new Date(timestamp).toISOString() : null,
+      isArea: isAreaBool,
+      areaCardId: null,
+      areaColor: null,
+    };
 
-  const card = {
-    id: uid(),
-    content: cleanTitle,
-    createdAt: now,
-    statusSince: now,
-    assignedVehicles: [],
-    everVehicles: [],
-    everVehicleLabels: {},
-    everPersonnel: 0,
-    ort,
-    typ,
-    externalId,
-    alerted,
-	humanId: isAreaBool ? areaHumanId : manualHumanId,
-    latitude: Number.isFinite(+latIn) ? +latIn : null,
-    longitude: Number.isFinite(+lngIn) ? +lngIn : null,
-    location: String(location || ""),
-    description: String(description || "").trim(),
-    timestamp: timestamp ? new Date(timestamp).toISOString() : null,
-	isArea: isAreaBool,
-    areaCardId: null,
-	 areaColor: null,
-  };
- 
-  if (!card.isArea && areaIdStr) {
-    const area = findCardById(board, areaIdStr);
-    if (area?.isArea) card.areaCardId = String(area.id);
-  }
+    if (!card.isArea && areaIdStr) {
+      const area = findCardById(board, areaIdStr);
+      if (area?.isArea) card.areaCardId = String(area.id);
+    }
 
-  if (card.isArea) {
-    card.areaColor = normalizeAreaColor(requestedAreaColor || DEFAULT_AREA_COLOR, DEFAULT_AREA_COLOR);
-  } else if (card.areaCardId) {
-    const area = findCardById(board, card.areaCardId);
-    card.areaColor = area?.areaColor || null;
-  }
-  const arr = board.columns[key].items;
-  arr.splice(Math.max(0, Math.min(Number(toIndex) || 0, arr.length)), 0, card);
+    if (card.isArea) {
+      card.areaColor = normalizeAreaColor(requestedAreaColor || DEFAULT_AREA_COLOR, DEFAULT_AREA_COLOR);
+    } else if (card.areaCardId) {
+      const area = findCardById(board, card.areaCardId);
+      card.areaColor = area?.areaColor || null;
+    }
+    const arr = board.columns[key].items;
+    arr.splice(Math.max(0, Math.min(Number(toIndex) || 0, arr.length)), 0, card);
 
-  await ensureTypeKnown(card.typ);
-  await saveBoard(board);
+    await ensureTypeKnown(card.typ);
+    await saveBoard(board);
+    return { board, card, key };
+  });
 
   // Prüfen, ob die Feldkirchen-Wetterkarte neu erzeugt werden muss
   await maybeRegenerateFeldkirchenMapForNewCard(card);
@@ -2335,85 +2347,90 @@ app.post("/api/cards/:id/move", async (req,res)=>{
   const { id }=req.params;
   const { from, to, toIndex=0 }=req.body||{};
 
-  const board=await ensureBoard();
-  const src=board.columns[from]?.items||[];
-  const idx=src.findIndex(c=>c.id===id);
-  if(idx<0) return res.status(404).json({ error:"card not found" });
+  const result = await fileMutex.withLock("board", async () => {
+    const board=await ensureBoard();
+    const src=board.columns[from]?.items||[];
+    const idx=src.findIndex(c=>c.id===id);
+    if(idx<0) return { notFound: true };
 
-  const [card]=src.splice(idx,1);
-  const dst=board.columns[to]?.items||[];
-  if(from!==to) card.statusSince=new Date().toISOString();
-  const fromName = board.columns[from]?.name || from || "";
-  const toName   = board.columns[to]?.name   || to   || "";
+    const [card]=src.splice(idx,1);
+    const dst=board.columns[to]?.items||[];
+    if(from!==to) card.statusSince=new Date().toISOString();
+    const fromName = board.columns[from]?.name || from || "";
+    const toName   = board.columns[to]?.name   || to   || "";
 
-  let clonesToRemove = null;
-  let groupsToResolve = null;
-  let overridesToCleanup = null;
-  if(to==="erledigt"){
-    const allVehicles = await getAllVehicles();
-    const vmap=vehiclesByIdMap(allVehicles);
-    const removedIds = [...(card.assignedVehicles||[])];
-    const snapshotLabels = { ...(card.everVehicleLabels || {}) };
-    const prevEver = Array.isArray(card.everVehicles) ? card.everVehicles : [];
-    const dedupedEver = [];
-    const seenEver = new Set();
-    for (const rawId of [...prevEver, ...removedIds]) {
-      const idKey = String(rawId);
-      if (seenEver.has(idKey)) continue;
-      seenEver.add(idKey);
-      dedupedEver.push(rawId);
-    }
-    for (const vid of removedIds) {
-      const veh = vmap.get(vid);
-      const vidStr = String(vid);
-      const prev = snapshotLabels[vidStr];
-      const prevLabel = typeof prev === "string" ? prev : prev?.label;
-      const prevOrt = typeof prev === "object" && prev ? prev.ort : null;
-      const label = veh?.label || prevLabel || veh?.id || vidStr;
-      const ort = typeof veh?.ort === "string" ? veh.ort : prevOrt;
-      snapshotLabels[vidStr] = { label, ort };
-    }
-    card.everVehicleLabels = snapshotLabels;
-    card.everVehicles = dedupedEver;
-    card.everPersonnel=Number.isFinite(card?.manualPersonnel)?card.manualPersonnel:computedPersonnel(card,vmap);
-    // CSV: aktuell zugeordnete Einheiten als "entfernt" loggen
-    for (const vid of removedIds) {
-      const veh = vmap.get(vid);
-      const vidStr = String(vid);
-      const snapshotEntry = snapshotLabels[vidStr];
-      const einheitsLabel = formatVehicleDisplay(veh, snapshotEntry, vidStr);
-      await appendCsvRow(
-        LOG_FILE, EINSATZ_HEADERS,
-        buildEinsatzLog({ action:"Einheit entfernt", card, einheit: einheitsLabel, board }),
-        req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
-      );
-    }
-    card.assignedVehicles=[];
-    clonesToRemove = new Set(removedIds);
-    overridesToCleanup = new Set(removedIds);
-
-    const resolveNames = new Set();
-    for (const token of collectAlertedTokens(card?.alerted)) {
-      resolveNames.add(token);
-    }
-    for (const entry of Object.values(snapshotLabels)) {
-      if (!entry) continue;
-      if (typeof entry === "string") {
-        resolveNames.add(entry);
-        continue;
+    let clonesToRemove = null;
+    let groupsToResolve = null;
+    let overridesToCleanup = null;
+    if(to==="erledigt"){
+      const allVehicles = await getAllVehicles();
+      const vmap=vehiclesByIdMap(allVehicles);
+      const removedIds = [...(card.assignedVehicles||[])];
+      const snapshotLabels = { ...(card.everVehicleLabels || {}) };
+      const prevEver = Array.isArray(card.everVehicles) ? card.everVehicles : [];
+      const dedupedEver = [];
+      const seenEver = new Set();
+      for (const rawId of [...prevEver, ...removedIds]) {
+        const idKey = String(rawId);
+        if (seenEver.has(idKey)) continue;
+        seenEver.add(idKey);
+        dedupedEver.push(rawId);
       }
-      const ortName = typeof entry?.ort === "string" ? entry.ort : "";
-      if (ortName) resolveNames.add(ortName);
-      else if (typeof entry?.label === "string" && entry.label) resolveNames.add(entry.label);
+      for (const vid of removedIds) {
+        const veh = vmap.get(vid);
+        const vidStr = String(vid);
+        const prev = snapshotLabels[vidStr];
+        const prevLabel = typeof prev === "string" ? prev : prev?.label;
+        const prevOrt = typeof prev === "object" && prev ? prev.ort : null;
+        const label = veh?.label || prevLabel || veh?.id || vidStr;
+        const ort = typeof veh?.ort === "string" ? veh.ort : prevOrt;
+        snapshotLabels[vidStr] = { label, ort };
+      }
+      card.everVehicleLabels = snapshotLabels;
+      card.everVehicles = dedupedEver;
+      card.everPersonnel=Number.isFinite(card?.manualPersonnel)?card.manualPersonnel:computedPersonnel(card,vmap);
+      // CSV: aktuell zugeordnete Einheiten als "entfernt" loggen
+      for (const vid of removedIds) {
+        const veh = vmap.get(vid);
+        const vidStr = String(vid);
+        const snapshotEntry = snapshotLabels[vidStr];
+        const einheitsLabel = formatVehicleDisplay(veh, snapshotEntry, vidStr);
+        await appendCsvRow(
+          LOG_FILE, EINSATZ_HEADERS,
+          buildEinsatzLog({ action:"Einheit entfernt", card, einheit: einheitsLabel, board }),
+          req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
+        );
+      }
+      card.assignedVehicles=[];
+      clonesToRemove = new Set(removedIds);
+      overridesToCleanup = new Set(removedIds);
+
+      const resolveNames = new Set();
+      for (const token of collectAlertedTokens(card?.alerted)) {
+        resolveNames.add(token);
+      }
+      for (const entry of Object.values(snapshotLabels)) {
+        if (!entry) continue;
+        if (typeof entry === "string") {
+          resolveNames.add(entry);
+          continue;
+        }
+        const ortName = typeof entry?.ort === "string" ? entry.ort : "";
+        if (ortName) resolveNames.add(ortName);
+        else if (typeof entry?.label === "string" && entry.label) resolveNames.add(entry.label);
+      }
+      for (const vid of removedIds) {
+        const veh = vmap.get(vid);
+        if (veh?.ort) resolveNames.add(veh.ort);
+      }
+      if (resolveNames.size > 0) groupsToResolve = resolveNames;
     }
-    for (const vid of removedIds) {
-      const veh = vmap.get(vid);
-      if (veh?.ort) resolveNames.add(veh.ort);
-    }
-    if (resolveNames.size > 0) groupsToResolve = resolveNames;
-  }
-  dst.splice(Math.max(0,Math.min(Number(toIndex)||0,dst.length)),0,card);
-  await saveBoard(board);
+    dst.splice(Math.max(0,Math.min(Number(toIndex)||0,dst.length)),0,card);
+    await saveBoard(board);
+    return { board, card, fromName, toName, clonesToRemove, groupsToResolve, overridesToCleanup };
+  });
+  if (result.notFound) return res.status(404).json({ error:"card not found" });
+  const { board, card, fromName, toName, clonesToRemove, groupsToResolve, overridesToCleanup } = result;
 
   if (overridesToCleanup && overridesToCleanup.size) {
     try {
@@ -2449,53 +2466,58 @@ app.post("/api/cards/:id/assign", async (req,res)=>{
   const { id }=req.params; const { vehicleId }=req.body||{};
   if(!vehicleId) return res.status(400).json({ error:"vehicleId fehlt" });
 
-  const board=await ensureBoard();
-  const ref=findCardRef(board,id);
-  if(!ref) return res.status(404).json({ error:"card not found" });
+  const result = await fileMutex.withLock("board", async () => {
+    const board=await ensureBoard();
+    const ref=findCardRef(board,id);
+    if(!ref) return { notFound: true };
 
-  const vmap=vehiclesByIdMap(await getAllVehicles());
-  const veh=vmap.get(vehicleId);
+    const vmap=vehiclesByIdMap(await getAllVehicles());
+    const veh=vmap.get(vehicleId);
 
-  if(!ref.card.assignedVehicles.includes(vehicleId)) ref.card.assignedVehicles.push(vehicleId);
-  ref.card.everVehicles=Array.from(new Set([...(ref.card.everVehicles||[]), vehicleId]));
-  const labelStore = { ...(ref.card.everVehicleLabels || {}) };
-  const vehicleIdStr = String(vehicleId);
-  const prev = labelStore[vehicleIdStr];
-  const prevLabel = typeof prev === "string" ? prev : prev?.label;
-  const prevOrt = typeof prev === "object" && prev ? prev.ort : null;
-  const snapshotLabel = veh?.label || prevLabel || veh?.id || vehicleIdStr;
-  const snapshotOrt = typeof veh?.ort === "string" ? veh.ort : prevOrt;
-  labelStore[vehicleIdStr] = { label: snapshotLabel, ort: snapshotOrt };
-  ref.card.everVehicleLabels = labelStore;
+    if(!ref.card.assignedVehicles.includes(vehicleId)) ref.card.assignedVehicles.push(vehicleId);
+    ref.card.everVehicles=Array.from(new Set([...(ref.card.everVehicles||[]), vehicleId]));
+    const labelStore = { ...(ref.card.everVehicleLabels || {}) };
+    const vehicleIdStr = String(vehicleId);
+    const prev = labelStore[vehicleIdStr];
+    const prevLabel = typeof prev === "string" ? prev : prev?.label;
+    const prevOrt = typeof prev === "object" && prev ? prev.ort : null;
+    const snapshotLabel = veh?.label || prevLabel || veh?.id || vehicleIdStr;
+    const snapshotOrt = typeof veh?.ort === "string" ? veh.ort : prevOrt;
+    labelStore[vehicleIdStr] = { label: snapshotLabel, ort: snapshotOrt };
+    ref.card.everVehicleLabels = labelStore;
 
-  const einheitsLabel = formatVehicleDisplay(veh, labelStore[vehicleIdStr], vehicleIdStr);
-  await appendCsvRow(
-    LOG_FILE, EINSATZ_HEADERS,
-    buildEinsatzLog({ action:"Einheit zugewiesen", card: ref.card, einheit: einheitsLabel, board }),
-    req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
-  );
-
-  if(ref.col==="neu"){
-    const [c]=ref.arr.splice(ref.i,1);
-    c.statusSince=new Date().toISOString();
-    board.columns["in-bearbeitung"].items.unshift(c);
- await appendCsvRow(
+    const einheitsLabel = formatVehicleDisplay(veh, labelStore[vehicleIdStr], vehicleIdStr);
+    await appendCsvRow(
       LOG_FILE, EINSATZ_HEADERS,
-      buildEinsatzLog({
-        action:"Status gewechselt", card:c,
-        from:board.columns["neu"].name, to:board.columns["in-bearbeitung"].name,
-        note:"durch Zuweisung",
-        board,
-      }),
+      buildEinsatzLog({ action:"Einheit zugewiesen", card: ref.card, einheit: einheitsLabel, board }),
       req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
     );
-  }
-  await saveBoard(board);
+
+    if(ref.col==="neu"){
+      const [c]=ref.arr.splice(ref.i,1);
+      c.statusSince=new Date().toISOString();
+      board.columns["in-bearbeitung"].items.unshift(c);
+      await appendCsvRow(
+        LOG_FILE, EINSATZ_HEADERS,
+        buildEinsatzLog({
+          action:"Status gewechselt", card:c,
+          from:board.columns["neu"].name, to:board.columns["in-bearbeitung"].name,
+          note:"durch Zuweisung",
+          board,
+        }),
+        req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
+      );
+    }
+    await saveBoard(board);
+    return { card: ref.card, snapshotOrt, vehicleId };
+  });
+  if (result.notFound) return res.status(404).json({ error:"card not found" });
+  const { card: assignedCard, snapshotOrt } = result;
   if (snapshotOrt) {
     await markGroupAlertedResolved(snapshotOrt);
   }
   markActivity("vehicle:assign");
-  res.json({ ok:true, card:ref.card });
+  res.json({ ok:true, card:assignedCard });
 
   // Manuelle Koordinaten verwerfen, wenn das Fahrzeug neu zugeordnet wird
   try {
@@ -2509,20 +2531,26 @@ app.post("/api/cards/:id/assign", async (req,res)=>{
 
 app.post("/api/cards/:id/unassign", async (req,res)=>{
   const { id }=req.params; const { vehicleId }=req.body||{};
-  const board=await ensureBoard();
-  const ref=findCardRef(board,id);
-  if(!ref) return res.status(404).json({ error:"card not found" });
 
-  ref.card.assignedVehicles=(ref.card.assignedVehicles||[]).filter(v=>v!==vehicleId);
-  await saveBoard(board);
+  const result = await fileMutex.withLock("board", async () => {
+    const board=await ensureBoard();
+    const ref=findCardRef(board,id);
+    if(!ref) return { notFound: true };
+
+    ref.card.assignedVehicles=(ref.card.assignedVehicles||[]).filter(v=>v!==vehicleId);
+    await saveBoard(board);
+    return { board, card: ref.card };
+  });
+  if (result.notFound) return res.status(404).json({ error:"card not found" });
+  const { board, card: unassignedCard } = result;
 
   const vmap=vehiclesByIdMap(await getAllVehicles());
   const veh = vmap.get(vehicleId);
-  const labelStore = ref.card.everVehicleLabels || {};
+  const labelStore = unassignedCard.everVehicleLabels || {};
   const einheitsLabel = formatVehicleDisplay(veh, labelStore[String(vehicleId)], vehicleId);
   await appendCsvRow(
     LOG_FILE, EINSATZ_HEADERS,
-    buildEinsatzLog({ action:"Einheit entfernt", card: ref.card, einheit: einheitsLabel, board }),
+    buildEinsatzLog({ action:"Einheit entfernt", card: unassignedCard, einheit: einheitsLabel, board }),
     req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
   );
 
@@ -2532,7 +2560,7 @@ app.post("/api/cards/:id/unassign", async (req,res)=>{
     await appendError("vehicle:cleanup-unassign", e);
   }
   markActivity("vehicle:unassign");
-  res.json({ ok:true, card:ref.card });
+  res.json({ ok:true, card:unassignedCard });
 
   // Manuelle Koordinaten löschen, wenn das Fahrzeug vom Einsatz entfernt wird
   try {
@@ -2546,285 +2574,294 @@ app.post("/api/cards/:id/unassign", async (req,res)=>{
 
 app.patch("/api/cards/:id/personnel", async (req,res)=>{
   const { id }=req.params; const { manualPersonnel }=req.body||{};
-  const board=await ensureBoard(); const ref=findCardRef(board,id);
-  if(!ref) return res.status(404).json({ error:"card not found" });
 
-  const vmap = vehiclesByIdMap(await getAllVehicles());
-  const prevAuto = (ref.card.assignedVehicles||[]).reduce((s,vid)=>s+(vmap.get(vid)?.mannschaft??0),0);
-  const prev = Number.isFinite(ref.card?.manualPersonnel) ? ref.card.manualPersonnel : prevAuto;
-
-  if(manualPersonnel===null||manualPersonnel===""||manualPersonnel===undefined){
-    delete ref.card.manualPersonnel;
-    await saveBoard(board);
-   const autoNow = computedPersonnel(ref.card, vehiclesByIdMap(await getAllVehicles()));
-  await appendCsvRow(
-      LOG_FILE, EINSATZ_HEADERS,
-      buildEinsatzLog({
-        action: "Personenzahl geändert",
-        card: ref.card,
-        note: `${prev}→${autoNow}`,
-        board,
-      }),
-      req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
-    );
-    return res.json({ ok:true, card:ref.card });
-  }else{
+  if(manualPersonnel!==null&&manualPersonnel!==""&&manualPersonnel!==undefined){
     const n=Number(manualPersonnel);
     if(!Number.isFinite(n)||n<0) return res.status(400).json({ error:"manualPersonnel ungültig" });
-    ref.card.manualPersonnel=n;
   }
-  await saveBoard(board);
- await appendCsvRow(
+
+  const result = await fileMutex.withLock("board", async () => {
+    const board=await ensureBoard(); const ref=findCardRef(board,id);
+    if(!ref) return { notFound: true };
+
+    const vmap = vehiclesByIdMap(await getAllVehicles());
+    const prevAuto = (ref.card.assignedVehicles||[]).reduce((s,vid)=>s+(vmap.get(vid)?.mannschaft??0),0);
+    const prev = Number.isFinite(ref.card?.manualPersonnel) ? ref.card.manualPersonnel : prevAuto;
+
+    if(manualPersonnel===null||manualPersonnel===""||manualPersonnel===undefined){
+      delete ref.card.manualPersonnel;
+      await saveBoard(board);
+      const autoNow = computedPersonnel(ref.card, vehiclesByIdMap(await getAllVehicles()));
+      return { board, card: ref.card, prev, next: autoNow, cleared: true };
+    }else{
+      ref.card.manualPersonnel=Number(manualPersonnel);
+    }
+    await saveBoard(board);
+    return { board, card: ref.card, prev, next: ref.card.manualPersonnel, cleared: false };
+  });
+  if (result.notFound) return res.status(404).json({ error:"card not found" });
+  const { board, card: updatedCard, prev: prevVal, next: nextVal } = result;
+
+  await appendCsvRow(
     LOG_FILE, EINSATZ_HEADERS,
     buildEinsatzLog({
       action: "Personenzahl geändert",
-      card: ref.card,
-      note: `${prev}→${ref.card.manualPersonnel}`,
+      card: updatedCard,
+      note: `${prevVal}→${nextVal}`,
       board,
     }),
     req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
   );
   markActivity("personnel:update");
-  res.json({ ok:true, card:ref.card });
+  res.json({ ok:true, card:updatedCard });
 });
 
 app.patch("/api/cards/:id", async (req, res) => {
   const { id } = req.params;
   const updates = req.body || {};
-  const board = await ensureBoard();
-  const ref = findCardRef(board, id);
-  if (!ref) return res.status(404).json({ error: "card not found" });
 
-
-
-  const prevSnapshot = {
-    content: ref.card.content,
-    humanId: ref.card.humanId,
-    ort: ref.card.ort,
-    typ: ref.card.typ,
-    isArea: !!ref.card.isArea,
-    areaCardId: ref.card.areaCardId ? String(ref.card.areaCardId) : null,
-        areaColor: ref.card.areaColor || null,
-  };
-  const prevAreaLabel = areaLabel(prevSnapshot, board);
-  const prevLat = Number.isFinite(Number(ref.card.latitude)) ? Number(ref.card.latitude) : null;
-  const prevLng = Number.isFinite(Number(ref.card.longitude)) ? Number(ref.card.longitude) : null;
-
-  let changed = false;
-  const notes = [];
-
-  const formatCoords = (lat, lng) =>
-    Number.isFinite(lat) && Number.isFinite(lng)
-      ? `${lat.toFixed(5)}, ${lng.toFixed(5)}`
-      : "—";
-
+  // Pre-validate title outside lock to allow early return
   if (Object.prototype.hasOwnProperty.call(updates, "title")) {
     const nextTitle = String(updates.title || "").trim();
     if (!nextTitle) return res.status(400).json({ error: "Titel darf nicht leer sein" });
-    if (nextTitle !== ref.card.content) {
-      notes.push(`Titel: ${ref.card.content || ""}→${nextTitle}`);
-      ref.card.content = nextTitle;
-      changed = true;
-    }
   }
 
-  if (Object.prototype.hasOwnProperty.call(updates, "ort")) {
-    const nextOrt = String(updates.ort || "").trim();
-    if (nextOrt !== (ref.card.ort || "")) {
-      notes.push(`Ort: ${ref.card.ort || ""}→${nextOrt}`);
-      ref.card.ort = nextOrt;
-      changed = true;
-    }
-  }
+  const result = await fileMutex.withLock("board", async () => {
+    const board = await ensureBoard();
+    const ref = findCardRef(board, id);
+    if (!ref) return { notFound: true };
 
-  if (Object.prototype.hasOwnProperty.call(updates, "typ")) {
-    const nextTyp = String(updates.typ || "").trim();
-    if (nextTyp !== (ref.card.typ || "")) {
-      notes.push(`Typ: ${ref.card.typ || ""}→${nextTyp}`);
-      ref.card.typ = nextTyp;
-      changed = true;
-    }
-  }
+    const prevSnapshot = {
+      content: ref.card.content,
+      humanId: ref.card.humanId,
+      ort: ref.card.ort,
+      typ: ref.card.typ,
+      isArea: !!ref.card.isArea,
+      areaCardId: ref.card.areaCardId ? String(ref.card.areaCardId) : null,
+      areaColor: ref.card.areaColor || null,
+    };
+    const prevAreaLabel = areaLabel(prevSnapshot, board);
+    const prevLat = Number.isFinite(Number(ref.card.latitude)) ? Number(ref.card.latitude) : null;
+    const prevLng = Number.isFinite(Number(ref.card.longitude)) ? Number(ref.card.longitude) : null;
 
-  if (Object.prototype.hasOwnProperty.call(updates, "description")) {
-    const nextDescription = String(updates.description || "").trim();
-    if (nextDescription !== (ref.card.description || "")) {
-      notes.push("Notiz geändert");
-      ref.card.description = nextDescription;
-      changed = true;
-    }
-  }
+    let changed = false;
+    const notes = [];
 
-  if (Object.prototype.hasOwnProperty.call(updates, "location")) {
-    const nextLocation = String(updates.location || "").trim();
-    if (nextLocation !== (ref.card.location || "")) {
-      notes.push(`Adresse: ${(ref.card.location || "—")}→${nextLocation || "—"}`);
-      ref.card.location = nextLocation;
-      changed = true;
-    }
-  }
+    const formatCoords = (lat, lng) =>
+      Number.isFinite(lat) && Number.isFinite(lng)
+        ? `${lat.toFixed(5)}, ${lng.toFixed(5)}`
+        : "—";
 
-  const hasLatUpdate =
-    Object.prototype.hasOwnProperty.call(updates, "latitude") ||
-    Object.prototype.hasOwnProperty.call(updates, "lat");
-  const hasLngUpdate =
-    Object.prototype.hasOwnProperty.call(updates, "longitude") ||
-    Object.prototype.hasOwnProperty.call(updates, "lng");
-
-  let coordsChanged = false;
-  if (hasLatUpdate) {
-    const raw = Number(updates.latitude ?? updates.lat);
-    const nextLat = Number.isFinite(raw) ? raw : null;
-    if (nextLat !== (Number.isFinite(ref.card.latitude) ? Number(ref.card.latitude) : null)) {
-      ref.card.latitude = nextLat;
-      coordsChanged = true;
-      changed = true;
-    }
-  }
-  if (hasLngUpdate) {
-    const raw = Number(updates.longitude ?? updates.lng);
-    const nextLng = Number.isFinite(raw) ? raw : null;
-    if (nextLng !== (Number.isFinite(ref.card.longitude) ? Number(ref.card.longitude) : null)) {
-      ref.card.longitude = nextLng;
-      coordsChanged = true;
-      changed = true;
-    }
-  }
-
-  if (coordsChanged) {
-    notes.push(`Koordinaten: ${formatCoords(prevLat, prevLng)}→${formatCoords(ref.card.latitude, ref.card.longitude)}`);
-  }
-
-  const areaCards = listAreaCards(board).filter((c) => c.id !== ref.card.id);
-  const areaIdSet = new Set(areaCards.map((c) => String(c.id)));
-  const areaColorMap = new Map(areaCards.map((c) => [String(c.id), c.areaColor || null]));
-
-  let areaChanged = false;
-  let becameArea = null;
-  if (Object.prototype.hasOwnProperty.call(updates, "isArea")) {
-    const nextIsArea = !!updates.isArea;
-    if (nextIsArea !== ref.card.isArea) {
-      ref.card.isArea = nextIsArea;
-      changed = true;
-      areaChanged = true;
-      becameArea = nextIsArea;
-      if (nextIsArea) {
-        ref.card.areaCardId = null;
+    if (Object.prototype.hasOwnProperty.call(updates, "title")) {
+      const nextTitle = String(updates.title || "").trim();
+      if (nextTitle !== ref.card.content) {
+        notes.push(`Titel: ${ref.card.content || ""}→${nextTitle}`);
+        ref.card.content = nextTitle;
+        changed = true;
       }
     }
-  }
 
-  if (!ref.card.isArea && Object.prototype.hasOwnProperty.call(updates, "areaCardId")) {
-    const raw = updates.areaCardId;
-    let nextArea = null;
-    if (raw) {
-      const idStr = String(raw);
-      if (!areaIdSet.has(idStr)) {
-        return res.status(400).json({ error: "Bereich ungültig" });
+    if (Object.prototype.hasOwnProperty.call(updates, "ort")) {
+      const nextOrt = String(updates.ort || "").trim();
+      if (nextOrt !== (ref.card.ort || "")) {
+        notes.push(`Ort: ${ref.card.ort || ""}→${nextOrt}`);
+        ref.card.ort = nextOrt;
+        changed = true;
       }
-      nextArea = idStr;
     }
-    if (nextArea !== (ref.card.areaCardId ? String(ref.card.areaCardId) : null)) {
-      ref.card.areaCardId = nextArea;
-      changed = true;
-      areaChanged = true;
-    }
-	const desiredColor = nextArea ? (areaColorMap.get(nextArea) || null) : null;
-    if (desiredColor !== (ref.card.areaColor || null)) {
-      ref.card.areaColor = desiredColor;
-      changed = true;
-    }
-  }
 
-  if (ref.card.isArea) {
-    ref.card.areaCardId = null;
-  }
+    if (Object.prototype.hasOwnProperty.call(updates, "typ")) {
+      const nextTyp = String(updates.typ || "").trim();
+      if (nextTyp !== (ref.card.typ || "")) {
+        notes.push(`Typ: ${ref.card.typ || ""}→${nextTyp}`);
+        ref.card.typ = nextTyp;
+        changed = true;
+      }
+    }
 
-let areaColorChanged = false;
-  if (ref.card.isArea) {
-    const hasColorUpdate = Object.prototype.hasOwnProperty.call(updates, "areaColor");
-    const proposed = hasColorUpdate ? updates.areaColor : (ref.card.areaColor || DEFAULT_AREA_COLOR);
-    const nextColor = normalizeAreaColor(proposed || DEFAULT_AREA_COLOR, DEFAULT_AREA_COLOR);
-    if (nextColor !== ref.card.areaColor) {
-      notes.push(`Farbe: ${(prevSnapshot.areaColor || "—")}→${nextColor}`);
-      ref.card.areaColor = nextColor;
-      changed = true;
-      areaColorChanged = true;
+    if (Object.prototype.hasOwnProperty.call(updates, "description")) {
+      const nextDescription = String(updates.description || "").trim();
+      if (nextDescription !== (ref.card.description || "")) {
+        notes.push("Notiz geändert");
+        ref.card.description = nextDescription;
+        changed = true;
+      }
     }
-  } else {
-    const currentArea = ref.card.areaCardId ? String(ref.card.areaCardId) : null;
-    const nextColor = currentArea ? (areaColorMap.get(currentArea) || null) : null;
-    if (nextColor !== (ref.card.areaColor || null)) {
-      ref.card.areaColor = nextColor;
-      changed = true;
-      areaColorChanged = true;
-    }
-  }
 
- if (becameArea === true) {
-    const ensured = ensureAreaHumanIdValue(ref.card.humanId, () => nextHumanNumber(board));
-    if (ensured !== ref.card.humanId) {
-      ref.card.humanId = ensured;
-      changed = true;
+    if (Object.prototype.hasOwnProperty.call(updates, "location")) {
+      const nextLocation = String(updates.location || "").trim();
+      if (nextLocation !== (ref.card.location || "")) {
+        notes.push(`Adresse: ${(ref.card.location || "—")}→${nextLocation || "—"}`);
+        ref.card.location = nextLocation;
+        changed = true;
+      }
     }
-  } else if (becameArea === false && !ref.card.externalId) {
-    const ensured = ensureManualHumanIdValue(ref.card.humanId, () => nextHumanNumber(board));
-    if (ensured !== ref.card.humanId) {
-      ref.card.humanId = ensured;
-      changed = true;
-    }
-  }
 
+    const hasLatUpdate =
+      Object.prototype.hasOwnProperty.call(updates, "latitude") ||
+      Object.prototype.hasOwnProperty.call(updates, "lat");
+    const hasLngUpdate =
+      Object.prototype.hasOwnProperty.call(updates, "longitude") ||
+      Object.prototype.hasOwnProperty.call(updates, "lng");
 
-  const cleared = [];
-  if (prevSnapshot.isArea && !ref.card.isArea) {
-	   if (ref.card.areaColor) {
-      ref.card.areaColor = null;
-      changed = true;
+    let coordsChanged = false;
+    if (hasLatUpdate) {
+      const raw = Number(updates.latitude ?? updates.lat);
+      const nextLat = Number.isFinite(raw) ? raw : null;
+      if (nextLat !== (Number.isFinite(ref.card.latitude) ? Number(ref.card.latitude) : null)) {
+        ref.card.latitude = nextLat;
+        coordsChanged = true;
+        changed = true;
+      }
     }
-    for (const colKey of Object.keys(board.columns || {})) {
-      for (const c of board.columns[colKey]?.items || []) {
-        if (c.id === ref.card.id) continue;
-        if (c.areaCardId && String(c.areaCardId) === String(ref.card.id)) {
-          c.areaCardId = null;
-		  if (c.areaColor) {
-            c.areaColor = null;
-          }
-          cleared.push(c);
+    if (hasLngUpdate) {
+      const raw = Number(updates.longitude ?? updates.lng);
+      const nextLng = Number.isFinite(raw) ? raw : null;
+      if (nextLng !== (Number.isFinite(ref.card.longitude) ? Number(ref.card.longitude) : null)) {
+        ref.card.longitude = nextLng;
+        coordsChanged = true;
+        changed = true;
+      }
+    }
+
+    if (coordsChanged) {
+      notes.push(`Koordinaten: ${formatCoords(prevLat, prevLng)}→${formatCoords(ref.card.latitude, ref.card.longitude)}`);
+    }
+
+    const areaCards = listAreaCards(board).filter((c) => c.id !== ref.card.id);
+    const areaIdSet = new Set(areaCards.map((c) => String(c.id)));
+    const areaColorMap = new Map(areaCards.map((c) => [String(c.id), c.areaColor || null]));
+
+    let areaChanged = false;
+    let becameArea = null;
+    if (Object.prototype.hasOwnProperty.call(updates, "isArea")) {
+      const nextIsArea = !!updates.isArea;
+      if (nextIsArea !== ref.card.isArea) {
+        ref.card.isArea = nextIsArea;
+        changed = true;
+        areaChanged = true;
+        becameArea = nextIsArea;
+        if (nextIsArea) {
+          ref.card.areaCardId = null;
         }
       }
     }
-    if (cleared.length) changed = true;
-  }
 
-if (ref.card.isArea && (areaColorChanged || areaChanged)) {
-    for (const colKey of Object.keys(board.columns || {})) {
-      for (const c of board.columns[colKey]?.items || []) {
-        if (!c || c.id === ref.card.id) continue;
-        if (c.areaCardId && String(c.areaCardId) === String(ref.card.id)) {
-          if (c.areaColor !== ref.card.areaColor) {
-            c.areaColor = ref.card.areaColor;
-            changed = true;
+    if (!ref.card.isArea && Object.prototype.hasOwnProperty.call(updates, "areaCardId")) {
+      const raw = updates.areaCardId;
+      let nextArea = null;
+      if (raw) {
+        const idStr = String(raw);
+        if (!areaIdSet.has(idStr)) {
+          return { badRequest: true, error: "Bereich ungültig" };
+        }
+        nextArea = idStr;
+      }
+      if (nextArea !== (ref.card.areaCardId ? String(ref.card.areaCardId) : null)) {
+        ref.card.areaCardId = nextArea;
+        changed = true;
+        areaChanged = true;
+      }
+      const desiredColor = nextArea ? (areaColorMap.get(nextArea) || null) : null;
+      if (desiredColor !== (ref.card.areaColor || null)) {
+        ref.card.areaColor = desiredColor;
+        changed = true;
+      }
+    }
+
+    if (ref.card.isArea) {
+      ref.card.areaCardId = null;
+    }
+
+    let areaColorChanged = false;
+    if (ref.card.isArea) {
+      const hasColorUpdate = Object.prototype.hasOwnProperty.call(updates, "areaColor");
+      const proposed = hasColorUpdate ? updates.areaColor : (ref.card.areaColor || DEFAULT_AREA_COLOR);
+      const nextColor = normalizeAreaColor(proposed || DEFAULT_AREA_COLOR, DEFAULT_AREA_COLOR);
+      if (nextColor !== ref.card.areaColor) {
+        notes.push(`Farbe: ${(prevSnapshot.areaColor || "—")}→${nextColor}`);
+        ref.card.areaColor = nextColor;
+        changed = true;
+        areaColorChanged = true;
+      }
+    } else {
+      const currentArea = ref.card.areaCardId ? String(ref.card.areaCardId) : null;
+      const nextColor = currentArea ? (areaColorMap.get(currentArea) || null) : null;
+      if (nextColor !== (ref.card.areaColor || null)) {
+        ref.card.areaColor = nextColor;
+        changed = true;
+        areaColorChanged = true;
+      }
+    }
+
+    if (becameArea === true) {
+      const ensured = ensureAreaHumanIdValue(ref.card.humanId, () => nextHumanNumber(board));
+      if (ensured !== ref.card.humanId) {
+        ref.card.humanId = ensured;
+        changed = true;
+      }
+    } else if (becameArea === false && !ref.card.externalId) {
+      const ensured = ensureManualHumanIdValue(ref.card.humanId, () => nextHumanNumber(board));
+      if (ensured !== ref.card.humanId) {
+        ref.card.humanId = ensured;
+        changed = true;
+      }
+    }
+
+    const cleared = [];
+    if (prevSnapshot.isArea && !ref.card.isArea) {
+      if (ref.card.areaColor) {
+        ref.card.areaColor = null;
+        changed = true;
+      }
+      for (const colKey of Object.keys(board.columns || {})) {
+        for (const c of board.columns[colKey]?.items || []) {
+          if (c.id === ref.card.id) continue;
+          if (c.areaCardId && String(c.areaCardId) === String(ref.card.id)) {
+            c.areaCardId = null;
+            if (c.areaColor) {
+              c.areaColor = null;
+            }
+            cleared.push(c);
+          }
+        }
+      }
+      if (cleared.length) changed = true;
+    }
+
+    if (ref.card.isArea && (areaColorChanged || areaChanged)) {
+      for (const colKey of Object.keys(board.columns || {})) {
+        for (const c of board.columns[colKey]?.items || []) {
+          if (!c || c.id === ref.card.id) continue;
+          if (c.areaCardId && String(c.areaCardId) === String(ref.card.id)) {
+            if (c.areaColor !== ref.card.areaColor) {
+              c.areaColor = ref.card.areaColor;
+              changed = true;
+            }
           }
         }
       }
     }
-  }
 
+    const nextAreaLabel = areaLabel(ref.card, board);
+    if (areaChanged && prevAreaLabel !== nextAreaLabel) {
+      notes.push(`Abschnitt: ${prevAreaLabel || "—"}→${nextAreaLabel || "—"}`);
+    }
 
-  const nextAreaLabel = areaLabel(ref.card, board);
-  if (areaChanged && prevAreaLabel !== nextAreaLabel) {
-    notes.push(`Abschnitt: ${prevAreaLabel || "—"}→${nextAreaLabel || "—"}`);
-  }
+    if (!changed) {
+      return { unchanged: true, card: ref.card, board };
+    }
 
-  if (!changed) {
-    return res.json({ ok: true, card: ref.card, board });
-  }
-
-  await saveBoard(board);
+    await saveBoard(board);
+    return { board, card: ref.card, notes, becameArea, cleared, areaChanged };
+  });
+  if (result.notFound) return res.status(404).json({ error: "card not found" });
+  if (result.badRequest) return res.status(400).json({ error: result.error });
+  if (result.unchanged) return res.json({ ok: true, card: result.card, board: result.board });
+  const { board, card: updatedCard, notes, becameArea, cleared, areaChanged } = result;
 
   let actionLabel = "Einsatz aktualisiert";
-  if (!ref.card.isArea && areaChanged && ref.card.areaCardId) {
+  if (!updatedCard.isArea && areaChanged && updatedCard.areaCardId) {
     actionLabel = "Zu Abschnitt zugeordnet";
   }
 
@@ -2833,7 +2870,7 @@ if (ref.card.isArea && (areaColorChanged || areaChanged)) {
     EINSATZ_HEADERS,
     buildEinsatzLog({
       action: actionLabel,
-      card: ref.card,
+      card: updatedCard,
       note: notes.join("; ") || "",
       board,
     }),
@@ -2847,7 +2884,7 @@ if (ref.card.isArea && (areaColorChanged || areaChanged)) {
       EINSATZ_HEADERS,
       buildEinsatzLog({
         action: "Bereich aktiviert",
-        card: ref.card,
+        card: updatedCard,
         note: "Als Bereich markiert",
         board,
       }),
@@ -2860,7 +2897,7 @@ if (ref.card.isArea && (areaColorChanged || areaChanged)) {
       EINSATZ_HEADERS,
       buildEinsatzLog({
         action: "Bereich deaktiviert",
-        card: ref.card,
+        card: updatedCard,
         note: "Bereich-Markierung entfernt",
         board,
       }),
@@ -2877,7 +2914,7 @@ if (ref.card.isArea && (areaColorChanged || areaChanged)) {
         buildEinsatzLog({
           action: "Bereich entfernt",
           card: c,
-          note: `Bereich ${ref.card.humanId || ref.card.content || ref.card.id} nicht mehr verfügbar`,
+          note: `Bereich ${updatedCard.humanId || updatedCard.content || updatedCard.id} nicht mehr verfügbar`,
           board,
         }),
         req,
@@ -2887,7 +2924,7 @@ if (ref.card.isArea && (areaColorChanged || areaChanged)) {
   }
 
   markActivity("card:update");
-  res.json({ ok: true, card: ref.card, board });
+  res.json({ ok: true, card: updatedCard, board });
 });
 
 
@@ -2907,16 +2944,18 @@ async function archiveAndResetLog() {
 }
 
 app.post("/api/reset", async (_req,res)=>{
-  const board=await ensureBoard();
-  await ensureDir(ARCHIVE_DIR);
-  await writeFileAtomic(path.join(ARCHIVE_DIR,`board_${tsFile()}.json`), JSON.stringify(board,null,2), "utf8");
+  await fileMutex.withLock("board", async () => {
+    const board=await ensureBoard();
+    await ensureDir(ARCHIVE_DIR);
+    await writeFileAtomic(path.join(ARCHIVE_DIR,`board_${tsFile()}.json`), JSON.stringify(board,null,2), "utf8");
 
-  const fresh={ columns:{
-    "neu":{name:"Neu",items:[]},
-    "in-bearbeitung":{name:"In Bearbeitung",items:[]},
-    "erledigt":{name:"Erledigt",items:[]}
-  }};
-  await saveBoard(fresh);
+    const fresh={ columns:{
+      "neu":{name:"Neu",items:[]},
+      "in-bearbeitung":{name:"In Bearbeitung",items:[]},
+      "erledigt":{name:"Erledigt",items:[]}
+    }};
+    await saveBoard(fresh);
+  });
   await archiveAndResetLog();
   res.json({ ok:true });
 });
@@ -3599,35 +3638,37 @@ function extractAlertedGroupsFromItem(item) {
 
 async function updateGroupAlertedStatuses(alertedGroups) {
   try {
-    const prev = await readGroupAlerted().catch(() => ({}));
-    const groupLocations = await readJson(GROUPS_FILE, {});
-    const normalizedAlerted = new Set(
-      Array.from(alertedGroups || [])
-        .map(normalizeGroupNameForAlert)
-        .filter(Boolean)
-    );
-    const combined = new Set([
-      ...Object.keys(prev || {}).map(normalizeGroupNameForAlert),
-      ...Object.keys(groupLocations || {}).map(normalizeGroupNameForAlert),
-      ...normalizedAlerted,
-    ]);
+    await fileMutex.withLock("group-alerted", async () => {
+      const prev = await readGroupAlerted().catch(() => ({}));
+      const groupLocations = await readJson(GROUPS_FILE, {});
+      const normalizedAlerted = new Set(
+        Array.from(alertedGroups || [])
+          .map(normalizeGroupNameForAlert)
+          .filter(Boolean)
+      );
+      const combined = new Set([
+        ...Object.keys(prev || {}).map(normalizeGroupNameForAlert),
+        ...Object.keys(groupLocations || {}).map(normalizeGroupNameForAlert),
+        ...normalizedAlerted,
+      ]);
 
-    const next = {};
-    for (const name of combined) {
-      const normalized = normalizeGroupNameForAlert(name);
-      if (!normalized) continue;
+      const next = {};
+      for (const name of combined) {
+        const normalized = normalizeGroupNameForAlert(name);
+        if (!normalized) continue;
 
-      const hadPrev = Object.prototype.hasOwnProperty.call(prev || {}, normalized);
-      const prevValue = prev?.[normalized];
+        const hadPrev = Object.prototype.hasOwnProperty.call(prev || {}, normalized);
+        const prevValue = prev?.[normalized];
 
-      if (normalizedAlerted.has(normalized)) {
-        next[normalized] = prevValue === true || !hadPrev;
-      } else {
-        next[normalized] = false;
+        if (normalizedAlerted.has(normalized)) {
+          next[normalized] = prevValue === true || !hadPrev;
+        } else {
+          next[normalized] = false;
+        }
       }
-    }
 
-    await writeGroupAlerted(next);
+      await writeGroupAlerted(next);
+    });
   } catch (error) {
     await appendError("group-alerted/update", error);
   }
@@ -3638,12 +3679,14 @@ async function markGroupAlertedResolved(groupName) {
   if (!normalized) return;
 
   try {
-    const prev = await readGroupAlerted().catch(() => ({}));
-    if (Object.prototype.hasOwnProperty.call(prev || {}, normalized) && prev[normalized] === false) {
-      return;
-    }
-    const next = { ...prev, [normalized]: false };
-    await writeGroupAlerted(next);
+    await fileMutex.withLock("group-alerted", async () => {
+      const prev = await readGroupAlerted().catch(() => ({}));
+      if (Object.prototype.hasOwnProperty.call(prev || {}, normalized) && prev[normalized] === false) {
+        return;
+      }
+      const next = { ...prev, [normalized]: false };
+      await writeGroupAlerted(next);
+    });
   } catch (error) {
     await appendError("group-alerted/resolve", error, { group: normalized });
   }
@@ -3744,94 +3787,96 @@ async function importFromFileOnce(filename=AUTO_DEFAULT_FILENAME){
     return { ok:false, error:`Kann ${filename} nicht lesen: ${e.message}` };
   }
 
-  const board=await ensureBoard();
-  let created=0, updated=0, skipped=0;
-  const alertedGroups = new Set();
-  let lastCreatedCard = null; 
+  return await fileMutex.withLock("board", async () => {
+    const board=await ensureBoard();
+    let created=0, updated=0, skipped=0;
+    const alertedGroups = new Set();
+    let lastCreatedCard = null;
 
-  try{
-    for(const item of arr){
-      const m=mapIncomingItemToCardFields(item);
-      const incomingAlertedGroups = Array.from(extractAlertedGroupsFromItem(item));
-      if (!m.externalId) {
-        for (const groupName of incomingAlertedGroups) {
-          alertedGroups.add(groupName);
+    try{
+      for(const item of arr){
+        const m=mapIncomingItemToCardFields(item);
+        const incomingAlertedGroups = Array.from(extractAlertedGroupsFromItem(item));
+        if (!m.externalId) {
+          for (const groupName of incomingAlertedGroups) {
+            alertedGroups.add(groupName);
+          }
+          skipped++;
+          continue;
         }
-        skipped++;
-        continue;
-      }
-      const existing=findCardByExternalId(board,m.externalId);
-      const existingRef = existing ? findCardRef(board, existing.id) : null;
-      const existingIsDone = existingRef?.col === "erledigt";
-      if (!existingIsDone) {
-        for (const groupName of incomingAlertedGroups) {
-          alertedGroups.add(groupName);
+        const existing=findCardByExternalId(board,m.externalId);
+        const existingRef = existing ? findCardRef(board, existing.id) : null;
+        const existingIsDone = existingRef?.col === "erledigt";
+        if (!existingIsDone) {
+          for (const groupName of incomingAlertedGroups) {
+            alertedGroups.add(groupName);
+          }
         }
-      }
-      if(existing){
-        const existingChanged = applyIncomingFieldsToCard(existing, m);
-        if (existingChanged) {
-          updated++;
-          await appendAutoImportCsvLog({
-            action: "Einsatz aktualisiert (Auto-Import)",
-            card: existing,
-            columnKey: existingRef?.col,
-            board,
-          });
-        }
-      }else{
-        const duplicateByCoords = findCardByCoordinates(board, m.latitude, m.longitude, ["neu", "in-bearbeitung"]);
-        if (duplicateByCoords) {
-          const duplicateRef = findCardRef(board, duplicateByCoords.id);
-          const duplicateChanged = applyIncomingFieldsToCard(duplicateByCoords, m);
-          if (duplicateChanged) {
+        if(existing){
+          const existingChanged = applyIncomingFieldsToCard(existing, m);
+          if (existingChanged) {
             updated++;
             await appendAutoImportCsvLog({
               action: "Einsatz aktualisiert (Auto-Import)",
-              card: duplicateByCoords,
-              columnKey: duplicateRef?.col,
+              card: existing,
+              columnKey: existingRef?.col,
               board,
             });
           }
-          continue;
+        }else{
+          const duplicateByCoords = findCardByCoordinates(board, m.latitude, m.longitude, ["neu", "in-bearbeitung"]);
+          if (duplicateByCoords) {
+            const duplicateRef = findCardRef(board, duplicateByCoords.id);
+            const duplicateChanged = applyIncomingFieldsToCard(duplicateByCoords, m);
+            if (duplicateChanged) {
+              updated++;
+              await appendAutoImportCsvLog({
+                action: "Einsatz aktualisiert (Auto-Import)",
+                card: duplicateByCoords,
+                columnKey: duplicateRef?.col,
+                board,
+              });
+            }
+            continue;
+          }
+          const now=new Date().toISOString();
+          const importHumanId = `E-${nextHumanNumber(board)}`;
+          const card={ id:uid(), content:m.content||"(ohne Titel)", createdAt:now, statusSince:now,
+            assignedVehicles:[], everVehicles:[], everPersonnel:0,
+            ort:m.ort, typ:m.typ, externalId:m.externalId, alerted:m.alerted,
+            humanId: importHumanId,
+            latitude:m.latitude, longitude:m.longitude,
+            location: m.location || "",
+            timestamp: m.timestamp || null,
+            updated: m.updated ?? null,
+            description: m.description || ""
+          };
+          board.columns["neu"].items.unshift(card);
+          await appendWeatherIncidentForCard(card);
+          created++;
+          lastCreatedCard = card;
+          await appendAutoImportCsvLog({
+            action: "Einsatz erstellt (Auto-Import)",
+            card,
+            columnKey: "neu",
+            board,
+          });
         }
-        const now=new Date().toISOString();
-                const importHumanId = `E-${nextHumanNumber(board)}`;
-        const card={ id:uid(), content:m.content||"(ohne Titel)", createdAt:now, statusSince:now,
-          assignedVehicles:[], everVehicles:[], everPersonnel:0,
-          ort:m.ort, typ:m.typ, externalId:m.externalId, alerted:m.alerted,
-                   humanId: importHumanId,
-          latitude:m.latitude, longitude:m.longitude,
-          location: m.location || "",
-          timestamp: m.timestamp || null,
-          updated: m.updated ?? null,
-          description: m.description || ""
-        };
-        board.columns["neu"].items.unshift(card);
-        await appendWeatherIncidentForCard(card);
-        created++;
-                lastCreatedCard = card;
-        await appendAutoImportCsvLog({
-          action: "Einsatz erstellt (Auto-Import)",
-          card,
-          columnKey: "neu",
-          board,
-        });
       }
-    }
 
-    await updateGroupAlertedStatuses(alertedGroups);
-    await saveBoard(board);
-	    if (lastCreatedCard) {
-      await maybeRegenerateFeldkirchenMapForNewCard(lastCreatedCard);
+      await updateGroupAlertedStatuses(alertedGroups);
+      await saveBoard(board);
+      if (lastCreatedCard) {
+        await maybeRegenerateFeldkirchenMapForNewCard(lastCreatedCard);
+      }
+      importLastLoadedAt = Date.now();
+      importLastFile     = filename;
+      return { ok:true, created, updated, skipped, file:filename };
+    }catch(e){
+      await appendError("importFromFileOnce/loop", e);
+      throw e;
     }
-    importLastLoadedAt = Date.now();
-    importLastFile     = filename;
-    return { ok:true, created, updated, skipped, file:filename };
-  }catch(e){
-    await appendError("importFromFileOnce/loop", e);
-    throw e;
-  }
+  });
 }
 
 let autoTimer=null;

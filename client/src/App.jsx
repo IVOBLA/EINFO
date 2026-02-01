@@ -657,12 +657,14 @@ useEffect(() => {
     if (!unlocked) return undefined;
     let cancelled = false;
     let timer = null;
+    let fetchSeq = 0;
     const period = Math.max(5, Math.min(60, autoEnabled ? 8 : 15));
 
     const tick = async () => {
+      const seq = ++fetchSeq;
       try {
         const data = await fetchGroupAlerted();
-        if (!cancelled) {
+        if (!cancelled && seq === fetchSeq) {
           applyGroupAlertedResponse(data);
         }
       } catch {}

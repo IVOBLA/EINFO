@@ -15,6 +15,7 @@ import { User_initStore } from "../User_store.mjs";
 import { ensureTaskForRole } from "../utils/tasksService.mjs";
 import { CSV_HEADER, ensureCsvStructure, appendHistoryEntriesToCsv } from "../utils/protocolCsv.mjs";
 import { DATA_ROOT } from "../utils/pdfPaths.mjs";
+import { fileMutex } from "../utils/fileMutex.mjs";
 
 const isLage = v => /^(lage|lagemeldung)$/i.test(String(v || ""));
 const infoText = x => String(x?.information ?? x?.INFORMATION ?? x?.beschreibung ?? x?.text ?? x?.ERGAENZUNG ?? "").trim();
@@ -681,8 +682,6 @@ router.get("/:nr(\\d+)", async (req, res) => {
 // Neu
 router.post("/", express.json(), async (req, res) => {
   try {
-    const all = await readAllJson();
-    const nr  = nextNr(all);
     const identity = resolveUserIdentity(req);
     if (!identity.userId) {
       return res.status(401).json({ ok: false, error: "UNAUTHORIZED" });
@@ -693,56 +692,63 @@ router.post("/", express.json(), async (req, res) => {
       return res.status(403).json({ ok: false, error: "EDIT_FORBIDDEN" });
     }
     const actorRoles = collectActorRoles(req);
-    const payload = {
-      ...(req.body || {}),
-      nr,
-      id: randomUUID(),
-      printCount: 0,
-      history: []
-    };
-    payload.zu = sanitizeZu(payload.zu);
-    if (allowTaskOverride) {
-      const actorRole = resolveActorRole(req);
-      const normalizedActorRole = canonicalRoleId(actorRole);
-      const fallbackRole = (() => {
-        const values = [...actorRoles];
-        return values.length ? canonicalRoleId(values[0]) : null;
-      })();
-      payload.meta = {
-        ...(payload.meta || {}),
-        createdVia: "task-board",
-        createdByRole: normalizedActorRole || fallbackRole || payload.meta?.createdByRole || null,
-      };
-    }
-    try {
-      payload.otherRecipientConfirmation = sanitizeConfirmation(req.body?.otherRecipientConfirmation, {
-        existing: null,
-        identity,
-        actorRoles,
-      });
-    } catch (err) {
-      const status = err?.status && Number.isFinite(err.status) ? Number(err.status) : 400;
-      return res.status(status).json({ ok: false, error: err?.message || "CONFIRM_ERROR" });
-    }
-    const userBy = identity.displayName || req?.user?.displayName || req?.user?.username || resolveUserName(req) || "";
-    payload.createdBy = userBy;
-    payload.history.push({
-      ts: Date.now(),
-      action: "create",
-      by: userBy,
-      after: snapshotForHistory(payload)
-    });
-    payload.printCount = sumPrintHistory(payload.history);
-    payload.lastBy = userBy;        // Merkt den letzten Bearbeiter
-    all.push(payload);
 
-    const latestEntry = payload.history?.[payload.history.length - 1];
-    await writeAllJson(all);
-    if (latestEntry) appendHistoryEntriesToCsv(payload, [latestEntry], CSV_FILE);
+    // Serialize read-modify-write on protocol.json
+    const { nr, payload, latestEntry } = await fileMutex.withLock("protocol", async () => {
+      const all = await readAllJson();
+      const nr  = nextNr(all);
+      const payload = {
+        ...(req.body || {}),
+        nr,
+        id: randomUUID(),
+        printCount: 0,
+        history: []
+      };
+      payload.zu = sanitizeZu(payload.zu);
+      if (allowTaskOverride) {
+        const actorRole = resolveActorRole(req);
+        const normalizedActorRole = canonicalRoleId(actorRole);
+        const fallbackRole = (() => {
+          const values = [...actorRoles];
+          return values.length ? canonicalRoleId(values[0]) : null;
+        })();
+        payload.meta = {
+          ...(payload.meta || {}),
+          createdVia: "task-board",
+          createdByRole: normalizedActorRole || fallbackRole || payload.meta?.createdByRole || null,
+        };
+      }
+      try {
+        payload.otherRecipientConfirmation = sanitizeConfirmation(req.body?.otherRecipientConfirmation, {
+          existing: null,
+          identity,
+          actorRoles,
+        });
+      } catch (err) {
+        const status = err?.status && Number.isFinite(err.status) ? Number(err.status) : 400;
+        throw Object.assign(new Error(err?.message || "CONFIRM_ERROR"), { httpStatus: status });
+      }
+      const userBy = identity.displayName || req?.user?.displayName || req?.user?.username || resolveUserName(req) || "";
+      payload.createdBy = userBy;
+      payload.history.push({
+        ts: Date.now(),
+        action: "create",
+        by: userBy,
+        after: snapshotForHistory(payload)
+      });
+      payload.printCount = sumPrintHistory(payload.history);
+      payload.lastBy = userBy;
+      all.push(payload);
+
+      const latestEntry = payload.history?.[payload.history.length - 1];
+      await writeAllJson(all);
+      if (latestEntry) appendHistoryEntriesToCsv(payload, [latestEntry], CSV_FILE);
+      return { nr, payload, latestEntry };
+    });
 // Ergänzung: Aufgaben je Verantwortlicher (nur Auftrag/Lage)
 try {
   if (taskType(payload)) {
-    const actor = payload.createdBy || userBy || resolveUserName(req);
+    const actor = payload.createdBy || resolveUserName(req);
     const actorRole = resolveActorRole(req);
     const { roles, desc } = collectMeasureRoles(payload);
     const type = payload?.infoTyp ?? "";
@@ -790,7 +796,8 @@ try {
 }
         res.json({ ok: true, nr, id: payload.id, zu: payload.zu ?? "" });
   } catch (e) {
-    res.status(500).json({ ok: false, error: e.message });
+    const status = e?.httpStatus && Number.isFinite(e.httpStatus) ? e.httpStatus : 500;
+    res.status(status).json({ ok: false, error: e.message });
   }
 });
 
@@ -798,11 +805,6 @@ try {
 router.put("/:nr(\\d+)", express.json(), async (req, res) => {
   try {
     const nr  = Number(req.params.nr);
-    const all = await readAllJson();
-    const idx = all.findIndex(x => Number(x.nr) === nr);
-    if (idx < 0) return res.status(404).json({ ok: false, error: "Not found" });
-
-    const existing = all[idx];
 
     cleanupExpiredLocks();
     const identity = resolveUserIdentity(req);
@@ -823,43 +825,78 @@ router.put("/:nr(\\d+)", express.json(), async (req, res) => {
       });
     }
 
-    const next = {
-      ...existing,
-      ...(req.body || {}),
-      nr,
-      id: existing.id,
-      history: existing.history || []
-    };
-    next.zu = sanitizeZu(next.zu ?? existing.zu);
+    // Serialize read-modify-write on protocol.json
+    const result = await fileMutex.withLock("protocol", async () => {
+      const all = await readAllJson();
+      const idx = all.findIndex(x => Number(x.nr) === nr);
+      if (idx < 0) return { notFound: true };
 
-    try {
-      next.otherRecipientConfirmation = sanitizeConfirmation(req.body?.otherRecipientConfirmation, {
-        existing: existing.otherRecipientConfirmation,
-        identity,
-        actorRoles,
-      });
-    } catch (err) {
-      const status = err?.status && Number.isFinite(err.status) ? Number(err.status) : 400;
-      return res.status(status).json({ ok: false, error: err?.message || "CONFIRM_ERROR" });
-    }
+      const existing = all[idx];
 
-    const existingCreator =
-      existing.createdBy ??
-      existing.history?.find?.((h) => h?.action === "create" && h?.by)?.by ??
-      existing.lastBy ??
-      null;
-    next.createdBy = existingCreator;
+      const next = {
+        ...existing,
+        ...(req.body || {}),
+        nr,
+        id: existing.id,
+        history: existing.history || []
+      };
+      next.zu = sanitizeZu(next.zu ?? existing.zu);
 
-    const userBy  = identity.displayName || req?.user?.displayName || req?.user?.username || resolveUserName(req) || "";
-    const changes = computeDiff(existing, next);
-    if (changes.length) {
-      const existingConfirm = normalizeConfirmation(existing.otherRecipientConfirmation);
-      const existingRole = existingConfirm.confirmed ? canonicalRoleId(existingConfirm.byRole) || existingConfirm.byRole || null : null;
-      if (existingConfirm.confirmed && existingRole && !actorRoles.has(existingRole)) {
-        return res.status(403).json({ ok: false, error: "CONFIRM_LOCKED" });
+      try {
+        next.otherRecipientConfirmation = sanitizeConfirmation(req.body?.otherRecipientConfirmation, {
+          existing: existing.otherRecipientConfirmation,
+          identity,
+          actorRoles,
+        });
+      } catch (err) {
+        const status = err?.status && Number.isFinite(err.status) ? Number(err.status) : 400;
+        throw Object.assign(new Error(err?.message || "CONFIRM_ERROR"), { httpStatus: status });
       }
-    }
-    if (!changes.length) {
+
+      const existingCreator =
+        existing.createdBy ??
+        existing.history?.find?.((h) => h?.action === "create" && h?.by)?.by ??
+        existing.lastBy ??
+        null;
+      next.createdBy = existingCreator;
+
+      const userBy  = identity.displayName || req?.user?.displayName || req?.user?.username || resolveUserName(req) || "";
+      const changes = computeDiff(existing, next);
+      if (changes.length) {
+        const existingConfirm = normalizeConfirmation(existing.otherRecipientConfirmation);
+        const existingRole = existingConfirm.confirmed ? canonicalRoleId(existingConfirm.byRole) || existingConfirm.byRole || null : null;
+        if (existingConfirm.confirmed && existingRole && !actorRoles.has(existingRole)) {
+          throw Object.assign(new Error("CONFIRM_LOCKED"), { httpStatus: 403 });
+        }
+      }
+      if (!changes.length) {
+        if (identity.userId) {
+          const now = Date.now();
+          const lock = {
+            userId: identity.userId,
+            username: identity.username,
+            displayName: identity.displayName,
+            lockedAt: existingLock?.lockedAt || now,
+            expiresAt: now + LOCK_TTL_MS,
+          };
+          activeLocks.set(nr, lock);
+        }
+        return { unchanged: true, nr, id: existing.id };
+      }
+      let newHistoryEntry = null;
+      if (changes.length) {
+        newHistoryEntry = { ts: Date.now(), action: "update", by: userBy, changes, after: snapshotForHistory(next) };
+        next.history = [
+          ...next.history,
+          newHistoryEntry
+        ];
+      }
+      next.printCount = sumPrintHistory(next.history);
+      next.lastBy = userBy;
+
+      all[idx] = next;
+      await writeAllJson(all);
+
       if (identity.userId) {
         const now = Date.now();
         const lock = {
@@ -871,110 +908,90 @@ router.put("/:nr(\\d+)", express.json(), async (req, res) => {
         };
         activeLocks.set(nr, lock);
       }
-      return res.json({ ok: true, nr, id: existing.id, unchanged: true });
-    }
-    let newHistoryEntry = null;
-    if (changes.length) {
-      newHistoryEntry = { ts: Date.now(), action: "update", by: userBy, changes, after: snapshotForHistory(next) };
-      next.history = [
-        ...next.history,
-        newHistoryEntry
-      ];
-    }
-    next.printCount = sumPrintHistory(next.history);
-    next.lastBy = userBy;     // Merkt den letzten Bearbeiter
+      if (newHistoryEntry) appendHistoryEntriesToCsv(next, [newHistoryEntry], CSV_FILE);
+      return { next, userBy };
+    });
 
-    all[idx] = next;
-    await writeAllJson(all);
+    if (result.notFound) return res.status(404).json({ ok: false, error: "Not found" });
+    if (result.unchanged) return res.json({ ok: true, nr, id: result.id, unchanged: true });
+    const { next, userBy } = result;
 
-    if (identity.userId) {
-      const now = Date.now();
-      const lock = {
-        userId: identity.userId,
-        username: identity.username,
-        displayName: identity.displayName,
-        lockedAt: existingLock?.lockedAt || now,
-        expiresAt: now + LOCK_TTL_MS,
-      };
-      activeLocks.set(nr, lock);
-    }
-    if (newHistoryEntry) appendHistoryEntriesToCsv(next, [newHistoryEntry], CSV_FILE);
- // Ergänzung: neu hinzugekommene Verantwortliche ==> Aufgaben nachziehen
- try{
-   if (taskType(next)) {
-    const actor = next.createdBy || userBy;
-    const actorRole = resolveActorRole(req);
-    const { roles, desc } = collectMeasureRoles(next);
-    const type = next?.infoTyp ?? next?.TYP ?? "";
-    const seen = new Set();
+    // Task sync outside lock
+    try{
+      if (taskType(next)) {
+        const actor = next.createdBy || userBy;
+        const actorRole = resolveActorRole(req);
+        const { roles, desc } = collectMeasureRoles(next);
+        const type = next?.infoTyp ?? next?.TYP ?? "";
+        const seen = new Set();
 
-    for (const [key, info] of roles.entries()) {
-       seen.add(key);
-       await ensureTaskForRole({
-        roleId: info.label,
-        responsibleLabel: info.label,
-        protoNr: next.nr,
-        actor,
-        actorRole,
-        item: {
-          title: info.title,
-          type,
-          desc,
-          meta: { source: "protokoll", protoNr: next.nr }
-         }
-       });
-     }
+        for (const [key, info] of roles.entries()) {
+          seen.add(key);
+          await ensureTaskForRole({
+            roleId: info.label,
+            responsibleLabel: info.label,
+            protoNr: next.nr,
+            actor,
+            actorRole,
+            item: {
+              title: info.title,
+              type,
+              desc,
+              meta: { source: "protokoll", protoNr: next.nr }
+            }
+          });
+        }
 
-     const fallbackTitle = `${titleFromAnVon(next)} ${String(next?.massnahmen?.[0]?.massnahme ?? "").trim()}`.trim();
-     const text = infoText(next);
-     for (const roleId of rolesOf(next)) {
-       const label = trimRoleLabel(roleId);
-       if (!label) continue;
-       const key = canonicalRoleId(label);
-       if (!key || seen.has(key)) continue;
-       seen.add(key);
-       await ensureTaskForRole({
-        roleId: label,
-        responsibleLabel: label,
-        protoNr: next.nr,
-        actor,
-        actorRole,
-        item: {
-          title: fallbackTitle,
-          type,
-          desc: text,
-          meta: { source: "protokoll", protoNr: next.nr }
-         }
-       });
-     }
+        const fallbackTitle = `${titleFromAnVon(next)} ${String(next?.massnahmen?.[0]?.massnahme ?? "").trim()}`.trim();
+        const text = infoText(next);
+        for (const roleId of rolesOf(next)) {
+          const label = trimRoleLabel(roleId);
+          if (!label) continue;
+          const key = canonicalRoleId(label);
+          if (!key || seen.has(key)) continue;
+          seen.add(key);
+          await ensureTaskForRole({
+            roleId: label,
+            responsibleLabel: label,
+            protoNr: next.nr,
+            actor,
+            actorRole,
+            item: {
+              title: fallbackTitle,
+              type,
+              desc: text,
+              meta: { source: "protokoll", protoNr: next.nr }
+            }
+          });
+        }
 
-     // Sonderregel bei Updates: Typ=Lage & Eingang & An/Von ≠ "S2"
-     if (
-       isLage(next?.infoTyp || next?.TYP) &&
-       isEingang(next?.uebermittlungsart) &&
-       String(next?.anvon || "").trim().toUpperCase() !== "S2"
-     ) {
-       const titleAutoU = `${titleFromAnVon(next)} ${String(next?.massnahmen?.[0]?.massnahme ?? "").trim()}`.trim();
+        if (
+          isLage(next?.infoTyp || next?.TYP) &&
+          isEingang(next?.uebermittlungsart) &&
+          String(next?.anvon || "").trim().toUpperCase() !== "S2"
+        ) {
+          const titleAutoU = `${titleFromAnVon(next)} ${String(next?.massnahmen?.[0]?.massnahme ?? "").trim()}`.trim();
 
-       await ensureTaskForRole({
-        roleId: "S2",
-        responsibleLabel: "S2",
-        protoNr: next.nr,
-        actor,
-        actorRole,
-        item: {
-          title: titleAutoU,
-          type,
-          desc: infoText(next),
-          meta: { source: "protokoll", protoNr: next.nr }
-         }
-       });
-     }
-   }
- } catch (e) { console.warn("[protocol->tasks PUT]", e?.message || e); }
+          await ensureTaskForRole({
+            roleId: "S2",
+            responsibleLabel: "S2",
+            protoNr: next.nr,
+            actor,
+            actorRole,
+            item: {
+              title: titleAutoU,
+              type,
+              desc: infoText(next),
+              meta: { source: "protokoll", protoNr: next.nr }
+            }
+          });
+        }
+      }
+    } catch (e) { console.warn("[protocol->tasks PUT]", e?.message || e); }
     res.json({ ok: true, nr, id: next.id, zu: next.zu ?? "" });
   } catch (e) {
-    res.status(500).json({ ok: false, error: e.message });
+    const status = e?.httpStatus && Number.isFinite(e.httpStatus) ? e.httpStatus : 500;
+    res.status(status).json({ ok: false, error: e.message });
   }
 });
 
