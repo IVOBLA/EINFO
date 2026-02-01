@@ -884,6 +884,472 @@ def generate_meldestelle():
 
 
 # ======================================================================
+#  ADMIN-HANDBUCH
+# ======================================================================
+def generate_admin_help():
+    pdf = HilfePDF("EINFO \u2013 Administratoren-Handbuch")
+    pdf.alias_nb_pages()
+
+    # -- Deckblatt --
+    pdf.cover_page("Administratoren-Handbuch", "Konfiguration und Verwaltung")
+
+    # ----------------------------------------------------------------
+    # 1. Übersicht
+    # ----------------------------------------------------------------
+    pdf.add_page()
+    pdf.chapter_title("1. \u00dcbersicht")
+    pdf.body(
+        "Das Admin-Panel ist die zentrale Verwaltungsoberfl\u00e4che von EINFO. "
+        "Es ist ausschlie\u00dflich f\u00fcr Benutzer mit der Rolle \u201eAdmin\u201c zug\u00e4nglich "
+        "und erreichbar unter /user-admin."
+    )
+    pdf.body("Im Admin-Panel k\u00f6nnen Sie folgende Bereiche konfigurieren:")
+    pdf.bullet("Master-Key Verwaltung (Erststart und Entsperrung)")
+    pdf.bullet("Rollen und Berechtigungen f\u00fcr alle drei Boards")
+    pdf.bullet("Benutzerverwaltung (Anlegen, Bearbeiten, L\u00f6schen)")
+    pdf.bullet("Import-Einstellungen (Auto-Import und Demomodus)")
+    pdf.bullet("Auto-Druck f\u00fcr Protokolleintr\u00e4ge")
+    pdf.bullet("KI-Analyse (Situationsanalyse mit optionalem RAG-Kontext)")
+    pdf.bullet("Zeitgesteuerter Mailversand")
+    pdf.bullet("Zeitgesteuerte API-Calls")
+    pdf.bullet("Fetcher-Zugangsdaten")
+    pdf.bullet("Chatbot & Worker-Steuerung")
+    pdf.bullet("Knowledge-Basis (RAG) f\u00fcr den Chatbot")
+    pdf.bullet("Hybrid-Filtersystem (Regeln R1\u2013R5)")
+    pdf.bullet("KI-Modell-Verwaltung (Ollama)")
+
+    # ----------------------------------------------------------------
+    # 2. URLs
+    # ----------------------------------------------------------------
+    pdf.add_page()
+    pdf.chapter_title("2. Wichtige URLs")
+    pdf.body("Die folgenden Seiten sind \u00fcber den Browser erreichbar (Standard-Port: 4040):")
+    pdf.bullet("/ \u2013 Einsatzboard (Hauptansicht)")
+    pdf.bullet("/aufgaben \u2013 Aufgabenboard")
+    pdf.bullet("/status \u2013 Statusseite (druckfreundlich mit ?print=1)")
+    pdf.bullet("/user-login \u2013 Login-Seite")
+    pdf.bullet("/user-admin \u2013 Admin-Panel")
+    pdf.bullet("/user-firststart \u2013 Erststart-Assistent")
+    pdf.bullet("/Hilfe.pdf \u2013 Benutzerhandbuch Einsatzboard")
+    pdf.bullet("/Hilfe_Aufgabenboard.pdf \u2013 Benutzerhandbuch Aufgabenboard")
+    pdf.bullet("/Hilfe_Meldestelle.pdf \u2013 Benutzerhandbuch Meldestelle")
+
+    # ----------------------------------------------------------------
+    # 3. Erststart & Master-Key
+    # ----------------------------------------------------------------
+    pdf.add_page()
+    pdf.chapter_title("3. Erststart & Master-Key")
+
+    pdf.section_title("3.1 Erststart")
+    pdf.body(
+        "Beim allerersten Start der Anwendung muss der Master-Key gesetzt und "
+        "ein erster Admin-Benutzer angelegt werden. Navigieren Sie dazu zu /user-firststart."
+    )
+    pdf.bullet("Master-Key \u2013 W\u00e4hlen Sie ein sicheres Passwort als Master-Key.")
+    pdf.bullet("Admin-Benutzer \u2013 Benutzername und Passwort f\u00fcr den ersten Administrator.")
+    pdf.body(
+        "Der Master-Key wird ben\u00f6tigt, um nach jedem Server-Neustart das System zu entsperren."
+    )
+
+    pdf.section_title("3.2 Master entsperren (nach Neustart)")
+    pdf.body(
+        "Nach einem Server-Neustart ist das System gesperrt (423 Master-Lock). "
+        "Navigieren Sie zum Admin-Panel (/user-admin) und geben Sie den Master-Key "
+        "im Bereich \u201eMaster entsperren\u201c ein. Erst danach k\u00f6nnen Benutzer und "
+        "Rollen verwaltet werden."
+    )
+
+    pdf.section_title("3.3 Board zur\u00fccksetzen")
+    pdf.body(
+        "Im Admin-Panel steht oben rechts die Schaltfl\u00e4che \u201eReset\u201c zur Verf\u00fcgung. "
+        "Damit wird das Einsatzboard komplett zur\u00fcckgesetzt. Es erscheint eine Sicherheitsabfrage. "
+        "Verwenden Sie diese Funktion nur im Notfall oder f\u00fcr Testszenarien."
+    )
+
+    # ----------------------------------------------------------------
+    # 4. Rollen und Berechtigungen
+    # ----------------------------------------------------------------
+    pdf.add_page()
+    pdf.chapter_title("4. Rollen und Berechtigungen")
+
+    pdf.section_title("4.1 Rollenkonzept")
+    pdf.body(
+        "Jede Rolle definiert die Zugriffsrechte auf die drei Boards: "
+        "Einsatzboard, Aufgabenboard und Protokoll (Meldestelle). "
+        "Pro Board gibt es drei Berechtigungsstufen:"
+    )
+    pdf.bullet("none \u2013 Kein Zugriff auf dieses Board.")
+    pdf.bullet("view \u2013 Nur-Ansicht. Der Benutzer kann Daten sehen, aber nicht \u00e4ndern.")
+    pdf.bullet("edit \u2013 Vollzugriff. Der Benutzer kann anlegen, bearbeiten und l\u00f6schen.")
+    pdf.body(
+        "Die Rolle \u201eAdmin\u201c hat immer \u201eedit\u201c auf allen Boards und kann nicht "
+        "gel\u00f6scht oder eingeschr\u00e4nkt werden."
+    )
+
+    pdf.section_title("4.2 Standard-Rollen")
+    pdf.role_table([
+        ("Admin", "Systemadministrator", "edit auf allen Boards"),
+        ("LtStb", "Leiter Stab", "edit auf allen Boards"),
+        ("S1", "Personal", "view/edit je nach Config"),
+        ("S2", "Lage und Information", "edit auf allen Boards"),
+        ("S3", "Einsatz / Operation", "view/edit je nach Config"),
+        ("S4", "Versorgung / Logistik", "view/edit je nach Config"),
+        ("S5", "\u00d6ffentlichkeitsarbeit", "view/edit je nach Config"),
+        ("S6", "IT / Kommunikation", "view/edit je nach Config"),
+        ("MS", "Meldestelle", "edit auf Protokoll"),
+        ("Mitarbeiter", "Allgemeiner Mitarbeiter", "view"),
+    ])
+
+    pdf.section_title("4.3 Rollen verwalten")
+    pdf.body("Im Bereich \u201eRollen (Admin + weitere)\u201c k\u00f6nnen Sie:")
+    pdf.bullet("Neue Rollen hinzuf\u00fcgen: Name eingeben und \u201eHinzuf\u00fcgen\u201c klicken.")
+    pdf.bullet("Rollen entfernen: Auf das \u2715 neben dem Rollennamen klicken.")
+    pdf.bullet(
+        "Rechte pro Rolle: In der Tabelle \u201eRechte pro Rolle\u201c die Berechtigungsstufe "
+        "(none/view/edit) f\u00fcr jedes Board per Dropdown einstellen."
+    )
+    pdf.bullet("Mit \u201eRollen speichern\u201c bzw. \u201eRechte speichern\u201c die \u00c4nderungen sichern.")
+
+    # ----------------------------------------------------------------
+    # 5. Benutzerverwaltung
+    # ----------------------------------------------------------------
+    pdf.add_page()
+    pdf.chapter_title("5. Benutzerverwaltung")
+
+    pdf.section_title("5.1 Benutzer anlegen")
+    pdf.body("Geben Sie im Formular folgende Felder ein:")
+    pdf.bullet("Username \u2013 Eindeutiger Benutzername zum Einloggen.")
+    pdf.bullet("Passwort \u2013 Initiales Passwort f\u00fcr den Benutzer.")
+    pdf.bullet("Anzeigename \u2013 Wird in der Oberfl\u00e4che angezeigt.")
+    pdf.bullet(
+        "Rollen \u2013 W\u00e4hlen Sie eine oder mehrere Rollen aus der Liste. "
+        "Mehrfachauswahl \u00fcber Strg (Windows) oder \u2318 (macOS)."
+    )
+
+    pdf.section_title("5.2 Benutzer bearbeiten")
+    pdf.body(
+        "Klicken Sie auf \u201eEdit\u201c neben einem Benutzer, um Anzeigename, Rollen oder "
+        "Passwort zu \u00e4ndern. Das Passwort wird nur aktualisiert, wenn ein neues "
+        "eingegeben wird. Speichern Sie mit \u201eSave\u201c oder brechen Sie mit \u201eCancel\u201c ab."
+    )
+
+    pdf.section_title("5.3 Benutzer l\u00f6schen")
+    pdf.body(
+        "Klicken Sie auf \u201eDel\u201c neben einem Benutzer. Es erscheint eine Sicherheitsabfrage. "
+        "Gel\u00f6schte Benutzer k\u00f6nnen nicht wiederhergestellt werden."
+    )
+
+    # ----------------------------------------------------------------
+    # 6. Speicherorte
+    # ----------------------------------------------------------------
+    pdf.add_page()
+    pdf.chapter_title("6. Relevante Speicherorte")
+    pdf.body("Alle persistenten Daten liegen unter server/data/:")
+    pdf.bullet("Aufg_board_<ROLLE>.json \u2013 Board-Daten pro Rolle (z.\u202fB. Aufg_board_S2.json)")
+    pdf.bullet("Aufg_log.csv \u2013 Globales Aufgaben-Log")
+    pdf.bullet("Aufg_log_<ROLLE>.csv \u2013 Rollenbezogene Logs")
+    pdf.bullet("User_roles.json \u2013 Rollendefinitionen und Berechtigungen")
+    pdf.bullet("User_users.enc.json \u2013 Verschl\u00fcsselte Benutzerdaten")
+    pdf.bullet("User_authIndex.json \u2013 Login-Index")
+    pdf.bullet("User_master.json \u2013 Master-Key Information")
+    pdf.bullet("protocol.json / protocol.csv \u2013 Protokolldaten")
+    pdf.bullet("prints/protokoll_*.pdf \u2013 Gedruckte Protokolle")
+    pdf.bullet("conf/filtering_rules.json \u2013 Filterregel-Definitionen (R1\u2013R5)")
+    pdf.bullet("conf/ai-analysis.json \u2013 KI-Analyse-Konfiguration")
+    pdf.bullet("llm_feedback/learned_filters.json \u2013 Gelernte Filtergewichte")
+    pdf.bullet("scenario_config.json \u2013 Szenario-Konfiguration")
+    pdf.body("Der Frontend-Build (inkl. Hilfe-PDFs) liegt unter server/dist/.")
+
+    # ----------------------------------------------------------------
+    # 7. Import-Einstellungen
+    # ----------------------------------------------------------------
+    pdf.add_page()
+    pdf.chapter_title("7. Import-Einstellungen")
+
+    pdf.section_title("7.1 Auto-Import")
+    pdf.body(
+        "Der Auto-Import ruft in konfigurierbaren Intervallen externe Einsatzdaten ab. "
+        "Im Admin-Panel k\u00f6nnen Sie folgende Parameter einstellen:"
+    )
+    pdf.bullet("Aktiviert/Deaktiviert \u2013 Schaltet den automatischen Import ein oder aus.")
+    pdf.bullet(
+        "Intervall (Sekunden) \u2013 Abstand zwischen zwei Import-Zyklen. "
+        "Minimum: 5 Sekunden, Maximum: 3600 Sekunden (1 Stunde)."
+    )
+    pdf.bullet(
+        "Demomodus \u2013 Wenn aktiviert, wird der Fetcher beim Import nicht gestartet. "
+        "N\u00fctzlich f\u00fcr Tests oder Pr\u00e4sentationen mit statischen Daten."
+    )
+
+    pdf.section_title("7.2 Fetcher-Zugangsdaten")
+    pdf.body(
+        "Im Bereich \u201eFetcher-Zugangsdaten (global)\u201c k\u00f6nnen die Zugangsdaten "
+        "f\u00fcr externe Datenquellen hinterlegt werden. Diese werden vom Import-Modul "
+        "verwendet, um Einsatzdaten abzurufen."
+    )
+
+    # ----------------------------------------------------------------
+    # 8. Auto-Druck (Protokoll)
+    # ----------------------------------------------------------------
+    pdf.add_page()
+    pdf.chapter_title("8. Auto-Druck (Protokoll)")
+    pdf.body(
+        "Der Auto-Druck generiert in regelm\u00e4\u00dfigen Abst\u00e4nden automatisch "
+        "PDF-Ausdrucke der Protokolleintr\u00e4ge. Die Konfiguration umfasst:"
+    )
+    pdf.bullet("Aktiviert/Deaktiviert \u2013 Schaltet den automatischen Druck ein oder aus.")
+    pdf.bullet(
+        "Intervall (Minuten) \u2013 Zeitabstand zwischen zwei Druckl\u00e4ufen. "
+        "Minimum: 1 Minute."
+    )
+    pdf.bullet(
+        "Umfang (Scope) \u2013 Bestimmt, welche Eintr\u00e4ge gedruckt werden:\n"
+        "  \u2022 \u201eIntervall\u201c \u2013 Nur Eintr\u00e4ge seit dem letzten Drucklauf.\n"
+        "  \u2022 \u201eAlle\u201c \u2013 Alle vorhandenen Protokolleintr\u00e4ge."
+    )
+    pdf.body(
+        "Der Zeitpunkt des letzten Drucklaufs wird im Admin-Panel angezeigt. "
+        "Gedruckte PDFs werden unter server/data/prints/ abgelegt."
+    )
+
+    # ----------------------------------------------------------------
+    # 9. KI-Analyse
+    # ----------------------------------------------------------------
+    pdf.add_page()
+    pdf.chapter_title("9. KI-Analyse (Situationsanalyse)")
+    pdf.body(
+        "Die KI-Analyse erstellt in regelm\u00e4\u00dfigen Abst\u00e4nden eine automatische "
+        "Situationseinsch\u00e4tzung auf Basis der aktuellen Einsatz- und Protokolldaten."
+    )
+    pdf.bullet("Aktiviert/Deaktiviert \u2013 Schaltet die automatische Analyse ein oder aus.")
+    pdf.bullet(
+        "Intervall (Minuten) \u2013 Zeitabstand zwischen zwei Analysel\u00e4ufen. "
+        "Wert 0 bedeutet: nur manuelle Ausl\u00f6sung."
+    )
+    pdf.bullet(
+        "RAG-Kontext verwenden \u2013 Wenn aktiviert, werden zus\u00e4tzlich Informationen "
+        "aus der Knowledge-Basis (Wissensdatenbank) in die Analyse einbezogen. "
+        "Dies kann die Qualit\u00e4t der Einsch\u00e4tzung verbessern, erh\u00f6ht aber die "
+        "Verarbeitungszeit."
+    )
+
+    # ----------------------------------------------------------------
+    # 10. Mail-Zeitpl\u00e4ne
+    # ----------------------------------------------------------------
+    pdf.add_page()
+    pdf.chapter_title("10. Zeitgesteuerter Mailversand")
+    pdf.body(
+        "Im Bereich \u201eZeitgesteuerter Mailversand\u201c k\u00f6nnen Sie wiederkehrende "
+        "E-Mail-Versandauftr\u00e4ge konfigurieren. Jeder Zeitplan hat folgende Felder:"
+    )
+    pdf.bullet("Bezeichnung \u2013 Interner Name f\u00fcr den Zeitplan.")
+    pdf.bullet("Empf\u00e4nger (An) \u2013 E-Mail-Adresse(n) der Empf\u00e4nger.")
+    pdf.bullet("Betreff \u2013 Betreffzeile der E-Mail.")
+    pdf.bullet("Text \u2013 Nachrichteninhalt.")
+    pdf.bullet("Anhang-Pfad \u2013 Optionaler Dateipfad f\u00fcr einen Anhang.")
+    pdf.bullet(
+        "Modus \u2013 \u201eIntervall\u201c (alle X Minuten) oder \u201eFeste Uhrzeit\u201c (t\u00e4glich zu einer bestimmten Uhrzeit)."
+    )
+    pdf.bullet("Aktiviert \u2013 Ob der Zeitplan aktiv ist.")
+    pdf.body(
+        "Bestehende Zeitpl\u00e4ne k\u00f6nnen bearbeitet, gel\u00f6scht oder der letzte "
+        "Versandzeitpunkt zur\u00fcckgesetzt werden."
+    )
+
+    # ----------------------------------------------------------------
+    # 11. API-Zeitpl\u00e4ne
+    # ----------------------------------------------------------------
+    pdf.add_page()
+    pdf.chapter_title("11. Zeitgesteuerte API-Calls")
+    pdf.body(
+        "Im Bereich \u201eZeitgesteuerte API-Calls\u201c k\u00f6nnen automatische HTTP-Anfragen "
+        "an externe Systeme konfiguriert werden. Jeder Zeitplan umfasst:"
+    )
+    pdf.bullet("Bezeichnung \u2013 Interner Name f\u00fcr den Zeitplan.")
+    pdf.bullet("URL \u2013 Ziel-URL f\u00fcr den HTTP-Aufruf.")
+    pdf.bullet("Methode \u2013 HTTP-Methode (GET, POST, PUT, DELETE).")
+    pdf.bullet("Body \u2013 Optionaler Request-Body (f\u00fcr POST/PUT).")
+    pdf.bullet(
+        "Modus \u2013 \u201eIntervall\u201c (alle X Minuten) oder \u201eFeste Uhrzeit\u201c (t\u00e4glich)."
+    )
+    pdf.bullet("Aktiviert \u2013 Ob der Zeitplan aktiv ist.")
+    pdf.body(
+        "Zeitpl\u00e4ne k\u00f6nnen bearbeitet, gel\u00f6scht oder der letzte "
+        "Aufrufzeitpunkt zur\u00fcckgesetzt werden."
+    )
+
+    # ----------------------------------------------------------------
+    # 12. Chatbot & Worker
+    # ----------------------------------------------------------------
+    pdf.add_page()
+    pdf.chapter_title("12. Chatbot & Worker")
+
+    pdf.section_title("12.1 Chatbot-Steuerung")
+    pdf.body(
+        "Der EINFO-Chatbot basiert auf einem lokalen LLM (Llama 3.1) und nutzt "
+        "RAG (Retrieval-Augmented Generation) f\u00fcr kontextbezogene Antworten. "
+        "Im Admin-Panel k\u00f6nnen Sie den Chatbot starten und stoppen. "
+        "Der aktuelle Status (Running/Stopped) wird automatisch alle 5 Sekunden aktualisiert."
+    )
+
+    pdf.section_title("12.2 Worker-Steuerung")
+    pdf.body(
+        "Der Worker ist ein Hintergrundprozess, der regelm\u00e4\u00dfig Aufgaben wie "
+        "Datenaufbereitung, Analyse und Synchronisation durchf\u00fchrt. "
+        "Sie k\u00f6nnen den Worker starten und stoppen."
+    )
+
+    pdf.section_title("12.3 Worker-Intervall")
+    pdf.body(
+        "Im Bereich \u201eWorker-Intervall Einstellung\u201c legen Sie fest, wie oft der Worker "
+        "seine Aufgaben ausf\u00fchrt. Das Intervall wird in Sekunden angegeben "
+        "(Minimum: 5 Sekunden). Zus\u00e4tzlich kann der Worker hier aktiviert oder "
+        "deaktiviert werden."
+    )
+
+    # ----------------------------------------------------------------
+    # 13. Knowledge-Basis (RAG)
+    # ----------------------------------------------------------------
+    pdf.add_page()
+    pdf.chapter_title("13. Knowledge-Basis (RAG)")
+    pdf.body(
+        "Die Knowledge-Basis enth\u00e4lt Dokumente, die der Chatbot als Wissensquelle "
+        "nutzt. Neue Dateien (PDF, JSON, TXT) k\u00f6nnen hochgeladen werden."
+    )
+    pdf.bullet(
+        "Dateien hochladen \u2013 W\u00e4hlen Sie eine oder mehrere Dateien \u00fcber den "
+        "Upload-Button aus."
+    )
+    pdf.bullet(
+        "Dateien anzeigen \u2013 Die Liste zeigt alle vorhandenen Dateien in der "
+        "Knowledge-Basis mit Dateiname und Gr\u00f6\u00dfe."
+    )
+    pdf.bullet(
+        "Dateien l\u00f6schen \u2013 Einzelne Dateien k\u00f6nnen aus der Knowledge-Basis "
+        "entfernt werden."
+    )
+    pdf.bullet(
+        "Ingest starten \u2013 Nach dem Hochladen neuer Dateien muss ein Ingest "
+        "(Indizierung) gestartet werden, damit die Inhalte im RAG-System "
+        "verf\u00fcgbar werden. Dieser Vorgang kann einige Minuten dauern."
+    )
+
+    # ----------------------------------------------------------------
+    # 14. Hybrid-Filtersystem
+    # ----------------------------------------------------------------
+    pdf.add_page()
+    pdf.chapter_title("14. Hybrid-Filtersystem (R1\u2013R5)")
+    pdf.body(
+        "Das Filtersystem besteht aus f\u00fcnf konfigurierbaren Regeln, die steuern, "
+        "welche Daten dem Chatbot als Kontext bereitgestellt werden. "
+        "Die Regeln k\u00f6nnen einzeln aktiviert oder deaktiviert werden."
+    )
+
+    pdf.section_title("R1 \u2013 Abschnitte-Priorit\u00e4t")
+    pdf.body(
+        "Filtert Abschnitte nach Priorit\u00e4t und zeigt die wichtigsten. "
+        "Ber\u00fccksichtigt kritische Eins\u00e4tze, Gesamtzahl der Eins\u00e4tze, "
+        "Personalst\u00e4rke und durchschnittlichen Personaleinsatz pro Einsatz."
+    )
+
+    pdf.section_title("R2 \u2013 Protokoll-Relevanz")
+    pdf.body(
+        "Filtert Protokoll-Eintr\u00e4ge nach Relevanz. Bewertet Eintr\u00e4ge anhand "
+        "konfigurierbarer Faktoren wie offene Fragen, Ressourcen-Anfragen, "
+        "Statusmeldungen, Dringlichkeit und Warnungen. Einige Faktoren sind "
+        "\u201elernbar\u201c und passen ihre Gewichtung automatisch an."
+    )
+
+    pdf.section_title("R3 \u2013 Trend-Erkennung")
+    pdf.body(
+        "Erkennt Trends in der Einsatzentwicklung \u00fcber konfigurierbare "
+        "Zeitfenster (Standard: 60 und 120 Minuten). Erstellt Prognosen "
+        "f\u00fcr den zuk\u00fcnftigen Einsatzverlauf."
+    )
+
+    pdf.section_title("R4 \u2013 Ressourcen-Status")
+    pdf.body(
+        "Analysiert den Ressourcen-Status und erkennt Engp\u00e4sse. "
+        "Hebt Bereiche mit hoher Auslastung hervor (Standard-Schwelle: 80%)."
+    )
+
+    pdf.section_title("R5 \u2013 Stabs-Fokus")
+    pdf.body(
+        "Aggregiert Daten f\u00fcr die Stabs-Ansicht. Zeigt nur kritische "
+        "Einzeleins\u00e4tze (z.\u202fB. Personen in Gefahr, Evakuierungen, "
+        "kritische Infrastruktur). Die Scoring-Faktoren und Schwellenwerte "
+        "sind im Admin-Panel konfigurierbar."
+    )
+
+    pdf.section_title("Gelernte Filter")
+    pdf.body(
+        "Das System lernt aus Benutzer-Feedback automatisch, welche "
+        "Filterkriterien hilfreich waren. Die gelernten Gewichte k\u00f6nnen "
+        "im Admin-Panel eingesehen und bei Bedarf zur\u00fcckgesetzt werden."
+    )
+
+    # ----------------------------------------------------------------
+    # 15. KI-Modell-Verwaltung
+    # ----------------------------------------------------------------
+    pdf.add_page()
+    pdf.chapter_title("15. KI-Modell-Verwaltung")
+    pdf.body(
+        "Im Bereich \u201eKI-Modell-Verwaltung\u201c werden die lokal verf\u00fcgbaren "
+        "LLM-Modelle (via Ollama) verwaltet. Sie k\u00f6nnen:"
+    )
+    pdf.bullet("Verf\u00fcgbare Modelle auflisten und deren Status einsehen.")
+    pdf.bullet("Neue Modelle herunterladen (Pull).")
+    pdf.bullet("Das aktive Modell f\u00fcr den Chatbot und die Analyse ausw\u00e4hlen.")
+
+    # ----------------------------------------------------------------
+    # 16. Konfiguration (.env)
+    # ----------------------------------------------------------------
+    pdf.chapter_title("16. Konfiguration (.env)")
+    pdf.body("Folgende Umgebungsvariablen k\u00f6nnen in der .env-Datei gesetzt werden:")
+    pdf.bullet("PORT \u2013 Server-Port (Standard: 4040).")
+    pdf.bullet(
+        "FF_AUTO_STOP_MIN \u2013 Automatische Abschaltzeit in Minuten (Standard: 60). "
+        "Nach dieser Inaktivit\u00e4tszeit wird der Fetcher gestoppt."
+    )
+
+    # ----------------------------------------------------------------
+    # 17. Backup & Recovery
+    # ----------------------------------------------------------------
+    pdf.add_page()
+    pdf.chapter_title("17. Backup & Recovery")
+    pdf.body(
+        "Erstellen Sie regelm\u00e4\u00dfig Backups des Verzeichnisses server/data/ vor "
+        "gr\u00f6\u00dferen \u00c4nderungen. Das Verzeichnis enth\u00e4lt alle persistenten Daten:"
+    )
+    pdf.bullet("Benutzer- und Rollendaten")
+    pdf.bullet("Einsatz- und Aufgabenboards")
+    pdf.bullet("Protokolldaten und gedruckte PDFs")
+    pdf.bullet("Filterregeln und gelernte Gewichte")
+    pdf.bullet("Szenario- und Analyse-Konfigurationen")
+
+    pdf.section_title("Bei verlorenem Admin-Zugang")
+    pdf.body(
+        "Sichern Sie die Dateien User_master.json und User_users.enc.json. "
+        "Entfernen Sie diese Dateien und starten Sie den Server neu. "
+        "Navigieren Sie zu /user-firststart, um einen neuen Master-Key und "
+        "Admin-Benutzer anzulegen. Die Rollendefinitionen (User_roles.json) "
+        "bleiben dabei erhalten."
+    )
+
+    pdf.section_title("Wartung")
+    pdf.body(
+        "Im Admin-Panel steht im Bereich \u201eWartung (Admin)\u201c eine Funktion zum "
+        "Herunterladen von Backup-Dateien und Logdateien zur Verf\u00fcgung. "
+        "Nutzen Sie diese regelm\u00e4\u00dfig, um Datenverluste zu vermeiden."
+    )
+
+    # -- Speichern --
+    path = os.path.join(OUT_DIR, "EINFO_Admin_Hilfe_v2.pdf")
+    pdf.output(path)
+    print(f"  \u2713 {path}")
+
+
+# ======================================================================
 #  MAIN
 # ======================================================================
 if __name__ == "__main__":
@@ -892,4 +1358,5 @@ if __name__ == "__main__":
     generate_einsatzboard()
     generate_aufgabenboard()
     generate_meldestelle()
+    generate_admin_help()
     print("Fertig.")
