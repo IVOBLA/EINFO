@@ -1,9 +1,9 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useMemo } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import CollapsibleNote from "./CollapsibleNote";
 
-export default function AufgSortableCard({
+function AufgSortableCard({
   item,
   onClick,
   onShowInfo,
@@ -13,9 +13,10 @@ export default function AufgSortableCard({
   incidentLookup,
   onCreateProtocol,
   onOpenProtocol,
+  tick, // zentraler Timer-Tick vom Parent (statt eigenem setInterval)
 }) {
   const it = item || {}; // Falls item nicht vorhanden ist, wird es als leeres Objekt gesetzt.
-  if (!it) return null; 
+  if (!it) return null;
 
   const {
     attributes,
@@ -26,40 +27,19 @@ export default function AufgSortableCard({
     isDragging,
   } = useSortable({ id: it.id });
 
-
-
-
-
-
-const [dueState, setDueState] = useState("none"); // none | soon | overdue
-
   const isDone = String(it.status || "") === "Erledigt";
 
-  const recomputeDueState = useCallback(() => {
-    if (!it?.dueAt || isDone) {
-      setDueState("none");
-      return;
-    }
+  // Zentrale DueState-Berechnung via useMemo statt useState + setInterval
+  const dueState = useMemo(() => {
+    void tick; // Dependency: bei jedem Tick neu berechnen
+    if (!it?.dueAt || isDone) return "none";
     const dueDate = new Date(it.dueAt);
-    if (Number.isNaN(dueDate.getTime())) {
-      setDueState("none");
-      return;
-    }
+    if (Number.isNaN(dueDate.getTime())) return "none";
     const diffMs = dueDate.getTime() - Date.now();
-    if (diffMs <= 0) {
-      setDueState("overdue");
-    } else if (diffMs <= 10 * 60 * 1000) {
-      setDueState("soon");
-    } else {
-      setDueState("none");
-    }
-  }, [it?.dueAt, isDone]);
-
-  useEffect(() => {
-    recomputeDueState();
-    const interval = setInterval(recomputeDueState, 5000);
-    return () => clearInterval(interval);
-  }, [recomputeDueState]);
+    if (diffMs <= 0) return "overdue";
+    if (diffMs <= 10 * 60 * 1000) return "soon";
+    return "none";
+  }, [it?.dueAt, isDone, tick]);
 
   const isOverdue = dueState === "overdue";
   const highlightClass = isDone
@@ -111,7 +91,6 @@ const [dueState, setDueState] = useState("none"); // none | soon | overdue
       ref={setNodeRef}
       style={style}
       className={`relative rounded-lg border p-3 shadow-sm hover:shadow cursor-pointer ${highlightClass} ${showPulse ? "pulse-incoming" : ""}`}
-      {...attributes}
       {...attributes}
       {...listeners}
       onClick={() => (onClick ? onClick(it) : onShowInfo?.(it))}
@@ -226,3 +205,4 @@ const [dueState, setDueState] = useState("none"); // none | soon | overdue
   );
 }
 
+export default React.memo(AufgSortableCard);
