@@ -1302,21 +1302,751 @@ def generate_admin_help():
     pdf.bullet("Das aktive Modell f\u00fcr den Chatbot und die Analyse ausw\u00e4hlen.")
 
     # ----------------------------------------------------------------
-    # 16. Konfiguration (.env)
-    # ----------------------------------------------------------------
-    pdf.chapter_title("16. Konfiguration (.env)")
-    pdf.body("Folgende Umgebungsvariablen k\u00f6nnen in der .env-Datei gesetzt werden:")
-    pdf.bullet("PORT \u2013 Server-Port (Standard: 4040).")
-    pdf.bullet(
-        "FF_AUTO_STOP_MIN \u2013 Automatische Abschaltzeit in Minuten (Standard: 60). "
-        "Nach dieser Inaktivit\u00e4tszeit wird der Fetcher gestoppt."
-    )
-
-    # ----------------------------------------------------------------
-    # 17. Backup & Recovery
+    # 16. Konfiguration (.env) -- Vollstaendige Referenz
     # ----------------------------------------------------------------
     pdf.add_page()
-    pdf.chapter_title("17. Backup & Recovery")
+    pdf.chapter_title("16. Konfiguration (.env)")
+    pdf.body(
+        "Alle Umgebungsvariablen werden in der Datei server/dot.env (bzw. .env) "
+        "konfiguriert. Nach Aenderungen muss der Server neu gestartet werden. "
+        "Im Folgenden sind alle verfuegbaren Parameter dokumentiert."
+    )
+
+    # -- 16.1 Server-Grundkonfiguration --
+    pdf.section_title("16.1 Server-Grundkonfiguration")
+    pdf.bullet("PORT \u2013 HTTP-Port des Hauptservers (Standard: 4040).")
+    pdf.bullet(
+        "DATA_DIR \u2013 Basisverzeichnis fuer persistente Daten "
+        "(Einsatzlisten, Sessions, Druckausgaben)."
+    )
+    pdf.bullet("PUBLIC_DIR \u2013 Optionales Verzeichnis fuer statische WMS-Dateien.")
+    pdf.bullet(
+        "KANBAN_LOG_DIR \u2013 Optionales Log-Verzeichnis "
+        "(logs/Log.txt, WMS_TILES.log)."
+    )
+    pdf.bullet(
+        "KANBAN_COOKIE_SECURE \u2013 Auf \"1\" setzen, um sichere Cookies "
+        "fuer Board-Login zu erzwingen (HTTPS erforderlich)."
+    )
+
+    # -- 16.2 Frontend-Polling --
+    pdf.section_title("16.2 Frontend-Polling")
+    pdf.bullet(
+        "UI_STATUS_POLL_INTERVAL_MS \u2013 Polling-Intervall (ms) fuer "
+        "/api/ff/status und /api/ff/creds."
+    )
+    pdf.bullet(
+        "UI_ACTIVITY_POLL_INTERVAL_MS \u2013 Polling-Intervall (ms) fuer "
+        "/api/activity/status."
+    )
+
+    # -- 16.3 Cache --
+    pdf.section_title("16.3 Cache-Konfiguration")
+    pdf.bullet(
+        "BOARD_CACHE_MAX_AGE_MS \u2013 Maximale Cache-Dauer fuer berechnete "
+        "Board-Daten in Millisekunden."
+    )
+    pdf.bullet(
+        "VEHICLE_CACHE_TTL_MS \u2013 Lebensdauer des Fahrzeug-Caches "
+        "bevor er neu geladen wird (ms)."
+    )
+
+    # -- 16.4 Feuerwehr-Feed --
+    pdf.add_page()
+    pdf.section_title("16.4 Feuerwehr-Feed (Fetcher)")
+    pdf.bullet("FF_OUT_FILE \u2013 Ausgabedatei fuer den gefilterten Feed (JSON-Format).")
+    pdf.bullet("FF_GPS_OUT_FILE \u2013 Ausgabedatei fuer Fahrzeug-GPS-Informationen.")
+    pdf.bullet(
+        "FF_POLL_INTERVAL_MS \u2013 Poll-Intervall fuer den Feed "
+        "(Standard: 60000 ms = 1 Minute)."
+    )
+    pdf.bullet(
+        "FF_ACTIVITY_SWEEP_INTERVAL_MS \u2013 Intervall fuer die "
+        "Aktivitaetsueberwachung (ms)."
+    )
+    pdf.bullet(
+        "FF_DEBUG \u2013 Auf \"1\" setzen fuer detailliertes Fetcher-Logging "
+        "(HTTP-Status, Parsing-Infos)."
+    )
+    pdf.bullet(
+        "FF_LIST_PATH \u2013 Pfadsegment fuer den Einsatzlisten-Endpunkt "
+        "(Standard: \"/list\")."
+    )
+    pdf.bullet(
+        "FF_LIST_EXTRA \u2013 Zusaetzliche Query-Parameter fuer den "
+        "Einsatzlisten-Endpunkt."
+    )
+    pdf.bullet(
+        "FF_LIST_TIMEOUT_MIN \u2013 Maximales Timeout in Minuten, bevor "
+        "der Feed als veraltet markiert wird (Standard: 2880)."
+    )
+    pdf.bullet(
+        "FF_GPS_PATH \u2013 Pfadsegment fuer den Fahrzeug-GPS-Endpunkt "
+        "(Standard: \"/status/gps\")."
+    )
+    pdf.bullet(
+        "FF_ONCE \u2013 \"1\" fuer einmaligen Abruf (Debug/Test), "
+        "\"0\" fuer Dauerbetrieb."
+    )
+    pdf.bullet(
+        "FF_CA_FILE \u2013 Optionaler Pfad zur TLS-Zertifikatskette "
+        "fuer HTTPS-Verbindungen."
+    )
+    pdf.bullet(
+        "FF_LOCK_FILE \u2013 Optionaler Pfad zur Lock-Datei, um "
+        "parallele Fetcher-Instanzen zu verhindern."
+    )
+    pdf.bullet(
+        "FF_AUTO_STOP_MIN \u2013 Minuten bis zur automatischen Abschaltung "
+        "eines Einsatzes ohne neue Ereignisse (optional)."
+    )
+    pdf.bullet(
+        "FF_USERNAME \u2013 Optionaler HTTP-Basic-Auth-Benutzername "
+        "fuer den Feed-Zugriff."
+    )
+    pdf.bullet(
+        "FF_PASSWORD \u2013 Optionales Passwort / API-Secret "
+        "fuer den Feed-Zugriff."
+    )
+    pdf.bullet(
+        "FF_LOGIN_MAX_RETRIES \u2013 Maximale Login-Wiederholungen "
+        "(Standard: 3)."
+    )
+    pdf.bullet(
+        "FF_LOGIN_RETRY_DELAY_MS \u2013 Verzoegerung zwischen Login-Versuchen "
+        "in ms (Standard: 5000)."
+    )
+
+    # -- 16.5 Naehe-Suche --
+    pdf.section_title("16.5 Naehe-Suche (Nearby)")
+    pdf.bullet("NEARBY_RADIUS_KM \u2013 Standard-Suchradius in km (Standard: 10).")
+    pdf.bullet("NEARBY_RADIUS_MIN_KM \u2013 Minimaler Radius in km (Standard: 0.1).")
+    pdf.bullet("NEARBY_RADIUS_MAX_KM \u2013 Maximaler Radius in km (Standard: 50).")
+
+    # -- 16.6 WMS/Karte --
+    pdf.add_page()
+    pdf.section_title("16.6 WMS / Karten-Konfiguration")
+    pdf.bullet("WMS_PORT \u2013 Port des WMS-Dienstes (Standard: 8090).")
+    pdf.bullet("WMS_TITLE \u2013 Titel fuer die WMS-Capabilities-Metadaten.")
+    pdf.bullet("WMS_ABSTRACT \u2013 Beschreibung fuer WMS-Metadaten.")
+    pdf.bullet(
+        "WMS_LABELS \u2013 \"1\" zeigt Kartenbeschriftungen, "
+        "\"0\" nur Symbole."
+    )
+    pdf.bullet(
+        "WMS_LABEL_FONT \u2013 CSS-Fontangabe fuer Beschriftungen "
+        "(Standard: \"12px Sans-Serif\")."
+    )
+    pdf.bullet(
+        "WMS_LABEL_COLOR \u2013 Hex-Farbe fuer Beschriftungstext "
+        "(Standard: \"#000000\")."
+    )
+    pdf.bullet(
+        "WMS_LABEL_OUTLINE \u2013 Hex-Farbe fuer Beschriftungsumriss "
+        "(Standard: \"#ffffff\")."
+    )
+    pdf.bullet(
+        "WMS_LABEL_OUTLINE_W \u2013 Breite des Umriss-Strichs in Pixeln "
+        "(Standard: 3)."
+    )
+    pdf.bullet(
+        "WMS_LABEL_TRIM \u2013 Maximale Textlaenge bevor abgeschnitten wird "
+        "(Standard: 28)."
+    )
+    pdf.bullet("WMS_DEBUG \u2013 \"1\" aktiviert WMS-Debug-Logging.")
+
+    # -- 16.7 Drucken --
+    pdf.section_title("16.7 Druck-Konfiguration")
+    pdf.bullet("KANBAN_MELDUNG_PRINT_DIR \u2013 Ausgabeverzeichnis fuer Meldungsdrucke.")
+    pdf.bullet("KANBAN_EINSATZ_PRINT_DIR \u2013 Ausgabeverzeichnis fuer Einsatzdrucke.")
+    pdf.bullet("KANBAN_PROTOKOLL_PRINT_DIR \u2013 Ausgabeverzeichnis fuer Protokolldrucke.")
+    pdf.bullet("KANBAN_PRINT_COMMAND \u2013 Druckbefehl (Standard: \"lp\").")
+    pdf.bullet("KANBAN_PRINT_OUTPUT_DIR \u2013 Explizites Druckausgabeverzeichnis.")
+    pdf.bullet("PRINT_BASE_DIR \u2013 Basisverzeichnis fuer Druckausgaben.")
+    pdf.bullet(
+        "PUPPETEER_EXECUTABLE_PATH \u2013 Benutzerdefinierter Pfad "
+        "zur Chrome/Chromium-Binary fuer die PDF-Erzeugung."
+    )
+
+    # -- 16.8 Benutzer-Sessions --
+    pdf.add_page()
+    pdf.section_title("16.8 Benutzer-Sessions & Online-Status")
+    pdf.bullet(
+        "USER_SESSION_IDLE_TIMEOUT_MIN \u2013 Inaktivitaets-Timeout "
+        "in Minuten (Standard: 15)."
+    )
+    pdf.bullet(
+        "USER_SESSION_IDLE_TIMEOUT_MS \u2013 Timeout in Millisekunden "
+        "(Standard: 900000)."
+    )
+    pdf.bullet(
+        "USER_SESSION_SWEEP_INTERVAL_MS \u2013 Intervall fuer die "
+        "Bereinigung inaktiver Sessions in ms (Standard: 60000)."
+    )
+
+    # -- 16.9 Aufgaben / Frist --
+    pdf.section_title("16.9 Aufgaben / Frist-Konfiguration")
+    pdf.bullet(
+        "DEFAULT_DUE_OFFSET_MINUTES \u2013 Standard-Vorlaufzeit fuer "
+        "Aufgabenfristen in Minuten (Standard: 10)."
+    )
+    pdf.bullet(
+        "TASK_DEFAULT_DUE_OFFSET_MINUTES \u2013 Alias fuer obigen Wert."
+    )
+    pdf.bullet(
+        "AUFG_DEFAULT_DUE_MINUTES \u2013 Deutscher Alias fuer obigen Wert."
+    )
+
+    # -- 16.10 Auto-Import --
+    pdf.section_title("16.10 Auto-Import & Auto-Druck")
+    pdf.bullet(
+        "AUTO_IMPORT_DEFAULT_INTERVAL_SEC \u2013 Standard-Auto-Import-Intervall "
+        "in Sekunden (Standard: 30)."
+    )
+    pdf.bullet(
+        "AUTO_PRINT_DEFAULT_INTERVAL_MINUTES \u2013 Standard-Auto-Druck-Intervall "
+        "in Minuten (Standard: 10)."
+    )
+    pdf.bullet(
+        "AUTO_PRINT_MIN_INTERVAL_MINUTES \u2013 Minimales Auto-Druck-Intervall "
+        "in Minuten (Standard: 1)."
+    )
+
+    # -- 16.11 SMTP Mail --
+    pdf.add_page()
+    pdf.section_title("16.11 Mail / SMTP-Konfiguration")
+    pdf.bullet("MAIL_HOST \u2013 SMTP-Server-Hostname.")
+    pdf.bullet(
+        "MAIL_PORT \u2013 SMTP-Port (Standard: 587 fuer STARTTLS, "
+        "465 fuer SMTPS, 25 fuer unverschluesselt)."
+    )
+    pdf.bullet(
+        "MAIL_SECURE \u2013 \"1\" fuer SMTPS (TLS ab Verbindungsstart), "
+        "\"0\" fuer STARTTLS."
+    )
+    pdf.bullet(
+        "MAIL_STARTTLS \u2013 \"1\" um STARTTLS nach dem Verbindungsaufbau "
+        "anzufordern."
+    )
+    pdf.bullet("MAIL_USER / MAIL_USERNAME \u2013 SMTP-Benutzername.")
+    pdf.bullet("MAIL_PASSWORD / MAIL_PASS \u2013 SMTP-Passwort.")
+    pdf.bullet("MAIL_FROM \u2013 Absender-E-Mail-Adresse.")
+    pdf.bullet("MAIL_REPLY_TO \u2013 Antwortadresse (Reply-To).")
+    pdf.bullet(
+        "MAIL_ALLOWED_FROM \u2013 Kommagetrennte Liste erlaubter "
+        "Absenderadressen."
+    )
+    pdf.bullet(
+        "MAIL_TIMEOUT_MS \u2013 SMTP-Befehls-Timeout in ms (Standard: 15000)."
+    )
+    pdf.bullet(
+        "MAIL_TLS_REJECT_UNAUTHORIZED \u2013 \"1\" um selbstsignierte "
+        "Zertifikate abzulehnen."
+    )
+    pdf.bullet("MAIL_CLIENT_ID \u2013 EHLO/HELO-Kennung.")
+    pdf.bullet("MAIL_LOG \u2013 \"1\" aktiviert detailliertes Mail-Logging.")
+    pdf.bullet(
+        "MAIL_DELETE_AFTER_READ \u2013 \"1\" um Mails nach Verarbeitung "
+        "zu loeschen (Standard: 1)."
+    )
+    pdf.bullet("MAIL_INBOX_DIR \u2013 Benutzerdefinierter Inbox-Verzeichnispfad.")
+    pdf.bullet(
+        "MAIL_INBOX_POLL_INTERVAL_SEC \u2013 Mail-Prueflintervall "
+        "in Sekunden."
+    )
+
+    # -- 16.12 IMAP --
+    pdf.section_title("16.12 IMAP-Konfiguration")
+    pdf.bullet("MAIL_IMAP_HOST \u2013 IMAP-Server-Hostname.")
+    pdf.bullet(
+        "MAIL_IMAP_PORT \u2013 IMAP-Port (Standard: 993 fuer TLS, "
+        "143 fuer Klartext/StartTLS)."
+    )
+    pdf.bullet(
+        "MAIL_IMAP_SECURE \u2013 \"1\" fuer TLS ab Verbindungsstart, "
+        "\"0\" fuer Klartext."
+    )
+    pdf.bullet("MAIL_IMAP_USER \u2013 IMAP-Benutzername.")
+    pdf.bullet("MAIL_IMAP_PASSWORD \u2013 IMAP-Passwort.")
+    pdf.bullet(
+        "MAIL_IMAP_MAILBOX \u2013 Postfach-Ordnername (Standard: \"INBOX\")."
+    )
+    pdf.bullet(
+        "MAIL_IMAP_TLS_REJECT_UNAUTHORIZED \u2013 \"1\" um selbstsignierte "
+        "Zertifikate abzulehnen."
+    )
+
+    # -- 16.13 POP3 --
+    pdf.section_title("16.13 POP3-Konfiguration")
+    pdf.bullet("MAIL_POP3_HOST \u2013 POP3-Server-Hostname.")
+    pdf.bullet(
+        "MAIL_POP3_PORT \u2013 POP3-Port (Standard: 995 fuer TLS, "
+        "110 fuer Klartext)."
+    )
+    pdf.bullet(
+        "MAIL_POP3_SECURE \u2013 \"1\" fuer TLS ab Verbindungsstart, "
+        "\"0\" fuer Klartext."
+    )
+    pdf.bullet("MAIL_POP3_USER \u2013 POP3-Benutzername.")
+    pdf.bullet("MAIL_POP3_PASSWORD \u2013 POP3-Passwort.")
+    pdf.bullet(
+        "MAIL_POP3_TLS_REJECT_UNAUTHORIZED \u2013 \"1\" um selbstsignierte "
+        "Zertifikate abzulehnen."
+    )
+
+    # -- 16.14 Chatbot --
+    pdf.add_page()
+    pdf.section_title("16.14 Chatbot-Integration")
+    pdf.bullet(
+        "CHATBOT_BASE_URL \u2013 URL des Chatbot-Servers "
+        "(Standard: \"http://127.0.0.1:3100\")."
+    )
+    pdf.bullet("CHATBOT_PORT \u2013 Chatbot-Server-Port (Standard: 3100).")
+    pdf.bullet(
+        "CHATBOT_HOST \u2013 Chatbot-Bind-Adresse (Standard: \"0.0.0.0\")."
+    )
+    pdf.bullet(
+        "CHATBOT_PROFILE \u2013 Konfigurationsprofil-Name (Standard: \"default\")."
+    )
+    pdf.bullet("CHATBOT_DEBUG \u2013 \"1\" aktiviert Chatbot-Debug-Logging.")
+    pdf.bullet(
+        "CHATBOT_AUTO_STEP_MS \u2013 Auto-Step-Intervall in ms "
+        "(Standard: 120000)."
+    )
+    pdf.bullet("DEBUG_PROXY \u2013 \"1\" aktiviert Proxy-Debugging.")
+    pdf.bullet("DEBUG_SITUATION \u2013 \"1\" aktiviert Situations-Debugging.")
+
+    # -- 16.15 LLM --
+    pdf.section_title("16.15 LLM-Konfiguration")
+    pdf.bullet(
+        "LLM_BASE_URL \u2013 Ollama/LLM-Server-URL "
+        "(Standard: \"http://127.0.0.1:11434\")."
+    )
+    pdf.bullet(
+        "LLM_CHAT_MODEL \u2013 Chat-Modellname (Standard: \"llama3.1:8b\")."
+    )
+    pdf.bullet(
+        "LLM_EMBED_MODEL \u2013 Embedding-Modellname "
+        "(Standard: \"mxbai-embed-large\")."
+    )
+    pdf.bullet("LLM_TEMP \u2013 Standard-Temperatur (Standard: 0.05).")
+    pdf.bullet("LLM_SEED \u2013 Zufallswert / Seed (Standard: 42).")
+    pdf.bullet(
+        "LLM_CHAT_TIMEOUT_MS \u2013 Chat-Request-Timeout in ms "
+        "(Standard: 60000)."
+    )
+    pdf.bullet(
+        "LLM_SIM_TIMEOUT_MS \u2013 Simulations-Timeout in ms "
+        "(Standard: 300000)."
+    )
+    pdf.bullet(
+        "LLM_EMBED_TIMEOUT_MS \u2013 Embedding-Timeout in ms "
+        "(Standard: 30000)."
+    )
+    pdf.bullet(
+        "LLM_TIMEOUT_MS \u2013 Allgemeines Timeout in ms "
+        "(Standard: 240000)."
+    )
+    pdf.bullet(
+        "LLM_NUM_CTX \u2013 Kontext-Fenstergroesse (Standard: 8192)."
+    )
+    pdf.bullet("LLM_NUM_BATCH \u2013 Batch-Groesse (Standard: 512).")
+
+    # -- 16.16 GPU/Ollama --
+    pdf.section_title("16.16 GPU / Ollama")
+    pdf.bullet(
+        "CUDA_VISIBLE_DEVICES \u2013 Zu verwendende GPU-Geraete "
+        "(Standard: \"0\")."
+    )
+    pdf.bullet(
+        "OLLAMA_NUM_GPU \u2013 Anzahl der GPU-Layer "
+        "(Standard: 22 fuer 8 GB VRAM auf RTX 4070)."
+    )
+    pdf.bullet(
+        "OLLAMA_MAX_LOADED_MODELS \u2013 Max. gleichzeitig geladene Modelle "
+        "(Standard: 1)."
+    )
+    pdf.bullet(
+        "OLLAMA_KEEP_ALIVE \u2013 Keep-Alive-Dauer fuer Modelle "
+        "(Standard: \"30m\")."
+    )
+
+    # -- 16.17 RAG --
+    pdf.add_page()
+    pdf.section_title("16.17 RAG-Konfiguration")
+    pdf.bullet("RAG_DIM \u2013 Embedding-Dimension (Standard: 1024).")
+    pdf.bullet("RAG_TOP_K \u2013 Anzahl Top-K-Ergebnisse (Standard: 10).")
+    pdf.bullet(
+        "RAG_MAX_CTX \u2013 Maximale Kontext-Zeichen (Standard: 4000)."
+    )
+    pdf.bullet(
+        "RAG_MAX_ELEM \u2013 Maximale Index-Elemente (Standard: 50000)."
+    )
+    pdf.bullet(
+        "RAG_SCORE_THRESHOLD \u2013 Score-Schwellenwert (Standard: 0.2)."
+    )
+    pdf.bullet("EMBED_CACHE_SIZE \u2013 Embedding-Cache-Groesse (Standard: 200).")
+
+    # -- 16.18 Prompt --
+    pdf.section_title("16.18 Prompt-Konfiguration")
+    pdf.bullet(
+        "PROMPT_MAX_BOARD \u2013 Max. Board-Eintraege im Prompt (Standard: 25)."
+    )
+    pdf.bullet(
+        "PROMPT_MAX_AUFGABEN \u2013 Max. Aufgaben-Eintraege (Standard: 50)."
+    )
+    pdf.bullet(
+        "PROMPT_MAX_PROTOKOLL \u2013 Max. Protokoll-Eintraege (Standard: 30)."
+    )
+
+    # -- 16.19 Memory/RAG --
+    pdf.section_title("16.19 Memory / RAG-Langzeit")
+    pdf.bullet(
+        "MEM_RAG_LONG_MIN_ITEMS \u2013 Min. Eintraege fuer Langzeit-Szenario "
+        "(Standard: 100)."
+    )
+    pdf.bullet(
+        "MEM_RAG_MAX_AGE_MIN \u2013 Max. Alter in Minuten (Standard: 720)."
+    )
+    pdf.bullet(
+        "MEM_RAG_HALF_LIFE_MIN \u2013 Halbwertszeit fuer Aktualitaet "
+        "in Minuten (Standard: 120)."
+    )
+    pdf.bullet(
+        "MEM_RAG_LONG_TOP_K \u2013 Top-K fuer Langzeit-Szenario "
+        "(Standard: 12)."
+    )
+
+    # -- 16.20 Simulation --
+    pdf.section_title("16.20 Simulation")
+    pdf.bullet(
+        "SIM_WORKER_INTERVAL_MS \u2013 Simulations-Worker-Intervall "
+        "in ms (Standard: 60000)."
+    )
+    pdf.bullet("SIM_MAX_RETRIES \u2013 Max. Wiederholungen (Standard: 3).")
+    pdf.bullet(
+        "SIM_RETRY_DELAY_MS \u2013 Verzoegerung zwischen Wiederholungen "
+        "in ms (Standard: 5000)."
+    )
+    pdf.bullet(
+        "MAIN_SERVER_URL \u2013 URL des Hauptservers "
+        "(Standard: \"http://localhost:4000\")."
+    )
+
+    # -- 16.21 Experimentell --
+    pdf.section_title("16.21 Experimentelle Features")
+    pdf.bullet(
+        "EINFO_EXPERIMENTAL_SCENARIOPACK \u2013 \"1\" aktiviert experimentelle "
+        "Szenariopakete (Standard: 0)."
+    )
+    pdf.bullet(
+        "EINFO_DATA_DIR \u2013 Alternatives Datenverzeichnis fuer "
+        "den Chatbot."
+    )
+
+    # -- 16.22 Sonstige --
+    pdf.section_title("16.22 Sonstige")
+    pdf.bullet(
+        "WEATHER_WARNING_DATE_FILE \u2013 Pfad fuer die "
+        "Wetterwarnungs-Datumsdatei."
+    )
+
+    # -- 16.23 Client (Vite) --
+    pdf.section_title("16.23 Client-seitige Umgebungsvariablen (Vite)")
+    pdf.body(
+        "Diese Variablen werden zur Build-Zeit ausgewertet und muessen "
+        "mit dem Praefix VITE_ beginnen:"
+    )
+    pdf.bullet("VITE_API_BASE_URL \u2013 URL des API-Servers.")
+    pdf.bullet("VITE_LOGIN_BASE_URL \u2013 URL des Login-Servers.")
+    pdf.bullet("VITE_CHATBOT_BASE_URL \u2013 URL des Chatbot-Servers.")
+    pdf.bullet(
+        "VITE_STATUS_POLL_INTERVAL_MS \u2013 Status-Polling-Intervall "
+        "in ms (Standard: 3000)."
+    )
+    pdf.bullet(
+        "VITE_ACTIVITY_POLL_INTERVAL_MS \u2013 Aktivitaets-Polling-Intervall "
+        "in ms (Standard: 1000)."
+    )
+
+    # ================================================================
+    # 17. API-Referenz
+    # ================================================================
+    pdf.add_page()
+    pdf.chapter_title("17. API-Referenz")
+    pdf.body(
+        "Alle API-Endpunkte sind unter /api/ erreichbar und erfordern "
+        "(sofern nicht anders angegeben) eine gueltige Benutzer-Session. "
+        "Antworten erfolgen im JSON-Format."
+    )
+
+    # -- 17.1 Board & Fahrzeuge --
+    pdf.section_title("17.1 Einsatzboard & Fahrzeuge")
+    pdf.bullet("GET  /api/board \u2013 Gibt das komplette Einsatzboard mit allen Spalten zurueck.")
+    pdf.bullet("GET  /api/vehicles \u2013 Listet alle Fahrzeuge (Basis + Zusatz) auf.")
+    pdf.bullet("POST /api/vehicles \u2013 Legt ein neues Fahrzeug an oder klont ein bestehendes.")
+    pdf.bullet("PATCH /api/vehicles/:id/availability \u2013 Aendert die Verfuegbarkeit eines Fahrzeugs.")
+    pdf.bullet("PATCH /api/vehicles/:id/position \u2013 Aktualisiert die GPS-Position eines Fahrzeugs.")
+    pdf.bullet("DELETE /api/vehicles/:id/position \u2013 Loescht eine manuelle Positions-Ueberschreibung.")
+    pdf.bullet("GET  /api/groups/availability \u2013 Gibt den Verfuegbarkeitsstatus aller Gruppen zurueck.")
+    pdf.bullet("GET  /api/groups/alerted \u2013 Listet alarmierte Gruppen auf.")
+    pdf.bullet("PATCH /api/groups/:name/availability \u2013 Aendert die Verfuegbarkeit einer Gruppe.")
+    pdf.bullet("GET  /api/gps \u2013 Gibt GPS-Daten zurueck.")
+    pdf.bullet("GET  /api/types \u2013 Gibt verfuegbare Einsatztypen zurueck.")
+    pdf.bullet("GET  /api/nearby \u2013 Sucht naechstgelegene Einheiten/Ressourcen.")
+
+    # -- 17.2 Einsatzkarten --
+    pdf.section_title("17.2 Einsatzkarten (Cards)")
+    pdf.bullet("POST /api/cards \u2013 Legt eine neue Einsatzkarte an.")
+    pdf.bullet("POST /api/cards/:id/move \u2013 Verschiebt eine Karte in eine andere Spalte.")
+    pdf.bullet("POST /api/cards/:id/assign \u2013 Weist ein Fahrzeug einer Karte zu.")
+    pdf.bullet("POST /api/cards/:id/unassign \u2013 Entfernt ein Fahrzeug von einer Karte.")
+    pdf.bullet("PATCH /api/cards/:id/personnel \u2013 Aktualisiert die Personalstaerke einer Karte.")
+    pdf.bullet(
+        "PATCH /api/cards/:id \u2013 Aktualisiert Karten-Eigenschaften "
+        "(Titel, Ort, Typ, Koordinaten, Abschnitt usw.)."
+    )
+
+    # -- 17.3 Protokoll --
+    pdf.add_page()
+    pdf.section_title("17.3 Protokoll (Meldestelle)")
+    pdf.bullet("GET  /api/protocol \u2013 Listet alle Protokolleintraege auf.")
+    pdf.bullet("POST /api/protocol \u2013 Erstellt einen neuen Protokolleintrag.")
+    pdf.bullet("GET  /api/protocol/:nr \u2013 Gibt einen bestimmten Eintrag zurueck.")
+    pdf.bullet("PUT  /api/protocol/:nr \u2013 Aktualisiert einen Protokolleintrag.")
+    pdf.bullet("POST /api/protocol/:nr/lock \u2013 Sperrt einen Eintrag zur Bearbeitung.")
+    pdf.bullet("DELETE /api/protocol/:nr/lock \u2013 Gibt die Sperre eines Eintrags frei.")
+    pdf.bullet("GET  /api/protocol/csv/file \u2013 Exportiert das Protokoll als CSV-Datei.")
+    pdf.bullet(
+        "GET  /api/protocol/auto-print-config \u2013 Gibt die Auto-Druck-Konfiguration "
+        "zurueck (nur Admin)."
+    )
+    pdf.bullet(
+        "POST /api/protocol/auto-print-config \u2013 Aktualisiert die "
+        "Auto-Druck-Konfiguration (nur Admin)."
+    )
+
+    # -- 17.4 Aufgaben --
+    pdf.section_title("17.4 Aufgaben")
+    pdf.bullet("GET  /api/aufgaben \u2013 Listet alle Aufgaben fuer die aktuelle Rolle auf.")
+    pdf.bullet("POST /api/aufgaben \u2013 Erstellt eine neue Aufgabe.")
+    pdf.bullet("POST /api/aufgaben/:id/edit \u2013 Bearbeitet eine bestehende Aufgabe.")
+    pdf.bullet("POST /api/aufgaben/:id/status \u2013 Aendert den Status einer Aufgabe.")
+    pdf.bullet("POST /api/aufgaben/reorder \u2013 Sortiert Aufgaben um.")
+    pdf.bullet("GET  /api/aufgaben/config \u2013 Gibt die Aufgabenkonfiguration zurueck.")
+    pdf.bullet("GET  /api/aufgaben/protocols \u2013 Gibt Protokolle fuer die aktuelle Rolle zurueck.")
+
+    # -- 17.5 Mail --
+    pdf.section_title("17.5 Mail")
+    pdf.bullet("GET  /api/mail/status \u2013 Gibt den Mail-Konfigurationsstatus zurueck.")
+    pdf.bullet("POST /api/mail/send \u2013 Versendet eine E-Mail.")
+    pdf.bullet("GET  /api/mail/inbox/status \u2013 Prueft den Inbox-Status.")
+    pdf.bullet("GET  /api/mail/inbox \u2013 Listet Inbox-Nachrichten auf (mit optionalem limit-Parameter).")
+    pdf.bullet("GET  /api/mail/schedule \u2013 Listet alle Mail-Zeitplaene auf (nur Admin).")
+    pdf.bullet("POST /api/mail/schedule \u2013 Erstellt einen neuen Mail-Zeitplan (nur Admin).")
+    pdf.bullet("PUT  /api/mail/schedule/:id \u2013 Aktualisiert einen Mail-Zeitplan (nur Admin).")
+    pdf.bullet("DELETE /api/mail/schedule/:id \u2013 Loescht einen Mail-Zeitplan (nur Admin).")
+
+    # -- 17.6 HTTP-Zeitplaene --
+    pdf.add_page()
+    pdf.section_title("17.6 HTTP-API-Zeitplaene")
+    pdf.bullet("GET  /api/http/schedule \u2013 Listet alle HTTP-Zeitplaene auf (nur Admin).")
+    pdf.bullet("POST /api/http/schedule \u2013 Erstellt einen neuen HTTP-Zeitplan (nur Admin).")
+    pdf.bullet("PUT  /api/http/schedule/:id \u2013 Aktualisiert einen HTTP-Zeitplan (nur Admin).")
+    pdf.bullet("DELETE /api/http/schedule/:id \u2013 Loescht einen HTTP-Zeitplan (nur Admin).")
+
+    # -- 17.7 Import / Export --
+    pdf.section_title("17.7 Import & Export")
+    pdf.bullet("GET  /api/import/auto-config \u2013 Gibt die Auto-Import-Konfiguration zurueck.")
+    pdf.bullet("POST /api/import/auto-config \u2013 Aktualisiert die Auto-Import-Konfiguration.")
+    pdf.bullet("POST /api/import/trigger \u2013 Loest einen sofortigen Import aus.")
+    pdf.bullet("GET  /api/export/pdf \u2013 Exportiert das Board als PDF.")
+    pdf.bullet("GET  /api/log.csv \u2013 Laedt das Aktivitaetsprotokoll als CSV herunter.")
+
+    # -- 17.8 Fetcher-Steuerung --
+    pdf.section_title("17.8 Feuerwehr-Fetcher")
+    pdf.bullet("GET  /api/ff/status \u2013 Gibt den Fetcher-Status zurueck.")
+    pdf.bullet("GET  /api/ff/status/details \u2013 Gibt detaillierten Fetcher-Status zurueck.")
+    pdf.bullet("GET  /api/ff/creds \u2013 Prueft, ob Fetcher-Zugangsdaten vorhanden sind.")
+    pdf.bullet("POST /api/ff/creds \u2013 Speichert Fetcher-Zugangsdaten.")
+    pdf.bullet("POST /api/ff/start \u2013 Startet den Fetcher-Dienst.")
+    pdf.bullet("POST /api/ff/stop \u2013 Stoppt den Fetcher-Dienst.")
+
+    # -- 17.9 Drucken --
+    pdf.section_title("17.9 Drucken")
+    pdf.bullet("POST /api/print/server \u2013 Druckt ein PDF ueber den Systemdrucker.")
+    pdf.bullet("GET  /api/print/server/info \u2013 Gibt Drucker-Informationen zurueck.")
+    pdf.bullet("POST /api/print/:nr/print \u2013 Druckt einen Protokolleintrag.")
+    pdf.bullet("POST /api/print/blank/print \u2013 Druckt ein leeres Protokollformular.")
+    pdf.bullet("GET  /api/print/:nr/print/file/:file \u2013 Gibt eine gedruckte Protokolldatei zurueck.")
+    pdf.bullet("GET  /api/print/blank/print/file/:file \u2013 Gibt eine leere Protokolldatei zurueck.")
+    pdf.bullet(
+        "POST /api/incident-print/:incidentId/print \u2013 Speichert einen "
+        "Einsatz als PDF."
+    )
+    pdf.bullet(
+        "POST /api/incident-print/:incidentId/mail \u2013 Versendet einen "
+        "Einsatz per E-Mail."
+    )
+
+    # -- 17.10 KI-Analyse / Situation --
+    pdf.add_page()
+    pdf.section_title("17.10 KI-Analyse & Situationsanalyse")
+    pdf.bullet("GET  /api/situation/status \u2013 Gibt den Analyse-Status zurueck.")
+    pdf.bullet(
+        "POST /api/situation/analysis-loop/sync \u2013 Synchronisiert den "
+        "Analyse-Zyklus."
+    )
+    pdf.bullet("GET  /api/situation/analysis \u2013 Gibt das Analyse-Ergebnis zurueck.")
+    pdf.bullet("POST /api/situation/question \u2013 Stellt eine Situations-Frage.")
+    pdf.bullet(
+        "POST /api/situation/suggestion/feedback \u2013 Gibt Feedback "
+        "zu einem Vorschlag."
+    )
+    pdf.bullet(
+        "POST /api/situation/question/feedback \u2013 Gibt Feedback zu "
+        "einer Antwort."
+    )
+    pdf.bullet("GET  /api/situation/analysis-config \u2013 Gibt die Analyse-Konfiguration zurueck.")
+    pdf.bullet("POST /api/situation/analysis-config \u2013 Aktualisiert die Analyse-Konfiguration.")
+
+    # -- 17.11 Admin-Filterregeln --
+    pdf.section_title("17.11 Admin-Filterregeln")
+    pdf.bullet("GET  /api/admin/filtering-rules/status \u2013 Gibt den Filterstatus zurueck.")
+    pdf.bullet("GET  /api/admin/filtering-rules \u2013 Listet alle Filterregeln auf.")
+    pdf.bullet("PUT  /api/admin/filtering-rules \u2013 Aktualisiert die Filterregeln.")
+    pdf.bullet("GET  /api/admin/filtering-rules/learned \u2013 Gibt gelernte Filtergewichte zurueck.")
+    pdf.bullet("POST /api/admin/filtering-rules/reset-learned \u2013 Setzt gelernte Gewichte zurueck.")
+    pdf.bullet("GET  /api/admin/filtering-rules/ai-analysis-config \u2013 Gibt die KI-Analyse-Konfiguration zurueck.")
+    pdf.bullet("PUT  /api/admin/filtering-rules/ai-analysis-config \u2013 Aktualisiert die KI-Analyse-Konfiguration.")
+    pdf.bullet("GET  /api/admin/filtering-rules/scenario \u2013 Gibt die Szenario-Konfiguration zurueck.")
+    pdf.bullet("PUT  /api/admin/filtering-rules/scenario \u2013 Aktualisiert die Szenario-Konfiguration.")
+
+    # -- 17.12 Benutzer & Rollen --
+    pdf.section_title("17.12 Benutzer & Rollen")
+    pdf.bullet("GET  /api/user/roles \u2013 Gibt alle Rollen zurueck.")
+    pdf.bullet("PUT  /api/user/roles \u2013 Aktualisiert die Rollen (nur Admin).")
+    pdf.bullet("GET  /api/user/online-roles \u2013 Gibt online-aktive Rollen zurueck.")
+
+    # -- 17.13 Admin-Verwaltung --
+    pdf.add_page()
+    pdf.section_title("17.13 Admin-Verwaltung")
+    pdf.bullet("POST /api/user/admin/initialsetup \u2013 Erststart: Initialisiert das System mit Standarddaten.")
+    pdf.bullet("POST /api/user/admin/archive \u2013 Erstellt ein ZIP-Archiv aller Daten.")
+    pdf.bullet("GET  /api/user/admin/archive/create-download \u2013 Erstellt ein Archiv und gibt es zum Download zurueck.")
+    pdf.bullet("GET  /api/user/admin/archive/download/:file \u2013 Laedt eine bestimmte Archivdatei herunter.")
+    pdf.bullet("GET  /api/user/admin/archive/testlist \u2013 Listet Test-Archive auf.")
+    pdf.bullet("GET  /api/user/admin/logs/download \u2013 Laedt Logdateien herunter.")
+    pdf.bullet("GET  /api/user/admin/chatbot/status \u2013 Gibt den Chatbot-Service-Status zurueck.")
+    pdf.bullet("POST /api/user/admin/chatbot/start \u2013 Startet den Chatbot-Service.")
+    pdf.bullet("POST /api/user/admin/chatbot/stop \u2013 Stoppt den Chatbot-Service.")
+    pdf.bullet("POST /api/user/admin/chatbot/server/start \u2013 Startet den Chatbot-Server.")
+    pdf.bullet("POST /api/user/admin/chatbot/server/stop \u2013 Stoppt den Chatbot-Server.")
+    pdf.bullet("POST /api/user/admin/chatbot/worker/start \u2013 Startet den Chatbot-Worker.")
+    pdf.bullet("POST /api/user/admin/chatbot/worker/stop \u2013 Stoppt den Chatbot-Worker.")
+    pdf.bullet("GET  /api/user/admin/worker/config \u2013 Gibt die Worker-Konfiguration zurueck.")
+    pdf.bullet("PATCH /api/user/admin/worker/config \u2013 Aktualisiert die Worker-Konfiguration.")
+
+    # -- 17.14 Knowledge-Basis --
+    pdf.section_title("17.14 Knowledge-Basis (RAG)")
+    pdf.bullet("GET  /api/user/admin/knowledge/files \u2013 Listet Knowledge-Dateien auf.")
+    pdf.bullet("POST /api/user/admin/knowledge/upload \u2013 Laedt eine einzelne Knowledge-Datei hoch.")
+    pdf.bullet("POST /api/user/admin/knowledge/upload-multiple \u2013 Laedt mehrere Dateien hoch (max. 20).")
+    pdf.bullet("DELETE /api/user/admin/knowledge/files/:filename \u2013 Loescht eine Knowledge-Datei.")
+    pdf.bullet("POST /api/user/admin/knowledge/ingest \u2013 Startet die Indizierung der Knowledge-Basis.")
+
+    # -- 17.15 Aktivitaet --
+    pdf.section_title("17.15 Aktivitaet & Status")
+    pdf.bullet(
+        "GET  /api/activity/status \u2013 Gibt den Systemaktivitaetsstatus zurueck "
+        "(oeffentlich, keine Authentifizierung erforderlich)."
+    )
+
+    # -- 17.16 Chatbot-Server API --
+    pdf.add_page()
+    pdf.section_title("17.16 Chatbot-Server API (Port 3100)")
+    pdf.body(
+        "Die folgenden Endpunkte sind auf dem separaten Chatbot-Server "
+        "verfuegbar und werden vom Hauptserver teilweise als Proxy "
+        "weitergeleitet."
+    )
+    pdf.sub_section("Szenarien & Simulation")
+    pdf.bullet("GET  /api/scenarios \u2013 Listet alle verfuegbaren Szenarien auf.")
+    pdf.bullet("GET  /api/scenarios/:scenarioId \u2013 Gibt Details eines Szenarios zurueck.")
+    pdf.bullet("POST /api/sim/start \u2013 Startet eine Simulation (mit optionalem Szenario).")
+    pdf.bullet("GET  /api/sim/status \u2013 Gibt den Simulations-Status zurueck.")
+    pdf.bullet("GET  /api/sim/scenario \u2013 Gibt das aktive Szenario zurueck.")
+    pdf.bullet("POST /api/sim/pause \u2013 Pausiert die Simulation.")
+    pdf.bullet("POST /api/sim/step \u2013 Fuehrt einen einzelnen Simulationsschritt aus.")
+    pdf.bullet("POST /api/sim/waiting-for-roles \u2013 Signalisiert Warten auf Rollen.")
+
+    pdf.sub_section("Chat & LLM")
+    pdf.bullet("POST /api/chat \u2013 Sendet eine Chat-Nachricht (Rate-Limit: 60/min).")
+    pdf.bullet("GET  /api/llm/models \u2013 Listet verfuegbare LLM-Modelle auf.")
+    pdf.bullet("GET  /api/llm/gpu \u2013 Gibt den GPU-Status zurueck.")
+    pdf.bullet("GET  /api/llm/system \u2013 Gibt den Systemstatus zurueck.")
+    pdf.bullet("POST /api/llm/test \u2013 Testet das LLM mit einer Frage (Rate-Limit: 10/min).")
+    pdf.bullet("GET  /api/llm/config \u2013 Gibt die LLM-Konfiguration zurueck.")
+    pdf.bullet("POST /api/llm/global-model \u2013 Setzt das globale LLM-Modell.")
+    pdf.bullet("POST /api/llm/task-config \u2013 Konfiguriert aufgabenspezifische LLM-Einstellungen.")
+    pdf.bullet("GET  /api/llm/model/:taskType \u2013 Gibt das Modell fuer einen Aufgabentyp zurueck.")
+    pdf.bullet("POST /api/llm/test-model \u2013 Testet ein bestimmtes Modell (Rate-Limit: 10/min).")
+    pdf.bullet("POST /api/llm/test-with-metrics \u2013 Testet mit Metriken (Rate-Limit: 10/min).")
+    pdf.bullet("POST /api/llm/test-with-metrics-stream \u2013 Testet mit Metriken als Stream (Rate-Limit: 10/min).")
+    pdf.bullet("GET  /api/llm/profiles \u2013 Gibt verfuegbare LLM-Profile zurueck.")
+    pdf.bullet("GET  /api/llm/prompt-templates \u2013 Listet Prompt-Templates auf.")
+    pdf.bullet("GET  /api/llm/prompt-templates/:name \u2013 Gibt ein bestimmtes Prompt-Template zurueck.")
+    pdf.bullet("PUT  /api/llm/prompt-templates/:name \u2013 Aktualisiert ein Prompt-Template (Rate-Limit: 10/min).")
+    pdf.bullet("GET  /api/llm/action-history \u2013 Gibt die LLM-Aktionshistorie zurueck.")
+    pdf.bullet("GET  /api/llm/ops-verworfen \u2013 Gibt verworfene Operationen zurueck.")
+    pdf.bullet("GET  /api/llm/exchange/:exchangeId \u2013 Gibt einen bestimmten LLM-Austausch zurueck.")
+
+    pdf.add_page()
+    pdf.sub_section("Metriken & Monitoring")
+    pdf.bullet("GET  /api/metrics \u2013 Gibt Simulations-Metriken zurueck.")
+    pdf.bullet("GET  /api/metrics/stats \u2013 Gibt Metrik-Statistiken zurueck.")
+    pdf.bullet("GET  /api/events \u2013 Event-Stream (Server-Sent Events).")
+
+    pdf.sub_section("Audit")
+    pdf.bullet("GET  /api/audit/status \u2013 Gibt den Audit-Status zurueck.")
+    pdf.bullet("POST /api/audit/start \u2013 Startet eine Audit-Aufzeichnung.")
+    pdf.bullet("POST /api/audit/end \u2013 Beendet eine Audit-Aufzeichnung.")
+    pdf.bullet("GET  /api/audit/list \u2013 Listet alle Audit-Sessions auf.")
+    pdf.bullet("GET  /api/audit/:exerciseId \u2013 Gibt Audit-Daten fuer eine Uebung zurueck.")
+    pdf.bullet("DELETE /api/audit/:exerciseId \u2013 Loescht Audit-Daten.")
+    pdf.bullet("POST /api/audit/pause \u2013 Pausiert die Audit-Aufzeichnung.")
+    pdf.bullet("POST /api/audit/resume \u2013 Setzt die Audit-Aufzeichnung fort.")
+    pdf.bullet("POST /api/audit/events \u2013 Zeichnet Audit-Ereignisse auf.")
+
+    pdf.sub_section("Templates & Uebungen")
+    pdf.bullet("GET  /api/templates \u2013 Listet alle Templates auf.")
+    pdf.bullet("GET  /api/templates/:templateId \u2013 Gibt ein bestimmtes Template zurueck.")
+    pdf.bullet("POST /api/templates \u2013 Erstellt ein neues Template.")
+    pdf.bullet("DELETE /api/templates/:templateId \u2013 Loescht ein Template.")
+    pdf.bullet("POST /api/templates/:templateId/create-exercise \u2013 Erstellt eine Uebung aus einem Template.")
+
+    pdf.sub_section("Katastrophen-Kontext")
+    pdf.bullet("GET  /api/disaster/current \u2013 Gibt den aktuellen Katastrophen-Kontext zurueck.")
+    pdf.bullet("GET  /api/disaster/summary \u2013 Gibt eine gefilterte Zusammenfassung zurueck.")
+    pdf.bullet("POST /api/disaster/init \u2013 Initialisiert einen Katastrophen-Kontext.")
+    pdf.bullet("POST /api/disaster/update \u2013 Aktualisiert den Kontext aus EINFO-Daten.")
+    pdf.bullet("GET  /api/disaster/list \u2013 Listet alle Katastrophen auf.")
+    pdf.bullet("GET  /api/disaster/:disasterId \u2013 Gibt eine bestimmte Katastrophe zurueck.")
+    pdf.bullet("POST /api/disaster/finalize \u2013 Schliesst einen Katastrophen-Kontext ab.")
+    pdf.bullet("POST /api/disaster/record-suggestion \u2013 Zeichnet einen Vorschlag auf.")
+
+    pdf.sub_section("Feedback & Lernen")
+    pdf.bullet("POST /api/feedback \u2013 Gibt Feedback ab.")
+    pdf.bullet("GET  /api/feedback/list \u2013 Listet Feedback-Eintraege auf.")
+    pdf.bullet("GET  /api/feedback/stats \u2013 Gibt Feedback-Statistiken zurueck.")
+    pdf.bullet("POST /api/feedback/similar \u2013 Sucht aehnliches Feedback.")
+    pdf.bullet("POST /api/feedback/learned-context \u2013 Zeichnet gelernten Kontext auf.")
+
+    # ----------------------------------------------------------------
+    # 18. Backup & Recovery
+    # ----------------------------------------------------------------
+    pdf.add_page()
+    pdf.chapter_title("18. Backup & Recovery")
     pdf.body(
         "Erstellen Sie regelm\u00e4\u00dfig Backups des Verzeichnisses server/data/ vor "
         "gr\u00f6\u00dferen \u00c4nderungen. Das Verzeichnis enth\u00e4lt alle persistenten Daten:"
