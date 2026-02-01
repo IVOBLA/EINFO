@@ -626,21 +626,31 @@ useEffect(() => {
 
   // Polling (Board-Refresh unabhängig vom Countdown)
   useEffect(() => {
-    if (!unlocked) return;
-    let timer;
+    if (!unlocked) return undefined;
+    let cancelled = false;
+    let timer = null;
+    let fetchSeq = 0;
     const period = Math.max(5, Math.min(60, autoEnabled ? 8 : 15));
-  const tick = async () => {
-  try {
-    const oldIds = new Set(prevIdsRef.current);
-    const oldBoard = prevBoardRef.current;
-    const nb = await fetchBoard();
-    setBoard(nb);
-    updatePulseForNewBoard({ oldIds, oldBoard, newBoard: nb, pulseMs: 8000 });
-  } catch {}
-  timer = setTimeout(tick, period * 1000);
-};
+    const tick = async () => {
+      const seq = ++fetchSeq;
+      try {
+        const oldIds = new Set(prevIdsRef.current);
+        const oldBoard = prevBoardRef.current;
+        const nb = await fetchBoard();
+        if (!cancelled && seq === fetchSeq) {
+          setBoard(nb);
+          updatePulseForNewBoard({ oldIds, oldBoard, newBoard: nb, pulseMs: 8000 });
+        }
+      } catch {}
+      if (!cancelled) {
+        timer = setTimeout(tick, period * 1000);
+      }
+    };
     timer = setTimeout(tick, period * 1000);
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+    };
   }, [unlocked, autoEnabled]);
 
   useEffect(() => {
