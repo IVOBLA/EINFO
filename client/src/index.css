@@ -593,9 +593,10 @@ header .toolbar .interval-capsule input:focus {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background: url("/klfv-watermark.svg") no-repeat center center;
-  background-size: min(55%, 420px);
-  opacity: 1; /* SVG selbst ist bereits sehr dezent */
+  background: url("/klfv-logo.png") no-repeat center center;
+  background-size: min(45%, 360px);
+  opacity: 0.06;
+  filter: grayscale(100%);
 }
 .kanban-grid > * {
   position: relative;
