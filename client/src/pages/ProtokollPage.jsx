@@ -1277,7 +1277,7 @@ const startPdfPrint = (fileUrl) => {
   };
 
   return (
-    <div className="mx-auto w-full max-w-[1100px] relative">
+    <div className="protokoll-page-wrapper mx-auto w-full max-w-[1100px] relative">
       {/* Sticky Actionbar */}
       <div className="prot-actionbar sticky top-0 z-30 -mx-2 md:mx-0 px-2 md:px-0">
         <div className="bg-white/95 backdrop-blur border-b rounded-t-xl px-3 py-2 flex items-center justify-between shadow-sm">
@@ -1289,16 +1289,15 @@ const startPdfPrint = (fileUrl) => {
                 : "Protokoll – Neuer Eintrag"}
             </span>
           </div>
-          <div className="flex gap-2">
-            <button type="button" onClick={handleCancel} className="px-3 py-1.5 rounded-md border" title="Maske schließen und zur Übersicht wechseln (ESC)">Abbrechen</button>
-            <button type="button" onClick={handleSaveNew} disabled={saving || !canModify} className="px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-60" title="Speichern und neue Maske (Strg+Shift+S oder Strg+Enter)">Speichern/Neu</button>
-            <button type="button" onClick={handleSaveClose} disabled={saving || !canModify} className="px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-60" title="Speichern und schließen (Strg+S)">{saving ? "Speichern…" : "Speichern"}</button>
-            {/* ➕ Drucken */}
+          <div className="flex gap-2 flex-wrap">
+            <button type="button" onClick={handleCancel} className="header-btn !bg-gradient-to-br !from-slate-500 !to-slate-600" title="Maske schließen und zur Übersicht wechseln (ESC)">Abbrechen</button>
+            <button type="button" onClick={handleSaveNew} disabled={saving || !canModify} className="header-btn disabled:opacity-60" title="Speichern und neue Maske (Strg+Shift+S oder Strg+Enter)">Speichern/Neu</button>
+            <button type="button" onClick={handleSaveClose} disabled={saving || !canModify} className="header-btn disabled:opacity-60" title="Speichern und schließen (Strg+S)">{saving ? "Speichern…" : "Speichern"}</button>
             <button
               type="button"
               onClick={handlePrint}
               disabled={printDisabled}
-              className="px-3 py-1.5 rounded-md border bg-white hover:bg-gray-50 disabled:opacity-60"
+              className="header-btn disabled:opacity-60"
               title={printDisabledReason}
             >
               {printing && printingKind === "data" ? "Drucken…" : "Drucken"}
@@ -1308,7 +1307,7 @@ const startPdfPrint = (fileUrl) => {
                 type="button"
                 onClick={handlePrintBlank}
                 disabled={printing}
-                className="px-3 py-1.5 rounded-md border bg-white hover:bg-gray-50 disabled:opacity-60"
+                className="header-btn disabled:opacity-60"
                 title="Leeres Formular drucken"
               >
                 {printing && printingKind === "blank" ? "Drucken…" : "Leer drucken"}
