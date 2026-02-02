@@ -584,6 +584,22 @@ header .toolbar .interval-capsule input:focus {
 /* === KANBAN GRID (modern) === */
 .kanban-grid {
   @apply grid gap-5 grid-cols-1 md:grid-cols-3;
+  position: relative;
+}
+/* Dezentes Wasserzeichen hinter den Spalten */
+.kanban-grid::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: url("/klfv-watermark.svg") no-repeat center center;
+  background-size: min(55%, 420px);
+  opacity: 1; /* SVG selbst ist bereits sehr dezent */
+}
+.kanban-grid > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* === Column Title Styling === */
