@@ -478,7 +478,7 @@ const readOnly = !canEdit;
   const [infoOpen, setInfoOpen] = useState(false);
   const [infoCard, setInfoCard] = useState(null);
   const [infoForceEdit, setInfoForceEdit] = useState(false);
-  const onShowInfo = (card) => { setInfoCard(card); setInfoForceEdit(false); setInfoOpen(true); };
+  const onShowInfo = useCallback((card) => { setInfoCard(card); setInfoForceEdit(false); setInfoOpen(true); }, []);
   const tickerRequestRef = useRef(null);
   const [tickerMessages, setTickerMessages] = useState([]);
 
@@ -519,6 +519,7 @@ const route = hash.replace(/^#/, "");
   const initialPulseSuppressUntilRef = useRef(0); // Start-Sperre nach Laden
   const lastPulseTriggerRef = useRef(0);        // Zeitpunkt des letzten fremden Neu-Pulses
   const prevBoardRef = useRef(null);            // Merker für letzte Board-Struktur
+  const dragTimestampRef = useRef(0);             // Zeitpunkt des letzten Drag-Drops (Polling-Sperre)
 
 
 
@@ -634,14 +635,27 @@ useEffect(() => {
     let fetchSeq = 0;
     const period = Math.max(5, Math.min(60, autoEnabled ? 8 : 15));
     const tick = async () => {
+      // Nach einem Drag-Drop 5s lang kein Polling, um optimistisches Update nicht zu überschreiben
+      const sinceDrag = Date.now() - dragTimestampRef.current;
+      if (sinceDrag < 5000) {
+        if (!cancelled) timer = setTimeout(tick, period * 1000);
+        return;
+      }
       const seq = ++fetchSeq;
       try {
         const oldIds = new Set(prevIdsRef.current);
         const oldBoard = prevBoardRef.current;
         const nb = await fetchBoard();
         if (!cancelled && seq === fetchSeq) {
-          setBoard(nb);
-          updatePulseForNewBoard({ oldIds, oldBoard, newBoard: nb, pulseMs: 8000 });
+          if (typeof requestIdleCallback === "function") {
+            requestIdleCallback(() => {
+              setBoard(nb);
+              updatePulseForNewBoard({ oldIds, oldBoard, newBoard: nb, pulseMs: 8000 });
+            });
+          } else {
+            setBoard(nb);
+            updatePulseForNewBoard({ oldIds, oldBoard, newBoard: nb, pulseMs: 8000 });
+          }
         }
       } catch {}
       if (!cancelled) {
@@ -1547,6 +1561,21 @@ useEffect(() => {
   return () => clearInterval(t);
 }, [unlocked, autoEnabled, demoMode]);
 
+  // Optimistisches lokales Verschieben einer Karte zwischen Spalten
+  function moveCardLocally(b, cardId, from, to) {
+    if (!b || !b.columns || from === to) return b;
+    const card = (b.columns[from]?.items || []).find((c) => c?.id === cardId);
+    if (!card) return b;
+    return {
+      ...b,
+      columns: {
+        ...b.columns,
+        [from]: { ...b.columns[from], items: b.columns[from].items.filter((c) => c?.id !== cardId) },
+        [to]: { ...b.columns[to], items: [card, ...(b.columns[to]?.items || [])] },
+      },
+    };
+  }
+
   function getCardCol(b, id) {
     for (const k of ["neu", "in-bearbeitung", "erledigt"])
       if ((b.columns[k].items || []).some((c) => c?.id === id)) return k;
@@ -1795,6 +1824,9 @@ useEffect(() => {
           if (to === "erledigt" && from !== "erledigt" && !confirmDoneTransition()) {
             return;
           }
+          // Optimistisches Update: Karte sofort lokal verschieben
+          setBoard(prev => moveCardLocally(prev, cardId, from, to));
+          dragTimestampRef.current = Date.now();
           try {
             await transitionCard({ cardId, from, to, toIndex: 0 });
             markLocalChange(cardId);
@@ -1811,7 +1843,11 @@ useEffect(() => {
               setBoard(nextBoard);
               rememberBoardSnapshot(nextBoard);
             }
-          } catch { alert("Statuswechsel konnte nicht gespeichert werden."); }
+          } catch {
+            // Rollback: Board vom Server holen
+            try { const rb = await fetchBoard(); setBoard(rb); rememberBoardSnapshot(rb); } catch {}
+            alert("Statuswechsel konnte nicht gespeichert werden.");
+          }
         }
         return;
       }
@@ -1822,6 +1858,9 @@ useEffect(() => {
           if (to === "erledigt" && from !== "erledigt" && !confirmDoneTransition()) {
             return;
           }
+          // Optimistisches Update: Karte sofort lokal verschieben
+          setBoard(prev => moveCardLocally(prev, cardId, from, to));
+          dragTimestampRef.current = Date.now();
           try {
             await transitionCard({ cardId, from, to, toIndex: 0 });
             markLocalChange(cardId);
@@ -1838,7 +1877,11 @@ useEffect(() => {
               setBoard(nextBoard);
               rememberBoardSnapshot(nextBoard);
             }
-          } catch { alert("Statuswechsel konnte nicht gespeichert werden."); }
+          } catch {
+            // Rollback: Board vom Server holen
+            try { const rb = await fetchBoard(); setBoard(rb); rememberBoardSnapshot(rb); } catch {}
+            alert("Statuswechsel konnte nicht gespeichert werden.");
+          }
         }
       }
     }
@@ -1901,7 +1944,7 @@ const createIncident = async ({
     });
   };
 
-const handleAreaChange = async (card, rawAreaId) => {
+const handleAreaChange = useCallback(async (card, rawAreaId) => {
     if (!card?.id) return;
     const nextAreaId = rawAreaId ? String(rawAreaId) : null;
     try {
@@ -1910,7 +1953,7 @@ const handleAreaChange = async (card, rawAreaId) => {
     } catch (err) {
       alert(err?.message || "Abschnitt konnte nicht geändert werden.");
     }
-  };
+  }, [updateCard, syncBoardAndInfo]);
 
   const handleSaveIncident = async (cardId, payload) => {
     try {
@@ -1948,7 +1991,7 @@ if (route.startsWith("/protokoll/edit/")) {
           Zur Übersicht
         </button>
       </header>
-      <div className="flex-1 min-h-0 overflow-hidden p-3">
+      <div className="flex-1 min-h-0 overflow-y-auto p-3">
         <ProtokollPage mode="edit" editNr={editNr} />
       </div>
 
@@ -1976,7 +2019,7 @@ if (route.startsWith("/protokoll/neu")) {
           Zur Übersicht
         </button>
       </header>
-      <div className="flex-1 min-h-0 overflow-hidden p-3">
+      <div className="flex-1 min-h-0 overflow-y-auto p-3">
         <ProtokollPage mode="create" />
       </div>
     </div>
@@ -2042,7 +2085,7 @@ if (route.startsWith("/protokoll")) {
 </div>
 
       </header>
-      <div className="flex-1 min-h-0 overflow-hidden p-3">
+      <div className="flex-1 min-h-0 overflow-y-auto p-3">
         <ProtokollOverview searchTerm={protocolSearch} />
       </div>
     </div>
@@ -2053,7 +2096,6 @@ if (route.startsWith("/protokoll")) {
   return (
     <div
   className="h-screen w-screen bg-gray-100 p-2 md:p-3 overflow-hidden flex flex-col min-h-0 floating-actions-safe-area"
-  style={{ fontSize: "var(--ui-scale)" }}
 >
       <CornerHelpLogout
         helpHref="/Hilfe.pdf"

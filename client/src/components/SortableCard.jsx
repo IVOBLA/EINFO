@@ -11,7 +11,7 @@ const ensureAreaHumanId = (value) => {
   return `B${raw}`;
 };
 
-export function SortableCard(props) {
+export const SortableCard = React.memo(function SortableCard(props) {
   const {
     card, colId, vehiclesById, pillWidthPx = 160,
     onUnassign, onOpenMap, onAdvance,
@@ -477,4 +477,4 @@ className={`px-2 py-1 rounded text-[12px] border ${buttonBackgroundClass}`}
       </div>
     </li>
   );
-}
+});

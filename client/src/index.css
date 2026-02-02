@@ -37,9 +37,10 @@ html, body {
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 40%, #e2e8f0 100%);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
-
 /* === GLOBAL DENSITY VARIABLES === */
+/* font-size 14px: kompaktere Darstellung bei 100% Browser-Zoom (~87% Effekt) */
 html {
+  font-size: 14px;
   --row-gap: .6rem;
   --card-pad: .75rem;
   --chip-pad-y: .28rem;
@@ -688,11 +689,27 @@ header .toolbar .interval-capsule input:focus {
   font-weight: 600;
 }
 
-/* === PROTOKOLL-SEITE – Scroll-Fix === */
+/* === PROTOKOLL-SEITE – Scroll-Fix + Wasserzeichen === */
 .protokoll-page-wrapper {
   @apply overflow-y-auto;
   max-height: 100vh;
   padding-bottom: 3rem;
+  position: relative;
+}
+.protokoll-page-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: url("/klfv-logo.png") no-repeat center 30%;
+  background-size: min(35%, 300px);
+  opacity: 0.05;
+  filter: grayscale(100%);
+}
+.protokoll-page-wrapper > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* Protokoll-Form Container scrollbar */

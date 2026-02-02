@@ -496,11 +496,19 @@ export default function AufgApp() {
     return () => controller.abort();
   }, [activeItem?.id, loadProtocols]);
 
+  // Zentraler Timer-Tick für DueState-Berechnung in Karten (1 Timer statt n Timer)
+  const [dueTick, setDueTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setDueTick(c => c + 1), 30_000);
+    return () => clearInterval(t);
+  }, []);
+
   // DnD
   const [draggingItem, setDraggingItem] = useState(null);
   const [overColId, setOverColId] = useState(null);
   const originColRef = useRef(null);
   const lastOverRef = useRef(null);
+  const dragTimestampRef = useRef(0); // Polling-Sperre nach Drag
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 6 } })
@@ -553,10 +561,12 @@ export default function AufgApp() {
   }, [roleId]);
   
    // Auto-Reload alle 30s (nur wenn eine Rolle vorhanden ist)
+   // Nach einem Drag-Drop 5s Karenzzeit, um optimistisches Update nicht zu überschreiben
  useEffect(() => {
    if (!roleId) return;
    const t = setInterval(() => {
-     if (!loading) void load();
+     const sinceDrag = Date.now() - dragTimestampRef.current;
+     if (!loading && sinceDrag > 5000) void load();
    }, 30_000);
    return () => clearInterval(t);
  }, [roleId, loading]);
@@ -827,6 +837,7 @@ export default function AufgApp() {
       }
       const beforeId = COLS.includes(dropId) ? null : dropId;
       setItems(prev => prev.map(x => x.id === activeId ? { ...x, status: toCol } : x));
+      dragTimestampRef.current = Date.now();
       void persistReorder({ id: activeId, toStatus: toCol, beforeId });
       originColRef.current = null; lastOverRef.current = null; return;
     }
@@ -847,6 +858,7 @@ export default function AufgApp() {
         const others = prev.filter(x => x.status !== toCol);
         return [...others, ...reordered];
       });
+      dragTimestampRef.current = Date.now();
       void persistReorder({ id: activeId, toStatus: toCol, beforeId });
     }
     originColRef.current = null; lastOverRef.current = null;
@@ -968,6 +980,7 @@ export default function AufgApp() {
                   incidentLookup={incidentIndex.map}
                   onCreateProtocol={handleCreateProtocol}
                   onOpenProtocol={handleOpenProtocol}
+                  tick={dueTick}
                 />
               ))}
             </AufgDroppableColumn>
@@ -990,6 +1003,7 @@ export default function AufgApp() {
                   incidentLookup={incidentIndex.map}
                   onCreateProtocol={handleCreateProtocol}
                   onOpenProtocol={handleOpenProtocol}
+                  tick={dueTick}
                 />
               ))}
             </AufgDroppableColumn>
@@ -1012,6 +1026,7 @@ export default function AufgApp() {
                   incidentLookup={incidentIndex.map}
                   onCreateProtocol={handleCreateProtocol}
                   onOpenProtocol={handleOpenProtocol}
+                  tick={dueTick}
                 />
               ))}
             </AufgDroppableColumn>
