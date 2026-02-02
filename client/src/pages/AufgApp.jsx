@@ -853,7 +853,7 @@ export default function AufgApp() {
   }, [getColByItemId, lists, allowEdit, confirmDoneTransition]);
 
   return (
-    <div className="p-4 floating-actions-safe-area">
+    <div className="p-5 floating-actions-safe-area">
       <CornerHelpLogout
         helpHref="/Hilfe_Aufgabenboard.pdf"
         helpTitle="Hilfe – Aufgabenboard"
@@ -862,29 +862,29 @@ export default function AufgApp() {
         addTitle={allowEdit ? "Aufgabe anlegen" : "Keine Berechtigung"}
         navButtons={NAV_BUTTONS}
       />
-      <header className="mb-4 flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-3 w-full">
-          <div className="flex items-center gap-3">
-            <h1 className="text-lg font-bold flex items-center gap-2">
+      <header className="aufg-header mb-5 flex flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-4 w-full">
+          <div className="flex items-center gap-4">
+            <h1 className="text-xl font-extrabold tracking-tight text-slate-900 flex items-center gap-2">
               {simulationActive && <SimulationActiveIcon className="h-5 w-5" />}
               <span>Aufgaben</span>
             </h1>
-            <div className="flex items-center gap-2 text-xs">
-              <span className="text-gray-600">Rolle:</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500 font-medium">Rolle</span>
               <select
                 value={roleId}
                 onChange={handleRoleChange}
-                className="px-2 py-1 rounded-full border bg-gray-50 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                className="role-selector"
                 disabled={!roleSelectOptions.length || !canSwitchRoles}
-                aria-label="Rolle auswählen"
+                aria-label="Rolle auswaehlen"
                 title={
                   !canSwitchRoles
                     ? ltStbOnline
-                      ? "Nur LtStb oder LtStbStv dürfen Rollen wechseln"
-                      : "Nur LtStb oder LtStbStv dürfen Rollen wechseln – S3 nur, wenn LtStb abgemeldet"
+                      ? "Nur LtStb oder LtStbStv duerfen Rollen wechseln"
+                      : "Nur LtStb oder LtStbStv duerfen Rollen wechseln – S3 nur, wenn LtStb abgemeldet"
                     : roleId
                       ? `Rolle ${roleId}`
-                      : "Rolle auswählen"
+                      : "Rolle auswaehlen"
                 }
               >
                 {roleSelectOptions.map((opt) => (
@@ -895,50 +895,53 @@ export default function AufgApp() {
               </select>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto md:ml-auto md:justify-end">
+          <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto md:ml-auto md:justify-end">
             <input
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              placeholder="Suche Titel / Typ / Verantwortlich…"
-              className="w-full sm:w-64 md:w-72 lg:w-80 max-w-full px-3 py-2 text-sm rounded-xl border"
+              placeholder="Suche Titel / Typ / Verantwortlich..."
+              className="search-input w-full sm:w-64 md:w-72 lg:w-80 max-w-full"
             />
             <button
               onClick={handleAddOpen}
-              className="text-sm px-3 py-2 rounded-xl bg-sky-600 text-white disabled:opacity-60 disabled:cursor-not-allowed"
+              className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={!allowEdit}
               title={allowEdit ? undefined : "Keine Berechtigung (Aufgabenboard)"}
             >
-              Neu
+              + Neu
             </button>
-            {/* Modal zur Erstellung neuer Einträge */}
             {allowEdit && (
               <AufgAddModal
-                open={addOpen} // Der Zustand `addOpen` steuert, ob das Modal sichtbar ist
-                onClose={handleModalClose} // Schließt das Modal
+                open={addOpen}
+                onClose={handleModalClose}
                 incidentOptions={incidentIndex.options}
                 defaultDueOffsetMinutes={aufgabenConfig.defaultDueOffsetMinutes}
                 onAdded={async (created) => {
                   try {
-                    const saved = await createItemOnServer(created); // Speichert das neue Element
-                    if (saved) setItems((prev) => [saved, ...prev]); // Fügt das neue Element zur Liste hinzu
+                    const saved = await createItemOnServer(created);
+                    if (saved) setItems((prev) => [saved, ...prev]);
                   } catch (e) {
-                    setError(String(e?.message || e)); // Fehlerbehandlung
+                    setError(String(e?.message || e));
                   }
                 }}
               />
             )}
             <button
               onClick={() => { void load(); void loadIncidents(); }}
-              className="text-sm px-3 py-2 rounded-xl border"
+              className="btn-secondary"
               disabled={loading}
             >
-              {loading ? "Lädt…" : "Neu laden"}
+              {loading ? "Laedt..." : "Aktualisieren"}
             </button>
           </div>
         </div>
       </header>
 
-      {error && <div className="mb-3 text-sm text-red-600">{error}</div>}
+      {error && (
+        <div className="mb-4 text-sm text-red-700 bg-red-50 border border-red-200 rounded-xl px-4 py-2.5">
+          {error}
+        </div>
+      )}
 
       <DndContext
         sensors={sensors}
@@ -947,12 +950,11 @@ export default function AufgApp() {
         onDragOver={onDragOver}
         onDragEnd={onDragEnd}
       >
-        <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+        <div className="kanban-grid">
           <div className={overColId === STATUS.NEW ? "drag-over" : ""}>
             <AufgDroppableColumn
               id={STATUS.NEW}
               title="Neu"
-              bg="bg-red-100"
               count={lists[STATUS.NEW].length}
               itemIds={lists[STATUS.NEW].map(x=>x.id)}
             >
@@ -975,7 +977,6 @@ export default function AufgApp() {
             <AufgDroppableColumn
               id={STATUS.IN_PROGRESS}
               title="In Bearbeitung"
-              bg="bg-yellow-100"
               count={lists[STATUS.IN_PROGRESS].length}
               itemIds={lists[STATUS.IN_PROGRESS].map(x=>x.id)}
             >
@@ -998,7 +999,6 @@ export default function AufgApp() {
             <AufgDroppableColumn
               id={STATUS.DONE}
               title="Erledigt"
-              bg="bg-green-100"
               count={lists[STATUS.DONE].length}
               itemIds={lists[STATUS.DONE].map(x=>x.id)}
             >
@@ -1016,15 +1016,15 @@ export default function AufgApp() {
               ))}
             </AufgDroppableColumn>
           </div>
-</div>
+        </div>
         <DragOverlay>
           {draggingItem ? (
-            <div className="rounded-lg bg-white shadow-xl border p-3 w-[280px]">
-              <div className="text-[10px] text-gray-500 leading-4">
-                erstellt: {draggingItem.createdAt ? new Date(draggingItem.createdAt).toLocaleString() : "–"}
+            <div className="drag-overlay rounded-2xl bg-white p-4 w-[300px]">
+              <div className="text-[10px] text-slate-400 leading-4 font-medium mb-1">
+                {draggingItem.createdAt ? new Date(draggingItem.createdAt).toLocaleString("de-AT", { timeZone: "Europe/Vienna", hour12: false }) : "\u2013"}
               </div>
-              <div className="font-semibold text-sm mb-1 truncate">{draggingItem.title}</div>
-              <div className="text-xs text-gray-600">{draggingItem.type}</div>
+              <div className="font-bold text-sm text-slate-900 mb-1 truncate">{draggingItem.title}</div>
+              {draggingItem.type && <span className="card-type-badge">{draggingItem.type}</span>}
             </div>
           ) : null}
         </DragOverlay>
