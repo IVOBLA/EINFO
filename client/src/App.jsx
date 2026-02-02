@@ -2,11 +2,13 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
   DndContext,
   DragOverlay,
+  MouseSensor,
   PointerSensor,
   TouchSensor,
   useSensor,
   useSensors,
   rectIntersection,
+  closestCenter,
   closestCorners,
 } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -1720,14 +1722,16 @@ useEffect(() => {
   // === DND ===
   const [activeDrag, setActiveDrag] = useState(null);
   const [overColId, setOverColId] = useState(null); // (7) Hover-Spalte
+  const lastOverRef = useRef(null);
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 80, tolerance: 6 } })
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 6 } })
   );
 
   const onDragOver = (e) => {
     const over = e?.over; if (!over) { setOverColId(null); return; }
     const oid = String(over.id || "");
+    lastOverRef.current = oid;
     if (oid.startsWith("col:")) setOverColId(oid.slice(4));
     else if (oid.startsWith("card:")) {
       const col = getCardCol(safeBoard, oid.slice(5));
@@ -1738,13 +1742,16 @@ useEffect(() => {
   const confirmDoneTransition = () => window.confirm("Sind sie sicher?");
 
   const onDragEnd = async (e) => {
-    if (readOnly) { setOverColId(null); setActiveDrag(null); return; }
+    if (readOnly) { setOverColId(null); setActiveDrag(null); lastOverRef.current = null; return; }
     setOverColId(null);
     const { active, over } = e;
     setActiveDrag(null);
-    if (!active || !over) return;
+    // Fallback: use last known over target if over is null (e.g. pointer left droppable area)
+    const resolvedOver = over || (lastOverRef.current ? { id: lastOverRef.current } : null);
+    lastOverRef.current = null;
+    if (!active || !resolvedOver) return;
     const aid = String(active.id || "");
-    const oid = String(over.id || "");
+    const oid = String(resolvedOver.id || "");
 
     // Chip von Karte A -> Karte B
     if (aid.startsWith("ass:") && oid.startsWith("card:")) {
@@ -1811,7 +1818,7 @@ useEffect(() => {
 
       if (oid.startsWith("card:")) {
         const to = getCardCol(safeBoard, oid.slice(5));
-        if (to) {
+        if (to && from !== to) {
           if (to === "erledigt" && from !== "erledigt" && !confirmDoneTransition()) {
             return;
           }
@@ -2060,21 +2067,20 @@ if (route.startsWith("/protokoll")) {
         </div>
       )}
 
-      <header className="flex flex-wrap items-center justify-between gap-3 mb-2">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
+      <header className="einsatz-header">
+        <div className="flex flex-wrap items-center gap-4">
+          <h1 className="text-xl font-extrabold tracking-tight text-slate-900 flex items-center gap-2">
             {simulationActive && <SimulationActiveIcon className="h-5 w-5" />}
-            <span>Einsatzstellen-Übersicht-Feuerwehr</span>
+            <span>Einsatzstellen-Uebersicht</span>
           </h1>
           <div
             title={`Quelle: ${importInfo.file || "list_filtered.json"}`}
-            className="inline-flex items-center h-9 rounded-full px-3 py-1.5 text-sm border bg-white text-gray-700"
-            style={{ borderColor: "#cbd5e1" }}
+            className="sync-chip"
           >
             <span>
               Zuletzt geladen: <b>{importInfo.lastLoadedIso
                 ? new Date(importInfo.lastLoadedIso).toLocaleTimeString("de-AT", { hour12: false })
-                : "–"}</b>
+                : "\u2013"}</b>
             </span>
           </div>
         </div>
@@ -2105,65 +2111,50 @@ if (route.startsWith("/protokoll")) {
           </div>
         )}
 
-        <div className="toolbar flex flex-wrap items-center gap-2 justify-end w-full md:w-auto">
-          <label className="flex flex-wrap items-center gap-2 text-sm text-gray-700" htmlFor="areaFilter">
-            <span className="whitespace-nowrap">Filter Abschnitt</span>
+        <div className="toolbar flex flex-wrap items-center gap-2.5 justify-end w-full md:w-auto">
+          <div className={`filter-group ${areaFilter ? "filter-group-active" : ""}`}>
+            <span className="filter-group-label">Abschnitt</span>
             <select
               id="areaFilter"
-              className={`border rounded px-2 py-1 shrink-0 min-w-[150px] transition-colors ${
-                areaFilter
-                  ? `bg-red-800 border-red-900 text-white ${filterPulseActive ? "filter-pulse" : ""}`
-                  : "bg-white border-gray-300 text-gray-900"
-              }`}
               value={areaFilter}
               onChange={(e) => setAreaFilter(e.target.value)}
             >
-              <option value="">Alles Anzeigen</option>
+              <option value="">Alle anzeigen</option>
               {areaOptions.map((opt) => (
                 <option key={opt.id} value={String(opt.id)}>
                   {opt.label}
                 </option>
               ))}
             </select>
-          </label>
+          </div>
 
- 
-            <input
-  id="boardSearch"
-  type="search"
-  className="w-full sm:w-64 md:w-72 lg:w-80 max-w-full px-3 py-2 text-sm rounded-xl border"
-  placeholder="Suche…"
-  value={searchTerm}
-  onChange={(e) => setSearchTerm(e.target.value)}
-  aria-label="Suche Einsätze"
-/>
+          <input
+            id="boardSearch"
+            type="search"
+            className="search-input w-full sm:w-48 md:w-56 lg:w-64 max-w-full"
+            placeholder="Suche..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            aria-label="Suche Einsaetze"
+          />
 
-
-
-          {/* (6) Countdown / Sync-Chip */}
-
-          <button
-            onClick={onPdf}
-            className="px-3 py-1.5 rounded-md bg-purple-600 hover:bg-purple-700 text-white"
-          >
-            PDF
-          </button>
+          <button onClick={onPdf} className="header-btn">PDF</button>
 
           <button
             onClick={() => window.open("/api/log.csv", "_blank")}
-            className="px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white"
+            className="header-btn"
             title="log.csv herunterladen"
           >
-            Log&nbsp;(CSV)
+            Log (CSV)
           </button>
 
           <button
             onClick={doManualImport}
             disabled={readOnly || importBusy}
-            className="px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-60"
-            title="Import sofort ausführen"
+            className="header-btn"
+            title="Import sofort ausfuehren"
           >
-            {importBusy ? "Import…" : "Import"}
+            {importBusy ? "Import..." : "Import"}
           </button>
 
           {/* Feuerwehr-Fetcher Control */}
@@ -2180,9 +2171,10 @@ if (route.startsWith("/protokoll")) {
             <button
               onClick={onReset}
               disabled={readOnly || loadingReset}
-              className={`px-3 py-1.5 rounded-md text-white ${loadingReset ? "bg-gray-400" : "bg-gray-700 hover:bg-gray-800"}`}
+              className="header-btn"
+              style={loadingReset ? { opacity: 0.5 } : {}}
             >
-              {loadingReset ? "Reset…" : "Reset"}
+              {loadingReset ? "Reset..." : "Reset"}
             </button>
           )}
         </div>
@@ -2191,7 +2183,7 @@ if (route.startsWith("/protokoll")) {
 <DndContext
   sensors={sensors}
   collisionDetection={(args) =>
-    args?.active?.data?.current?.type === "vehicle" ? rectIntersection(args) : closestCorners(args)
+    args?.active?.data?.current?.type === "vehicle" ? rectIntersection(args) : closestCenter(args)
   }
   onDragStart={(e) =>
     setActiveDrag({ type: e?.active?.data?.current?.type, id: e.active.id, data: e?.active?.data?.current })
@@ -2199,7 +2191,7 @@ if (route.startsWith("/protokoll")) {
   onDragOver={onDragOver}
   onDragEnd={onDragEnd}
 >
-        <main className="grid grid-cols-1 md:[grid-template-columns:minmax(180px,220px)_repeat(3,minmax(0,1fr))] gap-2 min-h-0 flex-1 overflow-hidden pr-[var(--fab-safe-margin)]">
+        <main className="einsatz-main grid grid-cols-1 md:[grid-template-columns:minmax(180px,220px)_repeat(3,minmax(0,1fr))] gap-2 min-h-0 flex-1 overflow-hidden pr-[var(--fab-safe-margin)]">
 
 
 

@@ -168,10 +168,10 @@ button[title="aufklappen"] + div, button[title="zuklappen"] + div { margin-top:.
   border-bottom: 2px solid var(--col-done);
 }
 
-/* Spalten-Hintergründe */
-.col-new { background: var(--col-new-bg); border-color: var(--col-new-border); }
-.col-progress { background: var(--col-progress-bg); border-color: var(--col-progress-border); }
-.col-done { background: var(--col-done-bg); border-color: var(--col-done-border); }
+/* Spalten-Rahmenfarben */
+.col-new { border-color: var(--col-new-border); }
+.col-progress { border-color: var(--col-progress-border); }
+.col-done { border-color: var(--col-done-border); }
 
 /* KPI Badges */
 .kpi-badge{
@@ -196,10 +196,15 @@ button[title="aufklappen"] + div, button[title="zuklappen"] + div { margin-top:.
   background: linear-gradient(180deg, rgba(219,234,254,.4), transparent);
 }
 
-/* Fallback-Spalten-Farbhintergründe */
-.bg-red-100  { @apply bg-rose-100/70; }
-.bg-yellow-100{ @apply bg-amber-100/70; }
-.bg-green-100 { @apply bg-emerald-100/70; }
+/* Spalten-Farbhintergründe – sehr transparent fuer Wasserzeichen-Sichtbarkeit */
+.bg-red-100  { background: rgba(255,228,230,.35) !important; }
+.bg-yellow-100{ background: rgba(254,243,199,.35) !important; }
+.bg-green-100 { background: rgba(209,250,229,.35) !important; }
+
+/* Kanban-Spalten (Aufgabenboard) ebenfalls transparenter */
+.col-new { background: rgba(254,242,242,.45) !important; }
+.col-progress { background: rgba(255,251,235,.45) !important; }
+.col-done { background: rgba(236,253,245,.45) !important; }
 
 /* === AUFGABEN-KARTEN === */
 .sortable-card {
@@ -611,3 +616,95 @@ header .toolbar .interval-capsule input:focus {
 .col-title-new { color: var(--col-new); }
 .col-title-progress { color: var(--col-progress); }
 .col-title-done { color: var(--col-done); }
+
+/* === EINSATZBOARD – Wasserzeichen + Grid === */
+.einsatz-main {
+  position: relative;
+}
+.einsatz-main::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: url("/klfv-logo.png") no-repeat center center;
+  background-size: min(40%, 350px);
+  opacity: 0.05;
+  filter: grayscale(100%);
+}
+.einsatz-main > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* === EINSATZBOARD Header (modern) === */
+.einsatz-header {
+  @apply backdrop-blur-xl rounded-2xl px-5 py-3 mb-3 flex flex-wrap items-center justify-between gap-3;
+  background: var(--col-surface);
+  border: 1px solid rgba(15,23,42,.06);
+  box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.04);
+}
+
+/* === EINHEITLICHE HEADER-BUTTONS === */
+.header-btn {
+  @apply text-sm px-3.5 py-2 rounded-lg font-medium text-white transition-all duration-150;
+  background: linear-gradient(135deg, #0369a1, #0284c7);
+  box-shadow: 0 1px 2px rgba(3,105,161,.25);
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.header-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #075985, #0369a1);
+  box-shadow: 0 2px 4px rgba(3,105,161,.3);
+  transform: translateY(-0.5px);
+}
+.header-btn:disabled { @apply opacity-50 cursor-not-allowed; }
+
+/* === FILTER ABSCHNITT (modern) === */
+.filter-group {
+  @apply flex items-center gap-2 px-3 py-1.5 rounded-xl;
+  background: white;
+  border: 1px solid rgba(15,23,42,.1);
+}
+.filter-group-label {
+  @apply text-xs font-medium text-slate-500 whitespace-nowrap;
+}
+.filter-group select {
+  @apply text-sm font-medium rounded-lg border-0 bg-transparent;
+  min-width: 140px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+.filter-group select:focus {
+  @apply outline-none ring-2 ring-blue-200;
+}
+.filter-group-active {
+  border-color: var(--col-new) !important;
+  background: #fef2f2;
+}
+.filter-group-active select {
+  color: var(--col-new);
+  font-weight: 600;
+}
+
+/* === PROTOKOLL-SEITE – Scroll-Fix === */
+.protokoll-page-wrapper {
+  @apply overflow-y-auto;
+  max-height: 100vh;
+  padding-bottom: 3rem;
+}
+
+/* Protokoll-Form Container scrollbar */
+.protokoll-form-container {
+  @apply overflow-y-auto;
+  max-height: calc(100vh - 80px);
+  padding-bottom: 2rem;
+}
+
+/* === TICKER (Lagemeldung) === */
+.ticker-container {
+  @apply rounded-xl px-3;
+  background: rgba(254,243,199,.6);
+  border: 1px solid rgba(253,230,138,.5);
+}
