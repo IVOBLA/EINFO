@@ -197,15 +197,15 @@ button[title="aufklappen"] + div, button[title="zuklappen"] + div { margin-top:.
   background: linear-gradient(180deg, rgba(219,234,254,.4), transparent);
 }
 
-/* Spalten-Farbhintergründe – sehr transparent fuer Wasserzeichen-Sichtbarkeit */
-.bg-red-100  { background: rgba(255,228,230,.35) !important; }
-.bg-yellow-100{ background: rgba(254,243,199,.35) !important; }
-.bg-green-100 { background: rgba(209,250,229,.35) !important; }
+/* Spalten-Farbhintergründe – stark transparent fuer Wasserzeichen-Sichtbarkeit */
+.bg-red-100  { background: rgba(255,228,230,.18) !important; }
+.bg-yellow-100{ background: rgba(254,243,199,.18) !important; }
+.bg-green-100 { background: rgba(209,250,229,.18) !important; }
 
-/* Kanban-Spalten (Aufgabenboard) ebenfalls transparenter */
-.col-new { background: rgba(254,242,242,.45) !important; }
-.col-progress { background: rgba(255,251,235,.45) !important; }
-.col-done { background: rgba(236,253,245,.45) !important; }
+/* Kanban-Spalten (Aufgabenboard) ebenfalls stark transparent */
+.col-new { background: rgba(254,242,242,.20) !important; }
+.col-progress { background: rgba(255,251,235,.20) !important; }
+.col-done { background: rgba(236,253,245,.20) !important; }
 
 /* === AUFGABEN-KARTEN === */
 .sortable-card {
@@ -599,7 +599,7 @@ header .toolbar .interval-capsule input:focus {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background: url("/klfv-logo.png") no-repeat center center;
+  background: url("/Logo.png") no-repeat center center;
   background-size: min(45%, 360px);
   opacity: 0.06;
   filter: grayscale(100%);
@@ -628,7 +628,7 @@ header .toolbar .interval-capsule input:focus {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background: url("/klfv-logo.png") no-repeat center center;
+  background: url("/Logo.png") no-repeat center center;
   background-size: min(40%, 350px);
   opacity: 0.05;
   filter: grayscale(100%);
@@ -702,7 +702,7 @@ header .toolbar .interval-capsule input:focus {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background: url("/klfv-logo.png") no-repeat center 30%;
+  background: url("/Logo.png") no-repeat center 30%;
   background-size: min(35%, 300px);
   opacity: 0.05;
   filter: grayscale(100%);

@@ -2085,7 +2085,7 @@ if (route.startsWith("/protokoll")) {
 </div>
 
       </header>
-      <div className="flex-1 min-h-0 overflow-y-auto p-3">
+      <div className="flex-1 min-h-0 overflow-y-auto p-3 protokoll-page-wrapper">
         <ProtokollOverview searchTerm={protocolSearch} />
       </div>
     </div>
@@ -2128,7 +2128,7 @@ if (route.startsWith("/protokoll")) {
         </div>
 
         {tickerText && (
-          <div className="flex-1 min-w-[200px] min-h-[2.5rem] max-w-full sm:min-w-[260px]">
+          <div className="flex-1 min-w-[200px] max-w-full sm:min-w-[260px] self-center" style={{ height: "var(--ctl-h)" }}>
             <div className="ticker-container w-full h-full flex items-center" aria-live="polite">
               <marquee
                 className="ticker-content"
@@ -2361,27 +2361,28 @@ if (route.startsWith("/protokoll")) {
 
           {/* Spalten */}
           {[
-            { id: "neu", title: "Neu", bg: "bg-red-100",          totals: totalsNeu  },
-            { id: "in-bearbeitung", title: "In Bearbeitung", bg: "bg-yellow-100", totals: totalsWip  },
-            { id: "erledigt", title: "Erledigt", bg: "bg-green-100",   totals: totalsDone },
-].map(({ id, title, bg, totals }) => {
+            { id: "neu", title: "Neu", titleClass: "col-title-new", icon: "\u25CF", totals: totalsNeu  },
+            { id: "in-bearbeitung", title: "In Bearbeitung", titleClass: "col-title-progress", icon: "\u25B6", totals: totalsWip  },
+            { id: "erledigt", title: "Erledigt", titleClass: "col-title-done", icon: "\u2714", totals: totalsDone },
+].map(({ id, title, titleClass, icon, totals }) => {
             const displayTitle = areaFilterLabel ? `${title}: ${areaFilterLabel}` : title;
             return (
               <div key={id} className={overColId === id ? "drag-over" : ""}>
               <DroppableColumn editable={canEdit}
                 colId={id}
-                bg={bg}
                 title={
-                  /* (1) Sticky Header + KPI-Badges */
-                  <span className="column-header flex flex-wrap items-center justify-between gap-2">
-                     <span className="font-semibold break-words min-w-0">{displayTitle}</span>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <h2 className={`col-title flex items-center gap-2 ${titleClass}`}>
+                      <span className="text-base" aria-hidden>{icon}</span>
+                      {displayTitle}
+                    </h2>
                     <span className="flex flex-wrap items-center gap-1.5 justify-end w-full sm:w-auto">
-                      <span className="kpi-badge" data-variant="incidents">⬛ {totals.incidents}</span>
-                      <span className="kpi-badge" data-variant="areas">🗺️ {totals.areas}</span>
-                      <span className="kpi-badge" data-variant="units">🚒 {totals.units}</span>
-                      <span className="kpi-badge" data-variant="persons">👥 {totals.persons}</span>
+                      <span className="kpi-badge" data-variant="incidents">&#x2B1B; {totals.incidents}</span>
+                      <span className="kpi-badge" data-variant="areas">&#x1F5FA;&#xFE0F; {totals.areas}</span>
+                      <span className="kpi-badge" data-variant="units">&#x1F692; {totals.units}</span>
+                      <span className="kpi-badge" data-variant="persons">&#x1F465; {totals.persons}</span>
                     </span>
-                  </span>
+                  </div>
                 }
               >
  <ul
