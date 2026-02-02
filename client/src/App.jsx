@@ -11,7 +11,7 @@ import {
   closestCenter,
   closestCorners,
 } from "@dnd-kit/core";
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { SortableContext, verticalListSortingStrategy, arrayMove } from "@dnd-kit/sortable";
 import { SortableCard } from "./components/SortableCard";
 import { DraggableVehicle } from "./components/DraggableVehicle";
 import { MapModal } from "./components/MapModal";
@@ -1576,6 +1576,21 @@ useEffect(() => {
     };
   }
 
+  // Optimistisches lokales Umsortieren innerhalb einer Spalte
+  function reorderCardLocally(b, colId, oldIndex, newIndex) {
+    if (!b || !b.columns || oldIndex === newIndex) return b;
+    const items = b.columns[colId]?.items || [];
+    if (oldIndex < 0 || oldIndex >= items.length) return b;
+    const reordered = arrayMove(items, oldIndex, newIndex);
+    return {
+      ...b,
+      columns: {
+        ...b.columns,
+        [colId]: { ...b.columns[colId], items: reordered },
+      },
+    };
+  }
+
   function getCardCol(b, id) {
     for (const k of ["neu", "in-bearbeitung", "erledigt"])
       if ((b.columns[k].items || []).some((c) => c?.id === id)) return k;
@@ -1787,13 +1802,15 @@ useEffect(() => {
       const [, fromCardId, vehicleId] = aid.split(":");
       const toCardId = oid.slice(5);
       if (fromCardId && vehicleId && toCardId && fromCardId !== toCardId) {
+        dragTimestampRef.current = Date.now();
         try {
           await unassignVehicle(fromCardId, vehicleId);
           try { await resetVehiclePosition(vehicleId); } catch {}
           await assignVehicle(toCardId, vehicleId);
           markLocalChange(fromCardId, toCardId);
-          const nextBoard = await fetchBoard();
+          const [nextBoard, nextVehicles] = await Promise.all([fetchBoard(), fetchVehicles()]);
           setBoard(nextBoard);
+          setVehicles(nextVehicles);
           rememberBoardSnapshot(nextBoard);
         } catch { alert("Einheit konnte nicht umgehängt werden."); }
       }
@@ -1802,11 +1819,13 @@ useEffect(() => {
 
     // Freie Einheit -> Karte
     if (aid.startsWith("veh:") && oid.startsWith("card:")) {
+      dragTimestampRef.current = Date.now();
       try {
         await assignVehicle(oid.slice(5), aid.slice(4));
         markLocalChange(oid.slice(5));
-        const nextBoard = await fetchBoard();
+        const [nextBoard, nextVehicles] = await Promise.all([fetchBoard(), fetchVehicles()]);
         setBoard(nextBoard);
+        setVehicles(nextVehicles);
         rememberBoardSnapshot(nextBoard);
       } catch { alert("Einheit konnte nicht zugewiesen werden."); }
       return;
@@ -1853,8 +1872,29 @@ useEffect(() => {
       }
 
       if (oid.startsWith("card:")) {
-        const to = getCardCol(safeBoard, oid.slice(5));
-        if (to && from !== to) {
+        const targetCardId = oid.slice(5);
+        const to = getCardCol(safeBoard, targetCardId);
+        if (!to) return;
+
+        if (from === to) {
+          // Gleiche Spalte: Reihenfolge per DnD ändern
+          const items = safeBoard.columns[from]?.items || [];
+          const oldIndex = items.findIndex((c) => c?.id === cardId);
+          const newIndex = items.findIndex((c) => c?.id === targetCardId);
+          if (oldIndex < 0 || newIndex < 0 || oldIndex === newIndex) return;
+          // Optimistisches Update
+          setBoard(prev => reorderCardLocally(prev, from, oldIndex, newIndex));
+          dragTimestampRef.current = Date.now();
+          try {
+            await transitionCard({ cardId, from, to: from, toIndex: newIndex });
+            markLocalChange(cardId);
+            const nextBoard = await fetchBoard();
+            setBoard(nextBoard);
+            rememberBoardSnapshot(nextBoard);
+          } catch {
+            try { const rb = await fetchBoard(); setBoard(rb); rememberBoardSnapshot(rb); } catch {}
+          }
+        } else {
           if (to === "erledigt" && from !== "erledigt" && !confirmDoneTransition()) {
             return;
           }
@@ -2085,7 +2125,7 @@ if (route.startsWith("/protokoll")) {
 </div>
 
       </header>
-      <div className="flex-1 min-h-0 overflow-y-auto p-3">
+      <div className="flex-1 min-h-0 overflow-y-auto p-3 meldung-overview-wrapper">
         <ProtokollOverview searchTerm={protocolSearch} />
       </div>
     </div>
@@ -2128,7 +2168,7 @@ if (route.startsWith("/protokoll")) {
         </div>
 
         {tickerText && (
-          <div className="flex-1 min-w-[200px] min-h-[2.5rem] max-w-full sm:min-w-[260px]">
+          <div className="flex-1 min-w-[200px] max-w-full sm:min-w-[260px] flex items-center self-center" style={{ height: "var(--ctl-h)" }}>
             <div className="ticker-container w-full h-full flex items-center" aria-live="polite">
               <marquee
                 className="ticker-content"
@@ -2372,21 +2412,19 @@ if (route.startsWith("/protokoll")) {
                 colId={id}
                 bg={bg}
                 title={
-                  /* (1) Sticky Header + KPI-Badges */
-                  <span className="column-header flex flex-wrap items-center justify-between gap-2">
-                     <span className="font-semibold break-words min-w-0">{displayTitle}</span>
+                  <>
+                    <span className="font-semibold break-words min-w-0">{displayTitle}</span>
                     <span className="flex flex-wrap items-center gap-1.5 justify-end w-full sm:w-auto">
                       <span className="kpi-badge" data-variant="incidents">⬛ {totals.incidents}</span>
                       <span className="kpi-badge" data-variant="areas">🗺️ {totals.areas}</span>
                       <span className="kpi-badge" data-variant="units">🚒 {totals.units}</span>
                       <span className="kpi-badge" data-variant="persons">👥 {totals.persons}</span>
                     </span>
-                  </span>
+                  </>
                 }
               >
  <ul
-                  className="space-y-2 overflow-y-auto overflow-x-hidden pl-1 pr-2 py-2"
-                  style={{ maxHeight: "calc(100vh - 260px)" }}
+                  className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-2.5 space-y-2.5"
                 >
                   <SortableContext
                     items={(visibleBoard.columns[id].items || []).map((c) => CID(c.id))}

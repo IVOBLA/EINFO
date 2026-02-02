@@ -157,15 +157,15 @@ button[title="aufklappen"] + div, button[title="zuklappen"] + div { margin-top:.
 }
 /* Spaltenspezifische Header-Farben */
 .col-new .column-header {
-  background: linear-gradient(180deg, rgba(254,242,242,.97), rgba(254,242,242,.90));
+  background: linear-gradient(180deg, rgba(254,242,242,.80), rgba(254,242,242,.60));
   border-bottom: 2px solid var(--col-new);
 }
 .col-progress .column-header {
-  background: linear-gradient(180deg, rgba(255,251,235,.97), rgba(255,251,235,.90));
+  background: linear-gradient(180deg, rgba(255,251,235,.80), rgba(255,251,235,.60));
   border-bottom: 2px solid var(--col-progress);
 }
 .col-done .column-header {
-  background: linear-gradient(180deg, rgba(236,253,245,.97), rgba(236,253,245,.90));
+  background: linear-gradient(180deg, rgba(236,253,245,.80), rgba(236,253,245,.60));
   border-bottom: 2px solid var(--col-done);
 }
 
@@ -198,14 +198,14 @@ button[title="aufklappen"] + div, button[title="zuklappen"] + div { margin-top:.
 }
 
 /* Spalten-Farbhintergründe – sehr transparent fuer Wasserzeichen-Sichtbarkeit */
-.bg-red-100  { background: rgba(255,228,230,.35) !important; }
-.bg-yellow-100{ background: rgba(254,243,199,.35) !important; }
-.bg-green-100 { background: rgba(209,250,229,.35) !important; }
+.bg-red-100  { background: rgba(255,228,230,.18) !important; }
+.bg-yellow-100{ background: rgba(254,243,199,.18) !important; }
+.bg-green-100 { background: rgba(209,250,229,.18) !important; }
 
-/* Kanban-Spalten (Aufgabenboard) ebenfalls transparenter */
-.col-new { background: rgba(254,242,242,.45) !important; }
-.col-progress { background: rgba(255,251,235,.45) !important; }
-.col-done { background: rgba(236,253,245,.45) !important; }
+/* Kanban-Spalten (Aufgabenboard + Einsatzboard) – sehr transparent */
+.col-new { background: rgba(254,242,242,.22) !important; }
+.col-progress { background: rgba(255,251,235,.22) !important; }
+.col-done { background: rgba(236,253,245,.22) !important; }
 
 /* === AUFGABEN-KARTEN === */
 .sortable-card {
@@ -599,7 +599,7 @@ header .toolbar .interval-capsule input:focus {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background: url("/klfv-logo.png") no-repeat center center;
+  background: url("/Logo.png") no-repeat center center;
   background-size: min(45%, 360px);
   opacity: 0.06;
   filter: grayscale(100%);
@@ -628,7 +628,7 @@ header .toolbar .interval-capsule input:focus {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background: url("/klfv-logo.png") no-repeat center center;
+  background: url("/Logo.png") no-repeat center center;
   background-size: min(40%, 350px);
   opacity: 0.05;
   filter: grayscale(100%);
@@ -702,7 +702,7 @@ header .toolbar .interval-capsule input:focus {
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background: url("/klfv-logo.png") no-repeat center 30%;
+  background: url("/Logo.png") no-repeat center 30%;
   background-size: min(35%, 300px);
   opacity: 0.05;
   filter: grayscale(100%);
@@ -717,6 +717,26 @@ header .toolbar .interval-capsule input:focus {
   @apply overflow-y-auto;
   max-height: calc(100vh - 80px);
   padding-bottom: 2rem;
+}
+
+/* === MELDUNGS-UEBERSICHT – Wasserzeichen === */
+.meldung-overview-wrapper {
+  position: relative;
+}
+.meldung-overview-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: url("/Logo.png") no-repeat center 30%;
+  background-size: min(40%, 350px);
+  opacity: 0.07;
+  filter: grayscale(100%);
+}
+.meldung-overview-wrapper > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* === TICKER (Lagemeldung) === */
