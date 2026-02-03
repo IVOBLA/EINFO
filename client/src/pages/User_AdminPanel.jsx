@@ -5,6 +5,7 @@ import { FORBIDDEN_MESSAGE, notifyForbidden } from "../../forbidden.js";
 import { resetBoard } from "../api.js";
 import LLMModelManager from "../components/LLMModelManager.jsx";
 import FilteringRulesPanel from "../components/FilteringRulesPanel.jsx";
+import { applyUiTheme, fetchUiTheme, saveUiTheme, DEFAULT_THEME } from "../utils/uiTheme";
 
 function collectUserRoleIds(u) {
   const out = [];
@@ -157,6 +158,11 @@ export default function User_AdminPanel() {
   const [knowledgeLoading, setKnowledgeLoading] = useState(false);
   const [ingestRunning, setIngestRunning] = useState(false);
   const [uploadingFiles, setUploadingFiles] = useState(false);
+
+  // UI Theme State
+  const [themeDraft, setThemeDraft] = useState(null);
+  const [savingTheme, setSavingTheme] = useState(false);
+  const [themeMsg, setThemeMsg] = useState("");
 
   // ---- capabilities ↔ apps Konvertierung ----
   const parseCapToken = (t) => {
@@ -409,6 +415,11 @@ export default function User_AdminPanel() {
           const kfData = await kfRes.json();
           if (kfData.ok !== false) setKnowledgeFiles(kfData.files || []);
         }
+      } catch (_) {/* optional */}
+      // UI-Theme laden
+      try {
+        const themeData = await fetchUiTheme();
+        setThemeDraft(themeData);
       } catch (_) {/* optional */}
     } catch (e) {
       if (e.status === 423) setLocked(true);
@@ -2317,7 +2328,182 @@ export default function User_AdminPanel() {
         </div>
       </details>
 
-      {/* 10) Hybrid-Filtersystem */}
+      {/* 10) UI Theme */}
+      <details className="border rounded p-3">
+        <summary className="cursor-pointer font-medium">UI Theme (Farben &amp; Wasserzeichen)</summary>
+        <div className="mt-3 space-y-4">
+          {themeMsg && <div className="text-sm text-green-700 bg-green-50 px-3 py-1.5 rounded">{themeMsg}</div>}
+          {themeDraft && (
+            <>
+              {/* Farben */}
+              <fieldset className="border rounded p-3 space-y-2">
+                <legend className="font-medium text-sm px-1">Farben</legend>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {Object.entries(themeDraft.colors || {}).map(([key, val]) => (
+                    <label key={key} className="flex flex-col gap-1 text-xs">
+                      <span className="font-medium text-slate-600">{key.replace(/_/g, " ")}</span>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={val.startsWith("#") ? val : "#000000"}
+                          disabled={locked}
+                          onChange={(e) => setThemeDraft((prev) => ({ ...prev, colors: { ...prev.colors, [key]: e.target.value } }))}
+                          className="w-8 h-8 rounded cursor-pointer border"
+                        />
+                        <input
+                          type="text"
+                          value={val}
+                          disabled={locked}
+                          onChange={(e) => setThemeDraft((prev) => ({ ...prev, colors: { ...prev.colors, [key]: e.target.value } }))}
+                          className="flex-1 text-xs border rounded px-2 py-1"
+                        />
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+
+              {/* Wasserzeichen */}
+              <fieldset className="border rounded p-3 space-y-3">
+                <legend className="font-medium text-sm px-1">Wasserzeichen</legend>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  <label className="flex flex-col gap-1 text-xs">
+                    <span className="font-medium text-slate-600">Bild-Pfad</span>
+                    <input
+                      type="text"
+                      value={themeDraft.watermark?.image || ""}
+                      disabled={locked}
+                      onChange={(e) => setThemeDraft((prev) => ({ ...prev, watermark: { ...prev.watermark, image: e.target.value } }))}
+                      className="border rounded px-2 py-1 text-xs"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-xs">
+                    <span className="font-medium text-slate-600">Deckkraft (0–1): {themeDraft.watermark?.opacity ?? 0.18}</span>
+                    <input
+                      type="range"
+                      min="0" max="1" step="0.01"
+                      value={themeDraft.watermark?.opacity ?? 0.18}
+                      disabled={locked}
+                      onChange={(e) => setThemeDraft((prev) => ({ ...prev, watermark: { ...prev.watermark, opacity: parseFloat(e.target.value) } }))}
+                      className="w-full"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-xs">
+                    <span className="font-medium text-slate-600">Groesse (vw)</span>
+                    <input
+                      type="number" min="10" max="200"
+                      value={themeDraft.watermark?.sizeVw ?? 90}
+                      disabled={locked}
+                      onChange={(e) => setThemeDraft((prev) => ({ ...prev, watermark: { ...prev.watermark, sizeVw: Number(e.target.value) } }))}
+                      className="border rounded px-2 py-1 text-xs"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-xs">
+                    <span className="font-medium text-slate-600">Max. Groesse (px)</span>
+                    <input
+                      type="number" min="100" max="2000"
+                      value={themeDraft.watermark?.maxPx ?? 900}
+                      disabled={locked}
+                      onChange={(e) => setThemeDraft((prev) => ({ ...prev, watermark: { ...prev.watermark, maxPx: Number(e.target.value) } }))}
+                      className="border rounded px-2 py-1 text-xs"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-xs">
+                    <span className="font-medium text-slate-600">Position X (0–100%)</span>
+                    <input
+                      type="number" min="0" max="100"
+                      value={themeDraft.watermark?.posX ?? 50}
+                      disabled={locked}
+                      onChange={(e) => setThemeDraft((prev) => ({ ...prev, watermark: { ...prev.watermark, posX: Number(e.target.value) } }))}
+                      className="border rounded px-2 py-1 text-xs"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-xs">
+                    <span className="font-medium text-slate-600">Position Y (0–100%)</span>
+                    <input
+                      type="number" min="0" max="100"
+                      value={themeDraft.watermark?.posY ?? 50}
+                      disabled={locked}
+                      onChange={(e) => setThemeDraft((prev) => ({ ...prev, watermark: { ...prev.watermark, posY: Number(e.target.value) } }))}
+                      className="border rounded px-2 py-1 text-xs"
+                    />
+                  </label>
+                  <label className="flex items-center gap-2 text-xs">
+                    <input
+                      type="checkbox"
+                      checked={themeDraft.watermark?.grayscale ?? true}
+                      disabled={locked}
+                      onChange={(e) => setThemeDraft((prev) => ({ ...prev, watermark: { ...prev.watermark, grayscale: e.target.checked } }))}
+                    />
+                    <span className="font-medium text-slate-600">Graustufen</span>
+                  </label>
+                </div>
+              </fieldset>
+
+              {/* Buttons */}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={locked || savingTheme}
+                  className="px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm disabled:opacity-60"
+                  onClick={async () => {
+                    setSavingTheme(true);
+                    setThemeMsg("");
+                    try {
+                      const saved = await saveUiTheme(themeDraft);
+                      setThemeDraft(saved);
+                      applyUiTheme(saved);
+                      setThemeMsg("Theme gespeichert.");
+                      setTimeout(() => setThemeMsg(""), 3000);
+                    } catch (e) {
+                      setThemeMsg("Fehler: " + (e.message || "Unbekannt"));
+                    } finally {
+                      setSavingTheme(false);
+                    }
+                  }}
+                >
+                  {savingTheme ? "Speichern…" : "Speichern"}
+                </button>
+                <button
+                  type="button"
+                  disabled={locked || savingTheme}
+                  className="px-3 py-1.5 rounded-md bg-gray-200 hover:bg-gray-300 text-sm disabled:opacity-60"
+                  onClick={async () => {
+                    const defaults = { ...DEFAULT_THEME };
+                    setThemeDraft(defaults);
+                    setSavingTheme(true);
+                    setThemeMsg("");
+                    try {
+                      const saved = await saveUiTheme(defaults);
+                      setThemeDraft(saved);
+                      applyUiTheme(saved);
+                      setThemeMsg("Auf Standardwerte zurueckgesetzt.");
+                      setTimeout(() => setThemeMsg(""), 3000);
+                    } catch (e) {
+                      setThemeMsg("Fehler: " + (e.message || "Unbekannt"));
+                    } finally {
+                      setSavingTheme(false);
+                    }
+                  }}
+                >
+                  Zuruecksetzen
+                </button>
+                <button
+                  type="button"
+                  disabled={locked}
+                  className="px-3 py-1.5 rounded-md bg-gray-100 hover:bg-gray-200 text-sm disabled:opacity-60"
+                  onClick={() => { applyUiTheme(themeDraft); setThemeMsg("Vorschau angewendet (nicht gespeichert)."); setTimeout(() => setThemeMsg(""), 3000); }}
+                >
+                  Vorschau
+                </button>
+              </div>
+            </>
+          )}
+          {!themeDraft && !loading && <div className="text-sm text-gray-500">Theme konnte nicht geladen werden.</div>}
+        </div>
+      </details>
+
+      {/* 11) Hybrid-Filtersystem */}
       <details className="border rounded p-3" open>
         <summary className="cursor-pointer font-medium">Hybrid-Filtersystem (Regeln + Context-Fingerprint + Lernen)</summary>
         <div className="mt-3">

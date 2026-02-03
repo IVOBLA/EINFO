@@ -4257,3 +4257,7 @@ app.use("/api/user/admin", createAdminMaintenanceRoutes({ baseDir: DATA_DIR }));
 // Admin-Filtering: Hybrid-Filtersystem (Regeln + Context-Fingerprint + Lernen)
 import adminFilteringRouter from "./routes/admin_filtering.js";
 app.use("/api/admin/filtering-rules", User_requireAuth, adminFilteringRouter);
+
+// UI-Theme-Konfiguration (Farben, Watermark)
+import uiThemeRouter from "./routes/ui_theme.js";
+app.use("/api/ui-theme", User_requireAuth, uiThemeRouter);

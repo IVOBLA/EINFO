@@ -29,6 +29,15 @@
   --col-accent: #1e40af;
   --col-surface: rgba(255,255,255,.92);
   --col-surface-hover: rgba(255,255,255,.98);
+
+  /* Watermark-Defaults (ueberschreibbar via JS applyUiTheme) */
+  --wm-image: url("/Logo.png");
+  --wm-opacity: 0.18;
+  --wm-size-vw: 90vw;
+  --wm-size-max: 900px;
+  --wm-pos-x: 50%;
+  --wm-pos-y: 50%;
+  --wm-filter: grayscale(100%);
 }
 .ui-dense { --row-gap: .35rem; --card-pad: .45rem; }
 
@@ -593,22 +602,6 @@ header .toolbar .interval-capsule input:focus {
   @apply grid gap-5 grid-cols-1 md:grid-cols-3;
   position: relative;
 }
-/* Dezentes Wasserzeichen hinter den Spalten */
-.kanban-grid::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background: url("/Logo.png") no-repeat center center;
-  background-size: min(90%, 720px);
-  opacity: 0.13;
-  filter: grayscale(100%);
-}
-.kanban-grid > * {
-  position: relative;
-  z-index: 1;
-}
 
 /* === Column Title Styling === */
 .col-title {
@@ -619,24 +612,9 @@ header .toolbar .interval-capsule input:focus {
 .col-title-progress { color: var(--col-progress); }
 .col-title-done { color: var(--col-done); }
 
-/* === EINSATZBOARD – Wasserzeichen + Grid === */
+/* === EINSATZBOARD – Grid === */
 .einsatz-main {
   position: relative;
-}
-.einsatz-main::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background: url("/Logo.png") no-repeat center center;
-  background-size: min(90%, 900px);
-  opacity: 0.18;
-  filter: grayscale(100%);
-}
-.einsatz-main > * {
-  position: relative;
-  z-index: 1;
 }
 
 /* UX: bessere Sichtbarkeit – Einsatzboard-Header kraeftiger hervorgehoben */
@@ -690,47 +668,17 @@ header .toolbar .interval-capsule input:focus {
   font-weight: 600;
 }
 
-/* === PROTOKOLL-SEITE – Scroll-Fix + Wasserzeichen === */
+/* === PROTOKOLL-SEITE – Scroll-Fix === */
 .protokoll-page-wrapper {
   @apply overflow-y-auto;
   max-height: 100vh;
   padding-bottom: 3rem;
   position: relative;
 }
-.protokoll-page-wrapper::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background: url("/Logo.png") no-repeat center 30%;
-  background-size: min(70%, 600px);
-  opacity: 0.12;
-  filter: grayscale(100%);
-}
-.protokoll-page-wrapper > * {
-  position: relative;
-  z-index: 1;
-}
 
-/* === PROTOKOLL-UEBERSICHT – Wasserzeichen === */
+/* === PROTOKOLL-UEBERSICHT === */
 .protokoll-overview-wrapper {
   position: relative;
-}
-.protokoll-overview-wrapper::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  background: url("/Logo.png") no-repeat center 30%;
-  background-size: min(70%, 600px);
-  opacity: 0.12;
-  filter: grayscale(100%);
-}
-.protokoll-overview-wrapper > * {
-  position: relative;
-  z-index: 1;
 }
 
 /* Protokoll-Form Container scrollbar */
@@ -740,24 +688,54 @@ header .toolbar .interval-capsule input:focus {
   padding-bottom: 2rem;
 }
 
-/* === MELDUNGS-UEBERSICHT – Wasserzeichen === */
+/* === MELDUNGS-UEBERSICHT === */
 .meldung-overview-wrapper {
   position: relative;
 }
-.meldung-overview-wrapper::before {
+
+/* === WATERMARK UTILITY CLASSES (Single Source of Truth) === */
+/* A) watermark-layer: fuer transparente Layout-Flaechen (Board, Grid, Wrapper) */
+.watermark-layer {
+  position: relative;
+}
+.watermark-layer::before {
   content: "";
   position: absolute;
   inset: 0;
   z-index: 0;
   pointer-events: none;
-  background: url("/Logo.png") no-repeat center 30%;
-  background-size: min(80%, 700px);
-  opacity: 0.13;
-  filter: grayscale(100%);
+  background-image: var(--wm-image);
+  background-repeat: no-repeat;
+  background-position: var(--wm-pos-x) var(--wm-pos-y);
+  background-size: min(var(--wm-size-vw), var(--wm-size-max));
+  opacity: var(--wm-opacity);
+  filter: var(--wm-filter);
 }
-.meldung-overview-wrapper > * {
+.watermark-layer > * {
   position: relative;
   z-index: 1;
+}
+
+/* B) watermark-panel: fuer weisse Panels (Watermark ueber Background, unter Content) */
+.watermark-panel {
+  position: relative;
+}
+.watermark-panel::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image: var(--wm-image);
+  background-repeat: no-repeat;
+  background-position: var(--wm-pos-x) var(--wm-pos-y);
+  background-size: min(var(--wm-size-vw), var(--wm-size-max));
+  opacity: var(--wm-opacity);
+  filter: var(--wm-filter);
+}
+.watermark-panel > * {
+  position: relative;
+  z-index: 2;
 }
 
 /* === TICKER (Lagemeldung) === */

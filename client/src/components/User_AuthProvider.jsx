@@ -7,6 +7,7 @@ import React, {
   useState,
 } from "react";
 import { User_me, User_login, User_logout } from "../utils/User_auth";
+import { fetchUiTheme, applyUiTheme, resetUiThemeToDefaults } from "../utils/uiTheme";
 
 const Ctx = createContext(null);
 export const useUserAuth = () => useContext(Ctx);
@@ -182,6 +183,19 @@ export default function User_AuthProvider({ children }) {
   }, []);
 
 
+
+  // Theme laden und anwenden sobald user gesetzt ist
+  useEffect(() => {
+    if (!user) {
+      resetUiThemeToDefaults();
+      return;
+    }
+    let cancelled = false;
+    fetchUiTheme()
+      .then((theme) => { if (!cancelled) applyUiTheme(theme); })
+      .catch(() => { /* Theme-Defaults gelten weiter */ });
+    return () => { cancelled = true; };
+  }, [user]);
 
   const login = useCallback(async (username, password) => {
     const payload = await User_login(username, password);

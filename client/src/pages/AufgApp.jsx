@@ -962,7 +962,7 @@ export default function AufgApp() {
         onDragOver={onDragOver}
         onDragEnd={onDragEnd}
       >
-        <div className="kanban-grid">
+        <div className="kanban-grid watermark-layer">
           <div className={overColId === STATUS.NEW ? "drag-over" : ""}>
             <AufgDroppableColumn
               id={STATUS.NEW}

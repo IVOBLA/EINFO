@@ -401,7 +401,7 @@ export default function ProtokollOverview({ searchTerm = "" }) {
 return (
   <div className="p-3 md:p-4 h-full flex flex-col w-full protokoll-overview-wrapper">
     {/* Tabelle */}
-    <div className="flex-1 min-h-0 overflow-auto border rounded-lg bg-white">
+    <div className="flex-1 min-h-0 overflow-auto border rounded-lg bg-white/80 watermark-panel">
       {loading ? (
         <div className="p-4 text-gray-500">Lade…</div>
       ) : (

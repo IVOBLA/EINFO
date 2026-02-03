@@ -2125,7 +2125,7 @@ if (route.startsWith("/protokoll")) {
 </div>
 
       </header>
-      <div className="flex-1 min-h-0 overflow-y-auto p-3 meldung-overview-wrapper">
+      <div className="flex-1 min-h-0 overflow-y-auto p-3 meldung-overview-wrapper watermark-layer">
         <ProtokollOverview searchTerm={protocolSearch} />
       </div>
     </div>
@@ -2273,7 +2273,7 @@ if (route.startsWith("/protokoll")) {
   onDragOver={onDragOver}
   onDragEnd={onDragEnd}
 >
-        <main className="einsatz-main grid grid-cols-1 md:[grid-template-columns:minmax(180px,220px)_repeat(3,minmax(0,1fr))] gap-2 min-h-0 flex-1 overflow-hidden pr-[var(--fab-safe-margin)]">
+        <main className="einsatz-main watermark-layer grid grid-cols-1 md:[grid-template-columns:minmax(180px,220px)_repeat(3,minmax(0,1fr))] gap-2 min-h-0 flex-1 overflow-hidden pr-[var(--fab-safe-margin)]">
 
 
 
