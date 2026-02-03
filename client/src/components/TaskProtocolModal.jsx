@@ -20,7 +20,7 @@ export default function TaskProtocolModal({ open, mode = "create", editNr = null
   };
 
   return (
-    <div className="fixed inset-0 z-[200] bg-black/50 overflow-y-auto">
+    <div className="fixed inset-0 z-[200] bg-black/50 overflow-hidden">
       <div className="min-h-full flex items-center justify-center p-2 md:p-4">
         <div className="relative w-full max-w-5xl max-h-[calc(100vh-1rem)] md:max-h-[calc(100vh-2rem)] rounded-2xl shadow-2xl bg-white flex flex-col">
           <button
@@ -31,7 +31,7 @@ export default function TaskProtocolModal({ open, mode = "create", editNr = null
           >
             ✕
           </button>
-          <div className="flex-1 overflow-y-auto pt-10 md:pt-12 px-2 md:px-4 pb-4">
+          <div className="flex-1 overflow-y-auto overscroll-contain pt-10 md:pt-12 px-2 md:px-4 pb-4">
             <ProtokollPage
               mode={mode}
               editNr={mode === "edit" ? editNr : null}
