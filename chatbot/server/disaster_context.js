@@ -448,12 +448,16 @@ export async function loadCurrentEinfoData() {
     const raw = await fsPromises.readFile(SCENARIO_CONFIG_FILE, "utf8");
     const scenarioConfig = JSON.parse(raw);
     // Erstelle disaster-Objekt aus Szenario-Konfiguration
+    // Hinweis: einsatztitel wird bewusst NICHT aufgenommen (nur für UI)
+    const ausgangslageFinal = scenarioConfig.ausgangslage || scenarioConfig.artDesEreignisses || "";
     result.disaster = {
       type: scenarioConfig.artDesEreignisses || "unknown",
       phase: currentDisasterContext?.currentPhase || "initial",
       start_time: currentDisasterContext?.startTime || null,
       scenario: scenarioConfig.scenarioId || null,
-      geographic_area: scenarioConfig.geografischerBereich || null
+      geographic_area: scenarioConfig.geografischerBereich || null,
+      ausgangslage: ausgangslageFinal,
+      wetter: scenarioConfig.wetter || "",
     };
   } catch (err) {
     if (err?.code !== "ENOENT") {
@@ -1078,7 +1082,7 @@ export async function getFilteredDisasterContextSummary({ maxLength = 2500 } = {
     lastContextFingerprint = fingerprint;
 
     // Baue kompakten Summary
-    let summary = buildFilteredSummary(filtered, fingerprint, rules);
+    let summary = buildFilteredSummary(filtered, fingerprint, rules, einfoData.disaster);
 
     // Token-Zählung (grobe Schätzung: ~4 Zeichen pro Token)
     const tokensUsed = Math.ceil(summary.length / 4);
@@ -1152,8 +1156,20 @@ export async function getFilteredDisasterContextSummary({ maxLength = 2500 } = {
  * Baut Summary aus gefilterten Daten
  * WICHTIG: Gesamtstatistiken zeigen IMMER alle Daten, Details können gefiltert sein
  */
-function buildFilteredSummary(filtered, fingerprint, rules) {
-  let summary = `### GESAMTLAGE ###\n`;
+function buildFilteredSummary(filtered, fingerprint, rules, disaster) {
+  let summary = "";
+
+  // Szenario-Rahmen (Ausgangslage + Wetter aus scenario_config)
+  const ausgangslage = String(disaster?.ausgangslage || "").trim().slice(0, 500);
+  const wetterCtx = String(disaster?.wetter || "").trim().slice(0, 300);
+  if (ausgangslage || wetterCtx) {
+    summary += `### SZENARIO-RAHMEN ###\n`;
+    if (ausgangslage) summary += `Ausgangslage: ${ausgangslage}\n`;
+    if (wetterCtx) summary += `Wetter: ${wetterCtx}\n`;
+    summary += `\n`;
+  }
+
+  summary += `### GESAMTLAGE ###\n`;
   summary += `Typ: ${fingerprint.disaster_type} | Phase: ${fingerprint.phase} | Dauer: ${Math.floor(fingerprint.hours_running * 60)} Min\n`;
   summary += `Trend: ${fingerprint.trend_direction} (${fingerprint.trend_strength})\n\n`;
 

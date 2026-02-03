@@ -542,26 +542,37 @@ async function writeScenarioConfig(scenario) {
   const EINFO_DATA_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../server/data");
   const SCENARIO_CONFIG_FILE = path.join(EINFO_DATA_DIR, "scenario_config.json");
 
-  const config = {
+  // Bestehende Config laden (Merge-Strategie: neue Felder bleiben erhalten)
+  let existingConfig = {};
+  try {
+    existingConfig = JSON.parse(await fs.readFile(SCENARIO_CONFIG_FILE, "utf8"));
+  } catch { /* ENOENT ok */ }
+
+  const ctx = scenario.scenario_context;
+  const computed = {
     scenarioId: scenario.id || null,
-    artDesEreignisses: scenario.scenario_context.event_type || "Unbekannt",
-    geografischerBereich: scenario.scenario_context.region || "Nicht definiert",
+    artDesEreignisses: ctx.event_type || "Unbekannt",
+    geografischerBereich: ctx.region || "Nicht definiert",
     zeit: new Date().toISOString(),
-    wetter: scenario.scenario_context.weather || null,
-    infrastruktur: scenario.scenario_context.special_conditions?.join(", ") || null
+    wetter: ctx.weather || null,
+    infrastruktur: ctx.special_conditions?.join(", ") || null,
+    einsatztitel: scenario.title || scenario.id || existingConfig.einsatztitel || "",
+    ausgangslage: ctx.initial_situation || existingConfig.ausgangslage || "",
   };
+
+  const nextConfig = { ...existingConfig, ...computed };
 
   try {
     await fs.writeFile(
       SCENARIO_CONFIG_FILE,
-      JSON.stringify(config, null, 2),
+      JSON.stringify(nextConfig, null, 2),
       "utf8"
     );
     logInfo("Szenario-Konfiguration geschrieben", {
       file: SCENARIO_CONFIG_FILE,
-      scenarioId: config.scenarioId,
-      eventType: config.artDesEreignisses,
-      region: config.geografischerBereich
+      scenarioId: nextConfig.scenarioId,
+      eventType: nextConfig.artDesEreignisses,
+      region: nextConfig.geografischerBereich
     });
   } catch (err) {
     logError("Fehler beim Schreiben der Szenario-Konfiguration", {

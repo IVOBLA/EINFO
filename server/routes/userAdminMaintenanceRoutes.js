@@ -7,6 +7,7 @@ import archiver from "archiver";
 import { pipeline } from "stream";
 import { promisify } from "util";
 import multer from "multer";
+import { runInitialSetup } from "../utils/initialsetup.mjs";
 import {
   chatbotStatus,
   chatbotStatusWithHealth,
@@ -144,22 +145,11 @@ export default function createAdminMaintenanceRoutes({ baseDir }) {
   // ---- Initialsetup -------------------------------------------------
   router.post("/initialsetup", async (_req, res) => {
     try {
-      await ensureDir(BASE_DIR);
-      await ensureDir(INITIAL_DIR);
-
-      const deletedCount = await deleteCsvFiles(BASE_DIR);
-
-      // aus initial ALLE (csv+json) kopieren
-      const files = await collectDataFiles(INITIAL_DIR, toLowerSet([]));
-      for (const f of files) {
-        const dest = path.join(BASE_DIR, f.rel);
-        await fs.mkdir(path.dirname(dest), { recursive: true });
-        await fs.copyFile(f.abs, dest); // �berschreibt
-      }
+      const { deletedCount, copiedCount } = await runInitialSetup({ dataDir: BASE_DIR });
 
       res.json({
         ok: true,
-        message: `Initialsetup abgeschlossen. ${deletedCount} CSV gel�scht, ${files.length} Dateien kopiert.`,
+        message: `Initialsetup abgeschlossen. ${deletedCount} CSV gelöscht, ${copiedCount} Dateien kopiert.`,
         baseDir: BASE_DIR.replaceAll("\\", "/"),
       });
     } catch (err) {

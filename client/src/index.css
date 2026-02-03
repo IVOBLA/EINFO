@@ -34,6 +34,7 @@
   --wm-image: url("/Logo.png");
   --wm-opacity: 0.18;
   --wm-size-vw: 90vw;
+  --wm-size-vmin: 90vmin;
   --wm-size-max: 900px;
   --wm-pos-x: 50%;
   --wm-pos-y: 50%;
@@ -707,7 +708,7 @@ header .toolbar .interval-capsule input:focus {
   background-image: var(--wm-image);
   background-repeat: no-repeat;
   background-position: var(--wm-pos-x) var(--wm-pos-y);
-  background-size: min(var(--wm-size-vw), var(--wm-size-max));
+  background-size: clamp(220px, var(--wm-size-vmin, var(--wm-size-vw)), var(--wm-size-max));
   opacity: var(--wm-opacity);
   filter: var(--wm-filter);
 }
@@ -729,7 +730,7 @@ header .toolbar .interval-capsule input:focus {
   background-image: var(--wm-image);
   background-repeat: no-repeat;
   background-position: var(--wm-pos-x) var(--wm-pos-y);
-  background-size: min(var(--wm-size-vw), var(--wm-size-max));
+  background-size: clamp(220px, var(--wm-size-vmin, var(--wm-size-vw)), var(--wm-size-max));
   opacity: var(--wm-opacity);
   filter: var(--wm-filter);
 }
