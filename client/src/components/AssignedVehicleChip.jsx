@@ -20,16 +20,11 @@ export default function AssignedVehicleChip({
 }) {
   const id = `ass:${cardId}:${vehicle.id}`;
 
-  const drag = readonly ? null : useDraggable({
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id,
     data: { type: "assigned", vehicleId: vehicle.id, fromCardId: cardId },
+    disabled: readonly,
   });
-
-  const attributes = drag?.attributes ?? {};
-  const listeners = drag?.listeners ?? {};
-  const setNodeRef = drag?.setNodeRef ?? (()=>{});
-  const transform = drag?.transform ?? null;
-  const isDragging = drag?.isDragging ?? false;
 
   const style = {
     width: pillWidthPx,

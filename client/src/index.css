@@ -600,8 +600,8 @@ header .toolbar .interval-capsule input:focus {
   z-index: 0;
   pointer-events: none;
   background: url("/Logo.png") no-repeat center center;
-  background-size: min(45%, 360px);
-  opacity: 0.06;
+  background-size: min(90%, 720px);
+  opacity: 0.13;
   filter: grayscale(100%);
 }
 .kanban-grid > * {
@@ -629,8 +629,8 @@ header .toolbar .interval-capsule input:focus {
   z-index: 0;
   pointer-events: none;
   background: url("/Logo.png") no-repeat center center;
-  background-size: min(80%, 700px);
-  opacity: 0.13;
+  background-size: min(90%, 900px);
+  opacity: 0.18;
   filter: grayscale(100%);
 }
 .einsatz-main > * {
@@ -703,8 +703,8 @@ header .toolbar .interval-capsule input:focus {
   z-index: 0;
   pointer-events: none;
   background: url("/Logo.png") no-repeat center 30%;
-  background-size: min(35%, 300px);
-  opacity: 0.05;
+  background-size: min(70%, 600px);
+  opacity: 0.12;
   filter: grayscale(100%);
 }
 .protokoll-page-wrapper > * {
@@ -730,8 +730,8 @@ header .toolbar .interval-capsule input:focus {
   z-index: 0;
   pointer-events: none;
   background: url("/Logo.png") no-repeat center 30%;
-  background-size: min(40%, 350px);
-  opacity: 0.07;
+  background-size: min(80%, 700px);
+  opacity: 0.13;
   filter: grayscale(100%);
 }
 .meldung-overview-wrapper > * {
