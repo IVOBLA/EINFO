@@ -7,6 +7,7 @@ import {
   USER_ONLINE_ROLE_ACTIVE_LIMIT_MS,
 } from "../User_auth.mjs";
 import { markResponsibleDone } from "./protocolMarkDone.mjs";
+import { ensureTaskForRole } from "../utils/tasksService.mjs";
 import { getDefaultDueOffsetMinutes } from "../utils/defaultDueOffset.mjs";
 import { DATA_ROOT } from "../utils/pdfPaths.mjs";
 import {
@@ -644,6 +645,52 @@ router.post("/reorder", express.json(), async (req,res)=>{
     await syncProtocolDoneIfNeeded(moved, req);
 
     res.json({ ok : true });
+  } catch (e) {
+    safeJson(res, 500, { error: e.message });
+  }
+});
+
+// ---- Idempotent task creation from Maßnahmen button -------------------------
+router.post("/ensure", express.json(), async (req, res) => {
+  const userRole = userRoleFromReq(req);
+  if (!userRole) return res.status(401).json({ error: "unauthorized (no role)" });
+
+  // Only LtStb or S3 (when LtStb offline) may use this endpoint
+  const ltStbOnline = User_isAnyRoleOnline(
+    ["LTSTB", "LTSTBSTV"],
+    { activeWithinMs: USER_ONLINE_ROLE_ACTIVE_LIMIT_MS },
+  );
+  const isLtStb = userRole === "LTSTB" || userRole === "LTSTBSTV";
+  const isS3Fallback = userRole === "S3" && !ltStbOnline;
+  if (!isLtStb && !isS3Fallback) {
+    return res.status(403).json({ error: "forbidden (role)" });
+  }
+
+  if (!(await requireAufgabenEdit(req, res))) return;
+
+  const { protoNr, roleId, text } = req.body || {};
+  const targetRole = trimRoleLabel(roleId);
+  if (!targetRole || !protoNr) {
+    return res.status(400).json({ error: "protoNr and roleId required" });
+  }
+
+  try {
+    const actor = resolveUserName(req) || "";
+    const card = await ensureTaskForRole({
+      roleId: targetRole,
+      responsibleLabel: targetRole,
+      protoNr,
+      actor,
+      actorRole: userRole,
+      item: {
+        title: trimRoleLabel(text) || "Aufgabe",
+        type: "",
+        desc: "",
+        meta: { source: "protokoll.massnahme", protoNr },
+      },
+    });
+    // card === null means already existed (idempotent)
+    res.json({ ok: true, created: !!card, item: card || null });
   } catch (e) {
     safeJson(res, 500, { error: e.message });
   }

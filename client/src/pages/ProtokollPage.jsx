@@ -168,6 +168,26 @@ function normalizeProtocolNr(value) {
   return raw;
 }
 
+// ---- S2 auto-fill helpers for incoming Lage entries -------------------------
+const normalize = (s) => String(s ?? "").trim();
+const isIncomingLage = (f) => {
+  const typ = normalize(f?.infoTyp).toLowerCase();
+  return (typ === "lage" || typ === "lagemeldung") && f?.uebermittlungsart?.richtung === "ein";
+};
+const isFreeRow = (m) => normalize(m?.massnahme) === "" && normalize(m?.verantwortlich) === "";
+const findNextFreeRowIndex = (list) => {
+  for (let i = 0; i < list.length; i++) { if (isFreeRow(list[i])) return i; }
+  return -1;
+};
+const ensureS2InMassnahmen = (list) => {
+  const arr = Array.isArray(list) ? [...list] : [];
+  if (arr.some((m) => normalize(m?.verantwortlich).toUpperCase() === "S2")) return arr;
+  const idx = findNextFreeRowIndex(arr);
+  if (idx >= 0) { arr[idx] = { ...arr[idx], verantwortlich: "S2" }; }
+  else { arr.push({ massnahme: "", verantwortlich: "S2", done: false }); }
+  return arr;
+};
+
 const initialForm = () => ({
   datum: new Date().toISOString().slice(0, 10),
   zeit: new Date().toTimeString().slice(0, 5),
@@ -456,6 +476,20 @@ export default function ProtokollPage({
 
   // ---- Formular-State + Helper ----------------------------------------------
   const [form, setForm] = useState(initialForm());
+
+  // ---- S2 auto-fill for incoming Lage (create mode only) --------------------
+  useEffect(() => {
+    if (isEditMode) return;
+    if (!isIncomingLage(form)) return;
+    setForm((prev) => {
+      const list = Array.isArray(prev.massnahmen) ? [...prev.massnahmen] : [];
+      if (list.some((m) => normalize(m?.verantwortlich).toUpperCase() === "S2")) return prev;
+      const idx = findNextFreeRowIndex(list);
+      if (idx >= 0) { list[idx] = { ...list[idx], verantwortlich: "S2" }; }
+      else { list.push({ massnahme: "", verantwortlich: "S2", done: false }); }
+      return { ...prev, massnahmen: list };
+    });
+  }, [form.infoTyp, form.uebermittlungsart?.richtung, isEditMode]);
   const hasEditLock = !isEditMode || lockStatus === "acquired";
   const effectiveCanEdit = canEdit || taskOverrideActive;
   const clearError = (key) => {
@@ -1099,6 +1133,11 @@ const startPdfPrint = (fileUrl) => {
       };
     });
 
+    // S2 save-normalization safety: guarantee S2 in massnahmen for incoming Lage
+    if (isIncomingLage(snapshot) && normalize(snapshot.anvon?.name).toUpperCase() !== "S2") {
+      snapshot.massnahmen = ensureS2InMassnahmen(snapshot.massnahmen);
+    }
+
     snapshot.zu = typeof zu === "string" ? zu : "";
 
     snapshot.datum = String(snapshot.datum || "").trim();
@@ -1254,6 +1293,54 @@ const startPdfPrint = (fileUrl) => {
     } catch (e) {
       showToast("error", "Fehler beim Speichern: " + e.message, 4000);
     } finally { setSaving(false); }
+  };
+
+  // ---- Aufgabe aus Maßnahme anlegen (LtStb / S3-Fallback) -------------------
+  const canCreateTaskFromMeasure = useMemo(() => {
+    const isLtStb = userRoleIds.has("LTSTB") || userRoleIds.has("LTSTBSTV");
+    if (isLtStb) return true;
+    return userRoleIds.has("S3") && !ltStbOnline;
+  }, [userRoleIds, ltStbOnline]);
+
+  const createTaskFromMeasure = async (index) => {
+    const row = form.massnahmen?.[index];
+    if (!row) return;
+    const massnahmeText = normalize(row.massnahme);
+    const targetRole = normalize(row.verantwortlich);
+    if (!massnahmeText || !targetRole) {
+      showToast?.("error", "Maßnahme und Verantwortlich müssen ausgefüllt sein.");
+      return;
+    }
+    if (!canCreateTaskFromMeasure) {
+      showToast?.("error", "Keine Berechtigung (nur LtStb oder S3 bei Abwesenheit des LtStb).");
+      return;
+    }
+    // Need a saved protocol nr
+    const currentNr = nr;
+    if (!currentNr) {
+      showToast?.("error", "Bitte zuerst speichern, bevor eine Aufgabe angelegt wird.");
+      return;
+    }
+    setCreatingTask(true);
+    try {
+      const res = await fetch("/api/aufgaben/ensure", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ protoNr: currentNr, roleId: targetRole, text: massnahmeText }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || `Fehler ${res.status}`);
+      if (data.created) {
+        showToast?.("success", `Aufgabe für ${targetRole} angelegt.`);
+      } else {
+        showToast?.("info", `Aufgabe für ${targetRole} existiert bereits.`);
+      }
+    } catch (e) {
+      showToast?.("error", `Aufgabe anlegen fehlgeschlagen: ${e.message}`);
+    } finally {
+      setCreatingTask(false);
+    }
   };
 
   // Fallback am <form>
@@ -1641,15 +1728,17 @@ const startPdfPrint = (fileUrl) => {
       }}
       title={`Verantwortlich ${i + 1}`}
     />
-    <button
-      type="button"
-      className="px-2 h-9 text-xs rounded border bg-white hover:bg-gray-50"
-      title="Als Aufgabe anlegen (mit Protokoll-Bezug)"
-      onClick={() => createTaskFromMeasure(i)}
-      disabled={creatingTask}
-    >
-      →
-    </button>
+    {canCreateTaskFromMeasure && (
+      <button
+        type="button"
+        className="px-2 h-9 text-xs rounded border bg-white hover:bg-gray-50 disabled:opacity-40"
+        title="Aufgabe anlegen"
+        onClick={() => createTaskFromMeasure(i)}
+        disabled={creatingTask || !normalize(m.massnahme) || !normalize(m.verantwortlich)}
+      >
+        →
+      </button>
+    )}
   </div>
 </div>
 

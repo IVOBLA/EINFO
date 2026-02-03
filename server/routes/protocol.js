@@ -21,6 +21,20 @@ const isLage = v => /^(lage|lagemeldung)$/i.test(String(v || ""));
 const infoText = x => String(x?.information ?? x?.INFORMATION ?? x?.beschreibung ?? x?.text ?? x?.ERGAENZUNG ?? "").trim();
 const taskType = x => /^(auftrag|lage|lagemeldung)$/i.test(String(x?.infoTyp ?? x?.TYP ?? x?.type ?? ""));
 
+// ---- S2 safety-net helpers for incoming Lage entries -------------------------
+const _norm = (s) => String(s ?? "").trim();
+const _isFreeRow = (r) => _norm(r?.massnahme) === "" && _norm(r?.verantwortlich) === "";
+const _isIncomingLageEntry = (e) =>
+  isLage(e?.infoTyp) && isEingang(e?.uebermittlungsart) && _norm(e?.anvon).toUpperCase() !== "S2";
+function ensureS2InNextFreeRow(entry) {
+  if (!_isIncomingLageEntry(entry)) return;
+  const m = Array.isArray(entry.massnahmen) ? entry.massnahmen : (entry.massnahmen = []);
+  if (m.some((r) => _norm(r?.verantwortlich).toUpperCase() === "S2")) return;
+  const idx = m.findIndex(_isFreeRow);
+  if (idx >= 0) { m[idx] = { ...m[idx], verantwortlich: "S2" }; }
+  else { m.push({ massnahme: "", verantwortlich: "S2", done: false }); }
+}
+
 const trimRoleLabel = (value) => String(value ?? "").trim();
 const canonicalRoleId = (value) => {
   const raw = trimRoleLabel(value);
@@ -738,6 +752,7 @@ router.post("/", express.json(), async (req, res) => {
       });
       payload.printCount = sumPrintHistory(payload.history);
       payload.lastBy = userBy;
+      ensureS2InNextFreeRow(payload);
       all.push(payload);
 
       const latestEntry = payload.history?.[payload.history.length - 1];
@@ -893,6 +908,7 @@ router.put("/:nr(\\d+)", express.json(), async (req, res) => {
       }
       next.printCount = sumPrintHistory(next.history);
       next.lastBy = userBy;
+      ensureS2InNextFreeRow(next);
 
       all[idx] = next;
       await writeAllJson(all);
