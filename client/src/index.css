@@ -629,8 +629,8 @@ header .toolbar .interval-capsule input:focus {
   z-index: 0;
   pointer-events: none;
   background: url("/Logo.png") no-repeat center center;
-  background-size: min(40%, 350px);
-  opacity: 0.05;
+  background-size: min(80%, 700px);
+  opacity: 0.13;
   filter: grayscale(100%);
 }
 .einsatz-main > * {
