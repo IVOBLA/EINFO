@@ -1302,7 +1302,27 @@ const startPdfPrint = (fileUrl) => {
     return userRoleIds.has("S3") && !ltStbOnline;
   }, [userRoleIds, ltStbOnline]);
 
+  // Save without closing/navigating – used by createTaskFromMeasure
+  const saveForTaskCreation = async () => {
+    if (!canModify) { showModificationDenied(); return null; }
+    if (!confirmBeforeSave()) return null;
+    setSaving(true);
+    try {
+      const nrSaved = await saveCore();
+      if (nrSaved) {
+        showToast("success", `Gespeichert (NR ${nrSaved})`);
+      }
+      return nrSaved;
+    } catch (e) {
+      showToast("error", "Fehler beim Speichern: " + e.message, 4000);
+      return null;
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const createTaskFromMeasure = async (index) => {
+    if (saving || creatingTask) return;
     const row = form.massnahmen?.[index];
     if (!row) return;
     const massnahmeText = normalize(row.massnahme);
@@ -1315,19 +1335,16 @@ const startPdfPrint = (fileUrl) => {
       showToast?.("error", "Keine Berechtigung (nur LtStb oder S3 bei Abwesenheit des LtStb).");
       return;
     }
-    // Need a saved protocol nr
-    const currentNr = nr;
-    if (!currentNr) {
-      showToast?.("error", "Bitte zuerst speichern, bevor eine Aufgabe angelegt wird.");
-      return;
-    }
+    // Always save first to persist current changes and ensure nr exists
+    const savedNr = await saveForTaskCreation();
+    if (!savedNr) return; // validation failed or save error – abort
     setCreatingTask(true);
     try {
       const res = await fetch("/api/aufgaben/ensure", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ protoNr: currentNr, roleId: targetRole, text: massnahmeText }),
+        body: JSON.stringify({ protoNr: savedNr, roleId: targetRole, text: massnahmeText }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || `Fehler ${res.status}`);
@@ -1734,7 +1751,7 @@ const startPdfPrint = (fileUrl) => {
         className="px-2 h-9 text-xs rounded border bg-white hover:bg-gray-50 disabled:opacity-40"
         title="Aufgabe anlegen"
         onClick={() => createTaskFromMeasure(i)}
-        disabled={creatingTask || !normalize(m.massnahme) || !normalize(m.verantwortlich)}
+        disabled={creatingTask || saving || !normalize(m.massnahme) || !normalize(m.verantwortlich)}
       >
         →
       </button>
