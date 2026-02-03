@@ -22,7 +22,6 @@ function AufgSortableCard({
   tick, // zentraler Timer-Tick vom Parent (statt eigenem setInterval)
 }) {
   const it = item || {};
-  if (!it) return null;
 
   const {
     attributes,
@@ -32,6 +31,8 @@ function AufgSortableCard({
     transition,
     isDragging,
   } = useSortable({ id: it.id });
+
+  if (!it.id) return null;
 
   const isDone = String(it.status || "") === "Erledigt";
 
