@@ -1110,8 +1110,7 @@ router.post("/stab/hochfahren", express.json(), async (req, res) => {
       const all = await readAllJson();
       payload.nr = nextNr(all);
       histEntry.after = snapshotForHistory(payload);
-      all.push(payload);
-      await writeAllJson(all);
+      // Only CSV – no entry in protocol.json
       appendHistoryEntriesToCsv(payload, [histEntry], CSV_FILE);
     });
 
@@ -1148,8 +1147,7 @@ router.post("/einsatz/beenden", express.json(), async (req, res) => {
       const all = await readAllJson();
       payload.nr = nextNr(all);
       histEntry.after = snapshotForHistory(payload);
-      all.push(payload);
-      await writeAllJson(all);
+      // Only CSV – no entry in protocol.json
       appendHistoryEntriesToCsv(payload, [histEntry], CSV_FILE);
     });
 
