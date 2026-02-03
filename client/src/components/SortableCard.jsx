@@ -51,11 +51,12 @@ useEffect(() => () => {
   }, []);
 
 
-  // DnD only when editable
-  const sortable = editable
-    ? useSortable({ id: `card:${card.id}`, data: { type: "card", cardId: card.id } })
-   : { attributes: {}, listeners: {}, setNodeRef: () => {}, transform: null, transition: null, isDragging: false };
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = sortable;
+  // DnD – Hook wird IMMER aufgerufen (React-Regeln), aber per `disabled` deaktiviert
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: `card:${card.id}`,
+    data: { type: "card", cardId: card.id },
+    disabled: !editable,
+  });
 
   const resolvedAreaColor = useMemo(() => {
     if (!card) return null;

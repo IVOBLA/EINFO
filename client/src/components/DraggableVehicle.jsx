@@ -6,17 +6,12 @@ export function DraggableVehicle({ vehicle, pillWidthPx = 160, near = false, dis
   const vehicleAvailable = vehicle?.available !== false;
   const groupAvailable = vehicle?.groupAvailable !== false;
   const isDraggable = editable && vehicleAvailable && groupAvailable;
-  const drag = isDraggable
-    ? useDraggable({
-        id,
-        data: { type: "vehicle", vehicleId: vehicle.id },
-      })
-    : null;
-  const attributes = drag?.attributes ?? {};
-  const listeners = drag?.listeners ?? {};
-  const setNodeRef = drag?.setNodeRef ?? (()=>{});
-  const transform = drag?.transform ?? null;
-  const isDragging = drag?.isDragging ?? false;
+  // Hook wird IMMER aufgerufen (React-Regeln), aber per `disabled` deaktiviert
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id,
+    data: { type: "vehicle", vehicleId: vehicle.id },
+    disabled: !isDraggable,
+  });
   const isDimmed = !vehicleAvailable || !groupAvailable;
   const style = {
     width: pillWidthPx,
