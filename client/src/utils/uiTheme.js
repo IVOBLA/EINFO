@@ -42,6 +42,7 @@ export function applyUiTheme(theme) {
   if (wm.image) root.setProperty("--wm-image", `url("${wm.image}")`);
   if (wm.opacity != null) root.setProperty("--wm-opacity", String(wm.opacity));
   if (wm.sizeVw != null) root.setProperty("--wm-size-vw", `${wm.sizeVw}vw`);
+  if (wm.sizeVw != null) root.setProperty("--wm-size-vmin", `${wm.sizeVw}vmin`);
   if (wm.maxPx != null) root.setProperty("--wm-size-max", `${wm.maxPx}px`);
   if (wm.posX != null) root.setProperty("--wm-pos-x", `${wm.posX}%`);
   if (wm.posY != null) root.setProperty("--wm-pos-y", `${wm.posY}%`);
@@ -56,7 +57,7 @@ export function resetUiThemeToDefaults() {
   const props = [
     "--col-new", "--col-progress", "--col-done", "--col-accent",
     "--col-surface", "--col-surface-hover",
-    "--wm-image", "--wm-opacity", "--wm-size-vw", "--wm-size-max",
+    "--wm-image", "--wm-opacity", "--wm-size-vw", "--wm-size-vmin", "--wm-size-max",
     "--wm-pos-x", "--wm-pos-y", "--wm-filter",
   ];
   props.forEach((p) => root.removeProperty(p));
