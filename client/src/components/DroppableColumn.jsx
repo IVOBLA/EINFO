@@ -16,6 +16,13 @@ export default function DroppableColumn({ colId, title, bg, children, editable =
   const wrapRef = useRef(null);
   const [height, setHeight] = useState(null);
 
+  // Hook MUST be called unconditionally to avoid hook-order mismatch (React error #310)
+  const { setNodeRef, isOver } = useDroppable({
+    id: `col:${colId}`,
+    data: { type: "column", colId },
+    disabled: !editable,
+  });
+
   useLayoutEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
@@ -36,35 +43,6 @@ export default function DroppableColumn({ colId, title, bg, children, editable =
     };
   }, []);
 
-  if (!editable) {
-    return (
-      <section
-        ref={wrapRef}
-        style={height ? { height } : undefined}
-        className={[
-          "droppable-column",
-          "flex flex-col overflow-hidden",
-          cfg.colClass || bg,
-        ].join(" ")}
-      >
-        <div className="column-header sticky top-0 z-10">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className={`col-title flex items-center gap-2 ${cfg.titleClass || ""}`}>
-              <span className="text-base" aria-hidden>{cfg.icon || ""}</span>
-              {title}
-            </h2>
-          </div>
-        </div>
-        {children}
-      </section>
-    );
-  }
-
-  const { setNodeRef, isOver } = useDroppable({
-    id: `col:${colId}`,
-    data: { type: "column", colId },
-  });
-
   return (
     <section
       ref={(node) => {
@@ -76,7 +54,7 @@ export default function DroppableColumn({ colId, title, bg, children, editable =
         "droppable-column",
         "flex flex-col overflow-hidden",
         cfg.colClass || bg,
-        isOver ? "ring-2 ring-blue-300" : "",
+        editable && isOver ? "ring-2 ring-blue-300" : "",
       ].join(" ")}
     >
       <div className="column-header sticky top-0 z-10">
