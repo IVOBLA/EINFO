@@ -713,6 +713,26 @@ header .toolbar .interval-capsule input:focus {
   z-index: 1;
 }
 
+/* === PROTOKOLL-UEBERSICHT – Wasserzeichen === */
+.protokoll-overview-wrapper {
+  position: relative;
+}
+.protokoll-overview-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: url("/Logo.png") no-repeat center 30%;
+  background-size: min(70%, 600px);
+  opacity: 0.12;
+  filter: grayscale(100%);
+}
+.protokoll-overview-wrapper > * {
+  position: relative;
+  z-index: 1;
+}
+
 /* Protokoll-Form Container scrollbar */
 .protokoll-form-container {
   @apply overflow-y-auto;
