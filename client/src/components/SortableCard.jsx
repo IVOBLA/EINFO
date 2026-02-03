@@ -210,7 +210,7 @@ useEffect(() => () => {
     setHovered(false);
   };
 
-  const cardBackgroundClass = card.isArea ? "bg-slate-100 border-slate-200" : "bg-white";
+  const cardBackgroundClass = card.isArea ? "bg-slate-100 border-slate-200" : "bg-slate-50";
   const buttonBackgroundClass = card.isArea
     ? "bg-slate-200 hover:bg-slate-300"
     : "bg-white hover:bg-gray-50";
@@ -224,7 +224,7 @@ useEffect(() => () => {
       ref={setNodeRef}
       style={style}
       tabIndex={0}
-      className={`relative rounded-lg shadow border transition mx-1 focus:outline-none ${
+      className={`relative rounded-lg shadow border border-slate-200 transition mx-1 focus:outline-none ${
         cardBackgroundClass
       } ${
         pulse && colId === "neu" ? "ring-2 ring-red-400/60" : ""
