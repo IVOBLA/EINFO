@@ -142,10 +142,11 @@ button[title="aufklappen"] + div, button[title="zuklappen"] + div { margin-top:.
 }
 
 /* === SPALTEN (NEU, IN BEARBEITUNG, ERLEDIGT) === */
+/* UX: bessere Sichtbarkeit – Spaltenrahmen leicht kraeftiger */
 .droppable-column{
   @apply rounded-2xl shadow-sm transition-all duration-200 overflow-hidden;
   background: var(--col-surface);
-  border: 1px solid rgba(15,23,42,.07);
+  border: 1px solid rgba(15,23,42,.12);
 }
 .droppable-column:hover{ @apply shadow-md; }
 
@@ -155,17 +156,17 @@ button[title="aufklappen"] + div, button[title="zuklappen"] + div { margin-top:.
   backdrop-filter: blur(12px);
   padding: .65rem .75rem .55rem .75rem;
 }
-/* Spaltenspezifische Header-Farben */
+/* UX: bessere Sichtbarkeit – Spaltenspezifische Header-Farben */
 .col-new .column-header {
-  background: linear-gradient(180deg, rgba(254,242,242,.80), rgba(254,242,242,.60));
+  background: linear-gradient(180deg, rgba(254,242,242,.92), rgba(254,242,242,.78));
   border-bottom: 2px solid var(--col-new);
 }
 .col-progress .column-header {
-  background: linear-gradient(180deg, rgba(255,251,235,.80), rgba(255,251,235,.60));
+  background: linear-gradient(180deg, rgba(255,251,235,.92), rgba(255,251,235,.78));
   border-bottom: 2px solid var(--col-progress);
 }
 .col-done .column-header {
-  background: linear-gradient(180deg, rgba(236,253,245,.80), rgba(236,253,245,.60));
+  background: linear-gradient(180deg, rgba(236,253,245,.90), rgba(236,253,245,.72));
   border-bottom: 2px solid var(--col-done);
 }
 
@@ -184,8 +185,8 @@ button[title="aufklappen"] + div, button[title="zuklappen"] + div { margin-top:.
 .kpi-badge-new { background: #fee2e2; color: var(--col-new); }
 .kpi-badge-progress { background: #fef3c7; color: var(--col-progress); }
 .kpi-badge-done { background: #d1fae5; color: var(--col-done); }
-/* Fallback */
-.kpi-badge { background:#f1f5f9; color:#0f172a; }
+/* UX: bessere Sichtbarkeit – KPI-Badge Fallback kontrastreicher */
+.kpi-badge { background:#e2e8f0; color:#0f172a; }
 .kpi-badge[data-variant="incidents"]{ background:#dcfce7; }
 .kpi-badge[data-variant="areas"]{ background:#fef3c7; }
 .kpi-badge[data-variant="units"]{ background:#e0f2fe; }
@@ -197,31 +198,31 @@ button[title="aufklappen"] + div, button[title="zuklappen"] + div { margin-top:.
   background: linear-gradient(180deg, rgba(219,234,254,.4), transparent);
 }
 
-/* Spalten-Farbhintergründe – sehr transparent fuer Wasserzeichen-Sichtbarkeit */
-.bg-red-100  { background: rgba(255,228,230,.18) !important; }
-.bg-yellow-100{ background: rgba(254,243,199,.18) !important; }
-.bg-green-100 { background: rgba(209,250,229,.18) !important; }
+/* UX: bessere Sichtbarkeit / weniger Transparenz – Spalten-Farbhintergruende */
+.bg-red-100  { background: rgba(255,228,230,.30) !important; }
+.bg-yellow-100{ background: rgba(254,243,199,.30) !important; }
+.bg-green-100 { background: rgba(209,250,229,.22) !important; }
 
-/* Kanban-Spalten (Aufgabenboard + Einsatzboard) – sehr transparent */
-.col-new { background: rgba(254,242,242,.22) !important; }
-.col-progress { background: rgba(255,251,235,.22) !important; }
-.col-done { background: rgba(236,253,245,.22) !important; }
+/* UX: bessere Sichtbarkeit / weniger Transparenz – Kanban-Spalten */
+.col-new { background: rgba(254,242,242,.38) !important; }
+.col-progress { background: rgba(255,251,235,.38) !important; }
+.col-done { background: rgba(236,253,245,.24) !important; }
 
-/* === AUFGABEN-KARTEN === */
+/* UX: bessere Sichtbarkeit – Karten leicht grau + kraeftigerer Rahmen */
 .sortable-card {
   @apply rounded-xl border shadow-sm transition-all duration-150;
-  background: white;
-  border-color: rgba(15,23,42,.08);
+  background: #f8fafc;
+  border-color: rgba(15,23,42,.13);
 }
 .sortable-card:hover {
-  @apply shadow-md;
+  @apply shadow-md ring-1 ring-slate-200;
   transform: translateY(-1px);
-  border-color: rgba(15,23,42,.14);
+  border-color: rgba(15,23,42,.18);
 }
 
-/* Karten (generisch) */
+/* UX: bessere Sichtbarkeit – Karten (generisch) leicht grau + kraeftigerer Rahmen */
 .card, ul.space-y-2 > li {
-  @apply bg-white/95 backdrop-blur-sm border border-slate-200/80 rounded-xl shadow-sm hover:shadow-md transition-all duration-150;
+  @apply bg-slate-50/95 backdrop-blur-sm border border-slate-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-150;
 }
 .card:hover{ @apply -translate-y-[1px]; }
 ul.space-y-2 > li{ margin-top: var(--row-gap) !important; }
@@ -230,19 +231,19 @@ ul.space-y-2 > li{ margin-top: var(--row-gap) !important; }
   font-weight:700; letter-spacing:.1px;
   display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
 }
-.card .card-sub{ font-size:.78rem; color:#475569; }
+.card .card-sub{ font-size:.78rem; color:#334155; }
 
 /* Karten-Akzentstreifen */
 .card-accent-new { border-left: 3px solid var(--col-new); }
 .card-accent-progress { border-left: 3px solid var(--col-progress); }
 .card-accent-done { border-left: 3px solid var(--col-done); }
 
-/* Karten-Metadaten */
+/* UX: bessere Sichtbarkeit – Karten-Metadaten kontrastreicher */
 .card-meta {
-  @apply text-xs text-slate-500 flex items-center gap-1.5;
+  @apply text-xs text-slate-600 flex items-center gap-1.5;
 }
 .card-meta-icon {
-  @apply w-3.5 h-3.5 text-slate-400 flex-shrink-0;
+  @apply w-3.5 h-3.5 text-slate-500 flex-shrink-0;
 }
 
 /* Karte: Link-Style */
@@ -260,11 +261,11 @@ a[href*="karte"]:hover, button[title*="Karte"]:hover{ text-decoration: underline
   transform: translateY(-0.5px);
 }
 
-/* Typ-Badge auf Karten */
+/* UX: bessere Sichtbarkeit – Typ-Badge kontrastreicher */
 .card-type-badge {
   @apply inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-md;
-  background: #f1f5f9;
-  color: #475569;
+  background: #e2e8f0;
+  color: #334155;
 }
 
 /* Ueberfaellig-Badge */
@@ -275,10 +276,10 @@ a[href*="karte"]:hover, button[title*="Karte"]:hover{ text-decoration: underline
   border: 1px solid #fecaca;
 }
 
-/* Frist-Anzeige */
+/* UX: bessere Sichtbarkeit – Frist-Anzeige kontrastreicher */
 .card-due {
   @apply text-xs mt-2 flex items-center gap-1.5;
-  color: #64748b;
+  color: #475569;
 }
 .card-due-overdue {
   color: var(--col-new);
@@ -522,12 +523,12 @@ header .toolbar .interval-capsule input:focus {
   box-shadow: 0 0 0 1px rgba(5,150,105,.3) inset;
 }
 
-/* === AUFGABEN-HEADER (modern) === */
+/* UX: bessere Sichtbarkeit – Aufgaben-Header kraeftiger hervorgehoben */
 .aufg-header {
   @apply backdrop-blur-xl rounded-2xl px-5 py-4 mb-5 flex flex-wrap items-center justify-between gap-3;
-  background: var(--col-surface);
-  border: 1px solid rgba(15,23,42,.06);
-  box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.04);
+  background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,250,252,.96));
+  border: 1px solid rgba(15,23,42,.11);
+  box-shadow: 0 1px 4px rgba(0,0,0,.08), 0 4px 14px rgba(0,0,0,.05);
 }
 
 /* === SEARCH INPUT (modern) === */
@@ -638,12 +639,12 @@ header .toolbar .interval-capsule input:focus {
   z-index: 1;
 }
 
-/* === EINSATZBOARD Header (modern) === */
+/* UX: bessere Sichtbarkeit – Einsatzboard-Header kraeftiger hervorgehoben */
 .einsatz-header {
   @apply backdrop-blur-xl rounded-2xl px-5 py-3 mb-3 flex flex-wrap items-center justify-between gap-3;
-  background: var(--col-surface);
-  border: 1px solid rgba(15,23,42,.06);
-  box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 12px rgba(0,0,0,.04);
+  background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,250,252,.96));
+  border: 1px solid rgba(15,23,42,.11);
+  box-shadow: 0 1px 4px rgba(0,0,0,.08), 0 4px 14px rgba(0,0,0,.05);
 }
 
 /* === EINHEITLICHE HEADER-BUTTONS === */
@@ -708,6 +709,26 @@ header .toolbar .interval-capsule input:focus {
   filter: grayscale(100%);
 }
 .protokoll-page-wrapper > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* === PROTOKOLL-UEBERSICHT – Wasserzeichen === */
+.protokoll-overview-wrapper {
+  position: relative;
+}
+.protokoll-overview-wrapper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: url("/Logo.png") no-repeat center 30%;
+  background-size: min(70%, 600px);
+  opacity: 0.12;
+  filter: grayscale(100%);
+}
+.protokoll-overview-wrapper > * {
   position: relative;
   z-index: 1;
 }

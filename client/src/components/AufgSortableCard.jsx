@@ -94,7 +94,7 @@ function AufgSortableCard({
         "sortable-card relative rounded-xl border p-3.5 cursor-pointer",
         accentClass,
         isDone ? "opacity-75" : "",
-        isOverdue && !isDone ? "bg-red-50 border-red-200" : "bg-white",
+        isOverdue && !isDone ? "bg-red-50 border-red-200" : "bg-slate-50",
         showPulse ? "pulse-incoming" : "",
       ].filter(Boolean).join(" ")}
       {...attributes}
