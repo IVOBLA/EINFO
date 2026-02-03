@@ -2126,7 +2126,7 @@ if (route.startsWith("/protokoll")) {
 
       </header>
       <div className="flex-1 min-h-0 overflow-y-auto p-3 meldung-overview-wrapper watermark-layer">
-        <ProtokollOverview searchTerm={protocolSearch} />
+        <ProtokollOverview searchTerm={protocolSearch} protocolCanEdit={protocolCanEdit} protocolS3Blocked={protocolS3Blocked} />
       </div>
     </div>
   );

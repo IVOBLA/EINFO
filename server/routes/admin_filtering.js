@@ -592,10 +592,15 @@ router.get("/scenario", async (req, res) => {
   try {
     const raw = await fsPromises.readFile(SCENARIO_CONFIG_FILE, "utf8");
     const config = JSON.parse(raw);
+    // Defaults für neue Felder
+    if (config.einsatztitel === undefined) config.einsatztitel = "";
+    if (config.ausgangslage === undefined) config.ausgangslage = "";
     res.json(config);
   } catch (err) {
     // Datei existiert nicht - Default-Werte zurückgeben
     res.json({
+      einsatztitel: "",
+      ausgangslage: "",
       scenarioId: null,
       artDesEreignisses: "Unbekannt",
       geografischerBereich: "Nicht definiert",
@@ -612,7 +617,7 @@ router.get("/scenario", async (req, res) => {
  */
 router.put("/scenario", async (req, res) => {
   try {
-    const { artDesEreignisses, geografischerBereich, zeit, wetter, infrastruktur } = req.body;
+    const { artDesEreignisses, geografischerBereich, zeit, wetter, infrastruktur, einsatztitel, ausgangslage } = req.body;
 
     // Lade bestehende Config oder erstelle neue
     let config = {};
@@ -624,6 +629,8 @@ router.put("/scenario", async (req, res) => {
     }
 
     // Aktualisiere nur übergebene Felder
+    if (einsatztitel !== undefined) config.einsatztitel = einsatztitel;
+    if (ausgangslage !== undefined) config.ausgangslage = ausgangslage;
     if (artDesEreignisses !== undefined) config.artDesEreignisses = artDesEreignisses;
     if (geografischerBereich !== undefined) config.geografischerBereich = geografischerBereich;
     if (zeit !== undefined) config.zeit = zeit;

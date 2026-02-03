@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useUserAuth } from "../components/User_AuthProvider.jsx";
 import {
   getLastChangeInfo,
@@ -257,9 +257,156 @@ function resolvePrintCount(item) {
   return Number.isFinite(direct) ? Math.max(0, direct) : 0;
 }
 
-export default function ProtokollOverview({ searchTerm = "" }) {
+// ---- Einsatz-Panel (collapsible) ------------------------------------------
+function EinsatzPanel({ canInteract, onProtocolReload }) {
+  const [open, setOpen] = useState(false);
+  const [einsatztitel, setEinsatztitel] = useState("");
+  const [ausgangslage, setAusgangslage] = useState("");
+  const [wetter, setWetter] = useState("");
+  const [loadingAction, setLoadingAction] = useState(false);
+  const [message, setMessage] = useState(null);
+
+  const loadScenario = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/filtering-rules/scenario", { credentials: "include" });
+      if (!res.ok) return;
+      const cfg = await res.json();
+      setEinsatztitel(cfg.einsatztitel ?? "");
+      setAusgangslage(cfg.ausgangslage || cfg.artDesEreignisses || "");
+      setWetter(cfg.wetter ?? "");
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => { loadScenario(); }, [loadScenario]);
+
+  const doHochfahren = useCallback(async () => {
+    setLoadingAction(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/protocol/stab/hochfahren", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ einsatztitel, ausgangslage, wetter }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Fehler");
+      await loadScenario();
+      onProtocolReload?.();
+      setMessage({ type: "ok", text: data.message || "Stab hochgefahren" });
+    } catch (err) {
+      setMessage({ type: "err", text: err.message });
+    } finally {
+      setLoadingAction(false);
+    }
+  }, [einsatztitel, ausgangslage, wetter, loadScenario, onProtocolReload]);
+
+  const doBeenden = useCallback(async () => {
+    if (!window.confirm("Einsatz wirklich beenden?")) return;
+    setLoadingAction(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/protocol/einsatz/beenden", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Fehler");
+      onProtocolReload?.();
+      setMessage({ type: "ok", text: "Einsatz beendet" });
+    } catch (err) {
+      setMessage({ type: "err", text: err.message });
+    } finally {
+      setLoadingAction(false);
+    }
+  }, [onProtocolReload]);
+
+  const disabledTitle = !canInteract ? "Nur LtStB oder S3 (wenn LtStB nicht angemeldet)" : undefined;
+
+  return (
+    <div className="mb-3 border rounded-lg bg-white/90 shadow-sm">
+      {/* Header – always visible */}
+      <button
+        type="button"
+        className="w-full flex items-center gap-2 px-3 py-2 text-left text-sm font-semibold hover:bg-gray-50 rounded-t-lg"
+        onClick={() => setOpen((o) => !o)}
+      >
+        <span className={`transition-transform ${open ? "rotate-90" : ""}`}>&#9654;</span>
+        <span className="flex-1 flex items-center gap-2">
+          <span className="whitespace-nowrap">Einsatztitel:</span>
+          <input
+            className="flex-1 border rounded px-2 py-1 text-sm font-normal"
+            value={einsatztitel}
+            onChange={(e) => setEinsatztitel(e.target.value)}
+            disabled={!canInteract}
+            title={disabledTitle}
+            placeholder="Einsatztitel eingeben…"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </span>
+      </button>
+
+      {/* Collapsible body */}
+      {open && (
+        <div className="px-3 pb-3 space-y-2 border-t">
+          <label className="block text-sm font-medium mt-2">
+            Ausgangslage:
+            <textarea
+              className="mt-1 w-full border rounded px-2 py-1 text-sm min-h-[80px]"
+              value={ausgangslage}
+              onChange={(e) => setAusgangslage(e.target.value)}
+              disabled={!canInteract}
+              title={disabledTitle}
+              placeholder="Ausgangslage beschreiben…"
+            />
+          </label>
+          <label className="block text-sm font-medium">
+            Wetter:
+            <textarea
+              className="mt-1 w-full border rounded px-2 py-1 text-sm min-h-[80px]"
+              value={wetter}
+              onChange={(e) => setWetter(e.target.value)}
+              disabled={!canInteract}
+              title={disabledTitle}
+              placeholder="Wetterlage beschreiben…"
+            />
+          </label>
+          <div className="flex gap-2 pt-1">
+            <button
+              className="px-3 py-1.5 text-sm rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-50"
+              disabled={!canInteract || loadingAction}
+              title={disabledTitle}
+              onClick={doHochfahren}
+            >
+              {loadingAction ? "Läuft…" : "Stab hochfahren"}
+            </button>
+            <button
+              className="px-3 py-1.5 text-sm rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+              disabled={!canInteract || loadingAction}
+              title={disabledTitle}
+              onClick={doBeenden}
+            >
+              Einsatz beenden
+            </button>
+          </div>
+          {message && (
+            <div className={`text-sm mt-1 ${message.type === "ok" ? "text-green-700" : "text-red-700"}`}>
+              {message.text}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function ProtokollOverview({ searchTerm = "", protocolCanEdit = false, protocolS3Blocked = false }) {
+  const canInteract = protocolCanEdit && !protocolS3Blocked;
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [reloadTrigger, setReloadTrigger] = useState(0);
+  const triggerReload = useCallback(() => setReloadTrigger((n) => n + 1), []);
   const { user } = useUserAuth() || {};
   const userNameVariants = useMemo(() => collectUserNameVariants(user), [user]);
   const seenStorageKey = useMemo(() => resolveSeenStorageKey(user), [user]);
@@ -357,7 +504,7 @@ export default function ProtokollOverview({ searchTerm = "" }) {
       if (intervalId) window.clearInterval(intervalId);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, []);
+  }, [reloadTrigger]);
 
   const searchNeedle = useMemo(() => normalizeNameValue(searchTerm), [searchTerm]);
   const hasSearch = searchNeedle.length > 0;
@@ -400,6 +547,8 @@ export default function ProtokollOverview({ searchTerm = "" }) {
 
 return (
   <div className="p-3 md:p-4 h-full flex flex-col w-full protokoll-overview-wrapper">
+    {/* Einsatz-Panel */}
+    <EinsatzPanel canInteract={canInteract} onProtocolReload={triggerReload} />
     {/* Tabelle */}
     <div className="flex-1 min-h-0 overflow-auto border rounded-lg bg-white/80 watermark-panel">
       {loading ? (

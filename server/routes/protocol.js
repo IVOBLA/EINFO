@@ -16,6 +16,7 @@ import { ensureTaskForRole } from "../utils/tasksService.mjs";
 import { CSV_HEADER, ensureCsvStructure, appendHistoryEntriesToCsv } from "../utils/protocolCsv.mjs";
 import { DATA_ROOT } from "../utils/pdfPaths.mjs";
 import { fileMutex } from "../utils/fileMutex.mjs";
+import { runInitialSetup } from "../utils/initialsetup.mjs";
 
 const isLage = v => /^(lage|lagemeldung)$/i.test(String(v || ""));
 const infoText = x => String(x?.information ?? x?.INFORMATION ?? x?.beschreibung ?? x?.text ?? x?.ERGAENZUNG ?? "").trim();
@@ -1008,6 +1009,154 @@ router.put("/:nr(\\d+)", express.json(), async (req, res) => {
   } catch (e) {
     const status = e?.httpStatus && Number.isFinite(e.httpStatus) ? e.httpStatus : 500;
     res.status(status).json({ ok: false, error: e.message });
+  }
+});
+
+// ==== Stab hochfahren / Einsatz beenden ====================================
+
+const SCENARIO_CONFIG_FILE = path.join(DATA_DIR, "scenario_config.json");
+
+function stabRoleCheck(req) {
+  const actorRoles = collectActorRoles(req);
+  const isLtStb = actorRoles.has("LTSTB") || actorRoles.has("LTSTBSTV");
+  if (isLtStb) return { ok: true, actorRoles };
+  if (actorRoles.has("S3")) {
+    const ltStbOnline = User_isAnyRoleOnline(
+      ["LTSTB", "LTSTBSTV"],
+      { activeWithinMs: USER_ONLINE_ROLE_ACTIVE_LIMIT_MS },
+    );
+    if (!ltStbOnline) return { ok: true, actorRoles };
+  }
+  return { ok: false, actorRoles };
+}
+
+function nowDatumZeit() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return {
+    datum: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
+    zeit: `${pad(d.getHours())}:${pad(d.getMinutes())}`,
+  };
+}
+
+function createSystemProtocolEntry({ information, identity, actorRole }) {
+  const { datum, zeit } = nowDatumZeit();
+  const userBy = identity.displayName || "SYSTEM";
+  const id = randomUUID();
+  const histEntry = {
+    ts: Date.now(),
+    action: "create",
+    by: userBy,
+    after: null, // filled below
+  };
+  const payload = {
+    nr: 0, // set later
+    id,
+    datum,
+    zeit,
+    anvon: actorRole || "SYSTEM",
+    information,
+    infoTyp: "Information",
+    uebermittlungsart: { aus: true, kanalNr: "SYS" },
+    ergehtAn: [],
+    zu: "",
+    massnahmen: [],
+    printCount: 0,
+    createdBy: userBy,
+    lastBy: userBy,
+    history: [histEntry],
+  };
+  histEntry.after = snapshotForHistory(payload);
+  return { payload, histEntry };
+}
+
+router.post("/stab/hochfahren", express.json(), async (req, res) => {
+  try {
+    const identity = resolveUserIdentity(req);
+    if (!identity.userId) {
+      return res.status(401).json({ ok: false, error: "UNAUTHORIZED" });
+    }
+    const { ok: allowed, actorRoles } = stabRoleCheck(req);
+    if (!allowed) {
+      return res.status(403).json({ ok: false, error: "Nur LtStB/LtStbStv oder S3 (wenn LtStB nicht online) erlaubt." });
+    }
+
+    const { einsatztitel = "", ausgangslage = "", wetter = "" } = req.body || {};
+
+    // 1) Initialsetup
+    await runInitialSetup({ dataDir: DATA_DIR });
+    // Invalidate cached protocol JSON after initialsetup
+    cachedJson = null;
+
+    // 2) Update scenario_config.json
+    const newScenarioId = `scenario_${Date.now()}`;
+    let config = {};
+    try {
+      config = JSON.parse(await fsp.readFile(SCENARIO_CONFIG_FILE, "utf8"));
+    } catch { /* ignore */ }
+    config.wetter = wetter;
+    config.artDesEreignisses = ausgangslage;
+    config.ausgangslage = ausgangslage;
+    config.einsatztitel = einsatztitel;
+    config.scenarioId = newScenarioId;
+    await fsp.writeFile(SCENARIO_CONFIG_FILE, JSON.stringify(config, null, 2), "utf8");
+
+    // 3) Protocol entry
+    const actorRole = resolveActorRole(req) || [...actorRoles][0] || "SYSTEM";
+    const info = `Stab hochgefahren (Initialsetup). scenarioId=${newScenarioId}. Einsatztitel="${einsatztitel}"`;
+    const { payload, histEntry } = createSystemProtocolEntry({ information: info, identity, actorRole });
+
+    await fileMutex.withLock("protocol", async () => {
+      const all = await readAllJson();
+      payload.nr = nextNr(all);
+      histEntry.after = snapshotForHistory(payload);
+      all.push(payload);
+      await writeAllJson(all);
+      appendHistoryEntriesToCsv(payload, [histEntry], CSV_FILE);
+    });
+
+    res.json({ ok: true, scenarioId: newScenarioId, message: `Stab hochgefahren. scenarioId=${newScenarioId}` });
+  } catch (err) {
+    console.error("[protocol/stab/hochfahren]", err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+router.post("/einsatz/beenden", express.json(), async (req, res) => {
+  try {
+    const identity = resolveUserIdentity(req);
+    if (!identity.userId) {
+      return res.status(401).json({ ok: false, error: "UNAUTHORIZED" });
+    }
+    const { ok: allowed, actorRoles } = stabRoleCheck(req);
+    if (!allowed) {
+      return res.status(403).json({ ok: false, error: "Nur LtStB/LtStbStv oder S3 (wenn LtStB nicht online) erlaubt." });
+    }
+
+    // Read current scenarioId for informational purposes
+    let scenarioId = "";
+    try {
+      const cfg = JSON.parse(await fsp.readFile(SCENARIO_CONFIG_FILE, "utf8"));
+      scenarioId = cfg.scenarioId || "";
+    } catch { /* ignore */ }
+
+    const actorRole = resolveActorRole(req) || [...actorRoles][0] || "SYSTEM";
+    const info = `Einsatz beendet${scenarioId ? ` (scenarioId=${scenarioId})` : ""}`;
+    const { payload, histEntry } = createSystemProtocolEntry({ information: info, identity, actorRole });
+
+    await fileMutex.withLock("protocol", async () => {
+      const all = await readAllJson();
+      payload.nr = nextNr(all);
+      histEntry.after = snapshotForHistory(payload);
+      all.push(payload);
+      await writeAllJson(all);
+      appendHistoryEntriesToCsv(payload, [histEntry], CSV_FILE);
+    });
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error("[protocol/einsatz/beenden]", err);
+    res.status(500).json({ ok: false, error: err.message });
   }
 });
 
