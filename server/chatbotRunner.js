@@ -329,8 +329,8 @@ export async function workerStop() {
 
 export async function syncAiAnalysisLoop() {
   const status = chatbotStatus();
-  if (!status.chatbot.running || !status.worker.running) {
-    return { ok: false, skipped: "Chatbot oder Worker läuft nicht.", status };
+  if (!status.chatbot.running) {
+    return { ok: false, skipped: "Chatbot läuft nicht.", status };
   }
   try {
     const res = await fetch(`${CHATBOT_BASE_URL}/api/situation/analysis-loop/sync`, {
