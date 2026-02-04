@@ -8,10 +8,17 @@ import {
   appendWeatherIncidentFromBoardEntry,
   collectWarningDatesFromMails,
   handleNewIncidentCard,
+  handleWeatherIncidentAndSvgForNewCard,
   getWeatherHookDiagnose,
 } from "../utils/weatherWarning.mjs";
 
 const isoKey = (date) => date.toISOString().slice(0, 10);
+
+// Stub-SVG-Modul, damit Tests keine echte Karte erzeugen
+const noopSvgModule = {
+  generateFeldkirchenSvg: async () => "/tmp/fake.svg",
+  invalidateFeldkirchenMapCache: async () => ({ invalidated: false }),
+};
 
 function makeTestFiles(tempDir) {
   return {
@@ -123,6 +130,7 @@ test("handleNewIncidentCard: source='ui' erzeugt Incident", async (t) => {
 
   const result = await handleNewIncidentCard(card, { source: "ui" }, {
     categoryFile, outFile, warningDateFile, now: today, _skipDedupe: true,
+    _svgModule: noopSvgModule,
   });
 
   assert.equal(result.appended, true);
@@ -148,6 +156,7 @@ test("handleNewIncidentCard: source='fetcher' erzeugt Incident", async (t) => {
 
   const result = await handleNewIncidentCard(card, { source: "fetcher" }, {
     categoryFile, outFile, warningDateFile, now: today, _skipDedupe: true,
+    _svgModule: noopSvgModule,
   });
 
   assert.equal(result.appended, true);
@@ -173,6 +182,7 @@ test("handleNewIncidentCard: source='import' erzeugt Incident", async (t) => {
 
   const result = await handleNewIncidentCard(card, { source: "import" }, {
     categoryFile, outFile, warningDateFile, now: today, _skipDedupe: true,
+    _svgModule: noopSvgModule,
   });
 
   assert.equal(result.appended, true);
@@ -190,7 +200,7 @@ test("handleNewIncidentCard: Dedupe verhindert doppeltes Logging", async (t) => 
   await writeFile(categoryFile, JSON.stringify(["Sturm"]), "utf8");
 
   const card = { id: "dedup-1", createdAt: today.toISOString(), typ: "Sturm" };
-  const opts = { categoryFile, outFile, warningDateFile, now: today };
+  const opts = { categoryFile, outFile, warningDateFile, now: today, _svgModule: noopSvgModule };
 
   const r1 = await handleNewIncidentCard(card, { source: "ui" }, opts);
   assert.equal(r1.appended, true);
@@ -215,7 +225,7 @@ test("handleNewIncidentCard: verschiedene Cards im gleichen Batch werden einzeln
 
   const card1 = { id: "batch-1", createdAt: today.toISOString(), typ: "Sturm" };
   const card2 = { id: "batch-2", createdAt: today.toISOString(), typ: "Baum" };
-  const opts = { categoryFile, outFile, warningDateFile, now: today };
+  const opts = { categoryFile, outFile, warningDateFile, now: today, _svgModule: noopSvgModule };
 
   const r1 = await handleNewIncidentCard(card1, { source: "fetcher" }, opts);
   const r2 = await handleNewIncidentCard(card2, { source: "fetcher" }, opts);
@@ -240,6 +250,7 @@ test("getWeatherHookDiagnose liefert lastHookCalls und dedupeSize", async (t) =>
   const card = { id: "diag-1", createdAt: today.toISOString(), typ: "Sturm" };
   await handleNewIncidentCard(card, { source: "ui" }, {
     categoryFile, outFile, warningDateFile, now: today, _skipDedupe: true,
+    _svgModule: noopSvgModule,
   });
 
   const diag = getWeatherHookDiagnose();

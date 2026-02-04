@@ -194,6 +194,31 @@ function debugLog(...args) {
 }
 
 // -----------------------------------------------------------------------------
+// SVG-Regeneration + Cache-Invalidierung (lazy-import um Zirkularität zu vermeiden)
+// -----------------------------------------------------------------------------
+
+async function regenerateAndInvalidateSvg(overrides = {}) {
+  // Dynamischer Import, damit weatherWarning.mjs nicht statisch von
+  // generateFeldkirchenSvg.mjs abhängt (vermeidet zirkuläre Abhängigkeiten).
+  const {
+    generateFeldkirchenSvg: genSvg,
+    invalidateFeldkirchenMapCache: invalCache,
+  } = overrides._svgModule ||
+    (await import("./generateFeldkirchenSvg.mjs"));
+
+  const gen = overrides._generateFeldkirchenSvg || genSvg;
+  const inval = overrides._invalidateFeldkirchenMapCache || invalCache;
+
+  const svgPath = await gen({ show: "weather", hours: 24, force: true });
+  debugLog("svg regenerated", svgPath);
+
+  const cacheResult = await inval({ show: "weather", hours: 24 });
+  debugLog("cache invalidated", cacheResult);
+
+  return { svgPath, cacheResult };
+}
+
+// -----------------------------------------------------------------------------
 // EXPORTS
 // -----------------------------------------------------------------------------
 
@@ -355,7 +380,20 @@ export async function handleNewIncidentCard(card, { source = "unknown" } = {}, o
   await fsp.mkdir(path.dirname(outFile), { recursive: true });
   await fsp.appendFile(outFile, `${JSON.stringify(incident)}\n`, "utf8");
 
-  const result = { appended: true, incident, source };
+  // Harte Regel: logged=true → SVG-Regeneration + Cache-Invalidierung
+  try {
+    await regenerateAndInvalidateSvg(options);
+    debugLog("svg+cache sync done", source, matchedCategory.raw);
+  } catch (svgErr) {
+    // SVG-Fehler darf den Card-Create-Flow nicht crashen
+    console.error(
+      "[weather-hook] SVG-Regeneration/Cache-Invalidierung fehlgeschlagen:",
+      svgErr?.message || svgErr
+    );
+    if (DEBUG()) console.error(svgErr);
+  }
+
+  const result = { appended: true, incident, source, matchedCategory: matchedCategory.raw };
   pushHookLog({ ts, source, reason: "appended", category: matchedCategory.raw });
   debugLog("appended", source, matchedCategory.raw, card?.id || card?.title);
   return result;
@@ -369,4 +407,13 @@ export function getWeatherHookDiagnose() {
     lastHookCalls: [..._hookLog],
     dedupeSize: _dedupeSet.size,
   };
+}
+
+// -----------------------------------------------------------------------------
+// Zentraler Einstiegspunkt (Single Source of Truth)
+// Vereinigt Incident-Logging + SVG-Regeneration + Cache-Invalidierung.
+// Soll von UI, Fetcher und Import identisch aufgerufen werden.
+// -----------------------------------------------------------------------------
+export async function handleWeatherIncidentAndSvgForNewCard(card, { source = "unknown" } = {}, options = {}) {
+  return handleNewIncidentCard(card, { source }, options);
 }
