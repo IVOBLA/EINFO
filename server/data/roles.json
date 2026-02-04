@@ -1,0 +1,21 @@
+{
+  "roles": {
+    "active": [
+      "S2"
+    ],
+    "missing": [
+      "LTSTB",
+      "LTSTBSTV",
+      "S1",
+      "S3",
+      "S4",
+      "S5",
+      "S6"
+    ]
+  },
+  "lastSync": "2026-02-02T08:20:48.484Z",
+  "source": "chatbot-worker-sync",
+  "onlineRolesReceived": [
+    "S2"
+  ]
+}

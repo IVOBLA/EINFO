@@ -1,55 +1,27 @@
 ﻿ZEITPUNKT;AKTION;PROTOKOLL-NR;ZU;DRUCK;DATUM;ZEIT;BENUTZER;EING;AUSG;KANAL;AN/VON;INFORMATION;RUECKMELDUNG1;TYP;ERGEHT_AN;ERGAENZUNG;M1;V1;X1;M2;V2;X2;M3;V3;X3;M4;V4;X4;M5;V5;X5;BESTÄTIGT_DURCH;ID
-21.11.2025, 14:51:53;create;6;;;2025-11-21;14:51;S2;x;;2;Von: TEST;oisdjfsdfsadfsdf;;Lagemeldung;LtStb;;;S2;;;;;;;;;;;;;;;87ab7142-36f7-46fc-ac4b-3833ee7c8f37
-09.01.2026, 11:20:05;create;7;;;2026-01-08;13:14;MAIL-AUTO;x;;MAIL;"Von ""Mag. David Kaufmann"" <info@tauernwetter.at>";"Warnung für:09.01.2026,10.01.2026
- 
-Warnung Schneefall für 09.01.2026 bis 10.01.2026 (Bezirk Feldkirchen)
-gültig von 09.01.2026 von 8:00 Uhr bis 10.01.2026 5:00 Uhr
- 
-Warnstufe Rot Schneefall (Warnstufe 2/3): Gemeinden Reichenau, Gnesau, Albeck:
-🔴 Schneewarnung Stufe 2 (Rot)
- 
-Ein Höhentrog mit einfließender Kaltluft erfasst am Freitag den Alpenraum und sorgt wiederholt für teils kräftige Schneeschauer.
- 
-Zeitlicher Ablauf: Freitag Vormittag: Die Luft labilisiert sich rasch, immer wieder ziehen Schneeschauer durch – stellenweise auch länger anhaltend und es gebietsweise können sehr kräftige Schneeschauer durchziehen.
- 
-Erwartete Schneemengen: Verbreitet: 5 bis 20 cm Neuschnee.
-Vereinzelt: bis zu 30 cm möglich.
- 
-Wo genau die heftigsten Schneeschauer durchziehen, lässt sich nicht exakt vorhersagen. Besonderheiten: Stellenweise sind die Schauer von Blitz und Donner begleitet – bei Wintergewittern kurzzeitig sehr intensive Schneefälle möglich. 
- 
-Auswirkungen: Tiefwinterliche Fahrbahnverhältnisse, eventuell Schneeverwehungen. Zeitweise stark eingeschränkte Sicht.
-Starke Beeinträchtigung des Straßenverkehrs möglich.
- 
-------------
- 
-Alle anderen Gemeinden des Bezirks: 
-Achtung - Schnee
-🟡 Wetterinformation 
- 
-Ein Höhentrog mit einfließender Kaltluft sorgt am Freitag für wiederholt auftretende Schneeschauer.
- 
-Erwartete Schneemengen: 1 bis 5 cm Neuschnee. Im Falle eines kräftigen Schneeschauers auch deutlich mehr möglich.
- 
-Zeitlicher Ablauf: Ab dem Freitag Vormittag kommt es zu Schneeschauern, die in der Nacht auf Samstag allmählich abklingen sollten.
- 
-Auswirkungen:
-Zeitweise winterliche Fahrbahnverhältnisse.
-Kurzzeitig eingeschränkte Sicht bei Schauerdurchgang.
-Vorsicht im Straßenverkehr.
- 
------------------------------------------------------
- 
-Wichtig: Es kann auch abgesehen von den drei Gemeinden in denen eine Schneewarnung besteht auch in den anderen Gemeinden zu einer Hochstufung von einer Wetterinformation zu einer Warnung kommen, ebenso ist es möglich, dass di";;Lagemeldung;LtStb, S2;;;S2;;;;;;;;;;;;;;;f1d5fc12-e882-4fb7-bc27-1c7ce5b28bf2
-09.01.2026, 11:20:05;create;8;;;2025-12-30;16:49;MAIL-AUTO;x;;MAIL;Von info@tauernwetter.at;"Warnung für:30.12.2025,31.12.2026,01.01.2026
- 
-30.12.25 von 18:00 Uhr
-bis 01.01.26 3:00 Uhr
- 
-Für die Gemeinden Reichenau und Albeck:
-Vor allem in höheren Lagen kommt es zu einem markanten Temperatursturz. In besonders exponierten Lagen sind Windspitzen über 80 km/h zu erwarten. Besondere Vorsicht ist beim Umgang mit Feuerwerkskörpern geboten!
- 
-Liebe Grüße aus Mallnitz!
- 
-i.A. Julian Kaufmann
-Projekt Tauernwetter";;Lagemeldung;LtStb, S2;;;S2;;;;;;;;;;;;;;;5495bb29-2747-4775-8c2f-6410f76962a2
-09.01.2026, 11:23:01;update;6;;;2025-11-21;14:51;S2;x;;2;Von: TEST;oisdjfsdfsadfsdf;;Lagemeldung;LtStb;;;S2;x;;;;;;;;;;;;;;87ab7142-36f7-46fc-ac4b-3833ee7c8f37
+04.02.2026, 07:56:22;create;0;;;2026-02-04;07:56;Leiter Stab;;x;SYS;LtStb;Schnee;;Information;;;;;;;;;;;;;;;;;;;b14201cf-80a1-4492-8fb0-c46cdf79aa79
+04.02.2026, 12:46:15;create;1;;;2026-02-04;11:46;MAIL-AUTO;x;;MAIL;Von BLAHA Horst <Horst.Blaha@feuerwehr-ktn.at>;"Warnung für: 04.02.2026, 05.02.2026
+
+Schneewarnung für 04.02.2026 – 05.02.2026 (Bezirk Feldkirchen)
+
+Gültig von 04.02.2026 13:00 Uhr bis 05.02.2026 12:00 Uhr
+
+Warnstufe Rot
+
+Starker Schneefall (Warnstufe 2/3):
+
+Gemeinden Gnesau, Reichenau, Himmelberg, Sirnitz (Ebene Reichenau): 🔴 Schneewarnung Stufe 2 (Rot)
+
+Gemeinden Feldkirchen, Ossiach, Steindorf, St. Urban, Steuerberg, Glanegg: 🟠 Schneewarnung Stufe 1 (Orange)
+
+Ab Mittwochnachmittag setzt im Bezirk Feldkirchen kräftiger Schneefall oder Regen ein, der bis Donnerstagmittag andauert. Der Niederschlagsschwerpunkt liegt am Mittwochabend und in der Nacht auf Donnerstag. In höheren Lagen oberhalb von 800 bis 1.200 Meter Seehöhe sind 20 bis 40 Zentimeter Neuschnee zu erwarten. Zwischen 800 und 1.100 Meter Seehöhe fällt sehr schwerer, nasser Schnee – erhöhte Schneebruchgefahr! Bedingt durch die Niederschlagsabkühlung während der Phase des intensiven Niederschlags könnte die Schneefallgrenze bis in tiefe Lagen sinken (Unsicherheit).
+
+Zeitlicher Ablauf: Am Mittwochnachmittag setzen zunächst in den höheren Lagen (Ebene Reichenau, Sirnitz, Gnesau, Himmelberg) kräftige Schneefälle ein. Bis zum Abend könnte es auch im Bereich Ossiacher See und in der Stadt Feldkirchen intensiv schneien. Weiter östlich sind die Niederschlagsmengen geringer. Der stärkste Niederschlag wird am Mittwochabend und in der Nacht auf Donnerstag erwartet. In der Nacht auf Donnerstag kann der Niederschlag überall zumindest zeitweise in sehr starken, nassen Schneefall übergehen. Am Donnerstagvormittag lassen die Schneefälle langsam nach, bis Mittag klingt der Niederschlag ab.
+
+Erwartete Neuschneemengen:
+
+  *   Oberhalb 800–1.200 m: 20 bis 40 Zentimeter
+  *   600–800 m: 10 bis 20 Zentimeter
+  *   Tiefe Lagen (Feldkirchen, Ossiacher See): 5 bis 15 Zentimeter (unsicher, abhängig von Niederschlagsabkühlung)
+
+Auswirkungen: Starke Beeinträchtigung des Straßenverkehrs, insbesondere auf Höhenstraßen und Nebenstrecken. Durch den sehr schwe";;Lagemeldung;LtStb, S2;;;S2;;;;;;;;;;;;;;;9aa2e139-a5bf-4cdb-a2de-994d45c605ae

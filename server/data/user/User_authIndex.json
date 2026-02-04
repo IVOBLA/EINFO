@@ -10,7 +10,10 @@
         "algo": "scrypt",
         "salt": "EFQoM9/WpY5j7thQomPXkg==",
         "hash": "x8/cAu1zLgPA6VtRcJ2/N7nIfy4IjalCOPZPoiq6Zn0="
-      }
+      },
+      "roles": [
+        "Admin"
+      ]
     },
     {
       "id": 10,
@@ -21,7 +24,10 @@
         "algo": "scrypt",
         "salt": "tu8R7b7krOVD1v0ZkB+pqw==",
         "hash": "A3SYkH6z12FFFZJVsz9YzakweYJhmvpm4uzB9d+Q8tY="
-      }
+      },
+      "roles": [
+        "LtStb"
+      ]
     },
     {
       "id": 11,
@@ -32,7 +38,10 @@
         "algo": "scrypt",
         "salt": "hG3TdgR6ajplorp1EAxd2w==",
         "hash": "wg18nAhOCFbsEEmeKZg9eO5Z1AuwwvxFvJJSWFoIG+o="
-      }
+      },
+      "roles": [
+        "S3"
+      ]
     },
     {
       "id": 12,
@@ -43,7 +52,10 @@
         "algo": "scrypt",
         "salt": "ucRy5S6Bd/Ye171mucu3aA==",
         "hash": "BBUImQkWthi8dzCrGEgJNOzuaV24zbcJK91MNQ/cIOA="
-      }
+      },
+      "roles": [
+        "S1"
+      ]
     },
     {
       "id": 13,
@@ -54,7 +66,10 @@
         "algo": "scrypt",
         "salt": "YiwcsmZXYDL4s6QB/fB25A==",
         "hash": "AdgFwNYicIUsKgul8eXH0j1/2+FJamEUuZHe3rGXGjQ="
-      }
+      },
+      "roles": [
+        "S2"
+      ]
     },
     {
       "id": 14,
@@ -65,7 +80,10 @@
         "algo": "scrypt",
         "salt": "304L+KuFr+6owDM8ErNXvQ==",
         "hash": "ZPjoE0EVT9+1JIBbTVXYi2l/2XxXOWpWdEY5uG06zuY="
-      }
+      },
+      "roles": [
+        "S4"
+      ]
     },
     {
       "id": 15,
@@ -76,7 +94,10 @@
         "algo": "scrypt",
         "salt": "6WkCdF32b0lrUS1e05u2sw==",
         "hash": "/6TnmmcApeES45ZevW4hvtwglnAyiCZeqXguCBl/oe0="
-      }
+      },
+      "roles": [
+        "S5"
+      ]
     },
     {
       "id": 16,
@@ -87,6 +108,23 @@
         "algo": "scrypt",
         "salt": "7hWS2Uht217BlKEUQiVq7g==",
         "hash": "mVGkBNi51bZqUIqRpke9woAYdKkGQf7SiCeAVHrv22w="
+      },
+      "roles": [
+        "S6"
+      ]
+    },
+    {
+      "id": 17,
+      "username": "MS",
+      "displayName": "MS1",
+      "role": "MS",
+      "roles": [
+        "MS"
+      ],
+      "pass": {
+        "algo": "scrypt",
+        "salt": "V1BPBALMeiO0bH/5eLr6Iw==",
+        "hash": "b0paIZrU7mH3QAL4mwGbYRJoDGHKJup9s7zXC3qRJT4="
       }
     }
   ]

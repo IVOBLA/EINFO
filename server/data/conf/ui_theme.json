@@ -1,0 +1,20 @@
+{
+  "version": "1.0.0",
+  "colors": {
+    "col_new": "#e11d00",
+    "col_progress": "#d97706",
+    "col_done": "#0000ff",
+    "col_accent": "#1e40af",
+    "col_surface": "#04000f",
+    "col_surface_hover": "rgba(255,255,255,.98)"
+  },
+  "watermark": {
+    "image": "/Logo.png",
+    "opacity": 0.21,
+    "sizeVw": 90,
+    "maxPx": 900,
+    "posX": 50,
+    "posY": 50,
+    "grayscale": true
+  }
+}

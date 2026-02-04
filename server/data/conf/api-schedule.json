@@ -1,0 +1,50 @@
+[
+  {
+    "id": "73d6b945-6586-4495-8c50-1ef33d03cd95",
+    "label": "Karte 24H",
+    "url": "http://localhost:4000/api/internal/feldkirchen-map?show=all&hours=24",
+    "method": "GET",
+    "body": "",
+    "mode": "time",
+    "intervalMinutes": 5,
+    "timeOfDay": "12:00",
+    "enabled": true,
+    "lastRunAt": 1770204716401
+  },
+  {
+    "id": "979bd6ee-064c-4958-9cf6-1a848de2cc21",
+    "label": "Karte 12H",
+    "url": "http://localhost:4040/api/internal/feldkirchen-map?show=all&hours=12",
+    "method": "GET",
+    "body": "",
+    "mode": "interval",
+    "intervalMinutes": 60,
+    "timeOfDay": null,
+    "enabled": false,
+    "lastRunAt": 0
+  },
+  {
+    "id": "ea67a3ea-66d2-471f-a0c4-f6b6473bde10",
+    "label": "Delete KArte 24H",
+    "url": "http://localhost:4040/api/internal/feldkirchen-map?show=all&hours=24",
+    "method": "DELETE",
+    "body": "",
+    "mode": "time",
+    "intervalMinutes": 4,
+    "timeOfDay": "10:27",
+    "enabled": false,
+    "lastRunAt": 1767950875461
+  },
+  {
+    "id": "cb72f7d3-6d64-4aa6-abef-390a519d844c",
+    "label": "Tauernwetter löschen",
+    "url": "http://localhost:4000/api/internal/feldkirchen-map?show=weather&hours=24",
+    "method": "DELETE",
+    "body": "",
+    "mode": "time",
+    "intervalMinutes": 60,
+    "timeOfDay": "00:01",
+    "enabled": true,
+    "lastRunAt": 1770204678321
+  }
+]

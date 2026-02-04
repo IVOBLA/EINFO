@@ -1,15 +1,7 @@
 {
-  "einsatztitel": "",
-  "ausgangslage": "",
-  "scenarioId": "hochwasser_feldkirchen_01",
-  "artDesEreignisses": "Hochwasser",
-  "geografischerBereich": "Bezirk Feldkirchen",
-  "zeit": "Nacht",
-  "wetter": "Dauerregen, steigende Pegelstände, Böen bis 60 km/h",
-  "infrastruktur": {
-    "strom": "teilweise ausgefallen (Ortsgebiete in Tallagen)",
-    "internet": "eingeschränkt, zeitweise Ausfälle",
-    "mobilfunk": "lokale Störungen in engen Tälern"
-  },
-  "initialEinsatzstellen": 3
+  "wetter": "Warnung für: 04.02.2026, 05.02.2026\n \nSchneewarnung für 04.02.2026 – 05.02.2026 (Bezirk Feldkirchen)\n \nGültig von 04.02.2026 13:00 Uhr bis 05.02.2026 12:00 Uhr\n \nWarnstufe Rot\n \nStarker Schneefall (Warnstufe 2/3):\n \nGemeinden Gnesau, Reichenau, Himmelberg, Sirnitz (Ebene Reichenau): 🔴 Schneewarnung Stufe 2 (Rot)\n \nGemeinden Feldkirchen, Ossiach, Steindorf, St. Urban, Steuerberg, Glanegg: 🟠 Schneewarnung Stufe 1 (Orange)\n \nAb Mittwochnachmittag setzt im Bezirk Feldkirchen kräftiger Schneefall oder Regen ein, der bis Donnerstagmittag andauert. Der Niederschlagsschwerpunkt liegt am Mittwochabend und in der Nacht auf Donnerstag. In höheren Lagen oberhalb von 800 bis 1.200 Meter Seehöhe sind 20 bis 40 Zentimeter Neuschnee zu erwarten. Zwischen 800 und 1.100 Meter Seehöhe fällt sehr schwerer, nasser Schnee – erhöhte Schneebruchgefahr! Bedingt durch die Niederschlagsabkühlung während der Phase des intensiven Niederschlags könnte die Schneefallgrenze bis in tiefe Lagen sinken (Unsicherheit).\n \nZeitlicher Ablauf: Am Mittwochnachmittag setzen zunächst in den höheren Lagen (Ebene Reichenau, Sirnitz, Gnesau, Himmelberg) kräftige Schneefälle ein. Bis zum Abend könnte es auch im Bereich Ossiacher See und in der Stadt Feldkirchen intensiv schneien. Weiter östlich sind die Niederschlagsmengen geringer. Der stärkste Niederschlag wird am Mittwochabend und in der Nacht auf Donnerstag erwartet. In der Nacht auf Donnerstag kann der Niederschlag überall zumindest zeitweise in sehr starken, nassen Schneefall übergehen. Am Donnerstagvormittag lassen die Schneefälle langsam nach, bis Mittag klingt der Niederschlag ab.\n \nErwartete Neuschneemengen:\n\n    Oberhalb 800–1.200 m: 20 bis 40 Zentimeter\n    600–800 m: 10 bis 20 Zentimeter\n    Tiefe Lagen (Feldkirchen, Ossiacher See): 5 bis 15 Zentimeter (unsicher, abhängig von Niederschlagsabkühlung)\n\nAuswirkungen: Starke Beeinträchtigung des Straßenverkehrs, insbesondere auf Höhenstraßen und Nebenstrecken. Durch den sehr schweren, nassen Schnee zwischen 800 und 1.000 Meter besteht erhöhte Schneebruchgefahr – Bäume und Äste können unter der Schneelast brechen und Straßen sowie Stromleitungen blockieren. Nicht ausgeschlossen: Vereinzelt kann es zu Stromausfällen kommen, falls Bäume auf Leitungen stürzen oder Leitungen durch die Schneelast abreißen.\n \nAnmerkung: Die größte Unsicherheit betrifft die Schneefallgrenze in den Abend- und Nachtstunden. Sollte die Niederschlagsabkühlung stärker ausfallen als derzeit berechnet, sind auch in der Stadt Feldkirchen und am Ossiacher See deutlich höhere Neuschneemengen möglich.\n \nhttps://tauernwetter.at/news/italientief-bis-1-meter-schnee-kaernten-osttirol-4-februar-2026.html \n \nUpdates: https://tauernwetter.at/warnungen ",
+  "artDesEreignisses": "Schnee",
+  "ausgangslage": "Schnee",
+  "einsatztitel": "Testlauf",
+  "scenarioId": "scenario_1770188182347"
 }

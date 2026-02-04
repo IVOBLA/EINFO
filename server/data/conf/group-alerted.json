@@ -1,1 +1,11 @@
-{}
+{
+  "FF Feldkirchen": false,
+  "Poitschach": false,
+  "St. Ulrich": false,
+  "FF Tschwarzen": false,
+  "FF Poitschach": false,
+  "FF St.Ulrich/Feldkirchen": false,
+  "FF Sirnitz": true,
+  "FF Ebene Reichenau": true,
+  "FF Bodensdorf": true
+}

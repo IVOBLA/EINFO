@@ -1,1 +1,28 @@
-[]
+[
+  {
+    "id": "73e2e4be-b8c4-4a5e-9ff5-d20410d8e5d3",
+    "label": "Test",
+    "to": "bla@uniquare.com",
+    "subject": "TEST",
+    "text": "testmail",
+    "attachmentPath": "data/prints/uebersicht/feldkirchen_show-all_24h.svg",
+    "mode": "time",
+    "intervalMinutes": 60,
+    "timeOfDay": "12:01",
+    "enabled": true,
+    "lastSentAt": 0
+  },
+  {
+    "id": "06f5800d-7eb0-4964-9c35-41da87f0b059",
+    "label": "Tauernwetter",
+    "to": "info@tauernwetter.at",
+    "subject": "Einsätze im Bezirk Feldkirchen",
+    "text": "Das ist eine automatisierte Mail mit einer Übersichtskarte die evtl. auf die Wetterlage zurückzuführen sind.",
+    "attachmentPath": "data/prints/uebersicht/feldkirchen_show-weather_24h.svg",
+    "mode": "time",
+    "intervalMinutes": 60,
+    "timeOfDay": "23:59",
+    "enabled": false,
+    "lastSentAt": 0
+  }
+]

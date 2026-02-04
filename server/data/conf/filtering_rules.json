@@ -1,0 +1,209 @@
+{
+  "version": "1.0.0",
+  "limits": {
+    "max_total_tokens": 2500,
+    "max_context_size_kb": 50
+  },
+  "rules": {
+    "R1_ABSCHNITTE_PRIORITAET": {
+      "enabled": true,
+      "description": "Filtert Abschnitte nach Priorität und zeigt die wichtigsten",
+      "applies_to": "board",
+      "priority_factors": [
+        {
+          "field": "critical_incidents",
+          "operator": ">",
+          "value": 0,
+          "score": 100
+        },
+        {
+          "field": "total_incidents",
+          "operator": ">=",
+          "value": 5,
+          "score": 50
+        },
+        {
+          "field": "total_personnel",
+          "operator": ">=",
+          "value": 20,
+          "score": 30
+        },
+        {
+          "field": "avg_personnel_per_incident",
+          "operator": ">=",
+          "value": 5,
+          "score": 20
+        }
+      ],
+      "output": {
+        "max_items": 5
+      }
+    },
+    "R2_PROTOKOLL_RELEVANZ": {
+      "enabled": true,
+      "description": "Filtert Protokoll-Einträge nach Relevanz",
+      "applies_to": "protocol",
+      "scoring": {
+        "base_score": 0.5,
+        "factors": [
+          {
+            "name": "Offene Fragen",
+            "pattern": "\\?",
+            "weight": 0.3,
+            "learnable": true
+          },
+          {
+            "name": "Ressourcen-Anfrage",
+            "keywords": [
+              "anfordern",
+              "anforderung",
+              "benötigt",
+              "brauchen",
+              "verstärkung"
+            ],
+            "weight": 0.25,
+            "learnable": true
+          },
+          {
+            "name": "Statusmeldung",
+            "keywords": [
+              "status",
+              "lage",
+              "situation",
+              "aktuell"
+            ],
+            "weight": 0.15,
+            "learnable": true
+          },
+          {
+            "name": "Dringend",
+            "keywords": [
+              "dringend",
+              "sofort",
+              "kritisch",
+              "notfall",
+              "alarm"
+            ],
+            "weight": 0.4,
+            "learnable": false
+          },
+          {
+            "name": "Warnung",
+            "keywords": [
+              "warnung",
+              "achtung",
+              "gefahr",
+              "vorsicht"
+            ],
+            "weight": 0.35,
+            "learnable": false
+          }
+        ]
+      },
+      "output": {
+        "max_entries": 10,
+        "min_score": 0.6,
+        "show_score": false
+      }
+    },
+    "R3_TRENDS_ERKENNUNG": {
+      "enabled": true,
+      "description": "Erkennt Trends in der Einsatzentwicklung",
+      "applies_to": "board",
+      "time_windows": [
+        60,
+        120
+      ],
+      "output": {
+        "forecast_horizon_minutes": 120
+      }
+    },
+    "R4_RESSOURCEN_STATUS": {
+      "enabled": true,
+      "description": "Analysiert den Ressourcen-Status und erkennt Engpässe",
+      "applies_to": "board",
+      "aggregation": {
+        "highlight_threshold": {
+          "utilization_percent": 80
+        }
+      }
+    },
+    "R5_STABS_FOKUS": {
+      "enabled": true,
+      "description": "Aggregiert Daten für Stabs-Ansicht (nur kritische Einzeleinsätze)",
+      "applies_to": "all",
+      "stab_mode": {
+        "aggregate_to_sections": true,
+        "max_individual_incidents": 3,
+        "show_individual_incidents_only_if": [
+          {
+            "field": "priority",
+            "value": "critical"
+          },
+          {
+            "field": "has_open_questions",
+            "value": true
+          }
+        ]
+      },
+      "scoring": {
+        "base_score": 0.5,
+        "factors": [
+          {
+            "name": "Offene Fragen",
+            "pattern": "\\?",
+            "weight": 0.3,
+            "learnable": true,
+            "custom": false
+          },
+          {
+            "name": "Personen in Gefahr",
+            "keywords": [
+              "eingeklemmt",
+              "vermisst",
+              "kind",
+              "kinder",
+              "verletzte",
+              "bewusstlos"
+            ],
+            "weight": 0.5,
+            "learnable": true,
+            "custom": false
+          },
+          {
+            "name": "Evakuierung",
+            "keywords": [
+              "evaku",
+              "räumung",
+              "räumen"
+            ],
+            "weight": 0.45,
+            "learnable": true,
+            "custom": false
+          },
+          {
+            "name": "Infrastruktur kritisch",
+            "keywords": [
+              "strom",
+              "wasserwerk",
+              "damm",
+              "brücke",
+              "gas",
+              "bahn",
+              "öbb"
+            ],
+            "weight": 0.35,
+            "learnable": true,
+            "custom": false
+          }
+        ]
+      },
+      "output": {
+        "min_score": 0.6,
+        "max_individual_incidents": 3,
+        "fallback_top_n_incidents": 5,
+        "show_score": false
+      }
+    }
+  }
+}

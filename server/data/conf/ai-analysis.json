@@ -1,0 +1,5 @@
+{
+  "enabled": true,
+  "intervalMinutes": 30,
+  "useRagContext": true
+}
