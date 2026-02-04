@@ -47,8 +47,8 @@ function parseDateKey(raw) {
 function normalizeCategories(raw = []) {
   return (Array.isArray(raw) ? raw : [])
     .map((name) => ({
-      raw: String(name),
-      normalized: String(name).toLowerCase(),
+      raw: String(name).trim(),
+      normalized: String(name).trim().toLowerCase(),
     }))
     .filter((item) => Boolean(item.normalized));
 }
@@ -285,16 +285,36 @@ export async function appendWeatherIncidentFromBoardEntry(entry, options = {}) {
   }
 
   const existing = await readIncidentRecords(outFile);
-  if (entry?.id && existing.some((item) => item?.id === entry.id)) {
+  const entryIdNorm = entry?.id ? String(entry.id).trim().toLowerCase() : null;
+
+  if (entryIdNorm && existing.some((item) => {
+    const itemIdNorm = item?.id ? String(item.id).trim().toLowerCase() : null;
+    return itemIdNorm === entryIdNorm;
+  })) {
     return { appended: false, reason: "duplicate" };
+  }
+
+  const description =
+    entry?.description || entry?.content || entry?.title || entry?.typ || "";
+
+  // Fallback duplicate check when ID is missing: same date + category + description
+  if (!entryIdNorm) {
+    const categoryNorm = String(matchedCategory.raw).trim().toLowerCase();
+    const descNorm = String(description).trim().toLowerCase();
+    if (existing.some((item) =>
+      item.date === today &&
+      String(item.category || "").trim().toLowerCase() === categoryNorm &&
+      String(item.description || "").trim().toLowerCase() === descNorm
+    )) {
+      return { appended: false, reason: "duplicate" };
+    }
   }
 
   const incident = {
     id: entry?.id ?? null,
     date: today,
     category: matchedCategory.raw,
-    description:
-      entry?.description || entry?.content || entry?.title || entry?.typ || "",
+    description,
     createdAt: normalizeCreatedAt(entry?.createdAt, now),
   };
 
@@ -359,13 +379,37 @@ export async function handleNewIncidentCard(card, { source = "unknown" } = {}, o
     addDedupeKey(dk);
   }
 
-  // Gate 4: Datei-basiertes Duplikat (bestehende Logik)
+  // Gate 4: Datei-basiertes Duplikat (case-insensitive)
   const existing = await readIncidentRecords(outFile);
-  if (card?.id && existing.some((item) => item?.id === card.id)) {
+  const cardIdNorm = card?.id ? String(card.id).trim().toLowerCase() : null;
+
+  if (cardIdNorm && existing.some((item) => {
+    const itemIdNorm = item?.id ? String(item.id).trim().toLowerCase() : null;
+    return itemIdNorm === cardIdNorm;
+  })) {
     const result = { appended: false, reason: "duplicate", source };
     pushHookLog({ ts, source, reason: result.reason });
     debugLog("skip", source, result.reason, card.id);
     return result;
+  }
+
+  const description =
+    card?.description || card?.content || card?.title || card?.typ || "";
+
+  // Fallback duplicate check when ID is missing: same date + category + description
+  if (!cardIdNorm) {
+    const categoryNorm = String(matchedCategory.raw).trim().toLowerCase();
+    const descNorm = String(description).trim().toLowerCase();
+    if (existing.some((item) =>
+      item.date === today &&
+      String(item.category || "").trim().toLowerCase() === categoryNorm &&
+      String(item.description || "").trim().toLowerCase() === descNorm
+    )) {
+      const result = { appended: false, reason: "duplicate", source };
+      pushHookLog({ ts, source, reason: result.reason });
+      debugLog("skip", source, result.reason, "fallback-dedupe");
+      return result;
+    }
   }
 
   // Append
@@ -373,8 +417,7 @@ export async function handleNewIncidentCard(card, { source = "unknown" } = {}, o
     id: card?.id ?? null,
     date: today,
     category: matchedCategory.raw,
-    description:
-      card?.description || card?.content || card?.title || card?.typ || "",
+    description,
     source,
     createdAt: normalizeCreatedAt(card?.createdAt, now),
   };
