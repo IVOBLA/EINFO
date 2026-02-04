@@ -326,6 +326,8 @@ export async function handleNewIncidentCard(card, { source = "unknown" } = {}, o
   const ts = new Date().toISOString();
   const today = todayKey(now);
 
+  console.log("[weather-hook] handleNewIncidentCard called", { source, cardId: card?.id, today });
+
   // Gate 1: Wetterwarnung aktiv?
   const dates = await readWarningDateFile(warningDateFile);
   if (!dates.includes(today)) {
