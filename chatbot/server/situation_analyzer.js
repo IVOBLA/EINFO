@@ -264,10 +264,16 @@ export async function initSituationAnalyzer() {
     const cfg = await readAnalysisConfig();
     setAnalysisInterval(cfg.intervalMinutes);
 
+    // Auto-start analysis loop if enabled and interval > 0
+    if (cfg.enabled && cfg.intervalMinutes > 0) {
+      startAnalysisLoop();
+    }
+
     cacheLoaded = true;
     logInfo("Situationsanalyse-System initialisiert", {
       learnedSuggestionsCount: learnedSuggestions.length,
-      analysisIntervalMinutes: cfg.intervalMinutes
+      analysisIntervalMinutes: cfg.intervalMinutes,
+      loopStarted: cfg.enabled && cfg.intervalMinutes > 0
     });
   } catch (err) {
     logError("Fehler beim Initialisieren des Situationsanalyse-Systems", {
