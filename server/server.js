@@ -3801,6 +3801,7 @@ async function importFromFileOnce(filename=AUTO_DEFAULT_FILENAME){
             description: m.description || ""
           };
           board.columns["neu"].items.unshift(card);
+          await saveBoard(board);
           await handleWeatherIncidentAndSvgForNewCard(card, { source: "fetcher" });
           created++;
           lastCreatedCard = card;
