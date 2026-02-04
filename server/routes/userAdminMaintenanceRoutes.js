@@ -426,6 +426,23 @@ export default function createAdminMaintenanceRoutes({ baseDir }) {
     },
   });
 
+  // Wrapper: fängt Multer-Fehler ab und liefert JSON-Antwort (HTTP 400)
+  function handleUpload(uploadMiddleware) {
+    return (req, res, next) => {
+      uploadMiddleware(req, res, (err) => {
+        if (err) {
+          const status = err instanceof multer.MulterError ? 400 : 400;
+          const message =
+            err instanceof multer.MulterError
+              ? `Upload-Fehler: ${err.message} (Code: ${err.code})`
+              : `Upload-Fehler: ${err.message}`;
+          return res.status(status).json({ ok: false, error: message });
+        }
+        next();
+      });
+    };
+  }
+
   // Knowledge-Dateien auflisten
   router.get("/knowledge/files", async (_req, res) => {
     try {
@@ -438,7 +455,7 @@ export default function createAdminMaintenanceRoutes({ baseDir }) {
   });
 
   // Datei hochladen
-  router.post("/knowledge/upload", knowledgeUpload.single("file"), async (req, res) => {
+  router.post("/knowledge/upload", handleUpload(knowledgeUpload.single("file")), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ ok: false, error: "Keine Datei hochgeladen" });
@@ -456,7 +473,7 @@ export default function createAdminMaintenanceRoutes({ baseDir }) {
   });
 
   // Mehrere Dateien hochladen
-  router.post("/knowledge/upload-multiple", knowledgeUpload.array("files", 20), async (req, res) => {
+  router.post("/knowledge/upload-multiple", handleUpload(knowledgeUpload.array("files", 20)), async (req, res) => {
     try {
       if (!req.files || req.files.length === 0) {
         return res.status(400).json({ ok: false, error: "Keine Dateien hochgeladen" });
