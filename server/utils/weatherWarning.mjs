@@ -209,11 +209,11 @@ async function regenerateAndInvalidateSvg(overrides = {}) {
   const gen = overrides._generateFeldkirchenSvg || genSvg;
   const inval = overrides._invalidateFeldkirchenMapCache || invalCache;
 
-  const svgPath = await gen({ show: "weather", hours: 24, force: true });
-  debugLog("svg regenerated", svgPath);
-
   const cacheResult = await inval({ show: "weather", hours: 24 });
   debugLog("cache invalidated", cacheResult);
+
+  const svgPath = await gen({ show: "weather", hours: 24, force: true });
+  debugLog("svg regenerated", svgPath);
 
   return { svgPath, cacheResult };
 }
