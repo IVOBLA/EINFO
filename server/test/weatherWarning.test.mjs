@@ -112,6 +112,72 @@ test("fügt keine Duplikate hinzu", async (t) => {
   assert.equal(lines.length, 1);
 });
 
+test("ID-Duplikat case-insensitive: 'A3' und 'a3' erzeugen nur 1 Zeile", async (t) => {
+  const tempDir = await mkdtemp(path.join(tmpdir(), "weather-warning-"));
+  t.after(async () => rm(tempDir, { recursive: true, force: true }));
+
+  const { outFile, warningDateFile, categoryFile } = makeTestFiles(tempDir);
+  const today = new Date();
+
+  await writeFile(warningDateFile, isoKey(today), "utf8");
+  await writeFile(categoryFile, JSON.stringify(["Sturm"]), "utf8");
+
+  const entry1 = { id: "A3", createdAt: today.toISOString(), description: "Sturmwarnung Süd" };
+  const entry2 = { id: "a3", createdAt: today.toISOString(), description: "Sturmwarnung Süd" };
+
+  const r1 = await appendWeatherIncidentFromBoardEntry(entry1, { categoryFile, outFile, warningDateFile, now: today });
+  const r2 = await appendWeatherIncidentFromBoardEntry(entry2, { categoryFile, outFile, warningDateFile, now: today });
+
+  assert.equal(r1.appended, true);
+  assert.equal(r2.appended, false);
+  assert.equal(r2.reason, "duplicate");
+
+  const lines = (await readFile(outFile, "utf8")).split(/\r?\n/).filter(Boolean);
+  assert.equal(lines.length, 1);
+});
+
+test("Fallback-Duplikat ohne ID: gleiche Meldung in anderer Schreibweise wird erkannt", async (t) => {
+  const tempDir = await mkdtemp(path.join(tmpdir(), "weather-warning-"));
+  t.after(async () => rm(tempDir, { recursive: true, force: true }));
+
+  const { outFile, warningDateFile, categoryFile } = makeTestFiles(tempDir);
+  const today = new Date();
+
+  await writeFile(warningDateFile, isoKey(today), "utf8");
+  await writeFile(categoryFile, JSON.stringify(["Sturm"]), "utf8");
+
+  const entry1 = { description: "Heftiger STURM im Ortsgebiet" };
+  const entry2 = { description: "heftiger sturm im ortsgebiet" };
+
+  const r1 = await appendWeatherIncidentFromBoardEntry(entry1, { categoryFile, outFile, warningDateFile, now: today });
+  const r2 = await appendWeatherIncidentFromBoardEntry(entry2, { categoryFile, outFile, warningDateFile, now: today });
+
+  assert.equal(r1.appended, true);
+  assert.equal(r2.appended, false);
+  assert.equal(r2.reason, "duplicate");
+
+  const lines = (await readFile(outFile, "utf8")).split(/\r?\n/).filter(Boolean);
+  assert.equal(lines.length, 1);
+});
+
+test("Kategorie mit Whitespace in JSON matcht korrekt", async (t) => {
+  const tempDir = await mkdtemp(path.join(tmpdir(), "weather-warning-"));
+  t.after(async () => rm(tempDir, { recursive: true, force: true }));
+
+  const { outFile, warningDateFile, categoryFile } = makeTestFiles(tempDir);
+  const today = new Date();
+
+  await writeFile(warningDateFile, isoKey(today), "utf8");
+  await writeFile(categoryFile, JSON.stringify([" Sturm "]), "utf8");
+
+  const entry = { id: "ws-1", description: "sturmwarnung für den Bezirk" };
+
+  const result = await appendWeatherIncidentFromBoardEntry(entry, { categoryFile, outFile, warningDateFile, now: today });
+
+  assert.equal(result.appended, true);
+  assert.ok(result.incident.category === "Sturm");
+});
+
 // ---------------------------------------------------------------------------
 // handleNewIncidentCard – zentraler Hook
 // ---------------------------------------------------------------------------
