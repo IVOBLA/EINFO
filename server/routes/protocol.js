@@ -1103,16 +1103,13 @@ router.post("/stab/hochfahren", express.json(), async (req, res) => {
 
     // 3) Protocol entry
     const actorRole = resolveActorRole(req) || [...actorRoles][0] || "SYSTEM";
-    const info = `Stab hochgefahren (Initialsetup). scenarioId=${newScenarioId}. Einsatztitel="${einsatztitel}"`;
+    const info = ausgangslage || `Stab hochgefahren (Initialsetup). scenarioId=${newScenarioId}`;
     const { payload, histEntry } = createSystemProtocolEntry({ information: info, identity, actorRole });
 
-    await fileMutex.withLock("protocol", async () => {
-      const all = await readAllJson();
-      payload.nr = nextNr(all);
-      histEntry.after = snapshotForHistory(payload);
-      // Only CSV – no entry in protocol.json
-      appendHistoryEntriesToCsv(payload, [histEntry], CSV_FILE);
-    });
+    // Nr stays 0 – must not influence regular protocol numbering
+    histEntry.after = snapshotForHistory(payload);
+    // Only CSV – no entry in protocol.json
+    appendHistoryEntriesToCsv(payload, [histEntry], CSV_FILE);
 
     res.json({ ok: true, scenarioId: newScenarioId, message: `Stab hochgefahren. scenarioId=${newScenarioId}` });
   } catch (err) {
@@ -1143,13 +1140,10 @@ router.post("/einsatz/beenden", express.json(), async (req, res) => {
     const info = `Einsatz beendet${scenarioId ? ` (scenarioId=${scenarioId})` : ""}`;
     const { payload, histEntry } = createSystemProtocolEntry({ information: info, identity, actorRole });
 
-    await fileMutex.withLock("protocol", async () => {
-      const all = await readAllJson();
-      payload.nr = nextNr(all);
-      histEntry.after = snapshotForHistory(payload);
-      // Only CSV – no entry in protocol.json
-      appendHistoryEntriesToCsv(payload, [histEntry], CSV_FILE);
-    });
+    // Nr stays 0 – must not influence regular protocol numbering
+    histEntry.after = snapshotForHistory(payload);
+    // Only CSV – no entry in protocol.json
+    appendHistoryEntriesToCsv(payload, [histEntry], CSV_FILE);
 
     res.json({ ok: true });
   } catch (err) {
