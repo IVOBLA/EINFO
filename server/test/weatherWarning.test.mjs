@@ -4,17 +4,28 @@ import path from "node:path";
 import { tmpdir } from "node:os";
 import test from "node:test";
 
-import { appendWeatherIncidentFromBoardEntry, collectWarningDatesFromMails } from "../utils/weatherWarning.mjs";
+import {
+  appendWeatherIncidentFromBoardEntry,
+  collectWarningDatesFromMails,
+  handleNewIncidentCard,
+  getWeatherHookDiagnose,
+} from "../utils/weatherWarning.mjs";
 
 const isoKey = (date) => date.toISOString().slice(0, 10);
+
+function makeTestFiles(tempDir) {
+  return {
+    outFile: path.join(tempDir, "weather-incidents.txt"),
+    warningDateFile: path.join(tempDir, "warning-dates.txt"),
+    categoryFile: path.join(tempDir, "categories.json"),
+  };
+}
 
 test("legt einen Wetter-Eintrag bei aktueller Warnung und Kategorie an", async (t) => {
   const tempDir = await mkdtemp(path.join(tmpdir(), "weather-warning-"));
   t.after(async () => rm(tempDir, { recursive: true, force: true }));
 
-  const outFile = path.join(tempDir, "weather-incidents.txt");
-  const warningDateFile = path.join(tempDir, "warning-dates.txt");
-  const categoryFile = path.join(tempDir, "categories.json");
+  const { outFile, warningDateFile, categoryFile } = makeTestFiles(tempDir);
   const today = new Date();
 
   await writeFile(warningDateFile, isoKey(today), "utf8");
@@ -40,9 +51,7 @@ test("legt keinen Eintrag ohne aktuelle Warnung an", async (t) => {
   const tempDir = await mkdtemp(path.join(tmpdir(), "weather-warning-"));
   t.after(async () => rm(tempDir, { recursive: true, force: true }));
 
-  const outFile = path.join(tempDir, "weather-incidents.txt");
-  const warningDateFile = path.join(tempDir, "warning-dates.txt");
-  const categoryFile = path.join(tempDir, "categories.json");
+  const { outFile, warningDateFile, categoryFile } = makeTestFiles(tempDir);
   const today = new Date();
 
   await writeFile(warningDateFile, "2020-01-01", "utf8");
@@ -81,9 +90,7 @@ test("fügt keine Duplikate hinzu", async (t) => {
   const tempDir = await mkdtemp(path.join(tmpdir(), "weather-warning-"));
   t.after(async () => rm(tempDir, { recursive: true, force: true }));
 
-  const outFile = path.join(tempDir, "weather-incidents.txt");
-  const warningDateFile = path.join(tempDir, "warning-dates.txt");
-  const categoryFile = path.join(tempDir, "categories.json");
+  const { outFile, warningDateFile, categoryFile } = makeTestFiles(tempDir);
   const today = new Date();
 
   await writeFile(warningDateFile, isoKey(today), "utf8");
@@ -96,4 +103,151 @@ test("fügt keine Duplikate hinzu", async (t) => {
 
   const lines = (await readFile(outFile, "utf8")).split(/\r?\n/).filter(Boolean);
   assert.equal(lines.length, 1);
+});
+
+// ---------------------------------------------------------------------------
+// handleNewIncidentCard – zentraler Hook
+// ---------------------------------------------------------------------------
+
+test("handleNewIncidentCard: source='ui' erzeugt Incident", async (t) => {
+  const tempDir = await mkdtemp(path.join(tmpdir(), "weather-hook-"));
+  t.after(async () => rm(tempDir, { recursive: true, force: true }));
+
+  const { outFile, warningDateFile, categoryFile } = makeTestFiles(tempDir);
+  const today = new Date();
+
+  await writeFile(warningDateFile, isoKey(today), "utf8");
+  await writeFile(categoryFile, JSON.stringify(["Sturm"]), "utf8");
+
+  const card = { id: "ui-1", createdAt: today.toISOString(), typ: "Sturm", title: "Sturmschaden Ort A" };
+
+  const result = await handleNewIncidentCard(card, { source: "ui" }, {
+    categoryFile, outFile, warningDateFile, now: today, _skipDedupe: true,
+  });
+
+  assert.equal(result.appended, true);
+  assert.equal(result.source, "ui");
+
+  const content = await readFile(outFile, "utf8");
+  const incident = JSON.parse(content.trim());
+  assert.equal(incident.source, "ui");
+  assert.equal(incident.category, "Sturm");
+});
+
+test("handleNewIncidentCard: source='fetcher' erzeugt Incident", async (t) => {
+  const tempDir = await mkdtemp(path.join(tmpdir(), "weather-hook-"));
+  t.after(async () => rm(tempDir, { recursive: true, force: true }));
+
+  const { outFile, warningDateFile, categoryFile } = makeTestFiles(tempDir);
+  const today = new Date();
+
+  await writeFile(warningDateFile, isoKey(today), "utf8");
+  await writeFile(categoryFile, JSON.stringify(["Baum"]), "utf8");
+
+  const card = { id: "fetch-1", createdAt: today.toISOString(), typ: "Baum", description: "Baum auf Straße" };
+
+  const result = await handleNewIncidentCard(card, { source: "fetcher" }, {
+    categoryFile, outFile, warningDateFile, now: today, _skipDedupe: true,
+  });
+
+  assert.equal(result.appended, true);
+  assert.equal(result.source, "fetcher");
+
+  const content = await readFile(outFile, "utf8");
+  const incident = JSON.parse(content.trim());
+  assert.equal(incident.source, "fetcher");
+  assert.equal(incident.category, "Baum");
+});
+
+test("handleNewIncidentCard: source='import' erzeugt Incident", async (t) => {
+  const tempDir = await mkdtemp(path.join(tmpdir(), "weather-hook-"));
+  t.after(async () => rm(tempDir, { recursive: true, force: true }));
+
+  const { outFile, warningDateFile, categoryFile } = makeTestFiles(tempDir);
+  const today = new Date();
+
+  await writeFile(warningDateFile, isoKey(today), "utf8");
+  await writeFile(categoryFile, JSON.stringify(["Unwetter"]), "utf8");
+
+  const card = { id: "imp-1", createdAt: today.toISOString(), description: "Unwetter Einsatz Süd" };
+
+  const result = await handleNewIncidentCard(card, { source: "import" }, {
+    categoryFile, outFile, warningDateFile, now: today, _skipDedupe: true,
+  });
+
+  assert.equal(result.appended, true);
+  assert.equal(result.source, "import");
+});
+
+test("handleNewIncidentCard: Dedupe verhindert doppeltes Logging", async (t) => {
+  const tempDir = await mkdtemp(path.join(tmpdir(), "weather-hook-"));
+  t.after(async () => rm(tempDir, { recursive: true, force: true }));
+
+  const { outFile, warningDateFile, categoryFile } = makeTestFiles(tempDir);
+  const today = new Date();
+
+  await writeFile(warningDateFile, isoKey(today), "utf8");
+  await writeFile(categoryFile, JSON.stringify(["Sturm"]), "utf8");
+
+  const card = { id: "dedup-1", createdAt: today.toISOString(), typ: "Sturm" };
+  const opts = { categoryFile, outFile, warningDateFile, now: today };
+
+  const r1 = await handleNewIncidentCard(card, { source: "ui" }, opts);
+  assert.equal(r1.appended, true);
+
+  const r2 = await handleNewIncidentCard(card, { source: "import" }, opts);
+  assert.equal(r2.appended, false);
+  assert.equal(r2.reason, "deduped");
+
+  const lines = (await readFile(outFile, "utf8")).split(/\r?\n/).filter(Boolean);
+  assert.equal(lines.length, 1);
+});
+
+test("handleNewIncidentCard: verschiedene Cards im gleichen Batch werden einzeln geloggt", async (t) => {
+  const tempDir = await mkdtemp(path.join(tmpdir(), "weather-hook-"));
+  t.after(async () => rm(tempDir, { recursive: true, force: true }));
+
+  const { outFile, warningDateFile, categoryFile } = makeTestFiles(tempDir);
+  const today = new Date();
+
+  await writeFile(warningDateFile, isoKey(today), "utf8");
+  await writeFile(categoryFile, JSON.stringify(["Sturm", "Baum"]), "utf8");
+
+  const card1 = { id: "batch-1", createdAt: today.toISOString(), typ: "Sturm" };
+  const card2 = { id: "batch-2", createdAt: today.toISOString(), typ: "Baum" };
+  const opts = { categoryFile, outFile, warningDateFile, now: today };
+
+  const r1 = await handleNewIncidentCard(card1, { source: "fetcher" }, opts);
+  const r2 = await handleNewIncidentCard(card2, { source: "fetcher" }, opts);
+
+  assert.equal(r1.appended, true);
+  assert.equal(r2.appended, true);
+
+  const lines = (await readFile(outFile, "utf8")).split(/\r?\n/).filter(Boolean);
+  assert.equal(lines.length, 2);
+});
+
+test("getWeatherHookDiagnose liefert lastHookCalls und dedupeSize", async (t) => {
+  const tempDir = await mkdtemp(path.join(tmpdir(), "weather-hook-"));
+  t.after(async () => rm(tempDir, { recursive: true, force: true }));
+
+  const { outFile, warningDateFile, categoryFile } = makeTestFiles(tempDir);
+  const today = new Date();
+
+  await writeFile(warningDateFile, isoKey(today), "utf8");
+  await writeFile(categoryFile, JSON.stringify(["Sturm"]), "utf8");
+
+  const card = { id: "diag-1", createdAt: today.toISOString(), typ: "Sturm" };
+  await handleNewIncidentCard(card, { source: "ui" }, {
+    categoryFile, outFile, warningDateFile, now: today, _skipDedupe: true,
+  });
+
+  const diag = getWeatherHookDiagnose();
+  assert.ok(Array.isArray(diag.lastHookCalls));
+  assert.ok(diag.lastHookCalls.length > 0);
+  assert.equal(typeof diag.dedupeSize, "number");
+
+  const last = diag.lastHookCalls[diag.lastHookCalls.length - 1];
+  assert.equal(last.source, "ui");
+  assert.equal(last.reason, "appended");
 });

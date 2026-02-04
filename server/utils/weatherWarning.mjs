@@ -158,6 +158,42 @@ function normalizeCreatedAt(createdAt, fallbackDate = new Date()) {
 }
 
 // -----------------------------------------------------------------------------
+// Dedupe-Set (In-Memory, Reset bei Restart)
+// -----------------------------------------------------------------------------
+const DEDUPE_MAX = 2000;
+const _dedupeSet = new Set();
+
+function dedupeKey(card, todayUtc, category) {
+  const id = card?.id || card?.externalId || card?.title || "unknown";
+  return `${id}-${todayUtc}-${category}`;
+}
+
+function addDedupeKey(key) {
+  if (_dedupeSet.size >= DEDUPE_MAX) {
+    const first = _dedupeSet.values().next().value;
+    _dedupeSet.delete(first);
+  }
+  _dedupeSet.add(key);
+}
+
+// -----------------------------------------------------------------------------
+// Diagnose-Ringbuffer (letzte N Hook-Calls)
+// -----------------------------------------------------------------------------
+const HOOK_LOG_MAX = 20;
+const _hookLog = [];
+
+function pushHookLog(entry) {
+  _hookLog.push(entry);
+  if (_hookLog.length > HOOK_LOG_MAX) _hookLog.shift();
+}
+
+const DEBUG = () => process.env.WEATHER_DEBUG === "1";
+
+function debugLog(...args) {
+  if (DEBUG()) console.log("[weather-hook]", ...args);
+}
+
+// -----------------------------------------------------------------------------
 // EXPORTS
 // -----------------------------------------------------------------------------
 
@@ -247,4 +283,90 @@ export async function appendWeatherIncidentFromBoardEntry(entry, options = {}) {
 export async function isWeatherWarningToday() {
   const dates = await readWarningDateFile();
   return dates.includes(todayKey());
+}
+
+// -----------------------------------------------------------------------------
+// Zentraler Hook: handleNewIncidentCard
+// Wird nach jedem erfolgreichen Card-Create aufgerufen (UI, Fetcher, Import).
+// -----------------------------------------------------------------------------
+export async function handleNewIncidentCard(card, { source = "unknown" } = {}, options = {}) {
+  const {
+    categoryFile = WEATHER_CATEGORY_FILE,
+    outFile = WEATHER_INCIDENTS_FILE,
+    warningDateFile = WARNING_DATE_FILE,
+    now = new Date(),
+    _skipDedupe = false,
+  } = options;
+
+  const ts = new Date().toISOString();
+  const today = todayKey(now);
+
+  // Gate 1: Wetterwarnung aktiv?
+  const dates = await readWarningDateFile(warningDateFile);
+  if (!dates.includes(today)) {
+    const result = { appended: false, reason: "no-active-warning", source };
+    pushHookLog({ ts, source, reason: result.reason });
+    debugLog("skip", source, result.reason);
+    return result;
+  }
+
+  // Gate 2: Kategorie matcht?
+  const categories = await readCategories(categoryFile);
+  const matchedCategory = findCategoryForEntry(card, categories);
+  if (!matchedCategory) {
+    const result = { appended: false, reason: "no-weather-category", source };
+    pushHookLog({ ts, source, reason: result.reason });
+    debugLog("skip", source, result.reason);
+    return result;
+  }
+
+  // Gate 3: Dedupe
+  if (!_skipDedupe) {
+    const dk = dedupeKey(card, today, matchedCategory.raw);
+    if (_dedupeSet.has(dk)) {
+      const result = { appended: false, reason: "deduped", source };
+      pushHookLog({ ts, source, reason: result.reason, dedupeKey: dk });
+      debugLog("skip", source, result.reason, dk);
+      return result;
+    }
+    addDedupeKey(dk);
+  }
+
+  // Gate 4: Datei-basiertes Duplikat (bestehende Logik)
+  const existing = await readIncidentRecords(outFile);
+  if (card?.id && existing.some((item) => item?.id === card.id)) {
+    const result = { appended: false, reason: "duplicate", source };
+    pushHookLog({ ts, source, reason: result.reason });
+    debugLog("skip", source, result.reason, card.id);
+    return result;
+  }
+
+  // Append
+  const incident = {
+    id: card?.id ?? null,
+    date: today,
+    category: matchedCategory.raw,
+    description:
+      card?.description || card?.content || card?.title || card?.typ || "",
+    source,
+    createdAt: normalizeCreatedAt(card?.createdAt, now),
+  };
+
+  await fsp.mkdir(path.dirname(outFile), { recursive: true });
+  await fsp.appendFile(outFile, `${JSON.stringify(incident)}\n`, "utf8");
+
+  const result = { appended: true, incident, source };
+  pushHookLog({ ts, source, reason: "appended", category: matchedCategory.raw });
+  debugLog("appended", source, matchedCategory.raw, card?.id || card?.title);
+  return result;
+}
+
+// -----------------------------------------------------------------------------
+// Diagnose-Daten für GET /api/internal/weather/diagnose
+// -----------------------------------------------------------------------------
+export function getWeatherHookDiagnose() {
+  return {
+    lastHookCalls: [..._hookLog],
+    dedupeSize: _dedupeSet.size,
+  };
 }

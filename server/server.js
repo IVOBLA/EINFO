@@ -27,6 +27,8 @@ import {
   collectWarningDates,
   collectWarningDatesFromMails,
   isWeatherWarningToday,
+  handleNewIncidentCard,
+  getWeatherHookDiagnose,
 } from "./utils/weatherWarning.mjs";
 import {
   generateFeldkirchenSvg,
@@ -218,13 +220,6 @@ function invalidateBoardCache() {
   boardCachePromise = null;
 }
 
-async function appendWeatherIncidentForCard(entry) {
-  try {
-    await appendWeatherIncidentFromBoardEntry(entry);
-  } catch (err) {
-    console.error("[weather-warning] Fehler beim Aktualisieren von weather-incidents.txt:", err?.message || err);
-  }
-}
 
 async function saveBoard(board) {
   await writeJson(BOARD_FILE, board);
@@ -1749,6 +1744,22 @@ app.delete(FELDKIRCHEN_MAP_PATH, async (req, res) => {
   }
 });
 
+// ==== Wetter-Diagnose ====
+app.get("/api/internal/weather/diagnose", async (_req, res) => {
+  try {
+    const warningToday = await isWeatherWarningToday();
+    const hookDiagnose = getWeatherHookDiagnose();
+    res.json({
+      ok: true,
+      warningToday,
+      lastHookCalls: hookDiagnose.lastHookCalls,
+      dedupeSize: hookDiagnose.dedupeSize,
+    });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err?.message || String(err) });
+  }
+});
+
 // ==== Zeitgesteuerte Mails ====
 
 const MAIL_SCHEDULE_OPTIONS = {
@@ -2333,12 +2344,7 @@ app.post("/api/cards", async (req, res) => {
     req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
   );
 
-  await appendWeatherIncidentForCard(card);
-  await appendCsvRow(
-    LOG_FILE, EINSATZ_HEADERS,
-    buildEinsatzLog({ action:"Einsatz erstellt", card, from:board.columns[key].name, note:card.ort || "", board }),
-    req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
-  );
+  await handleNewIncidentCard(card, { source: "ui" });
   markActivity("card:create");
   res.json({ ok: true, card, column: key });
 });
@@ -3852,7 +3858,7 @@ async function importFromFileOnce(filename=AUTO_DEFAULT_FILENAME){
             description: m.description || ""
           };
           board.columns["neu"].items.unshift(card);
-          await appendWeatherIncidentForCard(card);
+          await handleNewIncidentCard(card, { source: "fetcher" });
           created++;
           lastCreatedCard = card;
           await appendAutoImportCsvLog({
