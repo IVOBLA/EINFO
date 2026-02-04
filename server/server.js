@@ -27,12 +27,13 @@ import {
   collectWarningDates,
   collectWarningDatesFromMails,
   isWeatherWarningToday,
-  handleNewIncidentCard,
+  handleWeatherIncidentAndSvgForNewCard,
   getWeatherHookDiagnose,
 } from "./utils/weatherWarning.mjs";
 import {
   generateFeldkirchenSvg,
   deleteFeldkirchenSvg,
+  invalidateFeldkirchenMapCache,
 } from "./utils/generateFeldkirchenSvg.mjs";
 import {
   createMailScheduleRunner,
@@ -142,63 +143,8 @@ let boardCacheExpiresAt = 0;
 let boardCachePromise = null;
 
 
-const WEATHER_CATEGORY_FILE = path.join(DATA_DIR, "conf", "weather-categories.json");
-
-async function loadWeatherCategories() {
-  try {
-    const raw = await fs.readFile(WEATHER_CATEGORY_FILE, "utf8");
-    const list = JSON.parse(raw);
-    return (Array.isArray(list) ? list : [])
-      .map((v) => String(v).toLowerCase())
-      .filter(Boolean);
-  } catch (err) {
-    console.warn("[weather-map] Wetterkategorien konnten nicht geladen werden:", err?.message || err);
-    return [];
-  }
-}
-
-function cardHasWeatherCategory(card, categories) {
-  if (!card || !categories?.length) return false;
-  const hay = [
-    card.typ,
-    card.description,
-    card.content,
-    card.title,
-  ]
-    .filter(Boolean)
-    .map((s) => String(s).toLowerCase())
-    .join(" ");
-
-  return categories.some((cat) => hay.includes(cat));
-}
-
-async function maybeRegenerateFeldkirchenMapForNewCard(card) {
-  if (!card) return;
-
-  // 1) ist heute überhaupt eine Wetterwarnung aktiv?
-  const warningToday = await isWeatherWarningToday();
-  if (!warningToday) {
-    return;
-  }
-
-  // 2) hat die Karte eine Wetterkategorie?
-  const categories = await loadWeatherCategories();
-  const isWeather = cardHasWeatherCategory(card, categories);
-  if (!isWeather) {
-    return;
-  }
-
-  // 3) Karte neu zeichnen (Wettereinsätze der letzten 24 Stunden)
-  try {
-    console.log("[weather-map] Neuer Wettereinsatz → SVG wird neu erzeugt …");
-    await generateFeldkirchenSvg({ show: "weather", hours: 24 });
-  } catch (err) {
-    console.error(
-      "[weather-map] Fehler beim Erzeugen der Feldkirchen-Karte:",
-      err?.message || err
-    );
-  }
-}
+// maybeRegenerateFeldkirchenMapForNewCard ist jetzt in
+// handleWeatherIncidentAndSvgForNewCard (weatherWarning.mjs) integriert.
 
 
 const cloneBoard = (value) => {
@@ -2335,16 +2281,13 @@ app.post("/api/cards", async (req, res) => {
     return { board, card, key };
   });
 
-  // Prüfen, ob die Feldkirchen-Wetterkarte neu erzeugt werden muss
-  await maybeRegenerateFeldkirchenMapForNewCard(card);
-
   await appendCsvRow(
     LOG_FILE, EINSATZ_HEADERS,
     buildEinsatzLog({ action:"Einsatz erstellt", card, from:board.columns[key].name, note:card.ort || "", board }),
     req, { autoTimestampField:"Zeitpunkt", autoUserField:"Benutzer" }
   );
 
-  await handleNewIncidentCard(card, { source: "ui" });
+  await handleWeatherIncidentAndSvgForNewCard(card, { source: "ui" });
   markActivity("card:create");
   res.json({ ok: true, card, column: key });
 });
@@ -3858,7 +3801,7 @@ async function importFromFileOnce(filename=AUTO_DEFAULT_FILENAME){
             description: m.description || ""
           };
           board.columns["neu"].items.unshift(card);
-          await handleNewIncidentCard(card, { source: "fetcher" });
+          await handleWeatherIncidentAndSvgForNewCard(card, { source: "fetcher" });
           created++;
           lastCreatedCard = card;
           await appendAutoImportCsvLog({
@@ -3872,9 +3815,6 @@ async function importFromFileOnce(filename=AUTO_DEFAULT_FILENAME){
 
       await updateGroupAlertedStatuses(alertedGroups);
       await saveBoard(board);
-      if (lastCreatedCard) {
-        await maybeRegenerateFeldkirchenMapForNewCard(lastCreatedCard);
-      }
       importLastLoadedAt = Date.now();
       importLastFile     = filename;
       return { ok:true, created, updated, skipped, file:filename };

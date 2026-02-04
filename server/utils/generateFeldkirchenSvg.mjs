@@ -325,6 +325,32 @@ export async function deleteFeldkirchenSvg(options = {}) {
   }
 }
 
+// -----------------------------------------------------------------------------
+// Cache-Invalidierung: löscht die generierte SVG-Datei, damit der nächste
+// GET /api/internal/feldkirchen-map die Karte frisch erzeugt.
+// -----------------------------------------------------------------------------
+export async function invalidateFeldkirchenMapCache(options = {}) {
+  const { show, hours } = normalizeOptions(options);
+  const svgFile = path.join(OUT_DIR, buildOutputFile({ show, hours }));
+
+  try {
+    await fsp.unlink(svgFile);
+    return { invalidated: true, file: svgFile };
+  } catch (err) {
+    if (err?.code === "ENOENT") return { invalidated: false, file: svgFile };
+    throw err;
+  }
+}
+
+// Alias für den zentralen Hook (force wird akzeptiert, hat aber keinen
+// Effekt, da generateFeldkirchenSvg ohnehin immer neu schreibt).
+export async function generateFeldkirchenMapSvg(options = {}) {
+  const svgPath = await generateFeldkirchenSvg(options);
+  const { show, hours } = normalizeOptions(options);
+  const cacheKey = `feldkirchen_show-${show}_${hours}h`;
+  return { svgPath, cacheKey };
+}
+
 // CLI: node utils/generateFeldkirchenSvg.mjs
 if (import.meta.url === `file://${__filename}`) {
   generateFeldkirchenSvg().catch((err) => {
