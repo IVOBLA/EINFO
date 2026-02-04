@@ -1623,7 +1623,7 @@ export default function User_AdminPanel() {
                 <label className="text-sm text-gray-700">Anhang (Serverpfad)</label>
                 <input
                   className="border px-2 py-1 rounded"
-                  placeholder="z. B. data/mail/anhang.pdf"
+                  placeholder="prints/uebersicht/feldkirchen_show-all_24h.svg"
                   value={mailScheduleDraft.attachmentPath}
                   onChange={(e) => setMailScheduleDraft((prev) => ({ ...prev, attachmentPath: e.target.value }))}
                   disabled={savingMailSchedule}

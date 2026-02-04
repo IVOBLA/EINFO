@@ -1,4 +1,5 @@
 import fs from "fs/promises";
+import { constants as fsConstants } from "node:fs";
 import path from "path";
 import crypto from "node:crypto";
 
@@ -56,8 +57,9 @@ export function sanitizeMailScheduleEntry(entry, { defaultIntervalMinutes, minIn
     timeOfDay: mode === "time" ? normalizeTimeOfDay(entry?.timeOfDay ?? entry?.time ?? entry?.clock) : null,
     enabled: entry?.enabled === false ? false : true,
     lastSentAt: (() => {
-      const ts = Number(entry?.lastSentAt);
-      return Number.isFinite(ts) ? ts : null;
+      if (entry?.lastSentAt == null) return null;
+      const ts = Number(entry.lastSentAt);
+      return Number.isFinite(ts) && ts > 0 ? ts : null;
     })(),
   };
 }
@@ -126,34 +128,71 @@ export async function buildScheduledMailAttachments(
   const resolved = resolveAttachmentPath(dataDir, entry?.attachmentPath || "");
   if (!resolved) return [];
   try {
+    await fs.access(resolved, fsConstants.R_OK);
     const content = await fs.readFile(resolved);
     const filename = path.basename(resolved) || "Anhang";
     return [{ filename, content }];
   } catch (error) {
-    if (error?.code === "ENOENT") {
-      await onMissingAttachment?.(resolved);
-      return null;
-    }
-    throw error;
+    await onMissingAttachment?.(resolved, error);
+    return null;
   }
 }
 
 async function sendScheduledMail(entry, { dataDir, sendMail, logMailEvent, isMailLoggingEnabled }) {
-  const attachments = await buildScheduledMailAttachments(dataDir, entry, {
-    onMissingAttachment: async (resolvedPath) => {
-      if (!isMailLoggingEnabled) return;
-      await logMailEvent("Geplanter Mail-Anhang fehlt", {
-        id: entry.id,
-        attachmentPath: resolvedPath,
-      });
-    },
-  });
-  if (attachments === null) return false;
+  const rawAttachmentPath = (entry?.attachmentPath || "").trim();
+
+  if (rawAttachmentPath) {
+    const resolved = resolveAttachmentPath(dataDir, rawAttachmentPath);
+
+    if (!resolved) {
+      if (isMailLoggingEnabled) {
+        await logMailEvent("ATTACHMENT_MISSING: Geplanter Mail-Anhang fehlt oder ist nicht lesbar", {
+          id: entry.id,
+          label: entry.label,
+          to: entry.to,
+          subject: entry.subject,
+          attachmentPath: rawAttachmentPath,
+          resolvedPath: null,
+          code: "INVALID_PATH",
+        });
+      }
+      return false;
+    }
+
+    try {
+      await fs.access(resolved, fsConstants.R_OK);
+    } catch (err) {
+      if (isMailLoggingEnabled) {
+        await logMailEvent("ATTACHMENT_MISSING: Geplanter Mail-Anhang fehlt oder ist nicht lesbar", {
+          id: entry.id,
+          label: entry.label,
+          to: entry.to,
+          subject: entry.subject,
+          attachmentPath: rawAttachmentPath,
+          resolvedPath: resolved,
+          code: err.code,
+        });
+      }
+      return false;
+    }
+
+    const content = await fs.readFile(resolved);
+    const filename = path.basename(resolved) || "Anhang";
+
+    await sendMail({
+      to: entry.to,
+      subject: entry.subject || "Geplante Nachricht",
+      text: entry.text || "",
+      attachments: [{ filename, content }],
+    });
+    return true;
+  }
+
   await sendMail({
     to: entry.to,
     subject: entry.subject || "Geplante Nachricht",
     text: entry.text || "",
-    attachments,
+    attachments: [],
   });
   return true;
 }
