@@ -209,11 +209,11 @@ async function regenerateAndInvalidateSvg(overrides = {}) {
   const gen = overrides._generateFeldkirchenSvg || genSvg;
   const inval = overrides._invalidateFeldkirchenMapCache || invalCache;
 
-  const svgPath = await gen({ show: "weather", hours: 24, force: true });
-  debugLog("svg regenerated", svgPath);
-
   const cacheResult = await inval({ show: "weather", hours: 24 });
   debugLog("cache invalidated", cacheResult);
+
+  const svgPath = await gen({ show: "weather", hours: 24, force: true });
+  debugLog("svg regenerated", svgPath);
 
   return { svgPath, cacheResult };
 }
@@ -325,6 +325,8 @@ export async function handleNewIncidentCard(card, { source = "unknown" } = {}, o
 
   const ts = new Date().toISOString();
   const today = todayKey(now);
+
+  console.log("[weather-hook] handleNewIncidentCard called", { source, cardId: card?.id, today });
 
   // Gate 1: Wetterwarnung aktiv?
   const dates = await readWarningDateFile(warningDateFile);
