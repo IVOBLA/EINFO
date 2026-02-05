@@ -4288,7 +4288,7 @@ async function lagekarteLogin(rid = null) {
         elapsedMs: Date.now() - startTime,
         error_msg: sanitizeSnippet(errorMsg),
       });
-      return { error: "LOGIN_API_ERROR", message: errorMsg, data, upstreamStatus: res.status };
+      return { error: "LOGIN_API_ERROR", message: errorMsg };
     }
 
     // Verify success response and extract token from user object
@@ -4317,7 +4317,7 @@ async function lagekarteLogin(rid = null) {
       elapsedMs: Date.now() - startTime,
     });
 
-    return { ok: true, token: token, uid: data.user?.uid, userId: data.user?.id, data, upstreamStatus: res.status };
+    return { ok: true, token: token, uid: data.user?.uid, userId: data.user?.id, data };
   } catch (err) {
     await logLagekarteError("Login error (network/fetch)", {
       rid: requestId,
@@ -4366,13 +4366,13 @@ async function lagekarteBrowserLoginBridge(req, res) {
 
   const result = await lagekarteLogin(rid);
 
-  if (result?.data && typeof result?.upstreamStatus === "number") {
+  if (result?.ok && result?.data?.error === "false" && result?.data?.user?.token) {
     await logLagekarteInfo("Browser login bridge success", {
       rid,
       phase: "browser_login_bridge_ok",
       elapsedMs: Date.now() - startTime,
     });
-    return res.status(result.upstreamStatus).json(result.data);
+    return res.status(200).json(result.data);
   }
 
   const errorCode = result?.error || "LOGIN_FAILED";
@@ -4390,30 +4390,6 @@ async function lagekarteBrowserLoginBridge(req, res) {
     error_msg: "Lagekarte Login fehlgeschlagen",
     code: errorCode,
   });
-}
-
-function injectLagekarteAuthIntoHtml(html, tokenData) {
-  if (!html || typeof html !== "string") return html;
-  if (!tokenData?.token) return html;
-
-  const scriptPayload = {
-    token: String(tokenData.token),
-    uid: tokenData.uid != null ? String(tokenData.uid) : "",
-    user_id: tokenData.userId != null ? String(tokenData.userId) : ""
-  };
-
-  const serialized = JSON.stringify(scriptPayload).replace(/<\//g, "<\/");
-  const injectionScript = `<script>(function(){try{var auth=${serialized};var token=auth.token||"";var uid=auth.uid||"";var userId=auth.user_id||"";window.__EINFO_LAGEKARTE_AUTH__={token:token,uid:uid,user_id:userId};localStorage.setItem("token",token);localStorage.setItem("uid",uid);localStorage.setItem("user_id",String(userId));localStorage.setItem("userId",String(userId));localStorage.setItem("auth_token",token);sessionStorage.setItem("token",token);sessionStorage.setItem("uid",uid);sessionStorage.setItem("user_id",String(userId));}catch(e){}})();</script>`;
-
-  if (/<\/head>/i.test(html)) {
-    return html.replace(/<\/head>/i, `${injectionScript}</head>`);
-  }
-
-  if (/<head[^>]*>/i.test(html)) {
-    return html.replace(/<head([^>]*)>/i, `<head$1>${injectionScript}`);
-  }
-
-  return `${injectionScript}${html}`;
 }
 
 function sendLagekarteError(res, message, status = 503) {
@@ -4560,7 +4536,6 @@ async function lagekarteProxyHandler(req, res, next) {
       html = html.replace(/\/lagekarte\/lagekarte\//g, "/lagekarte/");
       html = html.replace(/(\/lagekarte\/){2,}/g, "/lagekarte/");
       html = html.replace(/\/lagekarte\/{2,}/g, "/lagekarte/");
-      html = injectLagekarteAuthIntoHtml(html, tokenData);
       return res.send(html);
     }
 
