@@ -4368,6 +4368,12 @@ function sendLagekarteError(res, message, status = 503) {
 }
 
 // Proxy handler for /lagekarte/*
+app.get("/lagekarte", User_requireAuth, (req, res) => {
+  const queryIndex = req.originalUrl.indexOf("?");
+  const query = queryIndex >= 0 ? req.originalUrl.slice(queryIndex) : "";
+  return res.redirect(302, `/lagekarte/${query}`);
+});
+
 app.use("/lagekarte", User_requireAuth, async (req, res) => {
   const rid = generateRequestId();
   const startTime = Date.now();
@@ -4499,8 +4505,20 @@ app.use("/lagekarte", User_requireAuth, async (req, res) => {
       html = html.replace(/href="\//g, 'href="/lagekarte/');
       html = html.replace(/src="\//g, 'src="/lagekarte/');
       html = html.replace(/action="\//g, 'action="/lagekarte/');
+      html = html.replace(/href='\//g, "href='/lagekarte/");
+      html = html.replace(/src='\//g, "src='/lagekarte/");
+      html = html.replace(/action='\//g, "action='/lagekarte/");
+      html = html.replace(/href="\.\//g, 'href="/lagekarte/');
+      html = html.replace(/src="\.\//g, 'src="/lagekarte/');
+      html = html.replace(/action="\.\//g, 'action="/lagekarte/');
+      html = html.replace(/href='\.\//g, "href='/lagekarte/");
+      html = html.replace(/src='\.\//g, "src='/lagekarte/");
+      html = html.replace(/action='\.\//g, "action='/lagekarte/");
+      html = html.replace(/\b(href|src|action)=\.\//g, "$1=/lagekarte/");
       // Fix double rewrites
       html = html.replace(/\/lagekarte\/lagekarte\//g, "/lagekarte/");
+      html = html.replace(/(\/lagekarte\/){2,}/g, "/lagekarte/");
+      html = html.replace(/\/lagekarte\/{2,}/g, "/lagekarte/");
       return res.send(html);
     }
 
@@ -4606,7 +4624,7 @@ async function lagekarteRootProxy(req, res) {
         phase: "proxy_upstream_non_2xx",
         path: req.originalUrl,
         upstreamUrl,
-        httpStatus: upstreamRes.status,
+        status: upstreamRes.status,
       });
     }
 
