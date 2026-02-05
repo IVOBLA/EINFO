@@ -4168,6 +4168,11 @@ let _lagekarteTokenCache = {
   expiresAt: 0
 };
 
+const _lagekarteStorageKeyHints = {
+  local: new Set(["token", "uid", "user_id"]),
+  session: new Set(["token", "uid", "user_id"]),
+};
+
 // Token TTL: 30 minutes (conservative, refresh before expiry)
 const LAGEKARTE_TOKEN_TTL_MS = 30 * 60 * 1000;
 
@@ -4372,7 +4377,8 @@ async function lagekarteBrowserLoginBridge(req, res) {
       phase: "browser_login_bridge_ok",
       elapsedMs: Date.now() - startTime,
     });
-    return res.status(result.upstreamStatus).json(result.data);
+    res.setHeader("Cache-Control", "no-store");
+    return res.status(200).json(result.data);
   }
 
   const errorCode = result?.error || "LOGIN_FAILED";
@@ -4385,6 +4391,7 @@ async function lagekarteBrowserLoginBridge(req, res) {
     errorCode,
   });
 
+  res.setHeader("Cache-Control", "no-store");
   return res.status(status).json({
     error: "true",
     error_msg: "Lagekarte Login fehlgeschlagen",
@@ -4392,18 +4399,34 @@ async function lagekarteBrowserLoginBridge(req, res) {
   });
 }
 
-function injectLagekarteAuthIntoHtml(html, tokenData) {
+function updateLagekarteStorageKeyHints(js) {
+  if (!js || typeof js !== "string") return;
+  const localRegex = /localStorage\.setItem\(\s*['"]([^'"]+)['"]/g;
+  const sessionRegex = /sessionStorage\.setItem\(\s*['"]([^'"]+)['"]/g;
+
+  let match;
+  while ((match = localRegex.exec(js))) {
+    _lagekarteStorageKeyHints.local.add(match[1]);
+  }
+  while ((match = sessionRegex.exec(js))) {
+    _lagekarteStorageKeyHints.session.add(match[1]);
+  }
+}
+
+function injectLagekarteAuthIntoHtml(html, requestPath = "/") {
   if (!html || typeof html !== "string") return html;
-  if (!tokenData?.token) return html;
+
+  const normalized = (requestPath || "/").replace(/\/+/g, "/");
+  const isStartPage = normalized === "/" || normalized === "/de" || normalized === "/de/" || normalized === "/en" || normalized === "/en/";
+  if (!isStartPage) return html;
 
   const scriptPayload = {
-    token: String(tokenData.token),
-    uid: tokenData.uid != null ? String(tokenData.uid) : "",
-    user_id: tokenData.userId != null ? String(tokenData.userId) : ""
+    localKeys: Array.from(_lagekarteStorageKeyHints.local),
+    sessionKeys: Array.from(_lagekarteStorageKeyHints.session),
   };
 
   const serialized = JSON.stringify(scriptPayload).replace(/<\//g, "<\/");
-  const injectionScript = `<script>(function(){try{var auth=${serialized};var token=auth.token||"";var uid=auth.uid||"";var userId=auth.user_id||"";window.__EINFO_LAGEKARTE_AUTH__={token:token,uid:uid,user_id:userId};localStorage.setItem("token",token);localStorage.setItem("uid",uid);localStorage.setItem("user_id",String(userId));localStorage.setItem("userId",String(userId));localStorage.setItem("auth_token",token);sessionStorage.setItem("token",token);sessionStorage.setItem("uid",uid);sessionStorage.setItem("user_id",String(userId));}catch(e){}})();</script>`;
+  const injectionScript = `<script>(function(){try{var cfg=${serialized};var localKeys=Array.isArray(cfg.localKeys)?cfg.localKeys:[];var sessionKeys=Array.isArray(cfg.sessionKeys)?cfg.sessionKeys:[];var markerKey=localKeys.find(function(k){return /token/i.test(k);})||"token";var hasLoggedInMarker=!!(localStorage.getItem(markerKey)||sessionStorage.getItem(markerKey));if(hasLoggedInMarker)return;fetch("/lagekarte/php/api.php/user/login",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded; charset=UTF-8"},body:"user=x&pw=y"}).then(function(r){return r.ok?r.json():Promise.reject();}).then(function(js){var u=js&&js.user?js.user:{};var values={token:u.token!=null?String(u.token):"",uid:u.uid!=null?String(u.uid):"",user_id:u.id!=null?String(u.id):""};if(!values.token)return;var apply=function(keys,store){keys.forEach(function(key){if(!key)return;var low=String(key).toLowerCase();if(/token/.test(low))store.setItem(key,values.token);else if(/uid/.test(low))store.setItem(key,values.uid);else if(/user.?id|id_user|userid/.test(low))store.setItem(key,values.user_id);});};apply(localKeys,localStorage);apply(sessionKeys,sessionStorage);if(!localKeys.some(function(k){return /token/i.test(String(k));}))localStorage.setItem("token",values.token);if(!localKeys.some(function(k){return /uid/i.test(String(k));}))localStorage.setItem("uid",values.uid);if(!localKeys.some(function(k){return /user.?id|id_user|userid/i.test(String(k));}))localStorage.setItem("user_id",values.user_id);}).catch(function(){});}catch(e){}})();</script>`;
 
   if (/<\/head>/i.test(html)) {
     return html.replace(/<\/head>/i, `${injectionScript}</head>`);
@@ -4560,7 +4583,7 @@ async function lagekarteProxyHandler(req, res, next) {
       html = html.replace(/\/lagekarte\/lagekarte\//g, "/lagekarte/");
       html = html.replace(/(\/lagekarte\/){2,}/g, "/lagekarte/");
       html = html.replace(/\/lagekarte\/{2,}/g, "/lagekarte/");
-      html = injectLagekarteAuthIntoHtml(html, tokenData);
+      html = injectLagekarteAuthIntoHtml(html, requestPath);
       return res.send(html);
     }
 
@@ -4574,6 +4597,7 @@ async function lagekarteProxyHandler(req, res, next) {
     // Handle JS - rewrite fetch/ajax URLs
     if (contentType?.includes("javascript")) {
       let js = await upstream.text();
+      updateLagekarteStorageKeyHints(js);
       // Rewrite API base URLs - use /de/ for German interface
       js = js.replace(/['"]https?:\/\/www\.lagekarte\.info/g, '"/lagekarte');
       js = js.replace(/['"]\/de\/php\/api\.php/g, '"/lagekarte/de/php/api.php');
@@ -4619,6 +4643,8 @@ app.get("/lagekarte/", User_requireAuth, (req, res, next) => {
 });
 
 app.post("/lagekarte/php/api.php/user/login", User_requireAuth, lagekarteBrowserLoginBridge);
+app.post("/lagekarte/de/php/api.php/user/login", User_requireAuth, lagekarteBrowserLoginBridge);
+app.post("/lagekarte/en/php/api.php/user/login", User_requireAuth, lagekarteBrowserLoginBridge);
 app.post("/php/api.php/user/login", User_requireAuth, lagekarteBrowserLoginBridge);
 
 app.use("/lagekarte", User_requireAuth, lagekarteProxyHandler);
