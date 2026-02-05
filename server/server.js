@@ -4153,11 +4153,9 @@ app.get("/api/export/pdf", async (_req,res)=>{
 // ===================================================================
 // =                       LAGEKARTE PROXY (SSO)                      =
 // ===================================================================
-const LK_ROOT = "https://www.lagekarte.info";
-const LK_DE = "https://www.lagekarte.info/de";
-const LAGEKARTE_BASE_URL = LK_ROOT;
-const LAGEKARTE_ASSET_BASE = LK_ROOT;
-const LK_BASE = LK_DE;
+const LAGEKARTE_BASE_URL = "https://www.lagekarte.info";
+const LAGEKARTE_ASSET_BASE = "https://www.lagekarte.info";
+const LK_BASE = "https://www.lagekarte.info/de";
 const LAGEKARTE_API_LOGIN = "/de/php/api.php/user/login";
 
 // In-memory token cache
@@ -4317,7 +4315,7 @@ async function lagekarteLogin(rid = null) {
       elapsedMs: Date.now() - startTime,
     });
 
-    return { ok: true, token: token, uid: data.user?.uid, userId: data.user?.id, data };
+    return { ok: true, token: token, uid: data.user?.uid, userId: data.user?.id };
   } catch (err) {
     await logLagekarteError("Login error (network/fetch)", {
       rid: requestId,
@@ -4351,45 +4349,6 @@ async function getLagekarteToken(rid = null) {
     return null;
   }
   return _lagekarteTokenCache;
-}
-
-async function lagekarteBrowserLoginBridge(req, res) {
-  const rid = generateRequestId();
-  const startTime = Date.now();
-
-  await logLagekarteInfo("Browser login bridge request", {
-    rid,
-    phase: "browser_login_bridge_start",
-    path: req.originalUrl,
-    method: req.method,
-  });
-
-  const result = await lagekarteLogin(rid);
-
-  if (result?.ok && result?.data?.error === "false" && result?.data?.user?.token) {
-    await logLagekarteInfo("Browser login bridge success", {
-      rid,
-      phase: "browser_login_bridge_ok",
-      elapsedMs: Date.now() - startTime,
-    });
-    return res.status(200).json(result.data);
-  }
-
-  const errorCode = result?.error || "LOGIN_FAILED";
-  const status = errorCode === "CREDENTIALS_MISSING" ? 401 : 503;
-
-  await logLagekarteWarn("Browser login bridge failed", {
-    rid,
-    phase: "browser_login_bridge_failed",
-    elapsedMs: Date.now() - startTime,
-    errorCode,
-  });
-
-  return res.status(status).json({
-    error: "true",
-    error_msg: "Lagekarte Login fehlgeschlagen",
-    code: errorCode,
-  });
 }
 
 function sendLagekarteError(res, message, status = 503) {
@@ -4468,6 +4427,24 @@ async function lagekarteProxyHandler(req, res, next) {
   let targetPath = requestPath;
   if (targetPath === "/" || targetPath === "") {
     targetPath = "/de/";
+  }
+
+  // Intercept login request - return cached token instead
+  // Response format matches Lagekarte API: { error: "false", user: { token, id, uid } }
+  if (targetPath === "/de/php/api.php/user/login" && req.method === "POST") {
+    await logLagekarteInfo("Intercepted login - returning cached token", {
+      rid,
+      phase: "login_intercept",
+      elapsedMs: Date.now() - startTime,
+    });
+    return res.json({
+      error: "false",
+      user: {
+        token: tokenData.token,
+        id: tokenData.userId,
+        uid: tokenData.uid
+      }
+    });
   }
 
   const targetUrl = new URL(targetPath, LAGEKARTE_BASE_URL);
@@ -4592,9 +4569,6 @@ app.get("/lagekarte/", User_requireAuth, (req, res, next) => {
   req.url = "/";
   return lagekarteProxyHandler(req, res, next);
 });
-
-app.post("/lagekarte/php/api.php/user/login", User_requireAuth, lagekarteBrowserLoginBridge);
-app.post("/php/api.php/user/login", User_requireAuth, lagekarteBrowserLoginBridge);
 
 app.use("/lagekarte", User_requireAuth, lagekarteProxyHandler);
 
