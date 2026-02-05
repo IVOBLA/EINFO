@@ -4552,27 +4552,7 @@ async function lagekarteProxyHandler(req, res, next) {
       }
     }
 
-    await logLagekarteInfo("Upstream request", {
-      rid,
-      phase: "proxy_upstream_request",
-      path: requestPath,
-      method: req.method,
-      remoteUrl: sanitizeUrl(targetUrl.href),
-      hasBody: !!fetchOptions.body,
-    });
-
     const upstream = await fetch(targetUrl.href, fetchOptions);
-
-    await logLagekarteInfo("Upstream response", {
-      rid,
-      phase: "proxy_upstream_response",
-      path: requestPath,
-      method: req.method,
-      remoteUrl: sanitizeUrl(targetUrl.href),
-      httpStatus: upstream.status,
-      contentType: upstream.headers.get("content-type") || "",
-      elapsedMs: Date.now() - startTime,
-    });
 
     // Forward status and relevant headers
     res.status(upstream.status);
@@ -4671,7 +4651,6 @@ app.use("/lagekarte", User_requireAuth, lagekarteProxyHandler);
 
 async function lagekarteRootProxy(req, res) {
   const rid = generateRequestId();
-  const startTime = Date.now();
   const upstreamUrl = `${LAGEKARTE_ASSET_BASE}${req.originalUrl}`;
   const incomingHeaders = req.headers ?? {};
   const proxyHeaders = {};
@@ -4720,27 +4699,7 @@ async function lagekarteRootProxy(req, res) {
   }
 
   try {
-    await logLagekarteInfo("Root proxy upstream request", {
-      rid,
-      phase: "root_proxy_upstream_request",
-      path: req.originalUrl,
-      method: req.method,
-      remoteUrl: sanitizeUrl(upstreamUrl),
-      hasBody: !!fetchOptions.body,
-    });
-
     const upstreamRes = await fetch(upstreamUrl, fetchOptions);
-
-    await logLagekarteInfo("Root proxy upstream response", {
-      rid,
-      phase: "root_proxy_upstream_response",
-      path: req.originalUrl,
-      method: req.method,
-      remoteUrl: sanitizeUrl(upstreamUrl),
-      httpStatus: upstreamRes.status,
-      contentType: upstreamRes.headers.get("content-type") || "",
-      elapsedMs: Date.now() - startTime,
-    });
 
     if (!upstreamRes.ok) {
       await logLagekarteWarn("Lagekarte root proxy upstream non-2xx", {
