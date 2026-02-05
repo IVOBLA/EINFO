@@ -4154,7 +4154,7 @@ app.get("/api/export/pdf", async (_req,res)=>{
 // =                       LAGEKARTE PROXY (SSO)                      =
 // ===================================================================
 const LAGEKARTE_BASE_URL = "https://www.lagekarte.info";
-const LAGEKARTE_API_LOGIN = "/de/php/api.php/user/login";
+const LAGEKARTE_API_LOGIN = "/en/php/api.php/user/login";
 
 // In-memory token cache
 let _lagekarteTokenCache = {
@@ -4222,21 +4222,13 @@ async function lagekarteLogin(rid = null) {
   });
 
   try {
-    // Build form-urlencoded body with correct parameter names (user, pw)
-    const formBody = new URLSearchParams();
-    formBody.set("user", creds.creds.username);
-    formBody.set("pw", creds.creds.password);
-
     const res = await fetch(loginUrl, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-        "Accept": "application/json, text/javascript, */*; q=0.01",
-        "X-Requested-With": "XMLHttpRequest",
-        "Origin": "https://www.lagekarte.info",
-        "Referer": "https://www.lagekarte.info/de/"
-      },
-      body: formBody.toString()
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user: creds.creds.username,
+        pass: creds.creds.password
+      })
     });
 
     if (!res.ok) {
@@ -4270,27 +4262,9 @@ async function lagekarteLogin(rid = null) {
       return { error: "LOGIN_PARSE_FAILED" };
     }
 
-    // Lagekarte API response format:
-    // Success: { error: "false", user: { token: "...", id: ..., ... } }
-    // Failure: { error: "true", error_msg: "..." }
-
-    // Handle error even on HTTP 200
-    if (data?.error === "true" || data?.error === true) {
-      const errorMsg = data?.error_msg || "unknown error";
-      await logLagekarteError("Login failed: API returned error", {
-        rid: requestId,
-        phase: "login_failed",
-        httpStatus: res.status,
-        elapsedMs: Date.now() - startTime,
-        error_msg: sanitizeSnippet(errorMsg),
-      });
-      return { error: "LOGIN_API_ERROR", message: errorMsg };
-    }
-
-    // Verify success response and extract token from user object
-    const token = data?.user?.token;
-    if (data?.error !== "false" || !token) {
-      await logLagekarteError("Login failed: unexpected response format", {
+    // Expected response: { token: "...", uid: "...", user: { id: ..., ... } }
+    if (!data.token) {
+      await logLagekarteError("Login failed: no token in response", {
         rid: requestId,
         phase: "login_failed",
         httpStatus: res.status,
@@ -4301,8 +4275,8 @@ async function lagekarteLogin(rid = null) {
     }
 
     _lagekarteTokenCache = {
-      token: token,
-      uid: data.user?.uid || null,
+      token: data.token,
+      uid: data.uid || null,
       userId: data.user?.id || null,
       expiresAt: Date.now() + LAGEKARTE_TOKEN_TTL_MS
     };
@@ -4313,7 +4287,7 @@ async function lagekarteLogin(rid = null) {
       elapsedMs: Date.now() - startTime,
     });
 
-    return { ok: true, token: token, uid: data.user?.uid, userId: data.user?.id };
+    return { ok: true, token: data.token, uid: data.uid, userId: data.user?.id };
   } catch (err) {
     await logLagekarteError("Login error (network/fetch)", {
       rid: requestId,
@@ -4421,27 +4395,23 @@ app.use("/lagekarte", User_requireAuth, async (req, res) => {
     return sendLagekarteError(res, "Lagekarte Login fehlgeschlagen. Bitte Zugangsdaten im Admin Panel prüfen.");
   }
 
-  // Build target URL - use /de/ base for German interface
+  // Build target URL
   let targetPath = requestPath;
   if (targetPath === "/" || targetPath === "") {
-    targetPath = "/de/";
+    targetPath = "/en/";
   }
 
   // Intercept login request - return cached token instead
-  // Response format matches Lagekarte API: { error: "false", user: { token, id, uid } }
-  if (targetPath === "/de/php/api.php/user/login" && req.method === "POST") {
+  if (targetPath === "/en/php/api.php/user/login" && req.method === "POST") {
     await logLagekarteInfo("Intercepted login - returning cached token", {
       rid,
       phase: "login_intercept",
       elapsedMs: Date.now() - startTime,
     });
     return res.json({
-      error: "false",
-      user: {
-        token: tokenData.token,
-        id: tokenData.userId,
-        uid: tokenData.uid
-      }
+      token: tokenData.token,
+      uid: tokenData.uid,
+      user: { id: tokenData.userId }
     });
   }
 
@@ -4512,9 +4482,9 @@ app.use("/lagekarte", User_requireAuth, async (req, res) => {
     // Handle JS - rewrite fetch/ajax URLs
     if (contentType?.includes("javascript")) {
       let js = await upstream.text();
-      // Rewrite API base URLs - use /de/ for German interface
+      // Rewrite API base URLs
       js = js.replace(/['"]https?:\/\/www\.lagekarte\.info/g, '"/lagekarte');
-      js = js.replace(/['"]\/de\/php\/api\.php/g, '"/lagekarte/de/php/api.php');
+      js = js.replace(/['"]\/en\/php\/api\.php/g, '"/lagekarte/en/php/api.php');
       js = js.replace(/['"]\/daten\//g, '"/lagekarte/daten/');
       return res.send(js);
     }
