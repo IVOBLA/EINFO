@@ -4368,7 +4368,13 @@ function sendLagekarteError(res, message, status = 503) {
 }
 
 // Proxy handler for /lagekarte/*
-async function lagekarteProxyHandler(req, res, next) {
+app.get("/lagekarte", User_requireAuth, (req, res) => {
+  const queryIndex = req.originalUrl.indexOf("?");
+  const query = queryIndex >= 0 ? req.originalUrl.slice(queryIndex) : "";
+  return res.redirect(302, `/lagekarte/${query}`);
+});
+
+app.use("/lagekarte", User_requireAuth, async (req, res) => {
   const rid = generateRequestId();
   const startTime = Date.now();
   const requestPath = req.path || "/";
@@ -4558,19 +4564,7 @@ async function lagekarteProxyHandler(req, res, next) {
     });
     return sendLagekarteError(res, `Verbindung zu Lagekarte fehlgeschlagen: ${err.message}`);
   }
-}
-
-app.get("/lagekarte", User_requireAuth, (req, res, next) => {
-  req.url = "/";
-  return lagekarteProxyHandler(req, res, next);
 });
-
-app.get("/lagekarte/", User_requireAuth, (req, res, next) => {
-  req.url = "/";
-  return lagekarteProxyHandler(req, res, next);
-});
-
-app.use("/lagekarte", User_requireAuth, lagekarteProxyHandler);
 
 async function lagekarteRootProxy(req, res) {
   const rid = generateRequestId();
@@ -4687,8 +4681,8 @@ app.get("/Hilfe.pdf", async (_req,res)=>{
 app.get("/status", (_req,res)=>res.sendFile(path.join(DIST_DIR,"index.html")));
 
 // ---- Static + SPA-Fallback -------------------------------------------
-app.use(express.static(PUBLIC_DIR, { redirect: false }));
-app.use(express.static(DIST_DIR, { redirect: false }));
+app.use(express.static(PUBLIC_DIR));
+app.use(express.static(DIST_DIR));
 
 app.get("*", (req, res, next) => {
   const isApi = req.path.startsWith("/api/");
