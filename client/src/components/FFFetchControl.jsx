@@ -183,8 +183,8 @@ export default function FFFetchControl({
       {/* Hinweis (z. B. keine globalen Creds) */}
       {hint && <span style={{ color: "#dc2626", fontSize: 12, marginLeft: 8 }}>{hint}</span>}
 
-      {/* Auto-Stop Countdown (Farbskala) - nur wenn Auto-Stop aktiv */}
-      {running && Number.isFinite(autoInfo.autoStopMin) && autoInfo.autoStopMin > 0 && autoInfo.remainingMin != null && autoInfo.remainingMin <= 15 && (
+      {/* Auto-Stop Countdown (Farbskala) */}
+      {running && autoInfo.remainingMin != null && autoInfo.remainingMin <= 15 && (
         <div
           title={
             `Letzte Aktivität: ${
