@@ -73,6 +73,7 @@ export function User_initStore(dataDir){
     users:   path.join(userDir, "User_users.enc.json"),
     roles:   path.join(userDir, "User_roles.json"),
     fetcher: path.join(userDir, "User_fetcher.enc.json"),
+    lagekarte: path.join(userDir, "User_lagekarte.enc.json"),
     authIdx: path.join(userDir, "User_authIndex.json"),
   };
   return _paths;
@@ -298,6 +299,27 @@ export async function User_getGlobalFetcher(){
 }
 export async function User_hasGlobalFetcher(){
   const it = await User_getGlobalFetcher().catch(()=>null);
+  return !!(it?.creds?.username && it?.creds?.password);
+}
+
+// ---------- Globale Lagekarte-Creds (separate Datei, Master-pflichtig) ----------
+export async function User_setGlobalLagekarte({ username, password }){
+  if(!_master) throw new Error("MASTER_LOCKED");
+  if(!username || !password) throw new Error("MISSING");
+  const obj = { v:1, updatedAt:new Date().toISOString(), creds:{ username, password } };
+  const enc = User_encryptJSON(obj, _master.key);
+  await fs.writeFile(_paths.lagekarte, JSON.stringify(enc, null, 2));
+  return { updatedAt: obj.updatedAt };
+}
+export async function User_getGlobalLagekarte(){
+  if(!_master) throw new Error("MASTER_LOCKED");
+  try{
+    const enc = JSON.parse(await fs.readFile(_paths.lagekarte, "utf8"));
+    return User_decryptJSON(enc, _master.key);
+  }catch{ return null; }
+}
+export async function User_hasGlobalLagekarte(){
+  const it = await User_getGlobalLagekarte().catch(()=>null);
   return !!(it?.creds?.username && it?.creds?.password);
 }
 
