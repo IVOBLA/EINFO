@@ -113,7 +113,6 @@ export default function User_AdminPanel() {
   const [roles, setRoles]             = useState([]); // Strings ODER Objekte {id,label,apps|capabilities}
   const [users, setUsers]             = useState([]);
   const [fetcherInfo, setFetcherInfo] = useState({ has:false, updatedAt:null });
-  const [lagekarteInfo, setLagekarteInfo] = useState({ has:false, updatedAt:null });
   const [autoConfig, setAutoConfig]   = useState({ enabled:false, intervalSec:30, demoMode:false });
   const [autoConfigDraft, setAutoConfigDraft] = useState({ enabled:false, intervalSec:"30", demoMode:false });
   const [savingAutoConfig, setSavingAutoConfig] = useState(false);
@@ -322,13 +321,6 @@ export default function User_AdminPanel() {
         setFetcherInfo({
           has: !!(fi?.has || fi?.ok || fi?.present),
           updatedAt: fi?.updatedAt ?? fi?.ts ?? null
-        });
-      } catch (_) {/* optional */}
-      try {
-        const li = await get("/lagekarte"); // { has, updatedAt }
-        setLagekarteInfo({
-          has: !!(li?.has || li?.ok || li?.present),
-          updatedAt: li?.updatedAt ?? li?.ts ?? null
         });
       } catch (_) {/* optional */}
       try {
@@ -1897,43 +1889,6 @@ export default function User_AdminPanel() {
         </form>
         <div className="text-xs text-gray-500 mt-2">
           Diese Zugangsdaten gelten für <b>alle Benutzer</b>. Start/Stopp nutzt immer den globalen Satz.
-        </div>
-      </details>
-
-      {/* 6b) Globale Lagekarte-Creds */}
-      <details className="border rounded p-3" open>
-        <summary className="cursor-pointer font-medium">Lagekarte-Zugangsdaten (global)</summary>
-        <div className="mt-3 text-sm">
-          Status:{" "}
-          {lagekarteInfo.has ? (
-            <b className="text-emerald-700">gesetzt</b>
-          ) : (
-            <b className="text-rose-700">fehlt</b>
-          )}
-          {lagekarteInfo.updatedAt && (
-            <> • zuletzt geändert: <code>{new Date(lagekarteInfo.updatedAt).toLocaleString("de-AT",{hour12:false})}</code></>
-          )}
-        </div>
-        <form
-          onSubmit={async (e) => {
-            e.preventDefault();
-            setErr(""); setMsg("");
-            const f = e.target;
-            try {
-              await put("/lagekarte", { username: f.lkUser.value, password: f.lkPass.value });
-              f.reset();
-              setMsg("Lagekarte-Creds gespeichert (global).");
-              await refresh();
-            } catch (ex) { setErr(ex.message || "Speichern fehlgeschlagen"); }
-          }}
-          className="mt-3 grid grid-cols-3 gap-2 items-center max-w-4xl"
-        >
-          <input name="lkUser" placeholder="Lagekarte Benutzername" className="border px-2 py-1 rounded" disabled={locked} />
-          <input name="lkPass" type="password" placeholder="Lagekarte Passwort" className="border px-2 py-1 rounded" disabled={locked} />
-          <button className="border rounded px-3 py-1" disabled={locked}>Speichern</button>
-        </form>
-        <div className="text-xs text-gray-500 mt-2">
-          Zugangsdaten für <b>lagekarte.info</b>. Der Lagekarte-Button in der Übersicht nutzt diese Daten für SSO.
         </div>
       </details>
       {/* 7) Wartung: Initialsetup & Archive */}
