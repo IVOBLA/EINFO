@@ -4154,7 +4154,6 @@ app.get("/api/export/pdf", async (_req,res)=>{
 // =                       LAGEKARTE PROXY (SSO)                      =
 // ===================================================================
 const LAGEKARTE_BASE_URL = "https://www.lagekarte.info";
-const LK_BASE = "https://www.lagekarte.info/de";
 const LAGEKARTE_API_LOGIN = "/de/php/api.php/user/login";
 
 // In-memory token cache
@@ -4546,102 +4545,6 @@ app.use("/lagekarte", User_requireAuth, async (req, res) => {
     return sendLagekarteError(res, `Verbindung zu Lagekarte fehlgeschlagen: ${err.message}`);
   }
 });
-
-async function lagekarteRootProxy(req, res) {
-  const rid = generateRequestId();
-  const upstreamUrl = `${LK_BASE}${req.originalUrl}`;
-  const incomingHeaders = req.headers ?? {};
-  const proxyHeaders = {};
-
-  for (const [headerName, headerValue] of Object.entries(incomingHeaders)) {
-    if (headerValue == null) continue;
-    const lower = headerName.toLowerCase();
-    if ([
-      "host",
-      "connection",
-      "content-length",
-      "transfer-encoding",
-      "proxy-authorization",
-      "proxy-authenticate",
-      "upgrade",
-      "te",
-      "trailer",
-      "keep-alive",
-    ].includes(lower)) {
-      continue;
-    }
-    proxyHeaders[headerName] = headerValue;
-  }
-
-  const fetchOptions = {
-    method: req.method,
-    headers: proxyHeaders,
-    redirect: "manual",
-  };
-
-  if (!["GET", "HEAD"].includes(req.method)) {
-    if (req.body && Object.keys(req.body).length > 0) {
-      const contentType = req.headers["content-type"] || "application/json";
-      fetchOptions.headers["content-type"] = contentType;
-      fetchOptions.body = contentType.includes("application/json")
-        ? JSON.stringify(req.body)
-        : typeof req.body === "string"
-          ? req.body
-          : JSON.stringify(req.body);
-    } else {
-      fetchOptions.body = req;
-      fetchOptions.duplex = "half";
-    }
-  }
-
-  try {
-    const upstreamRes = await fetch(upstreamUrl, fetchOptions);
-
-    if (!upstreamRes.ok) {
-      await logLagekarteWarn("Lagekarte root proxy upstream non-2xx", {
-        rid,
-        phase: "proxy_failed",
-        path: req.originalUrl,
-        upstreamUrl,
-        httpStatus: upstreamRes.status,
-      });
-    }
-
-    res.status(upstreamRes.status);
-    upstreamRes.headers.forEach((value, key) => {
-      const lower = key.toLowerCase();
-      if (["transfer-encoding", "connection", "keep-alive"].includes(lower)) return;
-      res.setHeader(key, value);
-    });
-
-    if (upstreamRes.body) {
-      const reader = upstreamRes.body.getReader();
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        res.write(value);
-      }
-    }
-
-    return res.end();
-  } catch (err) {
-    await logLagekarteError("Lagekarte root proxy failed", {
-      rid,
-      phase: "proxy_failed",
-      path: req.originalUrl,
-      upstreamUrl,
-      httpStatus: 502,
-      error: err?.message || "unknown",
-    });
-    return res.status(502).send("Bad Gateway");
-  }
-}
-
-app.use("/src", lagekarteRootProxy);
-app.use("/js", lagekarteRootProxy);
-app.use("/css", lagekarteRootProxy);
-app.use("/img", lagekarteRootProxy);
-app.use("/fonts", lagekarteRootProxy);
 
 // ===================================================================
 // =                             STATICS                              =
