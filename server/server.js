@@ -4320,6 +4320,9 @@ async function lagekarteLogin(rid = null) {
       rid: requestId,
       phase: "login_ok",
       elapsedMs: Date.now() - startTime,
+      token,
+      userId: data.user?.id ?? null,
+      uid: data.user?.uid ?? null,
     });
 
     return { ok: true, token: token, uid: data.user?.uid, userId: data.user?.id, data, upstreamStatus: res.status };
@@ -4344,6 +4347,8 @@ async function getLagekarteToken(rid = null) {
     rid: requestId,
     phase: "token_cache",
     tokenCacheHit: tokenValid,
+    token: tokenValid ? _lagekarteTokenCache.token : "",
+    expiresAt: tokenValid ? _lagekarteTokenCache.expiresAt : null,
   });
 
   if (tokenValid) {
@@ -4377,6 +4382,10 @@ async function lagekarteBrowserLoginBridge(req, res) {
       phase: "browser_login_bridge_ok",
       elapsedMs: Date.now() - startTime,
     });
+    const cookieTokenData = { token: result?.token, userId: result?.userId ?? result?.data?.user?.id };
+    for (const cookie of buildLagekarteAuthCookies(cookieTokenData)) {
+      res.append("Set-Cookie", cookie);
+    }
     res.setHeader("Cache-Control", "no-store");
     return res.status(200).json(result.data);
   }
@@ -4413,7 +4422,22 @@ function updateLagekarteStorageKeyHints(js) {
   }
 }
 
-function injectLagekarteAuthIntoHtml(html, requestPath = "/") {
+function buildLagekarteAuthCookies(tokenData) {
+  if (!tokenData?.token || tokenData?.userId == null) return [];
+  const encodedToken = encodeURIComponent(String(tokenData.token));
+  const encodedUser = encodeURIComponent(String(tokenData.userId));
+  const attrsRoot = "Path=/; Max-Age=2592000; SameSite=Lax";
+  const attrsLagekarte = "Path=/lagekarte; Max-Age=2592000; SameSite=Lax";
+
+  return [
+    `login-token=${encodedToken}; ${attrsRoot}`,
+    `login-user=${encodedUser}; ${attrsRoot}`,
+    `login-token=${encodedToken}; ${attrsLagekarte}`,
+    `login-user=${encodedUser}; ${attrsLagekarte}`,
+  ];
+}
+
+function injectLagekarteAuthIntoHtml(html, requestPath = "/", tokenData = null) {
   if (!html || typeof html !== "string") return html;
 
   const normalized = (requestPath || "/").replace(/\/+/g, "/");
@@ -4423,10 +4447,12 @@ function injectLagekarteAuthIntoHtml(html, requestPath = "/") {
   const scriptPayload = {
     localKeys: Array.from(_lagekarteStorageKeyHints.local),
     sessionKeys: Array.from(_lagekarteStorageKeyHints.session),
+    token: tokenData?.token != null ? String(tokenData.token) : "",
+    userId: tokenData?.userId != null ? String(tokenData.userId) : "",
   };
 
   const serialized = JSON.stringify(scriptPayload).replace(/<\//g, "<\/");
-  const injectionScript = `<script>(function(){try{var cfg=${serialized};var localKeys=Array.isArray(cfg.localKeys)?cfg.localKeys:[];var sessionKeys=Array.isArray(cfg.sessionKeys)?cfg.sessionKeys:[];var markerKey=localKeys.find(function(k){return /token/i.test(k);})||"token";var hasLoggedInMarker=!!(localStorage.getItem(markerKey)||sessionStorage.getItem(markerKey));if(hasLoggedInMarker)return;fetch("/lagekarte/php/api.php/user/login",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded; charset=UTF-8"},body:"user=x&pw=y"}).then(function(r){return r.ok?r.json():Promise.reject();}).then(function(js){var u=js&&js.user?js.user:{};var values={token:u.token!=null?String(u.token):"",uid:u.uid!=null?String(u.uid):"",user_id:u.id!=null?String(u.id):""};if(!values.token)return;var apply=function(keys,store){keys.forEach(function(key){if(!key)return;var low=String(key).toLowerCase();if(/token/.test(low))store.setItem(key,values.token);else if(/uid/.test(low))store.setItem(key,values.uid);else if(/user.?id|id_user|userid/.test(low))store.setItem(key,values.user_id);});};apply(localKeys,localStorage);apply(sessionKeys,sessionStorage);if(!localKeys.some(function(k){return /token/i.test(String(k));}))localStorage.setItem("token",values.token);if(!localKeys.some(function(k){return /uid/i.test(String(k));}))localStorage.setItem("uid",values.uid);if(!localKeys.some(function(k){return /user.?id|id_user|userid/i.test(String(k));}))localStorage.setItem("user_id",values.user_id);}).catch(function(){});}catch(e){}})();</script>`;
+  const injectionScript = `<script>(function(){try{var cfg=${serialized};var localKeys=Array.isArray(cfg.localKeys)?cfg.localKeys:[];var sessionKeys=Array.isArray(cfg.sessionKeys)?cfg.sessionKeys:[];var setCookie=function(name,val){if(val==null||String(val)==="")return;var enc=encodeURIComponent(String(val));document.cookie=name+"="+enc+"; Path=/; Max-Age=2592000; SameSite=Lax";document.cookie=name+"="+enc+"; Path=/lagekarte; Max-Age=2592000; SameSite=Lax";};var values={token:cfg.token!=null?String(cfg.token):"",user_id:cfg.userId!=null?String(cfg.userId):"",uid:""};if(values.token){setCookie("login-token",values.token);setCookie("login-user",values.user_id);}var markerKey=localKeys.find(function(k){return /token/i.test(k);})||"token";var hasLoggedInMarker=!!(localStorage.getItem(markerKey)||sessionStorage.getItem(markerKey));if(hasLoggedInMarker)return;if(!values.token){fetch("/lagekarte/de/php/api.php/user/login",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded; charset=UTF-8"},body:"user=x&pw=y"}).then(function(r){return r.ok?r.json():Promise.reject();}).then(function(js){var u=js&&js.user?js.user:{};values={token:u.token!=null?String(u.token):"",uid:u.uid!=null?String(u.uid):"",user_id:u.id!=null?String(u.id):""};if(values.token){setCookie("login-token",values.token);setCookie("login-user",values.user_id);}if(!values.token)return;var apply=function(keys,store){keys.forEach(function(key){if(!key)return;var low=String(key).toLowerCase();if(/token/.test(low))store.setItem(key,values.token);else if(/uid/.test(low))store.setItem(key,values.uid);else if(/user.?id|id_user|userid/.test(low))store.setItem(key,values.user_id);});};apply(localKeys,localStorage);apply(sessionKeys,sessionStorage);if(!localKeys.some(function(k){return /token/i.test(String(k));}))localStorage.setItem("token",values.token);if(!localKeys.some(function(k){return /uid/i.test(String(k));}))localStorage.setItem("uid",values.uid);if(!localKeys.some(function(k){return /user.?id|id_user|userid/i.test(String(k));}))localStorage.setItem("user_id",values.user_id);}).catch(function(){});return;}var apply=function(keys,store){keys.forEach(function(key){if(!key)return;var low=String(key).toLowerCase();if(/token/.test(low))store.setItem(key,values.token);else if(/uid/.test(low))store.setItem(key,values.uid);else if(/user.?id|id_user|userid/.test(low))store.setItem(key,values.user_id);});};apply(localKeys,localStorage);apply(sessionKeys,sessionStorage);if(!localKeys.some(function(k){return /token/i.test(String(k));}))localStorage.setItem("token",values.token);if(!localKeys.some(function(k){return /uid/i.test(String(k));}))localStorage.setItem("uid",values.uid);if(!localKeys.some(function(k){return /user.?id|id_user|userid/i.test(String(k));}))localStorage.setItem("user_id",values.user_id);}catch(e){}})();</script>`;
 
   if (/<\/head>/i.test(html)) {
     return html.replace(/<\/head>/i, `${injectionScript}</head>`);
@@ -4603,7 +4629,10 @@ async function lagekarteProxyHandler(req, res, next) {
       html = html.replace(/\/lagekarte\/lagekarte\//g, "/lagekarte/");
       html = html.replace(/(\/lagekarte\/){2,}/g, "/lagekarte/");
       html = html.replace(/\/lagekarte\/{2,}/g, "/lagekarte/");
-      html = injectLagekarteAuthIntoHtml(html, requestPath);
+      html = injectLagekarteAuthIntoHtml(html, requestPath, tokenData);
+      for (const cookie of buildLagekarteAuthCookies(tokenData)) {
+        res.append("Set-Cookie", cookie);
+      }
       return res.send(html);
     }
 
@@ -4664,7 +4693,6 @@ app.get("/lagekarte/", User_requireAuth, (req, res, next) => {
 
 app.post("/lagekarte/php/api.php/user/login", User_requireAuth, lagekarteBrowserLoginBridge);
 app.post("/lagekarte/de/php/api.php/user/login", User_requireAuth, lagekarteBrowserLoginBridge);
-app.post("/lagekarte/en/php/api.php/user/login", User_requireAuth, lagekarteBrowserLoginBridge);
 app.post("/php/api.php/user/login", User_requireAuth, lagekarteBrowserLoginBridge);
 
 app.use("/lagekarte", User_requireAuth, lagekarteProxyHandler);
