@@ -4211,12 +4211,23 @@ function parseSetCookie(entry = "") {
   const parts = String(entry).split(";").map((p) => p.trim()).filter(Boolean);
   if (!parts.length || !parts[0].includes("=")) return null;
   const [name, ...valueParts] = parts[0].split("=");
-  const cookie = { name: name.trim(), value: valueParts.join("=").trim(), path: "/", expiresAt: null };
+  const cookie = {
+    name: name.trim(),
+    value: valueParts.join("=").trim(),
+    path: "/",
+    domain: null,
+    sameSite: null,
+    secure: false,
+    expiresAt: null,
+  };
   for (const attr of parts.slice(1)) {
     const [attrName, ...attrValueParts] = attr.split("=");
     const attrKey = attrName.trim().toLowerCase();
     const attrValue = attrValueParts.join("=").trim();
     if (attrKey === "path" && attrValue) cookie.path = attrValue;
+    if (attrKey === "domain" && attrValue) cookie.domain = attrValue;
+    if (attrKey === "samesite" && attrValue) cookie.sameSite = attrValue;
+    if (attrKey === "secure") cookie.secure = true;
     if (attrKey === "expires") {
       const ts = Date.parse(attrValue);
       if (Number.isFinite(ts)) cookie.expiresAt = ts;
@@ -4249,11 +4260,23 @@ function splitSetCookieHeader(value = "") {
   return result;
 }
 
+function getSetCookieValues(responseHeaders) {
+  if (!responseHeaders) return [];
+
+  const viaGetSetCookie = responseHeaders.getSetCookie?.();
+  if (Array.isArray(viaGetSetCookie) && viaGetSetCookie.length) return viaGetSetCookie;
+
+  const fallback = responseHeaders.get?.("set-cookie") || responseHeaders["set-cookie"];
+  if (!fallback) return [];
+  if (Array.isArray(fallback)) return fallback.flatMap((item) => splitSetCookieHeader(item));
+  return splitSetCookieHeader(fallback);
+}
+
 function storeSetCookieInJar(jar, responseHeaders) {
   if (!jar || !responseHeaders) return;
-  const setCookieHeader = responseHeaders.get?.("set-cookie") || responseHeaders["set-cookie"];
-  if (!setCookieHeader) return;
-  for (const item of splitSetCookieHeader(setCookieHeader)) {
+  const setCookieValues = getSetCookieValues(responseHeaders);
+  if (!setCookieValues.length) return;
+  for (const item of setCookieValues) {
     const parsed = parseSetCookie(item);
     if (!parsed?.name) continue;
     if (parsed.expiresAt && parsed.expiresAt <= Date.now()) {
@@ -4584,6 +4607,14 @@ async function fetchLagekarteWithLogging({ rid, localPath, upstreamUrl, method =
 
     const responseHeadersObj = headersToObject(upstreamRes.headers);
     storeSetCookieInJar(jar, upstreamRes.headers);
+    if (jar) {
+      await logLagekarteInfo("Session cookies updated", {
+        rid,
+        phase: "cookie_store",
+        cookieCount: jar.cookies.size,
+        cookieNames: [...jar.cookies.keys()],
+      });
+    }
 
     if (jar && isTextBasedContentType(upstreamRes.headers.get("content-type") || "")) {
       try {
