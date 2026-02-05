@@ -60,13 +60,19 @@ import { syncAiAnalysisLoop } from "./chatbotRunner.js";
 
 // Lagekarte Logger
 import {
-  maskA,
-  sanitizeSnippet,
   sanitizeUrl,
+  sanitizeHeaders,
+  sanitizeBody,
+  isTextBasedContentType,
+  limitLoggedBody,
+  summarizeBinaryBody,
+  generateUpstreamId,
+  MAX_BODY_LOG_BYTES,
   generateRequestId,
   logLagekarteInfo,
   logLagekarteWarn,
   logLagekarteError,
+  logLkTraffic,
 } from "./utils/lagekarteLogger.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -4178,16 +4184,12 @@ const LAGEKARTE_TOKEN_TTL_MS = 30 * 60 * 1000;
 
 async function lagekarteLogin(rid = null) {
   const requestId = rid || generateRequestId();
-  const startTime = Date.now();
 
-  // Load credentials
   let creds = null;
-  let masterLocked = false;
   try {
     creds = await User_getGlobalLagekarte();
   } catch (err) {
     if (err?.message === "MASTER_LOCKED") {
-      masterLocked = true;
       await logLagekarteWarn("Master locked, cannot decrypt credentials", {
         rid: requestId,
         phase: "creds_load",
@@ -4196,171 +4198,293 @@ async function lagekarteLogin(rid = null) {
       });
       return { error: "MASTER_LOCKED" };
     }
-    // Other error during credential load
     await logLagekarteError("Credential load error", {
       rid: requestId,
       phase: "creds_load",
       error: err?.message || "unknown",
     });
-    creds = null;
+    return { error: "CREDENTIALS_LOAD_ERROR" };
   }
 
   const credsPresent = !!(creds?.creds?.username && creds?.creds?.password);
-
-  // Log credential load phase (Option A masking)
   await logLagekarteInfo("Credentials loaded", {
     rid: requestId,
     phase: "creds_load",
     credsPresent,
     masterLocked: false,
-    username_masked: credsPresent ? maskA(creds.creds.username) : "",
-    password_masked: credsPresent ? maskA(creds.creds.password) : "",
   });
 
   if (!credsPresent) {
     return { error: "CREDENTIALS_MISSING" };
   }
 
-  // Perform login request
   const loginUrl = `${LAGEKARTE_BASE_URL}${LAGEKARTE_API_LOGIN}`;
+  const formBody = new URLSearchParams();
+  formBody.set("user", creds.creds.username);
+  formBody.set("pw", creds.creds.password);
 
-  await logLagekarteInfo("Login request starting", {
+  const result = await fetchLagekarteWithLogging({
     rid: requestId,
-    phase: "login_request",
-    remoteUrl: loginUrl,
+    localPath: "/lagekarte/de/php/api.php/user/login",
+    upstreamUrl: loginUrl,
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+      "Accept": "application/json, text/javascript, */*; q=0.01",
+      "X-Requested-With": "XMLHttpRequest",
+      "Origin": "https://www.lagekarte.info",
+      "Referer": "https://www.lagekarte.info/de/",
+      "User-Agent": "Mozilla/5.0 EINFO-Lagekarte-Proxy/1.0",
+    },
+    body: formBody.toString(),
+    directionMeta: { phase: "login_request" },
   });
 
-  try {
-    // Build form-urlencoded body with correct parameter names (user, pw)
-    const formBody = new URLSearchParams();
-    formBody.set("user", creds.creds.username);
-    formBody.set("pw", creds.creds.password);
-
-    const res = await fetch(loginUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-        "Accept": "application/json, text/javascript, */*; q=0.01",
-        "X-Requested-With": "XMLHttpRequest",
-        "Origin": "https://www.lagekarte.info",
-        "Referer": "https://www.lagekarte.info/de/"
-      },
-      body: formBody.toString()
-    });
-
-    if (!res.ok) {
-      // Try to get response body for diagnostics
-      let responseSnippet = "";
-      try {
-        const text = await res.text();
-        responseSnippet = sanitizeSnippet(text);
-      } catch { /* ignore */ }
-
-      await logLagekarteError("Login failed (HTTP error)", {
-        rid: requestId,
-        phase: "login_failed",
-        httpStatus: res.status,
-        elapsedMs: Date.now() - startTime,
-        responseSnippet,
-      });
-      return { error: "LOGIN_FAILED", status: res.status };
-    }
-
-    let data;
-    try {
-      data = await res.json();
-    } catch (parseErr) {
-      await logLagekarteError("Login response parse failed", {
-        rid: requestId,
-        phase: "login_parse_failed",
-        elapsedMs: Date.now() - startTime,
-        error: parseErr?.message || "JSON parse error",
-      });
-      return { error: "LOGIN_PARSE_FAILED" };
-    }
-
-    // Lagekarte API response format:
-    // Success: { error: "false", user: { token: "...", id: ..., ... } }
-    // Failure: { error: "true", error_msg: "..." }
-
-    // Handle error even on HTTP 200
-    if (data?.error === "true" || data?.error === true) {
-      const errorMsg = data?.error_msg || "unknown error";
-      await logLagekarteError("Login failed: API returned error", {
-        rid: requestId,
-        phase: "login_failed",
-        httpStatus: res.status,
-        elapsedMs: Date.now() - startTime,
-        error_msg: sanitizeSnippet(errorMsg),
-      });
-      return { error: "LOGIN_API_ERROR", message: errorMsg, data, upstreamStatus: res.status };
-    }
-
-    // Verify success response and extract token from user object
-    const token = data?.user?.token;
-    if (data?.error !== "false" || !token) {
-      await logLagekarteError("Login failed: unexpected response format", {
-        rid: requestId,
-        phase: "login_failed",
-        httpStatus: res.status,
-        elapsedMs: Date.now() - startTime,
-        responseSnippet: sanitizeSnippet(JSON.stringify(data)),
-      });
-      return { error: "LOGIN_NO_TOKEN" };
-    }
-
-    _lagekarteTokenCache = {
-      token: token,
-      uid: data.user?.uid || null,
-      userId: data.user?.id || null,
-      expiresAt: Date.now() + LAGEKARTE_TOKEN_TTL_MS
-    };
-
-    await logLagekarteInfo("Login successful", {
-      rid: requestId,
-      phase: "login_ok",
-      elapsedMs: Date.now() - startTime,
-      token,
-      userId: data.user?.id ?? null,
-      uid: data.user?.uid ?? null,
-    });
-
-    return { ok: true, token: token, uid: data.user?.uid, userId: data.user?.id, data, upstreamStatus: res.status };
-  } catch (err) {
+  if (result.error) {
     await logLagekarteError("Login error (network/fetch)", {
       rid: requestId,
       phase: "login_failed",
-      elapsedMs: Date.now() - startTime,
-      error: err?.message || "unknown",
+      error: result.error,
     });
-    return { error: "LOGIN_ERROR", message: err.message };
+    return { error: "LOGIN_ERROR", message: result.error };
   }
+
+  if (!result.ok) {
+    await logLagekarteError("Login failed (HTTP error)", {
+      rid: requestId,
+      phase: "login_failed",
+      httpStatus: result.status,
+    });
+    return { error: "LOGIN_FAILED", status: result.status };
+  }
+
+  let data;
+  try {
+    data = JSON.parse(result.responseBodyText || "{}");
+  } catch (parseErr) {
+    await logLagekarteError("Login response parse failed", {
+      rid: requestId,
+      phase: "login_parse_failed",
+      error: parseErr?.message || "JSON parse error",
+    });
+    return { error: "LOGIN_PARSE_FAILED" };
+  }
+
+  if (data?.error === "true" || data?.error === true) {
+    await logLagekarteError("Login failed: API returned error", {
+      rid: requestId,
+      phase: "login_failed",
+      httpStatus: result.status,
+    });
+    return { error: "LOGIN_API_ERROR", upstreamStatus: result.status };
+  }
+
+  const token = data?.user?.token;
+  if (data?.error !== "false" || !token) {
+    await logLagekarteError("Login failed: unexpected response format", {
+      rid: requestId,
+      phase: "login_failed",
+      httpStatus: result.status,
+    });
+    return { error: "LOGIN_NO_TOKEN" };
+  }
+
+  _lagekarteTokenCache = {
+    token,
+    uid: data.user?.uid || null,
+    userId: data.user?.id || null,
+    expiresAt: Date.now() + LAGEKARTE_TOKEN_TTL_MS,
+  };
+
+  await logLagekarteInfo("Login successful", {
+    rid: requestId,
+    phase: "login_ok",
+    userId: data.user?.id ?? null,
+    uid: data.user?.uid ?? null,
+  });
+
+  return { ok: true, token, uid: data.user?.uid, userId: data.user?.id, data, upstreamStatus: result.status };
 }
 
 async function getLagekarteToken(rid = null) {
   const requestId = rid || generateRequestId();
-
-  // Check if token is still valid (with 1 minute buffer)
   const tokenValid = _lagekarteTokenCache.token && _lagekarteTokenCache.expiresAt > Date.now() + 60000;
 
   await logLagekarteInfo("Token cache check", {
     rid: requestId,
     phase: "token_cache",
     tokenCacheHit: tokenValid,
-    token: tokenValid ? _lagekarteTokenCache.token : "",
     expiresAt: tokenValid ? _lagekarteTokenCache.expiresAt : null,
   });
 
-  if (tokenValid) {
-    return _lagekarteTokenCache;
+  if (tokenValid) return _lagekarteTokenCache;
+  const result = await lagekarteLogin(requestId);
+  if (result.error) return null;
+  return _lagekarteTokenCache;
+}
+
+function headersToObject(headers) {
+  const out = {};
+  if (!headers) return out;
+  if (headers instanceof Headers) {
+    headers.forEach((v, k) => {
+      out[k] = v;
+    });
+    return out;
+  }
+  for (const [k, v] of Object.entries(headers)) {
+    if (v == null) continue;
+    out[k] = Array.isArray(v) ? v.join(", ") : String(v);
+  }
+  return out;
+}
+
+function stripHopByHopHeaders(headersObj = {}) {
+  const out = {};
+  for (const [k, v] of Object.entries(headersObj || {})) {
+    const lower = k.toLowerCase();
+    if ([
+      "host",
+      "connection",
+      "content-length",
+      "transfer-encoding",
+      "proxy-authorization",
+      "proxy-authenticate",
+      "upgrade",
+      "te",
+      "trailer",
+      "keep-alive",
+      "content-encoding",
+    ].includes(lower)) {
+      continue;
+    }
+    out[k] = v;
+  }
+  return out;
+}
+
+function normalizeRequestBody(req, upstreamHeaders) {
+  if (["GET", "HEAD"].includes(req.method)) return null;
+
+  if (typeof req.body === "string") return req.body;
+
+  if (req.body && typeof req.body === "object" && Object.keys(req.body).length > 0) {
+    const contentType = String(req.headers["content-type"] || "application/json").toLowerCase();
+    if (contentType.includes("application/json") || contentType.includes("application/x-www-form-urlencoded")) {
+      return contentType.includes("application/json") ? JSON.stringify(req.body) : new URLSearchParams(req.body).toString();
+    }
+    return JSON.stringify(req.body);
   }
 
-  // Need to refresh token
-  const result = await lagekarteLogin(requestId);
-  if (result.error) {
-    return null;
+  return null;
+}
+
+async function fetchLagekarteWithLogging({ rid, localPath, upstreamUrl, method = "GET", headers = {}, body = null, redirect = "manual", directionMeta = {} }) {
+  const upId = generateUpstreamId();
+  const started = Date.now();
+  const requestHeaders = headersToObject(headers);
+  const requestContentType = requestHeaders["Content-Type"] || requestHeaders["content-type"] || "";
+  const requestBodySanitized = body != null ? sanitizeBody(String(body), requestContentType) : "";
+  const requestBodyLimited = limitLoggedBody(requestBodySanitized, MAX_BODY_LOG_BYTES);
+
+  await logLkTraffic({
+    rid,
+    upId,
+    direction: "upstream_request",
+    method,
+    localPath,
+    upstreamUrl: sanitizeUrl(upstreamUrl),
+    requestHeaders: sanitizeHeaders(requestHeaders),
+    requestBody: requestBodyLimited.body,
+    requestBodyTotalBytes: requestBodyLimited.totalBytes,
+    requestBodyTruncated: requestBodyLimited.truncated,
+    ...directionMeta,
+  });
+
+  try {
+    const upstreamRes = await fetch(upstreamUrl, {
+      method,
+      headers,
+      body: body == null ? undefined : body,
+      redirect,
+    });
+
+    const responseHeadersObj = headersToObject(upstreamRes.headers);
+    const responseContentType = upstreamRes.headers.get("content-type") || "";
+    const responseContentLength = upstreamRes.headers.get("content-length");
+
+    let responseBodyRawText = "";
+    let responseBodyLoggedText = "";
+    let responseBodyBuffer = null;
+    let responseBodyTruncated = false;
+    let responseBodyTotalBytes = 0;
+    let binaryMeta = null;
+
+    if (isTextBasedContentType(responseContentType)) {
+      responseBodyRawText = await upstreamRes.text();
+      const sanitized = sanitizeBody(responseBodyRawText, responseContentType);
+      const limited = limitLoggedBody(sanitized, MAX_BODY_LOG_BYTES);
+      responseBodyLoggedText = limited.body;
+      responseBodyTruncated = limited.truncated;
+      responseBodyTotalBytes = limited.totalBytes;
+    } else {
+      const arr = await upstreamRes.arrayBuffer();
+      responseBodyBuffer = Buffer.from(arr);
+      responseBodyTotalBytes = responseBodyBuffer.length;
+      binaryMeta = summarizeBinaryBody(responseBodyBuffer, responseContentType, responseContentLength ? Number(responseContentLength) : responseBodyBuffer.length);
+    }
+
+    const location = upstreamRes.headers.get("location");
+
+    await logLkTraffic({
+      rid,
+      upId,
+      direction: "upstream_response",
+      method,
+      localPath,
+      upstreamUrl: sanitizeUrl(upstreamUrl),
+      responseStatus: upstreamRes.status,
+      responseHeaders: sanitizeHeaders(responseHeadersObj),
+      responseBody: responseBodyLoggedText,
+      responseBodyTotalBytes,
+      responseBodyTruncated,
+      responseBinary: binaryMeta,
+      location: location ? sanitizeUrl(location) : undefined,
+      elapsedMs: Date.now() - started,
+      contentType: responseContentType,
+      contentLength: responseContentLength ? Number(responseContentLength) : null,
+      ...directionMeta,
+    });
+
+    return {
+      ok: upstreamRes.ok,
+      status: upstreamRes.status,
+      headers: responseHeadersObj,
+      responseHeaders: upstreamRes.headers,
+      responseBodyText: responseBodyRawText,
+      responseBodyBuffer,
+      isText: isTextBasedContentType(responseContentType),
+      contentType: responseContentType,
+    };
+  } catch (err) {
+    await logLkTraffic({
+      rid,
+      upId,
+      direction: "upstream_response",
+      method,
+      localPath,
+      upstreamUrl: sanitizeUrl(upstreamUrl),
+      responseStatus: 0,
+      responseHeaders: {},
+      responseBody: "",
+      responseBodyTotalBytes: 0,
+      responseBodyTruncated: false,
+      error: err?.message || "unknown",
+      elapsedMs: Date.now() - started,
+      ...directionMeta,
+    });
+    return { error: err?.message || "unknown" };
   }
-  return _lagekarteTokenCache;
 }
 
 async function lagekarteBrowserLoginBridge(req, res) {
@@ -4452,11 +4576,7 @@ function injectLagekarteAuthIntoHtml(html, requestPath = "/", tokenData = null) 
   };
 
   const serialized = JSON.stringify(scriptPayload).replace(/<\//g, "<\/");
-  const injectionScript = `<script>(function(){try{var cfg=${serialized};var localKeys=Array.isArray(cfg.localKeys)?cfg.localKeys:[];var sessionKeys=Array.isArray(cfg.sessionKeys)?cfg.sessionKeys:[];var setCookie=function(name,val){if(val==null||String(val)==="")return;var enc=encodeURIComponent(String(val));document.cookie=name+"="+enc+"; Path=/; Max-Age=2592000; SameSite=Lax";document.cookie=name+"="+enc+"; Path=/lagekarte; Max-Age=2592000; SameSite=Lax";};var values={token:cfg.token!=null?String(cfg.token):"",user_id:cfg.userId!=null?String(cfg.userId):"",uid:""};if(values.token){setCookie("login-token",values.token);setCookie("login-user",values.user_id);}var markerKey=localKeys.find(function(k){return /token/i.test(k);})||"token";var hasLoggedInMarker=!!(localStorage.getItem(markerKey)||sessionStorage.getItem(markerKey));if(hasLoggedInMarker)return;if(!values.token){fetch("/lagekarte/de/php/api.php/user/login",{method:"POST",headers:{"Content-Type":"application/x-www-form-urlencoded; charset=UTF-8"},body:"user=x&pw=y"}).then(function(r){return r.ok?r.json():Promise.reject();}).then(function(js){var u=js&&js.user?js.user:{};values={token:u.token!=null?String(u.token):"",uid:u.uid!=null?String(u.uid):"",user_id:u.id!=null?String(u.id):""};if(values.token){setCookie("login-token",values.token);setCookie("login-user",values.user_id);}if(!values.token)return;var apply=function(keys,store){keys.forEach(function(key){if(!key)return;var low=String(key).toLowerCase();if(/token/.test(low))store.setItem(key,values.token);else if(/uid/.test(low))store.setItem(key,values.uid);else if(/user.?id|id_user|userid/.test(low))store.setItem(key,values.user_id);});};apply(localKeys,localStorage);apply(sessionKeys,sessionStorage);if(!localKeys.some(function(k){return /token/i.test(String(k));}))localStorage.setItem("token",values.token);if(!localKeys.some(function(k){return /uid/i.test(String(k));}))localStorage.setItem("uid",values.uid);if(!localKeys.some(function(k){return /user.?id|id_user|userid/i.test(String(k));}))localStorage.setItem("user_id",values.user_id);}).catch(function(){});return;}var apply=function(keys,store){keys.forEach(function(key){if(!key)return;var low=String(key).toLowerCase();if(/token/.test(low))store.setItem(key,values.token);else if(/uid/.test(low))store.setItem(key,values.uid);else if(/user.?id|id_user|userid/.test(low))store.setItem(key,values.user_id);});};apply(localKeys,localStorage);apply(sessionKeys,sessionStorage);if(!localKeys.some(function(k){return /token/i.test(String(k));}))localStorage.setItem("token",values.token);if(!localKeys.some(function(k){return /uid/i.test(String(k));}))localStorage.setItem("uid",values.uid);if(!localKeys.some(function(k){return /user.?id|id_user|userid/i.test(String(k));}))localStorage.setItem("user_id",values.user_id);}catch(e){}})();</script>`;
-
-  if (/<\/head>/i.test(html)) {
-    return html.replace(/<\/head>/i, `${injectionScript}</head>`);
-  }
+  const injectionScript = `<script>(function(){try{var cfg=${serialized};var localKeys=Array.isArray(cfg.localKeys)?cfg.localKeys:[];var sessionKeys=Array.isArray(cfg.sessionKeys)?cfg.sessionKeys:[];var token=cfg.token||"";var userId=cfg.userId||"";if(!token||!userId)return;for(var i=0;i<localKeys.length;i++){try{localStorage.setItem(localKeys[i],token);}catch(_e){}}for(var j=0;j<sessionKeys.length;j++){try{sessionStorage.setItem(sessionKeys[j],token);}catch(_e){}}if(localKeys.indexOf("uid")!==-1){try{localStorage.setItem("uid",String(userId));}catch(_e){}}if(sessionKeys.indexOf("uid")!==-1){try{sessionStorage.setItem("uid",String(userId));}catch(_e){}}}catch(e){}})();</script>`;
 
   if (/<head[^>]*>/i.test(html)) {
     return html.replace(/<head([^>]*)>/i, `<head$1>${injectionScript}`);
@@ -4481,204 +4601,112 @@ function sendLagekarteError(res, message, status = 503) {
   `);
 }
 
-// Proxy handler for /lagekarte/*
 async function lagekarteProxyHandler(req, res, next) {
   const rid = generateRequestId();
-  const startTime = Date.now();
   const requestPath = req.path || "/";
 
-  // Log request start
-  await logLagekarteInfo("Request started", {
-    rid,
-    phase: "start",
-    path: requestPath,
-    method: req.method,
-  });
-
-  // Get or refresh token (logging happens inside getLagekarteToken/lagekarteLogin)
   const tokenData = await getLagekarteToken(rid);
   if (!tokenData) {
-    // Determine the specific error reason
-    let errorReason = "login_failed";
-    let credsPresent = false;
-
     try {
       const creds = await User_getGlobalLagekarte();
-      credsPresent = !!(creds?.creds?.username && creds?.creds?.password);
+      const credsPresent = !!(creds?.creds?.username && creds?.creds?.password);
+      if (!credsPresent) {
+        return sendLagekarteError(res, "Lagekarte Zugangsdaten fehlen. Bitte im Admin Panel unter 'Lagekarte-Zugangsdaten' konfigurieren.", 400);
+      }
     } catch (err) {
       if (err?.message === "MASTER_LOCKED") {
-        await logLagekarteError("Request failed - master locked", {
-          rid,
-          phase: "master_locked",
-          masterLocked: true,
-          elapsedMs: Date.now() - startTime,
-        });
         return sendLagekarteError(res, "Lagekarte nicht verfügbar: Master-Passwort nicht entsperrt.", 503);
       }
     }
-
-    if (!credsPresent) {
-      await logLagekarteError("Request failed - credentials missing", {
-        rid,
-        phase: "creds_missing",
-        credsPresent: false,
-        elapsedMs: Date.now() - startTime,
-      });
-      return sendLagekarteError(res, "Lagekarte Zugangsdaten fehlen. Bitte im Admin Panel unter 'Lagekarte-Zugangsdaten' konfigurieren.", 400);
-    }
-
-    // Login failed for other reason (already logged in lagekarteLogin)
-    await logLagekarteError("Request failed - login unsuccessful", {
-      rid,
-      phase: "login_failed",
-      credsPresent: true,
-      elapsedMs: Date.now() - startTime,
-    });
     return sendLagekarteError(res, "Lagekarte Login fehlgeschlagen. Bitte Zugangsdaten im Admin Panel prüfen.");
   }
 
-  // Build target URL - use /de/ base for German interface
   let targetPath = requestPath;
-  if (targetPath === "/" || targetPath === "") {
-    targetPath = "/de/";
-  }
+  if (targetPath === "/" || targetPath === "") targetPath = "/de/";
 
   const targetUrl = new URL(targetPath, LAGEKARTE_BASE_URL);
-  // Forward query string
   if (req.originalUrl.includes("?")) {
-    const queryPart = req.originalUrl.split("?")[1];
-    targetUrl.search = queryPart;
+    targetUrl.search = req.originalUrl.split("?")[1];
   }
-  // Add token to API requests
   if (targetPath.includes("/php/api.php/") || targetPath.includes("/daten/")) {
     targetUrl.searchParams.set("token", tokenData.token);
   }
 
-  try {
-    const fetchOptions = {
-      method: req.method,
-      headers: {
-        "User-Agent": "Mozilla/5.0 EINFO-Lagekarte-Proxy/1.0",
-        "Accept": req.headers.accept || "*/*",
-        "Accept-Language": req.headers["accept-language"] || "de-DE,de;q=0.9,en;q=0.8",
-      },
-      redirect: "follow"
-    };
+  const fetchHeaders = {
+    "User-Agent": "Mozilla/5.0 EINFO-Lagekarte-Proxy/1.0",
+    "Accept": req.headers.accept || "*/*",
+    "Accept-Language": req.headers["accept-language"] || "de-DE,de;q=0.9,en;q=0.8",
+    "accept-encoding": "identity",
+  };
 
-    // Forward body for POST/PUT/PATCH
-    if (["POST", "PUT", "PATCH"].includes(req.method) && req.body) {
-      const contentType = req.headers["content-type"] || "application/json";
-      fetchOptions.headers["Content-Type"] = contentType;
-      if (contentType.includes("application/json")) {
-        fetchOptions.body = JSON.stringify(req.body);
-      } else if (typeof req.body === "string") {
-        fetchOptions.body = req.body;
-      } else {
-        fetchOptions.body = JSON.stringify(req.body);
-      }
-    }
+  const body = normalizeRequestBody(req, fetchHeaders);
 
-    await logLagekarteInfo("Upstream request", {
-      rid,
-      phase: "proxy_upstream_request",
-      path: requestPath,
-      method: req.method,
-      remoteUrl: sanitizeUrl(targetUrl.href),
-      hasBody: !!fetchOptions.body,
-    });
+  const upstream = await fetchLagekarteWithLogging({
+    rid,
+    localPath: req.originalUrl,
+    upstreamUrl: targetUrl.href,
+    method: req.method,
+    headers: fetchHeaders,
+    body,
+    redirect: "manual",
+    directionMeta: { phase: "proxy_upstream" },
+  });
 
-    const upstream = await fetch(targetUrl.href, fetchOptions);
+  if (upstream.error) {
+    return sendLagekarteError(res, `Verbindung zu Lagekarte fehlgeschlagen: ${upstream.error}`);
+  }
 
-    await logLagekarteInfo("Upstream response", {
-      rid,
-      phase: "proxy_upstream_response",
-      path: requestPath,
-      method: req.method,
-      remoteUrl: sanitizeUrl(targetUrl.href),
-      httpStatus: upstream.status,
-      contentType: upstream.headers.get("content-type") || "",
-      elapsedMs: Date.now() - startTime,
-    });
+  res.status(upstream.status);
+  const responseHeaders = stripHopByHopHeaders(sanitizeHeaders(headersToObject(upstream.responseHeaders)));
+  for (const [key, value] of Object.entries(responseHeaders)) {
+    if (key.toLowerCase() === "set-cookie") continue;
+    res.setHeader(key, value);
+  }
 
-    // Forward status and relevant headers
-    res.status(upstream.status);
-    const contentType = upstream.headers.get("content-type");
-    if (contentType) {
-      res.setHeader("Content-Type", contentType);
-    }
+  const contentType = upstream.contentType || "";
 
-    // Handle HTML - rewrite absolute URLs to go through proxy
-    if (contentType?.includes("text/html")) {
-      let html = await upstream.text();
-      // Rewrite absolute URLs to lagekarte.info to go through our proxy
-      html = html.replace(/https?:\/\/www\.lagekarte\.info/g, "/lagekarte");
-      html = html.replace(/href="\//g, 'href="/lagekarte/');
-      html = html.replace(/src="\//g, 'src="/lagekarte/');
-      html = html.replace(/action="\//g, 'action="/lagekarte/');
-      html = html.replace(/href='\//g, "href='/lagekarte/");
-      html = html.replace(/src='\//g, "src='/lagekarte/");
-      html = html.replace(/action='\//g, "action='/lagekarte/");
-      html = html.replace(/href="\.\//g, 'href="/lagekarte/');
-      html = html.replace(/src="\.\//g, 'src="/lagekarte/');
-      html = html.replace(/action="\.\//g, 'action="/lagekarte/');
-      html = html.replace(/href='\.\//g, "href='/lagekarte/");
-      html = html.replace(/src='\.\//g, "src='/lagekarte/");
-      html = html.replace(/action='\.\//g, "action='/lagekarte/");
-      html = html.replace(/\b(href|src|action)=\.\//g, "$1=/lagekarte/");
-      // Fix double rewrites
-      html = html.replace(/\/lagekarte\/lagekarte\//g, "/lagekarte/");
-      html = html.replace(/(\/lagekarte\/){2,}/g, "/lagekarte/");
-      html = html.replace(/\/lagekarte\/{2,}/g, "/lagekarte/");
-      html = injectLagekarteAuthIntoHtml(html, requestPath, tokenData);
+  if (upstream.isText) {
+    let text = upstream.responseBodyText || "";
+
+    if (contentType.includes("text/html")) {
+      text = text.replace(/https?:\/\/www\.lagekarte\.info/g, "/lagekarte");
+      text = text.replace(/href="\//g, 'href="/lagekarte/');
+      text = text.replace(/src="\//g, 'src="/lagekarte/');
+      text = text.replace(/action="\//g, 'action="/lagekarte/');
+      text = text.replace(/href='\//g, "href='/lagekarte/");
+      text = text.replace(/src='\//g, "src='/lagekarte/");
+      text = text.replace(/action='\//g, "action='/lagekarte/");
+      text = text.replace(/href="\.\//g, 'href="/lagekarte/');
+      text = text.replace(/src="\.\//g, 'src="/lagekarte/');
+      text = text.replace(/action="\.\//g, 'action="/lagekarte/');
+      text = text.replace(/href='\.\//g, "href='/lagekarte/");
+      text = text.replace(/src='\.\//g, "src='/lagekarte/");
+      text = text.replace(/action='\.\//g, "action='/lagekarte/");
+      text = text.replace(/\b(href|src|action)=\.\//g, "$1=/lagekarte/");
+      text = text.replace(/\/lagekarte\/lagekarte\//g, "/lagekarte/");
+      text = text.replace(/(\/lagekarte\/){2,}/g, "/lagekarte/");
+      text = text.replace(/\/lagekarte\/{2,}/g, "/lagekarte/");
+      text = injectLagekarteAuthIntoHtml(text, requestPath, tokenData);
       for (const cookie of buildLagekarteAuthCookies(tokenData)) {
         res.append("Set-Cookie", cookie);
       }
-      return res.send(html);
+    } else if (contentType.includes("text/css")) {
+      text = text.replace(/url\(\s*['"]?\//g, 'url("/lagekarte/');
+    } else if (contentType.includes("javascript")) {
+      updateLagekarteStorageKeyHints(text);
+      text = text.replace(/['"]https?:\/\/www\.lagekarte\.info/g, '"/lagekarte');
+      text = text.replace(/['"]\/de\/php\/api\.php/g, '"/lagekarte/de/php/api.php');
+      text = text.replace(/['"]\/daten\//g, '"/lagekarte/daten/');
     }
 
-    // Handle CSS - rewrite url() references
-    if (contentType?.includes("text/css")) {
-      let css = await upstream.text();
-      css = css.replace(/url\(\s*['"]?\//g, 'url("/lagekarte/');
-      return res.send(css);
-    }
-
-    // Handle JS - rewrite fetch/ajax URLs
-    if (contentType?.includes("javascript")) {
-      let js = await upstream.text();
-      updateLagekarteStorageKeyHints(js);
-      // Rewrite API base URLs - use /de/ for German interface
-      js = js.replace(/['"]https?:\/\/www\.lagekarte\.info/g, '"/lagekarte');
-      js = js.replace(/['"]\/de\/php\/api\.php/g, '"/lagekarte/de/php/api.php');
-      js = js.replace(/['"]\/daten\//g, '"/lagekarte/daten/');
-      return res.send(js);
-    }
-
-    // Stream binary/other content
-    if (upstream.body) {
-      const reader = upstream.body.getReader();
-      const stream = async () => {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          res.write(value);
-        }
-        res.end();
-      };
-      await stream();
-    } else {
-      res.end();
-    }
-  } catch (err) {
-    await logLagekarteError("Proxy error", {
-      rid,
-      phase: "proxy_failed",
-      remoteUrl: sanitizeUrl(targetUrl.href),
-      error: err?.message || "unknown",
-      elapsedMs: Date.now() - startTime,
-    });
-    return sendLagekarteError(res, `Verbindung zu Lagekarte fehlgeschlagen: ${err.message}`);
+    return res.send(text);
   }
+
+  if (upstream.responseBodyBuffer) {
+    return res.end(upstream.responseBodyBuffer);
+  }
+
+  return res.end();
 }
 
 app.get("/lagekarte", User_requireAuth, (req, res, next) => {
@@ -4699,121 +4727,50 @@ app.use("/lagekarte", User_requireAuth, lagekarteProxyHandler);
 
 async function lagekarteRootProxy(req, res) {
   const rid = generateRequestId();
-  const startTime = Date.now();
   const upstreamUrl = `${LAGEKARTE_ASSET_BASE}${req.originalUrl}`;
-  const incomingHeaders = req.headers ?? {};
-  const proxyHeaders = {};
 
-  for (const [headerName, headerValue] of Object.entries(incomingHeaders)) {
-    if (headerValue == null) continue;
-    const lower = headerName.toLowerCase();
-    if ([
-      "host",
-      "connection",
-      "content-length",
-      "transfer-encoding",
-      "proxy-authorization",
-      "proxy-authenticate",
-      "upgrade",
-      "te",
-      "trailer",
-      "keep-alive",
-    ].includes(lower)) {
-      continue;
-    }
-    proxyHeaders[headerName] = headerValue;
-  }
-
+  const proxyHeaders = stripHopByHopHeaders(headersToObject(req.headers));
   proxyHeaders["accept-encoding"] = "identity";
 
-  const fetchOptions = {
+  const body = normalizeRequestBody(req, proxyHeaders);
+
+  const upstream = await fetchLagekarteWithLogging({
+    rid,
+    localPath: req.originalUrl,
+    upstreamUrl,
     method: req.method,
     headers: proxyHeaders,
+    body,
     redirect: "manual",
-  };
+    directionMeta: { phase: "root_proxy_upstream" },
+  });
 
-  if (!["GET", "HEAD"].includes(req.method)) {
-    if (req.body && Object.keys(req.body).length > 0) {
-      const contentType = req.headers["content-type"] || "application/json";
-      fetchOptions.headers["content-type"] = contentType;
-      fetchOptions.body = contentType.includes("application/json")
-        ? JSON.stringify(req.body)
-        : typeof req.body === "string"
-          ? req.body
-          : JSON.stringify(req.body);
-    } else {
-      fetchOptions.body = req;
-      fetchOptions.duplex = "half";
-    }
-  }
-
-  try {
-    await logLagekarteInfo("Root proxy upstream request", {
-      rid,
-      phase: "root_proxy_upstream_request",
-      path: req.originalUrl,
-      method: req.method,
-      remoteUrl: sanitizeUrl(upstreamUrl),
-      hasBody: !!fetchOptions.body,
-    });
-
-    const upstreamRes = await fetch(upstreamUrl, fetchOptions);
-
-    await logLagekarteInfo("Root proxy upstream response", {
-      rid,
-      phase: "root_proxy_upstream_response",
-      path: req.originalUrl,
-      method: req.method,
-      remoteUrl: sanitizeUrl(upstreamUrl),
-      httpStatus: upstreamRes.status,
-      contentType: upstreamRes.headers.get("content-type") || "",
-      elapsedMs: Date.now() - startTime,
-    });
-
-    if (!upstreamRes.ok) {
-      await logLagekarteWarn("Lagekarte root proxy upstream non-2xx", {
-        rid,
-        phase: "proxy_upstream_non_2xx",
-        path: req.originalUrl,
-        upstreamUrl,
-        status: upstreamRes.status,
-      });
-    }
-
-    res.status(upstreamRes.status);
-    upstreamRes.headers.forEach((value, key) => {
-      const lower = key.toLowerCase();
-      if ([
-        "content-encoding",
-        "content-length",
-        "transfer-encoding",
-        "connection",
-        "keep-alive",
-      ].includes(lower)) return;
-      res.setHeader(key, value);
-    });
-
-    if (upstreamRes.body) {
-      const reader = upstreamRes.body.getReader();
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        res.write(value);
-      }
-    }
-
-    return res.end();
-  } catch (err) {
+  if (upstream.error) {
     await logLagekarteError("Lagekarte root proxy failed", {
       rid,
       phase: "proxy_failed",
       path: req.originalUrl,
-      upstreamUrl,
+      upstreamUrl: sanitizeUrl(upstreamUrl),
       httpStatus: 502,
-      error: err?.message || "unknown",
+      error: upstream.error,
     });
     return res.status(502).send("Bad Gateway");
   }
+
+  res.status(upstream.status);
+  const headers = stripHopByHopHeaders(sanitizeHeaders(headersToObject(upstream.responseHeaders)));
+  for (const [key, value] of Object.entries(headers)) {
+    if (key.toLowerCase() === "set-cookie") continue;
+    res.setHeader(key, value);
+  }
+
+  if (upstream.isText) {
+    return res.send(upstream.responseBodyText || "");
+  }
+  if (upstream.responseBodyBuffer) {
+    return res.end(upstream.responseBodyBuffer);
+  }
+  return res.end();
 }
 
 app.use("/src", lagekarteRootProxy);
