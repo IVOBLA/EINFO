@@ -58,17 +58,6 @@ import { User_update, User_getGlobalFetcher, User_hasGlobalFetcher, User_getGlob
 import { ffStart, ffStop, ffStatus, ffRunOnce } from "./ffRunner.js";
 import { syncAiAnalysisLoop } from "./chatbotRunner.js";
 
-// Lagekarte Logger
-import {
-  maskA,
-  sanitizeSnippet,
-  sanitizeUrl,
-  generateRequestId,
-  logLagekarteInfo,
-  logLagekarteWarn,
-  logLagekarteError,
-} from "./utils/lagekarteLogger.mjs";
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -4167,61 +4156,13 @@ let _lagekarteTokenCache = {
 // Token TTL: 30 minutes (conservative, refresh before expiry)
 const LAGEKARTE_TOKEN_TTL_MS = 30 * 60 * 1000;
 
-async function lagekarteLogin(rid = null) {
-  const requestId = rid || generateRequestId();
-  const startTime = Date.now();
-
-  // Load credentials
-  let creds = null;
-  let masterLocked = false;
-  try {
-    creds = await User_getGlobalLagekarte();
-  } catch (err) {
-    if (err?.message === "MASTER_LOCKED") {
-      masterLocked = true;
-      await logLagekarteWarn("Master locked, cannot decrypt credentials", {
-        rid: requestId,
-        phase: "creds_load",
-        masterLocked: true,
-        credsPresent: false,
-      });
-      return { error: "MASTER_LOCKED" };
-    }
-    // Other error during credential load
-    await logLagekarteError("Credential load error", {
-      rid: requestId,
-      phase: "creds_load",
-      error: err?.message || "unknown",
-    });
-    creds = null;
-  }
-
-  const credsPresent = !!(creds?.creds?.username && creds?.creds?.password);
-
-  // Log credential load phase (Option A masking)
-  await logLagekarteInfo("Credentials loaded", {
-    rid: requestId,
-    phase: "creds_load",
-    credsPresent,
-    masterLocked: false,
-    username_masked: credsPresent ? maskA(creds.creds.username) : "",
-    password_masked: credsPresent ? maskA(creds.creds.password) : "",
-  });
-
-  if (!credsPresent) {
+async function lagekarteLogin() {
+  const creds = await User_getGlobalLagekarte().catch(() => null);
+  if (!creds?.creds?.username || !creds?.creds?.password) {
     return { error: "CREDENTIALS_MISSING" };
   }
-
-  // Perform login request
-  const loginUrl = `${LAGEKARTE_BASE_URL}${LAGEKARTE_API_LOGIN}`;
-
-  await logLagekarteInfo("Login request starting", {
-    rid: requestId,
-    phase: "login_request",
-    remoteUrl: loginUrl,
-  });
-
   try {
+    const loginUrl = `${LAGEKARTE_BASE_URL}${LAGEKARTE_API_LOGIN}`;
     const res = await fetch(loginUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -4230,93 +4171,37 @@ async function lagekarteLogin(rid = null) {
         pass: creds.creds.password
       })
     });
-
     if (!res.ok) {
-      // Try to get response body for diagnostics
-      let responseSnippet = "";
-      try {
-        const text = await res.text();
-        responseSnippet = sanitizeSnippet(text);
-      } catch { /* ignore */ }
-
-      await logLagekarteError("Login failed (HTTP error)", {
-        rid: requestId,
-        phase: "login_failed",
-        httpStatus: res.status,
-        elapsedMs: Date.now() - startTime,
-        responseSnippet,
-      });
+      console.error(`[lagekarte] Login failed: HTTP ${res.status}`);
       return { error: "LOGIN_FAILED", status: res.status };
     }
-
-    let data;
-    try {
-      data = await res.json();
-    } catch (parseErr) {
-      await logLagekarteError("Login response parse failed", {
-        rid: requestId,
-        phase: "login_parse_failed",
-        elapsedMs: Date.now() - startTime,
-        error: parseErr?.message || "JSON parse error",
-      });
-      return { error: "LOGIN_PARSE_FAILED" };
-    }
-
+    const data = await res.json();
     // Expected response: { token: "...", uid: "...", user: { id: ..., ... } }
     if (!data.token) {
-      await logLagekarteError("Login failed: no token in response", {
-        rid: requestId,
-        phase: "login_failed",
-        httpStatus: res.status,
-        elapsedMs: Date.now() - startTime,
-        responseSnippet: sanitizeSnippet(JSON.stringify(data)),
-      });
+      console.error("[lagekarte] Login failed: no token in response");
       return { error: "LOGIN_NO_TOKEN" };
     }
-
     _lagekarteTokenCache = {
       token: data.token,
       uid: data.uid || null,
       userId: data.user?.id || null,
       expiresAt: Date.now() + LAGEKARTE_TOKEN_TTL_MS
     };
-
-    await logLagekarteInfo("Login successful", {
-      rid: requestId,
-      phase: "login_ok",
-      elapsedMs: Date.now() - startTime,
-    });
-
+    console.log("[lagekarte] Login successful, token cached");
     return { ok: true, token: data.token, uid: data.uid, userId: data.user?.id };
   } catch (err) {
-    await logLagekarteError("Login error (network/fetch)", {
-      rid: requestId,
-      phase: "login_failed",
-      elapsedMs: Date.now() - startTime,
-      error: err?.message || "unknown",
-    });
+    console.error("[lagekarte] Login error:", err.message);
     return { error: "LOGIN_ERROR", message: err.message };
   }
 }
 
-async function getLagekarteToken(rid = null) {
-  const requestId = rid || generateRequestId();
-
+async function getLagekarteToken() {
   // Check if token is still valid (with 1 minute buffer)
-  const tokenValid = _lagekarteTokenCache.token && _lagekarteTokenCache.expiresAt > Date.now() + 60000;
-
-  await logLagekarteInfo("Token cache check", {
-    rid: requestId,
-    phase: "token_cache",
-    tokenCacheHit: tokenValid,
-  });
-
-  if (tokenValid) {
+  if (_lagekarteTokenCache.token && _lagekarteTokenCache.expiresAt > Date.now() + 60000) {
     return _lagekarteTokenCache;
   }
-
   // Need to refresh token
-  const result = await lagekarteLogin(requestId);
+  const result = await lagekarteLogin();
   if (result.error) {
     return null;
   }
@@ -4341,73 +4226,24 @@ function sendLagekarteError(res, message, status = 503) {
 
 // Proxy handler for /lagekarte/*
 app.use("/lagekarte", User_requireAuth, async (req, res) => {
-  const rid = generateRequestId();
-  const startTime = Date.now();
-  const requestPath = req.path || "/";
-
-  // Log request start
-  await logLagekarteInfo("Request started", {
-    rid,
-    phase: "start",
-    path: requestPath,
-    method: req.method,
-  });
-
-  // Get or refresh token (logging happens inside getLagekarteToken/lagekarteLogin)
-  const tokenData = await getLagekarteToken(rid);
+  // Get or refresh token
+  const tokenData = await getLagekarteToken();
   if (!tokenData) {
-    // Determine the specific error reason
-    let errorReason = "login_failed";
-    let credsPresent = false;
-
-    try {
-      const creds = await User_getGlobalLagekarte();
-      credsPresent = !!(creds?.creds?.username && creds?.creds?.password);
-    } catch (err) {
-      if (err?.message === "MASTER_LOCKED") {
-        await logLagekarteError("Request failed - master locked", {
-          rid,
-          phase: "master_locked",
-          masterLocked: true,
-          elapsedMs: Date.now() - startTime,
-        });
-        return sendLagekarteError(res, "Lagekarte nicht verfügbar: Master-Passwort nicht entsperrt.", 503);
-      }
-    }
-
-    if (!credsPresent) {
-      await logLagekarteError("Request failed - credentials missing", {
-        rid,
-        phase: "creds_missing",
-        credsPresent: false,
-        elapsedMs: Date.now() - startTime,
-      });
+    const creds = await User_getGlobalLagekarte().catch(() => null);
+    if (!creds?.creds?.username || !creds?.creds?.password) {
       return sendLagekarteError(res, "Lagekarte Zugangsdaten fehlen. Bitte im Admin Panel unter 'Lagekarte-Zugangsdaten' konfigurieren.", 400);
     }
-
-    // Login failed for other reason (already logged in lagekarteLogin)
-    await logLagekarteError("Request failed - login unsuccessful", {
-      rid,
-      phase: "login_failed",
-      credsPresent: true,
-      elapsedMs: Date.now() - startTime,
-    });
     return sendLagekarteError(res, "Lagekarte Login fehlgeschlagen. Bitte Zugangsdaten im Admin Panel prüfen.");
   }
 
   // Build target URL
-  let targetPath = requestPath;
+  let targetPath = req.path || "/";
   if (targetPath === "/" || targetPath === "") {
     targetPath = "/en/";
   }
 
   // Intercept login request - return cached token instead
   if (targetPath === "/en/php/api.php/user/login" && req.method === "POST") {
-    await logLagekarteInfo("Intercepted login - returning cached token", {
-      rid,
-      phase: "login_intercept",
-      elapsedMs: Date.now() - startTime,
-    });
     return res.json({
       token: tokenData.token,
       uid: tokenData.uid,
@@ -4505,13 +4341,7 @@ app.use("/lagekarte", User_requireAuth, async (req, res) => {
       res.end();
     }
   } catch (err) {
-    await logLagekarteError("Proxy error", {
-      rid,
-      phase: "proxy_failed",
-      remoteUrl: sanitizeUrl(targetUrl.href),
-      error: err?.message || "unknown",
-      elapsedMs: Date.now() - startTime,
-    });
+    console.error(`[lagekarte] Proxy error for ${targetUrl.href}:`, err.message);
     return sendLagekarteError(res, `Verbindung zu Lagekarte fehlgeschlagen: ${err.message}`);
   }
 });
