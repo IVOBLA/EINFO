@@ -4791,7 +4791,119 @@ function injectLagekarteAuthIntoHtml(html, requestPath = "/") {
   const isStartPage = normalized === "/" || normalized === "/de" || normalized === "/de/" || normalized === "/en" || normalized === "/en/";
   if (!isStartPage) return html;
 
-  const injectionScript = "";
+  const injectionScript = `<script>(function(){
+    var LOG_PREFIX = "[lagekarte-proxy]";
+    var LOGIN_GUARD_KEY = "__einfo_lagekarte_bridge_login_once__";
+    var ABSOLUTE_HOST_RE = /^(?:https?:)?\/\/www\.lagekarte\.info(?=\/|$)/i;
+
+    function sanitizePath(path) {
+      if (!path) return "/";
+      return path.replace(/\/\/{2,}/g, "/");
+    }
+
+    function rewriteUrl(input) {
+      if (typeof input !== "string" || !input) return input;
+      var rewritten = input;
+      var hostForLog = null;
+
+      if (ABSOLUTE_HOST_RE.test(rewritten)) {
+        rewritten = rewritten.replace(ABSOLUTE_HOST_RE, "/lagekarte");
+        hostForLog = "www.lagekarte.info";
+      }
+
+      if (/^\/de\/php\/api\.php(?:\/|$)/.test(rewritten) && !/^\/lagekarte\//.test(rewritten)) {
+        rewritten = rewritten.replace(/^\/de\/php\/api\.php/, "/lagekarte/de/php/api.php");
+      }
+
+      if (/^\/php\/api\.php(?:\/|$)/.test(rewritten) && !/^\/lagekarte\//.test(rewritten)) {
+        rewritten = rewritten.replace(/^\/php\/api\.php/, "/lagekarte/php/api.php");
+      }
+
+      rewritten = sanitizePath(rewritten);
+
+      if (rewritten !== input) {
+        var logHost = hostForLog || (rewritten.startsWith("/lagekarte") ? "local-proxy" : "unknown");
+        try { console.info(LOG_PREFIX + " rewrite", { host: logHost }); } catch (_) {}
+      }
+
+      return rewritten;
+    }
+
+    var originalFetch = window.fetch;
+    if (typeof originalFetch === "function") {
+      window.fetch = function(resource, init) {
+        try {
+          if (typeof resource === "string") {
+            resource = rewriteUrl(resource);
+          } else if (resource && typeof resource.url === "string") {
+            var nextUrl = rewriteUrl(resource.url);
+            if (nextUrl !== resource.url) {
+              resource = new Request(nextUrl, resource);
+            }
+          }
+        } catch (_) {}
+        return originalFetch.call(this, resource, init);
+      };
+    }
+
+    var originalOpen = window.XMLHttpRequest && window.XMLHttpRequest.prototype && window.XMLHttpRequest.prototype.open;
+    if (typeof originalOpen === "function") {
+      window.XMLHttpRequest.prototype.open = function(method, url) {
+        try {
+          if (typeof url === "string") {
+            arguments[1] = rewriteUrl(url);
+          }
+        } catch (_) {}
+        return originalOpen.apply(this, arguments);
+      };
+    }
+
+    function hasLikelyLoginState() {
+      try {
+        var tokenKeys = ["token", "auth", "login", "session", "bearer", "lagekarte"];
+        var stores = [window.localStorage, window.sessionStorage];
+        for (var i = 0; i < stores.length; i += 1) {
+          var store = stores[i];
+          if (!store) continue;
+          for (var j = 0; j < store.length; j += 1) {
+            var key = store.key(j);
+            if (!key) continue;
+            var normalizedKey = String(key).toLowerCase();
+            for (var k = 0; k < tokenKeys.length; k += 1) {
+              if (normalizedKey.indexOf(tokenKeys[k]) !== -1) return true;
+            }
+          }
+        }
+      } catch (_) {}
+      return false;
+    }
+
+    function maybeTriggerBridgeLogin() {
+      try {
+        if (!window.location || !window.location.pathname || !window.location.pathname.startsWith("/lagekarte")) return;
+        if (window.sessionStorage && window.sessionStorage.getItem(LOGIN_GUARD_KEY) === "1") return;
+        if (hasLikelyLoginState()) return;
+        if (window.sessionStorage) {
+          window.sessionStorage.setItem(LOGIN_GUARD_KEY, "1");
+        }
+        window.fetch("/lagekarte/de/php/api.php/user/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+            "X-Requested-With": "XMLHttpRequest",
+          },
+          body: "",
+          credentials: "include",
+        }).catch(function(){});
+      } catch (_) {}
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", maybeTriggerBridgeLogin, { once: true });
+    } else {
+      maybeTriggerBridgeLogin();
+    }
+  })();</script>`;
 
   if (/<head[^>]*>/i.test(html)) {
     return html.replace(/<head([^>]*)>/i, `<head$1>${injectionScript}`);
@@ -4887,6 +4999,9 @@ async function lagekarteProxyHandler(req, res, next) {
     let text = upstream.responseBodyText || "";
 
     if (contentType.includes("text/html")) {
+      const normalizedRequestPath = (requestPath || "/").replace(/\/+/g, "/");
+      const isStartPage = normalizedRequestPath === "/" || normalizedRequestPath === "/de" || normalizedRequestPath === "/de/" || normalizedRequestPath === "/en" || normalizedRequestPath === "/en/";
+
       text = text.replace(/https?:\/\/www\.lagekarte\.info/g, "/lagekarte");
       text = text.replace(/href="\//g, 'href="/lagekarte/');
       text = text.replace(/src="\//g, 'src="/lagekarte/');
@@ -4905,12 +5020,22 @@ async function lagekarteProxyHandler(req, res, next) {
       text = text.replace(/(\/lagekarte\/){2,}/g, "/lagekarte/");
       text = text.replace(/\/lagekarte\/{2,}/g, "/lagekarte/");
       text = injectLagekarteAuthIntoHtml(text, requestPath);
+
+      if (isStartPage) {
+        await logLagekarteInfo("HTML injection active", {
+          rid,
+          phase: "proxy_html_injection",
+          path: requestPath,
+        });
+      }
     } else if (contentType.includes("text/css")) {
       text = text.replace(/url\(\s*['"]?\//g, 'url("/lagekarte/');
     } else if (contentType.includes("javascript")) {
       updateLagekarteStorageKeyHints(text);
-      text = text.replace(/['"]https?:\/\/www\.lagekarte\.info/g, '"/lagekarte');
-      text = text.replace(/['"]\/de\/php\/api\.php/g, '"/lagekarte/de/php/api.php');
+      text = text.replace(/https?:\/\/www\.lagekarte\.info/gi, "/lagekarte");
+      text = text.replace(/\/\/www\.lagekarte\.info/gi, "/lagekarte");
+      text = text.replace(/(?<!\/lagekarte)\/de\/php\/api\.php/gi, "/lagekarte/de/php/api.php");
+      text = text.replace(/(?<!\/lagekarte)\/php\/api\.php/gi, "/lagekarte/php/api.php");
       text = text.replace(/['"]\/daten\//g, '"/lagekarte/daten/');
     }
 
