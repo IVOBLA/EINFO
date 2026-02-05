@@ -2239,6 +2239,14 @@ if (route.startsWith("/protokoll")) {
             {importBusy ? "Import..." : "Import"}
           </button>
 
+          <button
+            onClick={() => window.open("/lagekarte", "_blank", "noopener,noreferrer")}
+            className="header-btn"
+            title="Lagekarte in neuem Tab öffnen"
+          >
+            Lagekarte
+          </button>
+
           {/* Feuerwehr-Fetcher Control */}
           <FFFetchControl
             autoEnabled={autoEnabled}

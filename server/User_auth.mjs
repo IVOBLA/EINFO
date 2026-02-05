@@ -4,6 +4,7 @@ import {
   User_initStore, User_setupMaster, User_unlockMaster, User_lockMaster, User_isUnlocked,
   User_getRoles, User_setRoles, User_list, User_create, User_update, User_remove,
   User_setGlobalFetcher, User_getGlobalFetcher, User_hasMaster,
+  User_setGlobalLagekarte, User_getGlobalLagekarte,
   User_authenticateLoose, User_getByIdLoose
 } from "./User_store.mjs";
 
@@ -336,6 +337,22 @@ export function User_createRouter({ dataDir, secureCookies=false }){
     try{
       const { username, password } = req.body||{};
       const out = await User_setGlobalFetcher({ username, password });
+      res.json({ ok:true, updatedAt: out.updatedAt });
+    }catch(e){ res.status(400).json({ error:e.message||"SAVE_FAILED" }); }
+  });
+
+  // --- Globale Lagekarte-Creds (Admin + Master erforderlich) ---
+  r.get("/lagekarte", requireUnlocked, User_requireAdmin, async (_req,res)=>{
+    const it = await User_getGlobalLagekarte().catch(()=>null);
+    res.json({
+      has: !!(it?.creds?.username && it?.creds?.password),
+      updatedAt: it?.updatedAt || null
+    });
+  });
+  r.put("/lagekarte", requireUnlocked, User_requireAdmin, async (req,res)=>{
+    try{
+      const { username, password } = req.body||{};
+      const out = await User_setGlobalLagekarte({ username, password });
       res.json({ ok:true, updatedAt: out.updatedAt });
     }catch(e){ res.status(400).json({ error:e.message||"SAVE_FAILED" }); }
   });
