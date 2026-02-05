@@ -41,7 +41,6 @@ export default function FFFetchControl({
     idleMinutes: null,
     lastActivityIso: null,
     autoStopMin: null,
-    autoStopEnabled: false,
   });
 
   // Importinfos
@@ -121,7 +120,6 @@ export default function FFFetchControl({
             idleMinutes: idle,
             lastActivityIso: js.lastActivityIso,
             autoStopMin: limit,
-            autoStopEnabled: !!js?.auto?.enabled,
           });
 
           // Fetcher-Run + Importinfos
@@ -186,7 +184,7 @@ export default function FFFetchControl({
       {hint && <span style={{ color: "#dc2626", fontSize: 12, marginLeft: 8 }}>{hint}</span>}
 
       {/* Auto-Stop Countdown (Farbskala) - nur wenn Auto-Stop aktiv */}
-      {running && autoInfo.autoStopEnabled && Number.isFinite(autoInfo.autoStopMin) && autoInfo.autoStopMin > 0 && autoInfo.remainingMin != null && autoInfo.remainingMin <= 15 && (
+      {running && Number.isFinite(autoInfo.autoStopMin) && autoInfo.autoStopMin > 0 && autoInfo.remainingMin != null && autoInfo.remainingMin <= 15 && (
         <div
           title={
             `Letzte Aktivität: ${
