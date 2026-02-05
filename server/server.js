@@ -4166,11 +4166,13 @@ const LAGEKARTE_ASSET_BASE = LK_ROOT;
 const LK_BASE = LK_DE;
 const LAGEKARTE_API_LOGIN = "/de/php/api.php/user/login";
 
-const ENABLE_TRAFFIC_LOG = process.env.ENABLE_TRAFFIC_LOG !== "0";
-const LAGEKARTE_MAX_LOG_BYTES = Number.parseInt(process.env.MAX_LOG_BYTES || `${MAX_BODY_LOG_BYTES}`, 10) || MAX_BODY_LOG_BYTES;
-const LAGEKARTE_MAX_REDIRECTS = Number.parseInt(process.env.MAX_REDIRECTS || "5", 10) || 5;
-
-const _lagekarteSessionJars = new Map();
+// In-memory token cache
+let _lagekarteTokenCache = {
+  token: null,
+  uid: null,
+  userId: null,
+  expiresAt: 0
+};
 
 const _lagekarteStorageKeyHints = {
   local: new Set(["token", "uid", "user_id"]),
@@ -4180,139 +4182,8 @@ const _lagekarteStorageKeyHints = {
 // Token TTL: 30 minutes (conservative, refresh before expiry)
 const LAGEKARTE_TOKEN_TTL_MS = 30 * 60 * 1000;
 
-function getLagekarteJarKey(req) {
-  if (req?.sessionId) return `sid:${req.sessionId}`;
-  const ip = String(req?.ip || req?.socket?.remoteAddress || "");
-  const ua = String(req?.headers?.["user-agent"] || "");
-  return `fallback:${crypto.createHash("sha256").update(`${ip}|${ua}`).digest("hex")}`;
-}
-
-function getLagekarteSessionJar(req, { create = true } = {}) {
-  const key = getLagekarteJarKey(req);
-  let jar = _lagekarteSessionJars.get(key);
-  if (!jar && create) {
-    jar = {
-      key,
-      cookies: new Map(),
-      token: null,
-      uid: null,
-      userId: null,
-      expiresAt: 0,
-      authenticated: false,
-      updatedAt: Date.now(),
-    };
-    _lagekarteSessionJars.set(key, jar);
-  }
-  if (jar) jar.updatedAt = Date.now();
-  return jar;
-}
-
-function parseSetCookie(entry = "") {
-  const parts = String(entry).split(";").map((p) => p.trim()).filter(Boolean);
-  if (!parts.length || !parts[0].includes("=")) return null;
-  const [name, ...valueParts] = parts[0].split("=");
-  const cookie = { name: name.trim(), value: valueParts.join("=").trim(), path: "/", expiresAt: null };
-  for (const attr of parts.slice(1)) {
-    const [attrName, ...attrValueParts] = attr.split("=");
-    const attrKey = attrName.trim().toLowerCase();
-    const attrValue = attrValueParts.join("=").trim();
-    if (attrKey === "path" && attrValue) cookie.path = attrValue;
-    if (attrKey === "expires") {
-      const ts = Date.parse(attrValue);
-      if (Number.isFinite(ts)) cookie.expiresAt = ts;
-    }
-    if (attrKey === "max-age") {
-      const seconds = Number.parseInt(attrValue, 10);
-      if (Number.isFinite(seconds)) cookie.expiresAt = Date.now() + (seconds * 1000);
-    }
-  }
-  return cookie;
-}
-
-function splitSetCookieHeader(value = "") {
-  const source = String(value);
-  const result = [];
-  let token = "";
-  let inExpires = false;
-  for (let i = 0; i < source.length; i += 1) {
-    const char = source[i];
-    if ((source.slice(i, i + 8)).toLowerCase() === "expires=") inExpires = true;
-    if (char === "," && !inExpires) {
-      if (token.trim()) result.push(token.trim());
-      token = "";
-      continue;
-    }
-    token += char;
-    if (inExpires && char === ";") inExpires = false;
-  }
-  if (token.trim()) result.push(token.trim());
-  return result;
-}
-
-function storeSetCookieInJar(jar, responseHeaders) {
-  if (!jar || !responseHeaders) return;
-  const setCookieHeader = responseHeaders.get?.("set-cookie") || responseHeaders["set-cookie"];
-  if (!setCookieHeader) return;
-  for (const item of splitSetCookieHeader(setCookieHeader)) {
-    const parsed = parseSetCookie(item);
-    if (!parsed?.name) continue;
-    if (parsed.expiresAt && parsed.expiresAt <= Date.now()) {
-      jar.cookies.delete(parsed.name);
-      continue;
-    }
-    jar.cookies.set(parsed.name, parsed);
-  }
-}
-
-function extractTokenFromObject(value) {
-  if (!value || typeof value !== "object") return null;
-  for (const key of Object.keys(value)) {
-    if (/^(token|access_token|refresh_token|auth_token|bearer)$/i.test(key) && value[key]) {
-      return String(value[key]);
-    }
-  }
-  for (const nested of Object.values(value)) {
-    const found = extractTokenFromObject(nested);
-    if (found) return found;
-  }
-  return null;
-}
-
-function refreshJarAuthenticationState(jar) {
-  const hasValidToken = !!(jar?.token && jar.expiresAt > Date.now() + 60_000);
-  const hasCookies = [...(jar?.cookies?.values() || [])].some((cookie) => !cookie.expiresAt || cookie.expiresAt > Date.now());
-  jar.authenticated = !!(hasValidToken || hasCookies);
-}
-
-function buildCookieHeaderForJar(jar, requestPath = "/") {
-  if (!jar?.cookies?.size) return "";
-  const now = Date.now();
-  const output = [];
-  for (const cookie of jar.cookies.values()) {
-    if (cookie.expiresAt && cookie.expiresAt <= now) {
-      jar.cookies.delete(cookie.name);
-      continue;
-    }
-    if (cookie.path && !requestPath.startsWith(cookie.path)) continue;
-    output.push(`${cookie.name}=${cookie.value}`);
-  }
-  return output.join("; ");
-}
-
-function rewriteUpstreamLocationToProxy(location) {
-  if (!location) return location;
-  try {
-    const resolved = new URL(location, LAGEKARTE_BASE_URL);
-    if (resolved.hostname !== "www.lagekarte.info") return location;
-    return `/lagekarte${resolved.pathname}${resolved.search}`;
-  } catch {
-    return location;
-  }
-}
-
-async function lagekarteLogin(req, rid = null) {
+async function lagekarteLogin(rid = null) {
   const requestId = rid || generateRequestId();
-  const jar = getLagekarteSessionJar(req);
 
   let creds = null;
   try {
@@ -4367,7 +4238,6 @@ async function lagekarteLogin(req, rid = null) {
     },
     body: formBody.toString(),
     directionMeta: { phase: "login_request" },
-    jar,
   });
 
   if (result.error) {
@@ -4409,34 +4279,22 @@ async function lagekarteLogin(req, rid = null) {
     return { error: "LOGIN_API_ERROR", upstreamStatus: result.status };
   }
 
-  const token = extractTokenFromObject(data?.user || data);
-  const hasApiError = data?.error === "true" || data?.error === true;
-  if (hasApiError) {
+  const token = data?.user?.token;
+  if (data?.error !== "false" || !token) {
     await logLagekarteError("Login failed: unexpected response format", {
       rid: requestId,
       phase: "login_failed",
       httpStatus: result.status,
     });
-    return { error: "LOGIN_API_ERROR" };
+    return { error: "LOGIN_NO_TOKEN" };
   }
 
-  if (token) {
-    jar.token = token;
-    jar.expiresAt = Date.now() + LAGEKARTE_TOKEN_TTL_MS;
-  }
-  jar.uid = data.user?.uid || null;
-  jar.userId = data.user?.id || null;
-  refreshJarAuthenticationState(jar);
-
-  if (!jar.authenticated) {
-    await logLagekarteWarn("Login returned no usable session data", {
-      rid: requestId,
-      phase: "login_no_session_data",
-      tokenPresent: !!token,
-      cookieCount: jar.cookies.size,
-    });
-    return { error: "LOGIN_NO_SESSION" };
-  }
+  _lagekarteTokenCache = {
+    token,
+    uid: data.user?.uid || null,
+    userId: data.user?.id || null,
+    expiresAt: Date.now() + LAGEKARTE_TOKEN_TTL_MS,
+  };
 
   await logLagekarteInfo("Login successful", {
     rid: requestId,
@@ -4448,38 +4306,21 @@ async function lagekarteLogin(req, rid = null) {
   return { ok: true, token, uid: data.user?.uid, userId: data.user?.id, data, upstreamStatus: result.status };
 }
 
-async function getLagekarteToken(req, rid = null) {
+async function getLagekarteToken(rid = null) {
   const requestId = rid || generateRequestId();
-  const jar = getLagekarteSessionJar(req);
-  const tokenValid = jar.token && jar.expiresAt > Date.now() + 60000;
-  refreshJarAuthenticationState(jar);
+  const tokenValid = _lagekarteTokenCache.token && _lagekarteTokenCache.expiresAt > Date.now() + 60000;
 
   await logLagekarteInfo("Token cache check", {
     rid: requestId,
     phase: "token_cache",
     tokenCacheHit: tokenValid,
-    expiresAt: tokenValid ? jar.expiresAt : null,
-    cookieCount: jar.cookies.size,
-    authenticated: jar.authenticated,
+    expiresAt: tokenValid ? _lagekarteTokenCache.expiresAt : null,
   });
 
-  if (tokenValid || jar.authenticated) return jar;
-  const result = await lagekarteLogin(req, requestId);
-  if (result.error) {
-    jar.authenticated = false;
-    return null;
-  }
-  refreshJarAuthenticationState(jar);
-  if (!jar.authenticated) {
-    await logLagekarteWarn("Login success without session artifacts", {
-      rid: requestId,
-      phase: "login_not_authenticated",
-      tokenPresent: !!jar.token,
-      cookieCount: jar.cookies.size,
-    });
-    return null;
-  }
-  return jar;
+  if (tokenValid) return _lagekarteTokenCache;
+  const result = await lagekarteLogin(requestId);
+  if (result.error) return null;
+  return _lagekarteTokenCache;
 }
 
 function headersToObject(headers) {
@@ -4538,41 +4379,27 @@ function normalizeRequestBody(req, upstreamHeaders) {
   return null;
 }
 
-async function fetchLagekarteWithLogging({ rid, localPath, upstreamUrl, method = "GET", headers = {}, body = null, redirect = "manual", directionMeta = {}, jar = null, redirectCount = 0 }) {
+async function fetchLagekarteWithLogging({ rid, localPath, upstreamUrl, method = "GET", headers = {}, body = null, redirect = "manual", directionMeta = {} }) {
   const upId = generateUpstreamId();
   const started = Date.now();
   const requestHeaders = headersToObject(headers);
   const requestContentType = requestHeaders["Content-Type"] || requestHeaders["content-type"] || "";
   const requestBodySanitized = body != null ? sanitizeBody(String(body), requestContentType) : "";
-  const requestBodyLimited = limitLoggedBody(requestBodySanitized, LAGEKARTE_MAX_LOG_BYTES);
+  const requestBodyLimited = limitLoggedBody(requestBodySanitized, MAX_BODY_LOG_BYTES);
 
-  if (jar) {
-    const cookieHeader = buildCookieHeaderForJar(jar, new URL(upstreamUrl).pathname);
-    if (cookieHeader) {
-      headers.Cookie = cookieHeader;
-      requestHeaders.Cookie = cookieHeader;
-    }
-    if (jar.token && !headers.Authorization) {
-      headers.Authorization = `Bearer ${jar.token}`;
-      requestHeaders.Authorization = headers.Authorization;
-    }
-  }
-
-  if (ENABLE_TRAFFIC_LOG) {
-    await logLkTraffic({
-      rid,
-      upId,
-      direction: "upstream_request",
-      method,
-      localPath,
-      upstreamUrl: sanitizeUrl(upstreamUrl),
-      requestHeaders: sanitizeHeaders(requestHeaders),
-      requestBody: requestBodyLimited.body,
-      requestBodyTotalBytes: requestBodyLimited.totalBytes,
-      requestBodyTruncated: requestBodyLimited.truncated,
-      ...directionMeta,
-    });
-  }
+  await logLkTraffic({
+    rid,
+    upId,
+    direction: "upstream_request",
+    method,
+    localPath,
+    upstreamUrl: sanitizeUrl(upstreamUrl),
+    requestHeaders: sanitizeHeaders(requestHeaders),
+    requestBody: requestBodyLimited.body,
+    requestBodyTotalBytes: requestBodyLimited.totalBytes,
+    requestBodyTruncated: requestBodyLimited.truncated,
+    ...directionMeta,
+  });
 
   try {
     const upstreamRes = await fetch(upstreamUrl, {
@@ -4583,20 +4410,6 @@ async function fetchLagekarteWithLogging({ rid, localPath, upstreamUrl, method =
     });
 
     const responseHeadersObj = headersToObject(upstreamRes.headers);
-    storeSetCookieInJar(jar, upstreamRes.headers);
-
-    if (jar && isTextBasedContentType(upstreamRes.headers.get("content-type") || "")) {
-      try {
-        const tokenFromBody = extractTokenFromObject(JSON.parse(await upstreamRes.clone().text()));
-        if (tokenFromBody) {
-          jar.token = tokenFromBody;
-          jar.expiresAt = Date.now() + LAGEKARTE_TOKEN_TTL_MS;
-        }
-      } catch {
-        // ignored
-      }
-    }
-    refreshJarAuthenticationState(jar);
     const responseContentType = upstreamRes.headers.get("content-type") || "";
     const responseContentLength = upstreamRes.headers.get("content-length");
 
@@ -4610,7 +4423,7 @@ async function fetchLagekarteWithLogging({ rid, localPath, upstreamUrl, method =
     if (isTextBasedContentType(responseContentType)) {
       responseBodyRawText = await upstreamRes.text();
       const sanitized = sanitizeBody(responseBodyRawText, responseContentType);
-      const limited = limitLoggedBody(sanitized, LAGEKARTE_MAX_LOG_BYTES);
+      const limited = limitLoggedBody(sanitized, MAX_BODY_LOG_BYTES);
       responseBodyLoggedText = limited.body;
       responseBodyTruncated = limited.truncated;
       responseBodyTotalBytes = limited.totalBytes;
@@ -4623,47 +4436,25 @@ async function fetchLagekarteWithLogging({ rid, localPath, upstreamUrl, method =
 
     const location = upstreamRes.headers.get("location");
 
-    if (ENABLE_TRAFFIC_LOG) {
-      await logLkTraffic({
-        rid,
-        upId,
-        direction: "upstream_response",
-        method,
-        localPath,
-        upstreamUrl: sanitizeUrl(upstreamUrl),
-        responseStatus: upstreamRes.status,
-        responseHeaders: sanitizeHeaders(responseHeadersObj),
-        responseBody: responseBodyLoggedText,
-        responseBodyTotalBytes,
-        responseBodyTruncated,
-        responseBinary: binaryMeta,
-        location: location ? sanitizeUrl(location) : undefined,
-        elapsedMs: Date.now() - started,
-        contentType: responseContentType,
-        contentLength: responseContentLength ? Number(responseContentLength) : null,
-        redirectCount,
-        ...directionMeta,
-      });
-    }
-
-    if (upstreamRes.status >= 300 && upstreamRes.status < 400 && location && redirect === "follow") {
-      if (redirectCount >= LAGEKARTE_MAX_REDIRECTS) {
-        return { error: `Too many redirects (>${LAGEKARTE_MAX_REDIRECTS})` };
-      }
-      const nextUrl = new URL(location, upstreamUrl).href;
-      return fetchLagekarteWithLogging({
-        rid,
-        localPath,
-        upstreamUrl: nextUrl,
-        method,
-        headers,
-        body,
-        redirect,
-        directionMeta,
-        jar,
-        redirectCount: redirectCount + 1,
-      });
-    }
+    await logLkTraffic({
+      rid,
+      upId,
+      direction: "upstream_response",
+      method,
+      localPath,
+      upstreamUrl: sanitizeUrl(upstreamUrl),
+      responseStatus: upstreamRes.status,
+      responseHeaders: sanitizeHeaders(responseHeadersObj),
+      responseBody: responseBodyLoggedText,
+      responseBodyTotalBytes,
+      responseBodyTruncated,
+      responseBinary: binaryMeta,
+      location: location ? sanitizeUrl(location) : undefined,
+      elapsedMs: Date.now() - started,
+      contentType: responseContentType,
+      contentLength: responseContentLength ? Number(responseContentLength) : null,
+      ...directionMeta,
+    });
 
     return {
       ok: upstreamRes.ok,
@@ -4676,24 +4467,22 @@ async function fetchLagekarteWithLogging({ rid, localPath, upstreamUrl, method =
       contentType: responseContentType,
     };
   } catch (err) {
-    if (ENABLE_TRAFFIC_LOG) {
-      await logLkTraffic({
-        rid,
-        upId,
-        direction: "upstream_response",
-        method,
-        localPath,
-        upstreamUrl: sanitizeUrl(upstreamUrl),
-        responseStatus: 0,
-        responseHeaders: {},
-        responseBody: "",
-        responseBodyTotalBytes: 0,
-        responseBodyTruncated: false,
-        error: err?.message || "unknown",
-        elapsedMs: Date.now() - started,
-        ...directionMeta,
-      });
-    }
+    await logLkTraffic({
+      rid,
+      upId,
+      direction: "upstream_response",
+      method,
+      localPath,
+      upstreamUrl: sanitizeUrl(upstreamUrl),
+      responseStatus: 0,
+      responseHeaders: {},
+      responseBody: "",
+      responseBodyTotalBytes: 0,
+      responseBodyTruncated: false,
+      error: err?.message || "unknown",
+      elapsedMs: Date.now() - started,
+      ...directionMeta,
+    });
     return { error: err?.message || "unknown" };
   }
 }
@@ -4709,7 +4498,7 @@ async function lagekarteBrowserLoginBridge(req, res) {
     method: req.method,
   });
 
-  const result = await lagekarteLogin(req, rid);
+  const result = await lagekarteLogin(rid);
 
   if (result?.data && typeof result?.upstreamStatus === "number") {
     await logLagekarteInfo("Browser login bridge success", {
@@ -4717,6 +4506,10 @@ async function lagekarteBrowserLoginBridge(req, res) {
       phase: "browser_login_bridge_ok",
       elapsedMs: Date.now() - startTime,
     });
+    const cookieTokenData = { token: result?.token, userId: result?.userId ?? result?.data?.user?.id };
+    for (const cookie of buildLagekarteAuthCookies(cookieTokenData)) {
+      res.append("Set-Cookie", cookie);
+    }
     res.setHeader("Cache-Control", "no-store");
     return res.status(200).json(result.data);
   }
@@ -4753,14 +4546,37 @@ function updateLagekarteStorageKeyHints(js) {
   }
 }
 
-function injectLagekarteAuthIntoHtml(html, requestPath = "/") {
+function buildLagekarteAuthCookies(tokenData) {
+  if (!tokenData?.token || tokenData?.userId == null) return [];
+  const encodedToken = encodeURIComponent(String(tokenData.token));
+  const encodedUser = encodeURIComponent(String(tokenData.userId));
+  const attrsRoot = "Path=/; Max-Age=2592000; SameSite=Lax";
+  const attrsLagekarte = "Path=/lagekarte; Max-Age=2592000; SameSite=Lax";
+
+  return [
+    `login-token=${encodedToken}; ${attrsRoot}`,
+    `login-user=${encodedUser}; ${attrsRoot}`,
+    `login-token=${encodedToken}; ${attrsLagekarte}`,
+    `login-user=${encodedUser}; ${attrsLagekarte}`,
+  ];
+}
+
+function injectLagekarteAuthIntoHtml(html, requestPath = "/", tokenData = null) {
   if (!html || typeof html !== "string") return html;
 
   const normalized = (requestPath || "/").replace(/\/+/g, "/");
   const isStartPage = normalized === "/" || normalized === "/de" || normalized === "/de/" || normalized === "/en" || normalized === "/en/";
   if (!isStartPage) return html;
 
-  const injectionScript = "";
+  const scriptPayload = {
+    localKeys: Array.from(_lagekarteStorageKeyHints.local),
+    sessionKeys: Array.from(_lagekarteStorageKeyHints.session),
+    token: tokenData?.token != null ? String(tokenData.token) : "",
+    userId: tokenData?.userId != null ? String(tokenData.userId) : "",
+  };
+
+  const serialized = JSON.stringify(scriptPayload).replace(/<\//g, "<\/");
+  const injectionScript = `<script>(function(){try{var cfg=${serialized};var localKeys=Array.isArray(cfg.localKeys)?cfg.localKeys:[];var sessionKeys=Array.isArray(cfg.sessionKeys)?cfg.sessionKeys:[];var token=cfg.token||"";var userId=cfg.userId||"";if(!token||!userId)return;for(var i=0;i<localKeys.length;i++){try{localStorage.setItem(localKeys[i],token);}catch(_e){}}for(var j=0;j<sessionKeys.length;j++){try{sessionStorage.setItem(sessionKeys[j],token);}catch(_e){}}if(localKeys.indexOf("uid")!==-1){try{localStorage.setItem("uid",String(userId));}catch(_e){}}if(sessionKeys.indexOf("uid")!==-1){try{sessionStorage.setItem("uid",String(userId));}catch(_e){}}}catch(e){}})();</script>`;
 
   if (/<head[^>]*>/i.test(html)) {
     return html.replace(/<head([^>]*)>/i, `<head$1>${injectionScript}`);
@@ -4789,8 +4605,8 @@ async function lagekarteProxyHandler(req, res, next) {
   const rid = generateRequestId();
   const requestPath = req.path || "/";
 
-  const sessionJar = await getLagekarteToken(req, rid);
-  if (!sessionJar) {
+  const tokenData = await getLagekarteToken(rid);
+  if (!tokenData) {
     try {
       const creds = await User_getGlobalLagekarte();
       const credsPresent = !!(creds?.creds?.username && creds?.creds?.password);
@@ -4812,6 +4628,10 @@ async function lagekarteProxyHandler(req, res, next) {
   if (req.originalUrl.includes("?")) {
     targetUrl.search = req.originalUrl.split("?")[1];
   }
+  if (targetPath.includes("/php/api.php/") || targetPath.includes("/daten/")) {
+    targetUrl.searchParams.set("token", tokenData.token);
+  }
+
   const fetchHeaders = {
     "User-Agent": "Mozilla/5.0 EINFO-Lagekarte-Proxy/1.0",
     "Accept": req.headers.accept || "*/*",
@@ -4830,17 +4650,10 @@ async function lagekarteProxyHandler(req, res, next) {
     body,
     redirect: "manual",
     directionMeta: { phase: "proxy_upstream" },
-    jar: sessionJar,
   });
 
   if (upstream.error) {
     return sendLagekarteError(res, `Verbindung zu Lagekarte fehlgeschlagen: ${upstream.error}`);
-  }
-
-  const locationHeader = upstream.responseHeaders?.get?.("location");
-  if (upstream.status >= 300 && upstream.status < 400 && locationHeader) {
-    const rewritten = rewriteUpstreamLocationToProxy(locationHeader);
-    return res.redirect(upstream.status, rewritten);
   }
 
   res.status(upstream.status);
@@ -4873,7 +4686,10 @@ async function lagekarteProxyHandler(req, res, next) {
       text = text.replace(/\/lagekarte\/lagekarte\//g, "/lagekarte/");
       text = text.replace(/(\/lagekarte\/){2,}/g, "/lagekarte/");
       text = text.replace(/\/lagekarte\/{2,}/g, "/lagekarte/");
-      text = injectLagekarteAuthIntoHtml(text, requestPath);
+      text = injectLagekarteAuthIntoHtml(text, requestPath, tokenData);
+      for (const cookie of buildLagekarteAuthCookies(tokenData)) {
+        res.append("Set-Cookie", cookie);
+      }
     } else if (contentType.includes("text/css")) {
       text = text.replace(/url\(\s*['"]?\//g, 'url("/lagekarte/');
     } else if (contentType.includes("javascript")) {
@@ -4912,7 +4728,6 @@ app.use("/lagekarte", User_requireAuth, lagekarteProxyHandler);
 async function lagekarteRootProxy(req, res) {
   const rid = generateRequestId();
   const upstreamUrl = `${LAGEKARTE_ASSET_BASE}${req.originalUrl}`;
-  const sessionJar = getLagekarteSessionJar(req, { create: false });
 
   const proxyHeaders = stripHopByHopHeaders(headersToObject(req.headers));
   proxyHeaders["accept-encoding"] = "identity";
@@ -4928,7 +4743,6 @@ async function lagekarteRootProxy(req, res) {
     body,
     redirect: "manual",
     directionMeta: { phase: "root_proxy_upstream" },
-    jar: sessionJar,
   });
 
   if (upstream.error) {
@@ -4941,12 +4755,6 @@ async function lagekarteRootProxy(req, res) {
       error: upstream.error,
     });
     return res.status(502).send("Bad Gateway");
-  }
-
-  const locationHeader = upstream.responseHeaders?.get?.("location");
-  if (upstream.status >= 300 && upstream.status < 400 && locationHeader) {
-    const rewritten = rewriteUpstreamLocationToProxy(locationHeader);
-    return res.redirect(upstream.status, rewritten);
   }
 
   res.status(upstream.status);

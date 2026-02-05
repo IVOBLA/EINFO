@@ -22,8 +22,8 @@ const BINARY_PREVIEW_BYTES = 256;
 let activeLogDir = null;
 
 const SENSITIVE_HEADER_NAMES = new Set(["authorization", "cookie", "set-cookie", "x-auth-token"]);
-const SENSITIVE_QUERY_KEYS = /^(token|auth|authorization|session|sid|user|username|pw|password|bearer|access_token|refresh_token)$/i;
-const SENSITIVE_BODY_KEYS = /(token|auth|authorization|bearer|session|sid|pw|password|pass|user|username|login-token|auth_token|access_token|refresh_token)/i;
+const SENSITIVE_QUERY_KEYS = /^(token|auth|session|sid)$/i;
+const SENSITIVE_BODY_KEYS = /(token|auth|authorization|bearer|session|sid|pw|password|pass|user|login-token|auth_token|access_token|refresh_token)/i;
 
 async function ensureDir(dir) {
   try {
@@ -88,7 +88,7 @@ export function sanitizeUrl(url) {
     return parsed.toString();
   } catch {
     return String(url)
-      .replace(/([?&])(token|auth|authorization|session|sid|user|username|pw|password|bearer|access_token|refresh_token)=([^&#]*)/gi, "$1$2=***")
+      .replace(/([?&])(token|auth|session|sid)=([^&#]*)/gi, "$1$2=***")
       .replace(/(login-token=)[^;\s]+/gi, "$1***");
   }
 }
@@ -162,10 +162,9 @@ function redactDeep(value) {
 
 function sanitizePlainTextBody(text) {
   return String(text)
-    .replace(/("(?:token|auth_token|login-token|access_token|refresh_token|bearer|session|sid|pw|password|pass|user|username|authorization)"\s*:\s*")[^"]*(")/gi, "$1***$2")
-    .replace(/((?:token|auth|authorization|session|sid|pw|password|pass|user|username|login-token|access_token|refresh_token|bearer)\s*=\s*)[^&\s"';]+/gi, "$1***")
+    .replace(/("(?:token|auth_token|login-token|access_token|refresh_token|bearer|session|sid|pw|password|pass|user|authorization)"\s*:\s*")[^"]*(")/gi, "$1***$2")
+    .replace(/((?:token|auth|session|sid|pw|password|pass|user|login-token)\s*=\s*)[^&\s"';]+/gi, "$1***")
     .replace(/(Authorization\s*:\s*Bearer\s+)[A-Za-z0-9._-]+/gi, "$1***")
-    .replace(/(Bearer\s+)[A-Za-z0-9._-]+/gi, "$1***")
     .replace(/(login-token=)[^;\s]+/gi, "$1***");
 }
 

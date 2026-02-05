@@ -25,30 +25,20 @@ test('sanitizeHeaders redacts auth and cookies', () => {
 });
 
 test('sanitizeUrl redacts sensitive query parameters', () => {
-  const out = sanitizeUrl('https://www.lagekarte.info/de/php/api.php?a=1&token=abc&sid=123&auth=zzz&username=max&password=topsecret');
+  const out = sanitizeUrl('https://www.lagekarte.info/de/php/api.php?a=1&token=abc&sid=123&auth=zzz');
   assert.match(out, /token=\*\*\*/);
   assert.match(out, /sid=\*\*\*/);
   assert.match(out, /auth=\*\*\*/);
-  assert.match(out, /username=\*\*\*/);
-  assert.match(out, /password=\*\*\*/);
 });
 
 test('sanitizeBody redacts json and form credentials', () => {
-  const json = sanitizeBody(JSON.stringify({ token: 'abc', user: 'admin', username: 'alice', pw: 'secret', nested: { password: 'x' } }), 'application/json');
-  assert.equal(json, '{"token":"***","user":"***","username":"***","pw":"***","nested":{"password":"***"}}');
+  const json = sanitizeBody(JSON.stringify({ token: 'abc', user: 'admin', pw: 'secret', nested: { password: 'x' } }), 'application/json');
+  assert.equal(json, '{"token":"***","user":"***","pw":"***","nested":{"password":"***"}}');
 
-  const form = sanitizeBody('user=admin&username=alice&pw=secret&x=1', 'application/x-www-form-urlencoded');
+  const form = sanitizeBody('user=admin&pw=secret&x=1', 'application/x-www-form-urlencoded');
   assert.match(form, /user=\*\*\*/);
-  assert.match(form, /username=\*\*\*/);
   assert.match(form, /pw=\*\*\*/);
   assert.match(form, /x=1/);
-});
-
-test('sanitizeBody redacts bearer tokens in plaintext', () => {
-  const text = sanitizeBody('Authorization: Bearer abc.def.ghi\nBearer abcdefgh', 'text/plain');
-  assert.doesNotMatch(text, /abc\.def\.ghi/);
-  assert.doesNotMatch(text, /abcdefgh/);
-  assert.match(text, /Bearer \*\*\*/);
 });
 
 test('limitLoggedBody truncates oversized text', () => {
