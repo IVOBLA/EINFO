@@ -4154,7 +4154,6 @@ app.get("/api/export/pdf", async (_req,res)=>{
 // =                       LAGEKARTE PROXY (SSO)                      =
 // ===================================================================
 const LAGEKARTE_BASE_URL = "https://www.lagekarte.info";
-const LAGEKARTE_ASSET_BASE = "https://www.lagekarte.info";
 const LK_BASE = "https://www.lagekarte.info/de";
 const LAGEKARTE_API_LOGIN = "/de/php/api.php/user/login";
 
@@ -4550,7 +4549,7 @@ app.use("/lagekarte", User_requireAuth, async (req, res) => {
 
 async function lagekarteRootProxy(req, res) {
   const rid = generateRequestId();
-  const upstreamUrl = `${LAGEKARTE_ASSET_BASE}${req.originalUrl}`;
+  const upstreamUrl = `${LK_BASE}${req.originalUrl}`;
   const incomingHeaders = req.headers ?? {};
   const proxyHeaders = {};
 
@@ -4573,8 +4572,6 @@ async function lagekarteRootProxy(req, res) {
     }
     proxyHeaders[headerName] = headerValue;
   }
-
-  proxyHeaders["accept-encoding"] = "identity";
 
   const fetchOptions = {
     method: req.method,
@@ -4603,7 +4600,7 @@ async function lagekarteRootProxy(req, res) {
     if (!upstreamRes.ok) {
       await logLagekarteWarn("Lagekarte root proxy upstream non-2xx", {
         rid,
-        phase: "proxy_upstream_non_2xx",
+        phase: "proxy_failed",
         path: req.originalUrl,
         upstreamUrl,
         httpStatus: upstreamRes.status,
@@ -4613,13 +4610,7 @@ async function lagekarteRootProxy(req, res) {
     res.status(upstreamRes.status);
     upstreamRes.headers.forEach((value, key) => {
       const lower = key.toLowerCase();
-      if ([
-        "content-encoding",
-        "content-length",
-        "transfer-encoding",
-        "connection",
-        "keep-alive",
-      ].includes(lower)) return;
+      if (["transfer-encoding", "connection", "keep-alive"].includes(lower)) return;
       res.setHeader(key, value);
     });
 
