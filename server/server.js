@@ -4322,6 +4322,37 @@ function buildCookieHeaderForJar(jar, requestPath = "/") {
   return output.join("; ");
 }
 
+function parseCookieHeader(cookieHeader = "") {
+  const parsed = new Map();
+  const source = String(cookieHeader || "").trim();
+  if (!source) return parsed;
+  for (const chunk of source.split(";")) {
+    const entry = chunk.trim();
+    if (!entry) continue;
+    const equalIndex = entry.indexOf("=");
+    if (equalIndex <= 0) continue;
+    const name = entry.slice(0, equalIndex).trim();
+    const value = entry.slice(equalIndex + 1).trim();
+    if (!name) continue;
+    parsed.set(name, value);
+  }
+  return parsed;
+}
+
+function mergeCookieHeaders(primaryCookieHeader = "", secondaryCookieHeader = "") {
+  const merged = parseCookieHeader(primaryCookieHeader);
+  for (const [name, value] of parseCookieHeader(secondaryCookieHeader).entries()) {
+    if (!merged.has(name)) merged.set(name, value);
+  }
+  return [...merged.entries()].map(([name, value]) => `${name}=${value}`).join("; ");
+}
+
+function shouldSetSecureCookie(req) {
+  if (req?.secure) return true;
+  const forwardedProto = String(req?.headers?.["x-forwarded-proto"] || "").toLowerCase();
+  return forwardedProto.includes("https");
+}
+
 function rewriteUpstreamLocationToProxy(location) {
   if (!location) return location;
   try {
@@ -4569,16 +4600,23 @@ async function fetchLagekarteWithLogging({ rid, localPath, upstreamUrl, method =
   const requestBodySanitized = body != null ? sanitizeBody(String(body), requestContentType) : "";
   const requestBodyLimited = limitLoggedBody(requestBodySanitized, LAGEKARTE_MAX_LOG_BYTES);
 
+  const browserCookieHeader = requestHeaders.Cookie || requestHeaders.cookie || "";
   if (jar) {
     const cookieHeader = buildCookieHeaderForJar(jar, new URL(upstreamUrl).pathname);
-    if (cookieHeader) {
-      headers.Cookie = cookieHeader;
-      requestHeaders.Cookie = cookieHeader;
+    const mergedCookieHeader = mergeCookieHeaders(browserCookieHeader, cookieHeader);
+    if (mergedCookieHeader) {
+      headers.Cookie = mergedCookieHeader;
+      requestHeaders.Cookie = mergedCookieHeader;
+      delete requestHeaders.cookie;
     }
     if (jar.token && !headers.Authorization) {
       headers.Authorization = `Bearer ${jar.token}`;
       requestHeaders.Authorization = headers.Authorization;
     }
+  } else if (browserCookieHeader) {
+    headers.Cookie = browserCookieHeader;
+    requestHeaders.Cookie = browserCookieHeader;
+    delete requestHeaders.cookie;
   }
 
   if (ENABLE_TRAFFIC_LOG) {
@@ -4743,6 +4781,19 @@ async function lagekarteBrowserLoginBridge(req, res) {
   const result = await lagekarteLogin(req, rid);
 
   if (result?.data && typeof result?.upstreamStatus === "number") {
+    const responseUserId = result?.data?.user?.id;
+    const responseToken = result?.data?.user?.token;
+    if (responseUserId && responseToken) {
+      const secureAttr = shouldSetSecureCookie(req) ? "; Secure" : "";
+      res.append("Set-Cookie", `login-user=${encodeURIComponent(String(responseUserId))}; Path=/; SameSite=Lax${secureAttr}`);
+      res.append("Set-Cookie", `login-token=${encodeURIComponent(String(responseToken))}; Path=/; SameSite=Lax${secureAttr}`);
+      await logLagekarteInfo(`Set login-user/login-token cookies for userId=${responseUserId}`, {
+        rid,
+        phase: "browser_login_bridge_set_cookie",
+        userId: responseUserId,
+      });
+    }
+
     await logLagekarteInfo("Browser login bridge success", {
       rid,
       phase: "browser_login_bridge_ok",
@@ -4960,6 +5011,7 @@ async function lagekarteProxyHandler(req, res, next) {
     "Accept": req.headers.accept || "*/*",
     "Accept-Language": req.headers["accept-language"] || "de-DE,de;q=0.9,en;q=0.8",
     "accept-encoding": "identity",
+    ...(req.headers.cookie ? { Cookie: req.headers.cookie } : {}),
   };
 
   const body = normalizeRequestBody(req, fetchHeaders);
@@ -4994,6 +5046,29 @@ async function lagekarteProxyHandler(req, res, next) {
   }
 
   const contentType = upstream.contentType || "";
+
+  const isLoginTokenRequest = /^\/(?:de\/)?php\/api\.php\/user\/logintoken(?:\/)?$/i.test(requestPath);
+  if (isLoginTokenRequest && upstream.isText) {
+    try {
+      const tokenPayload = JSON.parse(upstream.responseBodyText || "{}");
+      const errorMessage = String(tokenPayload?.error_msg || tokenPayload?.msg || "").toLowerCase();
+      if (errorMessage.includes("token outdated")) {
+        await logLagekarteWarn("Upstream logintoken returned token outdated, falling back to interactive login", {
+          rid,
+          phase: "logintoken_outdated",
+          path: requestPath,
+        });
+        return res.status(401).json({
+          error: "true",
+          code: "TOKEN_OUTDATED",
+          require_login: true,
+          error_msg: "Token veraltet. Bitte erneut anmelden.",
+        });
+      }
+    } catch {
+      // Ignore malformed payload and pass through upstream response unchanged.
+    }
+  }
 
   if (upstream.isText) {
     let text = upstream.responseBodyText || "";
@@ -5072,6 +5147,7 @@ async function lagekarteRootProxy(req, res) {
 
   const proxyHeaders = stripHopByHopHeaders(headersToObject(req.headers));
   proxyHeaders["accept-encoding"] = "identity";
+  if (req.headers.cookie && !proxyHeaders.Cookie) proxyHeaders.Cookie = req.headers.cookie;
 
   const body = normalizeRequestBody(req, proxyHeaders);
 
