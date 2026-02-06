@@ -162,6 +162,7 @@ export async function getKnowledgeContextWithSources(query, options = {}) {
   const topK = options.topK || CONFIG.rag.topK || 5;
   const maxChars = options.maxChars || CONFIG.rag.maxContextChars || 2500;
   const threshold = options.threshold || CONFIG.rag.scoreThreshold || 0.35;
+  const filters = options.filters || {};
 
   await ensureLoaded();
 
@@ -172,17 +173,18 @@ export async function getKnowledgeContextWithSources(query, options = {}) {
 
   const queryEmbedding = await embedText(query);
   const results = [];
+  const candidateIndices = filterChunkIndices(meta.chunks, filters);
 
- for (let i = 0; i < vectors.length; i++) {
-  const docVec = vectors[i];
+  for (const i of candidateIndices) {
+    const docVec = vectors[i];
     const score = cosineSimilarity(queryEmbedding, docVec);
-    
+
     if (score >= threshold) {
       results.push({
         index: i,
         score,
-  text: meta.chunks[i]?.text || "",
-  fileName: meta.chunks[i]?.fileName || "unbekannt"
+        text: meta.chunks[i]?.text || "",
+        fileName: meta.chunks[i]?.fileName || "unbekannt"
       });
     }
   }
@@ -221,7 +223,7 @@ export async function getKnowledgeContextWithSources(query, options = {}) {
 /**
  * Liefert einen String mit Knowledge-Kontext (Top-K Chunks).
  */
-export async function getKnowledgeContextVector(query) {
+export async function getKnowledgeContextVector(query, options = {}) {
   await ensureLoaded();
   if (!meta || !vectors || !meta.chunks.length || !vectors.length) return "";
 
@@ -235,14 +237,17 @@ export async function getKnowledgeContextVector(query) {
   const qArr = Array.from(qEmb);
 
   const n = Math.min(vectors.length, CONFIG.rag.indexMaxElements);
-  const k = Math.min(CONFIG.rag.topK, n);
-  const scoreThreshold = CONFIG.rag.scoreThreshold || 0.3;
+  const topK = options.topK || CONFIG.rag.topK;
+  const maxChars = options.maxChars || CONFIG.rag.maxContextChars;
+  const scoreThreshold = options.threshold || CONFIG.rag.scoreThreshold || 0.3;
+  const k = Math.min(topK, n);
   
   if (k === 0) return "";
 
   const heap = [];
+  const candidateIndices = filterChunkIndices(meta.chunks, options.filters || {});
 
-  for (let i = 0; i < n; i++) {
+  for (const i of candidateIndices) {
     const v = vectors[i];
     const s = cosineSimilarity(qArr, v);
     
@@ -264,7 +269,7 @@ export async function getKnowledgeContextVector(query) {
   const sims = heap.sort((a, b) => b.s - a.s);
 
   const parts = [];
-  let remaining = CONFIG.rag.maxContextChars;
+  let remaining = maxChars;
 
   for (let i = 0; i < sims.length; i++) {
     const { idx, s } = sims[i];
@@ -298,6 +303,65 @@ export async function getKnowledgeContextVector(query) {
 
   return ctx;
 }
+
+function filterChunkIndices(chunks, filters = {}) {
+  const {
+    doc_type: docTypeFilter,
+    category: categoryFilter,
+    municipality,
+    bbox
+  } = filters;
+
+  const docTypes = normalizeFilterValues(docTypeFilter);
+  const categories = normalizeFilterValues(categoryFilter);
+
+  const indices = [];
+  for (let i = 0; i < chunks.length; i++) {
+    const ch = chunks[i];
+    const metaInfo = ch?.meta || {};
+
+    if (docTypes.length) {
+      if (!docTypes.includes(metaInfo.doc_type)) continue;
+    }
+
+    if (categories.length) {
+      if (!categories.includes(metaInfo.category)) continue;
+    }
+
+    if (municipality) {
+      const muni = metaInfo.address?.municipality || metaInfo.address?.city || "";
+      if (muni.toLowerCase() !== municipality.toLowerCase()) continue;
+    }
+
+    if (bbox && Array.isArray(bbox) && bbox.length === 4) {
+      const [minLon, minLat, maxLon, maxLat] = bbox.map(Number);
+      if (metaInfo.geo?.lat !== undefined && metaInfo.geo?.lon !== undefined) {
+        const { lat, lon } = metaInfo.geo;
+        if (lat < minLat || lat > maxLat || lon < minLon || lon > maxLon) {
+          continue;
+        }
+      } else if (Array.isArray(metaInfo.geo?.bbox) && metaInfo.geo.bbox.length === 4) {
+        const [bMinLon, bMinLat, bMaxLon, bMaxLat] = metaInfo.geo.bbox;
+        const overlaps = !(bMaxLon < minLon || bMinLon > maxLon || bMaxLat < minLat || bMinLat > maxLat);
+        if (!overlaps) continue;
+      } else {
+        continue;
+      }
+    }
+
+    indices.push(i);
+  }
+
+  return indices;
+}
+
+function normalizeFilterValues(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.filter(Boolean);
+  return [value];
+}
+
+export { filterChunkIndices };
 
 // ============================================================
 // Funktion zum Hinzufügen von Einträgen ins Vector-RAG
