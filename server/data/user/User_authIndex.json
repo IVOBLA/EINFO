@@ -126,6 +126,40 @@
         "salt": "V1BPBALMeiO0bH/5eLr6Iw==",
         "hash": "b0paIZrU7mH3QAL4mwGbYRJoDGHKJup9s7zXC3qRJT4="
       }
+    },
+    {
+      "id": 18,
+      "username": "klaus",
+      "displayName": "Klaus",
+      "role": "S2",
+      "roles": [
+        "S2",
+        "LtStb",
+        "S1",
+        "S3",
+        "S4",
+        "S5",
+        "S6"
+      ],
+      "pass": {
+        "algo": "scrypt",
+        "salt": "vB/0i0IfDebO7zwLJ+BzNw==",
+        "hash": "cjT/AbVcz0LqHR3GbqI6Bx6Eq7IvpRsu4A+C1ttjFWU="
+      }
+    },
+    {
+      "id": 19,
+      "username": "klausMS",
+      "displayName": "klausMS",
+      "role": "MS",
+      "roles": [
+        "MS"
+      ],
+      "pass": {
+        "algo": "scrypt",
+        "salt": "ZuLYpEyhTyMiyRFQt0igLw==",
+        "hash": "4TcDgE5VsGoKGNKe3JUTBpThzWKVAR9z2InTNxhidRc="
+      }
     }
   ]
 }
