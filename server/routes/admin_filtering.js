@@ -595,6 +595,7 @@ router.get("/scenario", async (req, res) => {
     // Defaults für neue Felder
     if (config.einsatztitel === undefined) config.einsatztitel = "";
     if (config.ausgangslage === undefined) config.ausgangslage = "";
+    if (config.bbox === undefined) config.bbox = null;
     res.json(config);
   } catch (err) {
     // Datei existiert nicht - Default-Werte zurückgeben
@@ -606,7 +607,8 @@ router.get("/scenario", async (req, res) => {
       geografischerBereich: "Nicht definiert",
       zeit: null,
       wetter: null,
-      infrastruktur: null
+      infrastruktur: null,
+      bbox: null
     });
   }
 });
@@ -617,7 +619,16 @@ router.get("/scenario", async (req, res) => {
  */
 router.put("/scenario", async (req, res) => {
   try {
-    const { artDesEreignisses, geografischerBereich, zeit, wetter, infrastruktur, einsatztitel, ausgangslage } = req.body;
+    const {
+      artDesEreignisses,
+      geografischerBereich,
+      zeit,
+      wetter,
+      infrastruktur,
+      einsatztitel,
+      ausgangslage,
+      bbox
+    } = req.body;
 
     // Lade bestehende Config oder erstelle neue
     let config = {};
@@ -636,6 +647,19 @@ router.put("/scenario", async (req, res) => {
     if (zeit !== undefined) config.zeit = zeit;
     if (wetter !== undefined) config.wetter = wetter;
     if (infrastruktur !== undefined) config.infrastruktur = infrastruktur;
+    if (bbox !== undefined) {
+      if (bbox === null) {
+        config.bbox = null;
+      } else if (Array.isArray(bbox) && bbox.length === 4 && bbox.every(Number.isFinite)) {
+        const [minLon, minLat, maxLon, maxLat] = bbox;
+        if (!(minLon < maxLon && minLat < maxLat)) {
+          return res.status(400).json({ error: "Ungültige BBox" });
+        }
+        config.bbox = bbox;
+      } else {
+        return res.status(400).json({ error: "Ungültige BBox" });
+      }
+    }
 
     // Setze scenarioId wenn nicht vorhanden
     if (!config.scenarioId) {

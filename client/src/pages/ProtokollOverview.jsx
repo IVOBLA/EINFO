@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useUserAuth } from "../components/User_AuthProvider.jsx";
+import BBoxPickerModal from "../components/BBoxPickerModal.jsx";
 import {
   getLastChangeInfo,
   loadSeenEntries,
@@ -263,6 +264,9 @@ function EinsatzPanel({ canInteract, onProtocolReload }) {
   const [einsatztitel, setEinsatztitel] = useState("");
   const [ausgangslage, setAusgangslage] = useState("");
   const [wetter, setWetter] = useState("");
+  const [bbox, setBbox] = useState(null);
+  const [bboxModalOpen, setBboxModalOpen] = useState(false);
+  const [bboxSaving, setBboxSaving] = useState(false);
   const [loadingAction, setLoadingAction] = useState(false);
   const [message, setMessage] = useState(null);
 
@@ -274,6 +278,7 @@ function EinsatzPanel({ canInteract, onProtocolReload }) {
       setEinsatztitel(cfg.einsatztitel ?? "");
       setAusgangslage(cfg.ausgangslage || cfg.artDesEreignisses || "");
       setWetter(cfg.wetter ?? "");
+      setBbox(cfg.bbox ?? null);
     } catch { /* ignore */ }
   }, []);
 
@@ -322,7 +327,55 @@ function EinsatzPanel({ canInteract, onProtocolReload }) {
     }
   }, [onProtocolReload]);
 
+  const updateScenario = useCallback(async (payload) => {
+    const res = await fetch("/api/admin/filtering-rules/scenario", {
+      method: "PUT",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Fehler");
+    return data;
+  }, []);
+
+  const handleSaveBBox = useCallback(async (newBbox) => {
+    setBboxSaving(true);
+    setMessage(null);
+    try {
+      await updateScenario({ bbox: newBbox });
+      await loadScenario();
+      setBBoxModalOpen(false);
+      setMessage({ type: "ok", text: "BBox gespeichert" });
+    } catch (err) {
+      setMessage({ type: "err", text: err.message });
+      throw err;
+    } finally {
+      setBboxSaving(false);
+    }
+  }, [loadScenario, updateScenario]);
+
+  const handleDeleteBBox = useCallback(async () => {
+    setBboxSaving(true);
+    setMessage(null);
+    try {
+      await updateScenario({ bbox: null });
+      await loadScenario();
+      setMessage({ type: "ok", text: "BBox gelöscht" });
+    } catch (err) {
+      setMessage({ type: "err", text: err.message });
+    } finally {
+      setBboxSaving(false);
+    }
+  }, [loadScenario, updateScenario]);
+
+  const formattedBbox = useMemo(() => {
+    if (!Array.isArray(bbox) || bbox.length !== 4) return null;
+    return bbox.map((value) => Number(value).toFixed(5)).join(",");
+  }, [bbox]);
+
   const disabledTitle = !canInteract ? "Nur LtStB oder S3 (wenn LtStB nicht angemeldet)" : undefined;
+  const deleteDisabledTitle = !bbox ? "Keine BBox gesetzt" : disabledTitle;
 
   return (
     <div className="mb-3 border rounded-lg bg-white/90 shadow-sm">
@@ -390,6 +443,29 @@ function EinsatzPanel({ canInteract, onProtocolReload }) {
               Einsatz beenden
             </button>
           </div>
+          <div className="flex flex-wrap gap-2 pt-1">
+            <button
+              className="px-3 py-1.5 text-sm rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+              disabled={!canInteract || bboxSaving}
+              title={disabledTitle}
+              onClick={() => setBboxModalOpen(true)}
+            >
+              Bereich auf Karte auswählen
+            </button>
+            <button
+              className="px-3 py-1.5 text-sm rounded border border-red-200 text-red-700 hover:bg-red-50 disabled:opacity-50"
+              disabled={!canInteract || bboxSaving || !bbox}
+              title={deleteDisabledTitle}
+              onClick={handleDeleteBBox}
+            >
+              BBox löschen
+            </button>
+          </div>
+          {formattedBbox && (
+            <div className="text-xs text-gray-600">
+              BBox: {formattedBbox.split(",").slice(0, 2).join(",")} → {formattedBbox.split(",").slice(2).join(",")}
+            </div>
+          )}
           {message && (
             <div className={`text-sm mt-1 ${message.type === "ok" ? "text-green-700" : "text-red-700"}`}>
               {message.text}
@@ -397,6 +473,12 @@ function EinsatzPanel({ canInteract, onProtocolReload }) {
           )}
         </div>
       )}
+      <BBoxPickerModal
+        open={bboxModalOpen}
+        initialBbox={bbox}
+        onCancel={() => setBboxModalOpen(false)}
+        onSave={handleSaveBBox}
+      />
     </div>
   );
 }
