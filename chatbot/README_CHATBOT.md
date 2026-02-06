@@ -29,6 +29,22 @@ Empfohlenes Schema für konsistente Suche/Filter:
 - Pflichtfelder: `schema_version`, `doc_id`, `doc_type`, `source`, `region`, `title`, `content`
 - `content` ist der bevorzugte Embedding-Text (1–25 Zeilen)
 - Optional: `category`, `name`, `address.*`, `geo.*`, `tags`, `ids.*`, `stats`, `updated_at`
+- 1 Zeile = 1 Record (JSONL)
+
+#### JSONL-Fallback-Regeln (Validator)
+- Fehlende Pflichtfelder werden ergänzt:
+  - `schema_version`: `"einfo-jsonl-1.0"`
+  - `source`/`region`: `"UNKNOWN"`
+  - `doc_type`: `"generic"`
+  - `title`: `name` → `address.full` → `"Untitled"`
+  - `doc_id`: vorhandene ID → `osm:${ids.osm_type}:${ids.osm_id}` → SHA1-Hash aus `filePath:lineNo:title`
+- `content` wird automatisch erzeugt, wenn leer:
+  - Zeilenformat aus Titel, Name, Kategorie, Adresse, Ort, Koordinaten und ausgewählten Tags
+- Normalisierung:
+  - `address.street_norm` wird aus `address.street` abgeleitet
+  - `geo.lat`/`geo.lon` als Number, ungültige Werte werden entfernt
+  - `geo.bbox` muss Array[4] Number sein, sonst entfernt
+- Sehr langer `content` wird auf 5000 Zeichen gekürzt (Warnung).
 
 Für Geo/OSM-Use-Cases werden `address.*`, `geo.*`, `category` sowie
 `doc_type`-Records wie `street_stats` und `municipality_index` empfohlen.
