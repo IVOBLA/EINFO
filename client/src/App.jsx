@@ -1147,6 +1147,12 @@ try {
 
   };
 
+  const openLagekarte = () => {
+    const url = "https://www.lagekarte.info/de/";
+    const w = window.open(url, "_blank", "noopener,noreferrer");
+    if (w) w.opener = null;
+  };
+
   // Clone-Funktionen Fahrzeuge
   const [cloneBusy, setCloneBusy] = useState(false);
   async function cloneVehicleById(vehicleId, assignToCardId) {
@@ -2237,6 +2243,14 @@ if (route.startsWith("/protokoll")) {
             title="Import sofort ausfuehren"
           >
             {importBusy ? "Import..." : "Import"}
+          </button>
+
+          <button
+            onClick={openLagekarte}
+            className="header-btn"
+            title="Lagekarte in neuem Tab öffnen"
+          >
+            Lagekarte
           </button>
 
           {/* Feuerwehr-Fetcher Control */}
