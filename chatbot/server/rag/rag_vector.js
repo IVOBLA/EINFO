@@ -11,6 +11,8 @@ import { fileURLToPath } from "url";
 import { CONFIG } from "../config.js";
 import { embedText } from "./embedding.js";
 import { logDebug, logError } from "../logger.js";
+import { normalizeStreet } from "./jsonl_utils.js";
+import { findMunicipalityInQuery, getMunicipalityIndex } from "./geo_search.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,11 +20,14 @@ const __dirname = path.dirname(__filename);
 const indexDir = path.resolve(__dirname, CONFIG.knowledgeIndexDir);
 const metaPath = path.join(indexDir, "meta.json");
 const embeddingsPath = path.join(indexDir, "embeddings.json");
+const entityIndexPath = path.join(__dirname, "entity_index.json");
 
 let meta = null;
 let vectors = null; // Array<Array<number>>
 let lastMetaMtimeMs = 0;
 let lastEmbeddingsMtimeMs = 0;
+let entityIndex = null;
+let lastEntityMtimeMs = 0;
 
 async function ensureLoaded() {
   const metaExists = fs.existsSync(metaPath);
@@ -87,6 +92,28 @@ async function ensureLoaded() {
     vectors = [];
     lastMetaMtimeMs = 0;
     lastEmbeddingsMtimeMs = 0;
+  }
+}
+
+async function ensureEntityIndexLoaded() {
+  if (!fs.existsSync(entityIndexPath)) {
+    entityIndex = null;
+    lastEntityMtimeMs = 0;
+    return;
+  }
+
+  const stat = await fsPromises.stat(entityIndexPath);
+  if (entityIndex && lastEntityMtimeMs === stat.mtimeMs) return;
+
+  try {
+    const raw = await fsPromises.readFile(entityIndexPath, "utf8");
+    const parsed = JSON.parse(raw);
+    entityIndex = parsed && typeof parsed === "object" ? parsed : null;
+    lastEntityMtimeMs = stat.mtimeMs;
+  } catch (error) {
+    logError("Entity-Index konnte nicht geladen werden", { error: String(error) });
+    entityIndex = null;
+    lastEntityMtimeMs = 0;
   }
 }
 
@@ -165,40 +192,60 @@ export async function getKnowledgeContextWithSources(query, options = {}) {
   const filters = options.filters || {};
 
   await ensureLoaded();
+  await ensureEntityIndexLoaded();
 
   if (!meta || !vectors || !meta.chunks?.length || !vectors.length) {
     logDebug("RAG nicht geladen - kein Kontext", null);
     return { context: "", sources: [] };
   }
 
-  const queryEmbedding = await embedText(query);
-  const results = [];
-  const candidateIndices = filterChunkIndices(meta.chunks, filters);
+  const structured = await getStructuredMatches(query, options, filters, meta.chunks);
+  const candidateIndices = filterChunkIndices(meta.chunks, structured.filters);
+  const structuredIndices = structured.matches.map((hit) => hit.index);
+  const structuredIndexSet = new Set(structuredIndices);
 
-  for (const i of candidateIndices) {
-    const docVec = vectors[i];
-    const score = cosineSimilarity(queryEmbedding, docVec);
+  let embeddingResults = [];
+  if (structured.matches.length < topK) {
+    const queryEmbedding = await embedText(query);
+    const results = [];
 
-    if (score >= threshold) {
-      results.push({
-        index: i,
-        score,
-        text: meta.chunks[i]?.text || "",
-        fileName: meta.chunks[i]?.fileName || "unbekannt"
-      });
+    for (const i of candidateIndices) {
+      if (structuredIndexSet.has(i)) continue;
+      const docVec = vectors[i];
+      const score = cosineSimilarity(queryEmbedding, docVec);
+
+      if (score >= threshold) {
+        results.push({
+          index: i,
+          score,
+          text: meta.chunks[i]?.text || "",
+          fileName: meta.chunks[i]?.fileName || "unbekannt"
+        });
+      }
     }
+
+    results.sort((a, b) => b.score - a.score);
+    embeddingResults = results.slice(0, Math.max(0, topK - structured.matches.length));
   }
 
-  // Nach Score sortieren
-  results.sort((a, b) => b.score - a.score);
-  const topResults = results.slice(0, topK);
+  const mergedResults = [
+    ...structured.matches.map((hit) => ({
+      index: hit.index,
+      score: hit.score ?? 1,
+      text: meta.chunks[hit.index]?.text || "",
+      fileName: meta.chunks[hit.index]?.fileName || "unbekannt",
+      structured: true,
+      reason: hit.reason
+    })),
+    ...embeddingResults
+  ].slice(0, topK);
 
   // Context aufbauen
   let context = "";
   let charCount = 0;
   const sources = [];
 
-  for (const r of topResults) {
+  for (const r of mergedResults) {
     if (charCount + r.text.length > maxChars) break;
     
     context += r.text + "\n\n";
@@ -206,15 +253,18 @@ export async function getKnowledgeContextWithSources(query, options = {}) {
     
     sources.push({
       fileName: r.fileName,
-      score: Math.round(r.score * 100),
-      preview: r.text.slice(0, 100) + "..."
+      score: Math.round((r.score ?? 1) * 100),
+      preview: r.text.slice(0, 100) + "...",
+      structured: Boolean(r.structured),
+      reason: r.reason
     });
   }
 
   logDebug("RAG mit Quellen", { 
     query: query.slice(0, 50), 
-    resultsFound: results.length,
-    sourcesUsed: sources.length 
+    resultsFound: mergedResults.length,
+    sourcesUsed: sources.length,
+    structuredHits: structured.matches.length
   });
 
   return { context: context.trim(), sources };
@@ -225,17 +275,10 @@ export async function getKnowledgeContextWithSources(query, options = {}) {
  */
 export async function getKnowledgeContextVector(query, options = {}) {
   await ensureLoaded();
+  await ensureEntityIndexLoaded();
   if (!meta || !vectors || !meta.chunks.length || !vectors.length) return "";
 
   let qEmb;
-  try {
-    qEmb = await embedText(query);
-  } catch (error) {
-    logError("Embedding für Query fehlgeschlagen", { error: String(error) });
-    return "";
-  }
-  const qArr = Array.from(qEmb);
-
   const n = Math.min(vectors.length, CONFIG.rag.indexMaxElements);
   const topK = options.topK || CONFIG.rag.topK;
   const maxChars = options.maxChars || CONFIG.rag.maxContextChars;
@@ -244,40 +287,62 @@ export async function getKnowledgeContextVector(query, options = {}) {
   
   if (k === 0) return "";
 
-  const heap = [];
-  const candidateIndices = filterChunkIndices(meta.chunks, options.filters || {});
+  const structured = await getStructuredMatches(query, options, options.filters || {}, meta.chunks);
+  const candidateIndices = filterChunkIndices(meta.chunks, structured.filters);
+  const structuredIndices = structured.matches.map((hit) => hit.index);
+  const structuredIndexSet = new Set(structuredIndices);
 
-  for (const i of candidateIndices) {
-    const v = vectors[i];
-    const s = cosineSimilarity(qArr, v);
-    
-    // Score-Threshold prüfen
-    if (s < scoreThreshold) continue;
-    
-    const entry = { idx: i, s };
+  let sims = [];
+  if (structured.matches.length < k) {
+    try {
+      qEmb = await embedText(query);
+    } catch (error) {
+      logError("Embedding für Query fehlgeschlagen", { error: String(error) });
+      return "";
+    }
+    const qArr = Array.from(qEmb);
+    const heap = [];
 
-    if (heap.length < k) {
-      heapPush(heap, entry);
-      continue;
+    for (const i of candidateIndices) {
+      if (structuredIndexSet.has(i)) continue;
+      const v = vectors[i];
+      const s = cosineSimilarity(qArr, v);
+      
+      // Score-Threshold prüfen
+      if (s < scoreThreshold) continue;
+      
+      const entry = { idx: i, s };
+
+      if (heap.length < k) {
+        heapPush(heap, entry);
+        continue;
+      }
+
+      if (s > heap[0].s) {
+        heapReplaceRoot(heap, entry);
+      }
     }
 
-    if (s > heap[0].s) {
-      heapReplaceRoot(heap, entry);
-    }
+    sims = heap.sort((a, b) => b.s - a.s);
   }
 
-  const sims = heap.sort((a, b) => b.s - a.s);
+  const structuredSorted = structured.matches
+    .slice(0, k)
+    .map((hit) => ({ idx: hit.index, s: hit.score ?? 1, structured: true, reason: hit.reason }));
 
   const parts = [];
   let remaining = maxChars;
+  const combined = [...structuredSorted, ...sims].slice(0, k);
 
-  for (let i = 0; i < sims.length; i++) {
-    const { idx, s } = sims[i];
+  for (let i = 0; i < combined.length; i++) {
+    const { idx, s, structured: isStructured, reason } = combined[i];
     const ch = meta.chunks[idx];
     if (!ch) continue;
     
     // Kompakteres Format
-    const header = `[${ch.fileName}|${s.toFixed(2)}]\n`;
+    const header = isStructured
+      ? `[${ch.fileName}|structured${reason ? `:${reason}` : ""}]\n`
+      : `[${ch.fileName}|${s.toFixed(2)}]\n`;
     const text = ch.text;
     const need = header.length + text.length + 2;
     
@@ -298,7 +363,8 @@ export async function getKnowledgeContextVector(query, options = {}) {
   logDebug("Vector-Knowledge-Kontext erzeugt", {
     length: ctx.length,
     parts: parts.length,
-    topScore: sims[0]?.s?.toFixed(3) || "N/A"
+    topScore: combined[0]?.s?.toFixed(3) || "N/A",
+    structuredHits: structured.matches.length
   });
 
   return ctx;
@@ -309,7 +375,8 @@ function filterChunkIndices(chunks, filters = {}) {
     doc_type: docTypeFilter,
     category: categoryFilter,
     municipality,
-    bbox
+    bbox,
+    useMunicipalityOrBbox
   } = filters;
 
   const docTypes = normalizeFilterValues(docTypeFilter);
@@ -328,23 +395,31 @@ function filterChunkIndices(chunks, filters = {}) {
       if (!categories.includes(metaInfo.category)) continue;
     }
 
+    let municipalityMatch = true;
+    let bboxMatch = true;
+
     if (municipality) {
       const muni = metaInfo.address?.municipality || metaInfo.address?.city || "";
-      if (muni.toLowerCase() !== municipality.toLowerCase()) continue;
+      municipalityMatch = muni.toLowerCase() === municipality.toLowerCase();
     }
 
     if (bbox && Array.isArray(bbox) && bbox.length === 4) {
       const [minLon, minLat, maxLon, maxLat] = bbox.map(Number);
       if (metaInfo.geo?.lat !== undefined && metaInfo.geo?.lon !== undefined) {
         const { lat, lon } = metaInfo.geo;
-        if (lat < minLat || lat > maxLat || lon < minLon || lon > maxLon) {
-          continue;
-        }
+        bboxMatch = !(lat < minLat || lat > maxLat || lon < minLon || lon > maxLon);
       } else if (Array.isArray(metaInfo.geo?.bbox) && metaInfo.geo.bbox.length === 4) {
         const [bMinLon, bMinLat, bMaxLon, bMaxLat] = metaInfo.geo.bbox;
-        const overlaps = !(bMaxLon < minLon || bMinLon > maxLon || bMaxLat < minLat || bMinLat > maxLat);
-        if (!overlaps) continue;
+        bboxMatch = !(bMaxLon < minLon || bMinLon > maxLon || bMaxLat < minLat || bMinLat > maxLat);
       } else {
+        bboxMatch = false;
+      }
+    }
+
+    if (municipality || bbox) {
+      if (useMunicipalityOrBbox) {
+        if (!(municipalityMatch || bboxMatch)) continue;
+      } else if (!municipalityMatch || !bboxMatch) {
         continue;
       }
     }
@@ -362,6 +437,198 @@ function normalizeFilterValues(value) {
 }
 
 export { filterChunkIndices };
+
+function normalizeQueryText(value) {
+  if (!value || typeof value !== "string") return "";
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/[.,;:!?]+$/g, "");
+}
+
+function detectStructuredFilters(query) {
+  const lower = query.toLowerCase();
+  const docTypes = [];
+  let category = null;
+
+  const wantsStreetStats =
+    /(wieviele|wie viele|anzahl)/i.test(lower) &&
+    /(gebäude|gebaeude)/i.test(lower) &&
+    /(straße|strasse|weg|gasse)/i.test(lower);
+
+  if (wantsStreetStats) {
+    docTypes.push("street_stats");
+  }
+
+  if (/adresse|wo ist/i.test(lower)) {
+    docTypes.push("address", "poi");
+  }
+
+  if (/krankenhaus/i.test(lower)) {
+    category = "amenity:hospital";
+  }
+
+  return {
+    docTypes,
+    category,
+    wantsStreetStats
+  };
+}
+
+function extractStreetCandidate(query) {
+  const patterns = [
+    /\bam\s+([A-Za-zÄÖÜäöüß0-9.\-\s]+?)\b/i,
+    /\bin der\s+([A-Za-zÄÖÜäöüß0-9.\-\s]+?)\b/i,
+    /\bin\s+([A-Za-zÄÖÜäöüß0-9.\-\s]+?)\b/i,
+    /\bauf dem\s+([A-Za-zÄÖÜäöüß0-9.\-\s]+?)\b/i
+  ];
+
+  for (const pattern of patterns) {
+    const match = query.match(pattern);
+    if (match?.[1]) {
+      return match[1].trim();
+    }
+  }
+  return "";
+}
+
+function extractEntityQuery(query) {
+  const quotedMatch = query.match(/["„“”']([^"„“”']+)["„“”']/);
+  if (quotedMatch?.[1]) return quotedMatch[1].trim();
+  const firmaMatch = query.match(/firma\s+([^\n,.!?]+)/i);
+  if (firmaMatch?.[1]) return firmaMatch[1].trim();
+  return "";
+}
+
+function mergeFilterValue(existing, incoming) {
+  if (!incoming || (Array.isArray(incoming) && incoming.length === 0)) return existing;
+  if (!existing || (Array.isArray(existing) && existing.length === 0)) return incoming;
+  const existingArr = Array.isArray(existing) ? existing : [existing];
+  const incomingArr = Array.isArray(incoming) ? incoming : [incoming];
+  return Array.from(new Set([...existingArr, ...incomingArr]));
+}
+
+async function getStructuredMatches(query, options, baseFilters, chunks) {
+  const normalizedQuery = normalizeQueryText(query);
+  const detected = detectStructuredFilters(query);
+  const filters = {
+    ...baseFilters
+  };
+
+  if (!filters.doc_type && detected.docTypes.length) {
+    filters.doc_type = detected.docTypes;
+  } else if (filters.doc_type && detected.docTypes.length) {
+    filters.doc_type = mergeFilterValue(filters.doc_type, detected.docTypes);
+  }
+
+  if (!filters.category && detected.category) {
+    filters.category = detected.category;
+  }
+
+  const explicitMunicipality = filters.municipality;
+  if (!explicitMunicipality && !filters.bbox) {
+    const municipalityHit = await findMunicipalityInQuery(query);
+    if (municipalityHit) {
+      filters.municipality = municipalityHit.municipality;
+      filters.bbox = municipalityHit.bbox;
+      filters.useMunicipalityOrBbox = true;
+    }
+  } else if (explicitMunicipality && !filters.bbox) {
+    const index = await getMunicipalityIndex();
+    const entry = index.find(
+      (item) => item.municipality?.toLowerCase() === explicitMunicipality.toLowerCase()
+    );
+    if (entry?.bbox) {
+      filters.bbox = entry.bbox;
+      filters.useMunicipalityOrBbox = true;
+    }
+  }
+
+  const candidateIndices = filterChunkIndices(chunks, filters);
+  const matches = new Map();
+
+  const streetCandidate = extractStreetCandidate(query);
+  if (streetCandidate) {
+    const streetNorm = normalizeStreet(streetCandidate);
+    for (const idx of candidateIndices) {
+      const ch = chunks[idx];
+      const street = ch?.meta?.address?.street_norm || "";
+      if (street && street === streetNorm) {
+        matches.set(idx, {
+          index: idx,
+          score: 1.2,
+          reason: "street"
+        });
+      } else if (streetCandidate) {
+        const title = normalizeQueryText(ch?.meta?.title || "");
+        if (title.includes(normalizeQueryText(streetCandidate))) {
+          matches.set(idx, {
+            index: idx,
+            score: 1.1,
+            reason: "street_title"
+          });
+        }
+      }
+    }
+  }
+
+  const entityQuery = extractEntityQuery(query);
+  const normalizedEntity = normalizeQueryText(entityQuery);
+  if (normalizedEntity) {
+    if (entityIndex && entityIndex[normalizedEntity]) {
+      const docIds = entityIndex[normalizedEntity];
+      for (const idx of candidateIndices) {
+        const ch = chunks[idx];
+        if (docIds.includes(ch?.meta?.doc_id)) {
+          matches.set(idx, {
+            index: idx,
+            score: 1.5,
+            reason: "entity_index"
+          });
+        }
+      }
+    } else {
+      for (const idx of candidateIndices) {
+        const ch = chunks[idx];
+        const title = normalizeQueryText(ch?.meta?.title || "");
+        const name = normalizeQueryText(ch?.meta?.name || "");
+        if (title.includes(normalizedEntity) || name.includes(normalizedEntity)) {
+          matches.set(idx, {
+            index: idx,
+            score: 1.3,
+            reason: "entity_match"
+          });
+        }
+      }
+    }
+  }
+
+  const queryTokens = normalizedQuery.split(/\s+/).filter((token) => token.length > 2);
+  if (queryTokens.length) {
+    for (const idx of candidateIndices) {
+      const ch = chunks[idx];
+      if (!ch?.text) continue;
+      const text = normalizeQueryText(ch.text);
+      const hasAll = queryTokens.every((token) => text.includes(token));
+      if (hasAll) {
+        const existing = matches.get(idx);
+        const score = (existing?.score || 1) + 0.3;
+        matches.set(idx, {
+          index: idx,
+          score,
+          reason: existing?.reason || "keyword"
+        });
+      }
+    }
+  }
+
+  const sorted = Array.from(matches.values()).sort((a, b) => b.score - a.score);
+  return {
+    matches: sorted,
+    filters
+  };
+}
 
 // ============================================================
 // Funktion zum Hinzufügen von Einträgen ins Vector-RAG

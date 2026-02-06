@@ -48,3 +48,12 @@ Empfohlenes Schema für konsistente Suche/Filter:
 
 Für Geo/OSM-Use-Cases werden `address.*`, `geo.*`, `category` sowie
 `doc_type`-Records wie `street_stats` und `municipality_index` empfohlen.
+
+### RAG Phase 2: Structured-First & Aggregationen
+
+- **Deduplizierung pro Ingest-Run**: JSONL-Records werden beim Ingest anhand einer Dedupe-Key-Strategie gefiltert.
+- **Ingest-Report**: Der Ingest schreibt einen Report nach `chatbot/server/rag/ingest_report.json` mit Datei- und Warnungsstatistiken.
+- **Street-Stats**: Während des Ingest werden `street_stats`-Records (z. B. Gebäude/Adressen/POIs pro Straße) automatisch erzeugt und embedded.
+- **Structured-first Retrieval**: Typische Fragen (z. B. „Wieviele Gebäude in der …“) werden mit strukturierten Filtern vor dem Embedding-Search priorisiert.
+- **Municipality-Pre-Filter**: Falls `municipality_index`-Records vorhanden sind, werden BBOX/Gemeinde-Filter für die Vorselektion genutzt.
+- **Entity-Index (optional)**: Ein einfacher `entity_index.json` dient dem schnellen Exact-Match auf Titel/Namen.

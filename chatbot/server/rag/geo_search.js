@@ -9,11 +9,16 @@ import { fileURLToPath } from "url";
 import readline from "readline";
 import { logDebug, logInfo, logError } from "../logger.js";
 import { normalizeJsonlRecord } from "./jsonl_utils.js";
+import { CONFIG } from "../config.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const KNOWLEDGE_DIR = path.resolve(__dirname, "../../knowledge");
+const KNOWLEDGE_DIR = path.resolve(__dirname, CONFIG.knowledgeDir);
+const KNOWLEDGE_INDEX_DIR = path.resolve(__dirname, CONFIG.knowledgeIndexDir);
+
+let municipalityIndexCache = null;
+let municipalityIndexLoaded = false;
 
 /**
  * Haversine-Formel zur Berechnung der Distanz zwischen zwei Koordinaten
@@ -457,6 +462,81 @@ export async function getGeoIndex() {
     await geoIndexInstance.load();
   }
   return geoIndexInstance;
+}
+
+async function loadMunicipalityIndexFromDir(dirPath, entries) {
+  if (!fs.existsSync(dirPath)) return;
+  const files = await fsPromises.readdir(dirPath);
+  const jsonlFiles = files.filter((file) => file.endsWith(".jsonl"));
+  for (const file of jsonlFiles) {
+    const filePath = path.join(dirPath, file);
+    const stream = fs.createReadStream(filePath, { encoding: "utf8" });
+    const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
+    let lineNumber = 0;
+
+    for await (const line of rl) {
+      lineNumber += 1;
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      let parsed;
+      try {
+        parsed = JSON.parse(trimmed);
+      } catch (error) {
+        logError("MunicipalityIndex: JSONL-Zeile konnte nicht geparsed werden", {
+          file,
+          line: lineNumber,
+          error: String(error)
+        });
+        continue;
+      }
+
+      const record = normalizeJsonlRecord(parsed, trimmed);
+      if (!record) continue;
+      if (record.doc_type !== "municipality_index" || !record.geo?.bbox) continue;
+
+      const municipality = record.address?.municipality || record.title;
+      if (!municipality) continue;
+
+      entries.push({
+        municipality,
+        bbox: record.geo.bbox,
+        stats: record.stats || null,
+        source: file,
+        docId: record.doc_id
+      });
+    }
+  }
+}
+
+export async function getMunicipalityIndex() {
+  if (municipalityIndexLoaded) return municipalityIndexCache || [];
+  const entries = [];
+  try {
+    await loadMunicipalityIndexFromDir(KNOWLEDGE_DIR, entries);
+    await loadMunicipalityIndexFromDir(KNOWLEDGE_INDEX_DIR, entries);
+  } catch (error) {
+    logError("MunicipalityIndex: Ladefehler", { error: String(error) });
+  }
+  municipalityIndexCache = entries;
+  municipalityIndexLoaded = true;
+  return municipalityIndexCache;
+}
+
+export async function findMunicipalityInQuery(query) {
+  const index = await getMunicipalityIndex();
+  if (!index.length) return null;
+  const lower = query.toLowerCase();
+  let bestMatch = null;
+  for (const entry of index) {
+    const name = entry.municipality?.toLowerCase();
+    if (!name) continue;
+    if (lower.includes(name)) {
+      if (!bestMatch || name.length > bestMatch.municipality.length) {
+        bestMatch = entry;
+      }
+    }
+  }
+  return bestMatch;
 }
 
 /**
