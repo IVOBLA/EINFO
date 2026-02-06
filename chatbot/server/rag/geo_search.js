@@ -6,7 +6,9 @@ import fs from "fs";
 import fsPromises from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
+import readline from "readline";
 import { logDebug, logInfo, logError } from "../logger.js";
+import { normalizeJsonlRecord } from "./jsonl_utils.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -54,6 +56,7 @@ export function formatDistance(km) {
 export class GeoIndex {
   constructor() {
     this.locations = [];
+    this.municipalityIndex = [];
     this.loaded = false;
     this.lastLoadTime = null;
   }
@@ -67,6 +70,7 @@ export class GeoIndex {
     try {
       const files = await fsPromises.readdir(KNOWLEDGE_DIR);
       const addressFiles = files.filter(f => f.startsWith("adressen_") && f.endsWith(".md"));
+      const jsonlFiles = files.filter(f => f.endsWith(".jsonl"));
 
       logInfo("GeoIndex: Lade Adressdateien", { fileCount: addressFiles.length });
 
@@ -74,12 +78,19 @@ export class GeoIndex {
         await this.parseAddressFile(path.join(KNOWLEDGE_DIR, file), file);
       }
 
+      if (jsonlFiles.length) {
+        logInfo("GeoIndex: Lade JSONL-Dateien", { fileCount: jsonlFiles.length });
+        for (const file of jsonlFiles) {
+          await this.parseJsonlFile(path.join(KNOWLEDGE_DIR, file), file);
+        }
+      }
+
       this.loaded = true;
       this.lastLoadTime = Date.now();
 
       logInfo("GeoIndex: Geladen", {
         locationCount: this.locations.length,
-        files: addressFiles.length
+        files: addressFiles.length + jsonlFiles.length
       });
     } catch (error) {
       logError("GeoIndex: Ladefehler", { error: String(error) });
@@ -138,6 +149,66 @@ export class GeoIndex {
     }
   }
 
+  async parseJsonlFile(filePath, fileName) {
+    const stream = fs.createReadStream(filePath, { encoding: "utf8" });
+    const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
+    let lineNumber = 0;
+
+    for await (const line of rl) {
+      lineNumber += 1;
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+
+      let parsed;
+      try {
+        parsed = JSON.parse(trimmed);
+      } catch (error) {
+        logError("GeoIndex: JSONL-Zeile konnte nicht geparsed werden", {
+          file: fileName,
+          line: lineNumber,
+          error: String(error)
+        });
+        continue;
+      }
+
+      const record = normalizeJsonlRecord(parsed, trimmed);
+      if (!record) continue;
+
+      if (record.doc_type === "municipality_index" && record.geo?.bbox) {
+        const municipality = record.address?.municipality || record.title;
+        if (municipality) {
+          this.municipalityIndex.push({
+            municipality,
+            bbox: record.geo.bbox,
+            source: fileName,
+            docId: record.doc_id
+          });
+        }
+      }
+
+      if (record.geo?.lat === undefined || record.geo?.lon === undefined) {
+        continue;
+      }
+
+      const addressLine = record.address?.full
+        || [record.address?.street, record.address?.housenumber, record.address?.city]
+          .filter(Boolean)
+          .join(" ")
+          .trim();
+
+      this.locations.push({
+        id: record.doc_id,
+        name: record.title || record.name || null,
+        address: addressLine || record.address?.municipality || record.region || null,
+        lat: Number(record.geo.lat),
+        lon: Number(record.geo.lon),
+        type: record.category || record.doc_type || null,
+        source: fileName,
+        isNamedLocation: Boolean(record.title || record.name)
+      });
+    }
+  }
+
   /**
    * Sucht Locations im Radius um einen Punkt
    * @param {number} lat - Zentrum Latitude
@@ -148,11 +219,17 @@ export class GeoIndex {
   async searchRadius(lat, lon, radiusKm, options = {}) {
     await this.ensureLoaded();
 
-    const { type = null, namedOnly = false, limit = 50 } = options;
+    const { type = null, namedOnly = false, limit = 50, municipality = null, bbox = null } = options;
+
+    let candidates = this.locations;
+    const prefiltered = this.applyMunicipalityOrBboxFilter(candidates, { municipality, bbox });
+    if (prefiltered) {
+      candidates = prefiltered;
+    }
 
     const results = [];
 
-    for (const loc of this.locations) {
+    for (const loc of candidates) {
       // Filter
       if (namedOnly && !loc.isNamedLocation) continue;
       if (type && loc.type !== type) continue;
@@ -186,11 +263,13 @@ export class GeoIndex {
   async searchBoundingBox(minLat, maxLat, minLon, maxLon, options = {}) {
     await this.ensureLoaded();
 
-    const { type = null, namedOnly = false, limit = 100 } = options;
+    const { type = null, namedOnly = false, limit = 100, municipality = null } = options;
+    const bboxFilter = this.applyMunicipalityOrBboxFilter(this.locations, { municipality });
+    const candidates = bboxFilter || this.locations;
 
     const results = [];
 
-    for (const loc of this.locations) {
+    for (const loc of candidates) {
       if (namedOnly && !loc.isNamedLocation) continue;
       if (type && loc.type !== type) continue;
 
@@ -214,11 +293,17 @@ export class GeoIndex {
   async findNearest(lat, lon, limit = 5, options = {}) {
     await this.ensureLoaded();
 
-    const { type = null, namedOnly = false } = options;
+    const { type = null, namedOnly = false, municipality = null, bbox = null } = options;
 
     const results = [];
 
-    for (const loc of this.locations) {
+    let candidates = this.locations;
+    const prefiltered = this.applyMunicipalityOrBboxFilter(candidates, { municipality, bbox });
+    if (prefiltered) {
+      candidates = prefiltered;
+    }
+
+    for (const loc of candidates) {
       if (namedOnly && !loc.isNamedLocation) continue;
       if (type && loc.type !== type) continue;
 
@@ -311,8 +396,31 @@ export class GeoIndex {
       namedLocations: namedCount,
       unnamedLocations: this.locations.length - namedCount,
       byType,
-      sourceFiles: Object.keys(bySource).length
+      sourceFiles: Object.keys(bySource).length,
+      municipalityIndexCount: this.municipalityIndex.length
     };
+  }
+
+  applyMunicipalityOrBboxFilter(locations, { municipality = null, bbox = null } = {}) {
+    if (!municipality && !bbox) return null;
+
+    let effectiveBbox = bbox;
+    if (!effectiveBbox && municipality && this.municipalityIndex.length) {
+      const lower = municipality.toLowerCase();
+      const hit = this.municipalityIndex.find(entry => entry.municipality?.toLowerCase() === lower);
+      if (hit?.bbox) {
+        effectiveBbox = hit.bbox;
+      }
+    }
+
+    if (!effectiveBbox || effectiveBbox.length !== 4) return null;
+    const [minLon, minLat, maxLon, maxLat] = effectiveBbox.map(Number);
+    return locations.filter(loc =>
+      loc.lat >= minLat &&
+      loc.lat <= maxLat &&
+      loc.lon >= minLon &&
+      loc.lon <= maxLon
+    );
   }
 
   /**
