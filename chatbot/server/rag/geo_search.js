@@ -20,6 +20,59 @@ const KNOWLEDGE_INDEX_DIR = path.resolve(__dirname, CONFIG.knowledgeIndexDir);
 let municipalityIndexCache = null;
 let municipalityIndexLoaded = false;
 
+const BBOX_DOC_TYPES = new Set(["address", "poi", "building"]);
+
+function normalizeDocTypes(docTypes) {
+  if (!Array.isArray(docTypes)) {
+    return ["address"];
+  }
+  const filtered = docTypes
+    .map((type) => String(type).toLowerCase())
+    .filter((type) => BBOX_DOC_TYPES.has(type));
+  return filtered.length ? filtered : ["address"];
+}
+
+function getLocationDocType(location) {
+  if (!location) return "address";
+  const rawType = location.doc_type || location.type;
+  if (!rawType) return "address";
+  return String(rawType).toLowerCase();
+}
+
+function isLocationInBbox(location, bbox) {
+  if (!location || location.lat === undefined || location.lon === undefined) {
+    return false;
+  }
+  if (!Array.isArray(bbox) || bbox.length !== 4) {
+    return true;
+  }
+  const [minLon, minLat, maxLon, maxLat] = bbox.map(Number);
+  if ([minLon, minLat, maxLon, maxLat].some((value) => Number.isNaN(value))) {
+    return true;
+  }
+  return (
+    location.lat >= minLat &&
+    location.lat <= maxLat &&
+    location.lon >= minLon &&
+    location.lon <= maxLon
+  );
+}
+
+export function applyBboxFilterToLocations(locations, { bbox, applyBbox = false, docTypes } = {}) {
+  if (!applyBbox || !Array.isArray(bbox) || bbox.length !== 4) {
+    return locations;
+  }
+  const allowedDocTypes = new Set(normalizeDocTypes(docTypes));
+
+  return locations.filter((location) => {
+    const docType = getLocationDocType(location);
+    if (!allowedDocTypes.has(docType)) {
+      return true;
+    }
+    return isLocationInBbox(location, bbox);
+  });
+}
+
 /**
  * Haversine-Formel zur Berechnung der Distanz zwischen zwei Koordinaten
  * @param {number} lat1 - Latitude 1
@@ -543,24 +596,30 @@ export async function findMunicipalityInQuery(query) {
  * Shortcut für Radius-Suche
  */
 export async function searchInRadius(lat, lon, radiusKm, options = {}) {
+  const { bbox, applyBbox, docTypes, ...searchOptions } = options;
   const index = await getGeoIndex();
-  return index.searchRadius(lat, lon, radiusKm, options);
+  const results = await index.searchRadius(lat, lon, radiusKm, searchOptions);
+  return applyBboxFilterToLocations(results, { bbox, applyBbox, docTypes });
 }
 
 /**
  * Shortcut für Geocoding
  */
-export async function geocodeAddress(searchText) {
+export async function geocodeAddress(searchText, options = {}) {
+  const { bbox, applyBbox, docTypes } = options;
   const index = await getGeoIndex();
-  return index.geocode(searchText);
+  const results = await index.geocode(searchText);
+  return applyBboxFilterToLocations(results, { bbox, applyBbox, docTypes });
 }
 
 /**
  * Shortcut für nächste Locations
  */
 export async function findNearestLocations(lat, lon, limit = 5, options = {}) {
+  const { bbox, applyBbox, docTypes, ...searchOptions } = options;
   const index = await getGeoIndex();
-  return index.findNearest(lat, lon, limit, options);
+  const results = await index.findNearest(lat, lon, limit, searchOptions);
+  return applyBboxFilterToLocations(results, { bbox, applyBbox, docTypes });
 }
 
 export default GeoIndex;

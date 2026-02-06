@@ -1,6 +1,35 @@
 import React, { useEffect, useState, useRef } from "react";
 import { buildChatbotApiUrl, CHATBOT_SERVER_ERROR_MESSAGE } from "../utils/http.js";
 
+const DEFAULT_GEO_CONFIG = {
+  bboxFilterEnabled: false,
+  bboxFilterMode: "request_only",
+  bboxFilterDocTypes: ["address"]
+};
+
+function ensureGeoDefaults(taskConfig) {
+  const geo = taskConfig?.geo || {};
+  const docTypes = Array.isArray(geo.bboxFilterDocTypes) && geo.bboxFilterDocTypes.length
+    ? geo.bboxFilterDocTypes
+    : DEFAULT_GEO_CONFIG.bboxFilterDocTypes;
+  return {
+    ...taskConfig,
+    geo: {
+      ...DEFAULT_GEO_CONFIG,
+      ...geo,
+      bboxFilterDocTypes: docTypes
+    }
+  };
+}
+
+function ensureGeoDefaultsForTasks(tasksMap) {
+  const entries = Object.entries(tasksMap || {});
+  if (!entries.length) return {};
+  return Object.fromEntries(
+    entries.map(([key, value]) => [key, ensureGeoDefaults(value)])
+  );
+}
+
 /**
  * SVG-basierter Linien-Graph für GPU-Metriken
  */
@@ -257,8 +286,9 @@ export default function LLMModelManager() {
       if (!configRes.ok) throw new Error(configData.error || "Fehler beim Laden der Config");
 
       setGlobalModelOverride(configData.globalModelOverride);
-      setTasks(configData.tasks || {});
-      setTaskDrafts(configData.tasks || {}); // Initialisiere Drafts
+      const tasksWithGeo = ensureGeoDefaultsForTasks(configData.tasks || {});
+      setTasks(tasksWithGeo);
+      setTaskDrafts(tasksWithGeo); // Initialisiere Drafts
 
       // Ollama-Modelle laden
       const modelsRes = await fetch(buildChatbotApiUrl("/api/llm/models"), { credentials: "include" });
@@ -973,6 +1003,7 @@ export default function LLMModelManager() {
         <div className="space-y-6">
           {taskList.map((task) => {
             const draft = taskDrafts[task.key] || {};
+            const geoDraft = draft.geo || DEFAULT_GEO_CONFIG;
             const changed = hasChanges(task.key);
 
             return (
@@ -1111,6 +1142,82 @@ export default function LLMModelManager() {
                         onChange={(e) => updateTaskDraft(task.key, "repeatPenalty", Number(e.target.value))}
                       />
                     </div>
+                  </div>
+
+                  {/* Geo/BBOX Filter */}
+                  <div className="pt-3 border-t space-y-3">
+                    <div className="font-medium text-sm">Geo / BBOX Filter</div>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4"
+                        checked={geoDraft.bboxFilterEnabled ?? false}
+                        onChange={(e) => updateTaskDraft(task.key, "geo", {
+                          ...geoDraft,
+                          bboxFilterEnabled: e.target.checked
+                        })}
+                      />
+                      <span>BBOX-Filter aktiv (Adressen/Geo)</span>
+                    </label>
+
+                    {geoDraft.bboxFilterEnabled && (
+                      <>
+                        <div>
+                          <label className="block text-sm font-medium mb-1">BBOX-Filter-Modus</label>
+                          <select
+                            className="w-full border rounded px-3 py-2"
+                            value={geoDraft.bboxFilterMode || "request_only"}
+                            onChange={(e) => updateTaskDraft(task.key, "geo", {
+                              ...geoDraft,
+                              bboxFilterMode: e.target.value
+                            })}
+                          >
+                            <option value="request_only">Nur wenn BBOX im Request gesetzt</option>
+                            <option value="auto_municipality">Automatisch über Gemeinde (municipality_index)</option>
+                            <option value="both">Request-BBOX bevorzugen, sonst Gemeinde</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <div className="text-sm font-medium mb-1">Dokumenttypen</div>
+                          <div className="flex flex-wrap gap-3 text-sm">
+                            {[
+                              { key: "address", label: "Adresse" },
+                              { key: "poi", label: "POI" },
+                              { key: "building", label: "Gebäude" }
+                            ].map((option) => {
+                              const isChecked = geoDraft.bboxFilterDocTypes?.includes(option.key);
+                              return (
+                                <label key={option.key} className="flex items-center gap-2">
+                                  <input
+                                    type="checkbox"
+                                    className="h-4 w-4"
+                                    checked={isChecked}
+                                    onChange={(e) => {
+                                      const current = new Set(geoDraft.bboxFilterDocTypes || []);
+                                      if (e.target.checked) {
+                                        current.add(option.key);
+                                      } else {
+                                        current.delete(option.key);
+                                      }
+                                      updateTaskDraft(task.key, "geo", {
+                                        ...geoDraft,
+                                        bboxFilterDocTypes: Array.from(current)
+                                      });
+                                    }}
+                                  />
+                                  <span>{option.label}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        <div className="text-xs text-gray-500">
+                          Serverseitig: Treffer ohne Koordinaten werden für die ausgewählten Typen nicht berücksichtigt, wenn BBOX aktiv ist.
+                        </div>
+                      </>
+                    )}
                   </div>
 
                   {/* Aktionen */}

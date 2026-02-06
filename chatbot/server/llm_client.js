@@ -385,11 +385,15 @@ export async function callLLMForChat(arg1, arg2, arg3) {
     stream = false,
     onToken,
     model,
-    onExchangeId
+    onExchangeId,
+    taskType = "chat",
+    bbox
   } = arg1 || {};
   // Enhanced Context via Query-Router (inkl. Geo, Session, Memory)
   const { context: enhancedContext, intent, stats } = await getEnhancedContext(question, {
-    maxChars: 3000
+    maxChars: 3000,
+    taskType,
+    bbox
   });
 
   logDebug("Chat: Enhanced Context", {
