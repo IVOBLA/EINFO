@@ -41,6 +41,7 @@ export default function FFFetchControl({
     idleMinutes: null,
     lastActivityIso: null,
     autoStopMin: null,
+    autoStopEnabled: false,
   });
 
   // Importinfos
@@ -112,14 +113,17 @@ export default function FFFetchControl({
           const js = await r.json();
 
           // Auto-Stop
+          const enabled = js.autoStopEnabled === true;
           const idle = Number(js.idleMinutes);
-          const limit = Number(js.autoStopMin);
-          const remaining = Math.max(0, Math.ceil(limit - idle));
+          const limitRaw = js.autoStopMin;
+          const limit = enabled && Number.isFinite(Number(limitRaw)) ? Number(limitRaw) : null;
+          const remaining = enabled && limit != null ? Math.max(0, Math.ceil(limit - idle)) : null;
           setAutoInfo({
             remainingMin: remaining,
-            idleMinutes: idle,
+            idleMinutes: Number.isFinite(idle) ? idle : null,
             lastActivityIso: js.lastActivityIso,
             autoStopMin: limit,
+            autoStopEnabled: enabled,
           });
 
           // Fetcher-Run + Importinfos
@@ -184,7 +188,7 @@ export default function FFFetchControl({
       {hint && <span style={{ color: "#dc2626", fontSize: 12, marginLeft: 8 }}>{hint}</span>}
 
       {/* Auto-Stop Countdown (Farbskala) */}
-      {running && autoInfo.remainingMin != null && autoInfo.remainingMin <= 15 && (
+      {running && autoInfo.autoStopEnabled && autoInfo.remainingMin != null && autoInfo.remainingMin <= 15 && (
         <div
           title={
             `Letzte Aktivität: ${

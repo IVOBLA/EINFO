@@ -1611,7 +1611,8 @@ app.get("/api/activity/status", async (_req,res)=>{
   res.json({
     lastActivityIso: new Date(lastActivityMs).toISOString(),
     idleMinutes: +idleMin.toFixed(2),
-    autoStopMin: AUTO_STOP_MIN,
+    autoStopEnabled: AUTO_STOP_ENABLED,
+    autoStopMin: AUTO_STOP_ENABLED ? AUTO_STOP_MIN : null,
     fetcher,
     auto: { enabled: !!autoCfg.enabled },
     import: { file: importLastFile || AUTO_DEFAULT_FILENAME, lastLoadedIso: lastIso }
