@@ -15,13 +15,13 @@ import pdfParse from "pdf-parse";
 import readline from "readline";
 import crypto from "crypto";
 import { CONFIG } from "../config.js";
-import { logInfo, logError } from "../logger.js";
+import { logInfo, logError, logWarn } from "../logger.js";
 import { chunkText } from "./chunk.js";
 import { embedTextBatch } from "./embedding.js";
 import {
-  normalizeJsonlRecord,
   buildChunkMetadata
 } from "./jsonl_utils.js";
+import { validateAndNormalizeJsonlRecord } from "./jsonl_schema_validator.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -158,15 +158,24 @@ async function extractJsonlChunks(filePath, fileName, { sidecar = false } = {}) 
       continue;
     }
 
-    const record = normalizeJsonlRecord(parsed, trimmed);
-    if (!record || !record.content) {
-      logError("JSONL-Zeile ohne verwertbaren Inhalt übersprungen", {
-        file: fileName,
-        line: lineNumber
-      });
+    const result = validateAndNormalizeJsonlRecord(parsed, {
+      filePath: fileName,
+      lineNo: lineNumber
+    });
+    if (!result.ok) {
+      logWarn(`[JSONL] skip ${fileName}:${lineNumber} - ${result.error}`);
       continue;
     }
 
+    if (result.warnings?.length) {
+      logWarn("JSONL-Zeile normalisiert mit Warnungen", {
+        file: fileName,
+        line: lineNumber,
+        warnings: result.warnings
+      });
+    }
+
+    const record = result.record;
     const baseMeta = {
       ...buildChunkMetadata(record),
       source_file: fileName,

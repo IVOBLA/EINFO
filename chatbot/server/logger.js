@@ -64,6 +64,12 @@ export function logInfo(msg, extra) {
   return appendLine(MAIN_LOG_FILE, JSON.stringify(entry));
 }
 
+export function logWarn(msg, extra) {
+  const entry = baseEntry("WARN", msg, extra);
+  console.warn(`[WARN] ${entry.ts} ${msg}`, extra || "");
+  return appendLine(MAIN_LOG_FILE, JSON.stringify(entry));
+}
+
 export function logDebug(msg, extra) {
   const entry = baseEntry("DEBUG", msg, extra);
   console.debug(`[DEBUG] ${entry.ts} ${msg}`, extra || "");
