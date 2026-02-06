@@ -16,6 +16,58 @@ const supportedModelKeys = new Set(["fast", "balanced"]);
 // ============================================================
 const TASK_CONFIG_PATH = path.join(__dirname, "data", "task-config.json");
 
+const DEFAULT_GEO_CONFIG = {
+  bboxFilterEnabled: false,
+  bboxFilterMode: "request_only",
+  bboxFilterDocTypes: ["address"]
+};
+
+const GEO_FILTER_MODES = new Set(["request_only", "auto_municipality", "both"]);
+const GEO_FILTER_DOC_TYPES = new Set(["address", "poi", "building"]);
+
+function normalizeGeoConfig(geo) {
+  const bboxFilterEnabled = typeof geo?.bboxFilterEnabled === "boolean"
+    ? geo.bboxFilterEnabled
+    : DEFAULT_GEO_CONFIG.bboxFilterEnabled;
+  const bboxFilterMode = GEO_FILTER_MODES.has(geo?.bboxFilterMode)
+    ? geo.bboxFilterMode
+    : DEFAULT_GEO_CONFIG.bboxFilterMode;
+  const docTypes = Array.isArray(geo?.bboxFilterDocTypes)
+    ? geo.bboxFilterDocTypes.filter((type) => GEO_FILTER_DOC_TYPES.has(type))
+    : [];
+
+  return {
+    bboxFilterEnabled,
+    bboxFilterMode,
+    bboxFilterDocTypes: docTypes.length ? docTypes : [...DEFAULT_GEO_CONFIG.bboxFilterDocTypes]
+  };
+}
+
+function mergeTaskGeoConfig(baseGeo, overrideGeo) {
+  if (!overrideGeo || typeof overrideGeo !== "object") {
+    return normalizeGeoConfig(baseGeo);
+  }
+  const normalized = normalizeGeoConfig(baseGeo);
+  const merged = {
+    ...normalized
+  };
+
+  if (typeof overrideGeo.bboxFilterEnabled === "boolean") {
+    merged.bboxFilterEnabled = overrideGeo.bboxFilterEnabled;
+  }
+  if (GEO_FILTER_MODES.has(overrideGeo.bboxFilterMode)) {
+    merged.bboxFilterMode = overrideGeo.bboxFilterMode;
+  }
+  if (Array.isArray(overrideGeo.bboxFilterDocTypes)) {
+    const filtered = overrideGeo.bboxFilterDocTypes.filter((type) => GEO_FILTER_DOC_TYPES.has(type));
+    merged.bboxFilterDocTypes = filtered.length
+      ? filtered
+      : [...DEFAULT_GEO_CONFIG.bboxFilterDocTypes];
+  }
+
+  return merged;
+}
+
 /**
  * Standard-Task-Konfiguration (wird verwendet wenn task-config.json nicht existiert)
  */
@@ -31,7 +83,8 @@ const DEFAULT_TASK_CONFIG = {
       numCtx: 4096,
       topP: 0.92,
       topK: 50,
-      repeatPenalty: 1.15
+      repeatPenalty: 1.15,
+      geo: { ...DEFAULT_GEO_CONFIG }
     },
     operations: {
       model: "einfo-balanced",
@@ -42,7 +95,8 @@ const DEFAULT_TASK_CONFIG = {
       numCtx: 4096,
       topP: 0.92,
       topK: 50,
-      repeatPenalty: 1.15
+      repeatPenalty: 1.15,
+      geo: { ...DEFAULT_GEO_CONFIG }
     },
     chat: {
       model: "llama3.1:8b",
@@ -53,7 +107,8 @@ const DEFAULT_TASK_CONFIG = {
       numCtx: 4096,
       topP: 0.9,
       topK: 40,
-      repeatPenalty: 1.1
+      repeatPenalty: 1.1,
+      geo: { ...DEFAULT_GEO_CONFIG }
     },
     analysis: {
       model: "einfo-analysis",
@@ -64,7 +119,8 @@ const DEFAULT_TASK_CONFIG = {
       numCtx: 8192,
       topP: 0.9,
       topK: 50,
-      repeatPenalty: 1.1
+      repeatPenalty: 1.1,
+      geo: { ...DEFAULT_GEO_CONFIG }
     },
     "situation-question": {
       model: "einfo-analysis",
@@ -75,7 +131,8 @@ const DEFAULT_TASK_CONFIG = {
       numCtx: 4096,
       topP: 0.9,
       topK: 40,
-      repeatPenalty: 1.1
+      repeatPenalty: 1.1,
+      geo: { ...DEFAULT_GEO_CONFIG }
     },
     summarization: {
       model: "llama3.1:8b",
@@ -86,7 +143,8 @@ const DEFAULT_TASK_CONFIG = {
       numCtx: 4096,
       topP: 0.9,
       topK: 40,
-      repeatPenalty: 1.1
+      repeatPenalty: 1.1,
+      geo: { ...DEFAULT_GEO_CONFIG }
     },
     default: {
       model: "einfo-balanced",
@@ -97,7 +155,8 @@ const DEFAULT_TASK_CONFIG = {
       numCtx: 4096,
       topP: 0.92,
       topK: 50,
-      repeatPenalty: 1.15
+      repeatPenalty: 1.15,
+      geo: { ...DEFAULT_GEO_CONFIG }
     }
   }
 };
@@ -112,9 +171,20 @@ function loadTaskConfigFromFile() {
       const data = fs.readFileSync(TASK_CONFIG_PATH, "utf8");
       const parsed = JSON.parse(data);
       console.log("[CONFIG] Task-Konfiguration aus task-config.json geladen");
+      const mergedTasks = {};
+      const mergedEntries = { ...DEFAULT_TASK_CONFIG.tasks, ...(parsed.tasks || {}) };
+
+      for (const [taskKey, taskValue] of Object.entries(mergedEntries)) {
+        const baseTask = DEFAULT_TASK_CONFIG.tasks[taskKey] || DEFAULT_TASK_CONFIG.tasks.default;
+        mergedTasks[taskKey] = {
+          ...baseTask,
+          ...taskValue,
+          geo: mergeTaskGeoConfig(baseTask?.geo, taskValue?.geo)
+        };
+      }
       return {
         globalModelOverride: parsed.globalModelOverride ?? null,
-        tasks: { ...DEFAULT_TASK_CONFIG.tasks, ...parsed.tasks }
+        tasks: mergedTasks
       };
     }
   } catch (err) {
@@ -451,6 +521,8 @@ export function updateTaskConfig(taskType, updates, persist = true) {
   // Nur erlaubte Felder aktualisieren
   const allowedFields = ["model", "temperature", "maxTokens", "timeout", "numGpu", "numCtx", "topP", "topK", "repeatPenalty"];
   const validUpdates = {};
+  const currentGeo = mergeTaskGeoConfig(DEFAULT_GEO_CONFIG, CONFIG.llm.tasks[taskType].geo);
+  const nextGeo = updates?.geo ? mergeTaskGeoConfig(currentGeo, updates.geo) : currentGeo;
 
   for (const [key, value] of Object.entries(updates)) {
     if (allowedFields.includes(key)) {
@@ -460,10 +532,15 @@ export function updateTaskConfig(taskType, updates, persist = true) {
 
   CONFIG.llm.tasks[taskType] = {
     ...CONFIG.llm.tasks[taskType],
-    ...validUpdates
+    ...validUpdates,
+    geo: nextGeo
   };
 
-  console.log(`[CONFIG] Task "${taskType}" aktualisiert:`, validUpdates);
+  const logPayload = { ...validUpdates };
+  if (updates?.geo) {
+    logPayload.geo = nextGeo;
+  }
+  console.log(`[CONFIG] Task "${taskType}" aktualisiert:`, logPayload);
 
   if (persist) {
     saveTaskConfigToFile({

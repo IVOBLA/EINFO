@@ -4,9 +4,9 @@
 
 import { getKnowledgeContextVector } from "./rag_vector.js";
 import { getCurrentSession } from "./session_rag.js";
-import { searchInRadius, geocodeAddress, getGeoIndex } from "./geo_search.js";
+import { searchInRadius, geocodeAddress, findNearestLocations, findMunicipalityInQuery, getMunicipalityIndex } from "./geo_search.js";
 import { searchMemory } from "../memory_manager.js";
-import { logDebug, logInfo } from "../logger.js";
+import { logDebug } from "../logger.js";
 import { CONFIG } from "../config.js";
 
 /**
@@ -22,6 +22,70 @@ export const IntentTypes = {
   SESSION: "session",        // Aktuelle Session-Daten
   HYBRID: "hybrid"           // Kombinierte Suche
 };
+
+const DEFAULT_GEO_CONFIG = {
+  bboxFilterEnabled: false,
+  bboxFilterMode: "request_only",
+  bboxFilterDocTypes: ["address"]
+};
+
+const GEO_FILTER_MODES = new Set(["request_only", "auto_municipality", "both"]);
+const GEO_FILTER_DOC_TYPES = new Set(["address", "poi", "building"]);
+
+function normalizeGeoConfig(geo) {
+  const bboxFilterEnabled = typeof geo?.bboxFilterEnabled === "boolean"
+    ? geo.bboxFilterEnabled
+    : DEFAULT_GEO_CONFIG.bboxFilterEnabled;
+  const bboxFilterMode = GEO_FILTER_MODES.has(geo?.bboxFilterMode)
+    ? geo.bboxFilterMode
+    : DEFAULT_GEO_CONFIG.bboxFilterMode;
+  const docTypes = Array.isArray(geo?.bboxFilterDocTypes)
+    ? geo.bboxFilterDocTypes.filter((type) => GEO_FILTER_DOC_TYPES.has(type))
+    : [];
+  return {
+    bboxFilterEnabled,
+    bboxFilterMode,
+    bboxFilterDocTypes: docTypes.length ? docTypes : [...DEFAULT_GEO_CONFIG.bboxFilterDocTypes]
+  };
+}
+
+function normalizeBbox(bbox) {
+  if (!Array.isArray(bbox) || bbox.length !== 4) return null;
+  const parsed = bbox.map((value) => Number(value));
+  if (parsed.some((value) => Number.isNaN(value))) return null;
+  return parsed;
+}
+
+async function resolveMunicipalityBbox(municipality) {
+  if (!municipality) return null;
+  const index = await getMunicipalityIndex();
+  const lower = municipality.toLowerCase();
+  const entry = index.find((item) => item.municipality?.toLowerCase() === lower);
+  return normalizeBbox(entry?.bbox);
+}
+
+async function resolveBboxCandidate(query, context, taskGeo) {
+  if (!taskGeo?.bboxFilterEnabled) return null;
+
+  let bboxCandidate = null;
+  const mode = taskGeo.bboxFilterMode;
+
+  if ((mode === "request_only" || mode === "both") && context?.bbox) {
+    bboxCandidate = normalizeBbox(context.bbox);
+  }
+
+  if (!bboxCandidate && (mode === "auto_municipality" || mode === "both")) {
+    if (context?.municipality) {
+      bboxCandidate = await resolveMunicipalityBbox(context.municipality);
+    }
+    if (!bboxCandidate) {
+      const municipalityMatch = await findMunicipalityInQuery(query);
+      bboxCandidate = normalizeBbox(municipalityMatch?.bbox);
+    }
+  }
+
+  return bboxCandidate;
+}
 
 /**
  * Erkennt den Intent einer Anfrage
@@ -207,6 +271,16 @@ export function detectIntent(query) {
  */
 export async function routeQuery(query, context = {}) {
   const intent = detectIntent(query);
+  const taskKey = context?.taskType || "chat";
+  const taskGeo = normalizeGeoConfig(CONFIG.llm.tasks?.[taskKey]?.geo);
+  const bboxCandidate = await resolveBboxCandidate(query, context, taskGeo);
+  const bboxFilter = taskGeo.bboxFilterEnabled && bboxCandidate
+    ? {
+      bbox: bboxCandidate,
+      applyBbox: true,
+      docTypes: taskGeo.bboxFilterDocTypes
+    }
+    : { applyBbox: false };
 
   logDebug("QueryRouter: Intent erkannt", {
     query: query.slice(0, 50),
@@ -223,17 +297,17 @@ export async function routeQuery(query, context = {}) {
   try {
     switch (intent.type) {
       case IntentTypes.GEO_RADIUS:
-        results.data = await handleGeoRadius(query, intent.params, context);
+        results.data = await handleGeoRadius(query, intent.params, context, bboxFilter);
         results.context = formatGeoContext(results.data);
         break;
 
       case IntentTypes.GEO_NEAREST:
-        results.data = await handleGeoNearest(query, intent.params, context);
+        results.data = await handleGeoNearest(query, intent.params, context, bboxFilter);
         results.context = formatGeoContext(results.data);
         break;
 
       case IntentTypes.GEO_ADDRESS:
-        results.data = await handleGeoAddress(intent.params.address);
+        results.data = await handleGeoAddress(intent.params.address, bboxFilter);
         results.context = formatGeoContext(results.data);
         break;
 
@@ -272,7 +346,7 @@ export async function routeQuery(query, context = {}) {
 // Handler für verschiedene Intent-Typen
 // ============================================================
 
-async function handleGeoRadius(query, params, context) {
+async function handleGeoRadius(query, params, context, bboxFilter) {
   let { lat, lon, radius } = params;
 
   // Wenn keine Koordinaten angegeben, versuche aus Query zu extrahieren
@@ -280,7 +354,7 @@ async function handleGeoRadius(query, params, context) {
     // Versuche Adresse aus Query zu extrahieren
     const addressMatch = query.match(/(?:um|bei|von)\s+([^,]+(?:,\s*\d{4,5})?)/i);
     if (addressMatch) {
-      const geocoded = await geocodeAddress(addressMatch[1]);
+      const geocoded = await geocodeAddress(addressMatch[1], { applyBbox: false });
       if (geocoded.length > 0) {
         lat = geocoded[0].lat;
         lon = geocoded[0].lon;
@@ -294,7 +368,10 @@ async function handleGeoRadius(query, params, context) {
     lon = 14.0947;
   }
 
-  const locations = await searchInRadius(lat, lon, radius || 5, { limit: 20 });
+  const locations = await searchInRadius(lat, lon, radius || 5, {
+    limit: 20,
+    ...bboxFilter
+  });
 
   return {
     type: "geo_radius",
@@ -305,7 +382,7 @@ async function handleGeoRadius(query, params, context) {
   };
 }
 
-async function handleGeoNearest(query, params, context) {
+async function handleGeoNearest(query, params, context, bboxFilter) {
   const { searchFor } = params;
 
   // Versuche Typ zu erkennen
@@ -321,10 +398,10 @@ async function handleGeoNearest(query, params, context) {
   const lat = context.lat || 46.7239;
   const lon = context.lon || 14.0947;
 
-  const geoIndex = await getGeoIndex();
-  const locations = await geoIndex.findNearest(lat, lon, 10, {
+  const locations = await findNearestLocations(lat, lon, 10, {
     type,
-    namedOnly: true
+    namedOnly: true,
+    ...bboxFilter
   });
 
   return {
@@ -336,8 +413,8 @@ async function handleGeoNearest(query, params, context) {
   };
 }
 
-async function handleGeoAddress(address) {
-  const locations = await geocodeAddress(address);
+async function handleGeoAddress(address, bboxFilter) {
+  const locations = await geocodeAddress(address, bboxFilter);
 
   return {
     type: "geo_address",
@@ -492,7 +569,7 @@ function formatSessionContext(data) {
 export async function getEnhancedContext(query, options = {}) {
   const { maxChars = 4000 } = options;
 
-  const routed = await routeQuery(query);
+  const routed = await routeQuery(query, { ...options });
 
   let context = "";
 
