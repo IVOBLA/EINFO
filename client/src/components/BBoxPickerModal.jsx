@@ -5,7 +5,27 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
 
 const DEFAULT_CENTER = [13.85, 46.72];
-const DEFAULT_ZOOM = 9;
+const DEFAULT_ZOOM = 12;
+
+const OSM_RASTER_STYLE = {
+  version: 8,
+  sources: {
+    osm: {
+      type: "raster",
+      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+      tileSize: 256,
+      attribution: "© OpenStreetMap contributors",
+      maxzoom: 19,
+    },
+  },
+  layers: [
+    {
+      id: "osm",
+      type: "raster",
+      source: "osm",
+    },
+  ],
+};
 
 function formatBbox(bbox) {
   if (!Array.isArray(bbox) || bbox.length !== 4) return "—";
@@ -122,13 +142,13 @@ export default function BBoxPickerModal({ open, initialBbox, onCancel, onSave })
 
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
-      style: "https://demotiles.maplibre.org/style.json",
+      style: OSM_RASTER_STYLE,
       center: DEFAULT_CENTER,
       zoom: DEFAULT_ZOOM,
+      maxZoom: 19,
     });
     mapRef.current = map;
 
-    map.addControl(new maplibregl.NavigationControl(), "top-right");
     const draw = new MapboxDraw({
       displayControlsDefault: false,
       controls: {
@@ -137,7 +157,8 @@ export default function BBoxPickerModal({ open, initialBbox, onCancel, onSave })
       },
     });
     drawRef.current = draw;
-    map.addControl(draw);
+    map.addControl(new maplibregl.NavigationControl(), "top-right");
+    map.addControl(draw, "top-left");
 
     const syncFromDraw = () => {
       const data = draw.getAll();
@@ -161,7 +182,7 @@ export default function BBoxPickerModal({ open, initialBbox, onCancel, onSave })
             [initialBbox[0], initialBbox[1]],
             [initialBbox[2], initialBbox[3]],
           ],
-          { padding: 40, duration: 0 }
+          { padding: 40, duration: 0, maxZoom: 19 }
         );
       }
     });
@@ -199,7 +220,7 @@ export default function BBoxPickerModal({ open, initialBbox, onCancel, onSave })
     if (!mapRef.current) return;
     mapRef.current.flyTo({
       center: [result.lon, result.lat],
-      zoom: 14,
+      zoom: 18,
       essential: true,
     });
   };
