@@ -745,3 +745,34 @@ header .toolbar .interval-capsule input:focus {
   background: rgba(254,243,199,.6);
   border: 1px solid rgba(253,230,138,.5);
 }
+
+/* MapboxDraw (mapboxgl-ctrl-*) läuft mit MapLibre (maplibregl-ctrl-*) – CSS Alias */
+.mapboxgl-ctrl,
+.mapboxgl-ctrl-group {
+  font: inherit;
+}
+
+.mapboxgl-ctrl-group {
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.mapboxgl-ctrl button {
+  cursor: pointer;
+}
+
+/* Position Container, damit Draw Controls nicht "komisch" liegen */
+.mapboxgl-ctrl-top-left,
+.mapboxgl-ctrl-top-right,
+.mapboxgl-ctrl-bottom-left,
+.mapboxgl-ctrl-bottom-right {
+  pointer-events: none;
+}
+
+.mapboxgl-ctrl-top-left .mapboxgl-ctrl,
+.mapboxgl-ctrl-top-right .mapboxgl-ctrl,
+.mapboxgl-ctrl-bottom-left .mapboxgl-ctrl,
+.mapboxgl-ctrl-bottom-right .mapboxgl-ctrl {
+  pointer-events: auto;
+}
