@@ -402,10 +402,10 @@ export async function callLLMForChat(arg1, arg2, arg3) {
     contextLength: stats.contextLength
   });
 
-  // Falls Query-Router semantisch ist, zusätzlich statisches RAG
-  const knowledgeContext = intent.type === "semantic"
-    ? await getKnowledgeContextVector(question)
-    : enhancedContext;
+  // enhancedContext enthält bereits BBOX-gefilterten Knowledge-Kontext vom Query-Router.
+  // Zuvor wurde für semantische Intents ein redundanter getKnowledgeContextVector()-Aufruf
+  // ohne BBOX-Filter gemacht, was die Geo-Fence umging.
+  const knowledgeContext = enhancedContext;
 
   // Disaster Context abrufen (mit Filterregeln + Admin-Status Update)
   const { summary: disasterContext } = await getFilteredDisasterContextSummary({ maxLength: 1000 });
