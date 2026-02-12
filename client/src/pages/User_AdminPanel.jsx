@@ -2182,43 +2182,58 @@ export default function User_AdminPanel() {
           {/* Datei-Upload */}
           <div className="space-y-2">
             <label className="font-medium">Neue Dateien hochladen</label>
-            <input
-              type="file"
-              multiple
-              accept=".txt,.pdf,.json,.md,.csv"
-              disabled={uploadingFiles || locked}
-              onChange={async (e) => {
-                const files = e.target.files;
-                if (!files || files.length === 0) return;
-                setErr(""); setMsg(""); setUploadingFiles(true);
-                try {
-                  const formData = new FormData();
-                  for (const file of files) {
-                    formData.append("files", file);
+            <div className="flex items-center gap-2">
+              <input
+                type="file"
+                multiple
+                accept=".txt,.pdf,.json,.jsonl,.md"
+                disabled={uploadingFiles || locked}
+                onChange={async (e) => {
+                  const files = e.target.files;
+                  if (!files || files.length === 0) return;
+                  setErr(""); setMsg(""); setUploadingFiles(true);
+                  try {
+                    const formData = new FormData();
+                    const subdirInput = e.target.closest(".space-y-2")?.querySelector("[data-knowledge-subdir]");
+                    const subdir = subdirInput?.value?.trim() || "";
+                    if (subdir) formData.append("targetSubdir", subdir);
+                    for (const file of files) {
+                      formData.append("files", file);
+                    }
+                    const res = await fetch("/api/user/admin/knowledge/upload-multiple", {
+                      method: "POST",
+                      credentials: "include",
+                      body: formData,
+                    });
+                    const js = await res.json();
+                    if (!res.ok || js.error) throw new Error(js.error || "Upload fehlgeschlagen");
+                    setMsg(js.message || `${js.count} Datei(en) hochgeladen`);
+                    // Liste aktualisieren
+                    const listRes = await fetch("/api/user/admin/knowledge/files", { credentials: "include" });
+                    const listJs = await listRes.json();
+                    if (listJs.ok !== false) setKnowledgeFiles(listJs.files || []);
+                  } catch (ex) {
+                    setErr(ex.message || "Upload fehlgeschlagen");
+                  } finally {
+                    setUploadingFiles(false);
+                    e.target.value = "";
                   }
-                  const res = await fetch("/api/user/admin/knowledge/upload-multiple", {
-                    method: "POST",
-                    credentials: "include",
-                    body: formData,
-                  });
-                  const js = await res.json();
-                  if (!res.ok || js.error) throw new Error(js.error || "Upload fehlgeschlagen");
-                  setMsg(js.message || `${js.count} Datei(en) hochgeladen`);
-                  // Liste aktualisieren
-                  const listRes = await fetch("/api/user/admin/knowledge/files", { credentials: "include" });
-                  const listJs = await listRes.json();
-                  if (listJs.ok !== false) setKnowledgeFiles(listJs.files || []);
-                } catch (ex) {
-                  setErr(ex.message || "Upload fehlgeschlagen");
-                } finally {
-                  setUploadingFiles(false);
-                  e.target.value = "";
-                }
-              }}
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-            />
+                }}
+                className="block flex-1 text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-600 whitespace-nowrap">Unterordner (optional):</label>
+              <input
+                type="text"
+                data-knowledge-subdir="true"
+                placeholder="z.B. s2/hochwasser"
+                disabled={uploadingFiles || locked}
+                className="border rounded px-2 py-1 text-xs flex-1 max-w-xs"
+              />
+            </div>
             <div className="text-xs text-gray-500">
-              Erlaubte Dateitypen: .txt, .pdf, .json, .md, .csv (max. 50MB pro Datei)
+              Erlaubte Dateitypen: .txt, .pdf, .json, .jsonl, .md (max. 50MB pro Datei)
             </div>
           </div>
 
@@ -2270,24 +2285,26 @@ export default function User_AdminPanel() {
             ) : knowledgeFiles.length === 0 ? (
               <div className="text-xs text-gray-500 mt-2">– keine Dateien vorhanden –</div>
             ) : (
-              <div className="mt-2 max-h-48 overflow-y-auto border rounded">
+              <div className="mt-2 max-h-64 overflow-y-auto border rounded">
                 <table className="w-full text-xs">
                   <thead className="bg-gray-50 sticky top-0">
                     <tr>
-                      <th className="px-2 py-1 text-left">Dateiname</th>
+                      <th className="px-2 py-1 text-left">Pfad</th>
                       <th className="px-2 py-1 text-right">Größe</th>
                       <th className="px-2 py-1 text-right">Geändert</th>
                       <th className="px-2 py-1"></th>
                     </tr>
                   </thead>
                   <tbody>
-                    {knowledgeFiles.map((f) => (
-                      <tr key={f.name} className="border-t hover:bg-gray-50">
-                        <td className="px-2 py-1 font-mono">{f.name}</td>
-                        <td className="px-2 py-1 text-right text-gray-500">
+                    {knowledgeFiles.map((f) => {
+                      const displayPath = f.relPath || f.name;
+                      return (
+                      <tr key={displayPath} className="border-t hover:bg-gray-50">
+                        <td className="px-2 py-1 font-mono" title={displayPath}>{displayPath}</td>
+                        <td className="px-2 py-1 text-right text-gray-500 whitespace-nowrap">
                           {f.size < 1024 ? `${f.size} B` : f.size < 1048576 ? `${(f.size / 1024).toFixed(1)} KB` : `${(f.size / 1048576).toFixed(1)} MB`}
                         </td>
-                        <td className="px-2 py-1 text-right text-gray-500">
+                        <td className="px-2 py-1 text-right text-gray-500 whitespace-nowrap">
                           {new Date(f.modified).toLocaleString("de-AT", { hour12: false })}
                         </td>
                         <td className="px-2 py-1 text-right">
@@ -2295,17 +2312,17 @@ export default function User_AdminPanel() {
                             type="button"
                             className="text-red-600 hover:text-red-800"
                             onClick={async () => {
-                              if (!window.confirm(`Datei "${f.name}" wirklich löschen?`)) return;
+                              if (!window.confirm(`Datei "${displayPath}" wirklich löschen?`)) return;
                               setErr(""); setMsg("");
                               try {
-                                const res = await fetch(`/api/user/admin/knowledge/files/${encodeURIComponent(f.name)}`, {
+                                const res = await fetch(`/api/user/admin/knowledge/files/${encodeURIComponent(f.name)}?relPath=${encodeURIComponent(displayPath)}`, {
                                   method: "DELETE",
                                   credentials: "include",
                                 });
                                 const js = await res.json();
                                 if (!res.ok || js.error) throw new Error(js.error || "Löschen fehlgeschlagen");
-                                setKnowledgeFiles((prev) => prev.filter((x) => x.name !== f.name));
-                                setMsg(`Datei "${f.name}" gelöscht.`);
+                                setKnowledgeFiles((prev) => prev.filter((x) => (x.relPath || x.name) !== displayPath));
+                                setMsg(`Datei "${displayPath}" gelöscht.`);
                               } catch (ex) {
                                 setErr(ex.message || "Löschen fehlgeschlagen");
                               }
@@ -2315,7 +2332,8 @@ export default function User_AdminPanel() {
                           </button>
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

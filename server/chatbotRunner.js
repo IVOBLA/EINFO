@@ -437,52 +437,71 @@ export async function runIngest() {
 
 // ===================== KNOWLEDGE FILES =====================
 
+/**
+ * Resolve a relative path safely within KNOWLEDGE_DIR.
+ * Prevents path traversal attacks (e.g. "../server/.env").
+ */
+export function safeResolveKnowledgePath(relPath) {
+  const normalized = path.normalize(relPath).replace(/^(\.\.(\/|\\|$))+/g, "");
+  const abs = path.resolve(KNOWLEDGE_DIR, normalized);
+  const base = path.resolve(KNOWLEDGE_DIR);
+  if (!abs.startsWith(base + path.sep) && abs !== base) {
+    throw Object.assign(new Error("Ungültiger Dateipfad: Zugriff außerhalb des Knowledge-Verzeichnisses"), { status: 400 });
+  }
+  return abs;
+}
+
 export async function listKnowledgeFiles() {
   await fsp.mkdir(KNOWLEDGE_DIR, { recursive: true });
-  const entries = await fsp.readdir(KNOWLEDGE_DIR, { withFileTypes: true });
   const files = [];
 
-  for (const entry of entries) {
-    if (entry.isFile()) {
-      const filePath = path.join(KNOWLEDGE_DIR, entry.name);
-      const stat = await fsp.stat(filePath);
-      files.push({
-        name: entry.name,
-        size: stat.size,
-        modified: stat.mtime.toISOString(),
-      });
+  async function walk(dir) {
+    const entries = await fsp.readdir(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      const relPath = path.relative(KNOWLEDGE_DIR, fullPath).replace(/\\/g, "/");
+      if (entry.isDirectory()) {
+        await walk(fullPath);
+      } else if (entry.isFile()) {
+        const stat = await fsp.stat(fullPath);
+        files.push({
+          name: entry.name,
+          relPath,
+          ext: path.extname(entry.name).toLowerCase(),
+          size: stat.size,
+          modified: stat.mtime.toISOString(),
+          isDir: false,
+        });
+      }
     }
   }
 
+  await walk(KNOWLEDGE_DIR);
   return files.sort((a, b) => b.modified.localeCompare(a.modified));
 }
 
-export async function saveKnowledgeFile(filename, content) {
-  await fsp.mkdir(KNOWLEDGE_DIR, { recursive: true });
-
-  // Sichere Dateinamen
+export async function saveKnowledgeFile(filename, content, targetSubdir = "") {
   const safeName = path.basename(filename).replace(/[^a-zA-Z0-9._-]/g, "_");
-  const filePath = path.join(KNOWLEDGE_DIR, safeName);
+  const relTarget = targetSubdir ? path.join(targetSubdir, safeName) : safeName;
+  const filePath = safeResolveKnowledgePath(relTarget);
 
+  await fsp.mkdir(path.dirname(filePath), { recursive: true });
   await fsp.writeFile(filePath, content);
-  console.log(`[KNOWLEDGE] Datei gespeichert: ${safeName}`);
 
-  return { ok: true, filename: safeName, path: filePath };
+  const displayName = path.relative(KNOWLEDGE_DIR, filePath).replace(/\\/g, "/");
+  console.log(`[KNOWLEDGE] Datei gespeichert: ${displayName}`);
+
+  return { ok: true, filename: displayName, path: filePath };
 }
 
-export async function deleteKnowledgeFile(filename) {
-  const safeName = path.basename(filename);
-  const filePath = path.join(KNOWLEDGE_DIR, safeName);
-
-  // Sicherheitscheck
-  if (!path.resolve(filePath).startsWith(path.resolve(KNOWLEDGE_DIR))) {
-    throw new Error("Ungültiger Dateipfad");
-  }
+export async function deleteKnowledgeFile(relPath) {
+  const filePath = safeResolveKnowledgePath(relPath);
 
   await fsp.unlink(filePath);
-  console.log(`[KNOWLEDGE] Datei gelöscht: ${safeName}`);
+  const displayName = path.relative(KNOWLEDGE_DIR, filePath).replace(/\\/g, "/");
+  console.log(`[KNOWLEDGE] Datei gelöscht: ${displayName}`);
 
-  return { ok: true, filename: safeName };
+  return { ok: true, filename: displayName };
 }
 
 export { KNOWLEDGE_DIR };

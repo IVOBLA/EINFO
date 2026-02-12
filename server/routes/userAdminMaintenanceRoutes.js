@@ -23,6 +23,7 @@ import {
   listKnowledgeFiles,
   saveKnowledgeFile,
   deleteKnowledgeFile,
+  safeResolveKnowledgePath,
   KNOWLEDGE_DIR,
 } from "../chatbotRunner.js";
 import { getLogDirCandidates } from "../utils/logDirectories.mjs";
@@ -400,9 +401,18 @@ export default function createAdminMaintenanceRoutes({ baseDir }) {
 
   // Multer-Konfiguration für File-Uploads
   const knowledgeStorage = multer.diskStorage({
-    destination: async (_req, _file, cb) => {
-      await fs.mkdir(KNOWLEDGE_DIR, { recursive: true }).catch(() => {});
-      cb(null, KNOWLEDGE_DIR);
+    destination: async (req, _file, cb) => {
+      try {
+        const subdir = req.body?.targetSubdir || "";
+        let destDir = KNOWLEDGE_DIR;
+        if (subdir) {
+          destDir = safeResolveKnowledgePath(subdir);
+        }
+        await fs.mkdir(destDir, { recursive: true }).catch(() => {});
+        cb(null, destDir);
+      } catch (err) {
+        cb(err);
+      }
     },
     filename: (_req, file, cb) => {
       // Originalnamen beibehalten, aber unsichere Zeichen ersetzen
@@ -415,8 +425,8 @@ export default function createAdminMaintenanceRoutes({ baseDir }) {
     storage: knowledgeStorage,
     limits: { fileSize: 50 * 1024 * 1024 }, // Max 50MB
     fileFilter: (_req, file, cb) => {
-      // Erlaubte Dateitypen
-      const allowedTypes = [".txt", ".pdf", ".json", ".md", ".csv"];
+      // Erlaubte Dateitypen (konsistent mit index_builder.js allowedExt)
+      const allowedTypes = [".txt", ".pdf", ".json", ".jsonl", ".md"];
       const ext = path.extname(file.originalname).toLowerCase();
       if (allowedTypes.includes(ext)) {
         cb(null, true);
@@ -460,11 +470,13 @@ export default function createAdminMaintenanceRoutes({ baseDir }) {
       if (!req.file) {
         return res.status(400).json({ ok: false, error: "Keine Datei hochgeladen" });
       }
+      const relPath = path.relative(KNOWLEDGE_DIR, req.file.path).replace(/\\/g, "/");
       res.json({
         ok: true,
         filename: req.file.filename,
+        relPath,
         size: req.file.size,
-        message: `Datei "${req.file.filename}" erfolgreich hochgeladen`,
+        message: `Datei "${relPath}" erfolgreich hochgeladen`,
       });
     } catch (err) {
       console.error("Knowledge upload error:", err);
@@ -480,6 +492,7 @@ export default function createAdminMaintenanceRoutes({ baseDir }) {
       }
       const uploaded = req.files.map((f) => ({
         filename: f.filename,
+        relPath: path.relative(KNOWLEDGE_DIR, f.path).replace(/\\/g, "/"),
         size: f.size,
       }));
       res.json({
@@ -494,18 +507,19 @@ export default function createAdminMaintenanceRoutes({ baseDir }) {
     }
   });
 
-  // Datei löschen
+  // Datei löschen (unterstützt relPath mit Unterordnern via :filename oder ?relPath=...)
   router.delete("/knowledge/files/:filename", async (req, res) => {
     try {
-      const filename = req.params.filename;
-      if (!filename) {
+      const relPath = req.query.relPath || req.params.filename;
+      if (!relPath) {
         return res.status(400).json({ ok: false, error: "Dateiname fehlt" });
       }
-      const result = await deleteKnowledgeFile(filename);
+      const result = await deleteKnowledgeFile(relPath);
       res.json(result);
     } catch (err) {
       console.error("Knowledge delete error:", err);
-      res.status(500).json({ ok: false, error: err.message });
+      const status = err.status || 500;
+      res.status(status).json({ ok: false, error: err.message });
     }
   });
 
