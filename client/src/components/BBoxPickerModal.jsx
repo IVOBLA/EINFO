@@ -160,13 +160,14 @@ export default function BBoxPickerModal({ open, initialBbox, onCancel, onSave })
     map.addControl(new maplibregl.NavigationControl(), "top-right");
     map.addControl(draw, "top-left");
 
-    const syncFromDraw = () => {
-      const data = draw.getAll();
-      if (!data.features.length) {
+    const syncFromDraw = (event) => {
+      const features =
+        event?.features?.length > 0 ? event.features : draw.getAll().features;
+      if (!features.length) {
         setBbox(null);
         return;
       }
-      const nextBbox = bboxFromPolygon(data.features[0]);
+      const nextBbox = bboxFromPolygon(features[features.length - 1]);
       setBbox(nextBbox);
     };
 
