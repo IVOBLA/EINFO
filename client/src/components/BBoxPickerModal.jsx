@@ -3,6 +3,7 @@ import maplibregl from "maplibre-gl";
 import MapboxDraw from "@mapbox/mapbox-gl-draw";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "@mapbox/mapbox-gl-draw/dist/mapbox-gl-draw.css";
+import { DRAW_STYLES } from "./mapDrawStyles.js";
 
 const DEFAULT_CENTER = [13.85, 46.72];
 const DEFAULT_ZOOM = 12;
@@ -155,10 +156,15 @@ export default function BBoxPickerModal({ open, initialBbox, onCancel, onSave })
         polygon: true,
         trash: true,
       },
+      styles: DRAW_STYLES,
     });
     drawRef.current = draw;
     map.addControl(new maplibregl.NavigationControl(), "top-right");
-    map.addControl(draw, "top-left");
+    try {
+      map.addControl(draw, "top-left");
+    } catch (err) {
+      console.error("[BBoxPickerModal] Failed to add draw control:", err);
+    }
 
     const syncFromDraw = (event) => {
       const features =
@@ -189,7 +195,11 @@ export default function BBoxPickerModal({ open, initialBbox, onCancel, onSave })
     });
 
     return () => {
-      map.remove();
+      try {
+        map.remove();
+      } catch (err) {
+        console.error("[BBoxPickerModal] Error during map cleanup:", err);
+      }
       mapRef.current = null;
       drawRef.current = null;
     };
