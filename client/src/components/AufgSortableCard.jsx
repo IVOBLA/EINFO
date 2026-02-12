@@ -140,7 +140,12 @@ function AufgSortableCard({
               title="Meldung aus Aufgabe erstellen"
               aria-label="Meldung aus Aufgabe erstellen"
             >
-              &#x270E;
+                <img
+    src="/report-form.png"
+    alt=""
+    className="w-4 h-4"
+    draggable={false}
+  />
             </button>
             <button
               className={`card-action-btn ${disableAdvance ? "bg-slate-100 text-slate-300" : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"}`}
@@ -221,3 +226,4 @@ function AufgSortableCard({
 }
 
 export default React.memo(AufgSortableCard);
+
