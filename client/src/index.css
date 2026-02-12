@@ -776,3 +776,16 @@ header .toolbar .interval-capsule input:focus {
 .mapboxgl-ctrl-bottom-right .mapboxgl-ctrl {
   pointer-events: auto;
 }
+
+/*
+ * MapLibre v4 nutzt .maplibregl-* Prefix für Control-Container.
+ * MapboxDraw erzeugt aber Elemente mit .mapboxgl-ctrl / .mapboxgl-ctrl-group.
+ * Dadurch greift MapLibres eigenes "pointer-events: auto" auf .maplibregl-ctrl
+ * nicht für die Draw-Controls → Polygon- und Lösch-Button nicht klickbar.
+ */
+.maplibregl-ctrl-top-left .mapboxgl-ctrl,
+.maplibregl-ctrl-top-right .mapboxgl-ctrl,
+.maplibregl-ctrl-bottom-left .mapboxgl-ctrl,
+.maplibregl-ctrl-bottom-right .mapboxgl-ctrl {
+  pointer-events: auto;
+}
