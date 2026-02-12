@@ -22,6 +22,7 @@ import { fetchBoard } from "../api.js";
 import { forbiddenError, notifyForbidden } from "../../forbidden.js";
 import { ensureValidDueOffset, getFallbackDueOffsetMinutes } from "../utils/defaultDueOffset.js";
 import CornerHelpLogout from "../components/CornerHelpLogout.jsx";
+import UnreadProtocolIndicator from "../components/UnreadProtocolIndicator.jsx";
 import useOnlineRoles from "../hooks/useOnlineRoles.js";
 import useSimulationStatus from "../hooks/useSimulationStatus.js";
 import SimulationActiveIcon from "../components/SimulationActiveIcon.jsx";
@@ -914,6 +915,7 @@ export default function AufgApp() {
               placeholder="Suche Titel / Typ / Verantwortlich..."
               className="search-input w-full sm:w-64 md:w-72 lg:w-80 max-w-full"
             />
+            <UnreadProtocolIndicator roleId={roleId} />
             <button
               onClick={handleAddOpen}
               className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"

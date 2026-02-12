@@ -1,5 +1,7 @@
 import "./utils/loadEnv.mjs";
 import express from "express";
+import http from "http";
+import { Server as SocketIOServer } from "socket.io";
 import compression from "compression";
 import cors from "cors";
 import crypto from "node:crypto";
@@ -62,6 +64,13 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app  = express();
+const httpServer = http.createServer(app);
+const io = new SocketIOServer(httpServer, {
+  path: "/socket.io",
+  cors: { origin: true, credentials: true },
+});
+app.set("io", io);
+io.on("connection", () => {});
 const PORT = process.env.PORT || 4040;
 const SECURE_COOKIES = process.env.KANBAN_COOKIE_SECURE === "1";
 
@@ -4181,7 +4190,7 @@ process.on("unhandledRejection", async (reason)=>{
   console.error(reason);
 });
 
-app.listen(PORT, async ()=>{
+httpServer.listen(PORT, async ()=>{
   console.log(`[kanban] Server auf http://localhost:${PORT}`);
   // Beim Start IMMER Auto-Import deaktivieren (Sicherheits-Default)
   await writeAutoCfg({ enabled:false });

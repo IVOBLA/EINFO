@@ -615,6 +615,8 @@ export default function ProtokollOverview({ searchTerm = "", protocolCanEdit = f
         u.kanalNr,
         u.art,
         directions.join(" / "),
+        ...(Array.isArray(item?.ergehtAn) ? item.ergehtAn : []),
+        item?.ergehtAnText,
       ];
 
       if (Array.isArray(item?.massnahmen)) {
