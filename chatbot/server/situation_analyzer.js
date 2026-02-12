@@ -7,7 +7,7 @@ import fsPromises from "fs/promises";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { CONFIG } from "./config.js";
+import { CONFIG, normalizeGeoConfig } from "./config.js";
 import { logDebug, logError, logInfo } from "./logger.js";
 // isSimulationRunning nicht mehr benötigt - KI-Analyse ist immer verfügbar
 import { getFilteredDisasterContextSummary, getCurrentDisasterContext, getLLMSummarizedContext, getCachedLLMSummary } from "./disaster_context.js";
@@ -31,8 +31,24 @@ const __dirname = path.dirname(__filename);
 const ANALYSIS_DIR = path.resolve(__dirname, "../../server/data/situation_analysis");
 const LEARNED_SUGGESTIONS_FILE = path.resolve(ANALYSIS_DIR, "learned_suggestions.json");
 const AI_ANALYSIS_CFG_FILE = path.resolve(__dirname, CONFIG.dataDir, "conf", "ai-analysis.json");
+const SCENARIO_CONFIG_FILE = path.resolve(__dirname, "../../server/data/scenario_config.json");
 const AI_ANALYSIS_DEFAULT_INTERVAL_MINUTES = 5;
 const AI_ANALYSIS_MIN_INTERVAL_MINUTES = 1;
+
+/**
+ * Liest die BBox aus der Szenario-Konfiguration (scenario_config.json).
+ * @returns {Promise<number[]|null>} [minLon, minLat, maxLon, maxLat] oder null
+ */
+async function readScenarioBbox() {
+  try {
+    const raw = await fsPromises.readFile(SCENARIO_CONFIG_FILE, "utf8");
+    const config = JSON.parse(raw);
+    if (Array.isArray(config.bbox) && config.bbox.length === 4 && config.bbox.every(Number.isFinite)) {
+      return config.bbox;
+    }
+  } catch { /* file not found or invalid - kein BBOX verfügbar */ }
+  return null;
+}
 
 // Rollen-Beschreibungen für kontextbezogene Analysen
 // Erweiterte Beschreibungen mit konkreten Aufgabenbereichen für präzise Vorschläge
@@ -818,7 +834,7 @@ export async function analyzeForRole(role, forceRefresh = false) {
  * Beantwortet eine direkte Frage zur Lage
  * Nutzt RAG (Vector + Session) für fundierte Antworten mit Quellenangaben
  */
-export async function answerQuestion(question, role, context = "aufgabenboard") {
+export async function answerQuestion(question, role, context = "aufgabenboard", requestBbox = null) {
   if (!isAnalysisActive()) {
     return {
       error: "Fragen nicht möglich (Simulation läuft)",
@@ -856,9 +872,24 @@ export async function answerQuestion(question, role, context = "aufgabenboard") 
     disasterSummary = summary;
   }
 
+  // BBOX-Filter für RAG aufbauen (aus Request oder Szenario-Config)
+  const taskGeo = normalizeGeoConfig(CONFIG.llm.tasks?.["situation-question"]?.geo);
+  let ragFilters = {};
+  if (taskGeo.bboxFilterEnabled) {
+    const bbox = requestBbox || await readScenarioBbox();
+    if (bbox) {
+      ragFilters = { bbox, bboxDocTypes: taskGeo.bboxFilterDocTypes };
+      logDebug("answerQuestion: BBOX-Filter aktiv", {
+        bbox,
+        docTypes: taskGeo.bboxFilterDocTypes,
+        source: requestBbox ? "request" : "scenario_config"
+      });
+    }
+  }
+
   // RAG-Context holen (parallel für Performance)
   const [vectorRagResult, sessionContext] = await Promise.all([
-    getKnowledgeContextWithSources(question, { topK: 3, maxChars: 1500 }),
+    getKnowledgeContextWithSources(question, { topK: 3, maxChars: 1500, filters: ragFilters }),
     getCurrentSession().getContextForQuery(question, { maxChars: 1000, topK: 3 })
   ]);
 

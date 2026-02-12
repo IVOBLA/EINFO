@@ -328,14 +328,14 @@ export async function routeQuery(query, context = {}) {
 
       case IntentTypes.SEMANTIC:
       default:
-        results.data = await handleSemanticQuery(query, context);
+        results.data = await handleSemanticQuery(query, context, bboxFilter);
         results.context = results.data.knowledge || "";
         break;
     }
   } catch (error) {
     logDebug("QueryRouter: Fehler", { error: String(error) });
     // Fallback auf semantische Suche
-    results.data = await handleSemanticQuery(query, context);
+    results.data = await handleSemanticQuery(query, context, bboxFilter);
     results.context = results.data.knowledge || "";
   }
 
@@ -471,9 +471,22 @@ async function handleSessionQuery(query, params) {
   };
 }
 
-async function handleSemanticQuery(query, context) {
-  // Standard RAG-Suche
-  const knowledge = await getKnowledgeContextVector(query);
+async function handleSemanticQuery(query, context, bboxFilter) {
+  // Build structured filters from bboxFilter (geo-fence for semantic path)
+  const filters = {};
+  if (bboxFilter?.applyBbox && bboxFilter?.bbox) {
+    filters.bbox = bboxFilter.bbox;
+    filters.bboxDocTypes = bboxFilter.docTypes;
+  }
+
+  logDebug("handleSemanticQuery: BBOX-Status", {
+    bboxActive: Boolean(filters.bbox),
+    bbox: filters.bbox || null,
+    docTypes: filters.bboxDocTypes || null
+  });
+
+  // Standard RAG-Suche (mit BBOX-Filter wenn aktiv)
+  const knowledge = await getKnowledgeContextVector(query, { filters });
 
   // Zusätzlich Session-RAG
   const session = getCurrentSession();

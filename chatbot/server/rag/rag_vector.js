@@ -376,11 +376,13 @@ function filterChunkIndices(chunks, filters = {}) {
     category: categoryFilter,
     municipality,
     bbox,
-    useMunicipalityOrBbox
+    useMunicipalityOrBbox,
+    bboxDocTypes
   } = filters;
 
   const docTypes = normalizeFilterValues(docTypeFilter);
   const categories = normalizeFilterValues(categoryFilter);
+  const bboxApplyDocTypes = normalizeFilterValues(bboxDocTypes);
 
   const indices = [];
   for (let i = 0; i < chunks.length; i++) {
@@ -404,15 +406,21 @@ function filterChunkIndices(chunks, filters = {}) {
     }
 
     if (bbox && Array.isArray(bbox) && bbox.length === 4) {
-      const [minLon, minLat, maxLon, maxLat] = bbox.map(Number);
-      if (metaInfo.geo?.lat !== undefined && metaInfo.geo?.lon !== undefined) {
-        const { lat, lon } = metaInfo.geo;
-        bboxMatch = !(lat < minLat || lat > maxLat || lon < minLon || lon > maxLon);
-      } else if (Array.isArray(metaInfo.geo?.bbox) && metaInfo.geo.bbox.length === 4) {
-        const [bMinLon, bMinLat, bMaxLon, bMaxLat] = metaInfo.geo.bbox;
-        bboxMatch = !(bMaxLon < minLon || bMinLon > maxLon || bMaxLat < minLat || bMinLat > maxLat);
+      // Only apply bbox to chunks whose doc_type is in bboxDocTypes.
+      // Non-geo content (PDFs, text without doc_type match) passes through.
+      if (bboxApplyDocTypes.length > 0 && !bboxApplyDocTypes.includes(metaInfo.doc_type)) {
+        bboxMatch = true;
       } else {
-        bboxMatch = false;
+        const [minLon, minLat, maxLon, maxLat] = bbox.map(Number);
+        if (metaInfo.geo?.lat !== undefined && metaInfo.geo?.lon !== undefined) {
+          const { lat, lon } = metaInfo.geo;
+          bboxMatch = !(lat < minLat || lat > maxLat || lon < minLon || lon > maxLon);
+        } else if (Array.isArray(metaInfo.geo?.bbox) && metaInfo.geo.bbox.length === 4) {
+          const [bMinLon, bMinLat, bMaxLon, bMaxLat] = metaInfo.geo.bbox;
+          bboxMatch = !(bMaxLon < minLon || bMinLon > maxLon || bMaxLat < minLat || bMinLat > maxLat);
+        } else {
+          bboxMatch = false;
+        }
       }
     }
 
@@ -425,6 +433,15 @@ function filterChunkIndices(chunks, filters = {}) {
     }
 
     indices.push(i);
+  }
+
+  if (bbox && process.env.CHATBOT_DEBUG === "1") {
+    logDebug("filterChunkIndices: BBOX-Filter angewendet", {
+      totalChunks: chunks.length,
+      afterFilter: indices.length,
+      bbox,
+      bboxDocTypes: bboxApplyDocTypes
+    });
   }
 
   return indices;

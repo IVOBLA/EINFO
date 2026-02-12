@@ -40,7 +40,12 @@ export function createSituationQuestionHandler({ answerQuestion, logError, isAna
         return res.status(400).json({ ok: false, error: "role fehlt" });
       }
 
-      const answer = await answerQuestion(question, role, context || "aufgabenboard");
+      // bbox aus Request (optional, überschreibt scenario_config bbox)
+      const requestBbox = Array.isArray(body.bbox) && body.bbox.length === 4
+        ? body.bbox
+        : null;
+
+      const answer = await answerQuestion(question, role, context || "aufgabenboard", requestBbox);
 
       if (answer.error) {
         return res.status(answer.isActive === false ? 503 : 500).json({

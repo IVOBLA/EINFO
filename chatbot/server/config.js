@@ -561,6 +561,9 @@ export function getAllTaskConfigs() {
   };
 }
 
+// Geo-Config Utilities (benötigt von situation_analyzer u.a.)
+export { normalizeGeoConfig, mergeTaskGeoConfig };
+
 // Legacy-Kompatibilität
 export const setTaskModel = (taskType, modelKey) => updateTaskConfig(taskType, { model: modelKey });
 export const getAllModels = () => ({ tasks: getAllTaskConfigs().tasks });
