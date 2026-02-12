@@ -509,6 +509,17 @@ useEffect(() => {
 }, []);
 const route = hash.replace(/^#/, "");
 
+// Parse search param from hash for protocol overview (e.g. #/protokoll?search=S2)
+useEffect(() => {
+  const [base, qs] = route.split("?");
+  if (base === "/protokoll" && qs) {
+    const params = new URLSearchParams(qs);
+    if (params.has("search")) {
+      setProtocolSearch(params.get("search") || "");
+    }
+  }
+}, [route]);
+
   // Proximity
   const [nearBySet, setNearBySet] = useState(() => new Set());
   const [pulseUntilMs, setPulseUntilMs] = useState(0);

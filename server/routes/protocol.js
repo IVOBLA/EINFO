@@ -810,6 +810,7 @@ try {
 } catch (err) {
   console.warn("[protocol→tasks POST]", err?.message || err);
 }
+        req.app.get("io")?.emit("protocol:changed", { nr, ts: Date.now() });
         res.json({ ok: true, nr, id: payload.id, zu: payload.zu ?? "" });
   } catch (e) {
     const status = e?.httpStatus && Number.isFinite(e.httpStatus) ? e.httpStatus : 500;
@@ -1005,6 +1006,7 @@ router.put("/:nr(\\d+)", express.json(), async (req, res) => {
         }
       }
     } catch (e) { console.warn("[protocol->tasks PUT]", e?.message || e); }
+    req.app.get("io")?.emit("protocol:changed", { nr, ts: Date.now() });
     res.json({ ok: true, nr, id: next.id, zu: next.zu ?? "" });
   } catch (e) {
     const status = e?.httpStatus && Number.isFinite(e.httpStatus) ? e.httpStatus : 500;
