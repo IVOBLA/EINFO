@@ -345,7 +345,7 @@ function EinsatzPanel({ canInteract, onProtocolReload }) {
     try {
       await updateScenario({ bbox: newBbox });
       await loadScenario();
-      setBBoxModalOpen(false);
+      setBboxModalOpen(false);
       setMessage({ type: "ok", text: "BBox gespeichert" });
     } catch (err) {
       setMessage({ type: "err", text: err.message });
