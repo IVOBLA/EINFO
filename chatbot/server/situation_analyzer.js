@@ -18,6 +18,8 @@ import { loadPromptTemplate, fillTemplate } from "./prompts.js";
 import { getKnowledgeContextWithSources, addToVectorRAG } from "./rag/rag_vector.js";
 import { getCurrentSession } from "./rag/session_rag.js";
 import { filterSuggestionsForRole, dismissSuggestion, acceptSuggestion, initSuggestionFilter, getExcludeContextForPrompt } from "./suggestion_filter.js";
+import { detectExplicitScope, shouldApplyGeoFence } from "./rag/geo_scope.js";
+import { hasGeoContext } from "./rag/query_router.js";
 
 const __filename = fileURLToPath(import.meta.url);
 
@@ -885,17 +887,33 @@ export async function answerQuestion(question, role, context = "aufgabenboard", 
     }
   }
 
-  // BBOX-Filter für RAG aufbauen (aus Request oder Szenario-Config)
+  // BBOX-Filter für RAG aufbauen — nur wenn shouldApplyGeoFence() true
   const taskGeo = normalizeGeoConfig(CONFIG.llm.tasks?.[taskType]?.geo);
   let ragFilters = {};
   if (taskGeo.bboxFilterEnabled) {
-    const bbox = requestBbox || await readScenarioBbox();
-    if (bbox) {
-      ragFilters = { bbox, bboxDocTypes: taskGeo.bboxFilterDocTypes };
-      logDebug("answerQuestion: BBOX-Filter aktiv", {
-        bbox,
-        docTypes: taskGeo.bboxFilterDocTypes,
-        source: requestBbox ? "request" : "scenario_config"
+    const explicitScope = detectExplicitScope(question);
+    const geoFenceActive = shouldApplyGeoFence({
+      question,
+      intent: null, // Intent nicht verfügbar in situation_analyzer
+      hasGeoContext: hasGeoContext(question),
+      explicitScope,
+    });
+
+    if (geoFenceActive) {
+      const bbox = requestBbox || await readScenarioBbox();
+      if (bbox) {
+        ragFilters = { bbox, bboxDocTypes: taskGeo.bboxFilterDocTypes };
+        logDebug("answerQuestion: BBOX-Filter aktiv", {
+          bbox,
+          docTypes: taskGeo.bboxFilterDocTypes,
+          source: requestBbox ? "request" : "scenario_config",
+          explicitScope: explicitScope.mode,
+        });
+      }
+    } else {
+      logDebug("answerQuestion: BBOX-Filter nicht angewendet (kein Geo-Bezug)", {
+        explicitScope: explicitScope.mode,
+        reason: explicitScope.reason,
       });
     }
   }

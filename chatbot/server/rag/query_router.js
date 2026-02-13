@@ -8,6 +8,7 @@ import { searchInRadius, geocodeAddress, findNearestLocations, findMunicipalityI
 import { searchMemory } from "../memory_manager.js";
 import { logDebug } from "../logger.js";
 import { CONFIG } from "../config.js";
+import { detectExplicitScope, shouldApplyGeoFence, resolveCenterPoint } from "./geo_scope.js";
 
 /**
  * Intent-Typen
@@ -20,6 +21,7 @@ export const IntentTypes = {
   GEO_COUNT: "geo_count",            // Zähle Geo-Objekte (deterministisch)
   GEO_LIST: "geo_list",              // Liste Geo-Objekte (deterministisch)
   GEO_ADDRESS: "geo_address",        // Adresse suchen/geocoden
+  GEO_PROVIDER_SEARCH: "geo_provider_search", // Provider/Ressourcen geo-Suche
   RESOURCE: "resource",              // Ressourcen-Suche
   RELATIONAL: "relational",          // Beziehungs-Abfrage
   SESSION: "session",                // Aktuelle Session-Daten
@@ -41,29 +43,46 @@ const GEO_SCOPES = new Set(["BBOX", "GLOBAL"]);
 // CATEGORY_KEYWORDS: Deutsch -> category_norm Mapping
 // ============================================================
 const CATEGORY_KEYWORDS = {
+  // Kritische Infrastruktur
   krankenhaus: "amenity:hospital", spital: "amenity:hospital", klinik: "amenity:hospital",
-  restaurant: "amenity:restaurant", gasthof: "amenity:restaurant", gasthaus: "amenity:restaurant",
+  arzt: "amenity:doctors", hausarzt: "amenity:doctors", "ärztin": "amenity:doctors",
+  zahnarzt: "amenity:dentist",
   apotheke: "amenity:pharmacy", pharmacy: "amenity:pharmacy",
   polizei: "amenity:police", polizeistation: "amenity:police",
   feuerwehr: "amenity:fire_station", feuerwache: "amenity:fire_station",
+  tankstelle: "amenity:fuel",
+  pflegeheim: "amenity:social_facility", altenheim: "amenity:social_facility",
+
+  // Unterbringung / Evakuierung
+  hotel: "tourism:hotel", pension: "tourism:guest_house", unterkunft: "tourism:hotel",
+  notunterkunft: "amenity:shelter", shelter: "amenity:shelter",
+  gemeindezentrum: "amenity:community_centre", gemeindesaal: "amenity:community_centre",
+  sporthalle: "leisure:sports_hall", turnhalle: "leisure:sports_hall",
   schule: "amenity:school", volksschule: "amenity:school",
   kindergarten: "amenity:kindergarten", kita: "amenity:kindergarten",
-  kirche: "amenity:place_of_worship",
-  tankstelle: "amenity:fuel",
-  bank: "amenity:bank",
-  post: "amenity:post_office", postamt: "amenity:post_office",
-  hotel: "tourism:hotel", pension: "tourism:guest_house", unterkunft: "tourism:hotel",
+  camping: "tourism:camp_site", campingplatz: "tourism:camp_site",
+
+  // Verpflegung
+  restaurant: "amenity:restaurant", gasthof: "amenity:restaurant", gasthaus: "amenity:restaurant",
   supermarkt: "shop:supermarket", lebensmittel: "shop:supermarket",
   "bäckerei": "shop:bakery", baeckerei: "shop:bakery", "bäcker": "shop:bakery",
   metzger: "shop:butcher", metzgerei: "shop:butcher", fleischer: "shop:butcher",
-  arzt: "amenity:doctors", "hausarzt": "amenity:doctors", "ärztin": "amenity:doctors",
-  zahnarzt: "amenity:dentist",
+  kantine: "amenity:canteen", canteen: "amenity:canteen",
+
+  // Sonstiges
+  kirche: "amenity:place_of_worship",
+  bank: "amenity:bank",
+  post: "amenity:post_office", postamt: "amenity:post_office",
   "café": "amenity:cafe", cafe: "amenity:cafe", kaffeehaus: "amenity:cafe",
   parkplatz: "amenity:parking",
   spielplatz: "leisure:playground",
   sportplatz: "leisure:pitch",
   friedhof: "amenity:grave_yard",
-  rathaus: "amenity:townhall", gemeindeamt: "amenity:townhall"
+  rathaus: "amenity:townhall", gemeindeamt: "amenity:townhall",
+
+  // Optionale Infrastruktur
+  umspannwerk: "power:substation", trafostation: "power:substation",
+  wasserwerk: "man_made:water_works",
 };
 
 function extractCategoryFromQuery(query) {
@@ -313,12 +332,29 @@ export function detectIntent(query) {
   }
 
   // ============================================================
-  // Ressourcen-Intent
+  // Geo-Intent: Provider/Ressourcen-Suche (Bagger, Baufirma, Bus etc.)
+  // ============================================================
+  const providerKeywords = [
+    "bagger", "baufirma", "tiefbau", "erdbau", "transporte",
+    "bus", "reisebus", "busunternehmen", "fuhrpark",
+    "lkw", "kran", "radlader", "aggregate",
+    "abbruch", "abbruchfirma", "transporter",
+  ];
+  const providerMatch = providerKeywords.find(kw => lowerQuery.includes(kw));
+  if (providerMatch) {
+    return {
+      type: IntentTypes.GEO_PROVIDER_SEARCH,
+      params: { searchTerm: providerMatch, query: lowerQuery },
+      confidence: 0.88,
+      pattern: "geo_provider_search"
+    };
+  }
+
+  // ============================================================
+  // Ressourcen-Intent (Fallback — ohne Geo)
   // ============================================================
   const resourcePatterns = [
     /wer hat (?:einen? |ein )?(.+)/i,
-    /(?:bagger|lkw|kran|radlader|transporter|fahrzeug)/i,
-    /(?:baufirma|erdbau|tiefbau|abbruch)/i,
     /ressource[n]?\s+(?:für|zum|zur)/i,
     /verfügbar[e]?\s+(.+)/i,
     /einsatzbereit[e]?\s+(.+)/i
@@ -416,29 +452,48 @@ export async function routeQuery(query, context = {}) {
   const intent = detectIntent(query);
   const taskKey = context?.taskType || "chat";
   const taskGeo = normalizeGeoConfig(CONFIG.llm.tasks?.[taskKey]?.geo);
-  const bboxCandidate = await resolveBboxCandidate(query, context, taskGeo);
-  const bboxFilter = taskGeo.bboxFilterEnabled && bboxCandidate
-    ? {
-      bbox: bboxCandidate,
-      applyBbox: true,
-      docTypes: taskGeo.bboxFilterDocTypes
-    }
-    : { applyBbox: false };
 
-  if (taskGeo.bboxFilterEnabled && !bboxCandidate &&
-      (taskGeo.bboxFilterMode === "auto_municipality" || taskGeo.bboxFilterMode === "both")) {
-    logDebug("QueryRouter: BBOX filter enabled but no bbox resolved; falling back to unbounded retrieval", {
-      bboxFilterMode: taskGeo.bboxFilterMode,
-      query: query.slice(0, 80)
-    });
+  // Geo-Fence-Entscheidung über zentrale Logik
+  const explicitScope = detectExplicitScope(query);
+  const geoFenceActive = shouldApplyGeoFence({
+    question: query,
+    intent: intent.type,
+    hasGeoContext: hasGeoContext(query),
+    explicitScope,
+  });
+
+  // Nur BBox auflösen wenn Geo-Fence aktiv
+  let bboxFilter = { applyBbox: false };
+  if (geoFenceActive && taskGeo.bboxFilterEnabled) {
+    const bboxCandidate = await resolveBboxCandidate(query, context, taskGeo);
+    if (bboxCandidate) {
+      bboxFilter = {
+        bbox: bboxCandidate,
+        applyBbox: true,
+        docTypes: taskGeo.bboxFilterDocTypes,
+      };
+    } else if (taskGeo.bboxFilterMode === "auto_municipality" || taskGeo.bboxFilterMode === "both") {
+      logDebug("QueryRouter: BBOX filter enabled but no bbox resolved; falling back to unbounded retrieval", {
+        bboxFilterMode: taskGeo.bboxFilterMode,
+        query: query.slice(0, 80)
+      });
+    }
   }
+
+  // Center-Point für Distanzberechnung auflösen
+  const centerPoint = await resolveCenterPoint({
+    scenarioConfig: context?.scenarioConfig,
+    requestBbox: bboxFilter.applyBbox ? bboxFilter.bbox : (context?.bbox || null),
+  });
 
   logDebug("QueryRouter: Intent erkannt", {
     query: query.slice(0, 50),
     type: intent.type,
     confidence: intent.confidence,
-    geoScope: taskGeo.geoScope,
-    bboxActive: bboxFilter.applyBbox
+    explicitScope: explicitScope.mode,
+    applyGeoFence: geoFenceActive,
+    bboxActive: bboxFilter.applyBbox,
+    centerSource: centerPoint.source,
   });
 
   const results = {
@@ -451,17 +506,17 @@ export async function routeQuery(query, context = {}) {
   try {
     switch (intent.type) {
       case IntentTypes.GEO_RADIUS:
-        results.data = await handleGeoRadius(query, intent.params, context, bboxFilter);
+        results.data = await handleGeoRadius(query, intent.params, context, bboxFilter, centerPoint);
         results.context = formatGeoContext(results.data);
         break;
 
       case IntentTypes.GEO_NEAREST:
-        results.data = await handleGeoNearest(query, intent.params, context, bboxFilter);
+        results.data = await handleGeoNearest(query, intent.params, context, bboxFilter, centerPoint);
         results.context = formatGeoContext(results.data);
         break;
 
       case IntentTypes.GEO_NEAREST_POI:
-        results.data = await handleGeoNearestPoi(query, intent.params, context, bboxFilter);
+        results.data = await handleGeoNearestPoi(query, intent.params, context, bboxFilter, centerPoint);
         // count=0 ist ein gültiges deterministisches Ergebnis – kein Fallback auf semantische Suche
         results.context = formatGeoContext(results.data);
         break;
@@ -472,13 +527,18 @@ export async function routeQuery(query, context = {}) {
         break;
 
       case IntentTypes.GEO_LIST:
-        results.data = await handleGeoList(query, intent.params, context, bboxFilter);
+        results.data = await handleGeoList(query, intent.params, context, bboxFilter, centerPoint);
         // count=0 ist ein gültiges deterministisches Ergebnis – kein Fallback auf semantische Suche
         results.context = formatGeoContext(results.data);
         break;
 
       case IntentTypes.GEO_ADDRESS:
         results.data = await handleGeoAddress(intent.params.address, bboxFilter);
+        results.context = formatGeoContext(results.data);
+        break;
+
+      case IntentTypes.GEO_PROVIDER_SEARCH:
+        results.data = await handleGeoProviderSearch(query, intent.params, context, bboxFilter, centerPoint);
         results.context = formatGeoContext(results.data);
         break;
 
@@ -517,7 +577,7 @@ export async function routeQuery(query, context = {}) {
 // Handler für verschiedene Intent-Typen
 // ============================================================
 
-async function handleGeoRadius(query, params, context, bboxFilter) {
+async function handleGeoRadius(query, params, context, bboxFilter, centerPoint) {
   let { lat, lon, radius } = params;
 
   // Wenn keine Koordinaten angegeben, versuche aus Query zu extrahieren
@@ -533,10 +593,10 @@ async function handleGeoRadius(query, params, context, bboxFilter) {
     }
   }
 
-  // Fallback auf Feldkirchen Zentrum
+  // Fallback auf resolveCenterPoint (Einsatzstellen > BBox > Feldkirchen)
   if (!lat || !lon) {
-    lat = 46.7239;
-    lon = 14.0947;
+    lat = centerPoint.lat;
+    lon = centerPoint.lon;
   }
 
   const locations = await searchInRadius(lat, lon, radius || 5, {
@@ -553,7 +613,7 @@ async function handleGeoRadius(query, params, context, bboxFilter) {
   };
 }
 
-async function handleGeoNearest(query, params, context, bboxFilter) {
+async function handleGeoNearest(query, params, context, bboxFilter, centerPoint) {
   const { searchFor } = params;
 
   // Versuche Typ zu erkennen
@@ -565,9 +625,9 @@ async function handleGeoNearest(query, params, context, bboxFilter) {
   if (/schule/i.test(searchFor)) type = "school";
   if (/kirche/i.test(searchFor)) type = "church";
 
-  // Zentrum: Feldkirchen oder aus Context
-  const lat = context.lat || 46.7239;
-  const lon = context.lon || 14.0947;
+  // Zentrum: resolveCenterPoint (Einsatzstellen > BBox > Fallback)
+  const lat = centerPoint.lat;
+  const lon = centerPoint.lon;
 
   const locations = await findNearestLocations(lat, lon, 10, {
     type,
@@ -595,17 +655,15 @@ async function handleGeoAddress(address, bboxFilter) {
   };
 }
 
-async function handleGeoNearestPoi(query, params, context, bboxFilter) {
+async function handleGeoNearestPoi(query, params, context, bboxFilter, centerPoint) {
   const { categoryNorm } = params;
   const geoIndex = await getGeoIndex();
   const candidates = await geoIndex.findByCategoryNorm(categoryNorm, {
     bbox: bboxFilter?.applyBbox ? bboxFilter.bbox : null
   });
 
-  // Zentrum: BBox-Mitte oder Context oder Feldkirchen-Default
-  const center = (bboxFilter?.applyBbox && bboxFilter.bbox)
-    ? bboxCenter(bboxFilter.bbox)
-    : { lat: context?.lat || 46.7239, lon: context?.lon || 14.0947 };
+  // Zentrum: resolveCenterPoint (Einsatzstellen > BBox > Fallback)
+  const center = centerPoint;
 
   // Haversine-Distanz berechnen und sortieren
   const withDistance = candidates.map(loc => {
@@ -667,17 +725,15 @@ async function handleGeoCount(query, params, context, bboxFilter) {
   };
 }
 
-async function handleGeoList(query, params, context, bboxFilter) {
+async function handleGeoList(query, params, context, bboxFilter, centerPoint) {
   const { categoryNorm } = params;
   const geoIndex = await getGeoIndex();
   const candidates = await geoIndex.findByCategoryNorm(categoryNorm, {
     bbox: bboxFilter?.applyBbox ? bboxFilter.bbox : null
   });
 
-  // Sortiert nach Distanz zum Zentrum
-  const center = (bboxFilter?.applyBbox && bboxFilter.bbox)
-    ? bboxCenter(bboxFilter.bbox)
-    : { lat: context?.lat || 46.7239, lon: context?.lon || 14.0947 };
+  // Sortiert nach Distanz zum Zentrum (resolveCenterPoint)
+  const center = centerPoint;
 
   const withDistance = candidates.map(loc => {
     const dist = haversineDistance(center.lat, center.lon, loc.lat, loc.lon);
@@ -699,6 +755,75 @@ async function handleGeoList(query, params, context, bboxFilter) {
     locations: limited,
     count: limited.length,
     totalAvailable: candidates.length
+  };
+}
+
+/**
+ * Handler für Provider/Ressourcen-Suche (Bagger, Baufirma, Bus etc.)
+ * Sucht in OSM-Daten nach craft/office/industrial/shop Tags + Volltext
+ */
+async function handleGeoProviderSearch(query, params, context, bboxFilter, centerPoint) {
+  const { searchTerm } = params;
+  const geoIndex = await getGeoIndex();
+
+  // Kandidaten: POIs mit Volltext-Match auf name, type, category_norm
+  const searchLower = searchTerm.toLowerCase();
+  let candidates = geoIndex.locations.filter(loc => {
+    // BBox-Filter wenn aktiv
+    if (bboxFilter?.applyBbox && bboxFilter.bbox) {
+      const [minLon, minLat, maxLon, maxLat] = bboxFilter.bbox;
+      if (loc.lat < minLat || loc.lat > maxLat || loc.lon < minLon || loc.lon > maxLon) return false;
+    }
+
+    // Nur benannte Locations
+    if (!loc.name && !loc.address) return false;
+
+    // Volltext-Match auf name, type, category_norm, poi_class
+    const fields = [
+      loc.name,
+      loc.type,
+      loc.category_norm,
+      loc.poi_class,
+      loc.address,
+    ].filter(Boolean).map(f => String(f).toLowerCase()).join(" ");
+
+    return fields.includes(searchLower);
+  });
+
+  // Distanz berechnen und sortieren
+  const center = centerPoint;
+  const withDistance = candidates.map(loc => {
+    const dist = haversineDistance(center.lat, center.lon, loc.lat, loc.lon);
+    return {
+      name: loc.name || null,
+      category_norm: loc.category_norm || null,
+      address_full: loc.address || null,
+      distance_m: Math.round(dist * 1000),
+      distanceFormatted: formatDistance(dist),
+      lat: loc.lat,
+      lon: loc.lon,
+      osm_id: loc.id || null,
+      doc_type: loc.doc_type || null,
+      distance: dist,
+    };
+  }).sort((a, b) => a.distance - b.distance);
+
+  const top = withDistance.slice(0, 15);
+
+  logDebug("GEO_PROVIDER_SEARCH", {
+    searchTerm,
+    candidatesBefore: candidates.length,
+    returned: top.length,
+    bboxActive: bboxFilter?.applyBbox || false,
+    centerSource: centerPoint.source,
+  });
+
+  return {
+    type: "geo_provider_search",
+    searchTerm,
+    locations: top,
+    count: top.length,
+    totalAvailable: candidates.length,
   };
 }
 
