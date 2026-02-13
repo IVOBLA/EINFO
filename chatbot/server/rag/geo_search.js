@@ -252,14 +252,30 @@ export class GeoIndex {
       const record = normalizeJsonlRecord(parsed, trimmed);
       if (!record) continue;
 
+      // Schema A: municipality_index
       if (record.doc_type === "municipality_index" && record.geo?.bbox) {
         const municipality = record.address?.municipality || record.title;
-        if (municipality) {
+        const bbox = normalizeMunicipalityBboxValue(record.geo.bbox);
+        if (municipality && bbox) {
           this.municipalityIndex.push({
             municipality,
-            bbox: record.geo.bbox,
+            bbox,
             source: fileName,
             docId: record.doc_id
+          });
+        }
+      }
+      // Schema B: gemeinde_index
+      if (record.doc_type === "gemeinde_index") {
+        const rawBbox = parsed.bbox || record.bbox;
+        const bbox = normalizeMunicipalityBboxValue(rawBbox);
+        const municipality = parsed.gemeinde || record.gemeinde || record.title;
+        if (municipality && bbox) {
+          this.municipalityIndex.push({
+            municipality,
+            bbox,
+            source: fileName,
+            docId: record.doc_id || null
           });
         }
       }
@@ -557,13 +573,54 @@ export async function getGeoIndex() {
   return geoIndexInstance;
 }
 
+/**
+ * Rekursives Sammeln aller .jsonl-Dateien unter einem Verzeichnis
+ */
+async function walkJsonlFiles(dirPath) {
+  const results = [];
+  if (!fs.existsSync(dirPath)) return results;
+
+  const entries = await fsPromises.readdir(dirPath, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = path.join(dirPath, entry.name);
+    if (entry.isDirectory()) {
+      const subFiles = await walkJsonlFiles(fullPath);
+      results.push(...subFiles);
+    } else if (entry.isFile() && entry.name.endsWith(".jsonl")) {
+      results.push({ name: entry.name, path: fullPath });
+    }
+  }
+  return results;
+}
+
+/**
+ * Normalisiert bbox aus verschiedenen Schemata zu [minLon, minLat, maxLon, maxLat]
+ */
+function normalizeMunicipalityBboxValue(rawBbox) {
+  // Schema A: Array [minLon, minLat, maxLon, maxLat] (bereits normalisiert)
+  if (Array.isArray(rawBbox) && rawBbox.length === 4) {
+    const nums = rawBbox.map(Number);
+    if (nums.every(n => Number.isFinite(n))) return nums;
+    return null;
+  }
+  // Schema B: Object {min_lat, min_lon, max_lat, max_lon}
+  if (rawBbox && typeof rawBbox === "object" && !Array.isArray(rawBbox)) {
+    const minLat = Number(rawBbox.min_lat);
+    const minLon = Number(rawBbox.min_lon);
+    const maxLat = Number(rawBbox.max_lat);
+    const maxLon = Number(rawBbox.max_lon);
+    if ([minLat, minLon, maxLat, maxLon].every(n => Number.isFinite(n))) {
+      return [minLon, minLat, maxLon, maxLat];
+    }
+    return null;
+  }
+  return null;
+}
+
 async function loadMunicipalityIndexFromDir(dirPath, entries) {
-  if (!fs.existsSync(dirPath)) return;
-  const files = await fsPromises.readdir(dirPath);
-  const jsonlFiles = files.filter((file) => file.endsWith(".jsonl"));
+  const jsonlFiles = await walkJsonlFiles(dirPath);
   for (const file of jsonlFiles) {
-    const filePath = path.join(dirPath, file);
-    const stream = fs.createReadStream(filePath, { encoding: "utf8" });
+    const stream = fs.createReadStream(file.path, { encoding: "utf8" });
     const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
     let lineNumber = 0;
 
@@ -576,7 +633,7 @@ async function loadMunicipalityIndexFromDir(dirPath, entries) {
         parsed = JSON.parse(trimmed);
       } catch (error) {
         logError("MunicipalityIndex: JSONL-Zeile konnte nicht geparsed werden", {
-          file,
+          file: file.name,
           line: lineNumber,
           error: String(error)
         });
@@ -585,18 +642,38 @@ async function loadMunicipalityIndexFromDir(dirPath, entries) {
 
       const record = normalizeJsonlRecord(parsed, trimmed);
       if (!record) continue;
-      if (record.doc_type !== "municipality_index" || !record.geo?.bbox) continue;
 
-      const municipality = record.address?.municipality || record.title;
-      if (!municipality) continue;
+      // Schema A: doc_type === "municipality_index" + record.geo.bbox (Array)
+      if (record.doc_type === "municipality_index" && record.geo?.bbox) {
+        const municipality = record.address?.municipality || record.title;
+        const bbox = normalizeMunicipalityBboxValue(record.geo.bbox);
+        if (municipality && bbox) {
+          entries.push({
+            municipality,
+            bbox,
+            stats: record.stats || null,
+            source: file.name,
+            docId: record.doc_id || null
+          });
+        }
+        continue;
+      }
 
-      entries.push({
-        municipality,
-        bbox: record.geo.bbox,
-        stats: record.stats || null,
-        source: file,
-        docId: record.doc_id
-      });
+      // Schema B: doc_type === "gemeinde_index" + record.bbox (Object) + record.gemeinde
+      if (record.doc_type === "gemeinde_index") {
+        const rawBbox = parsed.bbox || record.bbox;
+        const bbox = normalizeMunicipalityBboxValue(rawBbox);
+        const municipality = parsed.gemeinde || record.gemeinde || record.title;
+        if (municipality && bbox) {
+          entries.push({
+            municipality,
+            bbox,
+            stats: { records: parsed.records || record.records || null },
+            source: file.name,
+            docId: record.doc_id || null
+          });
+        }
+      }
     }
   }
 }
@@ -612,6 +689,10 @@ export async function getMunicipalityIndex() {
   }
   municipalityIndexCache = entries;
   municipalityIndexLoaded = true;
+  logInfo("MunicipalityIndex: Geladen (rekursiv)", {
+    entriesCount: entries.length,
+    sampleMunicipalities: entries.slice(0, 5).map(e => e.municipality)
+  });
   return municipalityIndexCache;
 }
 
