@@ -2842,16 +2842,27 @@ export default function User_AdminPanel() {
                     <div className="flex flex-wrap gap-2 items-center">
                       <span className={`font-semibold ${entry.success ? "text-green-700" : "text-red-700"}`}>{entry.success ? "OK" : "ERR"}</span>
                       <span className="text-gray-400">{entry.timestamp}</span>
-                      <span className="text-gray-500">[{entry.action}]</span>
+                      <span className="text-gray-500">[{entry.action || entry.kind || "?"}]</span>
                       {entry.durationMs != null && <span>{entry.durationMs}ms</span>}
                       {entry.rowCount != null && <span>{entry.rowCount} rows</span>}
-                      <span className="text-gray-400">{entry.user}</span>
+                      <span className="text-gray-400">{entry.user || entry.source || ""}</span>
                       <button type="button" className="ml-auto text-gray-400 hover:text-gray-700 text-xs"
                         onClick={() => navigator.clipboard.writeText(JSON.stringify(entry, null, 2)).catch(() => {})}>Copy</button>
                     </div>
                     {entry.sql && <div className="text-gray-600 truncate">SQL: {entry.sql}</div>}
+                    {entry.params && Array.isArray(entry.params) && entry.params.length > 0 && (
+                      <details className="text-gray-500">
+                        <summary className="cursor-pointer text-xs hover:text-gray-700">Params ({entry.params.length})</summary>
+                        <pre className="mt-0.5 p-1 bg-gray-100 rounded text-xs overflow-auto max-h-32 whitespace-pre-wrap break-all">{JSON.stringify(entry.params, null, 2)}</pre>
+                      </details>
+                    )}
                     {entry.error && <div className="text-red-600 truncate">Fehler: {entry.error}</div>}
-                    {entry.sampleRows && <div className="text-gray-500 truncate">Rows: {JSON.stringify(entry.sampleRows).slice(0, 200)}{entry.truncated ? " …" : ""}</div>}
+                    {(entry.responsePreview || entry.sampleRows) && (
+                      <details className="text-gray-500">
+                        <summary className="cursor-pointer text-xs hover:text-gray-700">Response{entry.truncated ? " (gekuerzt)" : ""}</summary>
+                        <pre className="mt-0.5 p-1 bg-gray-100 rounded text-xs overflow-auto max-h-40 whitespace-pre-wrap break-all">{JSON.stringify(entry.responsePreview || entry.sampleRows, null, 2)}</pre>
+                      </details>
+                    )}
                   </div>
                 ))}
               </div>

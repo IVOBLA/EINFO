@@ -180,6 +180,14 @@ export default function createAdminPostgisRoutes({ dataDir, serverRoot }) {
               if (entry.ts && !entry.timestamp) entry.timestamp = entry.ts;
               if (entry.ok !== undefined && entry.success === undefined) entry.success = entry.ok;
               if (entry.ms !== undefined && entry.durationMs === undefined) entry.durationMs = entry.ms;
+              // Derive action from kind for chatbot entries
+              if (!entry.action && entry.kind === "query") entry.action = "chatbot_query";
+              if (!entry.action && entry.source === "chatbot") entry.action = "chatbot_query";
+              // Pass through params as-is (already structured Array from chatbot logger)
+              // Pass through responsePreview; also map to sampleRows for UI compatibility
+              if (entry.responsePreview && !entry.sampleRows) {
+                entry.sampleRows = entry.responsePreview;
+              }
               fileLogs.push(entry);
             } catch {
               // skip invalid JSONL lines
@@ -195,6 +203,14 @@ export default function createAdminPostgisRoutes({ dataDir, serverRoot }) {
       const merged = [];
 
       for (const entry of [...ringLogs, ...fileLogs]) {
+        // Normalize all entries consistently
+        if (entry.ts && !entry.timestamp) entry.timestamp = entry.ts;
+        if (entry.ok !== undefined && entry.success === undefined) entry.success = entry.ok;
+        if (entry.ms !== undefined && entry.durationMs === undefined) entry.durationMs = entry.ms;
+        if (!entry.action && entry.kind === "query") entry.action = "chatbot_query";
+        if (!entry.action && entry.source === "chatbot") entry.action = "chatbot_query";
+        if (entry.responsePreview && !entry.sampleRows) entry.sampleRows = entry.responsePreview;
+
         const key = (entry.timestamp || entry.ts || "") + "|" + (entry.requestId || entry.kind || "");
         if (seen.has(key)) continue;
         seen.add(key);

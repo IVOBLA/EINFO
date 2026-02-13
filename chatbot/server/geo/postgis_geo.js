@@ -112,16 +112,65 @@ function maskSensitiveValue(value, config) {
     .replace(/password\s*=\s*[^\s;]+/gi, "password=***");
 }
 
+const SENSITIVE_PARAM_KEYS = /password|token|secret|auth|key/i;
+const MAX_PARAMS = 20;
+const MAX_PARAM_STRING_LEN = 200;
+
+/**
+ * Truncates and masks query params for safe logging.
+ * Returns a plain Array (not a JSON string).
+ */
+function sanitizeParams(params, config) {
+  if (!Array.isArray(params) || params.length === 0) return [];
+  const truncated = params.slice(0, MAX_PARAMS);
+  return truncated.map((val, idx) => {
+    // Mask if it looks like a sensitive value
+    if (config?.maskSensitive && typeof val === "string" && SENSITIVE_PARAM_KEYS.test(val)) {
+      return "***";
+    }
+    if (typeof val === "string" && val.length > MAX_PARAM_STRING_LEN) {
+      return val.slice(0, MAX_PARAM_STRING_LEN) + "...";
+    }
+    if (Array.isArray(val)) {
+      const arrStr = JSON.stringify(val);
+      return arrStr.length > MAX_PARAM_STRING_LEN ? arrStr.slice(0, MAX_PARAM_STRING_LEN) + "..." : val;
+    }
+    return val;
+  });
+}
+
+/**
+ * Creates a structured responsePreview from query result rows.
+ * Returns Array or Object (not a JSON string).
+ */
+function buildResponsePreview(rows, maxRows = 3) {
+  if (!Array.isArray(rows)) return null;
+  if (rows.length === 0) return [];
+  return rows.slice(0, maxRows);
+}
+
 /**
  * Loggt eine PostGIS-Query aus dem Chatbot (JSONL, kompatibel mit Admin-Logs).
  */
-async function logChatbotQuery({ sql, params, durationMs, rowCount, success, error, rows }) {
+async function logChatbotQuery({ sql, params, durationMs, rowCount, success, error, rows, action }) {
   const config = getLoggingConfig();
+
+  // Derive action from SQL if not explicitly provided
+  let resolvedAction = action || "chatbot_query";
+  if (!action && sql) {
+    const sqlLower = sql.toLowerCase();
+    if (sqlLower.includes("count(") || sqlLower.includes("count (")) resolvedAction = "count_buildings";
+    else if (sqlLower.includes("poi_src")) resolvedAction = "poi_search";
+    else if (sqlLower.includes("provider_src")) resolvedAction = "provider_search";
+    else if (sqlLower.includes("municipalities")) resolvedAction = "municipality_lookup";
+    else if (sqlLower.includes("building_src")) resolvedAction = "building_query";
+  }
 
   const entry = {
     ts: new Date().toISOString(),
     source: "chatbot",
     kind: "query",
+    action: resolvedAction,
     ok: !!success,
     ms: durationMs ?? null,
     rowCount: rowCount ?? null,
@@ -129,10 +178,11 @@ async function logChatbotQuery({ sql, params, durationMs, rowCount, success, err
 
   if (config.logSql && sql) {
     entry.sql = maskSensitiveValue(sql, config);
-    if (params && params.length > 0) {
-      const paramsStr = JSON.stringify(params);
-      entry.params = config.maskSensitive ? paramsStr.slice(0, 500) : paramsStr;
-    }
+  }
+
+  // Always store params as structured Array (truncated/masked), independent of logSql
+  if (params && params.length > 0) {
+    entry.params = sanitizeParams(params, config);
   }
 
   if (!success && error && config.logErrors) {
@@ -141,8 +191,7 @@ async function logChatbotQuery({ sql, params, durationMs, rowCount, success, err
   }
 
   if (success && config.logResponse && rows) {
-    const preview = JSON.stringify(rows).slice(0, 800);
-    entry.responsePreview = preview;
+    entry.responsePreview = buildResponsePreview(rows, 3);
   }
 
   // Persist to file if enabled
@@ -293,6 +342,8 @@ export async function isPostgisAvailable() {
     connectionChecked = true;
     if (connectionAvailable) {
       logInfo("PostGIS: Verbindung hergestellt");
+      // Run SRID guardrail check (async, non-blocking)
+      checkSridGuardrail(p).catch(() => {});
     }
     return connectionAvailable;
   } catch (err) {
@@ -309,6 +360,7 @@ export async function isPostgisAvailable() {
 export function resetConnectionCheck() {
   connectionChecked = false;
   connectionAvailable = false;
+  sridChecked = false;
 }
 
 /**
@@ -322,6 +374,52 @@ export function getGeoKeywords() {
   const kw = result.config.geoKeywords;
   if (Array.isArray(kw) && kw.length > 0) return kw;
   return null;
+}
+
+// ============================================================
+// SRID Guardrail (one-time check)
+// ============================================================
+
+let sridChecked = false;
+
+/**
+ * Checks the SRID of einfo.building_src.geom once after connection.
+ * Logs a warning if SRID != 4326 (e.g. still 3857 from old import without view transform).
+ */
+async function checkSridGuardrail(p) {
+  if (sridChecked || !p) return;
+  sridChecked = true;
+
+  try {
+    const res = await p.query(`
+      SELECT ST_SRID(geom) AS srid
+      FROM einfo.building_src
+      LIMIT 1
+    `);
+    const srid = res.rows[0]?.srid;
+    if (srid && srid !== 4326) {
+      const warning = `SRID mismatch: einfo.building_src.geom has SRID ${srid}, expected 4326. ` +
+        `BBox/radius queries may return incorrect results. ` +
+        `Fix: re-run 06_create_views.sql or reimport with --latlong.`;
+      logError("PostGIS SRID guardrail", { srid, expected: 4326, warning });
+
+      // Log as a special entry visible in Admin panel
+      logChatbotQuery({
+        sql: "SELECT ST_SRID(geom) FROM einfo.building_src LIMIT 1",
+        params: [],
+        durationMs: 0,
+        rowCount: 1,
+        success: true,
+        rows: [{ srid, expected: 4326, warning }],
+        action: "srid_mismatch_warning",
+      }).catch(() => {});
+    } else if (srid === 4326) {
+      logInfo("PostGIS SRID guardrail: OK (SRID 4326)");
+    }
+  } catch (err) {
+    // Non-fatal: view may not exist yet
+    logDebug("PostGIS SRID guardrail check failed (view may not exist)", { error: String(err) });
+  }
 }
 
 // ============================================================
