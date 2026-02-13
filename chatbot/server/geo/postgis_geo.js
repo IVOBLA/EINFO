@@ -304,6 +304,19 @@ export function resetConnectionCheck() {
   connectionAvailable = false;
 }
 
+/**
+ * Liefert die konfigurierten Geo-Keywords aus postgis.json.
+ * Wird bei jedem Aufruf frisch gelesen (Config-Datei ist klein).
+ * @returns {string[]|null} Array von Keywords oder null (= Defaults verwenden)
+ */
+export function getGeoKeywords() {
+  const result = loadPostgisConfig();
+  if (!result) return null;
+  const kw = result.config.geoKeywords;
+  if (Array.isArray(kw) && kw.length > 0) return kw;
+  return null;
+}
+
 // ============================================================
 // Helper
 // ============================================================

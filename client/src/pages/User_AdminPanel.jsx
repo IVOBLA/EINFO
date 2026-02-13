@@ -170,6 +170,7 @@ export default function User_AdminPanel() {
     sslMode: "disabled", statementTimeoutMs: 5000, maxRows: 200,
     logSql: false, logResponse: false, logErrors: true, persistLogs: true, maskSensitive: true,
     passwordSet: false,
+    geoKeywords: [],
   });
   const [pgDraft, setPgDraft] = useState({ ...pgConfig, password: "" });
   const [savingPg, setSavingPg] = useState(false);
@@ -2666,6 +2667,29 @@ export default function User_AdminPanel() {
                 <span>Maskierung sensibler Daten</span>
               </label>
             </div>
+          </fieldset>
+
+          {/* Geo-Keywords */}
+          <fieldset className="border rounded p-3 space-y-2">
+            <legend className="text-xs font-semibold text-gray-500 px-1">Geo-Keywords (Chatbot Geo-Erkennung)</legend>
+            <p className="text-xs text-gray-500">
+              Keywords, die in einer Frage einen Geo-Bezug signalisieren. Pro Zeile ein Keyword (oder Phrase). Werden sofort nach Speichern wirksam.
+            </p>
+            <textarea
+              rows={6}
+              className="w-full border rounded px-2 py-1 text-xs font-mono bg-gray-50 dark:bg-gray-800"
+              disabled={locked || savingPg}
+              value={Array.isArray(pgDraft.geoKeywords) ? pgDraft.geoKeywords.join("\n") : ""}
+              onChange={e => {
+                const raw = e.target.value.split("\n").map(l => l.toLowerCase());
+                setPgDraft(p => ({ ...p, geoKeywords: raw }));
+              }}
+              onBlur={e => {
+                const cleaned = e.target.value.split("\n").map(l => l.trim().toLowerCase()).filter(Boolean);
+                if (cleaned.length > 0) setPgDraft(p => ({ ...p, geoKeywords: cleaned }));
+              }}
+            />
+            <div className="text-xs text-gray-400">{Array.isArray(pgDraft.geoKeywords) ? pgDraft.geoKeywords.filter(k => k.trim()).length : 0} Keywords konfiguriert</div>
           </fieldset>
 
           {/* Action Buttons */}

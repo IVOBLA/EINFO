@@ -50,6 +50,7 @@ export default function createAdminPostgisRoutes({ dataDir, serverRoot }) {
         "host", "port", "database", "user", "password", "schema",
         "sslMode", "statementTimeoutMs", "maxRows",
         "logSql", "logResponse", "logErrors", "persistLogs", "maskSensitive",
+        "geoKeywords",
       ];
       const update = {};
       for (const key of allowed) {
