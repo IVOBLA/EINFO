@@ -1567,6 +1567,8 @@ app.get("/api/situation/analysis", proxyChatbotRequest);
 app.post("/api/situation/question", proxyChatbotRequest);
 app.post("/api/situation/suggestion/feedback", proxyChatbotRequest);
 app.post("/api/situation/question/feedback", proxyChatbotRequest);
+app.post("/api/situation/question/stream", proxyChatbotRequest); // KI-Frage Streaming (SSE)
+app.get("/api/events", proxyChatbotRequest); // SSE EventSource für Live-Updates
 
 app.use("/api/protocol", protocolRouter);
 
