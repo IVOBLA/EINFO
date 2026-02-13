@@ -64,7 +64,7 @@ osm2pgsql --create --slim \
   --host "${EINFO_DB_HOST:-localhost}" \
   --port "${EINFO_DB_PORT:-5432}" \
   --database "$EINFO_DB_NAME" \
-  --username "$EINFO_DB_USER" \
+  -U "$EINFO_DB_USER" \
   "$PBF"
 
 unset PGPASSWORD
