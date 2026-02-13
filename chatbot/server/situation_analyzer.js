@@ -970,12 +970,9 @@ export async function answerQuestion(question, role, context = "aufgabenboard", 
     });
   }
 
-  // PostGIS Geo-Context: Live-Daten aus PostGIS holen
-  // Für situation-question: immer PostGIS aufrufen wenn verfügbar (Lage-Fragen brauchen Geo-Context)
-  // Für andere taskTypes: nur wenn hasGeoContext() true
+  // PostGIS Geo-Context: Wenn Frage einen Geo-Bezug hat, Live-Daten aus PostGIS holen
   const postgisReady = await isPostgisAvailable();
-  const shouldUsePostgis = postgisReady && (taskType === "situation-question" || hasGeoContext(question));
-  if (shouldUsePostgis) {
+  if (postgisReady && hasGeoContext(question)) {
     try {
       const bbox = ragFilters?.bbox || requestBbox || await readScenarioBbox();
       const geoResult = await getEnhancedContext(question, {
