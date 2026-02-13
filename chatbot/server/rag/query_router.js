@@ -11,7 +11,7 @@ import { CONFIG } from "../config.js";
 import { detectExplicitScope, shouldApplyGeoFence, resolveCenterPoint } from "./geo_scope.js";
 
 // PostGIS-Integration (optional, Fallback auf JSONL wenn nicht verfügbar)
-import { isPostgisAvailable, nearestPoi, listPoi, countBuildings, searchProviders, listByMunicipality, getGeoKeywords } from "../geo/postgis_geo.js";
+import { isPostgisAvailable, nearestPoi, listPoi, countBuildings, searchProviders, listByMunicipality, getGeoKeywords, getCriticalInfraCategoryNorms } from "../geo/postgis_geo.js";
 import { detectMunicipalityScope, resolveMunicipalityScope, extractRadius, resolveFullGeoScope } from "../geo/geo_scope.js";
 import { formatPoiContext, formatProviderContext, formatBuildingCountContext, formatGeoError } from "../geo/geo_context_formatter.js";
 
@@ -233,6 +233,35 @@ export function detectIntent(query) {
         pattern: pattern.source
       };
     }
+  }
+
+  // ============================================================
+  // Geo-Intent: Kritische Infrastruktur → GEO_LIST (multi-category)
+  // ============================================================
+  if (/kritische[n]?\s+infrastruktur/i.test(query)) {
+    // Load norms from config; fallback to hardcoded defaults
+    const DEFAULT_CRITICAL_INFRA = [
+      "amenity:hospital", "amenity:fire_station", "amenity:police",
+      "amenity:pharmacy", "power:substation", "man_made:water_works",
+    ];
+    let categoryNorms = getCriticalInfraCategoryNorms();
+    if (!categoryNorms || categoryNorms.length === 0) {
+      logDebug("QueryRouter: criticalInfraCategoryNorms leer/fehlend, verwende Defaults", {
+        defaults: DEFAULT_CRITICAL_INFRA,
+      });
+      categoryNorms = DEFAULT_CRITICAL_INFRA;
+    }
+    return {
+      type: IntentTypes.GEO_LIST,
+      params: {
+        categoryNorm: null,
+        categoryNorms,
+        query: lowerQuery,
+        isCriticalInfra: true,
+      },
+      confidence: 0.95,
+      pattern: "critical_infrastructure",
+    };
   }
 
   // ============================================================
@@ -905,6 +934,20 @@ async function handleGeoCount(query, params, context, bboxFilter, pgCtx = {}) {
 
 async function handleGeoList(query, params, context, bboxFilter, centerPoint, pgCtx = {}) {
   const { categoryNorm } = params;
+  // Support multi-category (e.g. critical infrastructure)
+  const isCriticalInfra = !!params.isCriticalInfra;
+  const effectiveNorms = Array.isArray(params.categoryNorms) && params.categoryNorms.length > 0
+    ? params.categoryNorms
+    : (categoryNorm ? [categoryNorm] : []);
+
+  if (isCriticalInfra) {
+    logDebug("GEO_LIST: Kritische Infrastruktur erkannt", {
+      intent: "GEO_LIST",
+      geoScope: pgCtx.municipalityScope?.name || (bboxFilter?.applyBbox ? "BBOX" : "GLOBAL"),
+      categoryNormsCount: effectiveNorms.length,
+      postgisReady: pgCtx.postgisReady,
+    });
+  }
 
   // PostGIS: Listenabfrage
   if (pgCtx.postgisReady) {
@@ -912,9 +955,9 @@ async function handleGeoList(query, params, context, bboxFilter, centerPoint, pg
     const { radiusM } = extractRadius(query);
 
     const rows = muniName
-      ? await listByMunicipality({ municipalityName: muniName, categoryNorms: [categoryNorm], limit: 50 })
+      ? await listByMunicipality({ municipalityName: muniName, categoryNorms: effectiveNorms, limit: 50 })
       : await listPoi({
-          categoryNorms: [categoryNorm],
+          categoryNorms: effectiveNorms,
           center: { lat: centerPoint.lat, lon: centerPoint.lon },
           bbox: bboxFilter?.applyBbox ? bboxFilter.bbox : null,
           radiusM: radiusM || null,
@@ -927,27 +970,45 @@ async function handleGeoList(query, params, context, bboxFilter, centerPoint, pg
         ? `Radius ${radiusM}m`
         : (bboxFilter?.applyBbox ? "Einsatzbereich (BBox)" : "gesamt");
 
-    logDebug("GEO_LIST (PostGIS)", {
-      categoryNorm,
+    const queryType = isCriticalInfra ? "GEO_LIST/criticalInfra" : "GEO_LIST";
+    logDebug(`${queryType} (PostGIS)`, {
+      categoryNorm: categoryNorm || null,
+      categoryNormsCount: effectiveNorms.length,
       returned: rows.length,
       scope,
     });
 
     return {
       type: "geo_list",
-      categoryNorm,
+      categoryNorm: categoryNorm || (isCriticalInfra ? "critical_infrastructure" : null),
+      isCriticalInfra,
       locations: rows,
       count: rows.length,
       totalAvailable: rows.length,
-      _postgisContext: formatPoiContext(rows, { type: "geo_list", categoryNorm, scope }),
+      _postgisContext: formatPoiContext(rows, {
+        type: queryType,
+        categoryNorm: isCriticalInfra ? "Kritische Infrastruktur" : categoryNorm,
+        scope,
+      }),
     };
   }
 
   // Fallback: JSONL
   const geoIndex = await getGeoIndex();
-  const candidates = await geoIndex.findByCategoryNorm(categoryNorm, {
-    bbox: bboxFilter?.applyBbox ? bboxFilter.bbox : null
-  });
+  let candidates = [];
+  if (effectiveNorms.length > 1) {
+    // Multi-category: merge results from all norms
+    for (const norm of effectiveNorms) {
+      const hits = await geoIndex.findByCategoryNorm(norm, {
+        bbox: bboxFilter?.applyBbox ? bboxFilter.bbox : null,
+      });
+      candidates.push(...hits);
+    }
+  } else if (effectiveNorms.length === 1) {
+    candidates = await geoIndex.findByCategoryNorm(effectiveNorms[0], {
+      bbox: bboxFilter?.applyBbox ? bboxFilter.bbox : null,
+    });
+  }
 
   const center = centerPoint;
   const withDistance = candidates.map(loc => {
@@ -958,7 +1019,8 @@ async function handleGeoList(query, params, context, bboxFilter, centerPoint, pg
   const limited = withDistance.slice(0, 50);
 
   logDebug("GEO_LIST", {
-    categoryNorm,
+    categoryNorm: categoryNorm || null,
+    isCriticalInfra,
     total: candidates.length,
     returned: limited.length,
     bboxActive: bboxFilter?.applyBbox || false
@@ -966,7 +1028,8 @@ async function handleGeoList(query, params, context, bboxFilter, centerPoint, pg
 
   return {
     type: "geo_list",
-    categoryNorm,
+    categoryNorm: categoryNorm || (isCriticalInfra ? "critical_infrastructure" : null),
+    isCriticalInfra,
     locations: limited,
     count: limited.length,
     totalAvailable: candidates.length

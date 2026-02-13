@@ -50,7 +50,7 @@ export default function createAdminPostgisRoutes({ dataDir, serverRoot }) {
         "host", "port", "database", "user", "password", "schema",
         "sslMode", "statementTimeoutMs", "maxRows",
         "logSql", "logResponse", "logErrors", "persistLogs", "maskSensitive",
-        "geoKeywords",
+        "geoKeywords", "criticalInfraCategoryNorms", "availability",
       ];
       const update = {};
       for (const key of allowed) {
@@ -152,6 +152,77 @@ export default function createAdminPostgisRoutes({ dataDir, serverRoot }) {
         ok: false,
         error: err.message || String(err),
       });
+    }
+  });
+
+  // ------ POST /healthcheck ------
+  // Trigger immediate PostGIS availability check via chatbot API
+  router.post("/healthcheck", User_requireAdmin, async (req, res) => {
+    const username = req.user?.username || req.user?.displayName || "admin";
+    try {
+      const config = await loadConfig();
+      const result = await testConnection(config);
+      const entry = createLogEntry({
+        action: "healthcheck",
+        sql: "SELECT 1 AS ok",
+        durationMs: result.durationMs,
+        rowCount: 1,
+        success: true,
+        config,
+        user: username,
+      });
+      await appendLog(entry, config);
+      res.json({
+        ok: true,
+        status: "CONNECTED",
+        durationMs: result.durationMs,
+        checkedAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      const config = await loadConfig();
+      const entry = createLogEntry({
+        action: "healthcheck",
+        sql: "SELECT 1 AS ok",
+        success: false,
+        error: err,
+        config,
+        user: username,
+      });
+      await appendLog(entry, config);
+      res.json({
+        ok: false,
+        status: "FAILED",
+        error: err.message || String(err),
+        checkedAt: new Date().toISOString(),
+      });
+    }
+  });
+
+  // ------ POST /availability-reset ------
+  // Reset availability cache (forces re-check on next request)
+  router.post("/availability-reset", User_requireAdmin, async (req, res) => {
+    const username = req.user?.username || req.user?.displayName || "admin";
+    try {
+      const config = await loadConfig();
+      const entry = createLogEntry({
+        action: "availability_reset",
+        sql: "",
+        success: true,
+        config,
+        user: username,
+      });
+      await appendLog(entry, config);
+      // The actual reset happens in the chatbot process; this endpoint signals
+      // that a reset was requested. The chatbot reads the config file's mtime.
+      // Force a config file touch to trigger chatbot pool recreation.
+      await saveConfig({});
+      res.json({
+        ok: true,
+        message: "Availability cache reset signalled. Nächste Geo-Anfrage löst neuen Check aus.",
+        resetAt: new Date().toISOString(),
+      });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: err.message });
     }
   });
 

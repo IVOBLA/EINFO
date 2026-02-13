@@ -25,6 +25,13 @@ let lastConfigFingerprint = "";
 let lastConfigMtime = 0;
 let cachedFileConfig = null;
 
+// TTL/Retry availability state (Task 8)
+let lastCheckAt = 0;       // ms epoch of last availability check
+let lastOkAt = 0;          // ms epoch of last successful check
+let lastErrAt = 0;         // ms epoch of last failed check
+let lastError = "";        // last error message (truncated)
+let inFlightCheckPromise = null; // concurrency guard
+
 /**
  * Lädt PostGIS-Config aus server/data/conf/postgis.json (gleiche Datei wie Admin-Panel).
  * Robust gegenüber unterschiedlichen cwd.
@@ -322,36 +329,121 @@ function getPool() {
 }
 
 /**
+ * Performs the actual healthcheck query with timeout.
+ * @param {Pool} p - The pg Pool
+ * @param {number} timeoutMs - Query timeout in ms
+ * @returns {Promise<boolean>}
+ */
+async function performHealthcheck(p, timeoutMs) {
+  const now = Date.now();
+  lastCheckAt = now;
+
+  try {
+    // Promise.race for timeout protection
+    const result = await Promise.race([
+      p.query("SELECT 1 AS ok"),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Healthcheck timeout")), timeoutMs)
+      ),
+    ]);
+
+    const ok = result.rows?.[0]?.ok === 1;
+    if (ok) {
+      connectionAvailable = true;
+      connectionChecked = true;
+      lastOkAt = now;
+      lastError = "";
+      logInfo("PostGIS: Verbindung hergestellt (availability check ok)");
+      // Run SRID guardrail check (async, non-blocking)
+      checkSridGuardrail(p).catch(() => {});
+    } else {
+      connectionAvailable = false;
+      connectionChecked = true;
+      lastErrAt = now;
+      lastError = "SELECT 1 returned unexpected result";
+    }
+    return connectionAvailable;
+  } catch (err) {
+    const errMsg = String(err.message || err).slice(0, 200);
+    logError("PostGIS: Verbindung fehlgeschlagen", { error: errMsg });
+    connectionAvailable = false;
+    connectionChecked = true;
+    lastErrAt = now;
+    lastError = errMsg;
+
+    // Auto-recovery: on connection errors, destroy and recreate pool
+    const isConnectionError = /ECONNRESET|ECONNREFUSED|connection terminated|timeout|ETIMEDOUT|EPIPE/i.test(errMsg);
+    if (isConnectionError && pool) {
+      logInfo("PostGIS: Pool wird nach Verbindungsfehler neu initialisiert");
+      pool.end().catch(() => {});
+      pool = null;
+      lastConfigFingerprint = ""; // Force pool recreation on next getPool()
+    }
+
+    return false;
+  }
+}
+
+/**
  * Prüft ob PostGIS verfügbar ist.
- * Ergebnis wird gecacht. Prüft auch Config-Datei-Änderungen.
+ * Implementiert TTL-basiertes Caching mit Retry nach failTtlMs.
+ * Concurrency Guard: parallele Checks warten auf denselben Promise.
  */
 export async function isPostgisAvailable() {
   // getPool() checks for config changes and may reset connectionChecked
   const p = getPool();
-  if (connectionChecked) return connectionAvailable;
+  const avConfig = getAvailabilityConfig();
+  const now = Date.now();
 
+  // If pool is null (no config), mark as unavailable
   if (!p) {
     connectionChecked = true;
     connectionAvailable = false;
     return false;
   }
 
-  try {
-    const res = await p.query("SELECT 1 AS ok");
-    connectionAvailable = res.rows[0]?.ok === 1;
-    connectionChecked = true;
-    if (connectionAvailable) {
-      logInfo("PostGIS: Verbindung hergestellt");
-      // Run SRID guardrail check (async, non-blocking)
-      checkSridGuardrail(p).catch(() => {});
-    }
-    return connectionAvailable;
-  } catch (err) {
-    logError("PostGIS: Verbindung fehlgeschlagen", { error: String(err) });
-    connectionChecked = true;
-    connectionAvailable = false;
-    return false;
+  // Never checked before → check now
+  if (!connectionChecked || lastCheckAt === 0) {
+    return runHealthcheckGuarded(p, avConfig.queryTimeoutMs);
   }
+
+  // Currently available: honor okTtlMs
+  if (connectionAvailable) {
+    if (now - lastCheckAt < avConfig.okTtlMs) {
+      return true; // TTL still valid, skip DB query
+    }
+    // TTL expired → re-check
+    return runHealthcheckGuarded(p, avConfig.queryTimeoutMs);
+  }
+
+  // Currently unavailable: honor failTtlMs (retry backoff)
+  if (!connectionAvailable) {
+    if (now - lastCheckAt < avConfig.failTtlMs) {
+      return false; // Still within fail cooldown
+    }
+    // Cooldown expired → retry
+    logInfo("PostGIS: availability retry nach failTtl", {
+      failTtlMs: avConfig.failTtlMs,
+      msSinceLastCheck: now - lastCheckAt,
+    });
+    return runHealthcheckGuarded(p, avConfig.queryTimeoutMs);
+  }
+
+  return connectionAvailable;
+}
+
+/**
+ * Concurrency guard: prevents stampede of parallel healthchecks.
+ */
+async function runHealthcheckGuarded(p, timeoutMs) {
+  if (inFlightCheckPromise) {
+    // Another check is already running, wait for it
+    return inFlightCheckPromise;
+  }
+  inFlightCheckPromise = performHealthcheck(p, timeoutMs).finally(() => {
+    inFlightCheckPromise = null;
+  });
+  return inFlightCheckPromise;
 }
 
 /**
@@ -361,6 +453,11 @@ export function resetConnectionCheck() {
   connectionChecked = false;
   connectionAvailable = false;
   sridChecked = false;
+  lastCheckAt = 0;
+  lastOkAt = 0;
+  lastErrAt = 0;
+  lastError = "";
+  inFlightCheckPromise = null;
 }
 
 /**
@@ -374,6 +471,35 @@ export function getGeoKeywords() {
   const kw = result.config.geoKeywords;
   if (Array.isArray(kw) && kw.length > 0) return kw;
   return null;
+}
+
+/**
+ * Liefert die konfigurierten Critical-Infrastructure-Kategorien aus postgis.json.
+ * @returns {string[]|null} Array von category_norm Strings oder null
+ */
+export function getCriticalInfraCategoryNorms() {
+  const result = loadPostgisConfig();
+  if (!result) return null;
+  const norms = result.config.criticalInfraCategoryNorms;
+  if (Array.isArray(norms) && norms.length > 0) return norms;
+  return null;
+}
+
+/**
+ * Liefert die Availability-Config aus postgis.json.
+ * @returns {{ okTtlMs: number, failTtlMs: number, queryTimeoutMs: number }}
+ */
+function getAvailabilityConfig() {
+  const result = loadPostgisConfig();
+  const defaults = { okTtlMs: 300000, failTtlMs: 15000, queryTimeoutMs: 2000 };
+  if (!result) return defaults;
+  const av = result.config.availability;
+  if (!av || typeof av !== "object") return defaults;
+  return {
+    okTtlMs: Math.max(1000, Number(av.okTtlMs) || defaults.okTtlMs),
+    failTtlMs: Math.max(1000, Number(av.failTtlMs) || defaults.failTtlMs),
+    queryTimeoutMs: Math.max(500, Number(av.queryTimeoutMs) || defaults.queryTimeoutMs),
+  };
 }
 
 // ============================================================
@@ -836,6 +962,11 @@ export async function shutdownPool() {
     pool = null;
     connectionChecked = false;
     connectionAvailable = false;
+    lastCheckAt = 0;
+    lastOkAt = 0;
+    lastErrAt = 0;
+    lastError = "";
+    inFlightCheckPromise = null;
     logInfo("PostGIS: Pool heruntergefahren");
   }
 }
