@@ -19,6 +19,21 @@ const DEFAULT_GEO_KEYWORDS = [
   "schwerpunkt", "hotspot",
 ];
 
+const DEFAULT_CRITICAL_INFRA_CATEGORY_NORMS = [
+  "amenity:hospital",
+  "amenity:fire_station",
+  "amenity:police",
+  "amenity:pharmacy",
+  "power:substation",
+  "man_made:water_works",
+];
+
+const DEFAULT_AVAILABILITY = {
+  okTtlMs: 300000,     // 5 min
+  failTtlMs: 15000,    // 15 s
+  queryTimeoutMs: 2000, // 2 s
+};
+
 const DEFAULT_CONFIG = {
   host: "127.0.0.1",
   port: 5432,
@@ -35,6 +50,8 @@ const DEFAULT_CONFIG = {
   persistLogs: true,
   maskSensitive: true,
   geoKeywords: DEFAULT_GEO_KEYWORDS,
+  criticalInfraCategoryNorms: DEFAULT_CRITICAL_INFRA_CATEGORY_NORMS,
+  availability: { ...DEFAULT_AVAILABILITY },
 };
 
 let configFilePath = "";
@@ -86,6 +103,29 @@ export async function saveConfig(partial) {
   if (!Array.isArray(merged.geoKeywords) || merged.geoKeywords.length === 0) {
     merged.geoKeywords = [...DEFAULT_GEO_KEYWORDS];
   }
+  // criticalInfraCategoryNorms: ensure array of trimmed non-empty strings, deduplicated
+  if (Array.isArray(merged.criticalInfraCategoryNorms)) {
+    merged.criticalInfraCategoryNorms = [
+      ...new Set(
+        merged.criticalInfraCategoryNorms
+          .map(k => (typeof k === "string" ? k.trim() : ""))
+          .filter(Boolean)
+      ),
+    ];
+  }
+  if (!Array.isArray(merged.criticalInfraCategoryNorms) || merged.criticalInfraCategoryNorms.length === 0) {
+    merged.criticalInfraCategoryNorms = [...DEFAULT_CRITICAL_INFRA_CATEGORY_NORMS];
+  }
+  // availability: validate numeric values with sensible bounds
+  if (!merged.availability || typeof merged.availability !== "object") {
+    merged.availability = { ...DEFAULT_AVAILABILITY };
+  } else {
+    merged.availability = {
+      okTtlMs: Math.max(1000, Number(merged.availability.okTtlMs) || DEFAULT_AVAILABILITY.okTtlMs),
+      failTtlMs: Math.max(1000, Number(merged.availability.failTtlMs) || DEFAULT_AVAILABILITY.failTtlMs),
+      queryTimeoutMs: Math.max(500, Number(merged.availability.queryTimeoutMs) || DEFAULT_AVAILABILITY.queryTimeoutMs),
+    };
+  }
   await fs.writeFile(configFilePath, JSON.stringify(merged, null, 2), "utf8");
   return merged;
 }
@@ -96,4 +136,4 @@ export function sanitizeForFrontend(config) {
   return { ...rest, passwordSet: !!password };
 }
 
-export { DEFAULT_CONFIG, DEFAULT_GEO_KEYWORDS };
+export { DEFAULT_CONFIG, DEFAULT_GEO_KEYWORDS, DEFAULT_CRITICAL_INFRA_CATEGORY_NORMS, DEFAULT_AVAILABILITY };

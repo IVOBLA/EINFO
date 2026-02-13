@@ -171,6 +171,8 @@ export default function User_AdminPanel() {
     logSql: false, logResponse: false, logErrors: true, persistLogs: true, maskSensitive: true,
     passwordSet: false,
     geoKeywords: [],
+    criticalInfraCategoryNorms: [],
+    availability: { okTtlMs: 300000, failTtlMs: 15000, queryTimeoutMs: 2000 },
   });
   const [pgDraft, setPgDraft] = useState({ ...pgConfig, password: "" });
   const [savingPg, setSavingPg] = useState(false);
@@ -2692,6 +2694,57 @@ export default function User_AdminPanel() {
             <div className="text-xs text-gray-400">{Array.isArray(pgDraft.geoKeywords) ? pgDraft.geoKeywords.filter(k => k.trim()).length : 0} Keywords konfiguriert</div>
           </fieldset>
 
+          {/* Kritische Infrastruktur - Kategorien */}
+          <fieldset className="border rounded p-3 space-y-2">
+            <legend className="text-xs font-semibold text-gray-500 px-1">Kritische Infrastruktur - Kategorien (categoryNorms)</legend>
+            <p className="text-xs text-gray-500">
+              OSM-Kategorien die als kritische Infrastruktur gelten (z.B. amenity:hospital). Pro Zeile eine Kategorie. Werden bei Fragen zu &quot;kritische Infrastruktur&quot; als Filter verwendet.
+            </p>
+            <textarea
+              rows={6}
+              className="w-full border rounded px-2 py-1 text-xs font-mono bg-gray-50 dark:bg-gray-800"
+              disabled={locked || savingPg}
+              value={Array.isArray(pgDraft.criticalInfraCategoryNorms) ? pgDraft.criticalInfraCategoryNorms.join("\n") : ""}
+              onChange={e => {
+                const raw = e.target.value.split("\n").map(l => l.trim());
+                setPgDraft(p => ({ ...p, criticalInfraCategoryNorms: raw }));
+              }}
+              onBlur={e => {
+                const cleaned = [...new Set(e.target.value.split("\n").map(l => l.trim()).filter(Boolean))];
+                if (cleaned.length > 0) setPgDraft(p => ({ ...p, criticalInfraCategoryNorms: cleaned }));
+              }}
+            />
+            <div className="text-xs text-gray-400">{Array.isArray(pgDraft.criticalInfraCategoryNorms) ? pgDraft.criticalInfraCategoryNorms.filter(k => k.trim()).length : 0} Kategorien konfiguriert</div>
+          </fieldset>
+
+          {/* Availability TTL Config */}
+          <fieldset className="border rounded p-3 space-y-2">
+            <legend className="text-xs font-semibold text-gray-500 px-1">Availability (TTL / Retry)</legend>
+            <p className="text-xs text-gray-500">
+              Steuerung des Healthcheck-Cachings. Nach einem DB-Ausfall wird nach failTtlMs automatisch erneut gepr&uuml;ft.
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              <label className="block"><span className="text-xs text-gray-500">OK TTL (ms)</span>
+                <input type="number" className="w-full border rounded px-2 py-1 text-sm" min="1000" max="3600000"
+                  value={pgDraft.availability?.okTtlMs ?? 300000}
+                  onChange={e => setPgDraft(p => ({ ...p, availability: { ...p.availability, okTtlMs: Number(e.target.value) || 300000 } }))}
+                  disabled={locked || savingPg} />
+              </label>
+              <label className="block"><span className="text-xs text-gray-500">Fail TTL (ms)</span>
+                <input type="number" className="w-full border rounded px-2 py-1 text-sm" min="1000" max="300000"
+                  value={pgDraft.availability?.failTtlMs ?? 15000}
+                  onChange={e => setPgDraft(p => ({ ...p, availability: { ...p.availability, failTtlMs: Number(e.target.value) || 15000 } }))}
+                  disabled={locked || savingPg} />
+              </label>
+              <label className="block"><span className="text-xs text-gray-500">Query Timeout (ms)</span>
+                <input type="number" className="w-full border rounded px-2 py-1 text-sm" min="500" max="30000"
+                  value={pgDraft.availability?.queryTimeoutMs ?? 2000}
+                  onChange={e => setPgDraft(p => ({ ...p, availability: { ...p.availability, queryTimeoutMs: Number(e.target.value) || 2000 } }))}
+                  disabled={locked || savingPg} />
+              </label>
+            </div>
+          </fieldset>
+
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-2">
             <button type="button" disabled={locked || savingPg}
@@ -2740,6 +2793,44 @@ export default function User_AdminPanel() {
                   setPgErr(ex.message);
                 } finally { setTestingPg(false); }
               }}>{testingPg ? "Teste…" : "Verbindung testen"}</button>
+            <button type="button" disabled={locked}
+              className="px-3 py-1.5 rounded-md bg-yellow-600 hover:bg-yellow-700 text-white text-sm disabled:opacity-60"
+              onClick={async () => {
+                setPgErr(""); setPgMsg("");
+                try {
+                  const res = await fetch("/api/admin/postgis/healthcheck", {
+                    method: "POST", credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                  });
+                  const data = await res.json();
+                  if (data.ok) {
+                    setPgMsg(`Healthcheck OK (${data.durationMs}ms)`);
+                    setPgStatus({ status: "CONNECTED", durationMs: data.durationMs, testedAt: data.checkedAt });
+                  } else {
+                    setPgErr(`Healthcheck fehlgeschlagen: ${data.error || "unbekannt"}`);
+                    setPgStatus({ status: "FAILED", error: data.error, testedAt: data.checkedAt });
+                  }
+                  setTimeout(() => setPgMsg(""), 6000);
+                } catch (ex) { setPgErr(ex.message); }
+              }}>Healthcheck jetzt</button>
+            <button type="button" disabled={locked}
+              className="px-3 py-1.5 rounded-md bg-gray-500 hover:bg-gray-600 text-white text-sm disabled:opacity-60"
+              onClick={async () => {
+                setPgErr(""); setPgMsg("");
+                try {
+                  const res = await fetch("/api/admin/postgis/availability-reset", {
+                    method: "POST", credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                  });
+                  const data = await res.json();
+                  if (data.ok) {
+                    setPgMsg("Availability Cache zurückgesetzt.");
+                  } else {
+                    setPgErr(data.error || "Reset fehlgeschlagen");
+                  }
+                  setTimeout(() => setPgMsg(""), 4000);
+                } catch (ex) { setPgErr(ex.message); }
+              }}>Availability Cache reset</button>
           </div>
 
           {/* Status Details */}
