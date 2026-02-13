@@ -377,6 +377,8 @@ function saveDismissedSuggestions(ids) {
 export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled = true, incidentOptions = [] }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(true);
+  const [activeIconFailed, setActiveIconFailed] = useState(false);
+  const [defaultIconFailed, setDefaultIconFailed] = useState(false);
   // Initialisiere mit currentRole oder Fallback auf "LTSTB" wenn leer
   const [selectedRole, setSelectedRole] = useState(() =>
     (currentRole && currentRole.trim()) ? currentRole.trim().toUpperCase() : "LTSTB"
@@ -655,6 +657,33 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
     return analysisData?.situation || currentRoleData?.situation;
   }, [analysisData, currentRoleData]);
 
+  const shouldUseActiveIcon = analysisInProgress && !activeIconFailed;
+  const kiIconSrc = shouldUseActiveIcon ? "/simulation_aktiv.gif" : "/Logo.png";
+
+  const handleKiIconError = useCallback(() => {
+    if (shouldUseActiveIcon) {
+      setActiveIconFailed(true);
+      return;
+    }
+    setDefaultIconFailed(true);
+  }, [shouldUseActiveIcon]);
+
+  const renderKiIcon = useCallback((sizeClass, emojiClass) => {
+    if (defaultIconFailed) {
+      return <span className={emojiClass}>📊</span>;
+    }
+
+    return (
+      <img
+        src={kiIconSrc}
+        alt=""
+        aria-hidden="true"
+        className={`${sizeClass} object-contain shrink-0`}
+        onError={handleKiIconError}
+      />
+    );
+  }, [defaultIconFailed, kiIconSrc, handleKiIconError]);
+
   if (!resolvedEnabled) return null;
 
   return (
@@ -669,7 +698,7 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
           onClick={() => { setIsOpen(true); setIsMinimized(false); }}
           className="bg-blue-600 text-white px-6 py-2 rounded-t-lg shadow-lg hover:bg-blue-700 flex items-center gap-2"
         >
-          <span className="text-lg">📊</span>
+          {renderKiIcon("w-5 h-5", "text-lg")}
           <span className="text-sm font-medium">KI-Analyse</span>
           {analysisData?.situation?.severity && (
             <span className={`text-xs px-1.5 py-0.5 rounded ${
@@ -695,7 +724,7 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
           <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-xl cursor-pointer"
                onClick={() => setIsMinimized(!isMinimized)}>
             <div className="flex items-center gap-3">
-              <span className="text-xl">📊</span>
+              {renderKiIcon("w-6 h-6", "text-xl")}
               <div>
                 <h3 className="font-semibold">KI-Situationsanalyse</h3>
                 <div className="flex flex-wrap items-center gap-x-3 text-xs opacity-90">
