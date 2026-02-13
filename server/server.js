@@ -4215,6 +4215,10 @@ app.use("/api/user/admin", createAdminMaintenanceRoutes({ baseDir: DATA_DIR }));
 import adminFilteringRouter from "./routes/admin_filtering.js";
 app.use("/api/admin/filtering-rules", User_requireAuth, adminFilteringRouter);
 
+// PostGIS (Geo-Pipeline) Admin-Konfiguration
+import createAdminPostgisRoutes from "./routes/adminPostgis.js";
+app.use("/api/admin/postgis", createAdminPostgisRoutes({ dataDir: DATA_DIR, serverRoot: ROOT }));
+
 // UI-Theme-Konfiguration (Farben, Watermark)
 import uiThemeRouter from "./routes/ui_theme.js";
 app.use("/api/ui-theme", User_requireAuth, uiThemeRouter);

@@ -164,6 +164,26 @@ export default function User_AdminPanel() {
   const [savingTheme, setSavingTheme] = useState(false);
   const [themeMsg, setThemeMsg] = useState("");
 
+  // PostGIS (Geo-Pipeline) State
+  const [pgConfig, setPgConfig] = useState({
+    host: "127.0.0.1", port: 5432, database: "", user: "", schema: "public",
+    sslMode: "disabled", statementTimeoutMs: 5000, maxRows: 200,
+    logSql: false, logResponse: false, logErrors: true, persistLogs: true, maskSensitive: true,
+    passwordSet: false,
+  });
+  const [pgDraft, setPgDraft] = useState({ ...pgConfig, password: "" });
+  const [savingPg, setSavingPg] = useState(false);
+  const [pgStatus, setPgStatus] = useState({ status: "UNKNOWN" }); // CONNECTED | FAILED | UNKNOWN
+  const [testingPg, setTestingPg] = useState(false);
+  const [pgSql, setPgSql] = useState("SELECT version()");
+  const [pgQueryResult, setPgQueryResult] = useState(null);
+  const [runningPgQuery, setRunningPgQuery] = useState(false);
+  const [pgLogs, setPgLogs] = useState([]);
+  const [pgLogsOpen, setPgLogsOpen] = useState(false);
+  const [pgLogsLive, setPgLogsLive] = useState(false);
+  const [pgMsg, setPgMsg] = useState("");
+  const [pgErr, setPgErr] = useState("");
+
   // ---- capabilities ↔ apps Konvertierung ----
   const parseCapToken = (t) => {
     if (!t) return null;
@@ -421,6 +441,17 @@ export default function User_AdminPanel() {
         const themeData = await fetchUiTheme();
         setThemeDraft(themeData);
       } catch (_) {/* optional */}
+      // PostGIS Config laden
+      try {
+        const pgRes = await fetch("/api/admin/postgis/config", { credentials: "include", cache: "no-store" });
+        if (pgRes.ok) {
+          const pgData = await pgRes.json();
+          if (pgData.ok && pgData.config) {
+            setPgConfig(pgData.config);
+            setPgDraft({ ...pgData.config, password: "" });
+          }
+        }
+      } catch (_) {/* optional */}
     } catch (e) {
       if (e.status === 423) setLocked(true);
       else setErr(e.message || "Fehler beim Laden");
@@ -437,6 +468,19 @@ export default function User_AdminPanel() {
     }, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  // PostGIS Logs Live-Refresh (alle 3s, nur wenn offen + aktiv)
+  useEffect(() => {
+    if (!pgLogsLive || !pgLogsOpen) return;
+    const iv = setInterval(async () => {
+      try {
+        const res = await fetch("/api/admin/postgis/logs?limit=200", { credentials: "include", cache: "no-store" });
+        const data = await res.json();
+        if (data.ok) setPgLogs(data.logs || []);
+      } catch {}
+    }, 3000);
+    return () => clearInterval(iv);
+  }, [pgLogsLive, pgLogsOpen]);
 
   useEffect(() => {
     if (user && !userHasAdminRole(user)) {
@@ -2529,7 +2573,270 @@ export default function User_AdminPanel() {
         </div>
       </details>
 
-      {/* 11) KI-Modell-Verwaltung */}
+      {/* 12) PostGIS (Geo-Pipeline) */}
+      <details className="border rounded p-3">
+        <summary className="cursor-pointer font-medium flex items-center gap-2">
+          PostGIS (Geo-Pipeline)
+          <span className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${
+            pgStatus.status === "CONNECTED" ? "bg-green-100 text-green-800" :
+            pgStatus.status === "FAILED" ? "bg-red-100 text-red-800" :
+            "bg-gray-100 text-gray-600"
+          }`}>{pgStatus.status}</span>
+        </summary>
+        <div className="mt-3 space-y-4 text-sm">
+          {pgMsg && <div className="text-green-700 bg-green-50 border border-green-200 rounded px-3 py-1">{pgMsg}</div>}
+          {pgErr && <div className="text-red-700 bg-red-50 border border-red-200 rounded px-3 py-1">{pgErr}</div>}
+
+          {/* Connection Settings */}
+          <fieldset className="border rounded p-3 space-y-2">
+            <legend className="text-xs font-semibold text-gray-500 px-1">Verbindung</legend>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <label className="block"><span className="text-xs text-gray-500">Host</span>
+                <input type="text" className="w-full border rounded px-2 py-1 text-sm" value={pgDraft.host || ""}
+                  onChange={e => setPgDraft(p => ({ ...p, host: e.target.value }))} disabled={locked || savingPg} />
+              </label>
+              <label className="block"><span className="text-xs text-gray-500">Port</span>
+                <input type="number" className="w-full border rounded px-2 py-1 text-sm" value={pgDraft.port || ""}
+                  onChange={e => setPgDraft(p => ({ ...p, port: e.target.value }))} disabled={locked || savingPg} />
+              </label>
+              <label className="block"><span className="text-xs text-gray-500">Database</span>
+                <input type="text" className="w-full border rounded px-2 py-1 text-sm" value={pgDraft.database || ""}
+                  onChange={e => setPgDraft(p => ({ ...p, database: e.target.value }))} disabled={locked || savingPg} />
+              </label>
+              <label className="block"><span className="text-xs text-gray-500">Schema</span>
+                <input type="text" className="w-full border rounded px-2 py-1 text-sm" value={pgDraft.schema || ""}
+                  onChange={e => setPgDraft(p => ({ ...p, schema: e.target.value }))} disabled={locked || savingPg} />
+              </label>
+              <label className="block"><span className="text-xs text-gray-500">User</span>
+                <input type="text" className="w-full border rounded px-2 py-1 text-sm" value={pgDraft.user || ""}
+                  onChange={e => setPgDraft(p => ({ ...p, user: e.target.value }))} disabled={locked || savingPg} />
+              </label>
+              <label className="block"><span className="text-xs text-gray-500">Password {pgConfig.passwordSet && !pgDraft.password ? "(gesetzt)" : ""}</span>
+                <input type="password" className="w-full border rounded px-2 py-1 text-sm" value={pgDraft.password || ""} placeholder={pgConfig.passwordSet ? "********" : ""}
+                  onChange={e => setPgDraft(p => ({ ...p, password: e.target.value }))} disabled={locked || savingPg} autoComplete="off" />
+              </label>
+              <label className="block"><span className="text-xs text-gray-500">SSL Mode</span>
+                <select className="w-full border rounded px-2 py-1 text-sm" value={pgDraft.sslMode || "disabled"}
+                  onChange={e => setPgDraft(p => ({ ...p, sslMode: e.target.value }))} disabled={locked || savingPg}>
+                  <option value="disabled">disabled</option>
+                  <option value="require">require (unsicher, self-signed)</option>
+                  <option value="verify-full">verify-full</option>
+                </select>
+              </label>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+              <label className="block"><span className="text-xs text-gray-500">Statement Timeout (ms)</span>
+                <input type="number" className="w-full border rounded px-2 py-1 text-sm" value={pgDraft.statementTimeoutMs || ""}
+                  onChange={e => setPgDraft(p => ({ ...p, statementTimeoutMs: e.target.value }))} disabled={locked || savingPg} min="100" max="60000" />
+              </label>
+              <label className="block"><span className="text-xs text-gray-500">Max Rows</span>
+                <input type="number" className="w-full border rounded px-2 py-1 text-sm" value={pgDraft.maxRows || ""}
+                  onChange={e => setPgDraft(p => ({ ...p, maxRows: e.target.value }))} disabled={locked || savingPg} min="1" max="10000" />
+              </label>
+            </div>
+          </fieldset>
+
+          {/* Logging Toggles */}
+          <fieldset className="border rounded p-3 space-y-2">
+            <legend className="text-xs font-semibold text-gray-500 px-1">Logging</legend>
+            <div className="flex flex-wrap gap-4">
+              <label className="inline-flex items-center gap-1.5">
+                <input type="checkbox" checked={!!pgDraft.logSql}
+                  onChange={e => setPgDraft(p => ({ ...p, logSql: e.target.checked }))} disabled={locked || savingPg} />
+                <span>SQL loggen</span>
+              </label>
+              <label className="inline-flex items-center gap-1.5">
+                <input type="checkbox" checked={!!pgDraft.logResponse}
+                  onChange={e => setPgDraft(p => ({ ...p, logResponse: e.target.checked }))} disabled={locked || savingPg} />
+                <span>Response loggen</span>
+              </label>
+              <label className="inline-flex items-center gap-1.5">
+                <input type="checkbox" checked={pgDraft.logErrors !== false}
+                  onChange={e => setPgDraft(p => ({ ...p, logErrors: e.target.checked }))} disabled={locked || savingPg} />
+                <span>Auch Fehler loggen</span>
+              </label>
+              <label className="inline-flex items-center gap-1.5">
+                <input type="checkbox" checked={pgDraft.persistLogs !== false}
+                  onChange={e => setPgDraft(p => ({ ...p, persistLogs: e.target.checked }))} disabled={locked || savingPg} />
+                <span>Persistente Logs speichern</span>
+              </label>
+              <label className="inline-flex items-center gap-1.5">
+                <input type="checkbox" checked={pgDraft.maskSensitive !== false}
+                  onChange={e => setPgDraft(p => ({ ...p, maskSensitive: e.target.checked }))} disabled={locked || savingPg} />
+                <span>Maskierung sensibler Daten</span>
+              </label>
+            </div>
+          </fieldset>
+
+          {/* Action Buttons */}
+          <div className="flex flex-wrap gap-2">
+            <button type="button" disabled={locked || savingPg}
+              className="px-3 py-1.5 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm disabled:opacity-60"
+              onClick={async () => {
+                setSavingPg(true); setPgErr(""); setPgMsg("");
+                try {
+                  const res = await fetch("/api/admin/postgis/config", {
+                    method: "POST", credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(pgDraft),
+                  });
+                  const data = await res.json();
+                  if (!res.ok || !data.ok) throw new Error(data.error || "Speichern fehlgeschlagen");
+                  setPgConfig(data.config);
+                  setPgDraft({ ...data.config, password: "" });
+                  setPgMsg("Konfiguration gespeichert.");
+                  setTimeout(() => setPgMsg(""), 4000);
+                } catch (ex) { setPgErr(ex.message); } finally { setSavingPg(false); }
+              }}>Speichern</button>
+            <button type="button" disabled={locked || testingPg}
+              className="px-3 py-1.5 rounded-md bg-green-600 hover:bg-green-700 text-white text-sm disabled:opacity-60"
+              onClick={async () => {
+                setTestingPg(true); setPgErr(""); setPgMsg("");
+                try {
+                  const res = await fetch("/api/admin/postgis/test", {
+                    method: "POST", credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                  });
+                  const data = await res.json();
+                  setPgStatus({
+                    status: data.ok ? "CONNECTED" : "FAILED",
+                    durationMs: data.durationMs,
+                    serverVersion: data.serverVersion,
+                    testedAt: data.testedAt,
+                    error: data.error,
+                  });
+                  if (data.ok) {
+                    setPgMsg(`Verbunden (${data.durationMs}ms)${data.serverVersion ? " – PostgreSQL " + data.serverVersion : ""}`);
+                    setTimeout(() => setPgMsg(""), 6000);
+                  } else {
+                    setPgErr(data.error || "Verbindung fehlgeschlagen");
+                  }
+                } catch (ex) {
+                  setPgStatus({ status: "FAILED", error: ex.message });
+                  setPgErr(ex.message);
+                } finally { setTestingPg(false); }
+              }}>{testingPg ? "Teste…" : "Verbindung testen"}</button>
+          </div>
+
+          {/* Status Details */}
+          {pgStatus.status !== "UNKNOWN" && (
+            <div className={`rounded p-2 text-xs ${pgStatus.status === "CONNECTED" ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"}`}>
+              <div className="flex flex-wrap gap-3">
+                <span>Status: <strong>{pgStatus.status}</strong></span>
+                {pgStatus.durationMs != null && <span>Latenz: {pgStatus.durationMs}ms</span>}
+                {pgStatus.serverVersion && <span>Version: {pgStatus.serverVersion}</span>}
+                {pgStatus.testedAt && <span>Zeitpunkt: {new Date(pgStatus.testedAt).toLocaleString("de-DE")}</span>}
+              </div>
+              {pgStatus.error && <div className="mt-1 text-red-700">{pgStatus.error}</div>}
+            </div>
+          )}
+
+          {/* Test-SQL */}
+          <fieldset className="border rounded p-3 space-y-2">
+            <legend className="text-xs font-semibold text-gray-500 px-1">Test-SQL ausfuehren (nur SELECT)</legend>
+            <textarea className="w-full border rounded px-2 py-1 text-sm font-mono" rows={3} value={pgSql}
+              onChange={e => setPgSql(e.target.value)} disabled={locked || runningPgQuery}
+              placeholder="SELECT * FROM spatial_ref_sys LIMIT 5" />
+            <button type="button" disabled={locked || runningPgQuery || !pgSql.trim()}
+              className="px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-700 text-white text-sm disabled:opacity-60"
+              onClick={async () => {
+                setRunningPgQuery(true); setPgQueryResult(null); setPgErr("");
+                try {
+                  const res = await fetch("/api/admin/postgis/query", {
+                    method: "POST", credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ sql: pgSql }),
+                  });
+                  const data = await res.json();
+                  if (!res.ok || !data.ok) throw new Error(data.error || "Query fehlgeschlagen");
+                  setPgQueryResult(data);
+                } catch (ex) { setPgErr(ex.message); } finally { setRunningPgQuery(false); }
+              }}>{runningPgQuery ? "Laeuft…" : "Run"}</button>
+            {pgQueryResult && (
+              <div className="mt-2">
+                <div className="text-xs text-gray-500 mb-1">
+                  {pgQueryResult.rowCount} Zeile(n) in {pgQueryResult.durationMs}ms
+                </div>
+                <div className="overflow-auto max-h-80 border rounded">
+                  <table className="min-w-full text-xs font-mono">
+                    <thead className="bg-gray-100 sticky top-0">
+                      <tr>
+                        {(pgQueryResult.columns || []).map((col, i) => (
+                          <th key={i} className="px-2 py-1 text-left border-b font-semibold">{col}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(pgQueryResult.rows || []).map((row, ri) => (
+                        <tr key={ri} className={ri % 2 ? "bg-gray-50" : ""}>
+                          {(pgQueryResult.columns || []).map((col, ci) => (
+                            <td key={ci} className="px-2 py-0.5 border-b whitespace-nowrap max-w-xs truncate">
+                              {row[col] == null ? <span className="text-gray-400 italic">NULL</span> : String(row[col])}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </fieldset>
+
+          {/* Logs */}
+          <fieldset className="border rounded p-3 space-y-2">
+            <legend className="text-xs font-semibold text-gray-500 px-1">Letzte Logs</legend>
+            <div className="flex items-center gap-3">
+              <button type="button"
+                className="px-2 py-1 rounded text-xs bg-gray-100 hover:bg-gray-200"
+                onClick={async () => {
+                  setPgLogsOpen(true);
+                  try {
+                    const res = await fetch("/api/admin/postgis/logs?limit=200", { credentials: "include", cache: "no-store" });
+                    const data = await res.json();
+                    if (data.ok) setPgLogs(data.logs || []);
+                  } catch {}
+                }}>Logs laden</button>
+              <label className="inline-flex items-center gap-1 text-xs">
+                <input type="checkbox" checked={pgLogsLive}
+                  onChange={e => setPgLogsLive(e.target.checked)} />
+                Live-Refresh (3s)
+              </label>
+              {pgLogs.length > 0 && (
+                <button type="button" className="px-2 py-1 rounded text-xs bg-gray-100 hover:bg-gray-200"
+                  onClick={() => {
+                    const text = pgLogs.map(l => JSON.stringify(l)).join("\n");
+                    navigator.clipboard.writeText(text).catch(() => {});
+                  }}>Copy All</button>
+              )}
+            </div>
+            {pgLogsOpen && (
+              <div className="overflow-auto max-h-64 border rounded bg-gray-50 p-2 font-mono text-xs space-y-1">
+                {pgLogs.length === 0 && <div className="text-gray-400">Keine Logs vorhanden.</div>}
+                {pgLogs.slice().reverse().map((entry, i) => (
+                  <div key={i} className={`p-1.5 rounded ${entry.success ? "bg-white" : "bg-red-50"} border border-gray-200 flex flex-col gap-0.5`}>
+                    <div className="flex flex-wrap gap-2 items-center">
+                      <span className={`font-semibold ${entry.success ? "text-green-700" : "text-red-700"}`}>{entry.success ? "OK" : "ERR"}</span>
+                      <span className="text-gray-400">{entry.timestamp}</span>
+                      <span className="text-gray-500">[{entry.action}]</span>
+                      {entry.durationMs != null && <span>{entry.durationMs}ms</span>}
+                      {entry.rowCount != null && <span>{entry.rowCount} rows</span>}
+                      <span className="text-gray-400">{entry.user}</span>
+                      <button type="button" className="ml-auto text-gray-400 hover:text-gray-700 text-xs"
+                        onClick={() => navigator.clipboard.writeText(JSON.stringify(entry, null, 2)).catch(() => {})}>Copy</button>
+                    </div>
+                    {entry.sql && <div className="text-gray-600 truncate">SQL: {entry.sql}</div>}
+                    {entry.error && <div className="text-red-600 truncate">Fehler: {entry.error}</div>}
+                    {entry.sampleRows && <div className="text-gray-500 truncate">Rows: {JSON.stringify(entry.sampleRows).slice(0, 200)}{entry.truncated ? " …" : ""}</div>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </fieldset>
+        </div>
+      </details>
+
+      {/* 13) KI-Modell-Verwaltung */}
       <details className="border rounded p-3" open>
         <summary className="cursor-pointer font-medium">KI-Modell-Verwaltung</summary>
         <div className="mt-3">
