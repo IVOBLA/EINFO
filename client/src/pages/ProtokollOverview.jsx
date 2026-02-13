@@ -526,7 +526,9 @@ export default function ProtokollOverview({ searchTerm = "", protocolCanEdit = f
   const handleRowClick = useCallback(
     (item, token) => {
       markEntrySeen(item.nr, token);
-      window.location.hash = `/protokoll/edit/${item.nr}`;
+      const currentHash = window.location.hash.replace(/^#/, "");
+      const returnTo = encodeURIComponent(currentHash);
+      window.location.hash = `/protokoll/edit/${item.nr}?returnTo=${returnTo}`;
     },
     [markEntrySeen]
   );
