@@ -17,13 +17,15 @@ const supportedModelKeys = new Set(["fast", "balanced"]);
 const TASK_CONFIG_PATH = path.join(__dirname, "data", "task-config.json");
 
 const DEFAULT_GEO_CONFIG = {
-  bboxFilterEnabled: false,
-  bboxFilterMode: "request_only",
-  bboxFilterDocTypes: ["address"]
+  bboxFilterEnabled: true,
+  bboxFilterMode: "both",
+  bboxFilterDocTypes: ["address", "poi", "building"],
+  geoScope: "BBOX"  // "BBOX" = nur Einsatzbereich, "GLOBAL" = gesamtes Wissen
 };
 
 const GEO_FILTER_MODES = new Set(["request_only", "auto_municipality", "both"]);
 const GEO_FILTER_DOC_TYPES = new Set(["address", "poi", "building"]);
+const GEO_SCOPES = new Set(["BBOX", "GLOBAL"]);
 
 function normalizeGeoConfig(geo) {
   const bboxFilterEnabled = typeof geo?.bboxFilterEnabled === "boolean"
@@ -36,10 +38,15 @@ function normalizeGeoConfig(geo) {
     ? geo.bboxFilterDocTypes.filter((type) => GEO_FILTER_DOC_TYPES.has(type))
     : [];
 
+  const geoScope = GEO_SCOPES.has(geo?.geoScope)
+    ? geo.geoScope
+    : DEFAULT_GEO_CONFIG.geoScope;
+
   return {
     bboxFilterEnabled,
     bboxFilterMode,
-    bboxFilterDocTypes: docTypes.length ? docTypes : [...DEFAULT_GEO_CONFIG.bboxFilterDocTypes]
+    bboxFilterDocTypes: docTypes.length ? docTypes : [...DEFAULT_GEO_CONFIG.bboxFilterDocTypes],
+    geoScope
   };
 }
 
@@ -63,6 +70,9 @@ function mergeTaskGeoConfig(baseGeo, overrideGeo) {
     merged.bboxFilterDocTypes = filtered.length
       ? filtered
       : [...DEFAULT_GEO_CONFIG.bboxFilterDocTypes];
+  }
+  if (GEO_SCOPES.has(overrideGeo.geoScope)) {
+    merged.geoScope = overrideGeo.geoScope;
   }
 
   return merged;

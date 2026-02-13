@@ -4,7 +4,7 @@
 
 import { getKnowledgeContextVector } from "./rag_vector.js";
 import { getCurrentSession } from "./session_rag.js";
-import { searchInRadius, geocodeAddress, findNearestLocations, findMunicipalityInQuery, getMunicipalityIndex } from "./geo_search.js";
+import { searchInRadius, geocodeAddress, findNearestLocations, findMunicipalityInQuery, getMunicipalityIndex, getGeoIndex, haversineDistance, formatDistance } from "./geo_search.js";
 import { searchMemory } from "../memory_manager.js";
 import { logDebug } from "../logger.js";
 import { CONFIG } from "../config.js";
@@ -13,24 +13,68 @@ import { CONFIG } from "../config.js";
  * Intent-Typen
  */
 export const IntentTypes = {
-  SEMANTIC: "semantic",      // Allgemeine semantische Suche
-  GEO_RADIUS: "geo_radius",  // Radius-Suche um Punkt
-  GEO_NEAREST: "geo_nearest", // Nächste Locations
-  GEO_ADDRESS: "geo_address", // Adresse suchen/geocoden
-  RESOURCE: "resource",      // Ressourcen-Suche
-  RELATIONAL: "relational",  // Beziehungs-Abfrage
-  SESSION: "session",        // Aktuelle Session-Daten
-  HYBRID: "hybrid"           // Kombinierte Suche
+  SEMANTIC: "semantic",              // Allgemeine semantische Suche
+  GEO_RADIUS: "geo_radius",          // Radius-Suche um Punkt
+  GEO_NEAREST: "geo_nearest",        // Nächste Locations
+  GEO_NEAREST_POI: "geo_nearest_poi", // Nächste POI nach Kategorie (deterministisch)
+  GEO_COUNT: "geo_count",            // Zähle Geo-Objekte (deterministisch)
+  GEO_LIST: "geo_list",              // Liste Geo-Objekte (deterministisch)
+  GEO_ADDRESS: "geo_address",        // Adresse suchen/geocoden
+  RESOURCE: "resource",              // Ressourcen-Suche
+  RELATIONAL: "relational",          // Beziehungs-Abfrage
+  SESSION: "session",                // Aktuelle Session-Daten
+  HYBRID: "hybrid"                   // Kombinierte Suche
 };
 
 const DEFAULT_GEO_CONFIG = {
-  bboxFilterEnabled: false,
-  bboxFilterMode: "request_only",
-  bboxFilterDocTypes: ["address"]
+  bboxFilterEnabled: true,
+  bboxFilterMode: "both",
+  bboxFilterDocTypes: ["address", "poi", "building"],
+  geoScope: "BBOX"
 };
 
 const GEO_FILTER_MODES = new Set(["request_only", "auto_municipality", "both"]);
 const GEO_FILTER_DOC_TYPES = new Set(["address", "poi", "building"]);
+const GEO_SCOPES = new Set(["BBOX", "GLOBAL"]);
+
+// ============================================================
+// CATEGORY_KEYWORDS: Deutsch -> category_norm Mapping
+// ============================================================
+const CATEGORY_KEYWORDS = {
+  krankenhaus: "amenity:hospital", spital: "amenity:hospital", klinik: "amenity:hospital",
+  restaurant: "amenity:restaurant", gasthof: "amenity:restaurant", gasthaus: "amenity:restaurant",
+  apotheke: "amenity:pharmacy", pharmacy: "amenity:pharmacy",
+  polizei: "amenity:police", polizeistation: "amenity:police",
+  feuerwehr: "amenity:fire_station", feuerwache: "amenity:fire_station",
+  schule: "amenity:school", volksschule: "amenity:school",
+  kindergarten: "amenity:kindergarten", kita: "amenity:kindergarten",
+  kirche: "amenity:place_of_worship",
+  tankstelle: "amenity:fuel",
+  bank: "amenity:bank",
+  post: "amenity:post_office", postamt: "amenity:post_office",
+  hotel: "tourism:hotel", pension: "tourism:guest_house", unterkunft: "tourism:hotel",
+  supermarkt: "shop:supermarket", lebensmittel: "shop:supermarket",
+  "bäckerei": "shop:bakery", baeckerei: "shop:bakery", "bäcker": "shop:bakery",
+  metzger: "shop:butcher", metzgerei: "shop:butcher", fleischer: "shop:butcher",
+  arzt: "amenity:doctors", "hausarzt": "amenity:doctors", "ärztin": "amenity:doctors",
+  zahnarzt: "amenity:dentist",
+  "café": "amenity:cafe", cafe: "amenity:cafe", kaffeehaus: "amenity:cafe",
+  parkplatz: "amenity:parking",
+  spielplatz: "leisure:playground",
+  sportplatz: "leisure:pitch",
+  friedhof: "amenity:grave_yard",
+  rathaus: "amenity:townhall", gemeindeamt: "amenity:townhall"
+};
+
+function extractCategoryFromQuery(query) {
+  const lower = query.toLowerCase();
+  for (const [keyword, categoryNorm] of Object.entries(CATEGORY_KEYWORDS)) {
+    if (lower.includes(keyword)) {
+      return { keyword, categoryNorm };
+    }
+  }
+  return null;
+}
 
 function normalizeGeoConfig(geo) {
   const bboxFilterEnabled = typeof geo?.bboxFilterEnabled === "boolean"
@@ -42,10 +86,14 @@ function normalizeGeoConfig(geo) {
   const docTypes = Array.isArray(geo?.bboxFilterDocTypes)
     ? geo.bboxFilterDocTypes.filter((type) => GEO_FILTER_DOC_TYPES.has(type))
     : [];
+  const geoScope = GEO_SCOPES.has(geo?.geoScope)
+    ? geo.geoScope
+    : DEFAULT_GEO_CONFIG.geoScope;
   return {
     bboxFilterEnabled,
     bboxFilterMode,
-    bboxFilterDocTypes: docTypes.length ? docTypes : [...DEFAULT_GEO_CONFIG.bboxFilterDocTypes]
+    bboxFilterDocTypes: docTypes.length ? docTypes : [...DEFAULT_GEO_CONFIG.bboxFilterDocTypes],
+    geoScope
   };
 }
 
@@ -64,8 +112,44 @@ async function resolveMunicipalityBbox(municipality) {
   return normalizeBbox(entry?.bbox);
 }
 
+/**
+ * Prüft ob eine Anfrage Geo-Kontext hat
+ */
+export function hasGeoContext(query) {
+  if (!query || typeof query !== "string") return false;
+  const lower = query.toLowerCase();
+
+  // Prüfe CATEGORY_KEYWORDS
+  if (extractCategoryFromQuery(query)) return true;
+
+  // Geo-Indikator-Keywords
+  const geoIndicators = [
+    /adresse/i, /straße/i, /strasse/i, /plz/i, /postleitzahl/i,
+    /ort/i, /gemeinde/i, /stadt/i,
+    /nächste/i, /naechste/i, /nähe/i,
+    /wieviele/i, /wie viele/i, /anzahl/i,
+    /wo ist/i, /wo sind/i, /wo befindet/i, /wo liegt/i,
+    /gibt es .* in/i, /gibt es ein/i,
+    /im umkreis/i, /im radius/i, /entfernung/i,
+    /koordinaten/i, /standort/i,
+    /gebäude/i, /gebaeude/i, /adressen/i
+  ];
+
+  return geoIndicators.some(pattern => pattern.test(lower));
+}
+
+function bboxCenter(bbox) {
+  if (!Array.isArray(bbox) || bbox.length !== 4) return null;
+  return {
+    lat: (bbox[1] + bbox[3]) / 2,
+    lon: (bbox[0] + bbox[2]) / 2
+  };
+}
+
 async function resolveBboxCandidate(query, context, taskGeo) {
   if (!taskGeo?.bboxFilterEnabled) return null;
+  // geoScope=GLOBAL -> kein BBox-Filter
+  if (taskGeo?.geoScope === "GLOBAL") return null;
 
   let bboxCandidate = null;
   const mode = taskGeo.bboxFilterMode;
@@ -122,7 +206,42 @@ export function detectIntent(query) {
   }
 
   // ============================================================
-  // Geo-Intent: Nächste Location
+  // Geo-Intent: Deterministisch - GEO_COUNT
+  // ============================================================
+  if (/(wieviele|wie\s*viele|anzahl)/i.test(query)) {
+    const catMatch = extractCategoryFromQuery(query);
+    const docTypeFilter = /gebäude|gebaeude|building/i.test(query) ? "building"
+      : /adresse[n]?/i.test(query) ? "address"
+      : catMatch ? "poi" : null;
+    return {
+      type: IntentTypes.GEO_COUNT,
+      params: {
+        categoryNorm: catMatch?.categoryNorm || null,
+        docTypeFilter: docTypeFilter || "poi",
+        query: lowerQuery
+      },
+      confidence: 0.9,
+      pattern: "geo_count"
+    };
+  }
+
+  // ============================================================
+  // Geo-Intent: Deterministisch - GEO_LIST
+  // ============================================================
+  if (/(alle|liste|sämtliche|saemtliche)/i.test(query)) {
+    const catMatch = extractCategoryFromQuery(query);
+    if (catMatch) {
+      return {
+        type: IntentTypes.GEO_LIST,
+        params: { categoryNorm: catMatch.categoryNorm, query: lowerQuery },
+        confidence: 0.88,
+        pattern: "geo_list_alle"
+      };
+    }
+  }
+
+  // ============================================================
+  // Geo-Intent: Nächste Location (mit Kategorie -> GEO_NEAREST_POI)
   // ============================================================
   const nearestPatterns = [
     /nächste[rns]?\s+(.+)/i,
@@ -134,6 +253,15 @@ export function detectIntent(query) {
   for (const pattern of nearestPatterns) {
     const match = query.match(pattern);
     if (match) {
+      const catMatch = extractCategoryFromQuery(query);
+      if (catMatch) {
+        return {
+          type: IntentTypes.GEO_NEAREST_POI,
+          params: { searchFor: match[1].trim(), categoryNorm: catMatch.categoryNorm },
+          confidence: 0.92,
+          pattern: "geo_nearest_poi"
+        };
+      }
       return {
         type: IntentTypes.GEO_NEAREST,
         params: { searchFor: match[1].trim() },
@@ -253,6 +381,21 @@ export function detectIntent(query) {
   }
 
   // ============================================================
+  // Geo-Intent: "Gibt es in ... ein Restaurant" -> GEO_LIST
+  // ============================================================
+  if (/gibt es/i.test(query)) {
+    const catMatch = extractCategoryFromQuery(query);
+    if (catMatch) {
+      return {
+        type: IntentTypes.GEO_LIST,
+        params: { categoryNorm: catMatch.categoryNorm, query: lowerQuery },
+        confidence: 0.82,
+        pattern: "geo_list_gibt_es"
+      };
+    }
+  }
+
+  // ============================================================
   // Default: Semantische Suche
   // ============================================================
   return {
@@ -285,13 +428,16 @@ export async function routeQuery(query, context = {}) {
   logDebug("QueryRouter: Intent erkannt", {
     query: query.slice(0, 50),
     type: intent.type,
-    confidence: intent.confidence
+    confidence: intent.confidence,
+    geoScope: taskGeo.geoScope,
+    bboxActive: bboxFilter.applyBbox
   });
 
   const results = {
     intent,
     data: {},
-    context: ""
+    context: "",
+    bboxFilter
   };
 
   try {
@@ -304,6 +450,31 @@ export async function routeQuery(query, context = {}) {
       case IntentTypes.GEO_NEAREST:
         results.data = await handleGeoNearest(query, intent.params, context, bboxFilter);
         results.context = formatGeoContext(results.data);
+        break;
+
+      case IntentTypes.GEO_NEAREST_POI:
+        results.data = await handleGeoNearestPoi(query, intent.params, context, bboxFilter);
+        if (results.data.count === 0) {
+          results.data = await handleSemanticQuery(query, context, bboxFilter);
+          results.context = results.data.knowledge || "";
+        } else {
+          results.context = formatGeoContext(results.data);
+        }
+        break;
+
+      case IntentTypes.GEO_COUNT:
+        results.data = await handleGeoCount(query, intent.params, context, bboxFilter);
+        results.context = formatGeoCountContext(results.data);
+        break;
+
+      case IntentTypes.GEO_LIST:
+        results.data = await handleGeoList(query, intent.params, context, bboxFilter);
+        if (results.data.count === 0) {
+          results.data = await handleSemanticQuery(query, context, bboxFilter);
+          results.context = results.data.knowledge || "";
+        } else {
+          results.context = formatGeoContext(results.data);
+        }
         break;
 
       case IntentTypes.GEO_ADDRESS:
@@ -424,6 +595,112 @@ async function handleGeoAddress(address, bboxFilter) {
   };
 }
 
+async function handleGeoNearestPoi(query, params, context, bboxFilter) {
+  const { categoryNorm } = params;
+  const geoIndex = getGeoIndex();
+  const candidates = geoIndex.findByCategoryNorm(categoryNorm, {
+    bbox: bboxFilter?.applyBbox ? bboxFilter.bbox : null
+  });
+
+  // Zentrum: BBox-Mitte oder Context oder Feldkirchen-Default
+  const center = (bboxFilter?.applyBbox && bboxFilter.bbox)
+    ? bboxCenter(bboxFilter.bbox)
+    : { lat: context?.lat || 46.7239, lon: context?.lon || 14.0947 };
+
+  // Haversine-Distanz berechnen und sortieren
+  const withDistance = candidates.map(loc => {
+    const dist = haversineDistance(center.lat, center.lon, loc.lat, loc.lon);
+    return { ...loc, distance: dist, distanceFormatted: formatDistance(dist) };
+  }).sort((a, b) => a.distance - b.distance);
+
+  const top = withDistance.slice(0, 10);
+
+  logDebug("GEO_NEAREST_POI", {
+    categoryNorm,
+    candidatesBefore: candidates.length,
+    returned: top.length,
+    bboxActive: bboxFilter?.applyBbox || false
+  });
+
+  return {
+    type: "geo_nearest_poi",
+    categoryNorm,
+    locations: top,
+    count: top.length
+  };
+}
+
+async function handleGeoCount(query, params, context, bboxFilter) {
+  const { categoryNorm, docTypeFilter } = params;
+  const geoIndex = getGeoIndex();
+
+  let candidates;
+  if (categoryNorm) {
+    candidates = geoIndex.findByCategoryNorm(categoryNorm, {
+      bbox: bboxFilter?.applyBbox ? bboxFilter.bbox : null
+    });
+  } else {
+    // Filter nach docType
+    candidates = geoIndex.locations.filter(loc => {
+      if (docTypeFilter && loc.doc_type !== docTypeFilter) return false;
+      if (bboxFilter?.applyBbox && bboxFilter.bbox) {
+        const [minLon, minLat, maxLon, maxLat] = bboxFilter.bbox;
+        if (loc.lat < minLat || loc.lat > maxLat || loc.lon < minLon || loc.lon > maxLon) return false;
+      }
+      return true;
+    });
+  }
+
+  logDebug("GEO_COUNT", {
+    categoryNorm, docTypeFilter,
+    count: candidates.length,
+    bboxActive: bboxFilter?.applyBbox || false
+  });
+
+  return {
+    type: "geo_count",
+    categoryNorm,
+    docTypeFilter,
+    count: candidates.length,
+    locations: candidates.slice(0, 5) // Beispiele
+  };
+}
+
+async function handleGeoList(query, params, context, bboxFilter) {
+  const { categoryNorm } = params;
+  const geoIndex = getGeoIndex();
+  const candidates = geoIndex.findByCategoryNorm(categoryNorm, {
+    bbox: bboxFilter?.applyBbox ? bboxFilter.bbox : null
+  });
+
+  // Sortiert nach Distanz zum Zentrum
+  const center = (bboxFilter?.applyBbox && bboxFilter.bbox)
+    ? bboxCenter(bboxFilter.bbox)
+    : { lat: context?.lat || 46.7239, lon: context?.lon || 14.0947 };
+
+  const withDistance = candidates.map(loc => {
+    const dist = haversineDistance(center.lat, center.lon, loc.lat, loc.lon);
+    return { ...loc, distance: dist, distanceFormatted: formatDistance(dist) };
+  }).sort((a, b) => a.distance - b.distance);
+
+  const limited = withDistance.slice(0, 50);
+
+  logDebug("GEO_LIST", {
+    categoryNorm,
+    total: candidates.length,
+    returned: limited.length,
+    bboxActive: bboxFilter?.applyBbox || false
+  });
+
+  return {
+    type: "geo_list",
+    categoryNorm,
+    locations: limited,
+    count: limited.length,
+    totalAvailable: candidates.length
+  };
+}
+
 async function handleResourceQuery(query, params) {
   // Ressourcen-Suche - aktuell über semantische Suche
   // Später: Dedicated Resource-DB
@@ -534,6 +811,21 @@ function formatGeoContext(data) {
   return context;
 }
 
+function formatGeoCountContext(data) {
+  const label = data.categoryNorm || data.docTypeFilter || "Objekte";
+  let context = `### GEO-ZÄHLUNG ###\n\nEs gibt ${data.count} Ergebnisse für "${label}"`;
+  if (data.count > 0) {
+    context += `.\n\nBeispiele:\n`;
+    for (const loc of (data.locations || []).slice(0, 5)) {
+      const name = loc.name ? `**${loc.name}**` : loc.address || "unbekannt";
+      context += `- ${name} (${loc.lat}, ${loc.lon})\n`;
+    }
+  } else {
+    context += ` im aktuellen Bereich.\n`;
+  }
+  return context;
+}
+
 function formatResourceContext(data) {
   if (data.note) {
     return `### RESSOURCEN ###\n${data.note}\n\n${data.knowledge || ""}`;
@@ -609,6 +901,7 @@ export async function getEnhancedContext(query, options = {}) {
   return {
     context,
     intent: routed.intent,
+    bboxFilter: routed.bboxFilter,
     stats: {
       contextLength: context.length,
       intentType: routed.intent.type,

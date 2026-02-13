@@ -120,26 +120,44 @@ export class GeoIndex {
   }
 
   /**
-   * Lädt Koordinaten aus allen Adress-Markdown-Dateien
+   * Rekursives Directory-Walking (analog zu index_builder.js)
+   */
+  async walkDir(dir) {
+    const entries = await fsPromises.readdir(dir, { withFileTypes: true });
+    const files = [];
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        const subFiles = await this.walkDir(fullPath);
+        files.push(...subFiles);
+      } else if (entry.isFile()) {
+        files.push({ name: entry.name, path: fullPath });
+      }
+    }
+    return files;
+  }
+
+  /**
+   * Lädt Koordinaten aus allen Adress-Markdown- und JSONL-Dateien (rekursiv)
    */
   async load() {
     if (this.loaded) return;
 
     try {
-      const files = await fsPromises.readdir(KNOWLEDGE_DIR);
-      const addressFiles = files.filter(f => f.startsWith("adressen_") && f.endsWith(".md"));
-      const jsonlFiles = files.filter(f => f.endsWith(".jsonl"));
+      const allFiles = await this.walkDir(KNOWLEDGE_DIR);
+      const addressFiles = allFiles.filter(f => f.name.startsWith("adressen_") && f.name.endsWith(".md"));
+      const jsonlFiles = allFiles.filter(f => f.name.endsWith(".jsonl"));
 
       logInfo("GeoIndex: Lade Adressdateien", { fileCount: addressFiles.length });
 
       for (const file of addressFiles) {
-        await this.parseAddressFile(path.join(KNOWLEDGE_DIR, file), file);
+        await this.parseAddressFile(file.path, file.name);
       }
 
       if (jsonlFiles.length) {
-        logInfo("GeoIndex: Lade JSONL-Dateien", { fileCount: jsonlFiles.length });
+        logInfo("GeoIndex: Lade JSONL-Dateien (rekursiv)", { fileCount: jsonlFiles.length });
         for (const file of jsonlFiles) {
-          await this.parseJsonlFile(path.join(KNOWLEDGE_DIR, file), file);
+          await this.parseJsonlFile(file.path, file.name);
         }
       }
 
@@ -148,7 +166,9 @@ export class GeoIndex {
 
       logInfo("GeoIndex: Geladen", {
         locationCount: this.locations.length,
-        files: addressFiles.length + jsonlFiles.length
+        withCategoryNorm: this.locations.filter(l => l.category_norm).length,
+        files: addressFiles.length + jsonlFiles.length,
+        recursive: true
       });
     } catch (error) {
       logError("GeoIndex: Ladefehler", { error: String(error) });
@@ -261,6 +281,9 @@ export class GeoIndex {
         lat: Number(record.geo.lat),
         lon: Number(record.geo.lon),
         type: record.category || record.doc_type || null,
+        doc_type: record.doc_type || null,
+        category_norm: record.category_norm || null,
+        poi_class: record.poi_class || null,
         source: fileName,
         isNamedLocation: Boolean(record.title || record.name)
       });
@@ -428,6 +451,23 @@ export class GeoIndex {
   async getByType(type) {
     await this.ensureLoaded();
     return this.locations.filter(loc => loc.type === type);
+  }
+
+  /**
+   * Findet Locations nach category_norm (z.B. "amenity:hospital")
+   */
+  async findByCategoryNorm(categoryNorm, options = {}) {
+    await this.ensureLoaded();
+    const { limit = 50, bbox = null, municipality = null } = options;
+
+    let candidates = this.locations;
+    const prefiltered = this.applyMunicipalityOrBboxFilter(candidates, { municipality, bbox });
+    if (prefiltered) candidates = prefiltered;
+
+    const lower = categoryNorm.toLowerCase();
+    return candidates
+      .filter(loc => loc.category_norm === lower)
+      .slice(0, limit);
   }
 
   /**
@@ -619,6 +659,16 @@ export async function findNearestLocations(lat, lon, limit = 5, options = {}) {
   const { bbox, applyBbox, docTypes, ...searchOptions } = options;
   const index = await getGeoIndex();
   const results = await index.findNearest(lat, lon, limit, searchOptions);
+  return applyBboxFilterToLocations(results, { bbox, applyBbox, docTypes });
+}
+
+/**
+ * Shortcut für Suche nach category_norm
+ */
+export async function findLocationsByCategoryNorm(categoryNorm, options = {}) {
+  const { bbox, applyBbox, docTypes, ...searchOptions } = options;
+  const index = await getGeoIndex();
+  const results = await index.findByCategoryNorm(categoryNorm, searchOptions);
   return applyBboxFilterToLocations(results, { bbox, applyBbox, docTypes });
 }
 

@@ -2,6 +2,7 @@
 // Schema-Validator & Normalizer für EINFO-JSONL
 
 import crypto from "crypto";
+import { normalizeDocType, promoteFlatFields, deriveOsmNormFields } from "./jsonl_utils.js";
 
 const MAX_CONTENT_LENGTH = 5000;
 const TAG_KEYS = [
@@ -168,10 +169,13 @@ export function validateAndNormalizeJsonlRecord(record, ctx = {}) {
     const warnings = [];
     const normalized = { ...record };
 
+    // Flat-Fields zu nested promoten (lat/lon -> geo, street -> address, etc.)
+    promoteFlatFields(normalized);
+
     normalized.schema_version = "einfo-jsonl-1.0";
     normalized.source = ensureString(normalized.source) || "UNKNOWN";
     normalized.region = ensureString(normalized.region) || "UNKNOWN";
-    normalized.doc_type = ensureString(normalized.doc_type) || "generic";
+    normalized.doc_type = normalizeDocType(ensureString(normalized.doc_type) || "generic");
 
     const titleFallback =
       ensureString(normalized.name) ||
@@ -187,6 +191,9 @@ export function validateAndNormalizeJsonlRecord(record, ctx = {}) {
 
     normalizeGeo(normalized, warnings);
     ensureContent(normalized, warnings);
+
+    // OSM-Normalisierungsfelder ableiten (category_norm, poi_class, etc.)
+    deriveOsmNormFields(normalized);
 
     if (!normalized.content || !normalized.content.trim()) {
       return { ok: false, error: "Content ist leer" };
