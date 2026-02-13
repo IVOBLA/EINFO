@@ -390,8 +390,11 @@ export async function callLLMForChat(arg1, arg2, arg3) {
     bbox
   } = arg1 || {};
   // Enhanced Context via Query-Router (inkl. Geo, Session, Memory, BBox-Enforcement)
+  const chatTaskConfig = getModelForTask(taskType);
+  const chatRag = chatTaskConfig?.rag;
   const { context: enhancedContext, intent, bboxFilter: resolvedBboxFilter, stats } = await getEnhancedContext(question, {
-    maxChars: 3000,
+    maxChars: chatRag?.totalMaxChars ?? 3000,
+    rag: chatRag,
     taskType,
     bbox
   });

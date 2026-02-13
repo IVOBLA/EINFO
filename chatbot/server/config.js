@@ -27,6 +27,134 @@ const GEO_FILTER_MODES = new Set(["request_only", "auto_municipality", "both"]);
 const GEO_FILTER_DOC_TYPES = new Set(["address", "poi", "building"]);
 const GEO_SCOPES = new Set(["BBOX", "GLOBAL"]);
 
+// ============================================================
+// RAG-Config: Defaults, Merge, Normalize
+// ============================================================
+
+const DEFAULT_RAG_CONFIG = {
+  enabled: true,
+  knowledgeTopK: 8,
+  knowledgeMaxChars: 6000,
+  knowledgeScoreThreshold: 0.2,
+  knowledgeUseMMR: true,
+  sessionTopK: 6,
+  sessionMaxChars: 3000,
+  disasterSummaryMaxLength: 2000,
+  totalMaxChars: 10000
+};
+
+const DEFAULT_RAG_BY_TASK = {
+  "situation-question": {
+    knowledgeTopK: 12,
+    knowledgeMaxChars: 8000,
+    sessionTopK: 8,
+    sessionMaxChars: 4000,
+    disasterSummaryMaxLength: 2500,
+    totalMaxChars: 12000
+  },
+  "analysis": {
+    knowledgeTopK: 10,
+    knowledgeMaxChars: 7000,
+    sessionTopK: 6,
+    sessionMaxChars: 3000,
+    totalMaxChars: 11000
+  },
+  "chat": {
+    knowledgeTopK: 6,
+    knowledgeMaxChars: 4500,
+    sessionTopK: 4,
+    sessionMaxChars: 2000,
+    totalMaxChars: 7000
+  },
+  "simulation": {
+    knowledgeTopK: 8,
+    knowledgeMaxChars: 6000,
+    sessionTopK: 6,
+    sessionMaxChars: 3000,
+    totalMaxChars: 10000
+  }
+};
+
+const RAG_NUMBER_FIELDS = new Set([
+  "knowledgeTopK", "knowledgeMaxChars", "knowledgeScoreThreshold",
+  "sessionTopK", "sessionMaxChars", "disasterSummaryMaxLength", "totalMaxChars"
+]);
+
+/**
+ * Clamp + sanitize a single RAG config value
+ */
+function clampRagValue(key, value) {
+  if (key === "knowledgeScoreThreshold") {
+    const v = Number(value);
+    return Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : DEFAULT_RAG_CONFIG[key];
+  }
+  if (key === "knowledgeTopK" || key === "sessionTopK") {
+    const v = Math.round(Number(value));
+    return Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : DEFAULT_RAG_CONFIG[key];
+  }
+  if (key === "knowledgeMaxChars" || key === "sessionMaxChars" ||
+      key === "disasterSummaryMaxLength" || key === "totalMaxChars") {
+    const v = Math.round(Number(value));
+    return Number.isFinite(v) ? Math.max(0, Math.min(50000, v)) : DEFAULT_RAG_CONFIG[key];
+  }
+  return value;
+}
+
+/**
+ * Normalize a raw RAG config: fill missing fields from defaults, clamp values
+ */
+function normalizeRagConfig(input) {
+  if (!input || typeof input !== "object") {
+    return { ...DEFAULT_RAG_CONFIG };
+  }
+  const result = {};
+  for (const key of Object.keys(DEFAULT_RAG_CONFIG)) {
+    if (key === "enabled") {
+      result.enabled = typeof input.enabled === "boolean" ? input.enabled : DEFAULT_RAG_CONFIG.enabled;
+    } else if (key === "knowledgeUseMMR") {
+      result.knowledgeUseMMR = typeof input.knowledgeUseMMR === "boolean" ? input.knowledgeUseMMR : DEFAULT_RAG_CONFIG.knowledgeUseMMR;
+    } else if (RAG_NUMBER_FIELDS.has(key)) {
+      result[key] = (input[key] !== undefined && input[key] !== null)
+        ? clampRagValue(key, input[key])
+        : DEFAULT_RAG_CONFIG[key];
+    } else {
+      result[key] = input[key] ?? DEFAULT_RAG_CONFIG[key];
+    }
+  }
+  return result;
+}
+
+/**
+ * Merge base RAG config with override, then normalize
+ */
+function mergeTaskRagConfig(baseRag, overrideRag) {
+  if (!overrideRag || typeof overrideRag !== "object") {
+    return normalizeRagConfig(baseRag);
+  }
+  const merged = { ...normalizeRagConfig(baseRag) };
+  for (const key of Object.keys(DEFAULT_RAG_CONFIG)) {
+    if (overrideRag[key] !== undefined && overrideRag[key] !== null) {
+      if (key === "enabled" || key === "knowledgeUseMMR") {
+        if (typeof overrideRag[key] === "boolean") {
+          merged[key] = overrideRag[key];
+        }
+      } else if (RAG_NUMBER_FIELDS.has(key)) {
+        merged[key] = clampRagValue(key, overrideRag[key]);
+      }
+    }
+  }
+  return merged;
+}
+
+/**
+ * Get the full default RAG config for a specific task type (base + task-specific defaults merged)
+ */
+function getDefaultRagForTask(taskType) {
+  const taskDefaults = DEFAULT_RAG_BY_TASK[taskType];
+  if (!taskDefaults) return { ...DEFAULT_RAG_CONFIG };
+  return normalizeRagConfig({ ...DEFAULT_RAG_CONFIG, ...taskDefaults });
+}
+
 function normalizeGeoConfig(geo) {
   const bboxFilterEnabled = typeof geo?.bboxFilterEnabled === "boolean"
     ? geo.bboxFilterEnabled
@@ -186,10 +314,12 @@ function loadTaskConfigFromFile() {
 
       for (const [taskKey, taskValue] of Object.entries(mergedEntries)) {
         const baseTask = DEFAULT_TASK_CONFIG.tasks[taskKey] || DEFAULT_TASK_CONFIG.tasks.default;
+        const baseRag = getDefaultRagForTask(taskKey);
         mergedTasks[taskKey] = {
           ...baseTask,
           ...taskValue,
-          geo: mergeTaskGeoConfig(baseTask?.geo, taskValue?.geo)
+          geo: mergeTaskGeoConfig(baseTask?.geo, taskValue?.geo),
+          rag: mergeTaskRagConfig(baseRag, taskValue?.rag)
         };
       }
       return {
@@ -534,6 +664,10 @@ export function updateTaskConfig(taskType, updates, persist = true) {
   const currentGeo = mergeTaskGeoConfig(DEFAULT_GEO_CONFIG, CONFIG.llm.tasks[taskType].geo);
   const nextGeo = updates?.geo ? mergeTaskGeoConfig(currentGeo, updates.geo) : currentGeo;
 
+  // RAG-Config merge + normalize
+  const currentRag = CONFIG.llm.tasks[taskType].rag || getDefaultRagForTask(taskType);
+  const nextRag = updates?.rag ? mergeTaskRagConfig(currentRag, updates.rag) : currentRag;
+
   for (const [key, value] of Object.entries(updates)) {
     if (allowedFields.includes(key)) {
       validUpdates[key] = value;
@@ -543,7 +677,8 @@ export function updateTaskConfig(taskType, updates, persist = true) {
   CONFIG.llm.tasks[taskType] = {
     ...CONFIG.llm.tasks[taskType],
     ...validUpdates,
-    geo: nextGeo
+    geo: nextGeo,
+    rag: nextRag
   };
 
   const logPayload = { ...validUpdates };
@@ -561,18 +696,30 @@ export function updateTaskConfig(taskType, updates, persist = true) {
 }
 
 /**
- * Gibt alle Task-Konfigurationen zurück
+ * Gibt alle Task-Konfigurationen zurück (inkl. Defaults für UI-Reset)
  * @returns {Object}
  */
 export function getAllTaskConfigs() {
+  // Build defaults map for UI reset
+  const defaultTasks = {};
+  for (const taskKey of Object.keys(CONFIG.llm.tasks)) {
+    defaultTasks[taskKey] = {
+      rag: getDefaultRagForTask(taskKey)
+    };
+  }
+
   return {
     globalModelOverride: CONFIG.llm.globalModelOverride,
-    tasks: { ...CONFIG.llm.tasks }
+    tasks: { ...CONFIG.llm.tasks },
+    defaults: { tasks: defaultTasks }
   };
 }
 
 // Geo-Config Utilities (benötigt von situation_analyzer u.a.)
 export { normalizeGeoConfig, mergeTaskGeoConfig };
+
+// RAG-Config Utilities
+export { normalizeRagConfig, mergeTaskRagConfig, getDefaultRagForTask, DEFAULT_RAG_CONFIG, DEFAULT_RAG_BY_TASK };
 
 // Legacy-Kompatibilität
 export const setTaskModel = (taskType, modelKey) => updateTaskConfig(taskType, { model: modelKey });

@@ -880,7 +880,9 @@ function formatSessionContext(data) {
  * Kombiniert alle Kontexte für LLM
  */
 export async function getEnhancedContext(query, options = {}) {
-  const { maxChars = 4000 } = options;
+  const { maxChars = 4000, rag } = options;
+  // Prefer caller-supplied maxChars (from taskConfig.rag.totalMaxChars), fallback to 4000
+  const effectiveMaxChars = rag?.totalMaxChars ?? maxChars;
 
   const routed = await routeQuery(query, { ...options });
 
@@ -902,8 +904,8 @@ export async function getEnhancedContext(query, options = {}) {
   }
 
   // Kürzen falls zu lang
-  if (context.length > maxChars) {
-    context = context.slice(0, maxChars) + "\n... (gekürzt)";
+  if (context.length > effectiveMaxChars) {
+    context = context.slice(0, effectiveMaxChars) + "\n... (gekürzt)";
   }
 
   return {

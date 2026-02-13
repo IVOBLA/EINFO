@@ -195,44 +195,140 @@ function QuestionSection({ role, onQuestionAsked, analysisInProgress }) {
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const [answer, setAnswer] = useState(null);
+  const [streamingText, setStreamingText] = useState("");
   const [questionFeedbackGiven, setQuestionFeedbackGiven] = useState(false);
 
   // Deaktiviere Button wenn Analyse läuft
   const isDisabled = loading || analysisInProgress;
 
-  const handleAsk = async () => {
-    if (!question.trim() || loading || analysisInProgress) return;
-    setLoading(true);
-    setAnswer(null);
-    setQuestionFeedbackGiven(false);
+  /**
+   * Fallback: non-streaming JSON endpoint
+   */
+  const askViaJson = async (trimmedQuestion) => {
+    const res = await fetch(buildChatbotApiUrl("/api/situation/question"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: trimmedQuestion, role })
+    });
 
-    try {
-      const res = await fetch(buildChatbotApiUrl("/api/situation/question"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question: question.trim(), role })
-      });
+    const contentType = res.headers.get("content-type") || "";
+    if (!res.ok) {
+      const errorText = contentType.includes("application/json")
+        ? (await res.json().catch(() => ({}))).error || `HTTP ${res.status}`
+        : `Server-Fehler: ${res.status} ${res.statusText}`;
+      return { error: errorText };
+    }
 
-      // Prüfe Content-Type und Status vor JSON-Parsing
-      const contentType = res.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      return { error: "Server hat keine gültige JSON-Antwort geliefert" };
+    }
+
+    return await res.json();
+  };
+
+  /**
+   * Primary: SSE streaming endpoint
+   */
+  const askViaStream = async (trimmedQuestion) => {
+    const res = await fetch(buildChatbotApiUrl("/api/situation/question/stream"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question: trimmedQuestion, role })
+    });
+
+    const contentType = res.headers.get("content-type") || "";
+
+    // If not SSE, fall back to JSON
+    if (!contentType.includes("text/event-stream")) {
       if (!res.ok) {
         const errorText = contentType.includes("application/json")
           ? (await res.json().catch(() => ({}))).error || `HTTP ${res.status}`
           : `Server-Fehler: ${res.status} ${res.statusText}`;
-        setAnswer({ error: errorText });
-        return;
+        return { error: errorText };
+      }
+      // Unexpected non-SSE success - try JSON parse
+      if (contentType.includes("application/json")) {
+        return await res.json();
+      }
+      return { error: "Unerwarteter Content-Type vom Stream-Endpoint" };
+    }
+
+    // Parse SSE stream
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let fullAnswer = "";
+    let finalResult = null;
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+
+      const lines = buffer.split("\n");
+      buffer = lines.pop() || "";
+
+      let currentEvent = null;
+      for (const line of lines) {
+        if (line.startsWith("event: ")) {
+          currentEvent = line.slice(7).trim();
+          continue;
+        }
+        if (line.startsWith("data: ")) {
+          const dataStr = line.slice(6);
+          try {
+            const data = JSON.parse(dataStr);
+
+            if (currentEvent === "token" && data.t !== undefined) {
+              fullAnswer += data.t;
+              setStreamingText(fullAnswer);
+            } else if (currentEvent === "done") {
+              finalResult = data;
+            } else if (currentEvent === "error") {
+              return { error: data.message || "Stream-Fehler" };
+            }
+          } catch {
+            // Ignore parse errors
+          }
+          currentEvent = null;
+        }
+      }
+    }
+
+    if (finalResult) {
+      return { ok: true, ...finalResult };
+    }
+    // If we got tokens but no done event, construct answer from streamed text
+    if (fullAnswer) {
+      return { ok: true, answer: fullAnswer };
+    }
+    return { error: "Keine Antwort vom Stream erhalten" };
+  };
+
+  const handleAsk = async () => {
+    if (!question.trim() || loading || analysisInProgress) return;
+    setLoading(true);
+    setAnswer(null);
+    setStreamingText("");
+    setQuestionFeedbackGiven(false);
+
+    const trimmedQuestion = question.trim();
+
+    try {
+      // Try streaming first, fall back to JSON
+      let data;
+      try {
+        data = await askViaStream(trimmedQuestion);
+      } catch {
+        // Stream failed entirely (e.g. network error to stream endpoint), fall back
+        data = await askViaJson(trimmedQuestion);
       }
 
-      if (!contentType.includes("application/json")) {
-        setAnswer({ error: "Server hat keine gültige JSON-Antwort geliefert" });
-        return;
-      }
-
-      const data = await res.json();
       if (data.error) {
         setAnswer({ error: data.error });
       } else {
         setAnswer(data);
+        setStreamingText(""); // Clear streaming text, final answer is in data
         onQuestionAsked?.(data);
       }
     } catch (err) {
@@ -289,6 +385,20 @@ function QuestionSection({ role, onQuestionAsked, analysisInProgress }) {
         <p className="text-xs text-yellow-600 mt-1">
           KI-Analyse läuft gerade - Fragen werden nach Abschluss beantwortet
         </p>
+      )}
+
+      {/* Live-Streaming-Anzeige während des Ladens */}
+      {loading && streamingText && !answer && (
+        <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="text-xs text-gray-600 mb-1 flex items-center gap-2">
+            <span className="animate-pulse">●</span>
+            Antwort wird generiert...
+          </div>
+          <p className="text-sm whitespace-pre-wrap">
+            {streamingText}
+            <span className="animate-pulse text-blue-500">▌</span>
+          </p>
+        </div>
       )}
 
       {answer && (
