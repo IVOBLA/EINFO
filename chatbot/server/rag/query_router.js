@@ -425,6 +425,14 @@ export async function routeQuery(query, context = {}) {
     }
     : { applyBbox: false };
 
+  if (taskGeo.bboxFilterEnabled && !bboxCandidate &&
+      (taskGeo.bboxFilterMode === "auto_municipality" || taskGeo.bboxFilterMode === "both")) {
+    logDebug("QueryRouter: BBOX filter enabled but no bbox resolved; falling back to unbounded retrieval", {
+      bboxFilterMode: taskGeo.bboxFilterMode,
+      query: query.slice(0, 80)
+    });
+  }
+
   logDebug("QueryRouter: Intent erkannt", {
     query: query.slice(0, 50),
     type: intent.type,
@@ -454,12 +462,8 @@ export async function routeQuery(query, context = {}) {
 
       case IntentTypes.GEO_NEAREST_POI:
         results.data = await handleGeoNearestPoi(query, intent.params, context, bboxFilter);
-        if (results.data.count === 0) {
-          results.data = await handleSemanticQuery(query, context, bboxFilter);
-          results.context = results.data.knowledge || "";
-        } else {
-          results.context = formatGeoContext(results.data);
-        }
+        // count=0 ist ein gültiges deterministisches Ergebnis – kein Fallback auf semantische Suche
+        results.context = formatGeoContext(results.data);
         break;
 
       case IntentTypes.GEO_COUNT:
@@ -469,12 +473,8 @@ export async function routeQuery(query, context = {}) {
 
       case IntentTypes.GEO_LIST:
         results.data = await handleGeoList(query, intent.params, context, bboxFilter);
-        if (results.data.count === 0) {
-          results.data = await handleSemanticQuery(query, context, bboxFilter);
-          results.context = results.data.knowledge || "";
-        } else {
-          results.context = formatGeoContext(results.data);
-        }
+        // count=0 ist ein gültiges deterministisches Ergebnis – kein Fallback auf semantische Suche
+        results.context = formatGeoContext(results.data);
         break;
 
       case IntentTypes.GEO_ADDRESS:
@@ -597,8 +597,8 @@ async function handleGeoAddress(address, bboxFilter) {
 
 async function handleGeoNearestPoi(query, params, context, bboxFilter) {
   const { categoryNorm } = params;
-  const geoIndex = getGeoIndex();
-  const candidates = geoIndex.findByCategoryNorm(categoryNorm, {
+  const geoIndex = await getGeoIndex();
+  const candidates = await geoIndex.findByCategoryNorm(categoryNorm, {
     bbox: bboxFilter?.applyBbox ? bboxFilter.bbox : null
   });
 
@@ -632,11 +632,11 @@ async function handleGeoNearestPoi(query, params, context, bboxFilter) {
 
 async function handleGeoCount(query, params, context, bboxFilter) {
   const { categoryNorm, docTypeFilter } = params;
-  const geoIndex = getGeoIndex();
+  const geoIndex = await getGeoIndex();
 
   let candidates;
   if (categoryNorm) {
-    candidates = geoIndex.findByCategoryNorm(categoryNorm, {
+    candidates = await geoIndex.findByCategoryNorm(categoryNorm, {
       bbox: bboxFilter?.applyBbox ? bboxFilter.bbox : null
     });
   } else {
@@ -662,14 +662,15 @@ async function handleGeoCount(query, params, context, bboxFilter) {
     categoryNorm,
     docTypeFilter,
     count: candidates.length,
+    bboxActive: bboxFilter?.applyBbox || false,
     locations: candidates.slice(0, 5) // Beispiele
   };
 }
 
 async function handleGeoList(query, params, context, bboxFilter) {
   const { categoryNorm } = params;
-  const geoIndex = getGeoIndex();
-  const candidates = geoIndex.findByCategoryNorm(categoryNorm, {
+  const geoIndex = await getGeoIndex();
+  const candidates = await geoIndex.findByCategoryNorm(categoryNorm, {
     bbox: bboxFilter?.applyBbox ? bboxFilter.bbox : null
   });
 
@@ -794,7 +795,9 @@ async function handleSemanticQuery(query, context, bboxFilter) {
 
 function formatGeoContext(data) {
   if (!data.locations || data.locations.length === 0) {
-    return "Keine geografischen Ergebnisse gefunden.";
+    // Deterministisches Ergebnis: 0 gefunden ist valide Information
+    const label = data.categoryNorm || data.type || "Objekte";
+    return `### GEOGRAFISCHE ERGEBNISSE (0 gefunden) ###\n\n0 Ergebnisse für "${label}" im aktuellen Bereich. Dies ist ein gültiges deterministisches Ergebnis.\n`;
   }
 
   let context = `### GEOGRAFISCHE ERGEBNISSE (${data.count} gefunden) ###\n\n`;
@@ -813,7 +816,12 @@ function formatGeoContext(data) {
 
 function formatGeoCountContext(data) {
   const label = data.categoryNorm || data.docTypeFilter || "Objekte";
-  let context = `### GEO-ZÄHLUNG ###\n\nEs gibt ${data.count} Ergebnisse für "${label}"`;
+  const scope = data.bboxActive ? "BBOX" : "GLOBAL";
+
+  logDebug("GEO_COUNT result (deterministic)", { count: data.count, scope, label });
+
+  let context = `### GEO_COUNT ###\ncount: ${data.count}\nscope: ${scope}\nnote: ${data.count} ist ein gültiges deterministisches Ergebnis\n`;
+  context += `\nEs gibt exakt ${data.count} Ergebnisse für "${label}"`;
   if (data.count > 0) {
     context += `.\n\nBeispiele:\n`;
     for (const loc of (data.locations || []).slice(0, 5)) {
@@ -821,7 +829,7 @@ function formatGeoCountContext(data) {
       context += `- ${name} (${loc.lat}, ${loc.lon})\n`;
     }
   } else {
-    context += ` im aktuellen Bereich.\n`;
+    context += ` im aktuellen Bereich. 0 ist ein gültiges Ergebnis – es wurden keine passenden Objekte gefunden.\n`;
   }
   return context;
 }
