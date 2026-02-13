@@ -168,11 +168,11 @@ export default function UnreadProtocolIndicator({ roleId, className, openInNewTa
 
   const handleClick = () => {
     const targetHash = `/protokoll?role=${encodeURIComponent(roleId)}&scope=${encodeURIComponent(scope)}`;
+    const url = `/#${targetHash}`;
     if (openInNewTab) {
-      const url = `${window.location.pathname}${window.location.search}#${targetHash}`;
       window.open(url, "_blank", "noopener,noreferrer");
     } else {
-      window.location.hash = targetHash;
+      window.location.href = url;
     }
   };
 
