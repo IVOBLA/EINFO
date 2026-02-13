@@ -7,6 +7,18 @@ const DEFAULT_GEO_CONFIG = {
   bboxFilterDocTypes: ["address"]
 };
 
+const DEFAULT_RAG_CONFIG = {
+  enabled: true,
+  knowledgeTopK: 8,
+  knowledgeMaxChars: 6000,
+  knowledgeScoreThreshold: 0.2,
+  knowledgeUseMMR: true,
+  sessionTopK: 6,
+  sessionMaxChars: 3000,
+  disasterSummaryMaxLength: 2000,
+  totalMaxChars: 10000
+};
+
 function ensureGeoDefaults(taskConfig) {
   const geo = taskConfig?.geo || {};
   const docTypes = Array.isArray(geo.bboxFilterDocTypes) && geo.bboxFilterDocTypes.length
@@ -212,6 +224,7 @@ export default function LLMModelManager() {
   // Config-Daten
   const [globalModelOverride, setGlobalModelOverride] = useState(null);
   const [tasks, setTasks] = useState({});
+  const [ragDefaults, setRagDefaults] = useState({}); // defaults.tasks from API
   const [ollamaModels, setOllamaModels] = useState([]);
 
   // GPU-Status
@@ -289,6 +302,9 @@ export default function LLMModelManager() {
       const tasksWithGeo = ensureGeoDefaultsForTasks(configData.tasks || {});
       setTasks(tasksWithGeo);
       setTaskDrafts(tasksWithGeo); // Initialisiere Drafts
+      if (configData.defaults?.tasks) {
+        setRagDefaults(configData.defaults.tasks);
+      }
 
       // Ollama-Modelle laden
       const modelsRes = await fetch(buildChatbotApiUrl("/api/llm/models"), { credentials: "include" });
@@ -620,6 +636,30 @@ export default function LLMModelManager() {
       [taskType]: {
         ...prev[taskType],
         [field]: value
+      }
+    }));
+  }
+
+  function updateRagDraft(taskType, ragField, value) {
+    setTaskDrafts((prev) => ({
+      ...prev,
+      [taskType]: {
+        ...prev[taskType],
+        rag: {
+          ...(prev[taskType]?.rag || DEFAULT_RAG_CONFIG),
+          [ragField]: value
+        }
+      }
+    }));
+  }
+
+  function resetRagToDefaults(taskType) {
+    const defaults = ragDefaults[taskType]?.rag || DEFAULT_RAG_CONFIG;
+    setTaskDrafts((prev) => ({
+      ...prev,
+      [taskType]: {
+        ...prev[taskType],
+        rag: { ...defaults }
       }
     }));
   }
@@ -1217,6 +1257,122 @@ export default function LLMModelManager() {
                           Serverseitig: Treffer ohne Koordinaten werden für die ausgewählten Typen nicht berücksichtigt, wenn BBOX aktiv ist.
                         </div>
                       </>
+                    )}
+                  </div>
+
+                  {/* RAG / Context Limits */}
+                  <div className="pt-3 border-t space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="font-medium text-sm">RAG / Context Limits</div>
+                      <button
+                        type="button"
+                        className="text-xs px-2 py-1 border rounded hover:bg-gray-50 text-gray-600"
+                        onClick={() => resetRagToDefaults(task.key)}
+                        title="RAG-Einstellungen auf Defaults zurücksetzen"
+                      >
+                        Auf Defaults zurücksetzen
+                      </button>
+                    </div>
+                    <div className="text-xs text-gray-500 mb-2">
+                      Chars &asymp; grob Tokens*3&ndash;4 (je nach Sprache/Format). totalMaxChars ist ein Sicherheitsdeckel.
+                    </div>
+
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4"
+                        checked={draft.rag?.enabled ?? true}
+                        onChange={(e) => updateRagDraft(task.key, "enabled", e.target.checked)}
+                      />
+                      <span>RAG aktiviert</span>
+                    </label>
+
+                    {(draft.rag?.enabled !== false) && (
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Knowledge TopK</label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            className="w-full border rounded px-3 py-2"
+                            value={draft.rag?.knowledgeTopK ?? 8}
+                            onChange={(e) => updateRagDraft(task.key, "knowledgeTopK", Number(e.target.value))}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Knowledge MaxChars</label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="50000"
+                            step="500"
+                            className="w-full border rounded px-3 py-2"
+                            value={draft.rag?.knowledgeMaxChars ?? 6000}
+                            onChange={(e) => updateRagDraft(task.key, "knowledgeMaxChars", Number(e.target.value))}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Knowledge Score Threshold</label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            className="w-full border rounded px-3 py-2"
+                            value={draft.rag?.knowledgeScoreThreshold ?? 0.2}
+                            onChange={(e) => updateRagDraft(task.key, "knowledgeScoreThreshold", Number(e.target.value))}
+                          />
+                          <div className="text-xs text-gray-500 mt-1">0 = alles, 1 = nur perfekte Treffer</div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Session TopK</label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            className="w-full border rounded px-3 py-2"
+                            value={draft.rag?.sessionTopK ?? 6}
+                            onChange={(e) => updateRagDraft(task.key, "sessionTopK", Number(e.target.value))}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Session MaxChars</label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="50000"
+                            step="500"
+                            className="w-full border rounded px-3 py-2"
+                            value={draft.rag?.sessionMaxChars ?? 3000}
+                            onChange={(e) => updateRagDraft(task.key, "sessionMaxChars", Number(e.target.value))}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Disaster Summary MaxLength</label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="50000"
+                            step="500"
+                            className="w-full border rounded px-3 py-2"
+                            value={draft.rag?.disasterSummaryMaxLength ?? 2000}
+                            onChange={(e) => updateRagDraft(task.key, "disasterSummaryMaxLength", Number(e.target.value))}
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <label className="block text-sm font-medium mb-1">Total MaxChars (Sicherheitsdeckel)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            max="50000"
+                            step="1000"
+                            className="w-full border rounded px-3 py-2"
+                            value={draft.rag?.totalMaxChars ?? 10000}
+                            onChange={(e) => updateRagDraft(task.key, "totalMaxChars", Number(e.target.value))}
+                          />
+                        </div>
+                      </div>
                     )}
                   </div>
 

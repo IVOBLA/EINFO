@@ -7,7 +7,7 @@ import fsPromises from "fs/promises";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { CONFIG, normalizeGeoConfig } from "./config.js";
+import { CONFIG, normalizeGeoConfig, getTaskConfig } from "./config.js";
 import { logDebug, logError, logInfo } from "./logger.js";
 // isSimulationRunning nicht mehr benötigt - KI-Analyse ist immer verfügbar
 import { getFilteredDisasterContextSummary, getCurrentDisasterContext, getLLMSummarizedContext, getCachedLLMSummary } from "./disaster_context.js";
@@ -475,10 +475,15 @@ export async function analyzeAllRoles(forceRefresh = false) {
     let contextMode;
     let contextDuration = 0;
 
+    // Use analysis task RAG config for limits
+    const analysisCfg = getTaskConfig("analysis");
+    const analysisRag = analysisCfg.rag || {};
+    const analysisSummaryMaxLength = analysisRag.disasterSummaryMaxLength ?? 2500;
+
     if (useLLMSummarization) {
       // LLM-basierte Zusammenfassung verwenden
       logInfo("Verwende LLM-basierte Zusammenfassung (2. LLM-Call)");
-      const llmResult = await getLLMSummarizedContext({ maxLength: 2500 });
+      const llmResult = await getLLMSummarizedContext({ maxLength: analysisSummaryMaxLength });
       disasterSummary = llmResult.summary;
       fingerprint = llmResult.fingerprint;
       contextMode = llmResult.llmUsed ? "llm" : "rules-fallback";
@@ -492,7 +497,7 @@ export async function analyzeAllRoles(forceRefresh = false) {
     } else {
       // Regelbasierte Filterung verwenden (Standard)
       logInfo("Verwende regelbasierte Filterung");
-      const { summary, fingerprint: fp } = await getFilteredDisasterContextSummary({ maxLength: 2500 });
+      const { summary, fingerprint: fp } = await getFilteredDisasterContextSummary({ maxLength: analysisSummaryMaxLength });
       disasterSummary = summary;
       fingerprint = fp;
       contextMode = "rules";
@@ -506,8 +511,8 @@ export async function analyzeAllRoles(forceRefresh = false) {
         // Relevante Knowledge-Base-Informationen basierend auf der aktuellen Lage holen
         const ragQuery = `Einsatzlage: ${disasterSummary.substring(0, 500)}`;
         const ragResult = await getKnowledgeContextWithSources(ragQuery, {
-          topK: 5,
-          maxChars: 2000
+          topK: analysisRag.knowledgeTopK ?? 5,
+          maxChars: analysisRag.knowledgeMaxChars ?? 2000
         });
         if (ragResult && ragResult.context) {
           // RAG-Kontext mit Header formatieren
@@ -834,7 +839,7 @@ export async function analyzeForRole(role, forceRefresh = false) {
  * Beantwortet eine direkte Frage zur Lage
  * Nutzt RAG (Vector + Session) für fundierte Antworten mit Quellenangaben
  */
-export async function answerQuestion(question, role, context = "aufgabenboard", requestBbox = null) {
+export async function answerQuestion(question, role, context = "aufgabenboard", requestBbox = null, options = null) {
   if (!isAnalysisActive()) {
     return {
       error: "Fragen nicht möglich (Simulation läuft)",
@@ -843,6 +848,15 @@ export async function answerQuestion(question, role, context = "aufgabenboard", 
   }
 
   const normalizedRole = role.toUpperCase();
+  const taskType = "situation-question";
+  const taskCfg = getTaskConfig(taskType);
+  const rag = taskCfg.rag || {};
+  const onToken = options?.onToken || null;
+
+  // If RAG is disabled, skip retrieval entirely
+  if (rag.enabled === false) {
+    logDebug("answerQuestion: RAG deaktiviert via Config");
+  }
 
   // Konfiguration lesen für Context-Modus (wie bei timergesteuerter Analyse)
   const analysisConfig = await readAnalysisConfig();
@@ -850,30 +864,29 @@ export async function answerQuestion(question, role, context = "aufgabenboard", 
                               analysisConfig.llmSummarization?.enabled === true;
 
   // Kontext holen - entsprechend der Konfiguration
-  // WICHTIG: Bei LLM-Modus wird der CACHE der letzten timergesteuerten Analyse verwendet,
-  // KEIN neuer LLM-Aufruf! Der Cache wird nur durch timergesteuerte Analysen aktualisiert.
-  let disasterSummary;
-  if (useLLMSummarization) {
-    // Gecachte LLM-Zusammenfassung verwenden (kein neuer LLM-Aufruf!)
-    logDebug("Fragebeantwortung: Verwende gecachte LLM-Zusammenfassung");
-    const cachedResult = await getCachedLLMSummary({ maxLength: 1500 });
-    disasterSummary = cachedResult.summary;
-    if (cachedResult.fromCache) {
-      logDebug("Fragebeantwortung: Cache-Alter", {
-        cacheAge: Date.now() - cachedResult.timestamp
-      });
+  let disasterSummary = "";
+  if (rag.enabled !== false) {
+    const summaryMaxLength = rag.disasterSummaryMaxLength ?? 1500;
+    if (useLLMSummarization) {
+      logDebug("Fragebeantwortung: Verwende gecachte LLM-Zusammenfassung");
+      const cachedResult = await getCachedLLMSummary({ maxLength: summaryMaxLength });
+      disasterSummary = cachedResult.summary;
+      if (cachedResult.fromCache) {
+        logDebug("Fragebeantwortung: Cache-Alter", {
+          cacheAge: Date.now() - cachedResult.timestamp
+        });
+      } else {
+        logDebug("Fragebeantwortung: Kein Cache vorhanden, Fallback auf regelbasiert");
+      }
     } else {
-      logDebug("Fragebeantwortung: Kein Cache vorhanden, Fallback auf regelbasiert");
+      logDebug("Fragebeantwortung: Verwende regelbasierte Filterung");
+      const { summary } = await getFilteredDisasterContextSummary({ maxLength: summaryMaxLength });
+      disasterSummary = summary;
     }
-  } else {
-    // Regelbasierte Filterung verwenden (Standard)
-    logDebug("Fragebeantwortung: Verwende regelbasierte Filterung");
-    const { summary } = await getFilteredDisasterContextSummary({ maxLength: 1500 });
-    disasterSummary = summary;
   }
 
   // BBOX-Filter für RAG aufbauen (aus Request oder Szenario-Config)
-  const taskGeo = normalizeGeoConfig(CONFIG.llm.tasks?.["situation-question"]?.geo);
+  const taskGeo = normalizeGeoConfig(CONFIG.llm.tasks?.[taskType]?.geo);
   let ragFilters = {};
   if (taskGeo.bboxFilterEnabled) {
     const bbox = requestBbox || await readScenarioBbox();
@@ -887,11 +900,30 @@ export async function answerQuestion(question, role, context = "aufgabenboard", 
     }
   }
 
-  // RAG-Context holen (parallel für Performance)
-  const [vectorRagResult, sessionContext] = await Promise.all([
-    getKnowledgeContextWithSources(question, { topK: 3, maxChars: 1500, filters: ragFilters }),
-    getCurrentSession().getContextForQuery(question, { maxChars: 1000, topK: 3 })
-  ]);
+  // RAG-Context holen (parallel für Performance) - use task-specific limits
+  const knowledgeTopK = rag.knowledgeTopK ?? 3;
+  const knowledgeMaxChars = rag.knowledgeMaxChars ?? 1500;
+  const knowledgeScoreThreshold = rag.knowledgeScoreThreshold ?? 0.2;
+  const sessionTopK = rag.sessionTopK ?? 3;
+  const sessionMaxChars = rag.sessionMaxChars ?? 1000;
+
+  let vectorRagResult = { context: "", sources: [] };
+  let sessionContext = "";
+
+  if (rag.enabled !== false) {
+    [vectorRagResult, sessionContext] = await Promise.all([
+      getKnowledgeContextWithSources(question, {
+        topK: knowledgeTopK,
+        maxChars: knowledgeMaxChars,
+        threshold: knowledgeScoreThreshold,
+        filters: ragFilters
+      }),
+      getCurrentSession().getContextForQuery(question, {
+        maxChars: sessionMaxChars,
+        topK: sessionTopK
+      })
+    ]);
+  }
 
   // RAG-Context zusammenbauen
   let ragContextSection = "";
@@ -917,6 +949,12 @@ export async function answerQuestion(question, role, context = "aufgabenboard", 
     });
   }
 
+  // Truncate combined context to totalMaxChars safety cap
+  const totalMaxChars = rag.totalMaxChars ?? 12000;
+  if (ragContextSection.length > totalMaxChars) {
+    ragContextSection = ragContextSection.slice(0, totalMaxChars) + "\n... (gekürzt)";
+  }
+
   // System-Prompt aus Template generieren
   const systemPrompt = fillTemplate(situationQuestionSystemTemplate, {
     role: normalizedRole,
@@ -928,9 +966,15 @@ export async function answerQuestion(question, role, context = "aufgabenboard", 
   try {
     let answer;
     try {
-      answer = await callLLMForChat(systemPrompt, question, {
-        taskType: "situation-question" // Eigener Task-Typ für Fragen (Text-Output, kein JSON)
-      });
+      const llmOptions = {
+        taskType // Eigener Task-Typ für Fragen (Text-Output, kein JSON)
+      };
+      // Enable streaming with external token callback if provided
+      if (onToken) {
+        llmOptions.stream = true;
+        llmOptions.onToken = onToken;
+      }
+      answer = await callLLMForChat(systemPrompt, question, llmOptions);
     } catch (llmErr) {
       logError("LLM-Aufruf fehlgeschlagen bei Fragebeantwortung", {
         question,

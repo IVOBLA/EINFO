@@ -80,7 +80,7 @@ import {
 } from "./template_manager.js";
 
 import { rateLimit, RateLimitProfiles, getRateLimitStats } from "./middleware/rate-limit.js";
-import { createSituationQuestionHandler } from "./routes/situationQuestion.js";
+import { createSituationQuestionHandler, createSituationQuestionStreamHandler } from "./routes/situationQuestion.js";
 import { buildScenarioControlSummary } from "./scenario_controls.js";
 
 // ============================================================
@@ -863,6 +863,7 @@ app.get("/api/llm/config", async (_req, res) => {
       ok: true,
       globalModelOverride: allTaskConfigs.globalModelOverride,
       tasks: allTaskConfigs.tasks,
+      defaults: allTaskConfigs.defaults,
       installedModels: modelStatus.installed,
       available: modelStatus.available,
       missing: modelStatus.missing
@@ -2538,6 +2539,13 @@ app.post(
   createSituationQuestionHandler({ answerQuestion, logError, isAnalysisInProgress })
 );
 
+// Frage an KI stellen - SSE Streaming
+app.post(
+  "/api/situation/question/stream",
+  rateLimit(RateLimitProfiles.GENEROUS),
+  createSituationQuestionStreamHandler({ answerQuestion, logError, isAnalysisInProgress })
+);
+
 // Feedback zu Vorschlag speichern (binäres System)
 // Bei "nicht hilfreich" wird der Vorschlag als dismissed gespeichert,
 // sodass ähnliche Vorschläge in Zukunft nicht mehr angezeigt werden
@@ -2833,7 +2841,7 @@ async function bootstrap() {
       templates: ["/api/templates"],
       disaster: ["/api/disaster/current", "/api/disaster/summary", "/api/disaster/init"],
       feedback: ["/api/feedback", "/api/feedback/list", "/api/feedback/stats"],
-      situation: ["/api/situation/status", "/api/situation/analysis", "/api/situation/question"],
+      situation: ["/api/situation/status", "/api/situation/analysis", "/api/situation/question", "/api/situation/question/stream"],
       sse: ["/api/events"]
     });
     
