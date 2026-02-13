@@ -658,7 +658,7 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
   }, [analysisData, currentRoleData]);
 
   const shouldUseActiveIcon = analysisInProgress && !activeIconFailed;
-  const kiIconSrc = shouldUseActiveIcon ? "/simulation_aktiv.gif" : "/Logo.png";
+  const kiIconSrc = shouldUseActiveIcon ? "/KI_A_active.gif" : "/KI_A.png";
 
   const handleKiIconError = useCallback(() => {
     if (shouldUseActiveIcon) {
