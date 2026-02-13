@@ -32,6 +32,7 @@ import { initRolePolicy, canEditApp, hasRole } from "./auth/roleUtils";
 import StatusPage from "./StatusPage.jsx";
 import CornerHelpLogout from "./components/CornerHelpLogout.jsx";
 import SimulationActiveIcon from "./components/SimulationActiveIcon.jsx";
+import UnreadProtocolIndicator from "./components/UnreadProtocolIndicator.jsx";
 
 import {
   fetchBoard,
@@ -453,6 +454,7 @@ const readOnly = !canEdit;
   const [areaFilter, setAreaFilter] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [protocolSearch, setProtocolSearch] = useState("");
+  const [protocolRoleFilter, setProtocolRoleFilter] = useState(null);
   const { user } = useUserAuth() || {};
   const { roles: onlineRoles } = useOnlineRoles();
   const ltStbOnline = useMemo(
@@ -509,16 +511,36 @@ useEffect(() => {
 }, []);
 const route = hash.replace(/^#/, "");
 
-// Parse search param from hash for protocol overview (e.g. #/protokoll?search=S2)
+// Parse search/role params from hash for protocol overview
 useEffect(() => {
   const [base, qs] = route.split("?");
   if (base === "/protokoll" && qs) {
     const params = new URLSearchParams(qs);
     if (params.has("search")) {
       setProtocolSearch(params.get("search") || "");
+      setProtocolRoleFilter(null);
     }
+    const role = params.get("role");
+    const scope = params.get("scope");
+    if (role && scope === "role") {
+      setProtocolRoleFilter({ roleId: role, scope: "role" });
+      setProtocolSearch("");
+    } else if (!params.has("search")) {
+      setProtocolRoleFilter(null);
+    }
+  } else if (base === "/protokoll") {
+    setProtocolRoleFilter(null);
   }
 }, [route]);
+
+const primaryRoleId = useMemo(() => {
+  const r =
+    (typeof user?.role === "string" && user.role) ||
+    (typeof user?.role?.id === "string" && user.role.id) ||
+    (Array.isArray(user?.roles) && (typeof user.roles[0] === "string" ? user.roles[0] : user.roles[0]?.id)) ||
+    "";
+  return String(r || "").toUpperCase() || "";
+}, [user]);
 
   // Proximity
   const [nearBySet, setNearBySet] = useState(() => new Set());
@@ -2143,7 +2165,7 @@ if (route.startsWith("/protokoll")) {
 
       </header>
       <div className="flex-1 min-h-0 overflow-y-auto p-3 meldung-overview-wrapper">
-        <ProtokollOverview searchTerm={protocolSearch} protocolCanEdit={protocolCanEdit} protocolS3Blocked={protocolS3Blocked} />
+        <ProtokollOverview searchTerm={protocolSearch} protocolCanEdit={protocolCanEdit} protocolS3Blocked={protocolS3Blocked} roleFilter={protocolRoleFilter} />
       </div>
     </div>
   );
@@ -2237,6 +2259,9 @@ if (route.startsWith("/protokoll")) {
             aria-label="Suche Einsaetze"
           />
 
+          {primaryRoleId ? (
+            <UnreadProtocolIndicator roleId={primaryRoleId} className="mr-1" />
+          ) : null}
           <button onClick={onPdf} className="header-btn">PDF</button>
 
           <button
