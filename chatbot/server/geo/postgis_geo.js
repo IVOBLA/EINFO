@@ -82,12 +82,14 @@ let logFilePath = "";
 
 function resolveLogFilePath() {
   if (logFilePath) return logFilePath;
+  // __dirname-based path is the only one guaranteed to resolve correctly
+  // regardless of process.cwd() (chatbot runs with cwd=chatbot/server).
   const candidates = [
+    path.join(__dirname, "../../../server/logs/postgis.log"),
     path.join(process.cwd(), "server/logs/postgis.log"),
     path.join(process.cwd(), "logs/postgis.log"),
-    path.join(__dirname, "../../../server/logs/postgis.log"),
   ];
-  // Use first candidate whose directory exists or can be created
+  // Use first candidate whose parent directory already exists
   for (const candidate of candidates) {
     try {
       const dir = path.dirname(candidate);
@@ -97,7 +99,7 @@ function resolveLogFilePath() {
       }
     } catch { /* skip */ }
   }
-  // Default: first candidate (will mkdir on write)
+  // Default: __dirname-based (will mkdir on write)
   logFilePath = candidates[0];
   return logFilePath;
 }
@@ -196,19 +198,24 @@ async function queryWithLogging(p, sql, params) {
 }
 
 function getPool() {
-  // Check if config file changed -> rebuild pool
+  // Check if config file changed -> rebuild pool + reset connection state
   const fileResult = loadPostgisConfig();
   if (fileResult) {
     const { config, fingerprint, mtime } = fileResult;
-    if (pool && (fingerprint !== lastConfigFingerprint || mtime !== lastConfigMtime)) {
-      logInfo("PostGIS: Config-Datei geändert, Pool wird neu erstellt");
-      pool.end().catch(() => {});
-      pool = null;
+    const configChanged = fingerprint !== lastConfigFingerprint || mtime !== lastConfigMtime;
+    if (configChanged) {
+      if (pool) {
+        logInfo("PostGIS: Config-Datei geändert, Pool wird neu erstellt");
+        pool.end().catch(() => {});
+        pool = null;
+      }
+      // Always reset connection state when config changes — even if pool
+      // was null (e.g. initial check failed before config existed)
       connectionChecked = false;
       connectionAvailable = false;
+      lastConfigFingerprint = fingerprint;
+      lastConfigMtime = mtime;
     }
-    lastConfigFingerprint = fingerprint;
-    lastConfigMtime = mtime;
 
     // Use file config if it has meaningful connection info
     if (!pool && config.host && config.database && config.user && config.password) {
