@@ -56,8 +56,19 @@ fi
 echo "  Importiere: $PBF"
 echo "  Cache: ${CACHE_MB} MB"
 echo "  DB: ${EINFO_DB_NAME} (User: ${EINFO_DB_USER})"
+echo "  Projektion: --latlong (SRID 4326 / WGS84)"
 
+# --latlong: Importiert Geometrien direkt in SRID 4326 (WGS84 lat/lon)
+# statt des osm2pgsql-Defaults SRID 3857 (Web Mercator).
+# Die App-Queries verwenden durchgehend SRID 4326 (ST_MakeEnvelope, ST_DWithin).
+# Die Views in 06_create_views.sql nutzen ST_Transform(..., 4326), was bei
+# 4326-Daten ein No-Op ist und bei 3857-Altdaten korrekt transformiert.
+#
+# HINWEIS: Wenn die DB bereits mit dem alten Default (3857) importiert wurde,
+# muss entweder ein Reimport mit --reimport durchgefuehrt werden, oder die
+# Views (06_create_views.sql) erledigen die Transformation automatisch.
 osm2pgsql --create --slim \
+  --latlong \
   --hstore \
   --multi-geometry \
   --cache "${CACHE_MB}" \
@@ -70,4 +81,4 @@ osm2pgsql --create --slim \
 unset PGPASSWORD
 
 echo ""
-echo "[03] osm2pgsql Import abgeschlossen."
+echo "[03] osm2pgsql Import abgeschlossen (SRID 4326 / WGS84)."

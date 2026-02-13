@@ -139,6 +139,40 @@ WHERE municipality ILIKE '%feldkirchen%'
 LIMIT 10;
 ```
 
+## SRID / Koordinatensystem
+
+Die EINFO-App arbeitet durchgehend mit **SRID 4326** (WGS84, lat/lon in Grad).
+
+### Import-SRID
+
+- `osm2pgsql` importiert ohne Flags in **SRID 3857** (Web Mercator, Meter).
+- Ab dieser Version verwendet `03_import_osm2pgsql.sh` das Flag `--latlong`,
+  sodass neue Imports direkt in SRID 4326 landen.
+
+### Bestehende Installationen (SRID 3857)
+
+Falls die Datenbank bereits ohne `--latlong` importiert wurde:
+
+1. **Kein Reimport noetig:** Die Views in `06_create_views.sql` verwenden
+   `ST_Transform(..., 4326)`, das 3857-Geometrien automatisch nach 4326 konvertiert.
+2. **Views neu erstellen:** `psql -d $EINFO_DB_NAME -U $EINFO_DB_USER -f 06_create_views.sql`
+3. **Oder Reimport:** `./03_import_osm2pgsql.sh --pbf /pfad/karnten.osm.pbf --reimport`
+
+### Pruefung
+
+```sql
+-- SRID der building_src-View pruefen (muss 4326 sein)
+SELECT ST_SRID(geom), COUNT(*) FROM einfo.building_src GROUP BY 1;
+
+-- Koordinaten-Bereich pruefen (Gradwerte ~14.x / 46.x fuer Kaernten)
+SELECT ST_Extent(geom) FROM einfo.building_src;
+```
+
+### Laufzeit-Guardrail
+
+Beim Chatbot-Start wird automatisch geprueft, ob `einfo.building_src.geom` SRID 4326 hat.
+Bei Abweichung wird eine Warnung im Admin PostGIS-Log angezeigt (`srid_mismatch_warning`).
+
 ## Performance-Hinweise
 
 - Views können nicht direkt indexiert werden

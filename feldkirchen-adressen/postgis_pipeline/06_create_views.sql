@@ -1,6 +1,13 @@
 -- 06_create_views.sql
 -- Erstellt Views im Schema einfo aus osm2pgsql-Tabellen + municipalities
 -- Ausführung: psql -d $EINFO_DB_NAME -U $EINFO_DB_USER -f 06_create_views.sql
+--
+-- SRID-Hinweis:
+-- osm2pgsql importiert standardmäßig in SRID 3857 (Web Mercator).
+-- Alle Views transformieren die Geometrie nach SRID 4326 (WGS84 lat/lon),
+-- damit die App-Queries (ST_MakeEnvelope(..., 4326), ST_DWithin(...geography))
+-- korrekt funktionieren.
+-- Bei Import mit --latlong (SRID 4326) ist ST_Transform(x, 4326) ein No-Op.
 
 -- ============================================================
 -- 1) einfo.poi_src — Points of Interest (Punkte + Polygon-Centroide)
@@ -42,10 +49,10 @@ SELECT
   ) AS address_full,
   -- Gemeinde (Join)
   COALESCE(m.name, p.tags->'addr:city', '') AS municipality,
-  -- Geometrie
-  p.way AS geom,
-  ST_Y(p.way) AS lat,
-  ST_X(p.way) AS lon,
+  -- Geometrie: immer in SRID 4326
+  ST_Transform(p.way, 4326) AS geom,
+  ST_Y(ST_Transform(p.way, 4326)) AS lat,
+  ST_X(ST_Transform(p.way, 4326)) AS lon,
   -- Tags Whitelist als JSON
   jsonb_strip_nulls(jsonb_build_object(
     'phone',          p.tags->'phone',
@@ -55,7 +62,7 @@ SELECT
     'brand',          p.tags->'brand'
   )) AS tags_json
 FROM planet_osm_point p
-LEFT JOIN einfo.municipalities m ON ST_Contains(m.geom, p.way)
+LEFT JOIN einfo.municipalities m ON ST_Contains(m.geom, ST_Transform(p.way, 4326))
 WHERE
   p.amenity IS NOT NULL
   OR p.tags ? 'healthcare'
@@ -101,9 +108,9 @@ SELECT
     ', '
   ) AS address_full,
   COALESCE(m.name, p.tags->'addr:city', '') AS municipality,
-  ST_PointOnSurface(p.way) AS geom,
-  ST_Y(ST_PointOnSurface(p.way)) AS lat,
-  ST_X(ST_PointOnSurface(p.way)) AS lon,
+  ST_Transform(ST_PointOnSurface(p.way), 4326) AS geom,
+  ST_Y(ST_Transform(ST_PointOnSurface(p.way), 4326)) AS lat,
+  ST_X(ST_Transform(ST_PointOnSurface(p.way), 4326)) AS lon,
   jsonb_strip_nulls(jsonb_build_object(
     'phone',          p.tags->'phone',
     'website',        p.tags->'website',
@@ -112,7 +119,7 @@ SELECT
     'brand',          p.tags->'brand'
   )) AS tags_json
 FROM planet_osm_polygon p
-LEFT JOIN einfo.municipalities m ON ST_Contains(m.geom, ST_PointOnSurface(p.way))
+LEFT JOIN einfo.municipalities m ON ST_Contains(m.geom, ST_Transform(ST_PointOnSurface(p.way), 4326))
 WHERE
   (p.amenity IS NOT NULL
   OR p.tags ? 'healthcare'
@@ -151,14 +158,15 @@ SELECT
     ', '
   ) AS address_full,
   COALESCE(m.name, p.tags->'addr:city', '') AS municipality,
-  ST_PointOnSurface(p.way) AS geom,
-  ST_Y(ST_PointOnSurface(p.way)) AS lat,
-  ST_X(ST_PointOnSurface(p.way)) AS lon,
-  -- Optional: Stockwerke + Fläche
+  -- Geometrie: immer in SRID 4326
+  ST_Transform(ST_PointOnSurface(p.way), 4326) AS geom,
+  ST_Y(ST_Transform(ST_PointOnSurface(p.way), 4326)) AS lat,
+  ST_X(ST_Transform(ST_PointOnSurface(p.way), 4326)) AS lon,
+  -- Optional: Stockwerke + Fläche (immer via 3857 für m²)
   (p.tags->'building:levels')::int AS levels,
   ST_Area(ST_Transform(p.way, 3857)) AS area_m2
 FROM planet_osm_polygon p
-LEFT JOIN einfo.municipalities m ON ST_Contains(m.geom, ST_PointOnSurface(p.way))
+LEFT JOIN einfo.municipalities m ON ST_Contains(m.geom, ST_Transform(ST_PointOnSurface(p.way), 4326))
 WHERE
   p.building IS NOT NULL
   OR p.tags ? 'building'
@@ -191,11 +199,11 @@ SELECT
     ', '
   ) AS address_full,
   COALESCE(m.name, p.tags->'addr:city', '') AS municipality,
-  p.way AS geom,
-  ST_Y(p.way) AS lat,
-  ST_X(p.way) AS lon
+  ST_Transform(p.way, 4326) AS geom,
+  ST_Y(ST_Transform(p.way, 4326)) AS lat,
+  ST_X(ST_Transform(p.way, 4326)) AS lon
 FROM planet_osm_point p
-LEFT JOIN einfo.municipalities m ON ST_Contains(m.geom, p.way)
+LEFT JOIN einfo.municipalities m ON ST_Contains(m.geom, ST_Transform(p.way, 4326))
 WHERE
   p.tags ? 'addr:housenumber'
   AND p.tags ? 'addr:street'
@@ -221,11 +229,11 @@ SELECT
     ', '
   ) AS address_full,
   COALESCE(m.name, p.tags->'addr:city', '') AS municipality,
-  ST_PointOnSurface(p.way) AS geom,
-  ST_Y(ST_PointOnSurface(p.way)) AS lat,
-  ST_X(ST_PointOnSurface(p.way)) AS lon
+  ST_Transform(ST_PointOnSurface(p.way), 4326) AS geom,
+  ST_Y(ST_Transform(ST_PointOnSurface(p.way), 4326)) AS lat,
+  ST_X(ST_Transform(ST_PointOnSurface(p.way), 4326)) AS lon
 FROM planet_osm_polygon p
-LEFT JOIN einfo.municipalities m ON ST_Contains(m.geom, ST_PointOnSurface(p.way))
+LEFT JOIN einfo.municipalities m ON ST_Contains(m.geom, ST_Transform(ST_PointOnSurface(p.way), 4326))
 WHERE
   p.tags ? 'addr:housenumber'
   AND p.tags ? 'addr:street'
@@ -257,7 +265,7 @@ WITH raw_providers AS (
     p.tags->'addr:postcode'     AS postcode,
     p.tags->'addr:city'         AS city,
     p.way AS geom_raw,
-    p.way AS geom_pt
+    ST_Transform(p.way, 4326) AS geom_pt
   FROM planet_osm_point p
   WHERE
     p.tags ? 'office' OR p.tags ? 'craft' OR p.tags ? 'industrial'
@@ -286,7 +294,7 @@ WITH raw_providers AS (
     p.tags->'addr:postcode'     AS postcode,
     p.tags->'addr:city'         AS city,
     p.way AS geom_raw,
-    ST_PointOnSurface(p.way) AS geom_pt
+    ST_Transform(ST_PointOnSurface(p.way), 4326) AS geom_pt
   FROM planet_osm_polygon p
   WHERE
     p.tags ? 'office' OR p.tags ? 'craft' OR p.tags ? 'industrial'
@@ -352,17 +360,17 @@ SELECT
   ST_YMin(ST_Extent(m.geom)) AS bbox_min_lat,
   ST_XMax(ST_Extent(m.geom)) AS bbox_max_lon,
   ST_YMax(ST_Extent(m.geom)) AS bbox_max_lat,
-  -- Counts (via Subqueries, um die Views nicht nochmal zu joinen)
+  -- Counts (via Subqueries; ST_Transform fuer SRID-Kompatibilitaet mit municipality geom in 4326)
   (SELECT count(*) FROM planet_osm_polygon b
    WHERE (b.building IS NOT NULL OR b.tags ? 'building')
-     AND ST_Contains(m.geom, ST_PointOnSurface(b.way))) AS building_count,
+     AND ST_Contains(m.geom, ST_Transform(ST_PointOnSurface(b.way), 4326))) AS building_count,
   (SELECT count(*) FROM planet_osm_point pp
    WHERE (pp.amenity IS NOT NULL OR pp.shop IS NOT NULL OR pp.tourism IS NOT NULL
           OR pp.leisure IS NOT NULL OR pp.tags ? 'healthcare' OR pp.tags ? 'emergency')
-     AND ST_Contains(m.geom, pp.way)) AS poi_count,
+     AND ST_Contains(m.geom, ST_Transform(pp.way, 4326))) AS poi_count,
   (SELECT count(*) FROM planet_osm_point pa
    WHERE pa.tags ? 'addr:housenumber' AND pa.tags ? 'addr:street'
-     AND ST_Contains(m.geom, pa.way)) AS address_count
+     AND ST_Contains(m.geom, ST_Transform(pa.way, 4326))) AS address_count
 FROM einfo.municipalities m
 GROUP BY m.id, m.name, m.geom
 ;
