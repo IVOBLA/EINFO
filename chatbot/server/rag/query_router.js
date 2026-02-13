@@ -156,7 +156,9 @@ export function hasGeoContext(query) {
     /gibt es .* in/i, /gibt es ein/i,
     /im umkreis/i, /im radius/i, /entfernung/i,
     /koordinaten/i, /standort/i,
-    /gebäude/i, /gebaeude/i, /adressen/i
+    /gebäude/i, /gebaeude/i, /adressen/i,
+    /einsatzgebiet/i, /einsatzraum/i, /lage/i,
+    /schwerpunkt/i, /hotspot/i
   ];
 
   return geoIndicators.some(pattern => pattern.test(lower));

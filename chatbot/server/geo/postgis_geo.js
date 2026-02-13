@@ -3,21 +3,242 @@
 // Verwendet die Views aus feldkirchen-adressen/postgis_pipeline/06_create_views.sql
 
 import pg from "pg";
+import fs from "fs";
+import fsPromises from "fs/promises";
+import path from "path";
+import crypto from "crypto";
+import { fileURLToPath } from "url";
 import { logDebug, logError, logInfo } from "../logger.js";
 
 const { Pool } = pg;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // ============================================================
-// Connection Pool (Singleton)
+// Connection Pool (Singleton) + Config-File-Sharing
 // ============================================================
 
 let pool = null;
 let connectionChecked = false;
 let connectionAvailable = false;
+let lastConfigFingerprint = "";
+let lastConfigMtime = 0;
+let cachedFileConfig = null;
+
+/**
+ * Lädt PostGIS-Config aus server/data/conf/postgis.json (gleiche Datei wie Admin-Panel).
+ * Robust gegenüber unterschiedlichen cwd.
+ * @returns {object|null} Config-Objekt oder null
+ */
+function loadPostgisConfig() {
+  const candidates = [
+    path.join(process.cwd(), "server/data/conf/postgis.json"),
+    path.join(process.cwd(), "data/conf/postgis.json"),
+    path.join(__dirname, "../../../server/data/conf/postgis.json"),
+  ];
+
+  if (process.env.EINFO_DATA_DIR) {
+    candidates.push(path.join(process.env.EINFO_DATA_DIR, "conf/postgis.json"));
+  }
+
+  for (const candidate of candidates) {
+    try {
+      if (fs.existsSync(candidate)) {
+        const raw = fs.readFileSync(candidate, "utf8");
+        const parsed = JSON.parse(raw);
+        const stat = fs.statSync(candidate);
+        const fingerprint = crypto.createHash("md5").update(raw).digest("hex");
+        return { config: parsed, fingerprint, mtime: stat.mtimeMs, filePath: candidate };
+      }
+    } catch {
+      // skip invalid file, try next
+    }
+  }
+  return null;
+}
+
+/**
+ * Ermittelt die Logging-Config aus postgis.json.
+ * @returns {object} Logging-relevante Flags
+ */
+function getLoggingConfig() {
+  const result = loadPostgisConfig();
+  if (!result) return { logSql: false, logResponse: false, logErrors: true, persistLogs: false, maskSensitive: true };
+  const c = result.config;
+  return {
+    logSql: !!c.logSql,
+    logResponse: !!c.logResponse,
+    logErrors: c.logErrors !== false,
+    persistLogs: !!c.persistLogs,
+    maskSensitive: c.maskSensitive !== false,
+  };
+}
+
+// ============================================================
+// Chatbot JSONL Logging (compatible with Admin postgisLogger)
+// ============================================================
+
+let logFilePath = "";
+
+function resolveLogFilePath() {
+  if (logFilePath) return logFilePath;
+  const candidates = [
+    path.join(process.cwd(), "server/logs/postgis.log"),
+    path.join(process.cwd(), "logs/postgis.log"),
+    path.join(__dirname, "../../../server/logs/postgis.log"),
+  ];
+  // Use first candidate whose directory exists or can be created
+  for (const candidate of candidates) {
+    try {
+      const dir = path.dirname(candidate);
+      if (fs.existsSync(dir)) {
+        logFilePath = candidate;
+        return logFilePath;
+      }
+    } catch { /* skip */ }
+  }
+  // Default: first candidate (will mkdir on write)
+  logFilePath = candidates[0];
+  return logFilePath;
+}
+
+function maskSensitiveValue(value, config) {
+  if (!config?.maskSensitive) return value;
+  if (typeof value !== "string") return value;
+  return value
+    .replace(/password\s*=\s*'[^']*'/gi, "password='***'")
+    .replace(/password\s*=\s*[^\s;]+/gi, "password=***");
+}
+
+/**
+ * Loggt eine PostGIS-Query aus dem Chatbot (JSONL, kompatibel mit Admin-Logs).
+ */
+async function logChatbotQuery({ sql, params, durationMs, rowCount, success, error, rows }) {
+  const config = getLoggingConfig();
+
+  const entry = {
+    ts: new Date().toISOString(),
+    source: "chatbot",
+    kind: "query",
+    ok: !!success,
+    ms: durationMs ?? null,
+    rowCount: rowCount ?? null,
+  };
+
+  if (config.logSql && sql) {
+    entry.sql = maskSensitiveValue(sql, config);
+    if (params && params.length > 0) {
+      const paramsStr = JSON.stringify(params);
+      entry.params = config.maskSensitive ? paramsStr.slice(0, 500) : paramsStr;
+    }
+  }
+
+  if (!success && error && config.logErrors) {
+    entry.error = typeof error === "string" ? error : (error.message || String(error));
+    entry.error = maskSensitiveValue(entry.error, config);
+  }
+
+  if (success && config.logResponse && rows) {
+    const preview = JSON.stringify(rows).slice(0, 800);
+    entry.responsePreview = preview;
+  }
+
+  // Persist to file if enabled
+  if (config.persistLogs) {
+    try {
+      const filePath = resolveLogFilePath();
+      const dir = path.dirname(filePath);
+      await fsPromises.mkdir(dir, { recursive: true });
+      await fsPromises.appendFile(filePath, JSON.stringify(entry) + "\n", "utf8");
+    } catch (err) {
+      // Defensive: never crash on log write failure
+      logDebug("PostGIS chatbot log persist failed", { error: String(err) });
+    }
+  } else {
+    logDebug("PostGIS chatbot query", {
+      ok: entry.ok,
+      ms: entry.ms,
+      rowCount: entry.rowCount,
+    });
+  }
+}
+
+/**
+ * Wrapped pool.query mit Logging.
+ */
+async function queryWithLogging(p, sql, params) {
+  const start = Date.now();
+  try {
+    const res = await p.query(sql, params);
+    const durationMs = Date.now() - start;
+    // Log async (fire-and-forget, don't block query)
+    logChatbotQuery({
+      sql,
+      params,
+      durationMs,
+      rowCount: res.rowCount ?? res.rows?.length ?? 0,
+      success: true,
+      rows: res.rows,
+    }).catch(() => {});
+    return res;
+  } catch (err) {
+    const durationMs = Date.now() - start;
+    logChatbotQuery({
+      sql,
+      params,
+      durationMs,
+      rowCount: 0,
+      success: false,
+      error: err,
+    }).catch(() => {});
+    throw err;
+  }
+}
 
 function getPool() {
+  // Check if config file changed -> rebuild pool
+  const fileResult = loadPostgisConfig();
+  if (fileResult) {
+    const { config, fingerprint, mtime } = fileResult;
+    if (pool && (fingerprint !== lastConfigFingerprint || mtime !== lastConfigMtime)) {
+      logInfo("PostGIS: Config-Datei geändert, Pool wird neu erstellt");
+      pool.end().catch(() => {});
+      pool = null;
+      connectionChecked = false;
+      connectionAvailable = false;
+    }
+    lastConfigFingerprint = fingerprint;
+    lastConfigMtime = mtime;
+
+    // Use file config if it has meaningful connection info
+    if (!pool && config.host && config.database && config.user && config.password) {
+      const sslConfig = config.sslMode === "require"
+        ? { rejectUnauthorized: false }
+        : config.sslMode === "verify-full"
+          ? true
+          : false;
+
+      pool = new Pool({
+        host: config.host,
+        port: Number(config.port) || 5432,
+        database: config.database,
+        user: config.user,
+        password: config.password,
+        max: 5,
+        ssl: sslConfig || undefined,
+      });
+      pool.on("error", (err) => {
+        logError("PostGIS Pool-Fehler", { error: String(err) });
+      });
+      logDebug("PostGIS: Pool aus postgis.json erstellt", { host: config.host, database: config.database });
+      cachedFileConfig = config;
+      return pool;
+    }
+  }
+
   if (pool) return pool;
 
+  // Fallback: ENV-Variablen (bisheriges Verhalten)
   const pgUrl = process.env.EINFO_PG_URL;
 
   if (pgUrl) {
@@ -30,7 +251,7 @@ function getPool() {
     const password = process.env.EINFO_DB_PASS;
 
     if (!password) {
-      logDebug("PostGIS: Kein EINFO_DB_PASS oder EINFO_PG_URL gesetzt — PostGIS deaktiviert");
+      logDebug("PostGIS: Kein postgis.json und kein EINFO_DB_PASS/EINFO_PG_URL — PostGIS deaktiviert");
       return null;
     }
 
@@ -46,12 +267,13 @@ function getPool() {
 
 /**
  * Prüft ob PostGIS verfügbar ist.
- * Ergebnis wird gecacht.
+ * Ergebnis wird gecacht. Prüft auch Config-Datei-Änderungen.
  */
 export async function isPostgisAvailable() {
+  // getPool() checks for config changes and may reset connectionChecked
+  const p = getPool();
   if (connectionChecked) return connectionAvailable;
 
-  const p = getPool();
   if (!p) {
     connectionChecked = true;
     connectionAvailable = false;
@@ -159,7 +381,7 @@ export async function nearestPoi({ categoryNorms, center, bbox, limit = 10 }) {
   `;
 
   try {
-    const res = await p.query(sql, params);
+    const res = await queryWithLogging(p, sql, params);
     return res.rows.map(formatPoiRow);
   } catch (err) {
     logError("PostGIS nearestPoi Fehler", { error: String(err) });
@@ -226,7 +448,7 @@ export async function listPoi({ categoryNorms, center, bbox, radiusM, municipali
   `;
 
   try {
-    const res = await p.query(sql, params);
+    const res = await queryWithLogging(p, sql, params);
     return res.rows.map(formatPoiRow);
   } catch (err) {
     logError("PostGIS listPoi Fehler", { error: String(err) });
@@ -272,7 +494,7 @@ export async function countBuildings({ bbox, radiusM, center, municipalityName }
   const sql = `SELECT count(*) AS cnt FROM einfo.building_src ${whereClause}`;
 
   try {
-    const res = await p.query(sql, params);
+    const res = await queryWithLogging(p, sql, params);
     const count = parseInt(res.rows[0]?.cnt || "0", 10);
     return { count, scope };
   } catch (err) {
@@ -347,7 +569,7 @@ export async function searchProviders({ queryText, providerTypes, center, bbox, 
   `;
 
   try {
-    const res = await p.query(sql, params);
+    const res = await queryWithLogging(p, sql, params);
     return res.rows.map(formatProviderRow);
   } catch (err) {
     logError("PostGIS searchProviders Fehler", { error: String(err) });
@@ -391,7 +613,7 @@ export async function listByMunicipality({ municipalityName, categoryNorms, limi
   `;
 
   try {
-    const res = await p.query(sql, params);
+    const res = await queryWithLogging(p, sql, params);
     return res.rows.map(formatPoiRow);
   } catch (err) {
     logError("PostGIS listByMunicipality Fehler", { error: String(err) });
@@ -407,7 +629,7 @@ export async function listMunicipalities() {
   if (!p) return [];
 
   try {
-    const res = await p.query("SELECT name FROM einfo.municipalities ORDER BY name");
+    const res = await queryWithLogging(p, "SELECT name FROM einfo.municipalities ORDER BY name");
     return res.rows.map(r => r.name);
   } catch (err) {
     logError("PostGIS listMunicipalities Fehler", { error: String(err) });
@@ -423,7 +645,7 @@ export async function findMunicipality(name) {
   if (!p) return null;
 
   try {
-    const res = await p.query(`
+    const res = await queryWithLogging(p, `
       SELECT name,
         ST_XMin(geom) AS min_lon, ST_YMin(geom) AS min_lat,
         ST_XMax(geom) AS max_lon, ST_YMax(geom) AS max_lat,

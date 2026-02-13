@@ -4,6 +4,8 @@
  * All endpoints require Admin role.
  */
 import express from "express";
+import fs from "fs/promises";
+import path from "path";
 import { User_requireAdmin } from "../User_auth.mjs";
 import {
   initConfigStore,
@@ -156,8 +158,59 @@ export default function createAdminPostgisRoutes({ dataDir, serverRoot }) {
   router.get("/logs", User_requireAdmin, async (req, res) => {
     try {
       const limit = Number(req.query.limit) || 200;
-      const logs = getRecentLogs(limit);
-      res.json({ ok: true, logs });
+      const ringLogs = getRecentLogs(limit);
+
+      // Also read persistent file logs if enabled
+      const config = await loadConfig();
+      let fileLogs = [];
+
+      if (config.persistLogs) {
+        const logPath = path.join(serverRoot, "logs", "postgis.log");
+        try {
+          const raw = await fs.readFile(logPath, "utf8");
+          const lines = raw.trim().split("\n");
+          // Take last N lines (tail)
+          const tail = lines.slice(-limit);
+          for (const line of tail) {
+            if (!line.trim()) continue;
+            try {
+              const entry = JSON.parse(line);
+              // Normalize: map chatbot format (ts/ok/ms) to admin format (timestamp/success/durationMs)
+              if (entry.ts && !entry.timestamp) entry.timestamp = entry.ts;
+              if (entry.ok !== undefined && entry.success === undefined) entry.success = entry.ok;
+              if (entry.ms !== undefined && entry.durationMs === undefined) entry.durationMs = entry.ms;
+              fileLogs.push(entry);
+            } catch {
+              // skip invalid JSONL lines
+            }
+          }
+        } catch {
+          // File not found or unreadable — that's fine
+        }
+      }
+
+      // Merge ring buffer + file logs, deduplicate by timestamp+requestId, sort desc
+      const seen = new Set();
+      const merged = [];
+
+      for (const entry of [...ringLogs, ...fileLogs]) {
+        const key = (entry.timestamp || entry.ts || "") + "|" + (entry.requestId || entry.kind || "");
+        if (seen.has(key)) continue;
+        seen.add(key);
+        merged.push(entry);
+      }
+
+      // Sort by timestamp descending (newest first)
+      merged.sort((a, b) => {
+        const tA = a.timestamp || a.ts || "";
+        const tB = b.timestamp || b.ts || "";
+        return tB.localeCompare(tA);
+      });
+
+      // Apply limit
+      const result = merged.slice(0, limit);
+
+      res.json({ ok: true, logs: result });
     } catch (err) {
       res.status(500).json({ ok: false, error: err.message });
     }
