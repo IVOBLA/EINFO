@@ -6,6 +6,19 @@
 import fs from "fs/promises";
 import path from "path";
 
+const DEFAULT_GEO_KEYWORDS = [
+  "adresse", "straße", "strasse", "plz", "postleitzahl",
+  "ort", "gemeinde", "stadt",
+  "nächste", "naechste", "nähe",
+  "wieviele", "wie viele", "anzahl",
+  "wo ist", "wo sind", "wo befindet", "wo liegt",
+  "gibt es", "im umkreis", "im radius", "entfernung",
+  "koordinaten", "standort",
+  "gebäude", "gebaeude", "adressen",
+  "einsatzgebiet", "einsatzraum", "lage",
+  "schwerpunkt", "hotspot",
+];
+
 const DEFAULT_CONFIG = {
   host: "127.0.0.1",
   port: 5432,
@@ -21,6 +34,7 @@ const DEFAULT_CONFIG = {
   logErrors: true,
   persistLogs: true,
   maskSensitive: true,
+  geoKeywords: DEFAULT_GEO_KEYWORDS,
 };
 
 let configFilePath = "";
@@ -63,6 +77,15 @@ export async function saveConfig(partial) {
   if (!["disabled", "require", "verify-full"].includes(merged.sslMode)) {
     merged.sslMode = "disabled";
   }
+  // geoKeywords: ensure it's a non-empty array of strings; fallback to defaults
+  if (Array.isArray(merged.geoKeywords)) {
+    merged.geoKeywords = merged.geoKeywords
+      .map(k => (typeof k === "string" ? k.trim().toLowerCase() : ""))
+      .filter(Boolean);
+  }
+  if (!Array.isArray(merged.geoKeywords) || merged.geoKeywords.length === 0) {
+    merged.geoKeywords = [...DEFAULT_GEO_KEYWORDS];
+  }
   await fs.writeFile(configFilePath, JSON.stringify(merged, null, 2), "utf8");
   return merged;
 }
@@ -73,4 +96,4 @@ export function sanitizeForFrontend(config) {
   return { ...rest, passwordSet: !!password };
 }
 
-export { DEFAULT_CONFIG };
+export { DEFAULT_CONFIG, DEFAULT_GEO_KEYWORDS };

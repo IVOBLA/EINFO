@@ -11,7 +11,7 @@ import { CONFIG } from "../config.js";
 import { detectExplicitScope, shouldApplyGeoFence, resolveCenterPoint } from "./geo_scope.js";
 
 // PostGIS-Integration (optional, Fallback auf JSONL wenn nicht verfügbar)
-import { isPostgisAvailable, nearestPoi, listPoi, countBuildings, searchProviders, listByMunicipality } from "../geo/postgis_geo.js";
+import { isPostgisAvailable, nearestPoi, listPoi, countBuildings, searchProviders, listByMunicipality, getGeoKeywords } from "../geo/postgis_geo.js";
 import { detectMunicipalityScope, resolveMunicipalityScope, extractRadius, resolveFullGeoScope } from "../geo/geo_scope.js";
 import { formatPoiContext, formatProviderContext, formatBuildingCountContext, formatGeoError } from "../geo/geo_context_formatter.js";
 
@@ -136,8 +136,23 @@ async function resolveMunicipalityBbox(municipality) {
   return normalizeBbox(entry?.bbox);
 }
 
+// Hardcoded fallback keywords (used when postgis.json has no geoKeywords)
+const DEFAULT_GEO_KEYWORDS = [
+  "adresse", "straße", "strasse", "plz", "postleitzahl",
+  "ort", "gemeinde", "stadt",
+  "nächste", "naechste", "nähe",
+  "wieviele", "wie viele", "anzahl",
+  "wo ist", "wo sind", "wo befindet", "wo liegt",
+  "gibt es", "im umkreis", "im radius", "entfernung",
+  "koordinaten", "standort",
+  "gebäude", "gebaeude", "adressen",
+  "einsatzgebiet", "einsatzraum", "lage",
+  "schwerpunkt", "hotspot",
+];
+
 /**
- * Prüft ob eine Anfrage Geo-Kontext hat
+ * Prüft ob eine Anfrage Geo-Kontext hat.
+ * Keywords werden aus postgis.json geladen (Admin-wartbar) mit Fallback auf Defaults.
  */
 export function hasGeoContext(query) {
   if (!query || typeof query !== "string") return false;
@@ -146,20 +161,11 @@ export function hasGeoContext(query) {
   // Prüfe CATEGORY_KEYWORDS
   if (extractCategoryFromQuery(query)) return true;
 
-  // Geo-Indikator-Keywords
-  const geoIndicators = [
-    /adresse/i, /straße/i, /strasse/i, /plz/i, /postleitzahl/i,
-    /ort/i, /gemeinde/i, /stadt/i,
-    /nächste/i, /naechste/i, /nähe/i,
-    /wieviele/i, /wie viele/i, /anzahl/i,
-    /wo ist/i, /wo sind/i, /wo befindet/i, /wo liegt/i,
-    /gibt es .* in/i, /gibt es ein/i,
-    /im umkreis/i, /im radius/i, /entfernung/i,
-    /koordinaten/i, /standort/i,
-    /gebäude/i, /gebaeude/i, /adressen/i
-  ];
+  // Geo-Indikator-Keywords: aus Config oder Fallback
+  const configKeywords = getGeoKeywords();
+  const keywords = configKeywords || DEFAULT_GEO_KEYWORDS;
 
-  return geoIndicators.some(pattern => pattern.test(lower));
+  return keywords.some(kw => lower.includes(kw));
 }
 
 function bboxCenter(bbox) {
