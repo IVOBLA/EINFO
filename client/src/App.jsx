@@ -2049,8 +2049,14 @@ const handleAreaChange = useCallback(async (card, rawAreaId) => {
 
 // Edit: #/protokoll/edit/:nr
 if (route.startsWith("/protokoll/edit/")) {
-  const nrStr = route.split("/")[3];
+  const qIdx = route.indexOf("?");
+  const routePath = qIdx >= 0 ? route.slice(0, qIdx) : route;
+  const routeQs = qIdx >= 0 ? route.slice(qIdx + 1) : "";
+  const nrStr = routePath.split("/")[3];
   const editNr = Number(nrStr);
+  const editParams = new URLSearchParams(routeQs);
+  const returnToRaw = editParams.get("returnTo");
+  const overviewHash = returnToRaw || "/protokoll";
   return (
     <div className="h-screen w-screen bg-gray-100 p-2 md:p-3 overflow-hidden flex flex-col min-h-0 floating-actions-safe-area">
 
@@ -2064,14 +2070,14 @@ if (route.startsWith("/protokoll/edit/")) {
       <header className="flex items-center justify-between p-3 border-b bg-white shadow">
         <h1 className="text-xl font-bold">Meldung – Bearbeiten</h1>
         <button
-          onClick={() => { window.location.hash = "/protokoll"; }}
+          onClick={() => { window.location.hash = overviewHash; }}
           className="px-3 py-1.5 rounded-md bg-gray-600 hover:bg-gray-700 text-white"
         >
           Zur Übersicht
         </button>
       </header>
       <div className="flex-1 min-h-0 overflow-y-auto p-3">
-        <ProtokollPage mode="edit" editNr={editNr} />
+        <ProtokollPage mode="edit" editNr={editNr} onRequestClose={() => { window.location.hash = overviewHash; }} />
       </div>
 
     </div>
@@ -2080,6 +2086,11 @@ if (route.startsWith("/protokoll/edit/")) {
 
 // Neu: #/protokoll/neu
 if (route.startsWith("/protokoll/neu")) {
+  const neuQIdx = route.indexOf("?");
+  const neuQs = neuQIdx >= 0 ? route.slice(neuQIdx + 1) : "";
+  const neuParams = new URLSearchParams(neuQs);
+  const neuReturnTo = neuParams.get("returnTo");
+  const neuOverviewHash = neuReturnTo || "/protokoll";
   return (
     <div className="h-screen w-screen bg-gray-100 p-2 md:p-3 overflow-hidden flex flex-col min-h-0 floating-actions-safe-area">
       <CornerHelpLogout
@@ -2092,14 +2103,14 @@ if (route.startsWith("/protokoll/neu")) {
       <header className="flex items-center justify-between p-3 border-b bg-white shadow">
         <h1 className="text-xl font-bold">Meldung – Eintrag anlegen</h1>
         <button
-          onClick={() => { window.location.hash = "/protokoll"; }}
+          onClick={() => { window.location.hash = neuOverviewHash; }}
           className="px-3 py-1.5 rounded-md bg-gray-600 hover:bg-gray-700 text-white"
         >
           Zur Übersicht
         </button>
       </header>
       <div className="flex-1 min-h-0 overflow-y-auto p-3">
-        <ProtokollPage mode="create" />
+        <ProtokollPage mode="create" onRequestClose={() => { window.location.hash = neuOverviewHash; }} />
       </div>
     </div>
   );
@@ -2142,7 +2153,9 @@ if (route.startsWith("/protokoll")) {
     <button
       onClick={() => {
         if (!protocolCanEdit || protocolS3Blocked) return;
-        window.location.hash = "/protokoll/neu";
+        const currentHash = window.location.hash.replace(/^#/, "");
+        const returnTo = encodeURIComponent(currentHash);
+        window.location.hash = `/protokoll/neu?returnTo=${returnTo}`;
       }}
       disabled={!protocolCanEdit || protocolS3Blocked}
       className={`px-3 py-1.5 rounded-md text-white ${
