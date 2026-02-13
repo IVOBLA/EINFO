@@ -483,7 +483,7 @@ function EinsatzPanel({ canInteract, onProtocolReload }) {
   );
 }
 
-export default function ProtokollOverview({ searchTerm = "", protocolCanEdit = false, protocolS3Blocked = false }) {
+export default function ProtokollOverview({ searchTerm = "", protocolCanEdit = false, protocolS3Blocked = false, roleFilter = null }) {
   const canInteract = protocolCanEdit && !protocolS3Blocked;
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -593,11 +593,29 @@ export default function ProtokollOverview({ searchTerm = "", protocolCanEdit = f
 
   const rows = useMemo(() => {
     const sorted = [...data].sort((a, b) => (Number(b.nr) || 0) - (Number(a.nr) || 0));
-    if (!hasSearch) return sorted;
+
+    // Apply role filter if active
+    let filtered = sorted;
+    if (roleFilter?.scope === "role" && roleFilter.roleId) {
+      const roleUpper = roleFilter.roleId.toUpperCase();
+      filtered = sorted.filter((item) => {
+        const matchesRecipient =
+          Array.isArray(item.ergehtAn) &&
+          item.ergehtAn.some((r) => String(r).toUpperCase() === roleUpper);
+        const createdRole = (
+          item.createdByRole ?? item.meta?.createdByRole ??
+          item.createdBy ?? item.erstelltVon ?? item.geaendertVon ?? ""
+        ).toString().toUpperCase();
+        const matchesCreator = createdRole === roleUpper;
+        return matchesRecipient || matchesCreator;
+      });
+    }
+
+    if (!hasSearch) return filtered;
 
     const match = (value) => normalizeNameValue(value).includes(searchNeedle);
 
-    return sorted.filter((item) => {
+    return filtered.filter((item) => {
       const u = item?.uebermittlungsart || {};
       const directions = []
         .concat(u.ein ? "Eingang" : [])
@@ -617,6 +635,7 @@ export default function ProtokollOverview({ searchTerm = "", protocolCanEdit = f
         directions.join(" / "),
         ...(Array.isArray(item?.ergehtAn) ? item.ergehtAn : []),
         item?.ergehtAnText,
+        item?.createdByRole,
       ];
 
       if (Array.isArray(item?.massnahmen)) {
@@ -627,7 +646,7 @@ export default function ProtokollOverview({ searchTerm = "", protocolCanEdit = f
 
       return searchableFields.some((field) => match(field));
     });
-  }, [data, hasSearch, searchNeedle]);
+  }, [data, hasSearch, searchNeedle, roleFilter]);
 
 return (
   <div className="p-3 md:p-4 h-full flex flex-col w-full protokoll-overview-wrapper">

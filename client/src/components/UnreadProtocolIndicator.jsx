@@ -17,7 +17,7 @@ import { playGong } from "../sound";
  *  - roleId  : current role id string (e.g. "S2")
  *  - className: optional extra CSS classes
  */
-export default function UnreadProtocolIndicator({ roleId, className }) {
+export default function UnreadProtocolIndicator({ roleId, className, openInNewTab = true, scope = "role" }) {
   const { user } = useUserAuth() || {};
   const seenStorageKey = useMemo(() => resolveSeenStorageKey(user), [user]);
   const [seenEntries, setSeenEntries] = useState({});
@@ -164,10 +164,16 @@ export default function UnreadProtocolIndicator({ roleId, className }) {
   // Don't render if nothing to show
   if (!unreadCount) return null;
 
-  const tooltipText = `${unreadCount} ungelesene Meldung${unreadCount === 1 ? "" : "en"} für ${roleId} – klicken zum Öffnen`;
+  const tooltipText = `${unreadCount} ungelesene Meldung${unreadCount === 1 ? "" : "en"} für ${roleId} – klicken zum Öffnen (neuer Tab)`;
 
   const handleClick = () => {
-    window.location.hash = `/protokoll?search=${encodeURIComponent(roleId)}`;
+    const targetHash = `/protokoll?role=${encodeURIComponent(roleId)}&scope=${encodeURIComponent(scope)}`;
+    if (openInNewTab) {
+      const url = `${window.location.pathname}${window.location.search}#${targetHash}`;
+      window.open(url, "_blank", "noopener,noreferrer");
+    } else {
+      window.location.hash = targetHash;
+    }
   };
 
   return (
