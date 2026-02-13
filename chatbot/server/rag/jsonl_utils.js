@@ -3,6 +3,109 @@
 
 import crypto from "crypto";
 
+// ============================================================
+// DocType-Normalisierung (Bug-Fix: Plural -> Singular)
+// ============================================================
+const DOC_TYPE_ALIASES = {
+  addresses: "address",
+  buildings: "building",
+  pois: "poi",
+  document_snippets: "document_snippet"
+};
+
+export function normalizeDocType(dt) {
+  if (!dt || typeof dt !== "string") return "document_snippet";
+  const lower = dt.trim().toLowerCase();
+  return DOC_TYPE_ALIASES[lower] || lower;
+}
+
+// ============================================================
+// Flat-Field-Promotion (JSONL mit flat lat/lon/street -> nested)
+// ============================================================
+export function promoteFlatFields(record) {
+  if (!record || typeof record !== "object") return record;
+
+  // Promote flat geo fields -> record.geo
+  if (record.lat !== undefined && record.lon !== undefined && !record.geo) {
+    const lat = parseFloat(record.lat);
+    const lon = parseFloat(record.lon);
+    if (!Number.isNaN(lat) && !Number.isNaN(lon)) {
+      record.geo = { lat, lon };
+    }
+  }
+
+  // Promote flat address fields -> record.address
+  if (!record.address || typeof record.address === "string") {
+    const fullAddress = typeof record.address === "string" ? record.address : null;
+    const hasAnyField = record.street || record.housenumber || record.postcode || record.place || fullAddress;
+    if (hasAnyField) {
+      record.address = {
+        full: fullAddress || undefined,
+        street: record.street || undefined,
+        housenumber: record.housenumber || undefined,
+        postcode: record.postcode || undefined,
+        city: record.place || undefined,
+        municipality: record.place || undefined
+      };
+    }
+  }
+
+  // Promote flat ids fields -> record.ids
+  if ((record.osm_type || record.osm_id !== undefined) && !record.ids) {
+    record.ids = {
+      osm_type: record.osm_type,
+      osm_id: record.osm_id
+    };
+  }
+
+  return record;
+}
+
+// ============================================================
+// OSM Category-Normalisierung
+// ============================================================
+const TAG_PRIORITY = ["amenity", "shop", "craft", "tourism", "leisure", "office", "healthcare", "emergency"];
+
+export function deriveOsmNormFields(record) {
+  if (!record || typeof record !== "object") return record;
+
+  // Wenn category schon "key:value" Format hat -> direkt nutzen
+  if (record.category && typeof record.category === "string" && record.category.includes(":")) {
+    const [tagKey, ...rest] = record.category.split(":");
+    const tagValue = rest.join(":");
+    record.category_norm = record.category.toLowerCase();
+    record.primary_tag_key = tagKey.toLowerCase();
+    record.primary_tag_value = tagValue.toLowerCase();
+    record.poi_class = tagValue.toLowerCase();
+    return record;
+  }
+
+  // Aus tags ableiten
+  if (record.tags && typeof record.tags === "object") {
+    for (const tagKey of TAG_PRIORITY) {
+      const tagValue = record.tags[tagKey];
+      if (tagValue && typeof tagValue === "string" && tagValue !== "yes") {
+        record.category_norm = `${tagKey}:${tagValue}`.toLowerCase();
+        record.primary_tag_key = tagKey.toLowerCase();
+        record.primary_tag_value = tagValue.toLowerCase();
+        record.poi_class = tagValue.toLowerCase();
+        return record;
+      }
+    }
+  }
+
+  // Fallback: category as-is
+  if (record.category) {
+    record.category_norm = String(record.category).toLowerCase();
+  }
+
+  return record;
+}
+
+// ============================================================
+// Bestehende Funktionen
+// ============================================================
+
 export function normalizeStreet(street) {
   if (!street || typeof street !== "string") return street;
   return street.trim().toLowerCase().replace(/\s+/g, " ");
@@ -89,13 +192,21 @@ export function normalizeJsonlRecord(rawRecord, rawLine = "") {
   if (!rawRecord || typeof rawRecord !== "object") return null;
 
   const record = { ...rawRecord };
-  record.doc_type = record.doc_type || "document_snippet";
+
+  // Flat-Fields zu nested promoten (lat/lon -> geo, street -> address, etc.)
+  promoteFlatFields(record);
+
+  // DocType normalisieren (addresses -> address)
+  record.doc_type = normalizeDocType(record.doc_type || "document_snippet");
   record.source = record.source || "UNKNOWN";
   record.doc_id = buildDocId(record, rawLine);
 
   if (record.address?.street && !record.address.street_norm) {
     record.address.street_norm = normalizeStreet(record.address.street);
   }
+
+  // OSM-Normalisierungsfelder ableiten (category_norm, poi_class, etc.)
+  deriveOsmNormFields(record);
 
   if (!record.content || typeof record.content !== "string" || !record.content.trim()) {
     record.content = buildFallbackContent(record);
@@ -143,6 +254,10 @@ export function buildChunkMetadata(record) {
     source: record.source,
     region: record.region,
     category: record.category,
+    category_norm: record.category_norm,
+    primary_tag_key: record.primary_tag_key,
+    primary_tag_value: record.primary_tag_value,
+    poi_class: record.poi_class,
     title: record.title,
     name: record.name,
     address,

@@ -389,8 +389,8 @@ export async function callLLMForChat(arg1, arg2, arg3) {
     taskType = "chat",
     bbox
   } = arg1 || {};
-  // Enhanced Context via Query-Router (inkl. Geo, Session, Memory)
-  const { context: enhancedContext, intent, stats } = await getEnhancedContext(question, {
+  // Enhanced Context via Query-Router (inkl. Geo, Session, Memory, BBox-Enforcement)
+  const { context: enhancedContext, intent, bboxFilter: resolvedBboxFilter, stats } = await getEnhancedContext(question, {
     maxChars: 3000,
     taskType,
     bbox
@@ -399,7 +399,8 @@ export async function callLLMForChat(arg1, arg2, arg3) {
   logDebug("Chat: Enhanced Context", {
     intentType: intent.type,
     confidence: intent.confidence,
-    contextLength: stats.contextLength
+    contextLength: stats.contextLength,
+    bboxApplied: resolvedBboxFilter?.applyBbox || false
   });
 
   // enhancedContext enthält bereits BBOX-gefilterten Knowledge-Kontext vom Query-Router.
