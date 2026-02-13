@@ -1563,6 +1563,7 @@ app.use("/api/sim", proxyChatbotRequest);
 // Hinweis: /api/situation/analysis-config wird lokal im Main-Server verarbeitet (Zeile ~3811)
 app.get("/api/situation/status", proxyChatbotRequest);
 app.post("/api/situation/analysis-loop/sync", proxyChatbotRequest);
+app.get("/api/situation/analysis/status/stream", proxyChatbotRequest); // SSE Status-Stream
 app.get("/api/situation/analysis", proxyChatbotRequest);
 app.post("/api/situation/question", proxyChatbotRequest);
 app.post("/api/situation/suggestion/feedback", proxyChatbotRequest);

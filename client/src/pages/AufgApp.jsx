@@ -16,6 +16,7 @@ import AufgInfoModal from "../components/AufgInfoModal.jsx";
 import AufgSortableCard from "../components/AufgSortableCard.jsx";
 import TaskProtocolModal from "../components/TaskProtocolModal.jsx";
 import SituationAnalysisPanel from "../components/SituationAnalysisPanel.jsx";
+import AnalysisStatusProvider from "../context/AnalysisStatusContext.jsx";
 import { initRolePolicy, canEditApp, getAllRoles, hasRole } from "../auth/roleUtils.js";
 import { playGong } from "../sound"; // gleicher Sound wie im Einsatz-Kanban
 import { fetchBoard } from "../api.js";
@@ -1073,11 +1074,13 @@ export default function AufgApp() {
           setProtocolPrefillPayload(null);
         }}
       />
-      {/* KI-Situationsanalyse Panel */}
-      <SituationAnalysisPanel
-        currentRole={roleId}
-        enabled={true}
-      />
+      {/* KI-Situationsanalyse Panel – AnalysisStatusProvider liefert globalen Status */}
+      <AnalysisStatusProvider role={roleId} enabled={true}>
+        <SituationAnalysisPanel
+          currentRole={roleId}
+          enabled={true}
+        />
+      </AnalysisStatusProvider>
     </div>
   );
 }

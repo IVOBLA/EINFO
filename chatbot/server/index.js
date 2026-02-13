@@ -2532,6 +2532,61 @@ app.get("/api/situation/analysis", async (req, res) => {
   }
 });
 
+// SSE Status-Stream für Analyse-Status (leichtgewichtig, nur Status-Felder)
+// Wird vom Frontend verwendet um analysisInProgress global aktuell zu halten
+app.get("/api/situation/analysis/status/stream", (req, res) => {
+  const role = (req.query.role || "").trim().toUpperCase();
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+  res.flushHeaders();
+
+  // Hilfsfunktion: Status-Event senden
+  const sendStatus = () => {
+    if (!res.writable || res.destroyed) return;
+    try {
+      const timer = getAnalysisTimerStatus();
+      const payload = {
+        role: role || null,
+        analysisInProgress: timer.analysisInProgress,
+        timer
+      };
+      res.write(`event: status\ndata: ${JSON.stringify(payload)}\n\n`);
+    } catch {
+      // Schreibfehler ignorieren
+    }
+  };
+
+  // Sofort Status senden
+  sendStatus();
+
+  // Periodisch Status senden (alle 3 Sekunden)
+  const statusInterval = setInterval(sendStatus, 3000);
+
+  // Heartbeat alle 30 Sekunden
+  const heartbeat = setInterval(() => {
+    if (!res.writable || res.destroyed) {
+      clearInterval(heartbeat);
+      clearInterval(statusInterval);
+      return;
+    }
+    try {
+      res.write(`: heartbeat\n\n`);
+    } catch {
+      clearInterval(heartbeat);
+      clearInterval(statusInterval);
+    }
+  }, 30000);
+
+  // Cleanup bei Disconnect
+  req.on("close", () => {
+    clearInterval(statusInterval);
+    clearInterval(heartbeat);
+  });
+});
+
 // Frage an KI stellen (blockiert bei laufender KI-Analyse)
 app.post(
   "/api/situation/question",

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { buildChatbotApiUrl } from "../utils/http.js";
+import { useAnalysisStatus } from "../context/AnalysisStatusContext.jsx";
 import AufgAddModal from "./AufgAddModal.jsx";
 
 const PRIORITY_COLORS = {
@@ -517,16 +518,18 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
     }
   }, [currentRole]);
 
-  const [analysisInProgress, setAnalysisInProgress] = useState(false);
-  // Timer-Status für Anzeige der nächsten Analyse
-  const [timerStatus, setTimerStatus] = useState(null);
+  // analysisInProgress + timerStatus kommen jetzt aus dem globalen Context
+  const { analysisInProgress, timerStatus } = useAnalysisStatus();
 
   // fetchAnalysis: cacheOnly=true lädt nur gecachte Daten ohne neue Analyse zu starten
   // forceRefresh=true erzwingt eine neue Analyse
-  const fetchAnalysis = useCallback(async (forceRefresh = false, cacheOnly = false) => {
+  // silent=true verhindert Loading-Flicker (kein setLoading, kein Reset von analysisData)
+  const fetchAnalysis = useCallback(async (forceRefresh = false, cacheOnly = false, silent = false) => {
     if (!resolvedEnabled) return;
-    setLoading(true);
-    setError(null);
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
 
     try {
       let url = buildChatbotApiUrl(`/api/situation/analysis?role=${selectedRole}`);
@@ -535,58 +538,61 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
       } else if (cacheOnly) {
         url += "&cacheOnly=true";
       }
-      const res = await fetch(url);
+      const res = await fetch(url, { cache: "no-store" });
 
       // Prüfe Content-Type und Status vor JSON-Parsing
       const contentType = res.headers.get("content-type") || "";
       if (!res.ok) {
-        const errorText = contentType.includes("application/json")
-          ? (await res.json().catch(() => ({}))).error || `HTTP ${res.status}`
-          : `Server-Fehler: ${res.status} ${res.statusText}`;
-        setError(errorText);
+        if (!silent) {
+          const errorText = contentType.includes("application/json")
+            ? (await res.json().catch(() => ({}))).error || `HTTP ${res.status}`
+            : `Server-Fehler: ${res.status} ${res.statusText}`;
+          setError(errorText);
+        }
         return;
       }
 
       if (!contentType.includes("application/json")) {
-        setError("Server hat keine gültige JSON-Antwort geliefert");
+        if (!silent) setError("Server hat keine gültige JSON-Antwort geliefert");
         return;
       }
 
       const data = await res.json();
 
-      // Timer-Status speichern (wenn vorhanden)
-      if (data.timer) {
-        setTimerStatus(data.timer);
-      }
-
       // Wenn noCache=true bedeutet das, dass noch keine Analyse durchgeführt wurde
       if (data.noCache) {
-        setAnalysisData(null);
-        setAnalysisInProgress(data.analysisInProgress || data.timer?.analysisInProgress || false);
+        if (!silent) setAnalysisData(null);
         return;
       }
 
       if (data.error) {
-        if (data.isActive === false) {
-          setError("Analyse nicht verfügbar (Simulation läuft)");
-        } else {
-          setError(data.error);
+        if (!silent) {
+          if (data.isActive === false) {
+            setError("Analyse nicht verfügbar (Simulation läuft)");
+          } else {
+            setError(data.error);
+          }
         }
         return;
       }
 
-      setAnalysisData(data);
-      setAnalysisInProgress(data.analysisInProgress || data.timer?.analysisInProgress || false);
+      // Nur updaten wenn sich Daten wirklich geändert haben (verhindert Flicker)
+      setAnalysisData((prev) => {
+        if (!prev) return data;
+        if (JSON.stringify(prev) === JSON.stringify(data)) return prev;
+        return data;
+      });
     } catch (err) {
-      setError(String(err.message || err));
+      if (!silent) setError(String(err.message || err));
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [selectedRole, resolvedEnabled]);
 
   // SSE-Verbindung für Live-Updates wenn Analyse fertig ist
+  // Lauscht immer (auch bei geschlossenem Panel), damit Content sofort da ist beim Öffnen
   useEffect(() => {
-    if (!isOpen || !resolvedEnabled) return;
+    if (!resolvedEnabled) return;
 
     let eventSource = null;
     try {
@@ -595,11 +601,11 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
       eventSource.addEventListener("analysis_complete", (event) => {
         try {
           const data = JSON.parse(event.data);
-          // Wenn unsere Rolle in den aktualisierten Rollen ist, Cache neu laden
+          // Wenn unsere Rolle in den aktualisierten Rollen ist, Cache neu laden (silent)
           if (data.roles && data.roles.includes(selectedRole)) {
-            fetchAnalysis(false, true); // cacheOnly=true, neue Daten aus Cache holen
+            fetchAnalysis(false, true, true); // cacheOnly=true, silent=true
           }
-        } catch (e) {
+        } catch {
           // JSON-Parse-Fehler ignorieren
         }
       });
@@ -607,7 +613,7 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
       eventSource.onerror = () => {
         // SSE-Verbindungsfehler ignorieren, reconnect erfolgt automatisch
       };
-    } catch (e) {
+    } catch {
       // SSE nicht verfügbar, ignorieren
     }
 
@@ -616,10 +622,10 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
         eventSource.close();
       }
     };
-  }, [isOpen, resolvedEnabled, selectedRole, fetchAnalysis]);
+  }, [resolvedEnabled, selectedRole, fetchAnalysis]);
 
-  // Beim Öffnen des Panels nur gecachte Daten laden (keine neue Analyse starten)
-  // Neue Analysen werden automatisch im Backend nach dem eingestellten Intervall durchgeführt
+  // Beim Öffnen des Panels: Cache laden (nicht-silent beim ersten Mal, silent beim Polling)
+  // Kein Polling wenn Panel geschlossen – Status kommt global via AnalysisStatusContext
   useEffect(() => {
     if (!isOpen || !resolvedEnabled) {
       if (pollIntervalRef.current) {
@@ -629,13 +635,13 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
       return;
     }
 
-    // Beim Öffnen nur Cache laden - KEINE neue Analyse starten
-    fetchAnalysis(false, true); // cacheOnly=true
+    // Beim Öffnen Cache laden - KEINE neue Analyse starten
+    fetchAnalysis(false, true); // cacheOnly=true, nicht silent beim initialen Load
 
-    // Polling um analysisInProgress-Status zu aktualisieren (alle 10 Sekunden wenn Panel offen)
-    // Dies ist nur für den Status-Indikator, nicht um neue Analysen zu starten
+    // Silent Polling für Content-Updates (alle 10 Sekunden wenn Panel offen)
+    // Kein Loading-Blink, kein Content-Reset – nur stille Aktualisierung
     pollIntervalRef.current = setInterval(() => {
-      fetchAnalysis(false, true); // cacheOnly=true
+      fetchAnalysis(false, true, true); // cacheOnly=true, silent=true
     }, 10000);
 
     return () => {
