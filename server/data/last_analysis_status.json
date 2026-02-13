@@ -1,2 +1,97 @@
-{  
+{
+  "lastAnalysis": {
+    "timestamp": 1770975387384,
+    "tokensUsed": 326,
+    "tokensLimit": 2500,
+    "appliedRules": {
+      "R1_ABSCHNITTE": {
+        "enabled": true,
+        "items_shown": 0,
+        "max_items": 5
+      },
+      "R2_PROTOKOLL": {
+        "enabled": true,
+        "items_shown": 1,
+        "max_items": 10
+      },
+      "R3_TRENDS": {
+        "enabled": true,
+        "direction": "escalating",
+        "strength": "strong"
+      },
+      "R4_RESSOURCEN": {
+        "enabled": true,
+        "shortage": false,
+        "utilization": 0
+      },
+      "R5_STABS_FOKUS": {
+        "enabled": true,
+        "active": true,
+        "individual_incidents_shown": 3,
+        "critical_candidates": 5,
+        "selected_count": 3,
+        "fallback_used": false,
+        "fallback_top_n": 5,
+        "min_required": 1,
+        "min_score": 0.6,
+        "top_scores": [
+          0.85,
+          0.85,
+          0.85
+        ]
+      }
+    },
+    "fingerprint": {
+      "version": "1.0",
+      "timestamp": 1770975387384,
+      "disaster_type": "Schnee",
+      "phase": "initial",
+      "hours_running": 0,
+      "total_sections": 0,
+      "active_sections": 0,
+      "critical_sections": 0,
+      "filtered_sections_count": 0,
+      "critical_section_names": [],
+      "standalone_incidents": 9,
+      "standalone_incidents_active": 9,
+      "total_incidents": 9,
+      "active_incidents": 9,
+      "critical_incidents": 0,
+      "new_incidents_last_hour": 5,
+      "closed_incidents_last_hour": 0,
+      "geographic_pattern": "unknown",
+      "hotspot_count": 0,
+      "hotspot_locations": [],
+      "incidents_in_hotspots": 0,
+      "incidents_scattered": 9,
+      "trend_direction": "escalating",
+      "trend_strength": "strong",
+      "forecast_2h_incidents": 5,
+      "total_units": 8,
+      "available_units": 8,
+      "deployed_units": 0,
+      "utilization_percent": 0,
+      "resource_shortage": false,
+      "total_personnel": 66,
+      "deployed_personnel": 0,
+      "available_personnel": 66,
+      "avg_incident_duration_minutes": 25,
+      "dominant_protocol_types": [
+        "Sicherheitskritisch"
+      ],
+      "open_questions_count": 0,
+      "resource_requests_count": 0,
+      "safety_critical_count": 1,
+      "protocol_entries_total": 1,
+      "incidents_added_since_last": 0,
+      "incidents_closed_since_last": 0,
+      "utilization_change_percent": 0,
+      "protocol_entries_since_last": 0,
+      "external_deadlines": false,
+      "media_interest": true,
+      "infrastructure_threatened": false,
+      "communication_problems": false
+    }
+  },
+  "timestamp": 1770975387384
 }
