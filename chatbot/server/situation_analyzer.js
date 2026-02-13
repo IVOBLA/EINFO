@@ -19,7 +19,10 @@ import { getKnowledgeContextWithSources, addToVectorRAG } from "./rag/rag_vector
 import { getCurrentSession } from "./rag/session_rag.js";
 import { filterSuggestionsForRole, dismissSuggestion, acceptSuggestion, initSuggestionFilter, getExcludeContextForPrompt } from "./suggestion_filter.js";
 import { detectExplicitScope, shouldApplyGeoFence } from "./rag/geo_scope.js";
-import { hasGeoContext } from "./rag/query_router.js";
+import { hasGeoContext, getEnhancedContext } from "./rag/query_router.js";
+
+// PostGIS-Integration für Live-Geo-Kontext
+import { isPostgisAvailable } from "./geo/postgis_geo.js";
 
 const __filename = fileURLToPath(import.meta.url);
 
@@ -965,6 +968,35 @@ export async function answerQuestion(question, role, context = "aufgabenboard", 
       relevance: 100,
       preview: "Live-Daten aus laufendem Einsatz"
     });
+  }
+
+  // PostGIS Geo-Context: Wenn Frage einen Geo-Bezug hat, Live-Daten aus PostGIS holen
+  const postgisReady = await isPostgisAvailable();
+  if (postgisReady && hasGeoContext(question)) {
+    try {
+      const bbox = ragFilters?.bbox || requestBbox || await readScenarioBbox();
+      const geoResult = await getEnhancedContext(question, {
+        bbox,
+        scenarioConfig: { bbox },
+        taskType: taskType,
+      });
+      if (geoResult?.context) {
+        ragContextSection += "\n\n" + geoResult.context;
+        allSources.push({
+          type: "postgis",
+          fileName: "OSM/PostGIS Live-Daten",
+          relevance: 95,
+          preview: "Geografische Daten aus OpenStreetMap (PostGIS)"
+        });
+        logDebug("answerQuestion: PostGIS Geo-Kontext hinzugefügt", {
+          contextLength: geoResult.context.length,
+          intentType: geoResult.intent?.type,
+        });
+      }
+    } catch (geoErr) {
+      logError("answerQuestion: PostGIS Geo-Kontext Fehler", { error: String(geoErr) });
+      // Weiter ohne Geo-Kontext
+    }
   }
 
   // Truncate combined context to totalMaxChars safety cap
