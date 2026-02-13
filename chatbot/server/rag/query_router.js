@@ -10,6 +10,11 @@ import { logDebug } from "../logger.js";
 import { CONFIG } from "../config.js";
 import { detectExplicitScope, shouldApplyGeoFence, resolveCenterPoint } from "./geo_scope.js";
 
+// PostGIS-Integration (optional, Fallback auf JSONL wenn nicht verfügbar)
+import { isPostgisAvailable, nearestPoi, listPoi, countBuildings, searchProviders, listByMunicipality } from "../geo/postgis_geo.js";
+import { detectMunicipalityScope, resolveMunicipalityScope, extractRadius, resolveFullGeoScope } from "../geo/geo_scope.js";
+import { formatPoiContext, formatProviderContext, formatBuildingCountContext, formatGeoError } from "../geo/geo_context_formatter.js";
+
 /**
  * Intent-Typen
  */
@@ -462,29 +467,52 @@ export async function routeQuery(query, context = {}) {
     explicitScope,
   });
 
+  // PostGIS-Verfügbarkeit prüfen (gecacht)
+  const postgisReady = await isPostgisAvailable();
+
+  // Municipality-Scope erkennen (für PostGIS-Gemeindegrenzen)
+  let municipalityScope = null;
+  if (postgisReady) {
+    const { municipalityName } = detectMunicipalityScope(query);
+    if (municipalityName) {
+      municipalityScope = await resolveMunicipalityScope(municipalityName);
+    }
+  }
+
   // Nur BBox auflösen wenn Geo-Fence aktiv
   let bboxFilter = { applyBbox: false };
   if (geoFenceActive && taskGeo.bboxFilterEnabled) {
-    const bboxCandidate = await resolveBboxCandidate(query, context, taskGeo);
-    if (bboxCandidate) {
+    // Wenn Municipality-Scope erkannt: deren BBox verwenden
+    if (municipalityScope) {
       bboxFilter = {
-        bbox: bboxCandidate,
+        bbox: municipalityScope.bbox,
         applyBbox: true,
         docTypes: taskGeo.bboxFilterDocTypes,
       };
-    } else if (taskGeo.bboxFilterMode === "auto_municipality" || taskGeo.bboxFilterMode === "both") {
-      logDebug("QueryRouter: BBOX filter enabled but no bbox resolved; falling back to unbounded retrieval", {
-        bboxFilterMode: taskGeo.bboxFilterMode,
-        query: query.slice(0, 80)
-      });
+    } else {
+      const bboxCandidate = await resolveBboxCandidate(query, context, taskGeo);
+      if (bboxCandidate) {
+        bboxFilter = {
+          bbox: bboxCandidate,
+          applyBbox: true,
+          docTypes: taskGeo.bboxFilterDocTypes,
+        };
+      } else if (taskGeo.bboxFilterMode === "auto_municipality" || taskGeo.bboxFilterMode === "both") {
+        logDebug("QueryRouter: BBOX filter enabled but no bbox resolved; falling back to unbounded retrieval", {
+          bboxFilterMode: taskGeo.bboxFilterMode,
+          query: query.slice(0, 80)
+        });
+      }
     }
   }
 
   // Center-Point für Distanzberechnung auflösen
-  const centerPoint = await resolveCenterPoint({
-    scenarioConfig: context?.scenarioConfig,
-    requestBbox: bboxFilter.applyBbox ? bboxFilter.bbox : (context?.bbox || null),
-  });
+  const centerPoint = municipalityScope?.center
+    ? { ...municipalityScope.center, source: "MUNICIPALITY" }
+    : await resolveCenterPoint({
+        scenarioConfig: context?.scenarioConfig,
+        requestBbox: bboxFilter.applyBbox ? bboxFilter.bbox : (context?.bbox || null),
+      });
 
   logDebug("QueryRouter: Intent erkannt", {
     query: query.slice(0, 50),
@@ -494,6 +522,8 @@ export async function routeQuery(query, context = {}) {
     applyGeoFence: geoFenceActive,
     bboxActive: bboxFilter.applyBbox,
     centerSource: centerPoint.source,
+    postgisReady,
+    municipalityScope: municipalityScope?.name || null,
   });
 
   const results = {
@@ -503,33 +533,34 @@ export async function routeQuery(query, context = {}) {
     bboxFilter
   };
 
+  // PostGIS-erweiterter Kontext für Handler
+  const pgCtx = { postgisReady, municipalityScope };
+
   try {
     switch (intent.type) {
       case IntentTypes.GEO_RADIUS:
-        results.data = await handleGeoRadius(query, intent.params, context, bboxFilter, centerPoint);
-        results.context = formatGeoContext(results.data);
+        results.data = await handleGeoRadius(query, intent.params, context, bboxFilter, centerPoint, pgCtx);
+        results.context = results.data._postgisContext || formatGeoContext(results.data);
         break;
 
       case IntentTypes.GEO_NEAREST:
-        results.data = await handleGeoNearest(query, intent.params, context, bboxFilter, centerPoint);
-        results.context = formatGeoContext(results.data);
+        results.data = await handleGeoNearest(query, intent.params, context, bboxFilter, centerPoint, pgCtx);
+        results.context = results.data._postgisContext || formatGeoContext(results.data);
         break;
 
       case IntentTypes.GEO_NEAREST_POI:
-        results.data = await handleGeoNearestPoi(query, intent.params, context, bboxFilter, centerPoint);
-        // count=0 ist ein gültiges deterministisches Ergebnis – kein Fallback auf semantische Suche
-        results.context = formatGeoContext(results.data);
+        results.data = await handleGeoNearestPoi(query, intent.params, context, bboxFilter, centerPoint, pgCtx);
+        results.context = results.data._postgisContext || formatGeoContext(results.data);
         break;
 
       case IntentTypes.GEO_COUNT:
-        results.data = await handleGeoCount(query, intent.params, context, bboxFilter);
-        results.context = formatGeoCountContext(results.data);
+        results.data = await handleGeoCount(query, intent.params, context, bboxFilter, pgCtx);
+        results.context = results.data._postgisContext || formatGeoCountContext(results.data);
         break;
 
       case IntentTypes.GEO_LIST:
-        results.data = await handleGeoList(query, intent.params, context, bboxFilter, centerPoint);
-        // count=0 ist ein gültiges deterministisches Ergebnis – kein Fallback auf semantische Suche
-        results.context = formatGeoContext(results.data);
+        results.data = await handleGeoList(query, intent.params, context, bboxFilter, centerPoint, pgCtx);
+        results.context = results.data._postgisContext || formatGeoContext(results.data);
         break;
 
       case IntentTypes.GEO_ADDRESS:
@@ -538,8 +569,8 @@ export async function routeQuery(query, context = {}) {
         break;
 
       case IntentTypes.GEO_PROVIDER_SEARCH:
-        results.data = await handleGeoProviderSearch(query, intent.params, context, bboxFilter, centerPoint);
-        results.context = formatGeoContext(results.data);
+        results.data = await handleGeoProviderSearch(query, intent.params, context, bboxFilter, centerPoint, pgCtx);
+        results.context = results.data._postgisContext || formatGeoContext(results.data);
         break;
 
       case IntentTypes.RESOURCE:
@@ -577,12 +608,11 @@ export async function routeQuery(query, context = {}) {
 // Handler für verschiedene Intent-Typen
 // ============================================================
 
-async function handleGeoRadius(query, params, context, bboxFilter, centerPoint) {
+async function handleGeoRadius(query, params, context, bboxFilter, centerPoint, pgCtx = {}) {
   let { lat, lon, radius } = params;
 
   // Wenn keine Koordinaten angegeben, versuche aus Query zu extrahieren
   if (!lat || !lon) {
-    // Versuche Adresse aus Query zu extrahieren
     const addressMatch = query.match(/(?:um|bei|von)\s+([^,]+(?:,\s*\d{4,5})?)/i);
     if (addressMatch) {
       const geocoded = await geocodeAddress(addressMatch[1], { applyBbox: false });
@@ -599,6 +629,32 @@ async function handleGeoRadius(query, params, context, bboxFilter, centerPoint) 
     lon = centerPoint.lon;
   }
 
+  // PostGIS: Radius-Suche
+  if (pgCtx.postgisReady) {
+    const radiusM = (radius || 5) * 1000; // km -> m
+    const catMatch = extractCategoryFromQuery(query);
+    const categoryNorms = catMatch ? [catMatch.categoryNorm] : null;
+
+    const rows = await listPoi({
+      categoryNorms,
+      center: { lat, lon },
+      radiusM,
+      bbox: bboxFilter?.applyBbox ? bboxFilter.bbox : null,
+      limit: 20,
+    });
+
+    const scope = `Radius ${radius || 5} km um ${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+    return {
+      type: "geo_radius",
+      center: { lat, lon },
+      radius,
+      locations: rows,
+      count: rows.length,
+      _postgisContext: formatPoiContext(rows, { type: "geo_radius", categoryNorm: catMatch?.categoryNorm, scope }),
+    };
+  }
+
+  // Fallback: JSONL-basierte Suche
   const locations = await searchInRadius(lat, lon, radius || 5, {
     limit: 20,
     ...bboxFilter
@@ -613,7 +669,7 @@ async function handleGeoRadius(query, params, context, bboxFilter, centerPoint) 
   };
 }
 
-async function handleGeoNearest(query, params, context, bboxFilter, centerPoint) {
+async function handleGeoNearest(query, params, context, bboxFilter, centerPoint, pgCtx = {}) {
   const { searchFor } = params;
 
   // Versuche Typ zu erkennen
@@ -625,10 +681,36 @@ async function handleGeoNearest(query, params, context, bboxFilter, centerPoint)
   if (/schule/i.test(searchFor)) type = "school";
   if (/kirche/i.test(searchFor)) type = "church";
 
-  // Zentrum: resolveCenterPoint (Einsatzstellen > BBox > Fallback)
   const lat = centerPoint.lat;
   const lon = centerPoint.lon;
 
+  // PostGIS: category_norm Mapping für nearest-Suche
+  if (pgCtx.postgisReady) {
+    const catMatch = extractCategoryFromQuery(query);
+    const categoryNorms = catMatch ? [catMatch.categoryNorm] : null;
+
+    const rows = await nearestPoi({
+      categoryNorms,
+      center: { lat, lon },
+      bbox: bboxFilter?.applyBbox ? bboxFilter.bbox : null,
+      limit: 10,
+    });
+
+    const scope = pgCtx.municipalityScope
+      ? `Gemeinde ${pgCtx.municipalityScope.name}`
+      : (bboxFilter?.applyBbox ? "Einsatzbereich (BBox)" : "gesamt");
+
+    return {
+      type: "geo_nearest",
+      searchFor,
+      filterType: type,
+      locations: rows,
+      count: rows.length,
+      _postgisContext: formatPoiContext(rows, { type: "geo_nearest", categoryNorm: catMatch?.categoryNorm, scope }),
+    };
+  }
+
+  // Fallback: JSONL
   const locations = await findNearestLocations(lat, lon, 10, {
     type,
     namedOnly: true,
@@ -655,17 +737,47 @@ async function handleGeoAddress(address, bboxFilter) {
   };
 }
 
-async function handleGeoNearestPoi(query, params, context, bboxFilter, centerPoint) {
+async function handleGeoNearestPoi(query, params, context, bboxFilter, centerPoint, pgCtx = {}) {
   const { categoryNorm } = params;
+
+  // PostGIS: KNN-Suche
+  if (pgCtx.postgisReady) {
+    const muniName = pgCtx.municipalityScope?.name || null;
+    const rows = muniName
+      ? await listByMunicipality({ municipalityName: muniName, categoryNorms: [categoryNorm], limit: 10 })
+      : await nearestPoi({
+          categoryNorms: [categoryNorm],
+          center: { lat: centerPoint.lat, lon: centerPoint.lon },
+          bbox: bboxFilter?.applyBbox ? bboxFilter.bbox : null,
+          limit: 10,
+        });
+
+    const scope = muniName
+      ? `Gemeinde ${muniName}`
+      : (bboxFilter?.applyBbox ? "Einsatzbereich (BBox)" : "nächstgelegen");
+
+    logDebug("GEO_NEAREST_POI (PostGIS)", {
+      categoryNorm,
+      returned: rows.length,
+      scope,
+    });
+
+    return {
+      type: "geo_nearest_poi",
+      categoryNorm,
+      locations: rows,
+      count: rows.length,
+      _postgisContext: formatPoiContext(rows, { type: "geo_nearest_poi", categoryNorm, scope }),
+    };
+  }
+
+  // Fallback: JSONL
   const geoIndex = await getGeoIndex();
   const candidates = await geoIndex.findByCategoryNorm(categoryNorm, {
     bbox: bboxFilter?.applyBbox ? bboxFilter.bbox : null
   });
 
-  // Zentrum: resolveCenterPoint (Einsatzstellen > BBox > Fallback)
   const center = centerPoint;
-
-  // Haversine-Distanz berechnen und sortieren
   const withDistance = candidates.map(loc => {
     const dist = haversineDistance(center.lat, center.lon, loc.lat, loc.lon);
     return { ...loc, distance: dist, distanceFormatted: formatDistance(dist) };
@@ -688,8 +800,69 @@ async function handleGeoNearestPoi(query, params, context, bboxFilter, centerPoi
   };
 }
 
-async function handleGeoCount(query, params, context, bboxFilter) {
+async function handleGeoCount(query, params, context, bboxFilter, pgCtx = {}) {
   const { categoryNorm, docTypeFilter } = params;
+
+  // PostGIS: Count-Query (Gebäude, POIs, etc.)
+  if (pgCtx.postgisReady && (!categoryNorm && (docTypeFilter === "building" || /gebäude|gebaeude|building/i.test(query)))) {
+    const muniName = pgCtx.municipalityScope?.name || null;
+    const { radiusM } = extractRadius(query);
+
+    const result = await countBuildings({
+      bbox: bboxFilter?.applyBbox ? bboxFilter.bbox : null,
+      radiusM: radiusM || null,
+      center: radiusM ? { lat: (bboxFilter?.bbox ? (bboxFilter.bbox[1]+bboxFilter.bbox[3])/2 : 46.7239), lon: (bboxFilter?.bbox ? (bboxFilter.bbox[0]+bboxFilter.bbox[2])/2 : 14.0947) } : null,
+      municipalityName: muniName,
+    });
+
+    logDebug("GEO_COUNT (PostGIS buildings)", {
+      count: result.count,
+      scope: result.scope,
+    });
+
+    return {
+      type: "geo_count",
+      categoryNorm: null,
+      docTypeFilter: "building",
+      count: result.count,
+      bboxActive: bboxFilter?.applyBbox || false,
+      locations: [],
+      _postgisContext: formatBuildingCountContext(result),
+    };
+  }
+
+  // PostGIS: Count für POI-Kategorien
+  if (pgCtx.postgisReady && categoryNorm) {
+    const muniName = pgCtx.municipalityScope?.name || null;
+    const rows = muniName
+      ? await listByMunicipality({ municipalityName: muniName, categoryNorms: [categoryNorm], limit: 5 })
+      : await listPoi({
+          categoryNorms: [categoryNorm],
+          bbox: bboxFilter?.applyBbox ? bboxFilter.bbox : null,
+          limit: 500,
+        });
+
+    logDebug("GEO_COUNT (PostGIS POI)", {
+      categoryNorm,
+      count: rows.length,
+    });
+
+    return {
+      type: "geo_count",
+      categoryNorm,
+      docTypeFilter: "poi",
+      count: rows.length,
+      bboxActive: bboxFilter?.applyBbox || false,
+      locations: rows.slice(0, 5),
+      _postgisContext: formatPoiContext(rows.slice(0, 5), {
+        type: "geo_count",
+        categoryNorm,
+        scope: muniName ? `Gemeinde ${muniName}` : (bboxFilter?.applyBbox ? "Einsatzbereich" : "gesamt"),
+      }).replace(/###.*###/, `### GEO_COUNT (PostGIS) — ${rows.length} gezählt ###`),
+    };
+  }
+
+  // Fallback: JSONL
   const geoIndex = await getGeoIndex();
 
   let candidates;
@@ -698,7 +871,6 @@ async function handleGeoCount(query, params, context, bboxFilter) {
       bbox: bboxFilter?.applyBbox ? bboxFilter.bbox : null
     });
   } else {
-    // Filter nach docType
     candidates = geoIndex.locations.filter(loc => {
       if (docTypeFilter && loc.doc_type !== docTypeFilter) return false;
       if (bboxFilter?.applyBbox && bboxFilter.bbox) {
@@ -721,20 +893,57 @@ async function handleGeoCount(query, params, context, bboxFilter) {
     docTypeFilter,
     count: candidates.length,
     bboxActive: bboxFilter?.applyBbox || false,
-    locations: candidates.slice(0, 5) // Beispiele
+    locations: candidates.slice(0, 5)
   };
 }
 
-async function handleGeoList(query, params, context, bboxFilter, centerPoint) {
+async function handleGeoList(query, params, context, bboxFilter, centerPoint, pgCtx = {}) {
   const { categoryNorm } = params;
+
+  // PostGIS: Listenabfrage
+  if (pgCtx.postgisReady) {
+    const muniName = pgCtx.municipalityScope?.name || null;
+    const { radiusM } = extractRadius(query);
+
+    const rows = muniName
+      ? await listByMunicipality({ municipalityName: muniName, categoryNorms: [categoryNorm], limit: 50 })
+      : await listPoi({
+          categoryNorms: [categoryNorm],
+          center: { lat: centerPoint.lat, lon: centerPoint.lon },
+          bbox: bboxFilter?.applyBbox ? bboxFilter.bbox : null,
+          radiusM: radiusM || null,
+          limit: 50,
+        });
+
+    const scope = muniName
+      ? `Gemeinde ${muniName}`
+      : radiusM
+        ? `Radius ${radiusM}m`
+        : (bboxFilter?.applyBbox ? "Einsatzbereich (BBox)" : "gesamt");
+
+    logDebug("GEO_LIST (PostGIS)", {
+      categoryNorm,
+      returned: rows.length,
+      scope,
+    });
+
+    return {
+      type: "geo_list",
+      categoryNorm,
+      locations: rows,
+      count: rows.length,
+      totalAvailable: rows.length,
+      _postgisContext: formatPoiContext(rows, { type: "geo_list", categoryNorm, scope }),
+    };
+  }
+
+  // Fallback: JSONL
   const geoIndex = await getGeoIndex();
   const candidates = await geoIndex.findByCategoryNorm(categoryNorm, {
     bbox: bboxFilter?.applyBbox ? bboxFilter.bbox : null
   });
 
-  // Sortiert nach Distanz zum Zentrum (resolveCenterPoint)
   const center = centerPoint;
-
   const withDistance = candidates.map(loc => {
     const dist = haversineDistance(center.lat, center.lon, loc.lat, loc.lon);
     return { ...loc, distance: dist, distanceFormatted: formatDistance(dist) };
@@ -762,35 +971,80 @@ async function handleGeoList(query, params, context, bboxFilter, centerPoint) {
  * Handler für Provider/Ressourcen-Suche (Bagger, Baufirma, Bus etc.)
  * Sucht in OSM-Daten nach craft/office/industrial/shop Tags + Volltext
  */
-async function handleGeoProviderSearch(query, params, context, bboxFilter, centerPoint) {
+async function handleGeoProviderSearch(query, params, context, bboxFilter, centerPoint, pgCtx = {}) {
   const { searchTerm } = params;
-  const geoIndex = await getGeoIndex();
 
-  // Kandidaten: POIs mit Volltext-Match auf name, type, category_norm
+  // PostGIS: Provider-Suche mit Volltext
+  if (pgCtx.postgisReady) {
+    // Keyword -> providerType Mapping
+    const providerTypeMap = {
+      bagger: ["earthworks", "construction", "rental"],
+      erdbau: ["earthworks"],
+      tiefbau: ["construction"],
+      baufirma: ["construction"],
+      kran: ["crane", "rental"],
+      radlader: ["earthworks", "rental"],
+      bus: ["bus_company"],
+      reisebus: ["bus_company"],
+      busunternehmen: ["bus_company"],
+      transporte: ["transport"],
+      lkw: ["transport"],
+      fuhrpark: ["transport"],
+      aggregate: ["rental"],
+      verleih: ["rental"],
+    };
+
+    const providerTypes = providerTypeMap[searchTerm.toLowerCase()] || null;
+    const muniName = pgCtx.municipalityScope?.name || null;
+    const { radiusM } = extractRadius(query);
+
+    const rows = await searchProviders({
+      queryText: searchTerm,
+      providerTypes,
+      center: { lat: centerPoint.lat, lon: centerPoint.lon },
+      bbox: bboxFilter?.applyBbox ? bboxFilter.bbox : null,
+      radiusM: radiusM || null,
+      municipalityName: muniName,
+      limit: 15,
+    });
+
+    const scope = muniName
+      ? `Gemeinde ${muniName}`
+      : radiusM
+        ? `Radius ${radiusM}m`
+        : (bboxFilter?.applyBbox ? "Einsatzbereich (BBox)" : "nächstgelegen");
+
+    logDebug("GEO_PROVIDER_SEARCH (PostGIS)", {
+      searchTerm,
+      returned: rows.length,
+      scope,
+    });
+
+    return {
+      type: "geo_provider_search",
+      searchTerm,
+      locations: rows,
+      count: rows.length,
+      totalAvailable: rows.length,
+      _postgisContext: formatProviderContext(rows, { searchTerm, scope }),
+    };
+  }
+
+  // Fallback: JSONL
+  const geoIndex = await getGeoIndex();
   const searchLower = searchTerm.toLowerCase();
   let candidates = geoIndex.locations.filter(loc => {
-    // BBox-Filter wenn aktiv
     if (bboxFilter?.applyBbox && bboxFilter.bbox) {
       const [minLon, minLat, maxLon, maxLat] = bboxFilter.bbox;
       if (loc.lat < minLat || loc.lat > maxLat || loc.lon < minLon || loc.lon > maxLon) return false;
     }
-
-    // Nur benannte Locations
     if (!loc.name && !loc.address) return false;
-
-    // Volltext-Match auf name, type, category_norm, poi_class
     const fields = [
-      loc.name,
-      loc.type,
-      loc.category_norm,
-      loc.poi_class,
-      loc.address,
+      loc.name, loc.type, loc.category_norm, loc.poi_class, loc.address,
     ].filter(Boolean).map(f => String(f).toLowerCase()).join(" ");
-
     return fields.includes(searchLower);
   });
 
-  // Distanz berechnen und sortieren
   const center = centerPoint;
   const withDistance = candidates.map(loc => {
     const dist = haversineDistance(center.lat, center.lon, loc.lat, loc.lon);

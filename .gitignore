@@ -3,6 +3,10 @@ node_modules/
 
 logs/
 dist/
+
+# PostGIS pipeline temp files (PBF extracts, GeoJSON)
+feldkirchen-adressen/postgis_pipeline/tmp/*.osm.pbf
+feldkirchen-adressen/postgis_pipeline/tmp/*.geojson
 chatbot/logs/
 data/
 chatbot/logs/chatbot.log
