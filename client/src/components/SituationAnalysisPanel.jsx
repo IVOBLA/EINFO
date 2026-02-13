@@ -812,11 +812,19 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
       >
         <button
           onClick={() => { setIsOpen(true); setIsMinimized(false); }}
-          className="bg-blue-600 text-white px-6 py-2 rounded-t-lg shadow-lg hover:bg-blue-700 flex items-center gap-2"
+          className={`text-white px-6 py-2 rounded-t-lg shadow-lg flex items-center gap-2 transition-colors ${
+            analysisInProgress
+              ? "bg-yellow-600 hover:bg-yellow-700"
+              : "bg-blue-600 hover:bg-blue-700"
+          }`}
         >
           {renderKiIcon("w-5 h-5", "text-lg")}
           <span className="text-sm font-medium">KI-Analyse</span>
-          {analysisData?.situation?.severity && (
+          {analysisInProgress ? (
+            <span className="flex items-center gap-1 text-xs bg-yellow-500 px-2 py-0.5 rounded animate-pulse">
+              <span className="inline-block animate-spin">⏳</span> Analyse läuft...
+            </span>
+          ) : analysisData?.situation?.severity ? (
             <span className={`text-xs px-1.5 py-0.5 rounded ${
               analysisData.situation.severity === "critical" ? "bg-red-500" :
               analysisData.situation.severity === "high" ? "bg-orange-500" :
@@ -824,7 +832,7 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
             }`}>
               {SEVERITY_LABELS[analysisData.situation.severity]}
             </span>
-          )}
+          ) : null}
         </button>
       </div>
 
@@ -837,18 +845,24 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
       >
         <div className="bg-white rounded-t-xl shadow-2xl border-t border-gray-200 flex flex-col" style={{ height: "70vh" }}>
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-xl cursor-pointer"
+          <div className={`flex items-center justify-between px-4 py-3 text-white rounded-t-xl cursor-pointer transition-colors ${
+            analysisInProgress
+              ? "bg-gradient-to-r from-yellow-600 to-yellow-700"
+              : "bg-gradient-to-r from-blue-600 to-blue-700"
+          }`}
                onClick={() => setIsMinimized(!isMinimized)}>
             <div className="flex items-center gap-3">
               {renderKiIcon("w-6 h-6", "text-xl")}
               <div>
-                <h3 className="font-semibold">KI-Situationsanalyse</h3>
-                <div className="flex flex-wrap items-center gap-x-3 text-xs opacity-90">
+                <h3 className="font-semibold flex items-center gap-2">
+                  KI-Situationsanalyse
                   {analysisInProgress && (
-                    <span className="flex items-center gap-1 text-yellow-300">
-                      <span className="animate-pulse">●</span> Analyse läuft...
+                    <span className="text-xs font-normal bg-yellow-500 text-white px-2 py-0.5 rounded-full animate-pulse flex items-center gap-1">
+                      <span className="inline-block animate-spin">⏳</span> Analyse läuft...
                     </span>
                   )}
+                </h3>
+                <div className="flex flex-wrap items-center gap-x-3 text-xs opacity-90">
                   {!analysisInProgress && timerStatus?.isAutomatic && timerStatus?.nextAnalysisInMinutes !== null && (
                     <span className="flex items-center gap-1 text-blue-200">
                       <span>⏱️</span> Nächste Analyse in: <span className="font-medium">{formatNextAnalysisTime(timerStatus.nextAnalysisInMinutes)}</span>
@@ -928,6 +942,23 @@ export default function SituationAnalysisPanel({ currentRole = "LTSTB", enabled 
                           ))}
                         </div>
                       )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Analyse-Fortschrittsanzeige */}
+              {analysisInProgress && analysisData && (
+                <div className="mx-4 mt-3 px-4 py-3 bg-yellow-50 border border-yellow-300 rounded-lg flex items-center gap-3">
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="inline-block animate-spin text-lg">⏳</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-yellow-800">Neue Analyse wird durchgeführt...</p>
+                    <p className="text-xs text-yellow-600 mt-0.5">Die Ergebnisse werden automatisch aktualisiert.</p>
+                    <div className="mt-2 h-1.5 bg-yellow-200 rounded-full overflow-hidden">
+                      <div className="h-full bg-yellow-500 rounded-full animate-[progress-indeterminate_1.5s_ease-in-out_infinite]"
+                           style={{ width: "40%", animation: "progress-indeterminate 1.5s ease-in-out infinite" }} />
                     </div>
                   </div>
                 </div>

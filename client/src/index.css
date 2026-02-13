@@ -789,3 +789,16 @@ header .toolbar .interval-capsule input:focus {
 .maplibregl-ctrl-bottom-right .mapboxgl-ctrl {
   pointer-events: auto;
 }
+
+/* KI-Analyse: Indeterminate progress bar animation */
+@keyframes progress-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(150%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
